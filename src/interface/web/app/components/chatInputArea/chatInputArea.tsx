@@ -63,6 +63,29 @@ interface ChatInputProps {
     isLoggedIn: boolean;
 }
 
+async function createNewConvo() {
+    try {
+        const response = await fetch('/api/chat/sessions', { method: "POST" });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const conversationID = data.conversation_id;
+
+        if (!conversationID) {
+            throw new Error("Conversation ID not found in response");
+        }
+
+        const url = `/chat?conversationId=${conversationID}`;
+        return url;
+    } catch (error) {
+        console.error("Error creating new conversation:", error);
+        throw error;
+    }
+}
+
 export default function ChatInputArea(props: ChatInputProps) {
     const [message, setMessage] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);

@@ -20,7 +20,7 @@ import { welcomeConsole } from '../common/utils';
 import ChatInputArea, { ChatOptions } from '../components/chatInputArea/chatInputArea';
 import { useAuthenticatedData } from '../common/auth';
 
-const suggestions: Suggestion[] = [["Automation", `${styles.blue}`, "/automate.svg", "Send me a summary of HackerNews every morning."], ["Automation", `${styles.blue}`, "/automate.svg", "Send me an exciting recipe every sunday"], ["Paint", `${styles.green}`, "/paint.svg", "Paint a picture of a sunset but it's made of stained glass tiles"], ["Online Search", `${styles.yellow}`, "/online_search.svg", "Search for the best attractions in Austria Hungary"]];
+const suggestions: Suggestion[] = [["Automation", `${styles.blue}`, "/automate.svg", "Send me a summary of HackerNews every morning.", "http://localhost:3000/automations?subject=Summarizing%20Top%20Headlines%20from%20HackerNews&query=Summarize%20the%20top%20headlines%20on%20HackerNews&crontime=00%207%20*%20*%20*"], ["Automation", `${styles.blue}`, "/automate.svg", "Compose a bedtime story that a five-year-old might enjoy.", "http://localhost:3000/automations?subject=Daily%20Bedtime%20Story&query=Compose%20a%20bedtime%20story%20that%20a%20five-year-old%20might%20enjoy.%20It%20should%20not%20exceed%20five%20paragraphs.%20Appeal%20to%20the%20imagination%2C%20but%20weave%20in%20learnings.&crontime=0%2021%20*%20*%20*"], ["Paint", `${styles.green}`, "/paint.svg", "Paint a picture of a sunset but it's made of stained glass tiles", ""], ["Online Search", `${styles.yellow}`, "/online_search.svg", "Search for the best attractions in Austria Hungary", ""]];
 const sampleAgents = [["Khoj", "/khoj_agent.svg"], ["Teacher", "/teacher_agent.svg"], ["Doctor", "/doctor_agent.svg"], ["Sage", "/sage_agent.svg"]];
 
 interface ChatBodyDataProps {
@@ -33,7 +33,41 @@ interface ChatBodyDataProps {
     isMobileWidth?: boolean;
     isLoggedIn: boolean;
 }
-type Suggestion = [string, string, string, string];
+type Suggestion = [string, string, string, string, string];
+
+async function createNewConvo() {
+    try {
+        const response = await fetch('/api/chat/sessions', { method: "POST" });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const conversationID = data.conversation_id;
+
+        if (!conversationID) {
+            throw new Error("Conversation ID not found in response");
+        }
+
+        const url = `/chat?conversationId=${conversationID}`;
+        return url;
+    } catch (error) {
+        console.error("Error creating new conversation:", error);
+        throw error;
+    }
+}
+
+async function navigateToNewConvo() {
+    try {
+        const url = await createNewConvo();
+        console.log("URL: ", url);
+        window.location.href = url;
+    } catch (error) {
+        console.error("Error navigating to new conversation:", error);
+    }
+}
+
 function ChatBodyData(props: ChatBodyDataProps) {
     const searchParams = useSearchParams();
     const conversationId = searchParams.get('conversationId');
@@ -81,12 +115,15 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }, [props.streamedMessages]);
 
     if (!conversationId) {
+        // const storedURL = storeUrlSynchronously();
+        // const id = storedURL.replace("/chat?conversationId=", "");
+        // console.log("id for new convo: ", id);
         return (
             <div>
             <div className="w-full text-center">
-            <h1 className="white pb-8 w-4/5">What would you like to do?</h1>
+                <h1 className="white pb-8 w-4/5">What would you like to do?</h1>
             </div>
-            <div className="w-full text-center">
+            <div className="w-fit text-center">
             <div className="flex pb-8 ms-10 gap-2">
                 {sampleAgents.map(([title, image]) => (
                     <AgentShortcut
@@ -102,24 +139,24 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 <AgentShortcut key="See More" title="See More →" link="/agents" image="" color="" />
             </div>
             </div>
-            <div className="w-4/5">
+            <div className="w-fit">
                 <div className={`${styles.inputBox} bg-background align-middle items-center justify-center px-3`}>
                     <ChatInputArea
                         isLoggedIn={props.isLoggedIn}
                         sendMessage={(message) => setMessage(message)}
                         sendDisabled={processingMessage}
                         chatOptionsData={props.chatOptionsData}
-                        conversationId={conversationId}
+                        conversationId={null}
                         isMobileWidth={props.isMobileWidth}
                         setUploadedFiles={props.setUploadedFiles} />
                 </div>
                 <div className={`suggestions ${styles.suggestions} w-full flex`}>
-                    {shuffledOptions.map(([key, styleClass, image, value]) => (
+                    {shuffledOptions.map(([key, styleClass, image, value, link]) => (
                         <SuggestionCard
                         key={key + Math.random()}
                         title={key}
                         body={value.length > 65 ? value.substring(0, 65) + '...' : value}
-                        link='https://www.google.com' // replace with actual link if available
+                        link={link} // replace with actual link if available
                         color={styleClass}
                         image={image}
                         />
@@ -127,6 +164,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 </div>
                 <div className="flex items-center justify-center">
                     <button onClick={onButtonClick} className="m-2 p-1 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100">More Examples ⟳</button>
+                    <button onClick={navigateToNewConvo} className="m-2 p-1 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100">New Conversation</button>
                 </div>
             </div>
             </div>
@@ -176,7 +214,6 @@ export default function Chat() {
     const handleWebSocketMessage = (event: MessageEvent) => {
         let chunk = event.data;
         let currentMessage = messages.find(message => !message.completed);
-
         if (!currentMessage) {
             console.error("No current message found");
             return;

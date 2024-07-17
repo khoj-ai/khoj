@@ -177,7 +177,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
             .then(response => response.json())
             .then((chatData: ChatResponse) => {
                 props.setTitle(chatData.response.slug);
-                if (chatData && chatData.response && chatData.response.chat.length > 0) {
+                if (chatData && chatData.response && chatData.response.chat && chatData.response.chat.length > 0) {
 
                     if (chatData.response.chat.length === data?.chat.length) {
                         setHasMoreMessages(false);
@@ -193,6 +193,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                     setFetchingData(false);
                 } else {
                     setHasMoreMessages(false);
+                    setFetchingData(false);
                 }
             })
             .catch(err => {
