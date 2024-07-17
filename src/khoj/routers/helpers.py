@@ -5,6 +5,7 @@ import io
 import json
 import logging
 import math
+import os
 import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -35,6 +36,7 @@ from PIL import Image
 from starlette.authentication import has_required_scope
 from starlette.requests import URL
 
+from khoj.database import adapters
 from khoj.database.adapters import (
     AgentAdapters,
     AutomationAdapters,
@@ -42,18 +44,30 @@ from khoj.database.adapters import (
     EntryAdapters,
     create_khoj_token,
     get_khoj_tokens,
+    get_user_name,
+    get_user_subscription_state,
     run_with_process_lock,
 )
 from khoj.database.models import (
     ChatModelOptions,
     ClientApplication,
     Conversation,
+    GithubConfig,
     KhojUser,
+    NotionConfig,
     ProcessLock,
     Subscription,
     TextToImageModelConfig,
     UserRequests,
 )
+from khoj.processor.content.docx.docx_to_entries import DocxToEntries
+from khoj.processor.content.github.github_to_entries import GithubToEntries
+from khoj.processor.content.images.image_to_entries import ImageToEntries
+from khoj.processor.content.markdown.markdown_to_entries import MarkdownToEntries
+from khoj.processor.content.notion.notion_to_entries import NotionToEntries
+from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
+from khoj.processor.content.pdf.pdf_to_entries import PdfToEntries
+from khoj.processor.content.plaintext.plaintext_to_entries import PlaintextToEntries
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.anthropic.anthropic_chat import (
     anthropic_send_message_to_model,
@@ -69,11 +83,15 @@ from khoj.processor.conversation.utils import (
     generate_chatml_messages_with_context,
     save_to_conversation_log,
 )
+from khoj.processor.speech.text_to_speech import is_eleven_labs_enabled
 from khoj.routers.email import is_resend_enabled, send_task_email
 from khoj.routers.storage import upload_image
+from khoj.routers.twilio import is_twilio_enabled
+from khoj.search_type import text_search
 from khoj.utils import state
 from khoj.utils.config import OfflineChatProcessorModel
 from khoj.utils.helpers import (
+    LRU,
     ConversationCommand,
     ImageIntentType,
     is_none_or_empty,
@@ -88,6 +106,11 @@ from khoj.utils.rawconfig import LocationData
 logger = logging.getLogger(__name__)
 
 executor = ThreadPoolExecutor(max_workers=1)
+
+
+NOTION_OAUTH_CLIENT_ID = os.getenv("NOTION_OAUTH_CLIENT_ID")
+NOTION_OAUTH_CLIENT_SECRET = os.getenv("NOTION_OAUTH_CLIENT_SECRET")
+NOTION_REDIRECT_URI = os.getenv("NOTION_REDIRECT_URI")
 
 
 def is_query_empty(query: str) -> bool:
@@ -902,7 +925,7 @@ class ApiUserRateLimiter:
                 )
             raise HTTPException(
                 status_code=429,
-                detail="We're glad you're enjoying Khoj! You've exceeded your usage limit for today. Come back tomorrow or subscribe to increase your usage limit via [your settings](https://app.khoj.dev/config).",
+                detail="We're glad you're enjoying Khoj! You've exceeded your usage limit for today. Come back tomorrow or subscribe to increase your usage limit via [your settings](https://app.khoj.dev/settings).",
             )
 
         # Add the current request to the cache
@@ -941,7 +964,7 @@ class ConversationCommandRateLimiter:
         if not subscribed and count_requests >= self.trial_rate_limit:
             raise HTTPException(
                 status_code=429,
-                detail=f"We're glad you're enjoying Khoj! You've exceeded your `/{conversation_command.value}` command usage limit for today. Subscribe to increase your usage limit via [your settings](https://app.khoj.dev/config).",
+                detail=f"We're glad you're enjoying Khoj! You've exceeded your `/{conversation_command.value}` command usage limit for today. Subscribe to increase your usage limit via [your settings](https://app.khoj.dev/settings).",
             )
         await UserRequests.objects.acreate(user=user, slug=command_slug)
         return
@@ -1186,3 +1209,284 @@ def construct_automation_created_message(automation: Job, crontime: str, query_t
 
 Manage your automations [here](/automations).
     """.strip()
+
+
+def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False):
+    user_picture = request.session.get("user", {}).get("picture")
+    is_active = has_required_scope(request, ["premium"])
+    has_documents = EntryAdapters.user_has_entries(user=user)
+
+    if not is_detailed:
+        return {
+            "request": request,
+            "username": user.username if user else None,
+            "user_photo": user_picture,
+            "is_active": is_active,
+            "has_documents": has_documents,
+            "khoj_version": state.khoj_version,
+        }
+
+    user_subscription_state = get_user_subscription_state(user.email)
+    user_subscription = adapters.get_user_subscription(user.email)
+    subscription_renewal_date = (
+        user_subscription.renewal_date.strftime("%d %b %Y")
+        if user_subscription and user_subscription.renewal_date
+        else (user_subscription.created_at + timedelta(days=7)).strftime("%d %b %Y")
+    )
+    given_name = get_user_name(user)
+
+    enabled_content_sources_set = set(EntryAdapters.get_unique_file_sources(user))
+    enabled_content_sources = {
+        "computer": ("computer" in enabled_content_sources_set),
+        "github": ("github" in enabled_content_sources_set),
+        "notion": ("notion" in enabled_content_sources_set),
+    }
+
+    selected_chat_model_config = ConversationAdapters.get_conversation_config(user)
+    chat_models = ConversationAdapters.get_conversation_processor_options().all()
+    chat_model_options = list()
+    for chat_model in chat_models:
+        chat_model_options.append({"name": chat_model.chat_model, "id": chat_model.id})
+
+    search_model_options = adapters.get_or_create_search_models().all()
+    all_search_model_options = list()
+    for search_model_option in search_model_options:
+        all_search_model_options.append({"name": search_model_option.name, "id": search_model_option.id})
+
+    current_search_model_option = adapters.get_user_search_model_or_default(user)
+
+    selected_paint_model_config = ConversationAdapters.get_user_text_to_image_model_config(user)
+    paint_model_options = ConversationAdapters.get_text_to_image_model_options().all()
+    all_paint_model_options = list()
+    for paint_model in paint_model_options:
+        all_paint_model_options.append({"name": paint_model.model_name, "id": paint_model.id})
+
+    notion_oauth_url = get_notion_auth_url(user)
+
+    eleven_labs_enabled = is_eleven_labs_enabled()
+
+    voice_models = ConversationAdapters.get_voice_model_options()
+    voice_model_options = list()
+    for voice_model in voice_models:
+        voice_model_options.append({"name": voice_model.name, "id": voice_model.model_id})
+
+    if len(voice_model_options) == 0:
+        eleven_labs_enabled = False
+
+    selected_voice_config = ConversationAdapters.get_voice_model_config(user)
+
+    return {
+        "request": request,
+        # user info
+        "username": user.username if user else None,
+        "user_photo": user_picture,
+        "is_active": is_active,
+        "given_name": given_name,
+        "phone_number": user.phone_number,
+        "is_phone_number_verified": user.verified_phone_number,
+        # user content, model settings
+        "enabled_content_source": enabled_content_sources,
+        "has_documents": has_documents,
+        "search_model_options": all_search_model_options,
+        "selected_search_model_config": current_search_model_option.id,
+        "chat_model_options": chat_model_options,
+        "selected_chat_model_config": selected_chat_model_config.id if selected_chat_model_config else None,
+        "paint_model_options": all_paint_model_options,
+        "selected_paint_model_config": selected_paint_model_config.id if selected_paint_model_config else None,
+        "voice_model_options": voice_model_options,
+        "selected_voice_config": selected_voice_config.model_id if selected_voice_config else None,
+        # user billing info
+        "subscription_state": user_subscription_state,
+        "subscription_renewal_date": subscription_renewal_date,
+        # server settings
+        "khoj_cloud_subscription_url": os.getenv("KHOJ_CLOUD_SUBSCRIPTION_URL"),
+        "billing_enabled": state.billing_enabled,
+        "is_eleven_labs_enabled": eleven_labs_enabled,
+        "is_twilio_enabled": is_twilio_enabled(),
+        "khoj_version": state.khoj_version,
+        "anonymous_mode": state.anonymous_mode,
+        "notion_oauth_url": notion_oauth_url,
+    }
+
+
+def configure_content(
+    files: Optional[dict[str, dict[str, str]]],
+    regenerate: bool = False,
+    t: Optional[state.SearchType] = state.SearchType.All,
+    full_corpus: bool = True,
+    user: KhojUser = None,
+) -> bool:
+    success = True
+    if t == None:
+        t = state.SearchType.All
+
+    if t is not None and t in [type.value for type in state.SearchType]:
+        t = state.SearchType(t)
+
+    if t is not None and not t.value in [type.value for type in state.SearchType]:
+        logger.warning(f"🚨 Invalid search type: {t}")
+        return False
+
+    search_type = t.value if t else None
+
+    no_documents = all([not files.get(file_type) for file_type in files])
+
+    if files is None:
+        logger.warning(f"🚨 No files to process for {search_type} search.")
+        return True
+
+    try:
+        # Initialize Org Notes Search
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Org.value) and files["org"]:
+            logger.info("🦄 Setting up search for orgmode notes")
+            # Extract Entries, Generate Notes Embeddings
+            text_search.setup(
+                OrgToEntries,
+                files.get("org"),
+                regenerate=regenerate,
+                full_corpus=full_corpus,
+                user=user,
+            )
+    except Exception as e:
+        logger.error(f"🚨 Failed to setup org: {e}", exc_info=True)
+        success = False
+
+    try:
+        # Initialize Markdown Search
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Markdown.value) and files[
+            "markdown"
+        ]:
+            logger.info("💎 Setting up search for markdown notes")
+            # Extract Entries, Generate Markdown Embeddings
+            text_search.setup(
+                MarkdownToEntries,
+                files.get("markdown"),
+                regenerate=regenerate,
+                full_corpus=full_corpus,
+                user=user,
+            )
+
+    except Exception as e:
+        logger.error(f"🚨 Failed to setup markdown: {e}", exc_info=True)
+        success = False
+
+    try:
+        # Initialize PDF Search
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Pdf.value) and files["pdf"]:
+            logger.info("🖨️ Setting up search for pdf")
+            # Extract Entries, Generate PDF Embeddings
+            text_search.setup(
+                PdfToEntries,
+                files.get("pdf"),
+                regenerate=regenerate,
+                full_corpus=full_corpus,
+                user=user,
+            )
+
+    except Exception as e:
+        logger.error(f"🚨 Failed to setup PDF: {e}", exc_info=True)
+        success = False
+
+    try:
+        # Initialize Plaintext Search
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Plaintext.value) and files[
+            "plaintext"
+        ]:
+            logger.info("📄 Setting up search for plaintext")
+            # Extract Entries, Generate Plaintext Embeddings
+            text_search.setup(
+                PlaintextToEntries,
+                files.get("plaintext"),
+                regenerate=regenerate,
+                full_corpus=full_corpus,
+                user=user,
+            )
+
+    except Exception as e:
+        logger.error(f"🚨 Failed to setup plaintext: {e}", exc_info=True)
+        success = False
+
+    try:
+        if no_documents:
+            github_config = GithubConfig.objects.filter(user=user).prefetch_related("githubrepoconfig").first()
+            if (
+                search_type == state.SearchType.All.value or search_type == state.SearchType.Github.value
+            ) and github_config is not None:
+                logger.info("🐙 Setting up search for github")
+                # Extract Entries, Generate Github Embeddings
+                text_search.setup(
+                    GithubToEntries,
+                    None,
+                    regenerate=regenerate,
+                    full_corpus=full_corpus,
+                    user=user,
+                    config=github_config,
+                )
+
+    except Exception as e:
+        logger.error(f"🚨 Failed to setup GitHub: {e}", exc_info=True)
+        success = False
+
+    try:
+        if no_documents:
+            # Initialize Notion Search
+            notion_config = NotionConfig.objects.filter(user=user).first()
+            if (
+                search_type == state.SearchType.All.value or search_type == state.SearchType.Notion.value
+            ) and notion_config:
+                logger.info("🔌 Setting up search for notion")
+                text_search.setup(
+                    NotionToEntries,
+                    None,
+                    regenerate=regenerate,
+                    full_corpus=full_corpus,
+                    user=user,
+                    config=notion_config,
+                )
+
+    except Exception as e:
+        logger.error(f"🚨 Failed to setup Notion: {e}", exc_info=True)
+        success = False
+
+    try:
+        # Initialize Image Search
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Image.value) and files[
+            "image"
+        ]:
+            logger.info("🖼️ Setting up search for images")
+            # Extract Entries, Generate Image Embeddings
+            text_search.setup(
+                ImageToEntries,
+                files.get("image"),
+                regenerate=regenerate,
+                full_corpus=full_corpus,
+                user=user,
+            )
+    except Exception as e:
+        logger.error(f"🚨 Failed to setup images: {e}", exc_info=True)
+        success = False
+    try:
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Docx.value) and files["docx"]:
+            logger.info("📄 Setting up search for docx")
+            text_search.setup(
+                DocxToEntries,
+                files.get("docx"),
+                regenerate=regenerate,
+                full_corpus=full_corpus,
+                user=user,
+            )
+    except Exception as e:
+        logger.error(f"🚨 Failed to setup docx: {e}", exc_info=True)
+        success = False
+
+    # Invalidate Query Cache
+    if user:
+        state.query_cache[user.uuid] = LRU()
+
+    return success
+
+
+def get_notion_auth_url(user: KhojUser):
+    if not NOTION_OAUTH_CLIENT_ID or not NOTION_OAUTH_CLIENT_SECRET or not NOTION_REDIRECT_URI:
+        return None
+    return f"https://api.notion.com/v1/oauth/authorize?client_id={NOTION_OAUTH_CLIENT_ID}&redirect_uri={NOTION_REDIRECT_URI}&response_type=code&state={user.uuid}"
