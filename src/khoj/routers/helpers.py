@@ -108,6 +108,11 @@ logger = logging.getLogger(__name__)
 executor = ThreadPoolExecutor(max_workers=1)
 
 
+NOTION_OAUTH_CLIENT_ID = os.getenv("NOTION_OAUTH_CLIENT_ID")
+NOTION_OAUTH_CLIENT_SECRET = os.getenv("NOTION_OAUTH_CLIENT_SECRET")
+NOTION_REDIRECT_URI = os.getenv("NOTION_REDIRECT_URI")
+
+
 def is_query_empty(query: str) -> bool:
     return is_none_or_empty(query.strip())
 
@@ -1272,31 +1277,34 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
 
     return {
         "request": request,
+        # user info
         "username": user.username if user else None,
         "user_photo": user_picture,
         "is_active": is_active,
-        "has_documents": has_documents,
-        "khoj_version": state.khoj_version,
-        "enabled_content_source": enabled_content_sources,
-        "anonymous_mode": state.anonymous_mode,
         "given_name": given_name,
+        "phone_number": user.phone_number,
+        "is_phone_number_verified": user.verified_phone_number,
+        # user content, model settings
+        "enabled_content_source": enabled_content_sources,
+        "has_documents": has_documents,
         "search_model_options": all_search_model_options,
         "selected_search_model_config": current_search_model_option.id,
         "chat_model_options": chat_model_options,
         "selected_chat_model_config": selected_chat_model_config.id if selected_chat_model_config else None,
         "paint_model_options": all_paint_model_options,
         "selected_paint_model_config": selected_paint_model_config.id if selected_paint_model_config else None,
-        "user_photo": user_picture,
-        "billing_enabled": state.billing_enabled,
-        "subscription_state": user_subscription_state,
-        "subscription_renewal_date": subscription_renewal_date,
-        "khoj_cloud_subscription_url": os.getenv("KHOJ_CLOUD_SUBSCRIPTION_URL"),
-        "is_twilio_enabled": is_twilio_enabled(),
-        "is_eleven_labs_enabled": eleven_labs_enabled,
         "voice_model_options": voice_model_options,
         "selected_voice_config": selected_voice_config.model_id if selected_voice_config else None,
-        "phone_number": user.phone_number,
-        "is_phone_number_verified": user.verified_phone_number,
+        # user billing info
+        "subscription_state": user_subscription_state,
+        "subscription_renewal_date": subscription_renewal_date,
+        # server settings
+        "khoj_cloud_subscription_url": os.getenv("KHOJ_CLOUD_SUBSCRIPTION_URL"),
+        "billing_enabled": state.billing_enabled,
+        "is_eleven_labs_enabled": eleven_labs_enabled,
+        "is_twilio_enabled": is_twilio_enabled(),
+        "khoj_version": state.khoj_version,
+        "anonymous_mode": state.anonymous_mode,
         "notion_oauth_url": notion_oauth_url,
     }
 
@@ -1476,11 +1484,6 @@ def configure_content(
         state.query_cache[user.uuid] = LRU()
 
     return success
-
-
-NOTION_OAUTH_CLIENT_ID = os.getenv("NOTION_OAUTH_CLIENT_ID")
-NOTION_OAUTH_CLIENT_SECRET = os.getenv("NOTION_OAUTH_CLIENT_SECRET")
-NOTION_REDIRECT_URI = os.getenv("NOTION_REDIRECT_URI")
 
 
 def get_notion_auth_url(user: KhojUser):
