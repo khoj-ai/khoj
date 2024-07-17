@@ -1285,7 +1285,7 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
     if len(voice_model_options) == 0:
         eleven_labs_enabled = False
 
-    selected_voice_config = ConversationAdapters.get_voice_model_config(user)
+    selected_voice_model_config = ConversationAdapters.get_voice_model_config(user)
 
     return {
         "request": request,
@@ -1306,7 +1306,7 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
         "paint_model_options": all_paint_model_options,
         "selected_paint_model_config": selected_paint_model_config.id if selected_paint_model_config else None,
         "voice_model_options": voice_model_options,
-        "selected_voice_config": selected_voice_config.model_id if selected_voice_config else None,
+        "selected_voice_model_config": selected_voice_model_config.model_id if selected_voice_model_config else None,
         # user billing info
         "subscription_state": user_subscription_state,
         "subscription_renewal_date": subscription_renewal_date,
