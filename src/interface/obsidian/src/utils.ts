@@ -201,12 +201,12 @@ export function getBackendStatusMessage(
 ): string {
     // Welcome message with default settings. Khoj cloud always expects an API key.
     if (!khojApiKey && khojUrl === 'https://app.khoj.dev')
-        return `🌈 Welcome to Khoj! Get your API key from ${khojUrl}/configure#clients and set it in the Khoj plugin settings on Obsidian`;
+        return `🌈 Welcome to Khoj! Get your API key from ${khojUrl}/settings#clients and set it in the Khoj plugin settings on Obsidian`;
 
     if (!connectedToServer)
         return `❗️Could not connect to Khoj at ${khojUrl}. Ensure your can access it`;
     else if (!userEmail)
-        return `✅ Connected to Khoj. ❗️Get a valid API key from ${khojUrl}/configure#clients to log in`;
+        return `✅ Connected to Khoj. ❗️Get a valid API key from ${khojUrl}/settings#clients to log in`;
     else if (userEmail === 'default@example.com')
         // Logged in as default user in anonymous mode
         return `✅ Signed in to Khoj`;

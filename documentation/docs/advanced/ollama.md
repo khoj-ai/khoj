@@ -31,6 +31,6 @@ Ollama exposes a local [OpenAI API compatible server](https://github.com/ollama/
 5. Create a new [Server Chat Setting](http://localhost:42110/server/admin/database/serverchatsettings/add/) on your Khoj admin panel
    - Default model: `<name of chat model option you created in step 4>`
    - Summarizer model: `<name of chat model option you created in step 4>`
-6. Go to [your config](http://localhost:42110/configure) and select the model you just created in the chat model dropdown.
+6. Go to [your config](http://localhost:42110/settings) and select the model you just created in the chat model dropdown.
 
 That's it! You should now be able to chat with your Ollama model from Khoj. If you want to add additional models running on Ollama, repeat step 6 for each model.

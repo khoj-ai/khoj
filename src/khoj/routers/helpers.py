@@ -925,7 +925,7 @@ class ApiUserRateLimiter:
                 )
             raise HTTPException(
                 status_code=429,
-                detail="We're glad you're enjoying Khoj! You've exceeded your usage limit for today. Come back tomorrow or subscribe to increase your usage limit via [your settings](https://app.khoj.dev/configure).",
+                detail="We're glad you're enjoying Khoj! You've exceeded your usage limit for today. Come back tomorrow or subscribe to increase your usage limit via [your settings](https://app.khoj.dev/settings).",
             )
 
         # Add the current request to the cache
@@ -964,7 +964,7 @@ class ConversationCommandRateLimiter:
         if not subscribed and count_requests >= self.trial_rate_limit:
             raise HTTPException(
                 status_code=429,
-                detail=f"We're glad you're enjoying Khoj! You've exceeded your `/{conversation_command.value}` command usage limit for today. Subscribe to increase your usage limit via [your settings](https://app.khoj.dev/configure).",
+                detail=f"We're glad you're enjoying Khoj! You've exceeded your `/{conversation_command.value}` command usage limit for today. Subscribe to increase your usage limit via [your settings](https://app.khoj.dev/settings).",
             )
         await UserRequests.objects.acreate(user=user, slug=command_slug)
         return

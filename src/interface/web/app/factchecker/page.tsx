@@ -533,7 +533,7 @@ export default function FactChecker() {
                         <Button disabled={clickedVerify} onClick={() => onClickVerify()}>Verify</Button>
                     </div>
                     <h3 className={`mt-4 mb-4`}>
-                        Try with a particular model. You must be <a href="/configure" className="font-medium text-blue-600 dark:text-blue-500 hover:underline">subscribed</a> to configure the model.
+                        Try with a particular model. You must be <a href="/settings" className="font-medium text-blue-600 dark:text-blue-500 hover:underline">subscribed</a> to configure the model.
                     </h3>
                 </div>
             }

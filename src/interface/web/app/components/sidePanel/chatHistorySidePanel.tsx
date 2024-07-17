@@ -604,7 +604,7 @@ function UserProfileComponent(props: UserProfileProps) {
 
     return (
         <div className={styles.profile}>
-            <Link href="/configure" target="_blank" rel="noopener noreferrer">
+            <Link href="/settings">
                 <Avatar>
                     <AvatarImage src={props.userProfile.photo} alt="user profile" />
                     <AvatarFallback>
