@@ -44,7 +44,7 @@ import {
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-import { ArrowRight, ArrowLeft, ArrowDown, Spinner, Check, FolderPlus, DotsThreeVertical, House, StackPlus, UserCirclePlus } from "@phosphor-icons/react";
+import { ArrowRight, ArrowLeft, ArrowDown, Spinner, Check, FolderPlus, DotsThreeVertical, House, StackPlus, UserCirclePlus, Sidebar } from "@phosphor-icons/react";
 
 interface ChatHistory {
     conversation_id: string;
@@ -739,7 +739,7 @@ export default function SidePanel(props: SidePanelProps) {
                         </Drawer>
                         :
                         <button className={styles.button} onClick={() => setEnabled(!enabled)}>
-                            {enabled ? <ArrowLeft className="h-4 w-4" weight="bold"/> : <ArrowRight className="h-4 w-4 mx-2" weight="bold"/>}
+                            {enabled ? <Sidebar className="h-7 w-7"/> : <Sidebar className="ml-2 h-7 w-7" color="gray"/>}
                         </button>
                 }
             </div>
