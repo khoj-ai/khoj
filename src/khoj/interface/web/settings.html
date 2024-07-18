@@ -394,8 +394,8 @@
 
     function saveProfileGivenName() {
         const givenName = document.getElementById("profile_given_name").value;
-        fetch('/api/configure/user/name?name=' + givenName, {
-            method: 'POST',
+        fetch('/api/user/name?name=' + givenName, {
+            method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
             }
@@ -421,7 +421,7 @@
         saveVoiceModelButton.disabled = true;
         saveVoiceModelButton.textContent = "Saving...";
 
-        fetch('/api/configure/voice/model?id=' + voiceModel, {
+        fetch('/api/model/voice?id=' + voiceModel, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -455,7 +455,7 @@
         saveModelButton.innerHTML = "";
         saveModelButton.textContent = "Saving...";
 
-        fetch('/api/configure/chat/model?id=' + chatModel, {
+        fetch('/api/model/chat?id=' + chatModel, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -494,7 +494,7 @@
         saveSearchModelButton.disabled = true;
         saveSearchModelButton.textContent = "Saving...";
 
-        fetch('/api/configure/search/model?id=' + searchModel, {
+        fetch('/api/model/search?id=' + searchModel, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -526,7 +526,7 @@
         saveModelButton.disabled = true;
         saveModelButton.innerHTML = "Saving...";
 
-        fetch('/api/configure/paint/model?id=' + paintModel, {
+        fetch('/api/model/paint?id=' + paintModel, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

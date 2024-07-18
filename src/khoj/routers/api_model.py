@@ -11,11 +11,11 @@ from khoj.database import adapters
 from khoj.database.adapters import ConversationAdapters, EntryAdapters
 from khoj.routers.helpers import update_telemetry_state
 
-api_config = APIRouter()
+api_model = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-@api_config.get("/chat/model/options", response_model=Dict[str, Union[str, int]])
+@api_model.get("/chat/options", response_model=Dict[str, Union[str, int]])
 def get_chat_model_options(
     request: Request,
     client: Optional[str] = None,
@@ -29,7 +29,7 @@ def get_chat_model_options(
     return Response(content=json.dumps(all_conversation_options), media_type="application/json", status_code=200)
 
 
-@api_config.get("/chat/model")
+@api_model.get("/chat")
 @requires(["authenticated"])
 def get_user_chat_model(
     request: Request,
@@ -45,7 +45,7 @@ def get_user_chat_model(
     return Response(status_code=200, content=json.dumps({"id": chat_model.id, "chat_model": chat_model.chat_model}))
 
 
-@api_config.post("/chat/model", status_code=200)
+@api_model.post("/chat", status_code=200)
 @requires(["authenticated", "premium"])
 async def update_chat_model(
     request: Request,
@@ -70,7 +70,7 @@ async def update_chat_model(
     return {"status": "ok"}
 
 
-@api_config.post("/voice/model", status_code=200)
+@api_model.post("/voice", status_code=200)
 @requires(["authenticated", "premium"])
 async def update_voice_model(
     request: Request,
@@ -94,7 +94,7 @@ async def update_voice_model(
     return Response(status_code=202, content=json.dumps({"status": "ok"}))
 
 
-@api_config.post("/search/model", status_code=200)
+@api_model.post("/search", status_code=200)
 @requires(["authenticated"])
 async def update_search_model(
     request: Request,
@@ -127,7 +127,7 @@ async def update_search_model(
     return {"status": "ok"}
 
 
-@api_config.post("/paint/model", status_code=200)
+@api_model.post("/paint", status_code=200)
 @requires(["authenticated"])
 async def update_paint_model(
     request: Request,
@@ -152,37 +152,5 @@ async def update_paint_model(
 
     if new_config is None:
         return {"status": "error", "message": "Model not found"}
-
-    return {"status": "ok"}
-
-
-@api_config.post("/user/name", status_code=200)
-@requires(["authenticated"])
-def set_user_name(
-    request: Request,
-    name: str,
-    client: Optional[str] = None,
-):
-    user = request.user.object
-
-    split_name = name.split(" ")
-
-    if len(split_name) > 2:
-        raise HTTPException(status_code=400, detail="Name must be in the format: Firstname Lastname")
-
-    if len(split_name) == 1:
-        first_name = split_name[0]
-        last_name = ""
-    else:
-        first_name, last_name = split_name[0], split_name[-1]
-
-    adapters.set_user_name(user, first_name, last_name)
-
-    update_telemetry_state(
-        request=request,
-        telemetry_type="api",
-        api="set_user_name",
-        client=client,
-    )
 
     return {"status": "ok"}
