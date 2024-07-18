@@ -44,7 +44,7 @@ import {
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-import { ArrowRight, ArrowLeft, ArrowDown, Spinner, Check, FolderPlus, DotsThreeVertical, House, StackPlus, UserCirclePlus, Sidebar } from "@phosphor-icons/react";
+import { ArrowRight, ArrowLeft, ArrowDown, Spinner, Check, FolderPlus, DotsThreeVertical, House, StackPlus, UserCirclePlus, Sidebar, NotePencil } from "@phosphor-icons/react";
 
 interface ChatHistory {
     conversation_id: string;
@@ -700,10 +700,14 @@ export default function SidePanel(props: SidePanelProps) {
         }
     }, [chatSessions]);
 
+    function newConvo() {
+        window.location.href = '/home';
+    }
+
     return (
         <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed}`}>
             <div className="flex items-center justify-between">
-                <img src="/khoj-logo.svg" alt="logo" className="w-16"/>
+                <img src="/khoj-logo.svg" alt="logo" className="w-16 relative bottom-1"/>
                 {
                     authenticatedData && props.isMobileWidth ?
                         <Drawer open={enabled} onOpenChange={(open) => {
@@ -738,9 +742,14 @@ export default function SidePanel(props: SidePanelProps) {
                             </DrawerContent>
                         </Drawer>
                         :
+                        <div>
+                        <button className={`ml-4 mr-4 ${styles.button}`} onClick={newConvo}>
+                            {enabled ? <NotePencil className="h-7 w-7"/> : <NotePencil className="h-7 w-7" color="gray"/>}
+                        </button>
                         <button className={styles.button} onClick={() => setEnabled(!enabled)}>
                             {enabled ? <Sidebar className="h-7 w-7"/> : <Sidebar className="ml-2 h-7 w-7" color="gray"/>}
                         </button>
+                        </div>
                 }
             </div>
             {
