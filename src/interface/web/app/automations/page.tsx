@@ -48,7 +48,7 @@ import ShareLink from '../components/shareLink/shareLink';
 import { useSearchParams } from 'next/navigation';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { CalendarCheck, Clock, ClockAfternoon, ClockCounterClockwise, DotsThreeVertical, Envelope, Info, Lightning, MapPinSimple, Pencil, Play, Plus, Trash } from '@phosphor-icons/react';
-import { useAuthenticatedData } from '../common/auth';
+import { useAuthenticatedData, UserProfile } from '../common/auth';
 import LoginPrompt from '../components/loginPrompt/loginPrompt';
 import { useToast } from '@/components/ui/use-toast';
 import { ToastAction } from '@/components/ui/toast';
@@ -281,7 +281,7 @@ function AutomationsCard(props: AutomationsCardProps) {
     }
 
     return (
-        <Card className='bg-secondary h-full shadow-none rounded-lg bg-gradient-to-b from-background to-secondary border'>
+        <Card className={`bg-secondary h-full shadow-sm rounded-lg bg-gradient-to-b from-background to-slate-50 dark:to-gray-950 border ${styles.automationCard}`}>
             <CardHeader>
                 <CardTitle className='line-clamp-2 leading-normal flex justify-between'>
                     {updatedAutomationData?.subject || automation.subject}
@@ -289,7 +289,7 @@ function AutomationsCard(props: AutomationsCardProps) {
                         <PopoverTrigger asChild>
                             <Button className='bg-background' variant={'ghost'}><DotsThreeVertical className='h-4 w-4' /></Button>
                         </PopoverTrigger>
-                        <PopoverContent className='w-auto grid gap-2 text-left'>
+                        <PopoverContent className='w-auto grid gap-2 text-left bg-secondary'>
                             <Button variant={'destructive'}
                                 className='justify-start'
                                 onClick={() => {
@@ -351,29 +351,26 @@ function AutomationsCard(props: AutomationsCardProps) {
                                 }} />
                         </PopoverContent>
                     </Popover>
-
                 </CardTitle>
-                <CardDescription>
-                    <div className='flex gap-2'>
-                        <div className='flex items-center bg-blue-50 rounded-lg p-1.5 border-blue-200 border dark:bg-blue-800 dark:border-blue-500'>
-                            <CalendarCheck className='h-4 w-4 mr-2 text-secondary-foreground' />
-                            <div className='text-s text-secondary-foreground'>
-                                {timeRecurrence}
-                            </div>
-                        </div>
-                        <div className='flex items-center bg-purple-50 rounded-lg p-1.5 border-purple-200 border dark:bg-purple-800 dark:border-purple-500'>
-                            <ClockAfternoon className='h-4 w-4 mr-2 text-secondary-foreground' />
-                            <div className='text-s text-secondary-foreground'>
-                                {intervalString}
-                            </div>
-                        </div>
-                    </div>
-                </CardDescription>
             </CardHeader>
             <CardContent className='text-secondary-foreground'>
                 {updatedAutomationData?.query_to_run || automation.query_to_run}
             </CardContent>
             <CardFooter className="flex flex-col items-start md:flex-row md:justify-between md:items-center gap-2">
+                <div className='flex gap-2'>
+                    <div className='flex items-center bg-blue-50 rounded-lg p-1.5 border-blue-200 border dark:bg-blue-800 dark:border-blue-500'>
+                        <CalendarCheck className='h-4 w-4 mr-2 text-blue-700 dark:text-blue-300' />
+                        <div className='text-s text-blue-700 dark:text-blue-300'>
+                            {timeRecurrence}
+                        </div>
+                    </div>
+                    <div className='flex items-center bg-purple-50 rounded-lg p-1.5 border-purple-200 border dark:bg-purple-800 dark:border-purple-500'>
+                        <ClockAfternoon className='h-4 w-4 mr-2 text-purple-700 dark:text-purple-300' />
+                        <div className='text-s text-purple-700 dark:text-purple-300'>
+                            {intervalString}
+                        </div>
+                    </div>
+                </div>
                 {
                     props.suggestedCard && props.setNewAutomationData && (
                         <Dialog
@@ -589,7 +586,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
     function recommendationPill(recommendationText: string, onChange: (value: any, event: React.MouseEvent<HTMLButtonElement>) => void) {
         return (
             <Button
-                className='text-xs bg-slate-50 h-auto p-1.5 m-1 rounded-full'
+                className='text-xs bg-slate-50 dark:bg-slate-950 h-auto p-1.5 m-1 rounded-full'
                 variant="ghost"
                 key={recommendationText}
                 onClick={(event) => {
@@ -820,6 +817,30 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                 </fieldset>
             </form>
         </Form>
+    )
+}
+
+function metadataMap(ipLocationData: LocationData, authenticatedData: UserProfile) {
+    return (
+        <div className='flex flex-wrap gap-2 items-center md:justify-start justify-end'>
+            {
+                authenticatedData ? (
+                    <span className='rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm' ><Envelope className='h-4 w-4 mr-2 inline text-orange-500' shadow-s />{authenticatedData.email}</span>
+                )
+                    : null
+            }
+            {
+                ipLocationData && (
+                    <span className='rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm' ><MapPinSimple className='h-4 w-4 mr-2 inline text-purple-500' />{ipLocationData ? `${ipLocationData.city}, ${ipLocationData.country}` : 'Unknown'}</span>
+                )
+            }
+            {
+                ipLocationData && (
+                    <span className='rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm' ><Clock className='h-4 w-4 mr-2 inline text-green-500' />{ipLocationData ? `${ipLocationData.timezone}` : 'Unknown'}</span>
+
+                )
+            }
+        </div>
     )
 }
 
