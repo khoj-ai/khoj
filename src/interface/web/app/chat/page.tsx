@@ -169,6 +169,7 @@ async function createNewConvo() {
       }
       const data = await response.json();
       const conversationID = data.conversation_id;
+      console.log("New conversation ID (create new convo):", conversationID);
       if (!conversationID) {
         throw new Error("Conversation ID not found in response");
       }
@@ -237,7 +238,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     const newConversationId = await createNewConvo();
                     setLocalConversationId(newConversationId);
                     props.onConversationIdChange?.(newConversationId);
-                    window.history.pushState({}, '', `/chat?conversationId=${newConversationId}`);
+                    //window.history.pushState({}, '', `/chat?conversationId=${newConversationId}`);
                     props.setQueryToProcess(message);
                 } catch (error) {
                     console.error("Error creating new conversation:", error);
@@ -457,21 +458,7 @@ export default function Chat() {
         });
 
     }, []);
-    useEffect(() => {
-        if (chatWS) {
-          chatWS.onopen = () => {
-            console.log('WebSocket opened');
-          };
-          chatWS.onclose = (event) => {
-            console.error('WebSocket closed:', event);
-            // Handle reconnection logic if needed
-          };
-          chatWS.onerror = (error) => {
-            console.error('WebSocket error:', error);
-          };
-        }
-        // ...
-      }, [chatWS]);
+
     useEffect(() => {
     if (chatWS) {
         chatWS.onmessage = handleWebSocketMessage;
@@ -518,8 +505,18 @@ export default function Chat() {
     useEffect(() => {
         const setupWebSocketConnection = async () => {
           if (conversationId && (!chatWS || chatWS.readyState === WebSocket.CLOSED)) {
-            const newWS = await setupWebSocket(conversationId);
-            setChatWS(newWS);
+            if(queryToProcess) {
+                console.log("WEBSOCKET CONNECTION:", queryToProcess, conversationId);
+                const newWS = await setupWebSocket(conversationId, queryToProcess);
+                setChatWS(newWS);
+                console.log("NEWWS", newWS);
+            }
+            else {
+                console.log("WEBSOCKET CONNECTION (no query):", queryToProcess, conversationId);
+                const newWS = await setupWebSocket(conversationId);
+                setChatWS(newWS);
+                console.log("NEWWS", newWS);
+            }
             console.log("WebSocket setup for conversation:", conversationId);
           }
         };
@@ -529,7 +526,7 @@ export default function Chat() {
     const handleConversationIdChange = (newConversationId: string) => {
         console.log("Conversation ID changed to", newConversationId);
         setConversationID(newConversationId);
-        window.history.pushState({}, '', `/chat?conversationId=${newConversationId}`);
+        //window.history.pushState({}, '', `/chat?conversationId=${newConversationId}`);
     };
 
     if (isLoading) {
