@@ -470,7 +470,6 @@ export default function Chat() {
     useEffect(() => {
         const storedMessage = localStorage.getItem("message");
         //clear local storage
-        localStorage.removeItem("message");
         setQueryToProcess(storedMessage || '');
     }, []);
 
@@ -508,6 +507,7 @@ export default function Chat() {
             chatWS.onmessage = handleWebSocketMessage;
             chatWS.send(queryToProcess);
             console.log("Query sent to server", queryToProcess);
+            localStorage.removeItem("message");
         }
     }, [processQuerySignal, chatWS]);
 
@@ -517,6 +517,7 @@ export default function Chat() {
             if(queryToProcess) {
                 console.log("WEBSOCKET CONNECTION:", queryToProcess, conversationId);
                 const newWS = await setupWebSocket(conversationId, queryToProcess);
+                localStorage.removeItem("message");
                 setChatWS(newWS);
                 console.log("NEWWS", newWS);
             }
