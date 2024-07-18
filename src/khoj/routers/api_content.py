@@ -19,7 +19,7 @@ from khoj.utils.yaml import save_config_to_file_updated_state
 
 logger = logging.getLogger(__name__)
 
-indexer = APIRouter()
+api_content = APIRouter()
 
 
 class File(BaseModel):
@@ -40,12 +40,11 @@ class IndexerInput(BaseModel):
     docx: Optional[dict[str, bytes]] = None
 
 
-@indexer.post("/update")
+@api_content.put("")
 @requires(["authenticated"])
-async def update(
+async def put_content(
     request: Request,
     files: list[UploadFile],
-    force: bool = False,
     t: Optional[Union[state.SearchType, str]] = state.SearchType.All,
     client: Optional[str] = None,
     user_agent: Optional[str] = Header(None),
@@ -60,7 +59,43 @@ async def update(
         )
     ),
 ):
+    return await indexer(request, files, t, True, client, user_agent, referer, host)
+
+
+@api_content.patch("")
+@requires(["authenticated"])
+async def patch_content(
+    request: Request,
+    files: list[UploadFile],
+    t: Optional[Union[state.SearchType, str]] = state.SearchType.All,
+    client: Optional[str] = None,
+    user_agent: Optional[str] = Header(None),
+    referer: Optional[str] = Header(None),
+    host: Optional[str] = Header(None),
+    indexed_data_limiter: ApiIndexedDataLimiter = Depends(
+        ApiIndexedDataLimiter(
+            incoming_entries_size_limit=10,
+            subscribed_incoming_entries_size_limit=25,
+            total_entries_size_limit=10,
+            subscribed_total_entries_size_limit=100,
+        )
+    ),
+):
+    return await indexer(request, files, t, False, client, user_agent, referer, host)
+
+
+async def indexer(
+    request: Request,
+    files: list[UploadFile],
+    t: Optional[Union[state.SearchType, str]] = state.SearchType.All,
+    regenerate: bool = False,
+    client: Optional[str] = None,
+    user_agent: Optional[str] = Header(None),
+    referer: Optional[str] = Header(None),
+    host: Optional[str] = Header(None),
+):
     user = request.user.object
+    method = "regenerate" if regenerate else "sync"
     index_files: Dict[str, Dict[str, str]] = {
         "org": {},
         "markdown": {},
@@ -116,18 +151,17 @@ async def update(
             None,
             configure_content,
             indexer_input.model_dump(),
-            force,
+            regenerate,
             t,
-            False,
             user,
         )
         if not success:
-            raise RuntimeError("Failed to update content index")
-        logger.info(f"Finished processing batch indexing request")
+            raise RuntimeError(f"Failed to {method} {t} data sent by {client} client into content index")
+        logger.info(f"Finished {method} {t} data sent by {client} client into content index")
     except Exception as e:
-        logger.error(f"Failed to process batch indexing request: {e}", exc_info=True)
+        logger.error(f"Failed to {method} {t} data sent by {client} client into content index: {e}", exc_info=True)
         logger.error(
-            f'🚨 Failed to {"force " if force else ""}update {t} content index triggered via API call by {client} client: {e}',
+            f"🚨 Failed to {method} {t} data sent by {client} client into content index: {e}",
             exc_info=True,
         )
         return Response(content="Failed", status_code=500)
