@@ -1,7 +1,7 @@
 'use client'
 
 import styles from './chat.module.css';
-import React, { Suspense, useEffect, useState, useMemo } from 'react';
+import React, { Suspense, useEffect, useState, useMemo, use } from 'react';
 
 import SuggestionCard from '../components/suggestions/suggestionCard';
 import AgentShortcut from '../components/agentShortcut/agentShortcut';
@@ -203,12 +203,14 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const agentsFetcher = () => window.fetch('/api/agents').then(res => res.json()).catch(err => console.log(err));
     const { data, error } = useSWR<AgentData[]>('agents', agentsFetcher, { revalidateOnFocus: false });
 
-    // useEffect(() => {
-    //     if (props.conversationId) {
-    //       //setLocalConversationId(props.conversationId);
-    //       props.onConversationIdChange?.(props.conversationId);
-    //     }
-    // }, [props.conversationId]);
+    //if there is a change in localStorage update message. it is stored like this: localStorage.setItem("message", "your message")
+    useEffect(() => {
+        const storedMessage = localStorage.getItem("message");
+        if (storedMessage) {
+            setMessage(storedMessage);
+
+        }
+    }, []);
 
     function shuffleAndSetOptions() {
         const shuffled = [...suggestions].sort(() => 0.5 - Math.random());
@@ -463,6 +465,12 @@ export default function Chat() {
         chatWS.onmessage = handleWebSocketMessage;
     }
     }, [chatWS, messages]);
+
+    //same as ChatBodyData for local storage message
+    useEffect(() => {
+        const storedMessage = localStorage.getItem("message");
+        setQueryToProcess(storedMessage || '');
+    }, []);
 
     useEffect(() => {
         if (chatWS && queryToProcess) {

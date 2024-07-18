@@ -236,7 +236,9 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     //setLocalConversationId(newConversationId);
                     props.onConversationIdChange?.(newConversationId);
                     window.history.pushState({}, '', `/chat?conversationId=${newConversationId}`);
-                    props.setQueryToProcess(message);
+                    window.location.href = `/chat?conversationId=${newConversationId}`;
+                    localStorage.setItem('message', message);
+                    console.log("Message stored in local storage:", message);
                 }
                 catch (error) {
                     console.error("Error creating new conversation:", error);
@@ -274,10 +276,10 @@ function ChatBodyData(props: ChatBodyDataProps) {
     return (
         <div>
         <div className="w-full text-center">
-            <h1 className="white pb-8 w-4/5">What would you like to do?</h1>
+        <div className="items-center">
+            <h1 className="text-center pb-6">What would you like to do?</h1>
         </div>
-        <div className="w-fit text-center">
-        <div className="flex pb-8 ms-10 gap-2">
+        <div className="flex pb-6 ms-10 gap-2">
             {icons.map((icon, index) => (
                 <a className="no-underline w-200 flex pl-3 pt-1 pb-1 border border-stone-100 rounded-md">
                 {icon}
@@ -324,7 +326,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
 export default function Home(){
     const [chatOptionsData, setChatOptionsData] = useState<ChatOptions | null>(null);
     const [isLoading, setLoading] = useState(true);
-    const [title, setTitle] = useState('Khoj AI - Chat');
+    const [title, setTitle] = useState('');
     const [conversationId, setConversationID] = useState<string | null>(null);
     const [chatWS, setChatWS] = useState<WebSocket | null>(null);
     const [messages, setMessages] = useState<StreamMessage[]>([]);
@@ -368,11 +370,11 @@ export default function Home(){
     }
 
     return (
-        <div className={styles.main + " " + styles.chatLayout}>
+        <div className={`${styles.main} ${styles.chatLayout}`}>
             <title>
                 {title}
             </title>
-            <div className={styles.sidePanel}>
+            <div className={`${styles.sidePanel}`}>
                 <SidePanel
                     webSocketConnected={chatWS !== null}
                     conversationId={conversationId}
@@ -380,9 +382,9 @@ export default function Home(){
                     isMobileWidth={isMobileWidth}
                 />
             </div>
-            <div className={styles.chatBox}>
-                <NavMenu selected="Chat" title={title} />
-                <div className={styles.chatBoxBody}>
+            <div className={`${styles.chatBox}`}>
+                <NavMenu selected="Chat" title={title}></NavMenu>
+                <div className={`${styles.chatBoxBody} flex flex-col justify-center`}>
                     <Suspense fallback={<Loading />}>
                         <ChatBodyData
                             isLoggedIn={authenticatedData !== null}
@@ -393,7 +395,8 @@ export default function Home(){
                             setUploadedFiles={setUploadedFiles}
                             isMobileWidth={isMobileWidth}
                             onConversationIdChange={handleConversationIdChange}
-                            conversationId={conversationId}/>
+                            conversationId={conversationId}
+                        />
                     </Suspense>
                 </div>
             </div>

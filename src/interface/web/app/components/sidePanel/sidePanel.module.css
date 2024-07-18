@@ -59,6 +59,7 @@ div.expanded {
 div.collapsed {
     display: grid;
     grid-template-columns: 1fr;
+    height: fit-content;
 }
 
 p.session {
