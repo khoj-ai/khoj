@@ -403,20 +403,18 @@ export default function Home(){
             </div>
             <div className={`${styles.chatBox}`}>
                 <NavMenu selected="Chat" title={title}></NavMenu>
-                <div className={`${styles.chatBoxBody} flex flex-col justify-center`}>
-                    <Suspense fallback={<Loading />}>
-                        <ChatBodyData
-                            isLoggedIn={authenticatedData !== null}
-                            streamedMessages={messages}
-                            chatOptionsData={chatOptionsData}
-                            setTitle={setTitle}
-                            setQueryToProcess={setQueryToProcess}
-                            setUploadedFiles={setUploadedFiles}
-                            isMobileWidth={isMobileWidth}
-                            onConversationIdChange={handleConversationIdChange}
-                            conversationId={conversationId}
-                        />
-                    </Suspense>
+                <div className={`${styles.chatBoxBody} flex flex-col justify-center fixed top-3/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2`}>
+                    <ChatBodyData
+                        isLoggedIn={authenticatedData !== null}
+                        streamedMessages={messages}
+                        chatOptionsData={chatOptionsData}
+                        setTitle={setTitle}
+                        setQueryToProcess={setQueryToProcess}
+                        setUploadedFiles={setUploadedFiles}
+                        isMobileWidth={isMobileWidth}
+                        onConversationIdChange={handleConversationIdChange}
+                        conversationId={conversationId}
+                    />
                 </div>
             </div>
         </div>
