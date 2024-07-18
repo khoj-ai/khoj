@@ -3,6 +3,7 @@
 import styles from "./settings.module.css";
 
 import { Suspense, useEffect, useState } from "react";
+import { useToast } from "@/components/ui/use-toast"
 
 import { useUserConfig, ModelOptions } from "../common/auth";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-import { ArrowRight, ChatCircleText, Key, Palette, SpeakerHigh, UserCircle } from "@phosphor-icons/react";
+import { ArrowRight, ChatCircleText, Key, Palette, SpeakerHigh, UserCircle, FileMagnifyingGlass } from "@phosphor-icons/react";
 
 import NavMenu from "../components/navMenu/navMenu";
 import SidePanel from "../components/sidePanel/chatHistorySidePanel";
@@ -30,9 +31,10 @@ import Loading from "../components/loading/loading";
 interface DropdownComponentProps {
     items: ModelOptions[];
     selected: number;
+    callbackFunc: (value: string) => Promise<void>;
 }
 
-const DropdownComponent: React.FC<DropdownComponentProps> = ({ items, selected }) => {
+const DropdownComponent: React.FC<DropdownComponentProps> = ({ items, selected, callbackFunc }) => {
     const [position, setPosition] = useState(selected?.toString() ?? "0");
 
     return !!selected && (
@@ -44,7 +46,10 @@ const DropdownComponent: React.FC<DropdownComponentProps> = ({ items, selected }
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                    <DropdownMenuRadioGroup value={position.toString()} onValueChange={setPosition}>
+                    <DropdownMenuRadioGroup
+                        value={position.toString()}
+                        onValueChange={async (value) => { setPosition(value); await callbackFunc(value); }}
+                    >
                         {items.map((item) => (
                             <DropdownMenuRadioItem value={item.id.toString()}>
                                 {item.name}
@@ -62,6 +67,7 @@ export default function SettingsView() {
     const [isMobileWidth, setIsMobileWidth] = useState(false);
     const userConfig = useUserConfig(true);
     const cardClassName = "w-1/3 grid grid-flow-column border border-gray-300 shadow-md rounded-lg";
+    const { toast } = useToast();
 
     useEffect(() => {
         setIsMobileWidth(window.innerWidth < 786);
@@ -70,7 +76,38 @@ export default function SettingsView() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    return !!userConfig && (
+    const updateModel = (name: string) => async (id: string) => {
+        try {
+            const response = await fetch(`/api/model/${name}?id=` + id, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                toast({
+                    description: `${name} model updated succesfully`,
+                });
+            } else {
+                toast({
+                    description: `Failed to update ${name} model`,
+                    variant: "destructive",
+                });
+            }
+        } catch (error) {
+            console.error('Error updating search model:', error);
+            toast({
+                description: `An error occured while updating the ${name} model`,
+                variant: "destructive",
+            });
+        }
+    };
+
+    if (!userConfig) return <Loading />;
+
+    return (
         <div id="page" className={styles.page}>
             <title>
                 {title}
@@ -135,18 +172,6 @@ export default function SettingsView() {
                                             <Button variant="outline" size="sm" className={`${userConfig.enabled_content_source.notion ? "border-red-400" : "hidden"}`}>Disable</Button>
                                         </CardFooter>
                                     </Card>
-                                    <Card className={cardClassName}>
-                                        <CardHeader className="text-xl flex flex-row">Language</CardHeader>
-                                        <CardContent className="overflow-hidden">
-                                            <DropdownComponent
-                                                items={userConfig.search_model_options}
-                                                selected={userConfig.selected_search_model_config}
-                                            />
-                                        </CardContent>
-                                        <CardFooter className="flex flex-wrap gap-4">
-                                            <Button variant="outline" size="sm" className="border-green-400">Save</Button>
-                                        </CardFooter>
-                                    </Card>
                                 </div>
                             </div>
                             <div className="section grid gap-8">
@@ -158,11 +183,19 @@ export default function SettingsView() {
                                             <DropdownComponent
                                                 items={userConfig.chat_model_options}
                                                 selected={userConfig.selected_chat_model_config}
+                                                callbackFunc={updateModel("chat")}
                                             />
                                         </CardContent>
-                                        <CardFooter className="flex flex-wrap gap-4">
-                                            <Button variant="outline" size="sm" className="border-green-400" onClick={updateSearchModel}>Save</Button>
-                                        </CardFooter>
+                                    </Card>
+                                    <Card className={cardClassName}>
+                                        <CardHeader className="text-xl flex flex-row"><FileMagnifyingGlass className="h-7 w-7 mr-2"/>Search</CardHeader>
+                                        <CardContent className="overflow-hidden">
+                                            <DropdownComponent
+                                                items={userConfig.search_model_options}
+                                                selected={userConfig.selected_search_model_config}
+                                                callbackFunc={updateModel("search")}
+                                            />
+                                        </CardContent>
                                     </Card>
                                     <Card className={cardClassName}>
                                         <CardHeader className="text-xl flex flex-row"><Palette className="h-7 w-7 mr-2"/>Paint</CardHeader>
@@ -170,11 +203,9 @@ export default function SettingsView() {
                                             <DropdownComponent
                                                 items={userConfig.paint_model_options}
                                                 selected={userConfig.selected_paint_model_config}
+                                                callbackFunc={updateModel("paint")}
                                             />
                                         </CardContent>
-                                        <CardFooter className="flex flex-wrap gap-4">
-                                            <Button variant="outline" size="sm" className="border-green-400">Save</Button>
-                                        </CardFooter>
                                     </Card>
                                     <Card className={cardClassName}>
                                         <CardHeader className="text-xl flex flex-row"><SpeakerHigh className="h-7 w-7 mr-2"/>Voice</CardHeader>
@@ -182,11 +213,9 @@ export default function SettingsView() {
                                             <DropdownComponent
                                                 items={userConfig.voice_model_options}
                                                 selected={userConfig.selected_voice_model_config}
+                                                callbackFunc={updateModel("voice")}
                                             />
                                         </CardContent>
-                                        <CardFooter className="flex flex-wrap gap-4">
-                                            <Button variant="outline" size="sm" className="border-green-400">Save</Button>
-                                        </CardFooter>
                                     </Card>
                                 </div>
                             </div>

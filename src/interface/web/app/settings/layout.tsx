@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans } from "next/font/google";
 import "../globals.css";
+import { Toaster } from "@/components/ui/toaster";
 
 const inter = Noto_Sans({ subsets: ["latin"] });
 
@@ -30,6 +31,7 @@ export default function RootLayout({
                         object-src 'none';"></meta>
             <body className={inter.className}>
                 {children}
+                <Toaster />
             </body>
         </html>
     );
