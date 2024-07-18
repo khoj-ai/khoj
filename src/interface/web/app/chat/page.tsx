@@ -254,6 +254,10 @@ function ChatBodyData(props: ChatBodyDataProps) {
             };
             processMessage();
         }
+        if(message){
+            setProcessingMessage(true);
+            props.setQueryToProcess(message);
+        }
     }, [message]);
 
     useEffect(() => {
@@ -261,13 +265,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
             props.onConversationIdChange?.(conversationId);
         }
     }, [conversationId]);
-
-    useEffect(() => {
-        if (message) {
-            setProcessingMessage(true);
-            props.setQueryToProcess(message);
-        }
-    }, [message]);
 
     useEffect(() => {
         if (props.streamedMessages &&
@@ -278,8 +275,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
             setMessage('');
         }
     }, [props.streamedMessages]);
-
-    if (!conversationId) {
+    const targetId = props.conversationId ?? conversationId
+    if(!targetId) {
         //make the agents the first four items in data
         const agents = data ? data.slice(0, 4) : [];
         const icons = agents.map(agent => getIconFromIconName(agent.icon, agent.color) || <Image src={agent.avatar} alt={agent.name} width={50} height={50} />);
@@ -341,7 +338,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
         <>
             <div className={false ? styles.chatBody : styles.chatBodyFull}>
                 <ChatHistory
-                    conversationId={props.conversationId ?? conversationId}
+                    conversationId={targetId}
                     setTitle={props.setTitle}
                     pendingMessage={processingMessage ? message : ''}
                     incomingMessages={props.streamedMessages} />
@@ -528,7 +525,6 @@ export default function Chat() {
     const handleConversationIdChange = (newConversationId: string) => {
         console.log("Conversation ID changed to", newConversationId);
         setConversationID(newConversationId);
-        //window.history.pushState({}, '', `/chat?conversationId=${newConversationId}`);
     };
 
     if (isLoading) {
