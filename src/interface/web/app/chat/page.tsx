@@ -199,6 +199,9 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
     const [localConversationId, setLocalConversationId] = useState<string | null>(conversationId);
 
+    const agentsFetcher = () => window.fetch('/api/agents').then(res => res.json()).catch(err => console.log(err));
+    const { data, error } = useSWR<AgentData[]>('agents', agentsFetcher, { revalidateOnFocus: false });
+
     useEffect(() => {
         if (props.conversationId) {
           setLocalConversationId(props.conversationId);
@@ -274,8 +277,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }, [props.streamedMessages]);
 
     if (!conversationId) {
-        const agentsFetcher = () => window.fetch('/api/agents').then(res => res.json()).catch(err => console.log(err));
-        const { data, error } = useSWR<AgentData[]>('agents', agentsFetcher, { revalidateOnFocus: false });
         //make the agents the first four items in data
         const agents = data ? data.slice(0, 4) : [];
         const icons = agents.map(agent => getIconFromIconName(agent.icon, agent.color) || <Image src={agent.avatar} alt={agent.name} width={50} height={50} />);
