@@ -890,7 +890,7 @@
     })
 
     phonenumberRemoveButton.addEventListener("click", () => {
-        fetch('/api/configure/phone', {
+        fetch('/api/phone', {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -917,7 +917,7 @@
             }, 5000);
         } else {
             const mobileNumber = iti.getNumber();
-            fetch('/api/configure/phone?phone_number=' + mobileNumber, {
+            fetch('/api/phone?phone_number=' + mobileNumber, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -970,7 +970,7 @@
             return;
         }
 
-        fetch('/api/configure/phone/verify?code=' + otp, {
+        fetch('/api/phone/verify?code=' + otp, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -336,7 +336,7 @@ def configure_routes(app):
     if is_twilio_enabled():
         from khoj.routers.api_phone import api_phone
 
-        app.include_router(api_phone, prefix="/api/configure/phone")
+        app.include_router(api_phone, prefix="/api/phone")
         logger.info("📞 Enabled Twilio")
 
 
