@@ -40,6 +40,7 @@ from khoj.routers.helpers import (
     CommonQueryParams,
     ConversationCommandRateLimiter,
     acreate_title_from_query,
+    get_user_config,
     schedule_automation,
     update_telemetry_state,
 )
@@ -275,6 +276,17 @@ async def transcribe(
     # Return the spoken text
     content = json.dumps({"text": user_message})
     return Response(content=content, media_type="application/json", status_code=200)
+
+
+@api.get("/settings", response_class=Response)
+@requires(["authenticated"])
+def get_settings(request: Request, detailed: Optional[bool] = False) -> Response:
+    user = request.user.object
+    user_config = get_user_config(user, request, is_detailed=detailed)
+    del user_config["request"]
+
+    # Return config data as a JSON response
+    return Response(content=json.dumps(user_config), media_type="application/json", status_code=200)
 
 
 @api.patch("/user/name", status_code=200)
