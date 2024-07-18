@@ -199,7 +199,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [shuffledColors, setShuffledColors] = useState<string[]>([]);
     const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
     //const [localConversationId, setLocalConversationId] = useState<string | null>(conversationId);
-
+    console.log("conversationId", conversationId, "localConversationId", conversationId, "message", message, "processing", processingMessage);
     const agentsFetcher = () => window.fetch('/api/agents').then(res => res.json()).catch(err => console.log(err));
     const { data, error } = useSWR<AgentData[]>('agents', agentsFetcher, { revalidateOnFocus: false });
 
@@ -228,7 +228,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }, [props.chatOptionsData]);
 
     useEffect(() => {
-        if(!conversationId && props.conversationId) {
+        if(!conversationId && !props.conversationId) {
             const processMessage = async () => {
             console.log("local id", conversationId, "conversation id", props.conversationId, "message", message, "processing", processingMessage);
             if (message && !processingMessage) {
@@ -236,9 +236,10 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 //if (!conversationId) {
                 try {
                     const newConversationId = await createNewConvo();
+                    console.log("New conversation ID (useEffect):", newConversationId);
                     //setLocalConversationId(newConversationId);
                     props.onConversationIdChange?.(newConversationId);
-                    //window.history.pushState({}, '', `/chat?conversationId=${newConversationId}`);
+                    window.history.pushState({}, '', `/chat?conversationId=${newConversationId}`);
                     props.setQueryToProcess(message);
                 }
                 catch (error) {

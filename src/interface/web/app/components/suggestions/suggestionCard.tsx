@@ -81,7 +81,6 @@ function getIconFromIconName(iconName: string, color: string = 'gray', width: st
 }
 
 function convertSuggestionColorToIconClass(color: string) {
-	console.log(color);
     if (color.includes('sky')) return getIconFromIconName('Robot', 'blue', 'w-8', 'h-8');
     if (color.includes('yellow')) return getIconFromIconName('Globe', 'yellow', 'w-8', 'h-8');
     if (color.includes('green')) return getIconFromIconName('Palette', 'green', 'w-8', 'h-8');
