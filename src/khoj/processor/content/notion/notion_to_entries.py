@@ -78,9 +78,7 @@ class NotionToEntries(TextToEntries):
 
         self.body_params = {"page_size": 100}
 
-    def process(
-        self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
-    ) -> Tuple[int, int]:
+    def process(self, files: dict[str, str] = None, user: KhojUser = None, regenerate: bool = False) -> Tuple[int, int]:
         current_entries = []
 
         # Get all pages
