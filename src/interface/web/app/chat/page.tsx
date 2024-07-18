@@ -198,17 +198,17 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [shuffledOptions, setShuffledOptions] = useState<Suggestion[]>([]);
     const [shuffledColors, setShuffledColors] = useState<string[]>([]);
     const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
-    const [localConversationId, setLocalConversationId] = useState<string | null>(conversationId);
+    //const [localConversationId, setLocalConversationId] = useState<string | null>(conversationId);
 
     const agentsFetcher = () => window.fetch('/api/agents').then(res => res.json()).catch(err => console.log(err));
     const { data, error } = useSWR<AgentData[]>('agents', agentsFetcher, { revalidateOnFocus: false });
 
-    useEffect(() => {
-        if (props.conversationId) {
-          setLocalConversationId(props.conversationId);
-          props.onConversationIdChange?.(props.conversationId);
-        }
-    }, [props.conversationId]);
+    // useEffect(() => {
+    //     if (props.conversationId) {
+    //       //setLocalConversationId(props.conversationId);
+    //       props.onConversationIdChange?.(props.conversationId);
+    //     }
+    // }, [props.conversationId]);
 
     function shuffleAndSetOptions() {
         const shuffled = [...suggestions].sort(() => 0.5 - Math.random());
@@ -228,37 +228,38 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }, [props.chatOptionsData]);
 
     useEffect(() => {
-        if(!conversationId) {
+        if(!conversationId && props.conversationId) {
             const processMessage = async () => {
-            console.log("local id", localConversationId, "conversation id", conversationId, "message", message, "processing", processingMessage);
+            console.log("local id", conversationId, "conversation id", props.conversationId, "message", message, "processing", processingMessage);
             if (message && !processingMessage) {
                 setProcessingMessage(true);
-                if (!localConversationId) {
+                //if (!conversationId) {
                 try {
                     const newConversationId = await createNewConvo();
-                    setLocalConversationId(newConversationId);
+                    //setLocalConversationId(newConversationId);
                     props.onConversationIdChange?.(newConversationId);
                     //window.history.pushState({}, '', `/chat?conversationId=${newConversationId}`);
                     props.setQueryToProcess(message);
-                } catch (error) {
+                }
+                catch (error) {
                     console.error("Error creating new conversation:", error);
                     setProcessingMessage(false);
                 }
-                } else {
-                props.setQueryToProcess(message);
-                }
+                // } else {
+                // props.setQueryToProcess(message);
+                // }
                 setMessage(''); // Clear the input after sending
             }
             };
             processMessage();
         }
-    }, [message, localConversationId]);
+    }, [message]);
 
     useEffect(() => {
-        if (conversationId && !localConversationId) {
+        if (conversationId) {
             props.onConversationIdChange?.(conversationId);
         }
-    }, [conversationId, props.onConversationIdChange]);
+    }, [conversationId]);
 
     useEffect(() => {
         if (message) {
@@ -339,7 +340,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
         <>
             <div className={false ? styles.chatBody : styles.chatBodyFull}>
                 <ChatHistory
-                    conversationId={conversationId}
+                    conversationId={props.conversationId ?? conversationId}
                     setTitle={props.setTitle}
                     pendingMessage={processingMessage ? message : ''}
                     incomingMessages={props.streamedMessages} />
@@ -350,7 +351,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     sendMessage={(message) => setMessage(message)}
                     sendDisabled={processingMessage}
                     chatOptionsData={props.chatOptionsData}
-                    conversationId={localConversationId}
+                    conversationId={props.conversationId ?? conversationId}
                     isMobileWidth={props.isMobileWidth}
                     setUploadedFiles={props.setUploadedFiles} />
             </div>
