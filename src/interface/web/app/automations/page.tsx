@@ -47,7 +47,7 @@ import styles from './automations.module.css';
 import ShareLink from '../components/shareLink/shareLink';
 import { useSearchParams } from 'next/navigation';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { CalendarCheck, Clock, ClockAfternoon, ClockCounterClockwise, DotsThreeVertical, Envelope, Info, Lightning, MapPinSimple, Pencil, Play, Plus, Trash } from '@phosphor-icons/react';
+import { CalendarCheck, CalendarDot, CalendarDots, Clock, ClockAfternoon, ClockCounterClockwise, DotsThreeVertical, Envelope, Info, Lightning, MapPinSimple, Pencil, Play, Plus, Trash } from '@phosphor-icons/react';
 import { useAuthenticatedData, UserProfile } from '../common/auth';
 import LoginPrompt from '../components/loginPrompt/loginPrompt';
 import { useToast } from '@/components/ui/use-toast';
@@ -223,6 +223,7 @@ interface AutomationsCardProps {
     setNewAutomationData?: (data: AutomationsData) => void;
     isLoggedIn: boolean;
     setShowLoginPrompt: (showLoginPrompt: boolean) => void;
+    authenticatedData: UserProfile | null;
 }
 
 
@@ -317,6 +318,7 @@ function AutomationsCard(props: AutomationsCardProps) {
                                         <DialogContent>
                                             <DialogTitle>Edit Automation</DialogTitle>
                                             <EditCard
+                                                authenticatedData={props.authenticatedData}
                                                 automation={automation}
                                                 setIsEditing={setIsEditing}
                                                 isLoggedIn={props.isLoggedIn}
@@ -388,6 +390,7 @@ function AutomationsCard(props: AutomationsCardProps) {
                             <DialogContent>
                                 <DialogTitle>Add Automation</DialogTitle>
                                 <EditCard
+                                    authenticatedData={props.authenticatedData}
                                     createNew={true}
                                     automation={automation}
                                     setIsEditing={setIsEditing}
@@ -409,6 +412,7 @@ interface SharedAutomationCardProps {
     setNewAutomationData: (data: AutomationsData) => void;
     isLoggedIn: boolean;
     setShowLoginPrompt: (showLoginPrompt: boolean) => void;
+    authenticatedData: UserProfile | null;
 }
 
 function SharedAutomationCard(props: SharedAutomationCardProps) {
@@ -448,6 +452,7 @@ function SharedAutomationCard(props: SharedAutomationCardProps) {
                     Create Automation
                 </DialogTitle>
                 <EditCard
+                    authenticatedData={props.authenticatedData}
                     createNew={true}
                     setIsEditing={setIsCreating}
                     setUpdatedAutomationData={props.setNewAutomationData}
@@ -477,6 +482,7 @@ interface EditCardProps {
     createNew?: boolean;
     isLoggedIn: boolean;
     setShowLoginPrompt: (showLoginPrompt: boolean) => void;
+    authenticatedData: UserProfile | null;
 }
 
 function EditCard(props: EditCardProps) {
@@ -563,7 +569,14 @@ function EditCard(props: EditCardProps) {
     }
 
     return (
-        <AutomationModificationForm form={form} onSubmit={onSubmit} create={props.createNew} isLoggedIn={props.isLoggedIn} setShowLoginPrompt={props.setShowLoginPrompt} />
+        <AutomationModificationForm
+            authenticatedData={props.authenticatedData}
+            locationData={props.locationData || null}
+            form={form}
+            onSubmit={onSubmit}
+            create={props.createNew}
+            isLoggedIn={props.isLoggedIn}
+            setShowLoginPrompt={props.setShowLoginPrompt} />
     )
 
 }
@@ -574,6 +587,8 @@ interface AutomationModificationFormProps {
     create?: boolean;
     isLoggedIn: boolean;
     setShowLoginPrompt: (showLoginPrompt: boolean) => void;
+    authenticatedData: UserProfile | null;
+    locationData: LocationData | null;
 }
 
 function AutomationModificationForm(props: AutomationModificationFormProps) {
@@ -611,6 +626,16 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                 props.onSubmit(values);
                 setIsSaving(true);
             })} className="space-y-8">
+                <FormItem>
+                    <FormLabel>Setup</FormLabel>
+                    <FormDescription>
+                        Emails will be sent to this address. Timezone and location data will be used to schedule automations.
+                        {
+                            props.locationData &&
+                            metadataMap(props.locationData, props.authenticatedData)
+                        }
+                    </FormDescription>
+                </FormItem>
                 {
                     !props.create && (
                         <FormField
@@ -639,14 +664,20 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                         <FormItem
                             className='w-full'
                         >
-                            <FormLabel>Frequency</FormLabel>
+                            <FormLabel>
+                                Frequency
+                            </FormLabel>
                             <FormDescription>
-                                How frequently should this automation run?
+                                How often should this automation run?
                             </FormDescription>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                     <SelectTrigger className='w-[200px]'>
-                                        Every <SelectValue placeholder="" />
+                                        <div className='flex items-center'>
+                                            <CalendarDots className='h-4 w-4 mr-2 inline' />
+                                            Every
+                                        </div>
+                                        <SelectValue placeholder="" />
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
@@ -670,11 +701,17 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                             render={({ field }) => (
                                 <FormItem
                                     className='w-full'>
-                                    <FormLabel>Day of Week</FormLabel>
+                                    <FormDescription>
+                                        Every week, on which day should this automation run?
+                                    </FormDescription>
                                     <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={String(field.value)}>
                                         <FormControl>
                                             <SelectTrigger className='w-[200px]'>
-                                                On <SelectValue placeholder="" />
+                                                <div className='flex items-center'>
+                                                    <CalendarDot className='h-4 w-4 mr-2 inline' />
+                                                    On
+                                                </div>
+                                                <SelectValue placeholder="" />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
@@ -702,11 +739,15 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                             render={({ field }) => (
                                 <FormItem
                                     className='w-full'>
-                                    <FormLabel>Day of Month</FormLabel>
+                                    <FormDescription>Every month, on which day should the automation run?</FormDescription>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl>
                                             <SelectTrigger className='w-[200px]'>
-                                                On the <SelectValue placeholder="" />
+                                                <div className='flex items-center'>
+                                                    <CalendarDot className='h-4 w-4 mr-2 inline' />
+                                                    On the
+                                                </div>
+                                                <SelectValue placeholder="" />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
@@ -744,7 +785,11 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl>
                                             <SelectTrigger className='w-[200px]'>
-                                                At <SelectValue placeholder="" />
+                                                <div className='flex items-center'>
+                                                    <ClockAfternoon className='h-4 w-4 mr-2 inline' />
+                                                    At
+                                                </div>
+                                                <SelectValue placeholder="" />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
@@ -820,7 +865,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
     )
 }
 
-function metadataMap(ipLocationData: LocationData, authenticatedData: UserProfile) {
+function metadataMap(ipLocationData: LocationData, authenticatedData: UserProfile | null) {
     return (
         <div className='flex flex-wrap gap-2 items-center md:justify-start justify-end'>
             {
@@ -947,6 +992,7 @@ export default function Automations() {
                                     createNew={true}
                                     setIsEditing={setIsCreating}
                                     isLoggedIn={authenticatedData ? true : false}
+                                    authenticatedData={authenticatedData}
                                     setShowLoginPrompt={setShowLoginPrompt}
                                     setUpdatedAutomationData={setNewAutomationData}
                                     locationData={ipLocationData} />
@@ -966,6 +1012,7 @@ export default function Automations() {
             </div>
             <Suspense>
                 <SharedAutomationCard
+                    authenticatedData={authenticatedData}
                     locationData={ipLocationData}
                     isLoggedIn={authenticatedData ? true : false}
                     setShowLoginPrompt={setShowLoginPrompt}
@@ -990,6 +1037,7 @@ export default function Automations() {
                                         <DialogContent>
                                             <DialogTitle>Create Automation</DialogTitle>
                                             <EditCard
+                                                authenticatedData={authenticatedData}
                                                 createNew={true}
                                                 isLoggedIn={authenticatedData ? true : false}
                                                 setShowLoginPrompt={setShowLoginPrompt}
@@ -1017,6 +1065,7 @@ export default function Automations() {
                     personalAutomations && personalAutomations.map((automation) => (
                         <AutomationsCard
                             key={automation.id}
+                            authenticatedData={authenticatedData}
                             automation={automation}
                             locationData={ipLocationData}
                             isLoggedIn={authenticatedData ? true : false}
@@ -1024,7 +1073,9 @@ export default function Automations() {
                     ))}
                 {
                     allNewAutomations.map((automation) => (
-                        <AutomationsCard key={automation.id}
+                        <AutomationsCard
+                            key={automation.id}
+                            authenticatedData={authenticatedData}
                             automation={automation}
                             locationData={ipLocationData}
                             isLoggedIn={authenticatedData ? true : false}
@@ -1043,6 +1094,7 @@ export default function Automations() {
                         <AutomationsCard
                             setNewAutomationData={setNewAutomationData}
                             key={automation.id}
+                            authenticatedData={authenticatedData}
                             automation={automation}
                             locationData={ipLocationData}
                             isLoggedIn={authenticatedData ? true : false}
