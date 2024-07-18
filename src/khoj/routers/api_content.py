@@ -1,20 +1,57 @@
 import asyncio
+import json
 import logging
-from typing import Dict, Optional, Union
+import math
+from typing import Dict, List, Optional, Union
 
-from fastapi import APIRouter, Depends, Header, Request, Response, UploadFile
+from asgiref.sync import sync_to_async
+from fastapi import (
+    APIRouter,
+    Depends,
+    Header,
+    HTTPException,
+    Request,
+    Response,
+    UploadFile,
+)
 from pydantic import BaseModel
 from starlette.authentication import requires
 
+from khoj.database import adapters
+from khoj.database.adapters import (
+    EntryAdapters,
+    get_user_github_config,
+    get_user_notion_config,
+)
+from khoj.database.models import Entry as DbEntry
+from khoj.database.models import (
+    GithubConfig,
+    GithubRepoConfig,
+    KhojUser,
+    LocalMarkdownConfig,
+    LocalOrgConfig,
+    LocalPdfConfig,
+    LocalPlaintextConfig,
+    NotionConfig,
+)
 from khoj.routers.helpers import (
     ApiIndexedDataLimiter,
+    CommonQueryParams,
     configure_content,
+    get_user_config,
     update_telemetry_state,
 )
 from khoj.utils import constants, state
 from khoj.utils.config import SearchModels
 from khoj.utils.helpers import get_file_type
-from khoj.utils.rawconfig import ContentConfig, FullConfig, SearchConfig
+from khoj.utils.rawconfig import (
+    ContentConfig,
+    FullConfig,
+    GithubContentConfig,
+    NotionContentConfig,
+    SearchConfig,
+)
+from khoj.utils.state import SearchType
 from khoj.utils.yaml import save_config_to_file_updated_state
 
 logger = logging.getLogger(__name__)
@@ -82,6 +119,216 @@ async def patch_content(
     ),
 ):
     return await indexer(request, files, t, False, client, user_agent, referer, host)
+
+
+@api_content.get("/github", response_class=Response)
+@requires(["authenticated"])
+def get_content_github(request: Request) -> Response:
+    user = request.user.object
+    user_config = get_user_config(user, request)
+    del user_config["request"]
+
+    current_github_config = get_user_github_config(user)
+
+    if current_github_config:
+        raw_repos = current_github_config.githubrepoconfig.all()
+        repos = []
+        for repo in raw_repos:
+            repos.append(
+                GithubRepoConfig(
+                    name=repo.name,
+                    owner=repo.owner,
+                    branch=repo.branch,
+                )
+            )
+        current_config = GithubContentConfig(
+            pat_token=current_github_config.pat_token,
+            repos=repos,
+        )
+        current_config = json.loads(current_config.json())
+    else:
+        current_config = {}  # type: ignore
+
+    user_config["current_config"] = current_config
+
+    # Return config data as a JSON response
+    return Response(content=json.dumps(user_config), media_type="application/json", status_code=200)
+
+
+@api_content.get("/notion", response_class=Response)
+@requires(["authenticated"])
+def get_content_notion(request: Request) -> Response:
+    user = request.user.object
+    user_config = get_user_config(user, request)
+    del user_config["request"]
+
+    current_notion_config = get_user_notion_config(user)
+    token = current_notion_config.token if current_notion_config else ""
+    current_config = NotionContentConfig(token=token)
+    current_config = json.loads(current_config.model_dump_json())
+
+    user_config["current_config"] = current_config
+
+    # Return config data as a JSON response
+    return Response(content=json.dumps(user_config), media_type="application/json", status_code=200)
+
+
+@api_content.post("/github", status_code=200)
+@requires(["authenticated"])
+async def set_content_github(
+    request: Request,
+    updated_config: Union[GithubContentConfig, None],
+    client: Optional[str] = None,
+):
+    _initialize_config()
+
+    user = request.user.object
+
+    try:
+        await adapters.set_user_github_config(
+            user=user,
+            pat_token=updated_config.pat_token,
+            repos=updated_config.repos,
+        )
+    except Exception as e:
+        logger.error(e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to set Github config")
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="set_content_config",
+        client=client,
+        metadata={"content_type": "github"},
+    )
+
+    return {"status": "ok"}
+
+
+@api_content.post("/notion", status_code=200)
+@requires(["authenticated"])
+async def set_content_notion(
+    request: Request,
+    updated_config: Union[NotionContentConfig, None],
+    client: Optional[str] = None,
+):
+    _initialize_config()
+
+    user = request.user.object
+
+    try:
+        await adapters.set_notion_config(
+            user=user,
+            token=updated_config.token,
+        )
+    except Exception as e:
+        logger.error(e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to set Notion config")
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="set_content_config",
+        client=client,
+        metadata={"content_type": "notion"},
+    )
+
+    return {"status": "ok"}
+
+
+@api_content.delete("/{content_source}", status_code=200)
+@requires(["authenticated"])
+async def delete_content_source(
+    request: Request,
+    content_source: str,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="delete_content_config",
+        client=client,
+        metadata={"content_source": content_source},
+    )
+
+    content_object = map_config_to_object(content_source)
+    if content_object is None:
+        raise ValueError(f"Invalid content source: {content_source}")
+    elif content_object != "Computer":
+        await content_object.objects.filter(user=user).adelete()
+    await sync_to_async(EntryAdapters.delete_all_entries)(user, file_source=content_source)
+
+    enabled_content = await sync_to_async(EntryAdapters.get_unique_file_types)(user)
+    return {"status": "ok"}
+
+
+@api_content.delete("/file", status_code=201)
+@requires(["authenticated"])
+async def delete_content_file(
+    request: Request,
+    filename: str,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="delete_file",
+        client=client,
+    )
+
+    await EntryAdapters.adelete_entry_by_file(user, filename)
+
+    return {"status": "ok"}
+
+
+@api_content.get("/size", response_model=Dict[str, int])
+@requires(["authenticated"])
+async def get_content_size(request: Request, common: CommonQueryParams, client: Optional[str] = None):
+    user = request.user.object
+    indexed_data_size_in_mb = await sync_to_async(EntryAdapters.get_size_of_indexed_data_in_mb)(user)
+    return Response(
+        content=json.dumps({"indexed_data_size_in_mb": math.ceil(indexed_data_size_in_mb)}),
+        media_type="application/json",
+        status_code=200,
+    )
+
+
+@api_content.get("/types", response_model=List[str])
+@requires(["authenticated"])
+def get_content_types(request: Request, client: Optional[str] = None):
+    user = request.user.object
+    all_content_types = {s.value for s in SearchType}
+    configured_content_types = set(EntryAdapters.get_unique_file_types(user))
+    configured_content_types |= {"all"}
+
+    if state.config and state.config.content_type:
+        for ctype in state.config.content_type.model_dump(exclude_none=True):
+            configured_content_types.add(ctype)
+
+    return list(configured_content_types & all_content_types)
+
+
+@api_content.get("/{content_source}", response_model=List[str])
+@requires(["authenticated"])
+async def get_content_source(
+    request: Request,
+    content_source: str,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="get_all_filenames",
+        client=client,
+    )
+
+    return await sync_to_async(list)(EntryAdapters.get_all_filenames_by_source(user, content_source))  # type: ignore[call-arg]
 
 
 async def indexer(
@@ -198,3 +445,65 @@ def configure_search(search_models: SearchModels, search_config: Optional[Search
         search_models = SearchModels()
 
     return search_models
+
+
+def map_config_to_object(content_source: str):
+    if content_source == DbEntry.EntrySource.GITHUB:
+        return GithubConfig
+    if content_source == DbEntry.EntrySource.NOTION:
+        return NotionConfig
+    if content_source == DbEntry.EntrySource.COMPUTER:
+        return "Computer"
+
+
+async def map_config_to_db(config: FullConfig, user: KhojUser):
+    if config.content_type:
+        if config.content_type.org:
+            await LocalOrgConfig.objects.filter(user=user).adelete()
+            await LocalOrgConfig.objects.acreate(
+                input_files=config.content_type.org.input_files,
+                input_filter=config.content_type.org.input_filter,
+                index_heading_entries=config.content_type.org.index_heading_entries,
+                user=user,
+            )
+        if config.content_type.markdown:
+            await LocalMarkdownConfig.objects.filter(user=user).adelete()
+            await LocalMarkdownConfig.objects.acreate(
+                input_files=config.content_type.markdown.input_files,
+                input_filter=config.content_type.markdown.input_filter,
+                index_heading_entries=config.content_type.markdown.index_heading_entries,
+                user=user,
+            )
+        if config.content_type.pdf:
+            await LocalPdfConfig.objects.filter(user=user).adelete()
+            await LocalPdfConfig.objects.acreate(
+                input_files=config.content_type.pdf.input_files,
+                input_filter=config.content_type.pdf.input_filter,
+                index_heading_entries=config.content_type.pdf.index_heading_entries,
+                user=user,
+            )
+        if config.content_type.plaintext:
+            await LocalPlaintextConfig.objects.filter(user=user).adelete()
+            await LocalPlaintextConfig.objects.acreate(
+                input_files=config.content_type.plaintext.input_files,
+                input_filter=config.content_type.plaintext.input_filter,
+                index_heading_entries=config.content_type.plaintext.index_heading_entries,
+                user=user,
+            )
+        if config.content_type.github:
+            await adapters.set_user_github_config(
+                user=user,
+                pat_token=config.content_type.github.pat_token,
+                repos=config.content_type.github.repos,
+            )
+        if config.content_type.notion:
+            await adapters.set_notion_config(
+                user=user,
+                token=config.content_type.notion.token,
+            )
+
+
+def _initialize_config():
+    if state.config is None:
+        state.config = FullConfig()
+        state.config.search_type = SearchConfig.model_validate(constants.default_config["search-type"])

@@ -553,7 +553,7 @@
     };
 
     function clearContentType(content_source) {
-        fetch('/api/configure/content/' + content_source, {
+        fetch('/api/content/' + content_source, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -676,7 +676,7 @@
 
         content_sources = ["computer", "github", "notion"];
         content_sources.forEach(content_source => {
-            fetch(`/api/configure/content/${content_source}`, {
+            fetch(`/api/content/${content_source}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -807,7 +807,7 @@
 
     function getIndexedDataSize() {
         document.getElementById("indexed-data-size").textContent = "Calculating...";
-        fetch('/api/configure/content/size')
+        fetch('/api/content/size')
             .then(response => response.json())
             .then(data => {
                 document.getElementById("indexed-data-size").textContent = data.indexed_data_size_in_mb + " MB used";
@@ -815,7 +815,7 @@
     }
 
     function removeFile(path) {
-        fetch('/api/configure/content/file?filename=' + path, {
+        fetch('/api/content/file?filename=' + path, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',

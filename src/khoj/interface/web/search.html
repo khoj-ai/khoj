@@ -209,7 +209,7 @@
 
         function populate_type_dropdown() {
             // Populate type dropdown field with enabled content types only
-            fetch("/api/configure/types")
+            fetch("/api/content/types")
                 .then(response => response.json())
                 .then(enabled_types => {
                     // Show warning if no content types are enabled, or just one ("all")

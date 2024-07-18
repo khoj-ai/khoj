@@ -697,7 +697,7 @@ Optionally apply CALLBACK with JSON parsed response and CBARGS."
 
 (defun khoj--get-enabled-content-types ()
   "Get content types enabled for search from API."
-  (khoj--call-api "/api/configure/types" "GET" nil `(lambda (item) (mapcar #'intern item))))
+  (khoj--call-api "/api/content/types" "GET" nil `(lambda (item) (mapcar #'intern item))))
 
 (defun khoj--query-search-api-and-render-results (query content-type buffer-name &optional rerank is-find-similar)
   "Query Khoj Search API with QUERY, CONTENT-TYPE and RERANK as query params.
