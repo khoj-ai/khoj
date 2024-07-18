@@ -469,6 +469,8 @@ export default function Chat() {
     //same as ChatBodyData for local storage message
     useEffect(() => {
         const storedMessage = localStorage.getItem("message");
+        //clear local storage
+        localStorage.removeItem("message");
         setQueryToProcess(storedMessage || '');
     }, []);
 

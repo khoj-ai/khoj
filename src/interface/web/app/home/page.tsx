@@ -335,7 +335,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 ))}
             </div>
             <div className="flex items-center justify-center">
-                <button onClick={onButtonClick} className="m-2 p-1 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm">More Examples ⟳</button>
+                <button onClick={onButtonClick} className="m-2 p-1 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm text-stone-500">More Examples ⟳</button>
             </div>
         </div>
         </div>
