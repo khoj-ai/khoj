@@ -116,6 +116,7 @@ export default function ChatInputArea(props: ChatInputProps) {
     }, [uploading]);
 
     function onSendMessage() {
+        console.log("MESSAGE: ", message);
         if (!message.trim()) return;
 
         if (!props.isLoggedIn) {
