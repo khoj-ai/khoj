@@ -45,6 +45,7 @@ import {
     UserCircle,
     Globe,
     Palette,
+    LinkBreak,
 } from "@phosphor-icons/react";
 import Chat from '../page';
 
@@ -267,12 +268,29 @@ function ChatBodyData(props: ChatBodyDataProps) {
         }
     }, [props.streamedMessages]);
 
-    //make the agents the first four items in data
     const agents = data ? data.slice(0, 4) : [];
     const icons = agents.map(agent => getIconFromIconName(agent.icon, agent.color) || <Image src={agent.avatar} alt={agent.name} width={50} height={50} />);
-    // const storedURL = storeUrlSynchronously();
-    // const id = storedURL.replace("/chat?conversationId=", "");
-    // console.log("id for new convo: ", id);
+
+    function fillArea(link: string, type: string, prompt: string) {
+        if (!link){
+            var message_str = "";
+            prompt = prompt.charAt(0).toLowerCase() + prompt.slice(1);
+            if(type === "Online Search"){
+                message_str = "/online " + prompt;
+            }
+            else if(type === "Paint"){
+                message_str = "/paint " + prompt;
+            }
+            else{
+                message_str = prompt;
+            }
+            const message_area = document.getElementById("message") as HTMLInputElement;
+            if (message_area) {
+                message_area.value = message_str;
+            }
+        }
+    }
+
     return (
         <div>
         <div className="w-full text-center">
@@ -304,14 +322,16 @@ function ChatBodyData(props: ChatBodyDataProps) {
             </div>
             <div className={`suggestions ${styles.suggestions} w-full flex`}>
                 {shuffledOptions.map(([key, styleClass, image, value, link], index) => (
-                    <SuggestionCard
-                    key={key + Math.random()}
-                    title={key}
-                    body={value.length > 65 ? value.substring(0, 65) + '...' : value}
-                    link={link} // replace with actual link if available
-                    color={shuffledColors[index]}
-                    image={shuffledColors[index]}
-                    />
+                    <div onClick={() => fillArea(link, key, value)}>
+                        <SuggestionCard
+                        key={key + Math.random()}
+                        title={key}
+                        body={value.length > 65 ? value.substring(0, 65) + '...' : value}
+                        link={link} // replace with actual link if available
+                        color={shuffledColors[index]}
+                        image={shuffledColors[index]}
+                        />
+                    </div>
                 ))}
             </div>
             <div className="flex items-center justify-center">
