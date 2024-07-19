@@ -233,28 +233,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }, [props.chatOptionsData]);
 
     useEffect(() => {
-        if(!conversationId && !props.conversationId) {
-            const processMessage = async () => {
-            console.log("local id", conversationId, "conversation id", props.conversationId, "message", message, "processing", processingMessage);
-            if (message && !processingMessage) {
-                setProcessingMessage(true);
-                try {
-                    const newConversationId = await createNewConvo();
-                    console.log("New conversation ID (useEffect):", newConversationId);
-                    //setLocalConversationId(newConversationId);
-                    props.onConversationIdChange?.(newConversationId);
-                    window.history.pushState({}, '', `/chat?conversationId=${newConversationId}`);
-                    props.setQueryToProcess(message);
-                }
-                catch (error) {
-                    console.error("Error creating new conversation:", error);
-                    setProcessingMessage(false);
-                }
-                setMessage(''); // Clear the input after sending
-            }
-            };
-            processMessage();
-        }
         if(message){
             setProcessingMessage(true);
             props.setQueryToProcess(message);
@@ -276,70 +254,17 @@ function ChatBodyData(props: ChatBodyDataProps) {
             setMessage('');
         }
     }, [props.streamedMessages]);
-    const targetId = props.conversationId ?? conversationId
-    if(!targetId) {
-        //make the agents the first four items in data
-        const agents = data ? data.slice(0, 4) : [];
-        const icons = agents.map(agent => getIconFromIconName(agent.icon, agent.color) || <Image src={agent.avatar} alt={agent.name} width={50} height={50} />);
-        // const storedURL = storeUrlSynchronously();
-        // const id = storedURL.replace("/chat?conversationId=", "");
-        // console.log("id for new convo: ", id);
-        return (
-            <div>
-            <div className="w-full text-center">
-                <h1 className="white pb-8 w-4/5">What would you like to do?</h1>
-            </div>
-            <div className="w-fit text-center">
-            <div className="flex pb-8 ms-10 gap-2">
-                {icons.map((icon, index) => (
-                    <a className="no-underline w-200 flex pl-3 pt-1 pb-1 border border-stone-100 rounded-md">
-                    {icon}
-                    <p className="relative top-1 pr-3">{agents[index].name}</p>
-                    </a>
-                ))}
-                <a className="no-underline w-200 flex pl-3 pt-1 pb-1 ps-4" href="/agents">
-                    <p className="relative top-1 hover:underline">See More →</p>
-                </a>
-            </div>
-            </div>
-            <div className="w-fit">
-                <div className={`${styles.inputBox} bg-background align-middle items-center justify-center px-3`}>
-                    <ChatInputArea
-                        isLoggedIn={props.isLoggedIn}
-                        sendMessage={(message) => setMessage(message)}
-                        sendDisabled={processingMessage}
-                        chatOptionsData={props.chatOptionsData}
-                        conversationId={null}
-                        isMobileWidth={props.isMobileWidth}
-                        setUploadedFiles={props.setUploadedFiles} />
-                </div>
-                <div className={`suggestions ${styles.suggestions} w-full flex`}>
-                    {shuffledOptions.map(([key, styleClass, image, value, link], index) => (
-                        <SuggestionCard
-                        key={key + Math.random()}
-                        title={key}
-                        body={value.length > 65 ? value.substring(0, 65) + '...' : value}
-                        link={link} // replace with actual link if available
-                        color={shuffledColors[index]}
-                        image={shuffledColors[index]}
-                        />
-                    ))}
-                </div>
-                <div className="flex items-center justify-center">
-                    <button onClick={onButtonClick} className="m-2 p-1 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100">More Examples ⟳</button>
-                    <button onClick={navigateToNewConvo} className="m-2 p-1 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100">New Conversation</button>
-                </div>
-            </div>
-            </div>
-        );
 
+    if(!conversationId) {
+        window.location.href = '/home';
+        return;
     }
 
     return (
         <>
             <div className={false ? styles.chatBody : styles.chatBodyFull}>
                 <ChatHistory
-                    conversationId={targetId}
+                    conversationId={conversationId}
                     setTitle={props.setTitle}
                     pendingMessage={processingMessage ? message : ''}
                     incomingMessages={props.streamedMessages} />
@@ -468,7 +393,6 @@ export default function Chat() {
     //same as ChatBodyData for local storage message
     useEffect(() => {
         const storedMessage = localStorage.getItem("message");
-        //clear local storage
         setQueryToProcess(storedMessage || '');
     }, []);
 
