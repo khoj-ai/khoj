@@ -12,7 +12,6 @@ export interface ChatJsonResult {
     inferredQueries?: string[];
 }
 
-
 interface Location {
     region: string;
     city: string;
@@ -26,6 +25,8 @@ export class KhojChatView extends KhojPaneView {
     waitingForLocation: boolean;
     location: Location;
     keyPressTimeout: NodeJS.Timeout | null = null;
+	userMessages: string[] = [];  // New array to store user messages
+	currentMessageIndex: number = -1;  // New property to track current message index
 
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
         super(leaf, setting);
@@ -76,6 +77,10 @@ export class KhojChatView extends KhojPaneView {
 
         // Clear text after extracting message to send
         let user_message = input_el.value.trim();
+		// Store the message in the array if it's not empty
+		if (user_message) {
+			this.userMessages.push(user_message);
+		}
         input_el.value = "";
         this.autoResize();
 
@@ -127,7 +132,10 @@ export class KhojChatView extends KhojPaneView {
             },
         })
         chatInput.addEventListener('input', (_) => { this.onChatInput() });
-        chatInput.addEventListener('keydown', (event) => { this.incrementalChat(event) });
+        chatInput.addEventListener('keydown', (event) => {
+			this.incrementalChat(event) ;
+			this.handleArrowKeys(event);
+		});
 
         // Add event listeners for long press keybinding
         this.contentEl.addEventListener('keydown', this.handleKeyDown.bind(this));
@@ -1314,4 +1322,35 @@ export class KhojChatView extends KhojPaneView {
 
         return referencesDiv;
     }
+
+	//function to loop through the user's past messages
+	handleArrowKeys(event: KeyboardEvent) {
+		const chatInput = event.target as HTMLTextAreaElement;
+
+		if (event.key === 'ArrowUp') {
+			event.preventDefault();
+			if (this.currentMessageIndex < this.userMessages.length - 1) {
+				this.currentMessageIndex++;
+				chatInput.value = this.userMessages[this.userMessages.length - 1 - this.currentMessageIndex];
+			}
+		} else if (event.key === 'ArrowDown') {
+			event.preventDefault();
+			if (this.currentMessageIndex > 0) {
+				this.currentMessageIndex--;
+				chatInput.value = this.userMessages[this.userMessages.length - 1 - this.currentMessageIndex];
+			} else if (this.currentMessageIndex === 0) {
+				this.currentMessageIndex = -1;
+				chatInput.value = '';
+			}
+		} else {
+			// Reset the index if any other key is pressed
+			this.currentMessageIndex = -1;
+		}
+
+		// Move cursor to end of input
+		setTimeout(() => {
+			chatInput.selectionStart = chatInput.selectionEnd = chatInput.value.length;
+		}, 0);
+	}
+
 }
