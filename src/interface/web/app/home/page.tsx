@@ -238,21 +238,25 @@ function ChatBodyData(props: ChatBodyDataProps) {
     //generate colored icons for the selected agents
     const icons = agents.map(agent => getIconFromIconName(agent.icon, agent.color) || <Image src={agent.avatar} alt={agent.name} width={50} height={50} />);
     function fillArea(link: string, type: string, prompt: string) {
-        if (!link){
-            var message_str = "";
+        if (!link) {
+            let message_str = "";
             prompt = prompt.charAt(0).toLowerCase() + prompt.slice(1);
-            if(type === "Online Search"){
+
+            if (type === "Online Search") {
                 message_str = "/online " + prompt;
-            }
-            else if(type === "Paint"){
+            } else if (type === "Paint") {
                 message_str = "/paint " + prompt;
-            }
-            else{
+            } else {
                 message_str = prompt;
             }
-            const message_area = document.getElementById("message") as HTMLInputElement;
+
+            // Get the textarea element
+            const message_area = document.getElementById("message") as HTMLTextAreaElement;
+
             if (message_area) {
+                // Update the value directly
                 message_area.value = message_str;
+                setMessage(message_str);
             }
         }
     }
