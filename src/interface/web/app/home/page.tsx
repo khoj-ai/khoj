@@ -163,9 +163,9 @@ interface ChatBodyDataProps {
 }
 type Suggestion = [string, string, string, string, string];
 
-async function createNewConvo() {
+async function createNewConvo(slug: string) {
     try {
-      const response = await fetch('/api/chat/sessions', { method: "POST" });
+      const response = await fetch(`/api/chat/sessions?client=web&agent_slug=${slug}`, { method: "POST" });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -182,32 +182,15 @@ async function createNewConvo() {
     }
   }
 
-async function navigateToNewConvo() {
-    try {
-        const url = await createNewConvo();
-        console.log("URL: ", url);
-        window.location.href = url;
-    } catch (error) {
-        console.error("Error navigating to new conversation:", error);
-    }
-}
-
 function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState('');
     const [processingMessage, setProcessingMessage] = useState(false);
     const [shuffledOptions, setShuffledOptions] = useState<Suggestion[]>([]);
     const [shuffledColors, setShuffledColors] = useState<string[]>([]);
-    const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
-    //const [localConversationId, setLocalConversationId] = useState<string | null>(conversationId);
+    const [selectedAgent, setSelectedAgent] = useState<string | null>("khoj");
+
     const agentsFetcher = () => window.fetch('/api/agents').then(res => res.json()).catch(err => console.log(err));
     const { data, error } = useSWR<AgentData[]>('agents', agentsFetcher, { revalidateOnFocus: false });
-    var Agent = "khoj";
-    // useEffect(() => {
-    //     if (props.conversationId) {
-    //       //setLocalConversationId(props.conversationId);
-    //       props.onConversationIdChange?.(props.conversationId);
-    //     }
-    // }, [props.conversationId]);
 
     function shuffleAndSetOptions() {
         const shuffled = [...suggestions].sort(() => 0.5 - Math.random());
@@ -232,21 +215,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 setProcessingMessage(true);
                 //if (!conversationId) {
                 try {
-                    const newConversationId = await createNewConvo();
+                    const newConversationId = await createNewConvo(selectedAgent || "khoj");
                     console.log("New conversation ID (useEffect):", newConversationId);
-                    const response = await fetch(`/api/chat/sessions`, {
-                        method: "POST",
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                          agent_slug: selectedAgent,
-                          conversationId: newConversationId,
-                          // Include any other necessary fields here
-                        }),
-                    });
-                    console.debug("Response:", response);
-                    //setLocalConversationId(newConversationId);
                     props.onConversationIdChange?.(newConversationId);
                     window.location.href = `/chat?conversationId=${newConversationId}`;
                     localStorage.setItem('message', message);
@@ -283,7 +253,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
 
     const agents = data ? data.slice(0, 4) : [];
     const icons = agents.map(agent => getIconFromIconName(agent.icon, agent.color) || <Image src={agent.avatar} alt={agent.name} width={50} height={50} />);
-
     function fillArea(link: string, type: string, prompt: string) {
         if (!link){
             var message_str = "";
@@ -310,16 +279,10 @@ function ChatBodyData(props: ChatBodyDataProps) {
             try {
                 const unauthenticatedRedirectUrl = `/login?next=/agents?agent=${slug}`;
                 const response = await fetch(`/api/chat/sessions?agent_slug=${slug}`, { method: "POST" });
-                //get current agent
-                const response1 = await fetch(`/api/chat/sessions`); //have to set the newly created conversation to the agent
-                const data1 = await response1.json();
-                // const current_agent = data1.agent_slug;
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 if (response.status == 200) {;
-                    Agent = slug;
-                    //find the index of that slug
                     highlightHandler(slug);
                 } else if (response.status == 403 || response.status == 401) {
                     window.location.href = unauthenticatedRedirectUrl;
@@ -380,6 +343,12 @@ function highlightHandler(slug: string) {
             button.style.borderWidth = '';
             button.style.borderStyle = '';
             button.style.boxShadow = '';
+            // also remove any -500 ending class
+            for (let j = 0; j < button.classList.length; j++) {
+                if (button.classList[j].endsWith('-500')) {
+                    button.classList.remove(button.classList[j]);
+                }
+            }
         }
     }
 }
@@ -392,7 +361,7 @@ function highlightHandler(slug: string) {
         </div>
         <div className="flex pb-6 ms-10 gap-2">
             {icons.map((icon, index) => (
-                <a className={`AGENT ${agents[index].slug} no-underline w-200 flex pl-3 pt-1 pb-1 border border-stone-100 rounded-md shadow-sm`} onClick={handleAgentsClick(agents[index].slug)}>
+                <a className={`AGENT ${agents[index].slug} no-underline w-200 flex pl-3 pt-1 pb-1 border ${agents[index].slug === "khoj" ? "border-orange-500" : "border-stone-100"} rounded-md shadow-sm`} onClick={handleAgentsClick(agents[index].slug)}>
                 {icon}
                 <p className="relative top-1 pr-3">{agents[index].name}</p>
                 </a>

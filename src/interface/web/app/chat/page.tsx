@@ -204,15 +204,14 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const { data, error } = useSWR<AgentData[]>('agents', agentsFetcher, { revalidateOnFocus: false });
 
     //fetch /api/conversatons?conversationId=conversationId
-    const response = window.fetch(`/api/chat/history?client=web&conversation_id=${conversationId}`).then(res => res.json()).catch(err => console.log(err));
-    console.log(response);
+    // const response = window.fetch(`/api/chat/history?client=web&conversation_id=${conversationId}`).then(res => res.json()).catch(err => console.log(err));
+    // console.log(response);
 
     //if there is a change in localStorage update message. it is stored like this: localStorage.setItem("message", "your message")
     useEffect(() => {
         const storedMessage = localStorage.getItem("message");
         if (storedMessage) {
             setMessage(storedMessage);
-            //show the agent being used
         }
     }, []);
 
@@ -239,7 +238,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
             console.log("local id", conversationId, "conversation id", props.conversationId, "message", message, "processing", processingMessage);
             if (message && !processingMessage) {
                 setProcessingMessage(true);
-                //if (!conversationId) {
                 try {
                     const newConversationId = await createNewConvo();
                     console.log("New conversation ID (useEffect):", newConversationId);
@@ -252,9 +250,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     console.error("Error creating new conversation:", error);
                     setProcessingMessage(false);
                 }
-                // } else {
-                // props.setQueryToProcess(message);
-                // }
                 setMessage(''); // Clear the input after sending
             }
             };
