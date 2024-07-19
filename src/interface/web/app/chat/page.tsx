@@ -1,18 +1,13 @@
 'use client'
 
 import styles from './chat.module.css';
-import React, { Suspense, useEffect, useState, useMemo, use } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 
-import SuggestionCard from '../components/suggestions/suggestionCard';
-import AgentShortcut from '../components/agentShortcut/agentShortcut';
 import SidePanel from '../components/sidePanel/chatHistorySidePanel';
 import ChatHistory from '../components/chatHistory/chatHistory';
 import NavMenu from '../components/navMenu/navMenu';
 import { useSearchParams } from 'next/navigation'
 import Loading from '../components/loading/loading';
-import useSWR from 'swr';
-import Image from 'next/image';
-import { Button } from "@/components/ui/button"
 
 import { handleCompiledReferences, handleImageResponse, setupWebSocket } from '../common/chatFunctions';
 
@@ -22,122 +17,6 @@ import { StreamMessage } from '../components/chatMessage/chatMessage';
 import { welcomeConsole } from '../common/utils';
 import ChatInputArea, { ChatOptions } from '../components/chatInputArea/chatInputArea';
 import { useAuthenticatedData } from '../common/auth';
-import { set } from 'react-hook-form';
-
-const suggestions: Suggestion[] = [["Automation", "blue", "/automate.svg", "Send me a summary of HackerNews every morning.", "/automations?subject=Summarizing%20Top%20Headlines%20from%20HackerNews&query=Summarize%20the%20top%20headlines%20on%20HackerNews&crontime=00%207%20*%20*%20*"], ["Automation", "blue", "/automate.svg", "Compose a bedtime story that a five-year-old might enjoy.", "/automations?subject=Daily%20Bedtime%20Story&query=Compose%20a%20bedtime%20story%20that%20a%20five-year-old%20might%20enjoy.%20It%20should%20not%20exceed%20five%20paragraphs.%20Appeal%20to%20the%20imagination%2C%20but%20weave%20in%20learnings.&crontime=0%2021%20*%20*%20*"], ["Paint", "green", "/paint.svg", "Paint a picture of a sunset but it's made of stained glass tiles", ""], ["Online Search", "yellow", "/online_search.svg", "Search for the best attractions in Austria Hungary", ""]];
-const sampleAgents = [["Khoj", "/khoj_agent.svg"], ["Teacher", "/teacher_agent.svg"], ["Doctor", "/doctor_agent.svg"], ["Sage", "/sage_agent.svg"]];
-
-import {
-    Lightbulb,
-    Robot,
-    Aperture,
-    GraduationCap,
-    Jeep,
-    Island,
-    MathOperations,
-    Asclepius,
-    Couch,
-    Code,
-    Atom,
-    ClockCounterClockwise,
-    PaperPlaneTilt,
-    Info,
-    UserCircle,
-    Globe,
-    Palette,
-} from "@phosphor-icons/react";
-
-interface IconMap {
-    [key: string]: (color: string, width: string, height: string) => JSX.Element | null;
-}
-
-const iconMap: IconMap = {
-    Lightbulb: (color: string, width: string, height: string) => <Lightbulb className={`${width} ${height} ${color} mr-2`} />,
-    Robot: (color: string, width: string, height: string) => <Robot className={`${width} ${height} ${color} mr-2`} />,
-    Aperture: (color: string, width: string, height: string) => <Aperture className={`${width} ${height} ${color} mr-2`} />,
-    GraduationCap: (color: string, width: string, height: string) => <GraduationCap className={`${width} ${height} ${color} mr-2`} />,
-    Jeep: (color: string, width: string, height: string) => <Jeep className={`${width} ${height} ${color} mr-2`} />,
-    Island: (color: string, width: string, height: string) => <Island className={`${width} ${height} ${color} mr-2`} />,
-    MathOperations: (color: string, width: string, height: string) => <MathOperations className={`${width} ${height} ${color} mr-2`} />,
-    Asclepius: (color: string, width: string, height: string) => <Asclepius className={`${width} ${height} ${color} mr-2`} />,
-    Couch: (color: string, width: string, height: string) => <Couch className={`${width} ${height} ${color} mr-2`} />,
-    Code: (color: string, width: string, height: string) => <Code className={`${width} ${height} ${color} mr-2`} />,
-    Atom: (color: string, width: string, height: string) => <Atom className={`${width} ${height} ${color} mr-2`} />,
-    ClockCounterClockwise: (color: string, width: string, height: string) => <ClockCounterClockwise className={`${width} ${height} ${color} mr-2`} />,
-    Globe: (color: string, width: string, height: string) => <Globe className={`${width} ${height} ${color} mr-2`} />,
-    Palette: (color: string, width: string, height: string) => <Palette className={`${width} ${height} ${color} mr-2`} />,
-};
-
-function convertColorToTextClass(color: string) {
-    if (color === 'red') return `text-red-500`;
-    if (color === 'yellow') return `text-yellow-500`;
-    if (color === 'green') return `text-green-500`;
-    if (color === 'blue') return `text-blue-500`;
-    if (color === 'orange') return `text-orange-500`;
-    if (color === 'purple') return `text-purple-500`;
-    if (color === 'pink') return `text-pink-500`;
-    if (color === 'teal') return `text-teal-500`;
-    if (color === 'cyan') return `text-cyan-500`;
-    if (color === 'lime') return `text-lime-500`;
-    if (color === 'indigo') return `text-indigo-500`;
-    if (color === 'fuschia') return `text-fuschia-500`;
-    if (color === 'rose') return `text-rose-500`;
-    if (color === 'sky') return `text-sky-500`;
-    if (color === 'amber') return `text-amber-500`;
-    if (color === 'emerald') return `text-emerald-500`;
-    return `text-gray-500`;
-}
-
-function convertSuggestionColorToTextClass(color: string) {
-    if (color === 'blue') return `bg-gradient-to-b from-white 50% to-sky-50`;
-    if (color === 'yellow') return `bg-gradient-to-b from-white 50% to-yellow-50`;
-    if (color === 'green') return `bg-gradient-to-b from-white 50% to-green-50`;
-    if (color === 'pink') return `bg-gradient-to-b from-white 50% to-pink-50`;
-    if (color === 'purple') return `bg-gradient-to-b from-white 50% to-purple-50`;
-    return `bg-gradient-to-b from-white 50% to-orange-50`;
-}
-
-function convertSuggestionColorToIconClass(color: string) {
-    if (color === 'blue') return iconMap.Robot('blue', 'w-8', 'h-8');
-    if (color === 'yellow') return iconMap.Globe('yellow', 'w-8', 'h-8');
-    if (color === 'green') return iconMap.Palette('green', 'w-8', 'h-8');
-    else return iconMap.Lightbulb('orange', 'w-8', 'h-8');
-}
-
-
-
-
-function getIconFromIconName(iconName: string, color: string = 'gray', width: string = 'w-8', height: string = 'h-8') {
-    const icon = iconMap[iconName];
-    const colorName = color.toLowerCase();
-    const colorClass = convertColorToTextClass(colorName);
-
-    return icon ? icon(colorClass, width, height) : null;
-}
-
-function convertColorToClass(color: string) {
-    // We can't dyanmically generate the classes for tailwindcss, so we have to explicitly use the whole string.
-    // See models/__init__.py 's definition of the Agent model for the color choices.
-    if (color === 'red') return `bg-red-500 hover:bg-red-600`;
-    if (color === 'yellow') return `bg-yellow-500 hover:bg-yellow-600`;
-    if (color === 'green') return `bg-green-500 hover:bg-green-600`;
-    if (color === 'blue') return `bg-blue-500 hover:bg-blue-600`;
-    if (color === 'orange') return `bg-orange-500 hover:bg-orange-600`;
-    if (color === 'purple') return `bg-purple-500 hover:bg-purple-600`;
-    if (color === 'pink') return `bg-pink-500 hover:bg-pink-600`;
-    if (color === 'teal') return `bg-teal-500 hover:bg-teal-600`;
-    if (color === 'cyan') return `bg-cyan-500 hover:bg-cyan-600`;
-    if (color === 'lime') return `bg-lime-500 hover:bg-lime-600`;
-    if (color === 'indigo') return `bg-indigo-500 hover:bg-indigo-600`;
-    if (color === 'fuschia') return `bg-fuschia-500 hover:bg-fuschia-600`;
-    if (color === 'rose') return `bg-rose-500 hover:bg-rose-600`;
-    if (color === 'sky') return `bg-sky-500 hover:bg-sky-600`;
-    if (color === 'amber') return `bg-amber-500 hover:bg-amber-600`;
-    if (color === 'emerald') return `bg-emerald-500 hover:bg-emerald-600`;
-    return `bg-gray-500 hover:bg-gray-600`;
-}
-
-
 
 export interface AgentData {
     slug: string;
@@ -161,76 +40,18 @@ interface ChatBodyDataProps {
 }
 type Suggestion = [string, string, string, string, string];
 
-async function createNewConvo() {
-    try {
-      const response = await fetch('/api/chat/sessions', { method: "POST" });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      const conversationID = data.conversation_id;
-      console.log("New conversation ID (create new convo):", conversationID);
-      if (!conversationID) {
-        throw new Error("Conversation ID not found in response");
-      }
-      return conversationID;
-    } catch (error) {
-      console.error("Error creating new conversation:", error);
-      throw error;
-    }
-  }
-
-async function navigateToNewConvo() {
-    try {
-        const url = await createNewConvo();
-        console.log("URL: ", url);
-        window.location.href = url;
-    } catch (error) {
-        console.error("Error navigating to new conversation:", error);
-    }
-}
-
 function ChatBodyData(props: ChatBodyDataProps) {
     const searchParams = useSearchParams();
     const conversationId = searchParams.get('conversationId');
     const [message, setMessage] = useState('');
     const [processingMessage, setProcessingMessage] = useState(false);
-    const [shuffledOptions, setShuffledOptions] = useState<Suggestion[]>([]);
-    const [shuffledColors, setShuffledColors] = useState<string[]>([]);
-    const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
-    //const [localConversationId, setLocalConversationId] = useState<string | null>(conversationId);
-    console.log("conversationId", conversationId, "localConversationId", conversationId, "message", message, "processing", processingMessage);
-    const agentsFetcher = () => window.fetch('/api/agents').then(res => res.json()).catch(err => console.log(err));
-    const { data, error } = useSWR<AgentData[]>('agents', agentsFetcher, { revalidateOnFocus: false });
 
-    //fetch /api/conversatons?conversationId=conversationId
-    // const response = window.fetch(`/api/chat/history?client=web&conversation_id=${conversationId}`).then(res => res.json()).catch(err => console.log(err));
-    // console.log(response);
-
-    //if there is a change in localStorage update message. it is stored like this: localStorage.setItem("message", "your message")
     useEffect(() => {
         const storedMessage = localStorage.getItem("message");
         if (storedMessage) {
             setMessage(storedMessage);
         }
     }, []);
-
-    function shuffleAndSetOptions() {
-        const shuffled = [...suggestions].sort(() => 0.5 - Math.random());
-        setShuffledOptions(shuffled.slice(0, 3));
-        //use the text to color function above convertSuggestionColorToTextClass
-        const colors = shuffled.map(option => convertSuggestionColorToTextClass(option[1]));
-        setShuffledColors(colors);
-    }
-
-    function onButtonClick() {
-        shuffleAndSetOptions();
-    }
-    useEffect(() => {
-        if (props.chatOptionsData) {
-            shuffleAndSetOptions();
-        }
-    }, [props.chatOptionsData]);
 
     useEffect(() => {
         if(message){
@@ -398,7 +219,6 @@ export default function Chat() {
 
     useEffect(() => {
         if (chatWS && queryToProcess) {
-            console.log('Processing query:', queryToProcess);
             const newStreamMessage: StreamMessage = {
             rawResponse: "",
             trainOfThought: [],
@@ -413,7 +233,6 @@ export default function Chat() {
             if (chatWS.readyState === WebSocket.OPEN) {
                 chatWS.send(queryToProcess);
                 setProcessQuerySignal(true);
-                console.log("Query sent to server", queryToProcess);
             }
             else {
                 console.error("WebSocket is not open. ReadyState:", chatWS.readyState);
@@ -424,12 +243,10 @@ export default function Chat() {
     }, [queryToProcess, chatWS]);
 
    useEffect(() => {
-        console.log("PROCESS STATE:", processQuerySignal, chatWS);
         if (processQuerySignal && chatWS && chatWS.readyState === WebSocket.OPEN) {
             setProcessQuerySignal(false);
             chatWS.onmessage = handleWebSocketMessage;
             chatWS.send(queryToProcess);
-            console.log("Query sent to server", queryToProcess);
             localStorage.removeItem("message");
         }
     }, [processQuerySignal, chatWS]);
@@ -438,26 +255,20 @@ export default function Chat() {
         const setupWebSocketConnection = async () => {
           if (conversationId && (!chatWS || chatWS.readyState === WebSocket.CLOSED)) {
             if(queryToProcess) {
-                console.log("WEBSOCKET CONNECTION:", queryToProcess, conversationId);
                 const newWS = await setupWebSocket(conversationId, queryToProcess);
                 localStorage.removeItem("message");
                 setChatWS(newWS);
-                console.log("NEWWS", newWS);
             }
             else {
-                console.log("WEBSOCKET CONNECTION (no query):", queryToProcess, conversationId);
                 const newWS = await setupWebSocket(conversationId);
                 setChatWS(newWS);
-                console.log("NEWWS", newWS);
             }
-            console.log("WebSocket setup for conversation:", conversationId);
           }
         };
         setupWebSocketConnection();
     }, [conversationId]);
 
     const handleConversationIdChange = (newConversationId: string) => {
-        console.log("Conversation ID changed to", newConversationId);
         setConversationID(newConversationId);
     };
 
