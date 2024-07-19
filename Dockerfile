@@ -8,8 +8,11 @@ LABEL org.opencontainers.image.source="https://github.com/khoj-ai/khoj"
 RUN apt update -y && apt -y install python3-pip swig curl
 
 # Install Node.js and Yarn
+RUN curl -sL https://deb.nodesource.com/setup_20.x | bash -
 RUN apt -y install nodejs
-RUN npm install -g yarn
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
+RUN apt update && apt -y install yarn
 
 # Install RapidOCR dependencies
 RUN apt -y install libgl1 libgl1-mesa-glx libglib2.0-0
