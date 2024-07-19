@@ -14,9 +14,6 @@ on:
       - prod.Dockerfile
       - docker-compose.yml
       - .github/workflows/dockerize.yml
-  pull_request:
-    paths:
-      - "*"
   workflow_dispatch:
     inputs:
       tag:
@@ -74,7 +71,7 @@ jobs:
 
       - name: 📦 Build and Push Docker Image
         uses: docker/build-push-action@v2
-        if: (matrix.image == 'local')
+        if: (matrix.image == 'local' && github.event_name == 'workflow_dispatch') && github.event.inputs.khoj == 'true' || (matrix.image == 'local' && github.event_name == 'push')
         with:
           context: .
           file: Dockerfile
@@ -89,7 +86,7 @@ jobs:
 
       - name: 📦️⛅️ Build and Push Cloud Docker Image
         uses: docker/build-push-action@v2
-        if: (matrix.image == 'cloud')
+        if: (matrix.image == 'cloud' && github.event_name == 'workflow_dispatch') && github.event.inputs.khoj-cloud == 'true' || (matrix.image == 'cloud' && github.event_name == 'push')
         with:
           context: .
           file: prod.Dockerfile
