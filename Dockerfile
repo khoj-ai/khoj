@@ -7,12 +7,12 @@ LABEL org.opencontainers.image.source="https://github.com/khoj-ai/khoj"
 # Install System Dependencies
 RUN apt update -y && apt -y install python3-pip swig curl
 
-# Install Node.js and Yarn using nvm in a single RUN instruction
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash - && \
-    export NVM_DIR="$HOME/.nvm" && \
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
-    nvm install 20 && \
-    npm install --global yarn
+# Install Node.js and Yarn
+RUN curl -sL https://deb.nodesource.com/setup_20.x | bash -
+RUN apt -y install nodejs
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
+RUN apt update && apt -y install yarn
 
 # Install RapidOCR dependencies
 RUN apt -y install libgl1 libgl1-mesa-glx libglib2.0-0
