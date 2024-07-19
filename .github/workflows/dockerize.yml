@@ -74,7 +74,7 @@ jobs:
 
       - name: 📦 Build and Push Docker Image
         uses: docker/build-push-action@v2
-        if: (matrix.image == 'local' && github.event_name == 'workflow_dispatch') && github.event.inputs.khoj == 'true' || (matrix.image == 'local' && github.event_name == 'push')
+        if: (matrix.image == 'local')
         with:
           context: .
           file: Dockerfile
@@ -89,7 +89,7 @@ jobs:
 
       - name: 📦️⛅️ Build and Push Cloud Docker Image
         uses: docker/build-push-action@v2
-        if: (matrix.image == 'cloud' && github.event_name == 'workflow_dispatch') && github.event.inputs.khoj-cloud == 'true' || (matrix.image == 'cloud' && github.event_name == 'push')
+        if: (matrix.image == 'cloud')
         with:
           context: .
           file: prod.Dockerfile
