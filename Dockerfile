@@ -33,7 +33,7 @@ ENV PYTHONPATH=/app/src:$PYTHONPATH
 
 # Go to the directory src/interface/web and export the built Next.js assets
 WORKDIR /app/src/interface/web
-RUN bash -c "yarn install --verbose && yarn ciexport"
+RUN bash -c "yarn cache clean && yarn install --verbose && yarn ciexport"
 WORKDIR /app
 
 # Run the Application
