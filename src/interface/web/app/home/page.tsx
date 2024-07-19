@@ -4,28 +4,20 @@ import styles from './chat.module.css';
 import React, { Suspense, useEffect, useState, useMemo } from 'react';
 
 import SuggestionCard from '../components/suggestions/suggestionCard';
-import AgentShortcut from '../components/agentShortcut/agentShortcut';
 import SidePanel from '../components/sidePanel/chatHistorySidePanel';
-import ChatHistory from '../components/chatHistory/chatHistory';
 import NavMenu from '../components/navMenu/navMenu';
-import { useSearchParams } from 'next/navigation'
 import Loading from '../components/loading/loading';
 import useSWR from 'swr';
 import Image from 'next/image';
-import { Button } from "@/components/ui/button"
-
-import { handleCompiledReferences, handleImageResponse, setupWebSocket } from '../common/chatFunctions';
 
 import 'katex/dist/katex.min.css';
 
 import { StreamMessage } from '../components/chatMessage/chatMessage';
-import { welcomeConsole } from '../common/utils';
 import ChatInputArea, { ChatOptions } from '../components/chatInputArea/chatInputArea';
 import { useAuthenticatedData } from '../common/auth';
-import { set } from 'react-hook-form';
 
+//samples for suggestion cards (should be moved to json later)
 const suggestions: Suggestion[] = [["Automation", "blue", "/automate.svg", "Send me a summary of HackerNews every morning.", "/automations?subject=Summarizing%20Top%20Headlines%20from%20HackerNews&query=Summarize%20the%20top%20headlines%20on%20HackerNews&crontime=00%207%20*%20*%20*"], ["Automation", "blue", "/automate.svg", "Compose a bedtime story that a five-year-old might enjoy.", "/automations?subject=Daily%20Bedtime%20Story&query=Compose%20a%20bedtime%20story%20that%20a%20five-year-old%20might%20enjoy.%20It%20should%20not%20exceed%20five%20paragraphs.%20Appeal%20to%20the%20imagination%2C%20but%20weave%20in%20learnings.&crontime=0%2021%20*%20*%20*"], ["Paint", "green", "/paint.svg", "Paint a picture of a sunset but it's made of stained glass tiles", ""], ["Online Search", "yellow", "/online_search.svg", "Search for the best attractions in Austria Hungary", ""]];
-const sampleAgents = [["Khoj", "/khoj_agent.svg"], ["Teacher", "/teacher_agent.svg"], ["Doctor", "/doctor_agent.svg"], ["Sage", "/sage_agent.svg"]];
 
 import {
     Lightbulb,
@@ -211,34 +203,29 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }
 
     useEffect(() => { const processMessage = async () => {
-            if (message && !processingMessage) {
-                setProcessingMessage(true);
-                //if (!conversationId) {
-                try {
-                    const newConversationId = await createNewConvo(selectedAgent || "khoj");
-                    console.log("New conversation ID (useEffect):", newConversationId);
-                    props.onConversationIdChange?.(newConversationId);
-                    window.location.href = `/chat?conversationId=${newConversationId}`;
-                    localStorage.setItem('message', message);
-                    console.log("Message stored in local storage:", message);
-                    console.log("selectedAgent:", selectedAgent);
-                    // window.alert(`You are now chatting with ${selectedAgent}`);
-                }
-                catch (error) {
-                    console.error("Error creating new conversation:", error);
-                    setProcessingMessage(false);
-                }
-                // } else {
-                // props.setQueryToProcess(message);
-                // }
-                setMessage(''); // Clear the input after sending
+        if (message && !processingMessage) {
+            setProcessingMessage(true);
+            try {
+                const newConversationId = await createNewConvo(selectedAgent || "khoj");
+                console.log("New conversation ID (useEffect):", newConversationId);
+                props.onConversationIdChange?.(newConversationId);
+                window.location.href = `/chat?conversationId=${newConversationId}`;
+                localStorage.setItem('message', message);
+                console.log("Message stored in local storage:", message);
+                console.log("selectedAgent:", selectedAgent);
             }
-            };
-            processMessage();
-            if(message){
-                setProcessingMessage(true);
-                props.setQueryToProcess(message);
-            };
+            catch (error) {
+                console.error("Error creating new conversation:", error);
+                setProcessingMessage(false);
+            }
+            setMessage('');
+        }
+        };
+        processMessage();
+        if(message){
+            setProcessingMessage(true);
+            props.setQueryToProcess(message);
+        };
     }, [selectedAgent, message]);
 
     useEffect(() => {
@@ -251,7 +238,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
         }
     }, [props.streamedMessages]);
 
-    const agents = data ? data.slice(0, 4) : [];
+    const agents = data ? data.slice(0, 4) : []; //select first 4 agents to show as options
+    //generate colored icons for the selected agents
     const icons = agents.map(agent => getIconFromIconName(agent.icon, agent.color) || <Image src={agent.avatar} alt={agent.name} width={50} height={50} />);
     function fillArea(link: string, type: string, prompt: string) {
         if (!link){
@@ -295,10 +283,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
         };
     }
 
-// Helper function to convert Tailwind color class to actual color value
+// Helper function to convert Tailwind color class to actual color value to prevent default border changes from being applied
 function tailwindColorToHex(colorClass: string): string {
-    // This is a simplified conversion. You may need to expand this object
-    // to include all colors and shades you use in your project.
     const colorMap: { [key: string]: string } = {
         'border-red-500': '#ef4444',
         'border-blue-500': '#3b82f6',
@@ -309,9 +295,7 @@ function tailwindColorToHex(colorClass: string): string {
         'border-indigo-500': '#6366f1',
         'border-gray-500': '#6b7280',
         'border-orange-500': '#f97316',
-        // Add more colors as needed
     };
-
     return colorMap[colorClass] || '#000000'; // Default to black if color not found
 }
 
@@ -323,7 +307,7 @@ function highlightHandler(slug: string) {
     const color = agents.find(agent => agent.slug === slug)?.color;
     const color_class = convertColorToClass(color || 'gray').split(' ')[0];
 
-    // replace 'bg' with 'border' to get the border color
+    // replace 'bg' with 'border' to get the tailwind border color
     const border_color = color_class.replace('bg', 'border');
     console.log(border_color);
 
@@ -343,7 +327,8 @@ function highlightHandler(slug: string) {
             button.style.borderWidth = '';
             button.style.borderStyle = '';
             button.style.boxShadow = '';
-            // also remove any -500 ending class
+
+            // also remove any -500 ending class (handles start case where khoj is selected by default at the start)
             for (let j = 0; j < button.classList.length; j++) {
                 if (button.classList[j].endsWith('-500')) {
                     button.classList.remove(button.classList[j]);
@@ -389,7 +374,7 @@ function highlightHandler(slug: string) {
                         key={key + Math.random()}
                         title={key}
                         body={value.length > 65 ? value.substring(0, 65) + '...' : value}
-                        link={link} // replace with actual link if available
+                        link={link}
                         color={shuffledColors[index]}
                         image={shuffledColors[index]}
                         />
@@ -409,10 +394,8 @@ export default function Home(){
     const [isLoading, setLoading] = useState(true);
     const [title, setTitle] = useState('');
     const [conversationId, setConversationID] = useState<string | null>(null);
-    const [chatWS, setChatWS] = useState<WebSocket | null>(null);
     const [messages, setMessages] = useState<StreamMessage[]>([]);
     const [queryToProcess, setQueryToProcess] = useState<string>('');
-    const [processQuerySignal, setProcessQuerySignal] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [isMobileWidth, setIsMobileWidth] = useState(false);
 
@@ -428,7 +411,6 @@ export default function Home(){
             .then(response => response.json())
             .then((data: ChatOptions) => {
                 setLoading(false);
-                // Render chat options, if any
                 if (data) {
                     setChatOptionsData(data);
                 }
