@@ -203,12 +203,16 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const agentsFetcher = () => window.fetch('/api/agents').then(res => res.json()).catch(err => console.log(err));
     const { data, error } = useSWR<AgentData[]>('agents', agentsFetcher, { revalidateOnFocus: false });
 
+    //fetch /api/conversatons?conversationId=conversationId
+    const response = window.fetch(`/api/chat/history?client=web&conversation_id=${conversationId}`).then(res => res.json()).catch(err => console.log(err));
+    console.log(response);
+
     //if there is a change in localStorage update message. it is stored like this: localStorage.setItem("message", "your message")
     useEffect(() => {
         const storedMessage = localStorage.getItem("message");
         if (storedMessage) {
             setMessage(storedMessage);
-
+            //show the agent being used
         }
     }, []);
 

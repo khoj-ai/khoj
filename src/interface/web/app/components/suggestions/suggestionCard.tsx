@@ -103,7 +103,7 @@ export default function SuggestionCard(data: SuggestionCardProps) {
             <Card className={`${styles.card} ${data.color}`}>
                 <CardHeader className="m-0 p-2 pb-1 relative">
                     {convertSuggestionColorToIconClass(data.image)}
-                    <CardTitle className={`${styles.title} pt-2`}>{data.title}</CardTitle>
+                    <CardTitle className={`${styles.title} pt-2 dark:text-black`}>{data.title}</CardTitle>
                 </CardHeader>
                 <CardContent className="m-0 p-2 pr-4 pt-1 w-[200px] h-[100px]">
                     <CardDescription className={styles.text}>{data.body}</CardDescription>
@@ -116,7 +116,7 @@ export default function SuggestionCard(data: SuggestionCardProps) {
         <Card className={`${styles.card} ${data.color}`}>
             <CardHeader className="m-0 p-2 pb-1 relative">
                 {convertSuggestionColorToIconClass(data.image)}
-                <CardTitle className={`${styles.title} pt-2`}>{data.title}</CardTitle>
+                <CardTitle className={`${styles.title} pt-2 dark:text-black`}>{data.title}</CardTitle>
             </CardHeader>
             <CardContent className="m-0 p-2 pr-4 pt-1 w-[200px] h-[100px]">
                 <CardDescription className={styles.text}>{data.body}</CardDescription>

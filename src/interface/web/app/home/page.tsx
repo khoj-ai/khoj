@@ -201,7 +201,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     //const [localConversationId, setLocalConversationId] = useState<string | null>(conversationId);
     const agentsFetcher = () => window.fetch('/api/agents').then(res => res.json()).catch(err => console.log(err));
     const { data, error } = useSWR<AgentData[]>('agents', agentsFetcher, { revalidateOnFocus: false });
-
+    var Agent = "khoj";
     // useEffect(() => {
     //     if (props.conversationId) {
     //       //setLocalConversationId(props.conversationId);
@@ -234,12 +234,25 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 try {
                     const newConversationId = await createNewConvo();
                     console.log("New conversation ID (useEffect):", newConversationId);
+                    const response = await fetch(`/api/chat/sessions`, {
+                        method: "POST",
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          agent_slug: selectedAgent,
+                          conversationId: newConversationId,
+                          // Include any other necessary fields here
+                        }),
+                    });
+                    console.debug("Response:", response);
                     //setLocalConversationId(newConversationId);
                     props.onConversationIdChange?.(newConversationId);
-                    window.history.pushState({}, '', `/chat?conversationId=${newConversationId}`);
                     window.location.href = `/chat?conversationId=${newConversationId}`;
                     localStorage.setItem('message', message);
                     console.log("Message stored in local storage:", message);
+                    console.log("selectedAgent:", selectedAgent);
+                    // window.alert(`You are now chatting with ${selectedAgent}`);
                 }
                 catch (error) {
                     console.error("Error creating new conversation:", error);
@@ -256,7 +269,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 setProcessingMessage(true);
                 props.setQueryToProcess(message);
             };
-    }, [message]);
+    }, [selectedAgent, message]);
 
     useEffect(() => {
         if (props.streamedMessages &&
@@ -290,6 +303,86 @@ function ChatBodyData(props: ChatBodyDataProps) {
             }
         }
     }
+    function handleAgentsClick(slug: string) {
+        return async () => {
+            setSelectedAgent(slug);
+            console.log(slug);
+            try {
+                const unauthenticatedRedirectUrl = `/login?next=/agents?agent=${slug}`;
+                const response = await fetch(`/api/chat/sessions?agent_slug=${slug}`, { method: "POST" });
+                //get current agent
+                const response1 = await fetch(`/api/chat/sessions`); //have to set the newly created conversation to the agent
+                const data1 = await response1.json();
+                // const current_agent = data1.agent_slug;
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                if (response.status == 200) {;
+                    Agent = slug;
+                    //find the index of that slug
+                    highlightHandler(slug);
+                } else if (response.status == 403 || response.status == 401) {
+                    window.location.href = unauthenticatedRedirectUrl;
+                } else {
+                    alert("Failed to start chat session");
+                }
+            } catch (error) {
+                console.error("Error starting a conversation with the agent:", error);
+            }
+        };
+    }
+
+// Helper function to convert Tailwind color class to actual color value
+function tailwindColorToHex(colorClass: string): string {
+    // This is a simplified conversion. You may need to expand this object
+    // to include all colors and shades you use in your project.
+    const colorMap: { [key: string]: string } = {
+        'border-red-500': '#ef4444',
+        'border-blue-500': '#3b82f6',
+        'border-green-500': '#22c55e',
+        'border-yellow-500': '#eab308',
+        'border-purple-500': '#a855f7',
+        'border-pink-500': '#ec4899',
+        'border-indigo-500': '#6366f1',
+        'border-gray-500': '#6b7280',
+        'border-orange-500': '#f97316',
+        // Add more colors as needed
+    };
+
+    return colorMap[colorClass] || '#000000'; // Default to black if color not found
+}
+
+function highlightHandler(slug: string) {
+    // find buttons with AGENT in their class name
+    const buttons = document.getElementsByClassName("AGENT");
+
+    // find the color of the icon inside the agent
+    const color = agents.find(agent => agent.slug === slug)?.color;
+    const color_class = convertColorToClass(color || 'gray').split(' ')[0];
+
+    // replace 'bg' with 'border' to get the border color
+    const border_color = color_class.replace('bg', 'border');
+    console.log(border_color);
+
+    // Convert Tailwind color class to actual color value
+    const hexColor = tailwindColorToHex(border_color);
+
+    for (let i = 0; i < buttons.length; i++) {
+        const button = buttons[i] as HTMLElement;
+        if (button.classList.contains(slug)) {
+            // Set the border color directly using the hex value
+            button.style.borderColor = hexColor;
+            button.style.borderWidth = '1px';
+            button.style.borderStyle = 'solid';
+        } else {
+            // Remove border from other buttons
+            button.style.borderColor = '';
+            button.style.borderWidth = '';
+            button.style.borderStyle = '';
+            button.style.boxShadow = '';
+        }
+    }
+}
 
     return (
         <div>
@@ -299,7 +392,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
         </div>
         <div className="flex pb-6 ms-10 gap-2">
             {icons.map((icon, index) => (
-                <a className="no-underline w-200 flex pl-3 pt-1 pb-1 border border-stone-100 rounded-md">
+                <a className={`AGENT ${agents[index].slug} no-underline w-200 flex pl-3 pt-1 pb-1 border border-stone-100 rounded-md shadow-sm`} onClick={handleAgentsClick(agents[index].slug)}>
                 {icon}
                 <p className="relative top-1 pr-3">{agents[index].name}</p>
                 </a>
