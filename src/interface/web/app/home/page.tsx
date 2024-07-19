@@ -163,7 +163,6 @@ async function createNewConvo(slug: string) {
       }
       const data = await response.json();
       const conversationID = data.conversation_id;
-      console.log("New conversation ID (create new convo):", conversationID);
       if (!conversationID) {
         throw new Error("Conversation ID not found in response");
       }
@@ -207,12 +206,9 @@ function ChatBodyData(props: ChatBodyDataProps) {
             setProcessingMessage(true);
             try {
                 const newConversationId = await createNewConvo(selectedAgent || "khoj");
-                console.log("New conversation ID (useEffect):", newConversationId);
                 props.onConversationIdChange?.(newConversationId);
                 window.location.href = `/chat?conversationId=${newConversationId}`;
                 localStorage.setItem('message', message);
-                console.log("Message stored in local storage:", message);
-                console.log("selectedAgent:", selectedAgent);
             }
             catch (error) {
                 console.error("Error creating new conversation:", error);
@@ -263,7 +259,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
     function handleAgentsClick(slug: string) {
         return async () => {
             setSelectedAgent(slug);
-            console.log(slug);
             try {
                 const unauthenticatedRedirectUrl = `/login?next=/agents?agent=${slug}`;
                 const response = await fetch(`/api/chat/sessions?agent_slug=${slug}`, { method: "POST" });
@@ -309,7 +304,6 @@ function highlightHandler(slug: string) {
 
     // replace 'bg' with 'border' to get the tailwind border color
     const border_color = color_class.replace('bg', 'border');
-    console.log(border_color);
 
     // Convert Tailwind color class to actual color value
     const hexColor = tailwindColorToHex(border_color);
@@ -402,7 +396,6 @@ export default function Home(){
     const authenticatedData = useAuthenticatedData();
 
     const handleConversationIdChange = (newConversationId: string) => {
-        console.log("Conversation ID changed to", newConversationId);
         setConversationID(newConversationId);
     };
 
