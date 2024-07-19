@@ -681,18 +681,33 @@ class ConversationAdapters:
         user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None, title: str = None
     ) -> Optional[Conversation]:
         if conversation_id:
-            return await Conversation.objects.filter(user=user, client=client_application, id=conversation_id).afirst()
+            return (
+                await Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
+                .prefetch_related("agent")
+                .afirst()
+            )
         elif title:
-            return await Conversation.objects.filter(user=user, client=client_application, title=title).afirst()
+            return (
+                await Conversation.objects.filter(user=user, client=client_application, title=title)
+                .prefetch_related("agent")
+                .afirst()
+            )
         else:
-            conversation = Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at")
+            conversation = (
+                Conversation.objects.filter(user=user, client=client_application)
+                .prefetch_related("agent")
+                .order_by("-updated_at")
+            )
 
         if await conversation.aexists():
             return await conversation.prefetch_related("agent").afirst()
 
         return await (
-            Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at").afirst()
-        ) or await Conversation.objects.acreate(user=user, client=client_application)
+            Conversation.objects.filter(user=user, client=client_application)
+            .prefetch_related("agent")
+            .order_by("-updated_at")
+            .afirst()
+        ) or await Conversation.objects.prefetch_related("agent").acreate(user=user, client=client_application)
 
     @staticmethod
     async def adelete_conversation_by_user(
