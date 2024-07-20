@@ -1,5 +1,4 @@
 import logging
-import os
 from threading import Thread
 from typing import Dict
 
@@ -40,7 +39,7 @@ def completion_with_backoff(
     client: openai.OpenAI = openai_clients.get(client_key)
     if not client:
         client = openai.OpenAI(
-            api_key=openai_api_key or os.getenv("OPENAI_API_KEY"),
+            api_key=openai_api_key,
             base_url=api_base_url,
         )
         openai_clients[client_key] = client
@@ -102,7 +101,7 @@ def llm_thread(g, messages, model_name, temperature, openai_api_key=None, api_ba
     client_key = f"{openai_api_key}--{api_base_url}"
     if client_key not in openai_clients:
         client: openai.OpenAI = openai.OpenAI(
-            api_key=openai_api_key or os.getenv("OPENAI_API_KEY"),
+            api_key=openai_api_key,
             base_url=api_base_url,
         )
         openai_clients[client_key] = client

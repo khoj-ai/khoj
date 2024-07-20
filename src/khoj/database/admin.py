@@ -96,7 +96,6 @@ admin.site.register(SpeechToTextModelOptions)
 admin.site.register(SearchModelConfig)
 admin.site.register(ReflectiveQuestion)
 admin.site.register(UserSearchModelConfig)
-admin.site.register(TextToImageModelConfig)
 admin.site.register(ClientApplication)
 admin.site.register(GithubConfig)
 admin.site.register(NotionConfig)
@@ -126,7 +125,10 @@ class EntryAdmin(admin.ModelAdmin):
         "file_path",
     )
     search_fields = ("id", "user__email", "user__username", "file_path")
-    list_filter = ("file_type",)
+    list_filter = (
+        "file_type",
+        "user__email",
+    )
     ordering = ("-created_at",)
 
 
@@ -151,6 +153,16 @@ class ChatModelOptionsAdmin(admin.ModelAdmin):
         "max_prompt_size",
     )
     search_fields = ("id", "chat_model", "model_type")
+
+
+@admin.register(TextToImageModelConfig)
+class TextToImageModelOptionsAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "model_name",
+        "model_type",
+    )
+    search_fields = ("id", "model_name", "model_type")
 
 
 @admin.register(OpenAIProcessorConversationConfig)

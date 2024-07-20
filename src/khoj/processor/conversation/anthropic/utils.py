@@ -99,15 +99,13 @@ def anthropic_llm_thread(
         anthropic.types.MessageParam(role=message.role, content=message.content) for message in messages
     ]
 
-    max_prompt_size = max_prompt_size or DEFAULT_MAX_TOKENS_ANTHROPIC
-
     with client.messages.stream(
         messages=formatted_messages,
         model=model_name,  # type: ignore
         temperature=temperature,
         system=system_prompt,
         timeout=20,
-        max_tokens=max_prompt_size,
+        max_tokens=DEFAULT_MAX_TOKENS_ANTHROPIC,
         **(model_kwargs or dict()),
     ) as stream:
         for text in stream.text_stream:

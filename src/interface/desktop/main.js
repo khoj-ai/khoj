@@ -19,7 +19,7 @@ const textFileTypes = [
     'org', 'md', 'markdown', 'txt', 'html', 'xml',
     // Other valid text file extensions from https://google.github.io/magika/model/config.json
     'appleplist', 'asm', 'asp', 'batch', 'c', 'cs', 'css', 'csv', 'eml', 'go', 'html', 'ini', 'internetshortcut', 'java', 'javascript', 'json', 'latex', 'lisp', 'makefile', 'markdown', 'mht', 'mum', 'pem', 'perl', 'php', 'powershell', 'python', 'rdf', 'rst', 'rtf', 'ruby', 'rust', 'scala', 'shell', 'smali', 'sql', 'svg', 'symlinktext', 'txt', 'vba', 'winregistry', 'xml', 'yaml']
-const binaryFileTypes = ['pdf']
+const binaryFileTypes = ['pdf', 'jpg', 'jpeg', 'png']
 const validFileTypes = textFileTypes.concat(binaryFileTypes);
 
 const schema = {
@@ -431,6 +431,9 @@ function addCSPHeaderToSession () {
 let firstRun = true;
 let win = null;
 let titleBarStyle = process.platform === 'win32' ? 'default' : 'hidden';
+const {globalShortcut, clipboard} = require('electron'); // global shortcut and clipboard dependencies for shortcut window
+const openShortcutWindowKeyBind = 'CommandOrControl+Shift+K'
+
 const createWindow = (tab = 'chat.html') => {
     win = new BrowserWindow({
       width: 800,
@@ -506,6 +509,48 @@ const createWindow = (tab = 'chat.html') => {
     }
 }
 
+const createShortcutWindow = (tab = 'shortcut.html') => {
+     var shortcutWin = new BrowserWindow({
+         width: 400,
+         height: 600,
+         show: false,
+         titleBarStyle: titleBarStyle,
+         autoHideMenuBar: true,
+         frame: false,
+         webPreferences: {
+             preload: path.join(__dirname, 'preload.js'),
+             nodeIntegration: true,
+         }
+     });
+     shortcutWin.setMenuBarVisibility(false);
+     shortcutWin.setResizable(false);
+     shortcutWin.setOpacity(0.95);
+     shortcutWin.setBackgroundColor('#f5f4f3');
+     shortcutWin.setHasShadow(true);
+     shortcutWin.setVibrancy('popover');
+
+     shortcutWin.loadFile(tab);
+     shortcutWin.once('ready-to-show', () => {
+         shortcutWin.show();
+     });
+
+    shortcutWin.on('closed', () => {
+        shortcutWin = null;
+    });
+
+     return shortcutWin;
+};
+
+function isShortcutWindowOpen() {
+     const windows = BrowserWindow.getAllWindows();
+     for (let i = 0; i < windows.length; i++) {
+         if (windows[i].webContents.getURL().endsWith('shortcut.html')) {
+             return true;
+         }
+     }
+     return false;
+}
+
 app.whenReady().then(() => {
     addCSPHeaderToSession();
 
@@ -551,14 +596,13 @@ app.whenReady().then(() => {
     });
     ipcMain.handle('deleteAllFiles', deleteAllFiles);
 
-    createWindow();
-
+    const mainWindow = createWindow();
 
     app.setAboutPanelOptions({
         applicationName: "Khoj",
         applicationVersion: khojPackage.version,
         version: khojPackage.version,
-        authors: "Saba Imran, Debanjum Singh Solanky and contributors",
+        authors: "Khoj AI",
         website: "https://khoj.dev",
         copyright: "GPL v3",
         iconPath: path.join(__dirname, 'assets', 'icons', 'favicon-128x128.png')
@@ -575,9 +619,43 @@ app.whenReady().then(() => {
             console.warn("Desktop app update check failed:", e);
         }
     })
+    globalShortcut.register(openShortcutWindowKeyBind, () => {
+        console.log("Shortcut key pressed")
+        if(isShortcutWindowOpen()) return;
 
+        const shortcutWin = createShortcutWindow(); // Create a new shortcut window each time the shortcut is triggered
+        shortcutWin.setAlwaysOnTop(true, 'screen-saver', 1);
+        const clipboardText = clipboard.readText();
+        console.log('Sending clipboard text:', clipboardText); // Debug log
+        shortcutWin.webContents.once('dom-ready', () => {
+          shortcutWin.webContents.send('clip', clipboardText);
+          console.log('Message sent to window'); // Debug log
+        });
+
+        // Register a global shortcut for the Escape key for the shortcutWin
+        globalShortcut.register('Escape', () => {
+          if (shortcutWin) {
+            shortcutWin.close();
+          }
+          // Unregister the Escape key shortcut
+          globalShortcut.unregister('Escape');
+        });
+
+        shortcutWin.on('closed', () => {
+            // Unregister the Escape key shortcut
+            globalShortcut.unregister('Escape');
+        });
+        ipcMain.on('continue-conversation-button-clicked', () => {
+            openWindow('chat.html');
+            if (shortcutWin && !shortcutWin.isDestroyed()) {
+                shortcutWin.close();
+            }
+            // Unregister the Escape key shortcut
+            globalShortcut.unregister('Escape');
+        });
+    });
     app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+        if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
 })
 

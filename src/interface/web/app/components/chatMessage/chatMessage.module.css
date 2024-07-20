@@ -1,0 +1,80 @@
+div.chatMessageContainer {
+    display: flex;
+    flex-direction: column;
+}
+
+div.you {
+    color: var(--frosted-background-color);
+    background-color: var(--intense-green);
+    align-self: flex-end;
+}
+
+div.khoj {
+    background-color: transparent;
+    color: #000000;
+    align-self: flex-start;
+}
+
+div.chatMessageContainer img {
+    width: 50%;
+}
+
+div.chatMessageContainer h3 img {
+    width: 24px;
+}
+
+div.you .author {
+    color: var(--frosted-background-color);
+}
+
+div.author {
+    font-size: 0.75rem;
+    color: #808080;
+    text-align: right;
+}
+
+div.chatFooter {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+}
+
+div.chatButtons {
+    display: flex;
+    justify-content: flex-end;
+}
+
+div.chatFooter button {
+    cursor: pointer;
+    background-color: var(--calm-blue);
+    color: var(--main-text-color);
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.25rem;
+    margin-left: 0.5rem;
+}
+
+div.chatFooter button:hover {
+    background-color: var(--frosted-background-color);
+    color: var(--intense-green);
+}
+
+div.chatTimestamp {
+    font-size: small;
+}
+
+button.codeCopyButton {
+    cursor: pointer;
+    float: right;
+    border-radius: 8px;
+}
+
+button.codeCopyButton:hover {
+    background-color: var(--intense-green);
+    color: var(--frosted-background-color);
+}
+
+div.feedbackButtons img,
+button.copyButton img {
+    width: 24px;
+}

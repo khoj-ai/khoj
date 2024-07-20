@@ -48,11 +48,14 @@ function filenameToMimeType (filename: TFile): string {
     }
 }
 
+export const supportedImageFilesTypes = ['png', 'jpg', 'jpeg'];
+export const supportedBinaryFileTypes = ['pdf'].concat(supportedImageFilesTypes);
+export const supportedFileTypes = ['md', 'markdown'].concat(supportedBinaryFileTypes);
+
 export async function updateContentIndex(vault: Vault, setting: KhojSetting, lastSync: Map<TFile, number>, regenerate: boolean = false): Promise<Map<TFile, number>> {
     // Get all markdown, pdf files in the vault
     console.log(`Khoj: Updating Khoj content index...`)
-    const files = vault.getFiles().filter(file => file.extension === 'md' || file.extension === 'markdown' || file.extension === 'pdf');
-    const binaryFileTypes = ['pdf']
+    const files = vault.getFiles().filter(file => supportedFileTypes.includes(file.extension));
     let countOfFilesToIndex = 0;
     let countOfFilesToDelete = 0;
     lastSync = lastSync.size > 0 ? lastSync : new Map<TFile, number>();
@@ -66,7 +69,7 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
         }
 
         countOfFilesToIndex++;
-        const encoding = binaryFileTypes.includes(file.extension) ? "binary" : "utf8";
+        const encoding = supportedBinaryFileTypes.includes(file.extension) ? "binary" : "utf8";
         const mimeType = fileExtensionToMimeType(file.extension) + (encoding === "utf8" ? "; charset=UTF-8" : "");
         const fileContent = encoding == 'binary' ? await vault.readBinary(file) : await vault.read(file);
         fileData.push({blob: new Blob([fileContent], { type: mimeType }), path: file.path});
@@ -333,6 +336,12 @@ export function createCopyParentText(message: string, originalButton: string = '
     }
 }
 
+export function jumpToPreviousView() {
+    const editor: Editor = this.app.workspace.getActiveFileView()?.editor
+    if (!editor) return;
+    editor.focus();
+}
+
 export function pasteTextAtCursor(text: string | undefined) {
     // Get the current active file's editor
     const editor: Editor = this.app.workspace.getActiveFileView()?.editor
@@ -347,15 +356,21 @@ export function pasteTextAtCursor(text: string | undefined) {
     }
 }
 
-export function getLinkToEntry(sourceFiles: TFile[], chosenFile: string, chosenEntry: string): string | undefined {
+export function getFileFromPath(sourceFiles: TFile[], chosenFile: string): TFile | undefined {
     // Find the vault file matching file of chosen file, entry
     let fileMatch = sourceFiles
         // Sort by descending length of path
         // This finds longest path match when multiple files have same name
         .sort((a, b) => b.path.length - a.path.length)
         // The first match is the best file match across OS
-        // e.g Khoj server on Linux, Obsidian vault on Android
+        // e.g. Khoj server on Linux, Obsidian vault on Android
         .find(file => chosenFile.replace(/\\/g, "/").endsWith(file.path))
+    return fileMatch;
+}
+
+export function getLinkToEntry(sourceFiles: TFile[], chosenFile: string, chosenEntry: string): string | undefined {
+    // Find the vault file matching file of chosen file, entry
+    let fileMatch = getFileFromPath(sourceFiles, chosenFile);
 
     // Return link to vault file at heading of chosen search result
     if (fileMatch) {

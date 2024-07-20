@@ -59,7 +59,7 @@ def cli(args=None):
     # Set default values for arguments
     args.chat_on_gpu = not args.disable_chat_on_gpu
 
-    args.version_no = version("khoj-assistant")
+    args.version_no = version("khoj")
     if args.version:
         # Show version of khoj installed and exit
         print(args.version_no)

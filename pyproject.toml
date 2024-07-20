@@ -3,11 +3,11 @@ requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
-name = "khoj-assistant"
+name = "khoj"
 description = "An AI copilot for your Second Brain"
 readme = "README.md"
 license = "AGPL-3.0-or-later"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [
     { name = "Debanjum Singh Solanky, Saba Imran" },
 ]
@@ -27,7 +27,6 @@ classifiers = [
     "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -48,11 +47,12 @@ dependencies = [
     "tenacity >= 8.2.2",
     "magika ~= 0.5.1",
     "pillow ~= 10.0.0",
-    "pydantic >= 2.0.0",
+    "pydantic[email] >= 2.0.0",
     "pyyaml ~= 6.0",
     "rich >= 13.3.1",
     "schedule == 1.1.0",
-    "sentence-transformers == 2.5.1",
+    "sentence-transformers == 3.0.1",
+    "einops == 0.8.0",
     "transformers >= 4.28.0",
     "torch == 2.2.2",
     "uvicorn == 0.17.6",
@@ -64,7 +64,7 @@ dependencies = [
     "tenacity == 8.3.0",
     "anyio == 3.7.1",
     "pymupdf >= 1.23.5",
-    "django == 4.2.11",
+    "django == 5.0.7",
     "authlib == 1.2.1",
     "llama-cpp-python == 0.2.76",
     "itsdangerous == 2.1.2",
@@ -109,7 +109,7 @@ prod = [
     "resend == 1.0.1",
 ]
 dev = [
-    "khoj-assistant[prod]",
+    "khoj[prod]",
     "pytest >= 7.1.2",
     "pytest-xdist[psutil]",
     "pytest-django == 4.5.2",

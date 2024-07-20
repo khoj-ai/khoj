@@ -27,7 +27,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -36,16 +36,12 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: ⬇️ Install Application
+      - name: ⬇️ Install Server
         run: python -m pip install --upgrade pip && pip install --upgrade .
 
-      - name: Install the Next.js application
+      - name: ⬇️ Install Web Client
         run: |
           yarn install
-        working-directory: src/interface/web
-
-      - name: Build & export static Next.js app to Django static assets
-        run: |
           yarn ciexport
         working-directory: src/interface/web
 
@@ -56,7 +52,12 @@ jobs:
           export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
           rm -rf dist
 
-          # Build PyPi Package
+          # Build PyPI Package: khoj
+          pipx run build
+
+          # Build legacy PyPI Package: khoj-assistant
+          sed -i.bak '/^name = "khoj"$/s//name = "khoj-assistant"/' pyproject.toml
+          rm pyproject.toml.bak
           pipx run build
 
       - name: 🌡️ Validate Python Package
@@ -66,11 +67,11 @@ jobs:
           pipx run twine check dist/*
 
       - name: ⏫ Upload Python Package Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: khoj-assistant
-          path: dist/*.whl
+          name: khoj
+          path: dist/khoj-*.whl
 
-      - name: 📦 Publish Python Package to PyPI
+      - name: 📦 Publish Python Packages to PyPI
         if: startsWith(github.ref, 'refs/tags') || github.ref == 'refs/heads/master'
         uses: pypa/gh-action-pypi-publish@v1.8.14

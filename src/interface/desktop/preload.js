@@ -15,6 +15,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setTitle: (title) => ipcRenderer.send('set-title', title)
 })
 
+contextBridge.exposeInMainWorld('clipboardAPI', {
+    sendClipboardText: (callback) => {
+      ipcRenderer.on('clip', (event, message) => {
+        callback(message);
+      });
+    }
+  });
+
+contextBridge.exposeInMainWorld('routeBackToMainWindowAPI', {
+    sendSignal: () => {
+      ipcRenderer.send('continue-conversation-button-clicked'); // Custom event name
+    }
+  });
+
 contextBridge.exposeInMainWorld('storeValueAPI', {
     handleFileOpen: (key) => ipcRenderer.invoke('handleFileOpen', key)
 })

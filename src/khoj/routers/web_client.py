@@ -129,6 +129,16 @@ def experimental_page(request: Request):
     )
 
 
+@web_client.get("/factchecker", response_class=FileResponse)
+def fact_checker_page(request: Request):
+    return templates.TemplateResponse(
+        "factchecker/index.html",
+        context={
+            "request": request,
+        },
+    )
+
+
 @web_client.get("/login", response_class=FileResponse)
 def login_page(request: Request):
     next_url = get_next_url(request)
@@ -148,33 +158,10 @@ def login_page(request: Request):
 
 @web_client.get("/agents", response_class=HTMLResponse)
 def agents_page(request: Request):
-    user: KhojUser = request.user.object if request.user.is_authenticated else None
-    user_picture = request.session.get("user", {}).get("picture") if user else None
-    has_documents = EntryAdapters.user_has_entries(user=user)
-    agents = AgentAdapters.get_all_accessible_agents(user)
-    agents_packet = list()
-    for agent in agents:
-        agents_packet.append(
-            {
-                "slug": agent.slug,
-                "avatar": agent.avatar,
-                "name": agent.name,
-                "personality": agent.personality,
-                "public": agent.public,
-                "creator": agent.creator.username if agent.creator else None,
-                "managed_by_admin": agent.managed_by_admin,
-            }
-        )
     return templates.TemplateResponse(
-        "agents.html",
+        "agents/index.html",
         context={
             "request": request,
-            "agents": agents_packet,
-            "khoj_version": state.khoj_version,
-            "username": user.username if user else None,
-            "has_documents": has_documents,
-            "is_active": has_required_scope(request, ["premium"]),
-            "user_photo": user_picture,
         },
     )
 
@@ -262,6 +249,12 @@ def config_page(request: Request):
 
     current_search_model_option = adapters.get_user_search_model_or_default(user)
 
+    selected_paint_model_config = ConversationAdapters.get_user_text_to_image_model_config(user)
+    paint_model_options = ConversationAdapters.get_text_to_image_model_options().all()
+    all_paint_model_options = list()
+    for paint_model in paint_model_options:
+        all_paint_model_options.append({"model_name": paint_model.model_name, "id": paint_model.id})
+
     notion_oauth_url = get_notion_auth_url(user)
 
     eleven_labs_enabled = is_eleven_labs_enabled()
@@ -284,10 +277,12 @@ def config_page(request: Request):
             "anonymous_mode": state.anonymous_mode,
             "username": user.username,
             "given_name": given_name,
-            "conversation_options": all_conversation_options,
             "search_model_options": all_search_model_options,
             "selected_search_model_config": current_search_model_option.id,
+            "conversation_options": all_conversation_options,
             "selected_conversation_config": selected_conversation_config.id if selected_conversation_config else None,
+            "paint_model_options": all_paint_model_options,
+            "selected_paint_model_config": selected_paint_model_config.id if selected_paint_model_config else None,
             "user_photo": user_picture,
             "billing_enabled": state.billing_enabled,
             "subscription_state": user_subscription_state,

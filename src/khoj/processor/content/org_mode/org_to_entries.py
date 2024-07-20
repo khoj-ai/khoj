@@ -115,13 +115,19 @@ class OrgToEntries(TextToEntries):
             return entries, entry_to_file_map
 
         # Split this entry tree into sections by the next heading level in it
-        # Increment heading level until able to split entry into sections
+        # Increment heading level until able to split entry into sections or reach max heading level
         # A successful split will result in at least 2 sections
+        max_heading_level = 100
         next_heading_level = len(ancestry)
         sections: List[str] = []
-        while len(sections) < 2:
+        while len(sections) < 2 and next_heading_level < max_heading_level:
             next_heading_level += 1
             sections = re.split(rf"(\n|^)(?=[*]{{{next_heading_level}}} .+\n?)", org_content, flags=re.MULTILINE)
+
+        # If unable to split entry into sections, log error and skip indexing it
+        if next_heading_level == max_heading_level:
+            logger.error(f"Unable to split current entry chunk: {org_content_with_ancestry[:20]}. Skip indexing it.")
+            return entries, entry_to_file_map
 
         # Recurse down each non-empty section after parsing its body, heading and ancestry
         for section in sections:
@@ -135,7 +141,7 @@ class OrgToEntries(TextToEntries):
             # If first non-empty line is a heading with expected heading level
             if re.search(rf"^\*{{{next_heading_level}}}\s", first_non_empty_line):
                 # Extract the section body without the heading
-                current_section_body = "\n".join(section.split(first_non_empty_line)[1:])
+                current_section_body = "\n".join(section.split(first_non_empty_line, 1)[1:])
                 # Parse the section heading into current section ancestry
                 current_section_title = first_non_empty_line[next_heading_level:].strip()
                 current_ancestry[next_heading_level] = current_section_title

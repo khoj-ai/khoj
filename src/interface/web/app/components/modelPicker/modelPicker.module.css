@@ -1,0 +1,23 @@
+select.modelPicker {
+    font-size: small;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    border: none;
+    border-width: 1px;
+    display: flex;
+    align-items: center;
+    height: 2.5rem;
+    justify-content: space-between;
+    border-radius: calc(0.5rem - 2px);
+}
+
+select.modelPicker:after {
+    grid-area: select;
+    justify-self: end;
+}
+
+div.modelPicker {
+    margin-top: 8px;
+}

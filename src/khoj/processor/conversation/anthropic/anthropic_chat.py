@@ -180,6 +180,10 @@ def converse_anthropic(
         tokenizer_name=tokenizer_name,
     )
 
+    if len(messages) > 1:
+        if messages[0].role == "assistant":
+            messages = messages[1:]
+
     for message in messages.copy():
         if message.role == "system":
             system_prompt += message.content

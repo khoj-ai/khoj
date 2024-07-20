@@ -163,10 +163,6 @@
             <div class="section-cards">
                 <div class="finalize-buttons">
                     <button id="sync" type="submit" title="Regenerate index from scratch for Notion, GitHub configuration" style="display: flex; justify-content: center;">
-                        <img class="card-icon" src="/static/assets/icons/sync.svg" alt="Sync">
-                        <h3 class="card-title">
-                            Sync
-                        </h3>
                     </button>
                 </div>
             </div>
@@ -192,11 +188,37 @@
                 </div>
                 <div class="card-action-row">
                     {% if (not billing_enabled) or (subscription_state != 'unsubscribed' and subscription_state != 'expired') %}
-                    <button id="save-model" class="card-button happy" onclick="updateChatModel()">
+                    <button id="save-chat-model" class="card-button happy" onclick="updateChatModel()">
                         Save
                     </button>
                     {% else %}
-                    <button id="save-model" class="card-button" disabled>
+                    <button id="save-chat-model" class="card-button" disabled>
+                        Subscribe to use different models
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title-row">
+                    <img class="card-icon" src="/static/assets/icons/chat.svg" alt="Chat">
+                    <h3 class="card-title">
+                        <span>Paint</span>
+                    </h3>
+                </div>
+                <div class="card-description-row">
+                    <select id="paint-models">
+                        {% for option in paint_model_options %}
+                            <option value="{{ option.id }}" {% if option.id == selected_paint_model_config %}selected{% endif %}>{{ option.model_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="card-action-row">
+                    {% if (not billing_enabled) or (subscription_state != 'unsubscribed' and subscription_state != 'expired') %}
+                    <button id="save-paint-model" class="card-button happy" onclick="updatePaintModel()">
+                        Save
+                    </button>
+                    {% else %}
+                    <button id="save-paint-model" class="card-button" disabled>
                         Subscribe to use different models
                     </button>
                     {% endif %}
@@ -382,7 +404,8 @@
         .then(data => {
             if (data.status == "ok") {
                 let notificationBanner = document.getElementById("notification-banner");
-                notificationBanner.innerHTML = "Profile name has been updated!";
+                notificationBanner.innerHTML = "";
+                notificationBanner.textContent = "Profile name has been updated!";
                 notificationBanner.style.display = "block";
                 setTimeout(function() {
                     notificationBanner.style.display = "none";
@@ -394,8 +417,9 @@
     function updateVoiceModel() {
         const voiceModel = document.getElementById("voice-models").value;
         const saveVoiceModelButton = document.getElementById("save-voice-model");
+        saveVoiceModelButton.innerHTML = "";
         saveVoiceModelButton.disabled = true;
-        saveVoiceModelButton.innerHTML = "Saving...";
+        saveVoiceModelButton.textContent = "Saving...";
 
         fetch('/api/config/data/voice/model?id=' + voiceModel, {
             method: 'POST',
@@ -406,18 +430,19 @@
         .then(response => response.json())
         .then(data => {
             if (data.status == "ok") {
-                saveVoiceModelButton.innerHTML = "Save";
+                saveVoiceModelButton.textContent = "Save";
                 saveVoiceModelButton.disabled = false;
 
                 let notificationBanner = document.getElementById("notification-banner");
-                notificationBanner.innerHTML = "Voice model has been updated!";
+                notificationBanner.innerHTML = "";
+                notificationBanner.textContent = "Voice model has been updated!";
                 notificationBanner.style.display = "block";
                 setTimeout(function() {
                     notificationBanner.style.display = "none";
                 }, 5000);
 
             } else {
-                saveVoiceModelButton.innerHTML = "Error";
+                saveVoiceModelButton.textContent = "Error";
                 saveVoiceModelButton.disabled = false;
             }
         })
@@ -425,9 +450,10 @@
 
     function updateChatModel() {
         const chatModel = document.getElementById("chat-models").value;
-        const saveModelButton = document.getElementById("save-model");
+        const saveModelButton = document.getElementById("save-chat-model");
         saveModelButton.disabled = true;
-        saveModelButton.innerHTML = "Saving...";
+        saveModelButton.innerHTML = "";
+        saveModelButton.textContent = "Saving...";
 
         fetch('/api/config/data/conversation/model?id=' + chatModel, {
             method: 'POST',
@@ -438,18 +464,19 @@
         .then(response => response.json())
         .then(data => {
             if (data.status == "ok") {
-                saveModelButton.innerHTML = "Save";
+                saveModelButton.textContent = "Save";
                 saveModelButton.disabled = false;
 
                 let notificationBanner = document.getElementById("notification-banner");
-                notificationBanner.innerHTML = "Conversation model has been updated!";
+                notificationBanner.innerHTML = "";
+                notificationBanner.textContent = "Conversation model has been updated!";
                 notificationBanner.style.display = "block";
                 setTimeout(function() {
                     notificationBanner.style.display = "none";
                 }, 5000);
 
             } else {
-                saveModelButton.innerHTML = "Error";
+                saveModelButton.textContent = "Error";
                 saveModelButton.disabled = false;
             }
         })
@@ -463,8 +490,9 @@
 
         const searchModel = document.getElementById("search-models").value;
         const saveSearchModelButton = document.getElementById("save-search-model");
+        saveSearchModelButton.innerHTML = "";
         saveSearchModelButton.disabled = true;
-        saveSearchModelButton.innerHTML = "Saving...";
+        saveSearchModelButton.textContent = "Saving...";
 
         fetch('/api/config/data/search/model?id=' + searchModel, {
             method: 'POST',
@@ -475,19 +503,52 @@
         .then(response => response.json())
         .then(data => {
             if (data.status == "ok") {
-                saveSearchModelButton.innerHTML = "Save";
+                saveSearchModelButton.textContent = "Save";
                 saveSearchModelButton.disabled = false;
             } else {
-                saveSearchModelButton.innerHTML = "Error";
+                saveSearchModelButton.textContent = "Error";
                 saveSearchModelButton.disabled = false;
             }
 
             let notificationBanner = document.getElementById("notification-banner");
-            notificationBanner.innerHTML = "Khoj can now better understand the language of your content! Manually sync your data from one of the Khoj clients to update your knowledge base.";
+            notificationBanner.innerHTML = "";
+            notificationBanner.textContent = "Khoj can now better understand the language of your content! Manually sync your data from one of the Khoj clients to update your knowledge base.";
             notificationBanner.style.display = "block";
             setTimeout(function() {
                 notificationBanner.style.display = "none";
             }, 5000);
+        })
+    };
+
+    function updatePaintModel() {
+        const paintModel = document.getElementById("paint-models").value;
+        const saveModelButton = document.getElementById("save-paint-model");
+        saveModelButton.disabled = true;
+        saveModelButton.innerHTML = "Saving...";
+
+        fetch('/api/config/data/paint/model?id=' + paintModel, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status == "ok") {
+                saveModelButton.innerHTML = "Save";
+                saveModelButton.disabled = false;
+
+                let notificationBanner = document.getElementById("notification-banner");
+                notificationBanner.innerHTML = "Paint model has been updated!";
+                notificationBanner.style.display = "block";
+                setTimeout(function() {
+                    notificationBanner.style.display = "none";
+                }, 5000);
+
+            } else {
+                saveModelButton.innerHTML = "Error";
+                saveModelButton.disabled = false;
+            }
         })
     };
 
@@ -549,23 +610,38 @@
         })
     }
 
-    var sync = document.getElementById("sync");
-    sync.addEventListener("click", function(event) {
+    function populateSyncButton() {
+        let syncIconEl = document.createElement("img");
+        syncIconEl.className = "card-icon";
+        syncIconEl.src = "/static/assets/icons/sync.svg";
+        syncIconEl.alt = "Sync";
+
+        let syncButtonTitleEl = document.createElement("h3");
+        syncButtonTitleEl.className = "card-title";
+        syncButtonTitleEl.textContent = "Sync";
+
+        return [syncButtonTitleEl, syncIconEl];
+    }
+
+    var syncButtonEl = document.getElementById("sync");
+    syncButtonEl.innerHTML = "";
+    syncButtonEl.append(...populateSyncButton());
+    syncButtonEl.addEventListener("click", function(event) {
         event.preventDefault();
         updateIndex(
             force=true,
             successText="Synced!",
             errorText="Unable to sync. Raise issue on Khoj <a href='https://github.com/khoj-ai/khoj/issues'>Github</a> or <a href='https://discord.gg/BDgyabRM6e'>Discord</a>.",
-            button=sync,
+            button=syncButtonEl,
             loadingText="Syncing...",
             emoji="");
     });
 
     function updateIndex(force, successText, errorText, button, loadingText, emoji) {
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
-        const original_html = button.innerHTML;
         button.disabled = true;
-        button.innerHTML = emoji + " " + loadingText;
+        button.innerHTML = ""
+        button.textContent = emoji + " " + loadingText;
         fetch('/api/update?&client=web&force=' + force, {
             method: 'GET',
             headers: {
@@ -582,19 +658,19 @@
             document.getElementById("status").style.display = "none";
 
             button.disabled = false;
-            button.innerHTML = `✅ ${successText}`;
+            button.textContent = `✅ ${successText}`;
             setTimeout(function() {
-                button.innerHTML = original_html;
+                button.append(...populateSyncButton());
             }, 2000);
         })
         .catch((error) => {
             console.error('Error:', error);
-            document.getElementById("status").innerHTML = emoji + " " + errorText
+            document.getElementById("status").textContent = emoji + " " + errorText
             document.getElementById("status").style.display = "block";
             button.disabled = false;
-            button.innerHTML = '⚠️ Unsuccessful';
+            button.textContent = '⚠️ Unsuccessful';
             setTimeout(function() {
-                button.innerHTML = original_html;
+                button.append(...populateSyncButton());
             }, 2000);
         });
 
@@ -629,7 +705,7 @@
         })
         .then(response => response.json())
         .then(tokenObj => {
-            apiKeyList.innerHTML += generateTokenRow(tokenObj);
+            apiKeyList.appendChild(generateTokenRow(tokenObj));
         });
     }
 
@@ -638,16 +714,16 @@
         navigator.clipboard.writeText(token);
         // Flash the API key copied icon
         const apiKeyColumn = document.getElementById(`api-key-${token}`);
-        const original_html = apiKeyColumn.innerHTML;
+        const original_text = apiKeyColumn.textContent;
         const copyApiKeyButton = document.getElementById(`api-key-copy-${token}`);
         setTimeout(function() {
             copyApiKeyButton.src = "/static/assets/icons/copy-button-success.svg";
             setTimeout(() => {
                 copyApiKeyButton.src = "/static/assets/icons/copy-button.svg";
             }, 1000);
-            apiKeyColumn.innerHTML = "✅ Copied!";
+            apiKeyColumn.textContent = "✅ Copied!";
             setTimeout(function() {
-                apiKeyColumn.innerHTML = original_html;
+                apiKeyColumn.textContent = original_text;
             }, 1000);
         }, 100);
     }
@@ -670,16 +746,50 @@
         let tokenName = tokenObj.name;
         let truncatedToken = token.slice(0, 4) + "..." + token.slice(-4);
         let tokenId = `${tokenName}-${truncatedToken}`;
-        return `
-            <tr id="api-key-item-${token}">
-                <td><b>${tokenName}</b></td>
-                <td id="api-key-${token}">${truncatedToken}</td>
-                <td>
-                    <img id="api-key-copy-${token}" onclick="copyAPIKey('${token}')" class="configured-icon api-key-action enabled" src="/static/assets/icons/copy-button.svg" alt="Copy API Key" title="Copy API Key">
-                    <img id="api-key-delete-${token}" onclick="deleteAPIKey('${token}')" class="configured-icon api-key-action enabled" src="/static/assets/icons/delete.svg" alt="Delete API Key" title="Delete API Key">
-                </td>
-            </tr>
-        `;
+
+        // Create API Key Row
+        let apiKeyItemEl = document.createElement("tr");
+        apiKeyItemEl.id = `api-key-item-${token}`;
+
+        // API Key Name Row
+        let apiKeyNameEl = document.createElement("td");
+        let apiKeyNameTextEl = document.createElement("b");
+        apiKeyNameTextEl.textContent = tokenName;
+
+        // API Key Token Row
+        let apiKeyTokenEl = document.createElement("td");
+        apiKeyTokenEl.id = `api-key-${token}`;
+        apiKeyTokenEl.textContent = truncatedToken;
+
+        // API Key Actions Row
+        let apiKeyActionsEl = document.createElement("td");
+        // Copy API Key Button
+        let copyApiKeyButtonEl = document.createElement("img");
+        copyApiKeyButtonEl.id = `api-key-copy-${token}`;
+        copyApiKeyButtonEl.className = "configured-icon api-key-action enabled";
+        copyApiKeyButtonEl.src = "/static/assets/icons/copy-button.svg";
+        copyApiKeyButtonEl.alt = "Copy API Key";
+        copyApiKeyButtonEl.title = "Copy API Key";
+        copyApiKeyButtonEl.onclick = function() {
+            copyAPIKey(token);
+        };
+        // Delete API Key Button
+        let deleteApiKeyButtonEl = document.createElement("img");
+        deleteApiKeyButtonEl.id = `api-key-delete-${token}`;
+        deleteApiKeyButtonEl.className = "configured-icon api-key-action enabled";
+        deleteApiKeyButtonEl.src = "/static/assets/icons/delete.svg";
+        deleteApiKeyButtonEl.alt = "Delete API Key";
+        deleteApiKeyButtonEl.title = "Delete API Key";
+        deleteApiKeyButtonEl.onclick = function() {
+            deleteAPIKey(token);
+        };
+
+        // Construct the API Key Row
+        apiKeyNameEl.append(apiKeyNameTextEl);
+        apiKeyActionsEl.append(copyApiKeyButtonEl, deleteApiKeyButtonEl);
+        apiKeyItemEl.append(apiKeyNameEl, apiKeyTokenEl, apiKeyActionsEl);
+
+        return apiKeyItemEl;
     }
 
     function listApiKeys() {
@@ -688,7 +798,7 @@
             .then(response => response.json())
             .then(tokens => {
                 if (!tokens?.length > 0) return;
-                apiKeyList.innerHTML = tokens?.map(generateTokenRow).join("");
+                apiKeyList.append(...tokens?.map(generateTokenRow));
             });
     }
 
@@ -696,11 +806,11 @@
     listApiKeys();
 
     function getIndexedDataSize() {
-        document.getElementById("indexed-data-size").innerHTML = "Calculating...";
+        document.getElementById("indexed-data-size").textContent = "Calculating...";
         fetch('/api/config/index/size')
             .then(response => response.json())
             .then(data => {
-                document.getElementById("indexed-data-size").innerHTML = data.indexed_data_size_in_mb + " MB used";
+                document.getElementById("indexed-data-size").textContent = data.indexed_data_size_in_mb + " MB used";
             });
     }
 
@@ -729,7 +839,7 @@
             .catch(() => callback("us"))
         },
         separateDialCode: true,
-        utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js",
+        utilsScript: "https://assets.khoj.dev/intl-tel-input/utils.js",
     });
 
     const errorMap = ["Invalid number", "Invalid country code", "Too short", "Too long", "Invalid number"];
@@ -800,7 +910,7 @@
     phonenumberVerifyButton.addEventListener("click", () => {
         console.log(iti.getValidationError());
         if (iti.isValidNumber() == false) {
-            phoneNumberUpdateCallback.innerHTML = "Invalid phone number: " + errorMap[iti.getValidationError()];
+            phoneNumberUpdateCallback.textContent = "Invalid phone number: " + errorMap[iti.getValidationError()];
             phoneNumberUpdateCallback.style.display = "block";
             setTimeout(function() {
                 phoneNumberUpdateCallback.style.display = "none";
@@ -817,12 +927,12 @@
             .then(data => {
                 if (data.status == "ok") {
                     if (isTwilioEnabled == "True" || isTwilioEnabled == "true") {
-                        phoneNumberUpdateCallback.innerHTML = "OTP sent to your phone number";
+                        phoneNumberUpdateCallback.textContent = "OTP sent to your phone number";
                         phonenumberVerifyOTPButton.style.display = "block";
                         phonenumberOTPInput.style.display = "block";
                     } else {
                         phonenumberVerifiedText.style.display = "block";
-                        phoneNumberUpdateCallback.innerHTML = "Phone number updated";
+                        phoneNumberUpdateCallback.textContent = "Phone number updated";
                         phonenumberUnverifiedText.style.display = "none";
                     }
                     phonenumberVerifyButton.style.display = "none";
@@ -831,7 +941,7 @@
                         phoneNumberUpdateCallback.style.display = "none";
                     }, 5000);
                 } else {
-                    phoneNumberUpdateCallback.innerHTML = "Error updating phone number";
+                    phoneNumberUpdateCallback.textContent = "Error updating phone number";
                     phoneNumberUpdateCallback.style.display = "block";
                     setTimeout(function() {
                         phoneNumberUpdateCallback.style.display = "none";
@@ -840,7 +950,7 @@
             })
             .catch((error) => {
                 console.error('Error:', error);
-                phoneNumberUpdateCallback.innerHTML = "Error updating phone number";
+                phoneNumberUpdateCallback.textContent = "Error updating phone number";
                 phoneNumberUpdateCallback.style.display = "block";
                 setTimeout(function() {
                     phoneNumberUpdateCallback.style.display = "none";
@@ -852,7 +962,7 @@
     phonenumberVerifyOTPButton.addEventListener("click", () => {
         const otp = phonenumberOTPInput.value;
         if (otp.length != 6) {
-            phoneNumberUpdateCallback.innerHTML = "Your OTP should be exactly 6 digits";
+            phoneNumberUpdateCallback.textContent = "Your OTP should be exactly 6 digits";
             phoneNumberUpdateCallback.style.display = "block";
             setTimeout(function() {
                 phoneNumberUpdateCallback.style.display = "none";
@@ -869,7 +979,7 @@
         .then(response => response.json())
         .then(data => {
             if (data.status == "ok") {
-                phoneNumberUpdateCallback.innerHTML = "Phone number updated";
+                phoneNumberUpdateCallback.textContent = "Phone number updated";
                 phonenumberVerifiedText.style.display = "block";
                 phonenumberUnverifiedText.style.display = "none";
                 phoneNumberUpdateCallback.style.display = "block";
@@ -881,7 +991,7 @@
                     phoneNumberUpdateCallback.style.display = "none";
                 }, 5000);
             } else {
-                phoneNumberUpdateCallback.innerHTML = "Error updating phone number";
+                phoneNumberUpdateCallback.textContent = "Error updating phone number";
                 phoneNumberUpdateCallback.style.display = "block";
                 setTimeout(function() {
                     phoneNumberUpdateCallback.style.display = "none";
@@ -890,7 +1000,7 @@
         })
         .catch((error) => {
             console.error('Error:', error);
-            phoneNumberUpdateCallback.innerHTML = "Error updating phone number";
+            phoneNumberUpdateCallback.textContent = "Error updating phone number";
             phoneNumberUpdateCallback.style.display = "block";
             setTimeout(function() {
                 phoneNumberUpdateCallback.style.display = "none";

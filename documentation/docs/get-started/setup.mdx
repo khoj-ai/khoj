@@ -16,20 +16,13 @@ import TabItem from '@theme/TabItem';
 
 ## Setup
 These are the general setup instructions for self-hosted Khoj.
-
-- Make sure [python](https://realpython.com/installing-python/) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine
-- Check the [Khoj Emacs docs](/clients/emacs#setup) to setup Khoj with Emacs<br />
-  It's simpler as it can skip the server *install*, *run* and *configure* step below.
-- Check the [Khoj Obsidian docs](/clients/obsidian#setup) to setup Khoj with Obsidian<br />
-  Its simpler as it can skip the *configure* step below.
-
-For Installation, you can either use Docker or install the Khoj server locally.
+You can install the Khoj server using either Docker or Pip.
 
 :::info[Offline Model + GPU]
 If you want to use the offline chat model and you have a GPU, you should use Installation Option 2  - local setup via the Python package directly. Our Docker image doesn't currently support running the offline chat model on GPU, making inference times really slow.
 :::
 
-### Installation Option 1 (Docker)
+### 1A. Install Method 1: Docker
 
 #### Prerequisites
 1. Install Docker Engine. See [official instructions](https://docs.docker.com/engine/install/).
@@ -37,21 +30,23 @@ If you want to use the offline chat model and you have a GPU, you should use Ins
 
 #### Setup
 
-Use the sample docker-compose [in Github](https://github.com/khoj-ai/khoj/blob/master/docker-compose.yml) to run Khoj in Docker. Start by configuring all the environment variables to your choosing. Your admin account will automatically be created based on the admin credentials in that file, so pay attention to those. To start the container, run the following command in the same directory as the docker-compose.yml file. This will automatically setup the database and run the Khoj server.
+1. Get the sample docker-compose file [from Github](https://github.com/khoj-ai/khoj/blob/master/docker-compose.yml).
+2. Configure the environment variables in the docker-compose.yml to your choosing.<br />
+   Note: *Your admin account will automatically be created based on the admin credentials in that file, so pay attention to those.*
+3. Now start the container by running the following command in the same directory as your docker-compose.yml file. This will automatically setup the database and run the Khoj server.
+   ```shell
+   docker-compose up
+   ```
 
-```shell
-docker-compose up
-```
+Khoj should now be running at http://localhost:42110! You can see the web UI in your browser.
 
-Khoj should now be running at http://localhost:42110. You can see the web UI in your browser.
-
-### Installation Option 2 (Local)
+### 1B. Install Method 2: Pip
 
 #### Prerequisites
 
 ##### Install Postgres (with PgVector)
 
-Khoj uses the `pgvector` package to store embeddings of your index in a Postgres database. In order to use this, you need to have Postgres installed.
+Khoj uses Postgres DB for all server configuration and to scale to multi-user setups. It uses the pgvector package in Postgres to manage your document embeddings. Both Postgres and pgvector need to be installed for Khoj to work.
 
 ```mdx-code-block
   <Tabs groupId="operating-systems">
@@ -97,24 +92,23 @@ sudo -u postgres createdb khoj --password
   </Tabs>
 ```
 
+#### Install Khoj server
 
-#### Install package
-
-##### Local Server Setup
+##### Install Khoj Server
 - *Make sure [python](https://realpython.com/installing-python/) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine*
 - Check [llama-cpp-python setup](https://python.langchain.com/docs/integrations/llms/llamacpp#installation) if you hit any llama-cpp issues with the installation
 
-Run the following command in your terminal to install the Khoj backend.
+Run the following command in your terminal to install the Khoj server.
 
 ```mdx-code-block
   <Tabs groupId="operating-systems">
     <TabItem value="macos" label="MacOS">
     ```shell
 # ARM/M1+ Machines
-MAKE_ARGS="-DLLAMA_METAL=on" python -m pip install khoj-assistant
+MAKE_ARGS="-DLLAMA_METAL=on" python -m pip install khoj
 
 # Intel Machines
-python -m pip install khoj-assistant
+python -m pip install khoj
     ```
     </TabItem>
     <TabItem value="win" label="Windows">
@@ -128,25 +122,25 @@ python -m pip install khoj-assistant
  $env:CMAKE_ARGS = "-DLLAMA_VULKAN=on"
 
  # 2. Install Khoj
- py -m pip install khoj-assistant
+ py -m pip install khoj
       ```
     </TabItem>
     <TabItem value="unix" label="Linux">
       ```shell
  # CPU
- python -m pip install khoj-assistant
+ python -m pip install khoj
  # NVIDIA (CUDA) GPU
- CMAKE_ARGS="DLLAMA_CUDA=on" FORCE_CMAKE=1 python -m pip install khoj-assistant
+ CMAKE_ARGS="DLLAMA_CUDA=on" FORCE_CMAKE=1 python -m pip install khoj
  # AMD (ROCm) GPU
- CMAKE_ARGS="-DLLAMA_HIPBLAS=on" FORCE_CMAKE=1 python -m pip install khoj-assistant
+ CMAKE_ARGS="-DLLAMA_HIPBLAS=on" FORCE_CMAKE=1 python -m pip install khoj
  # VULCAN GPU
- CMAKE_ARGS="-DLLAMA_VULKAN=on" FORCE_CMAKE=1 python -m pip install khoj-assistant
+ CMAKE_ARGS="-DLLAMA_VULKAN=on" FORCE_CMAKE=1 python -m pip install khoj
       ```
     </TabItem>
   </Tabs>
 ```
 
-##### Local Server Start
+##### Start Khoj Server
 
 Before getting started, configure the following environment variables in your terminal for the first run
 
@@ -186,26 +180,37 @@ On the first run, you will be prompted to input credentials for your admin accou
 
 Khoj should now be running at http://localhost:42110. You can see the web UI in your browser.
 
-Note: To start Khoj automatically in the background use [Task scheduler](https://www.windowscentral.com/how-create-automated-task-using-task-scheduler-windows-10) on Windows or [Cron](https://en.wikipedia.org/wiki/Cron) on Mac, Linux (e.g with `@reboot khoj`)
+Note: To start Khoj automatically in the background use [Task scheduler](https://www.windowscentral.com/how-create-automated-task-using-task-scheduler-windows-10) on Windows or [Cron](https://en.wikipedia.org/wiki/Cron) on Mac, Linux (e.g. with `@reboot khoj`)
 
-
-### Setup Notes
-
-You can use Khoj with a custom domain as well. To do so, you need to set the `KHOJ_DOMAIN` environment variable to your domain (e.g., `export KHOJ_DOMAIN=my-khoj-domain.com` or add it to your `docker-compose.yml`). By default, the Khoj server you set up will not be accessible outside of `localhost` or `127.0.0.1`.
-
-:::warning[Without HTTPS certificate]
-To expose Khoj on a custom domain over the public internet, use of an SSL certificate is strongly recommended. You can use [Let's Encrypt](https://letsencrypt.org/) to get a free SSL certificate for your domain.
-
-To disable HTTPS, set the `KHOJ_NO_HTTPS` environment variable to `True`. This can be useful if Khoj is only accessible behind a secure, private network.
-:::
 
 ### 2. Configure
-1. Go to http://localhost:42110/server/admin and login with your admin credentials.
+#### Login to the Khoj Admin Panel
+Go to http://localhost:42110/server/admin and login with the admin credentials you setup during installation.
+
+:::info[CSRF Error]
+Ensure you are using **localhost, not 127.0.0.1**, to access the admin panel to avoid the CSRF error.
+:::
+
+:::info[DISALLOWED HOST Error]
+You may hit this if you try access Khoj exposed on a custom domain (e.g. 192.168.12.3 or example.com) or over HTTP.
+Set the environment variables KHOJ_DOMAIN=your-domain and KHOJ_NO_HTTPS=false if required to avoid this error.
+:::
+
+:::tip[Note]
+Using Safari on Mac? You might not be able to login to the admin panel. Try using Chrome or Firefox instead.
+:::
+
 #### Configure Chat Model
-##### Configure OpenAI or a custom OpenAI-compatible proxy server
+Setup which chat model you'd want to use. Khoj supports local and online chat models.
+
+:::tip[Multiple Chat Models]
+Add a `ServerChatSettings` with `Default` and `Summarizer` fields set to your preferred chat model via [the admin panel](http://localhost:42110/server/admin/database/serverchatsettings/add/). Otherwise Khoj defaults to use the first chat model in your [ChatModelOptions](http://localhost:42110/server/admin/database/chatmodeloptions/) for all non chat response generation tasks.
+:::
+
+##### Configure OpenAI Chat
 
 :::info[Ollama Integration]
-Using Ollama? See the [Ollama Integration](/miscellaneous/ollama) section for more custom setup instructions.
+Using Ollama? See the [Ollama Integration](/advanced/ollama) section for more custom setup instructions.
 :::
 
 1. Go to the [OpenAI settings](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/) in the server admin settings to add an OpenAI processor conversation config. This is where you set your API key and server API base URL. The API base URL is optional - it's only relevant if you're using another OpenAI-compatible proxy server.
@@ -214,55 +219,45 @@ Using Ollama? See the [Ollama Integration](/miscellaneous/ollama) section for mo
     - The `tokenizer` and `max-prompt-size` fields are optional. Set them only if you're sure of the tokenizer or token limit for the model you're using. Contact us if you're unsure what to do here.
 
 ##### Configure Offline Chat
+Any chat model on Huggingface in GGUF format can be used for local chat. Here's how you can set it up:
+
 1. No need to setup a conversation processor config!
 2. Go over to configure your [chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/). Set the `chat-model` field to a supported chat model[^1] of your choice. For example, we recommend `NousResearch/Hermes-2-Pro-Mistral-7B-GGUF`, but [any gguf model on huggingface](https://huggingface.co/models?library=gguf) should work.
   - Make sure to set the `model-type` to `Offline`. Do not set `openai config`.
-  - The `tokenizer` and `max-prompt-size` fields are optional. Set them only when using a non-standard model (i.e not mistral, gpt or llama2 model) when you know the token limit.
+  - The `tokenizer` and `max-prompt-size` fields are optional. You can set these for non-standard models (i.e not Mistral or Llama based models) or when you know the token limit of the model to improve context stuffing.
 
 #### Share your data
-1. Select files and folders to index [using the desktop client](/get-started/setup#2-download-the-desktop-client). When you click 'Save', the files will be sent to your server for indexing.
-    - Select Notion workspaces and Github repositories to index using the web interface.
+You can sync your files and folders with Khoj using the [Desktop](/clients/desktop#setup), [Obsidian](/clients/obsidian#setup), or [Emacs](/clients/emacs#setup) clients or just drag and drop specific files on the [website](/clients/web#upload-documents). You can also directly sync your [Notion workspace](/data-sources/notion_integration).
 
-[^1]: Khoj, by default, can use [OpenAI GPT3.5+ chat models](https://platform.openai.com/docs/models/overview) or [GGUF chat models](https://huggingface.co/models?library=gguf). See [this section](/miscellaneous/advanced#use-openai-compatible-llm-api-server-self-hosting) on how to locally use OpenAI-format compatible proxy servers.
+[^1]: Khoj, by default, can use [OpenAI GPT3.5+ chat models](https://platform.openai.com/docs/models/overview) or [GGUF chat models](https://huggingface.co/models?library=gguf). See [this section](/advanced/use-openai-proxy) on how to locally use OpenAI-format compatible proxy servers.
 
-:::tip[Note]
-Using Safari on Mac? You might not be able to login to the admin panel. Try using Chrome or Firefox instead.
-:::
+### 3. Use Khoj 🚀
 
-### 3. Download the desktop client (Optional)
+Now open http://localhost:42110 to start interacting with Khoj!
 
-You can use our desktop executables to select file paths and folders to index. You can simply select the folders or files, and they'll be automatically uploaded to the server. Once you specify a file or file path, you don't need to update the configuration again; it will grab any data diffs dynamically over time.
-
-**To download the latest desktop client, go to https://download.khoj.dev** and the correct executable for your OS will automatically start downloading. You can also go to https://khoj.dev/downloads to explicitly download your image of choice. Once downloaded, you can configure your folders for indexing using the settings tab. To set your chat configuration, you'll have to use the web interface for the Khoj server you setup in the previous step.
-
-To use the desktop client, you need to go to your Khoj server's settings page (http://localhost:42110/config) and copy the API key. Then, paste it into the desktop client's settings page. Once you've done that, you can select files and folders to index. Set the desktop client settings to use `http://127.0.0.1:42110` as the host URL.
-
-
-### 4. Install Client Plugins (Optional)
+### 4. Install Khoj Clients (Optional)
 Khoj exposes a web interface to search, chat and configure by default.<br />
-The optional steps below allow using Khoj from within an existing application like Obsidian or Emacs.
+You can install a Khoj client to sync your documents or to easily access Khoj from within Obsidian, Emacs or your OS.
+
+- **Khoj Desktop**:<br />
+[Install](/clients/desktop#setup) the Khoj Desktop app.
 
 - **Khoj Obsidian**:<br />
-[Install](/clients/obsidian#setup) the Khoj Obsidian plugin
+[Install](/clients/obsidian#setup) the Khoj Obsidian plugin.
 
 - **Khoj Emacs**:<br />
 [Install](/clients/emacs#setup) khoj.el
 
 #### Setup host URL
-To configure your host URL on your clients when self-hosting, use `http://127.0.0.1:42110`. This is the default port for the Khoj server. Note that `localhost` will not work.
-
-### 5. Use Khoj 🚀
-
-You can head to http://localhost:42110 to use the web interface. You can also use the desktop client to search and chat.
+Set the host URL on your clients settings page to your Khoj server URL. By default, use `http://127.0.0.1:42110` or `http://localhost:42110`. Note that `localhost` may not work in all cases.
 
 ## Upgrade
-### Upgrade Khoj Server
 
 ```mdx-code-block
   <Tabs groupId="environment">
     <TabItem value="localsetup" label="Local Setup">
       ```shell
-      pip install --upgrade khoj-assistant
+      pip install --upgrade khoj
       ```
       *Note: To upgrade to the latest pre-release version of the khoj server run below command*
     </TabItem>
@@ -284,14 +279,13 @@ You can head to http://localhost:42110 to use the web interface. You can also us
 ```
 
 ## Uninstall
-### Uninstall Khoj Server
 
 ```mdx-code-block
   <Tabs groupId="environment">
     <TabItem value="localsetup" label="Local Setup">
     ```shell
     # uninstall khoj server
-    pip uninstall khoj-assistant
+    pip uninstall khoj
 
     # delete khoj postgres db
     dropdb khoj -U postgres
@@ -324,13 +318,13 @@ You can head to http://localhost:42110 to use the web interface. You can also us
   1. Install [pipx](https://pypa.github.io/pipx/#install-pipx)
   2. Use `pipx` to install Khoj to avoid dependency conflicts with other python packages.
      ```shell
-     pipx install khoj-assistant
+     pipx install khoj
      ```
   3. Now start `khoj` using the standard steps described earlier
 
 
 #### Install fails while building Tokenizer dependency
-- **Details**: `pip install khoj-assistant` fails while building the `tokenizers` dependency. Complains about Rust.
+- **Details**: `pip install khoj` fails while building the `tokenizers` dependency. Complains about Rust.
 - **Fix**: Install Rust to build the tokenizers package. For example on Mac run:
     ```shell
     brew install rustup
@@ -343,3 +337,14 @@ You can head to http://localhost:42110 to use the web interface. You can also us
 #### Khoj in Docker errors out with \"Killed\" in error message
 - **Fix**: Increase RAM available to Docker Containers in Docker Settings
 - **Refer**: [StackOverflow Solution](https://stackoverflow.com/a/50770267), [Configure Resources on Docker for Mac](https://docs.docker.com/desktop/mac/#resources)
+
+## Advanced
+### Self Host on Custom Domain
+
+You can self-host Khoj behind a custom domain as well. To do so, you need to set the `KHOJ_DOMAIN` environment variable to your domain (e.g., `export KHOJ_DOMAIN=my-khoj-domain.com` or add it to your `docker-compose.yml`). By default, the Khoj server you set up will not be accessible outside of `localhost` or `127.0.0.1`.
+
+:::warning[Without HTTPS certificate]
+To expose Khoj on a custom domain over the public internet, use of an SSL certificate is strongly recommended. You can use [Let's Encrypt](https://letsencrypt.org/) to get a free SSL certificate for your domain.
+
+To disable HTTPS, set the `KHOJ_NO_HTTPS` environment variable to `True`. This can be useful if Khoj is only accessible behind a secure, private network.
+:::

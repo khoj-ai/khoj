@@ -27,6 +27,7 @@ from khoj.database.models import (
     ChatModelOptions,
     ClientApplication,
     Conversation,
+    DataStore,
     Entry,
     FileObject,
     GithubConfig,
@@ -47,6 +48,7 @@ from khoj.database.models import (
     UserConversationConfig,
     UserRequests,
     UserSearchModelConfig,
+    UserTextToImageModelConfig,
     UserVoiceModelConfig,
     VoiceModelOption,
 )
@@ -599,6 +601,19 @@ class PublicConversationAdapters:
         return f"/share/chat/{public_conversation.slug}/"
 
 
+class DataStoreAdapters:
+    @staticmethod
+    async def astore_data(data: dict, key: str, user: KhojUser, private: bool = True):
+        if await DataStore.objects.filter(key=key).aexists():
+            return key
+        await DataStore.objects.acreate(value=data, key=key, owner=user, private=private)
+        return key
+
+    @staticmethod
+    async def aretrieve_public_data(key: str):
+        return await DataStore.objects.filter(key=key, private=False).afirst()
+
+
 class ConversationAdapters:
     @staticmethod
     def make_public_conversation_copy(conversation: Conversation):
@@ -666,18 +681,33 @@ class ConversationAdapters:
         user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None, title: str = None
     ) -> Optional[Conversation]:
         if conversation_id:
-            return await Conversation.objects.filter(user=user, client=client_application, id=conversation_id).afirst()
+            return (
+                await Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
+                .prefetch_related("agent")
+                .afirst()
+            )
         elif title:
-            return await Conversation.objects.filter(user=user, client=client_application, title=title).afirst()
+            return (
+                await Conversation.objects.filter(user=user, client=client_application, title=title)
+                .prefetch_related("agent")
+                .afirst()
+            )
         else:
-            conversation = Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at")
+            conversation = (
+                Conversation.objects.filter(user=user, client=client_application)
+                .prefetch_related("agent")
+                .order_by("-updated_at")
+            )
 
         if await conversation.aexists():
             return await conversation.prefetch_related("agent").afirst()
 
         return await (
-            Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at").afirst()
-        ) or await Conversation.objects.acreate(user=user, client=client_application)
+            Conversation.objects.filter(user=user, client=client_application)
+            .prefetch_related("agent")
+            .order_by("-updated_at")
+            .afirst()
+        ) or await Conversation.objects.prefetch_related("agent").acreate(user=user, client=client_application)
 
     @staticmethod
     async def adelete_conversation_by_user(
@@ -889,7 +919,45 @@ class ConversationAdapters:
 
     @staticmethod
     async def aget_text_to_image_model_config():
-        return await TextToImageModelConfig.objects.filter().afirst()
+        return await TextToImageModelConfig.objects.filter().prefetch_related("openai_config").afirst()
+
+    @staticmethod
+    def get_text_to_image_model_config():
+        return TextToImageModelConfig.objects.filter().first()
+
+    @staticmethod
+    def get_text_to_image_model_options():
+        return TextToImageModelConfig.objects.all()
+
+    @staticmethod
+    def get_user_text_to_image_model_config(user: KhojUser):
+        config = UserTextToImageModelConfig.objects.filter(user=user).first()
+        if not config:
+            default_config = ConversationAdapters.get_text_to_image_model_config()
+            if not default_config:
+                return None
+            return default_config
+        return config.setting
+
+    @staticmethod
+    async def aget_user_text_to_image_model(user: KhojUser) -> Optional[TextToImageModelConfig]:
+        config = await UserTextToImageModelConfig.objects.filter(user=user).prefetch_related("setting").afirst()
+        if not config:
+            default_config = await ConversationAdapters.aget_text_to_image_model_config()
+            if not default_config:
+                return None
+            return default_config
+        return config.setting
+
+    @staticmethod
+    async def aset_user_text_to_image_model(user: KhojUser, text_to_image_model_config_id: int):
+        config = await TextToImageModelConfig.objects.filter(id=text_to_image_model_config_id).afirst()
+        if not config:
+            return None
+        new_config, _ = await UserTextToImageModelConfig.objects.aupdate_or_create(
+            user=user, defaults={"setting": config}
+        )
+        return new_config
 
 
 class FileObjectAdapters:
@@ -903,7 +971,7 @@ class FileObjectAdapters:
         return FileObject.objects.create(user=user, file_name=file_name, raw_text=raw_text)
 
     @staticmethod
-    def get_file_objects_by_name(user: KhojUser, file_name: str):
+    def get_file_object_by_name(user: KhojUser, file_name: str):
         return FileObject.objects.filter(user=user, file_name=file_name).first()
 
     @staticmethod
@@ -959,26 +1027,38 @@ class EntryAdapters:
         return deleted_count
 
     @staticmethod
-    def delete_all_entries_by_type(user: KhojUser, file_type: str = None):
-        if file_type is None:
-            deleted_count, _ = Entry.objects.filter(user=user).delete()
-        else:
-            deleted_count, _ = Entry.objects.filter(user=user, file_type=file_type).delete()
+    def get_filtered_entries(user: KhojUser, file_type: str = None, file_source: str = None):
+        queryset = Entry.objects.filter(user=user)
+
+        if file_type is not None:
+            queryset = queryset.filter(file_type=file_type)
+
+        if file_source is not None:
+            queryset = queryset.filter(file_source=file_source)
+
+        return queryset
+
+    @staticmethod
+    def delete_all_entries(user: KhojUser, file_type: str = None, file_source: str = None, batch_size=1000):
+        deleted_count = 0
+        queryset = EntryAdapters.get_filtered_entries(user, file_type, file_source)
+        while queryset.exists():
+            batch_ids = list(queryset.values_list("id", flat=True)[:batch_size])
+            batch = Entry.objects.filter(id__in=batch_ids, user=user)
+            count, _ = batch.delete()
+            deleted_count += count
         return deleted_count
 
     @staticmethod
-    def delete_all_entries(user: KhojUser, file_source: str = None):
-        if file_source is None:
-            deleted_count, _ = Entry.objects.filter(user=user).delete()
-        else:
-            deleted_count, _ = Entry.objects.filter(user=user, file_source=file_source).delete()
+    async def adelete_all_entries(user: KhojUser, file_type: str = None, file_source: str = None, batch_size=1000):
+        deleted_count = 0
+        queryset = EntryAdapters.get_filtered_entries(user, file_type, file_source)
+        while await queryset.aexists():
+            batch_ids = await sync_to_async(list)(queryset.values_list("id", flat=True)[:batch_size])
+            batch = Entry.objects.filter(id__in=batch_ids, user=user)
+            count, _ = await batch.adelete()
+            deleted_count += count
         return deleted_count
-
-    @staticmethod
-    async def adelete_all_entries(user: KhojUser, file_source: str = None):
-        if file_source is None:
-            return await Entry.objects.filter(user=user).adelete()
-        return await Entry.objects.filter(user=user, file_source=file_source).adelete()
 
     @staticmethod
     def get_existing_entry_hashes_by_file(user: KhojUser, file_path: str):

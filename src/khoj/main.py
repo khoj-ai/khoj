@@ -3,7 +3,6 @@
 """
 
 from contextlib import redirect_stdout
-import itertools
 import logging
 import io
 import os
@@ -67,13 +66,9 @@ else:
 django_app = get_asgi_application()
 
 # Add CORS middleware
-KHOJ_DOMAIN = os.getenv("KHOJ_DOMAIN", "app.khoj.dev").split(",")
+KHOJ_DOMAIN = os.getenv("KHOJ_DOMAIN", "app.khoj.dev")
 scheme = "https" if not is_env_var_true("KHOJ_NO_HTTPS") else "http"
-custom_origins = list(
-    itertools.chain.from_iterable(
-        [[f"{scheme}://{domain.strip()}", f"{scheme}://{domain.strip()}:*"] for domain in KHOJ_DOMAIN]
-    )
-)
+custom_origins = [f"{scheme}://{KHOJ_DOMAIN.strip()}", f"{scheme}://{KHOJ_DOMAIN.strip()}:*"]
 default_origins = [
     "app://obsidian.md",  # To allow access from Obsidian desktop app
     "capacitor://localhost",  # To allow access from Obsidian iOS app using Capacitor.JS
@@ -99,11 +94,22 @@ from khoj.configure import configure_routes, initialize_server, configure_middle
 from khoj.utils import state
 from khoj.utils.cli import cli
 from khoj.utils.initialization import initialization
+from khoj.database.adapters import ProcessLockAdapters
+from khoj.database.models import ProcessLock
+
+from django.db.utils import IntegrityError
+
+SCHEDULE_LEADER_NAME = ProcessLock.Operation.SCHEDULE_LEADER
 
 
 def shutdown_scheduler():
     logger.info("🌑 Shutting down Khoj")
-    # state.scheduler.shutdown()
+
+    if state.schedule_leader_process_lock:
+        logger.info("🔓 Schedule Leader released")
+        ProcessLockAdapters.remove_process_lock(state.schedule_leader_process_lock)
+
+    state.scheduler.shutdown()
 
 
 def run(should_start_server=True):
@@ -151,7 +157,25 @@ def run(should_start_server=True):
         }
     )
     state.scheduler.add_jobstore(DjangoJobStore(), "default")
-    state.scheduler.start()
+
+    # We use this mechanism to only elect one schedule leader in a distributed environment. This one will be responsible for actually executing the scheduled tasks. The others will still be capable of adding and removing tasks, but they will not execute them. This is to decrease the overall burden on the database and the system.
+    try:
+        schedule_leader_process_lock = ProcessLockAdapters.get_process_lock(SCHEDULE_LEADER_NAME)
+        if schedule_leader_process_lock:
+            logger.info("🔒 Schedule Leader is already running")
+            state.scheduler.start(paused=True)
+        else:
+            logger.info("🔒 Schedule Leader elected")
+            created_process_lock = ProcessLockAdapters.set_process_lock(
+                SCHEDULE_LEADER_NAME, max_duration_in_seconds=43200
+            )
+            state.scheduler.start()
+            state.schedule_leader_process_lock = created_process_lock
+    except IntegrityError:
+        logger.info("🔒 Schedule Leader running elsewhere")
+        state.scheduler.start(paused=True)
+    finally:
+        logger.info("Started Background Scheduler")
 
     # Start Server
     configure_routes(app)
@@ -182,7 +206,7 @@ def set_state(args):
     state.host = args.host
     state.port = args.port
     state.anonymous_mode = args.anonymous_mode
-    state.khoj_version = version("khoj-assistant")
+    state.khoj_version = version("khoj")
     state.chat_on_gpu = args.chat_on_gpu
 
 

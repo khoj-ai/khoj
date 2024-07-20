@@ -118,9 +118,9 @@ def get_file_type(file_type: str, file_content: bytes) -> tuple[str, str]:
     elif file_type in ["application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]:
         return "docx", encoding
     elif file_type in ["image/jpeg"]:
-        return "jpeg", encoding
+        return "image", encoding
     elif file_type in ["image/png"]:
-        return "png", encoding
+        return "image", encoding
     elif content_group in ["code", "text"]:
         return "plaintext", encoding
     else:
@@ -259,7 +259,7 @@ def log_telemetry(
     # Populate telemetry data to log
     request_body = {
         "telemetry_type": telemetry_type,
-        "server_version": version("khoj-assistant"),
+        "server_version": version("khoj"),
         "os": platform.system(),
         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
@@ -268,7 +268,7 @@ def log_telemetry(
         # API endpoint on server called by client
         request_body["api"] = api
     if client:
-        # Client from which the API was called. E.g Emacs, Obsidian
+        # Client from which the API was called. E.g. Emacs, Obsidian
         request_body["client"] = client
 
     # Log telemetry data to telemetry endpoint

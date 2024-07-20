@@ -1,0 +1,40 @@
+div.pink {
+    background-color: #f8d1f8;
+    color: #000000;
+}
+
+div.blue {
+    background-color: #d1f8f8;
+    color: #000000;
+}
+
+div.green {
+    background-color: #d1f8d1;
+    color: #000000;
+}
+
+div.purple {
+    background-color: #f8d1f8;
+    color: #000000;
+}
+
+div.yellow {
+    background-color: #f8f8d1;
+    color: #000000;
+}
+
+div.card {
+    padding: 1rem;
+    margin: 1rem;
+    border: 1px solid #000000;
+    border-radius: 0.5rem;
+}
+
+div.title {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+div.body {
+    font-size: 1rem;
+}

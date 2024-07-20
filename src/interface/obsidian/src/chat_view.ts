@@ -1,8 +1,9 @@
-import { MarkdownRenderer, WorkspaceLeaf, request, requestUrl, setIcon } from 'obsidian';
+import { ItemView, MarkdownRenderer, Scope, WorkspaceLeaf, request, requestUrl, setIcon } from 'obsidian';
 import * as DOMPurify from 'dompurify';
 import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
 import { KhojView, createCopyParentText, getLinkToEntry, pasteTextAtCursor } from 'src/utils';
+import { KhojSearchModal } from './search_modal';
 
 export interface ChatJsonResult {
     image?: string;
@@ -24,9 +25,17 @@ export class KhojChatView extends KhojPaneView {
     setting: KhojSetting;
     waitingForLocation: boolean;
     location: Location;
+    keyPressTimeout: NodeJS.Timeout | null = null;
 
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
         super(leaf, setting);
+
+        // Register chat view keybindings
+        this.scope = new Scope(this.app.scope);
+        this.scope.register(["Ctrl"], 'n', (_) => this.createNewConversation());
+        this.scope.register(["Ctrl"], 'o', async (_) => await this.toggleChatSessions());
+        this.scope.register(["Ctrl"], 'f', (_) => new KhojSearchModal(this.app, this.setting).open());
+        this.scope.register(["Ctrl"], 'r', (_) => new KhojSearchModal(this.app, this.setting, true).open());
 
         this.waitingForLocation = true;
 
@@ -61,8 +70,7 @@ export class KhojChatView extends KhojPaneView {
         return "message-circle";
     }
 
-    async chat() {
-
+    async chat(isVoice: boolean = false) {
         // Get text in chat input element
         let input_el = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
 
@@ -72,7 +80,7 @@ export class KhojChatView extends KhojPaneView {
         this.autoResize();
 
         // Get and render chat response to user message
-        await this.getChatResponse(user_message);
+        await this.getChatResponse(user_message, isVoice);
     }
 
     async onOpen() {
@@ -92,8 +100,9 @@ export class KhojChatView extends KhojPaneView {
         const objectSrc = `object-src 'none';`;
         const csp = `${defaultSrc} ${scriptSrc} ${connectSrc} ${styleSrc} ${imgSrc} ${childSrc} ${objectSrc}`;
 
-        // Add CSP meta tag to the Khoj Chat modal
-        document.head.createEl("meta", { attr: { "http-equiv": "Content-Security-Policy", "content": `${csp}` } });
+        // WARNING: CSP DISABLED for now as it breaks other Obsidian plugins. Enable when can scope CSP to only Khoj plugin.
+        // CSP meta tag for the Khoj Chat modal
+        // document.head.createEl("meta", { attr: { "http-equiv": "Content-Security-Policy", "content": `${csp}` } });
 
         // Create area for chat logs
         let chatBodyEl = contentEl.createDiv({ attr: { id: "khoj-chat-body", class: "khoj-chat-body" } });
@@ -104,9 +113,10 @@ export class KhojChatView extends KhojPaneView {
             text: "Chat Sessions",
             attr: {
                 class: "khoj-input-row-button clickable-icon",
+                title: "Show Conversations (^O)",
             },
         })
-        chatSessions.addEventListener('click', async (_) => { await this.toggleChatSessions(chatBodyEl) });
+        chatSessions.addEventListener('click', async (_) => { await this.toggleChatSessions() });
         setIcon(chatSessions, "history");
 
         let chatInput = inputRow.createEl("textarea", {
@@ -119,14 +129,20 @@ export class KhojChatView extends KhojPaneView {
         chatInput.addEventListener('input', (_) => { this.onChatInput() });
         chatInput.addEventListener('keydown', (event) => { this.incrementalChat(event) });
 
+        // Add event listeners for long press keybinding
+        this.contentEl.addEventListener('keydown', this.handleKeyDown.bind(this));
+        this.contentEl.addEventListener('keyup', this.handleKeyUp.bind(this));
+
         let transcribe = inputRow.createEl("button", {
             text: "Transcribe",
             attr: {
                 id: "khoj-transcribe",
                 class: "khoj-transcribe khoj-input-row-button clickable-icon ",
+                title: "Start Voice Chat (^S)",
             },
         })
-        transcribe.addEventListener('mousedown', async (event) => { await this.speechToText(event) });
+        transcribe.addEventListener('mousedown', (event) => { this.startSpeechToText(event) });
+        transcribe.addEventListener('mouseup', async (event) => { await this.stopSpeechToText(event) });
         transcribe.addEventListener('touchstart', async (event) => { await this.speechToText(event) });
         transcribe.addEventListener('touchend', async (event) => { await this.speechToText(event) });
         transcribe.addEventListener('touchcancel', async (event) => { await this.speechToText(event) });
@@ -158,6 +174,46 @@ export class KhojChatView extends KhojPaneView {
                 chatInput?.focus();
             });
         });
+    }
+
+    startSpeechToText(event: KeyboardEvent | MouseEvent | TouchEvent, timeout=200) {
+        if (!this.keyPressTimeout) {
+            this.keyPressTimeout = setTimeout(async () => {
+                // Reset auto send voice message timer, UI if running
+                if (this.sendMessageTimeout) {
+                    // Stop the auto send voice message countdown timer UI
+                    clearTimeout(this.sendMessageTimeout);
+                    const sendButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("khoj-chat-send")[0]
+                    setIcon(sendButton, "arrow-up-circle")
+                    let sendImg = <SVGElement>sendButton.getElementsByClassName("lucide-arrow-up-circle")[0]
+                    sendImg.addEventListener('click', async (_) => { await this.chat() });
+                    // Reset chat input value
+                    const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+                    chatInput.value = "";
+                }
+                // Start new voice message
+                await this.speechToText(event);
+            }, timeout);
+        }
+    }
+    async stopSpeechToText(event: KeyboardEvent | MouseEvent | TouchEvent) {
+        if (this.mediaRecorder) {
+            await this.speechToText(event);
+        }
+        if (this.keyPressTimeout) {
+            clearTimeout(this.keyPressTimeout);
+            this.keyPressTimeout = null;
+        }
+    }
+
+    handleKeyDown(event: KeyboardEvent) {
+        // Start speech to text if keyboard shortcut is pressed
+        if (event.key === 's' && event.getModifierState('Control')) this.startSpeechToText(event);
+    }
+
+    async handleKeyUp(event: KeyboardEvent) {
+        // Stop speech to text if keyboard shortcut is released
+        if (event.key === 's' && event.getModifierState('Control')) await this.stopSpeechToText(event);
     }
 
     processOnlineReferences(referenceSection: HTMLElement, onlineContext: any) {
@@ -294,6 +350,57 @@ export class KhojChatView extends KhojPaneView {
         return referenceButton;
     }
 
+    textToSpeech(message: string, event: MouseEvent | null = null): void {
+        // Replace the speaker with a loading icon.
+        let loader = document.createElement("span");
+        loader.classList.add("loader");
+
+        let speechButton: HTMLButtonElement;
+        let speechIcon: Element;
+
+        if (event === null) {
+            // Pick the last speech button if none is provided
+            let speechButtons = document.getElementsByClassName("speech-button");
+            speechButton = speechButtons[speechButtons.length - 1] as HTMLButtonElement;
+
+            let speechIcons = document.getElementsByClassName("speech-icon");
+            speechIcon = speechIcons[speechIcons.length - 1];
+        } else {
+            speechButton = event.currentTarget as HTMLButtonElement;
+            speechIcon = event.target as Element;
+        }
+
+        speechButton.appendChild(loader);
+        speechButton.disabled = true;
+
+        const context = new AudioContext();
+        let textToSpeechApi = `${this.setting.khojUrl}/api/chat/speech?text=${encodeURIComponent(message)}`;
+        fetch(textToSpeechApi, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                "Authorization": `Bearer ${this.setting.khojApiKey}`,
+            },
+        })
+        .then(response => response.arrayBuffer())
+        .then(arrayBuffer => context.decodeAudioData(arrayBuffer))
+        .then(audioBuffer => {
+            const source = context.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(context.destination);
+            source.start(0);
+            source.onended = function() {
+                speechButton.removeChild(loader);
+                speechButton.disabled = false;
+            };
+        })
+        .catch(err => {
+            console.error("Error playing speech:", err);
+            speechButton.removeChild(loader);
+            speechButton.disabled = false; // Consider enabling the button again to allow retrying
+        });
+    }
+
     formatHTMLMessage(message: string, raw = false, willReplace = true) {
         // Remove any text between <s>[INST] and </s> tags. These are spurious instructions for some AI chat model.
         message = message.replace(/<s>\[INST\].+(<\/s>)?/g, '');
@@ -304,7 +411,7 @@ export class KhojChatView extends KhojPaneView {
         // Convert the message to html, sanitize the message html and render it to the real DOM
         let chat_message_body_text_el = this.contentEl.createDiv();
         chat_message_body_text_el.className = "chat-message-text-response";
-        chat_message_body_text_el.innerHTML = this.markdownTextToSanitizedHtml(message);
+        chat_message_body_text_el.innerHTML = this.markdownTextToSanitizedHtml(message, this);
 
         // Add a copy button to each chat message, if it doesn't already exist
         if (willReplace === true) {
@@ -314,13 +421,12 @@ export class KhojChatView extends KhojPaneView {
         return chat_message_body_text_el;
     }
 
-    markdownTextToSanitizedHtml(markdownText: string): string {
+    markdownTextToSanitizedHtml(markdownText: string, component: ItemView): string {
         // Render markdown to an unlinked DOM element
         let virtualChatMessageBodyTextEl = document.createElement("div");
 
         // Convert the message to html
-        // @ts-ignore
-        MarkdownRenderer.renderMarkdown(markdownText, virtualChatMessageBodyTextEl, '', null);
+        MarkdownRenderer.renderMarkdown(markdownText, virtualChatMessageBodyTextEl, '', component);
 
         // Remove image HTML elements with any non whitelisted src prefix
         virtualChatMessageBodyTextEl.innerHTML = virtualChatMessageBodyTextEl.innerHTML.replace(
@@ -407,7 +513,7 @@ export class KhojChatView extends KhojPaneView {
             chat_message_body_text_el.innerHTML = message;
         } else {
             // @ts-ignore
-            chat_message_body_text_el.innerHTML = this.markdownTextToSanitizedHtml(message);
+            chat_message_body_text_el.innerHTML = this.markdownTextToSanitizedHtml(message, this);
         }
 
         // Add action buttons to each chat message element
@@ -453,7 +559,7 @@ export class KhojChatView extends KhojPaneView {
         // Sanitize the markdown to render
         this.result = DOMPurify.sanitize(this.result);
         // @ts-ignore
-        htmlElement.innerHTML = this.markdownTextToSanitizedHtml(this.result);
+        htmlElement.innerHTML = this.markdownTextToSanitizedHtml(this.result, this);
         // Render action buttons for the message
         this.renderActionButtons(this.result, htmlElement);
         // Scroll to bottom of modal, till the send message input box
@@ -462,19 +568,36 @@ export class KhojChatView extends KhojPaneView {
 
     renderActionButtons(message: string, chat_message_body_text_el: HTMLElement) {
         let copyButton = this.contentEl.createEl('button');
-        copyButton.classList.add("copy-button");
+        copyButton.classList.add("chat-action-button");
         copyButton.title = "Copy Message to Clipboard";
         setIcon(copyButton, "copy-plus");
         copyButton.addEventListener('click', createCopyParentText(message));
-        chat_message_body_text_el.append(copyButton);
 
         // Add button to paste into current buffer
         let pasteToFile = this.contentEl.createEl('button');
-        pasteToFile.classList.add("copy-button");
+        pasteToFile.classList.add("chat-action-button");
         pasteToFile.title = "Paste Message to File";
         setIcon(pasteToFile, "clipboard-paste");
         pasteToFile.addEventListener('click', (event) => { pasteTextAtCursor(createCopyParentText(message, 'clipboard-paste')(event)); });
-        chat_message_body_text_el.append(pasteToFile);
+
+        // Only enable the speech feature if the user is subscribed
+        let speechButton = null;
+
+        if (this.setting.userInfo?.is_active) {
+            // Create a speech button icon to play the message out loud
+            speechButton = this.contentEl.createEl('button');
+            speechButton.classList.add("chat-action-button", "speech-button");
+            speechButton.title = "Listen to Message";
+            setIcon(speechButton, "speech")
+            speechButton.addEventListener('click', (event) => this.textToSpeech(message, event));
+        }
+
+        // Append buttons to parent element
+        chat_message_body_text_el.append(copyButton, pasteToFile);
+
+        if (speechButton) {
+            chat_message_body_text_el.append(speechButton);
+        }
     }
 
     formatDate(date: Date): string {
@@ -484,14 +607,16 @@ export class KhojChatView extends KhojPaneView {
         return `${time_string}, ${date_string}`;
     }
 
-    createNewConversation(chatBodyEl: HTMLElement) {
+    createNewConversation() {
+        let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
         chatBodyEl.innerHTML = "";
         chatBodyEl.dataset.conversationId = "";
         chatBodyEl.dataset.conversationTitle = "";
         this.renderMessage(chatBodyEl, "Hey 👋🏾, what's up?", "khoj");
     }
 
-    async toggleChatSessions(chatBodyEl: HTMLElement, forceShow: boolean = false): Promise<boolean> {
+    async toggleChatSessions(forceShow: boolean = false): Promise<boolean> {
+        let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
         if (!forceShow && this.contentEl.getElementsByClassName("side-panel")?.length > 0) {
             chatBodyEl.innerHTML = "";
             return this.getChatHistory(chatBodyEl);
@@ -505,9 +630,10 @@ export class KhojChatView extends KhojPaneView {
         const newConversationButtonEl = newConversationEl.createEl("button");
         newConversationButtonEl.classList.add("new-conversation-button");
         newConversationButtonEl.classList.add("side-panel-button");
-        newConversationButtonEl.addEventListener('click', (_) => this.createNewConversation(chatBodyEl));
+        newConversationButtonEl.addEventListener('click', (_) => this.createNewConversation());
         setIcon(newConversationButtonEl, "plus");
         newConversationButtonEl.innerHTML += "New";
+        newConversationButtonEl.title = "New Conversation (^N)";
 
         const existingConversationsEl = sidePanelEl.createDiv("existing-conversations");
         const conversationListEl = existingConversationsEl.createDiv("conversation-list");
@@ -579,8 +705,7 @@ export class KhojChatView extends KhojPaneView {
         let editConversationTitleButtonEl = this.contentEl.createEl('button');
         setIcon(editConversationTitleButtonEl, "edit");
         editConversationTitleButtonEl.title = "Rename";
-        editConversationTitleButtonEl.classList.add("edit-title-button");
-        editConversationTitleButtonEl.classList.add("three-dot-menu-button-item");
+        editConversationTitleButtonEl.classList.add("edit-title-button", "three-dot-menu-button-item", "clickable-icon");
         if (selectedConversation) editConversationTitleButtonEl.classList.add("selected-conversation");
         editConversationTitleButtonEl.addEventListener('click', (event) => {
             event.stopPropagation();
@@ -608,7 +733,7 @@ export class KhojChatView extends KhojPaneView {
             let editConversationTitleSaveButtonEl = this.contentEl.createEl('button');
             conversationSessionTitleEl.replaceWith(editConversationTitleInputEl);
             editConversationTitleSaveButtonEl.innerHTML = "Save";
-            editConversationTitleSaveButtonEl.classList.add("three-dot-menu-button-item");
+            editConversationTitleSaveButtonEl.classList.add("three-dot-menu-button-item", "clickable-icon");
             if (selectedConversation) editConversationTitleSaveButtonEl.classList.add("selected-conversation");
             editConversationTitleSaveButtonEl.addEventListener('click', (event) => {
                 event.stopPropagation();
@@ -655,8 +780,7 @@ export class KhojChatView extends KhojPaneView {
         let deleteConversationButtonEl = this.contentEl.createEl('button');
         setIcon(deleteConversationButtonEl, "trash");
         deleteConversationButtonEl.title = "Delete";
-        deleteConversationButtonEl.classList.add("delete-conversation-button");
-        deleteConversationButtonEl.classList.add("three-dot-menu-button-item");
+        deleteConversationButtonEl.classList.add("delete-conversation-button", "three-dot-menu-button-item", "clickable-icon");
         if (selectedConversation) deleteConversationButtonEl.classList.add("selected-conversation");
         deleteConversationButtonEl.addEventListener('click', () => {
             // Ask for confirmation before deleting chat session
@@ -669,7 +793,7 @@ export class KhojChatView extends KhojPaneView {
                     chatBodyEl.innerHTML = "";
                     chatBodyEl.dataset.conversationId = "";
                     chatBodyEl.dataset.conversationTitle = "";
-                    this.toggleChatSessions(chatBodyEl, true);
+                    this.toggleChatSessions(true);
                 })
                 .catch(err => {
                     return;
@@ -730,7 +854,7 @@ export class KhojChatView extends KhojPaneView {
         return true;
     }
 
-    async readChatStream(response: Response, responseElement: HTMLDivElement): Promise<void> {
+    async readChatStream(response: Response, responseElement: HTMLDivElement, isVoice: boolean = false): Promise<void> {
         // Exit if response body is empty
         if (response.body == null) return;
 
@@ -740,8 +864,12 @@ export class KhojChatView extends KhojPaneView {
         while (true) {
             const { value, done } = await reader.read();
 
-            // Break if the stream is done
-            if (done) break;
+            if (done) {
+                // Automatically respond with voice if the subscribed user has sent voice message
+                if (isVoice && this.setting.userInfo?.is_active) this.textToSpeech(this.result);
+                // Break if the stream is done
+                break;
+            }
 
             let responseText = decoder.decode(value);
             if (responseText.includes("### compiled references:")) {
@@ -759,7 +887,7 @@ export class KhojChatView extends KhojPaneView {
         }
     }
 
-    async getChatResponse(query: string | undefined | null): Promise<void> {
+    async getChatResponse(query: string | undefined | null, isVoice: boolean = false): Promise<void> {
         // Exit if query is empty
         if (!query || query === "") return;
 
@@ -838,7 +966,7 @@ export class KhojChatView extends KhojPaneView {
                 }
             } else {
                 // Stream and render chat response
-                await this.readChatStream(response, responseElement);
+                await this.readChatStream(response, responseElement, isVoice);
             }
         } catch (err) {
             console.log(`Khoj chat response failed with\n${err}`);
@@ -886,7 +1014,7 @@ export class KhojChatView extends KhojPaneView {
 
     sendMessageTimeout: NodeJS.Timeout | undefined;
     mediaRecorder: MediaRecorder | undefined;
-    async speechToText(event: MouseEvent | TouchEvent) {
+    async speechToText(event: MouseEvent | TouchEvent | KeyboardEvent) {
         event.preventDefault();
         const transcribeButton = <HTMLButtonElement>this.contentEl.getElementsByClassName("khoj-transcribe")[0];
         const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
@@ -919,9 +1047,19 @@ export class KhojChatView extends KhojPaneView {
             });
 
             // Parse response from Khoj backend
+            let noSpeechText: string[] = [
+                "Thanks for watching!",
+                "Thanks for watching.",
+                "Thank you for watching!",
+                "Thank you for watching.",
+                "You",
+                "Bye."
+            ];
+            let noSpeech: boolean = false;
             if (response.status === 200) {
                 console.log(response);
-                chatInput.value += response.json.text.trimStart();
+                noSpeech = noSpeechText.includes(response.json.text.trimStart());
+                if (!noSpeech) chatInput.value += response.json.text.trimStart();
                 this.autoResize();
             } else if (response.status === 501) {
                 throw new Error("⛔️ Configure speech-to-text model on server.");
@@ -931,8 +1069,8 @@ export class KhojChatView extends KhojPaneView {
                 throw new Error("⛔️ Failed to transcribe audio.");
             }
 
-            // Don't auto-send empty messages
-            if (chatInput.value.length === 0) return;
+            // Don't auto-send empty messages or when no speech is detected
+            if (chatInput.value.length === 0 || noSpeech) return;
 
             // Show stop auto-send button. It stops auto-send when clicked
             setIcon(sendButton, "stop-circle");
@@ -941,6 +1079,7 @@ export class KhojChatView extends KhojPaneView {
 
             // Start the countdown timer UI
             stopSendButtonImg.getElementsByTagName("circle")[0].style.animation = "countdown 3s linear 1 forwards";
+            stopSendButtonImg.getElementsByTagName("circle")[0].style.color = "var(--icon-color-active)";
 
             // Auto send message after 3 seconds
             this.sendMessageTimeout = setTimeout(() => {
@@ -950,7 +1089,7 @@ export class KhojChatView extends KhojPaneView {
                 sendImg.addEventListener('click', async (_) => { await this.chat() });
 
                 // Send message
-                this.chat();
+                this.chat(true);
             }, 3000);
         };
 
@@ -969,21 +1108,23 @@ export class KhojChatView extends KhojPaneView {
             });
 
             this.mediaRecorder.start();
-            setIcon(transcribeButton, "mic-off");
+            // setIcon(transcribeButton, "mic-off");
+            transcribeButton.classList.add("loading-encircle")
         };
 
         // Toggle recording
-        if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive' || event.type === 'touchstart') {
+        if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive' || event.type === 'touchstart' || event.type === 'mousedown' || event.type === 'keydown') {
             navigator.mediaDevices
                 .getUserMedia({ audio: true })
                 ?.then(handleRecording)
                 .catch((e) => {
                     this.flashStatusInChatInput("⛔️ Failed to access microphone");
                 });
-        } else if (this.mediaRecorder.state === 'recording' || event.type === 'touchend' || event.type === 'touchcancel') {
+        } else if (this.mediaRecorder?.state === 'recording' || event.type === 'touchend' || event.type === 'touchcancel' || event.type === 'mouseup' || event.type === 'keyup') {
             this.mediaRecorder.stop();
             this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
             this.mediaRecorder = undefined;
+            transcribeButton.classList.remove("loading-encircle");
             setIcon(transcribeButton, "mic");
         }
     }

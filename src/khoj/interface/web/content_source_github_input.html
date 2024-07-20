@@ -70,18 +70,50 @@
         repo.classList.add("repo");
         const id = Date.now();
         repo.id = "repo-card-" + id;
-        repo.innerHTML = `
-            <label for="repo-owner">Repository Owner</label>
-            <input type="text" id="repo-owner" name="repo_owner">
-            <label for="repo-name">Repository Name</label>
-            <input type="text" id="repo-name" name="repo_name">
-            <label for="repo-branch">Repository Branch</label>
-            <input type="text" id="repo-branch" name="repo_branch">
-            <button type="button"
-                    class="remove-repo-button"
-                    onclick="remove_repo(${id})"
-                    id="remove-repo-button-${id}">Remove Repository</button>
-        `;
+
+        // Create repo owner, name, branch elements
+        let repoOwnerLabel = document.createElement("label");
+        repoOwnerLabel.textContent = "Repository Owner";
+        repoOwnerLabel.for = "repo-owner";
+
+        let repoOwner = document.createElement("input");
+        repoOwner.type = "text";
+        repoOwner.id = "repo-owner-" + id;
+        repoOwner.name = "repo_owner";
+
+        let repoNameLabel = document.createElement("label");
+        repoNameLabel.textContent = "Repository Name";
+        repoNameLabel.for = "repo-name";
+
+        let repoName = document.createElement("input");
+        repoName.type = "text";
+        repoName.id = "repo-name-" + id;
+        repoName.name = "repo_name";
+
+        let repoBranchLabel = document.createElement("label");
+        repoBranchLabel.textContent = "Repository Branch";
+        repoBranchLabel.for = "repo-branch";
+
+        let repoBranch = document.createElement("input");
+        repoBranch.type = "text";
+        repoBranch.id = "repo-branch-" + id;
+        repoBranch.name = "repo_branch";
+
+        let removeRepoButton = document.createElement("button");
+        removeRepoButton.type = "button";
+        removeRepoButton.classList.add("remove-repo-button");
+        removeRepoButton.onclick = function() { remove_repo(id); };
+        removeRepoButton.id = "remove-repo-button-" + id;
+        removeRepoButton.textContent = "Remove Repository";
+
+        // Append elements to repo card
+        repo.append(
+            repoOwnerLabel, repoOwner,
+            repoNameLabel, repoName,
+            repoBranchLabel, repoBranch,
+            removeRepoButton
+        );
+
         document.getElementById("repositories").appendChild(repo);
     })
 
@@ -95,7 +127,7 @@
         const pat_token = document.getElementById("pat-token").value;
 
         if (pat_token == "") {
-            document.getElementById("success").innerHTML = "❌ Please enter a Personal Access Token.";
+            document.getElementById("success").textContent = "❌ Please enter a Personal Access Token.";
             document.getElementById("success").style.display = "block";
             return;
         }
@@ -122,14 +154,14 @@
         }
 
         if (repos.length == 0) {
-            document.getElementById("success").innerHTML = "❌ Please add at least one repository.";
+            document.getElementById("success").textContent = "❌ Please add at least one repository.";
             document.getElementById("success").style.display = "block";
             return;
         }
 
         const submitButton = document.getElementById("submit");
         submitButton.disabled = true;
-        submitButton.innerHTML = "Saving...";
+        submitButton.textContent = "Saving...";
 
         // Save Github config on server
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
@@ -147,11 +179,11 @@
         .then(response => response.json())
         .then(data => { data["status"] === "ok" ? data : Promise.reject(data) })
         .catch(error => {
-            document.getElementById("success").innerHTML = "⚠️ Failed to save Github settings.";
+            document.getElementById("success").textContent = "⚠️ Failed to save Github settings.";
             document.getElementById("success").style.display = "block";
-            submitButton.innerHTML = "⚠️ Failed to save settings";
+            submitButton.textContent = "⚠️ Failed to save settings";
             setTimeout(function() {
-                submitButton.innerHTML = "Save";
+                submitButton.textContent = "Save";
                 submitButton.disabled = false;
             }, 2000);
             return;
@@ -163,18 +195,18 @@
         .then(data => { data["status"] == "ok" ? data : Promise.reject(data) })
         .then(data => {
             document.getElementById("success").style.display = "none";
-            submitButton.innerHTML = "✅ Successfully updated";
+            submitButton.textContent = "✅ Successfully updated";
             setTimeout(function() {
-                submitButton.innerHTML = "Save";
+                submitButton.textContent = "Save";
                 submitButton.disabled = false;
             }, 2000);
         })
         .catch(error => {
-            document.getElementById("success").innerHTML = "⚠️ Failed to save Github content.";
+            document.getElementById("success").textContent = "⚠️ Failed to save Github content.";
             document.getElementById("success").style.display = "block";
-            submitButton.innerHTML = "⚠️ Failed to save content";
+            submitButton.textContent = "⚠️ Failed to save content";
             setTimeout(function() {
-                submitButton.innerHTML = "Save";
+                submitButton.textContent = "Save";
                 submitButton.disabled = false;
             }, 2000);
         });

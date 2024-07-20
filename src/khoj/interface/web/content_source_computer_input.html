@@ -12,7 +12,7 @@
         </h2>
         <div class="section-manage-files">
             <div id="delete-all-files" class="delete-all-files">
-                <button id="delete-all-files" type="submit" title="Remove all computer files from Khoj">🗑️ Delete all</button>
+                <button id="delete-all-files-button" type="submit" title="Remove all computer files from Khoj">🗑️ Delete all</button>
             </div>
             <div class="indexed-files">
             </div>
@@ -56,7 +56,10 @@
 
                 if (data.length == 0) {
                     document.getElementById("delete-all-files").style.display = "none";
-                    indexedFiles.innerHTML = "<div class='card-description'>No documents synced with Khoj</div>";
+                    let noFilesElement = document.createElement("div");
+                    noFilesElement.classList.add("card-description");
+                    noFilesElement.textContent = "No documents synced with Khoj";
+                    indexedFiles.appendChild(noFilesElement);
                 } else {
                     document.getElementById("get-desktop-client").style.display = "none";
                     document.getElementById("delete-all-files").style.display = "block";
@@ -86,14 +89,14 @@
 
                     let fileNameElement = document.createElement("div");
                     fileNameElement.classList.add("content-name");
-                    fileNameElement.innerHTML = filename;
+                    fileNameElement.textContent = filename;
                     fileElement.appendChild(fileNameElement);
 
                     let buttonContainer = document.createElement("div");
                     buttonContainer.classList.add("remove-button-container");
                     let removeFileButton = document.createElement("button");
                     removeFileButton.classList.add("remove-file-button");
-                    removeFileButton.innerHTML = "🗑️";
+                    removeFileButton.textContent = "🗑️";
                     removeFileButton.addEventListener("click", ((filename) => {
                         return () => {
                             removeFile(filename);
@@ -112,9 +115,13 @@
     // Get all currently indexed files on page load
     getAllComputerFilenames();
 
-    let deleteAllComputerFilesButton = document.getElementById("delete-all-files");
+    let deleteAllComputerFilesButton = document.getElementById("delete-all-files-button");
     deleteAllComputerFilesButton.addEventListener("click", function(event) {
         event.preventDefault();
+        originalDeleteAllComputerFilesButtonText = deleteAllComputerFilesButton.textContent;
+        deleteAllComputerFilesButton.textContent = "🗑️ Deleting...";
+        deleteAllComputerFilesButton.disabled = true;
+
         fetch('/api/config/data/content-source/computer', {
             method: 'DELETE',
             headers: {
@@ -122,11 +129,11 @@
             }
         })
         .then(response => response.json())
-        .then(data => {
-            if (data.status == "ok") {
-                getAllComputerFilenames();
-            }
-        })
+        .finally(() => {
+            getAllComputerFilenames();
+            deleteAllComputerFilesButton.textContent = originalDeleteAllComputerFilesButtonText;
+            deleteAllComputerFilesButton.disabled = false;
+        });
     });
 </script>
 {% endblock %}

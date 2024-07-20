@@ -74,14 +74,14 @@ If your plugin does not need CSS, delete this file.
     padding: 10px;
     position: relative;
     display: inline-block;
-    max-width: 80%;
     text-align: left;
     user-select: text;
+    color: var(--text-normal);
+    background-color: var(--active-bg);
 }
 /* color chat bubble by khoj blue */
 .khoj-chat-message-text.khoj {
-    color: var(--khoj-storm-grey);
-    background: var(--khoj-winter-sun);
+    border: 1px solid var(--khoj-sun);
     margin-left: auto;
     white-space: pre-line;
 }
@@ -92,14 +92,12 @@ If your plugin does not need CSS, delete this file.
     bottom: -2px;
     left: -7px;
     border: 10px solid transparent;
-    border-top-color: var(--khoj-winter-sun);
     border-bottom: 0;
     transform: rotate(-60deg);
 }
 /* color chat bubble by you dark grey */
 .khoj-chat-message-text.you {
-    color: var(--text-on-accent);
-    background: var(--khoj-storm-grey);
+    border: 1px solid var(--color-accent);
     margin-right: auto;
 }
 /* add right protrusion to you chat bubble */
@@ -109,7 +107,6 @@ If your plugin does not need CSS, delete this file.
     top: 91%;
     right: -2px;
     border: 10px solid transparent;
-    border-left-color: var(--khoj-storm-grey);
     border-right: 0;
     margin-top: -10px;
     transform: rotate(-60deg)
@@ -160,9 +157,8 @@ div.expanded.reference-section {
     margin: 10px 0;
 }
 button.reference-button {
-    background: var(--khoj-winter-sun);
-    color: var(--khoj-storm-grey);
     border: 1px solid var(--khoj-storm-grey);
+    background-color: transparent;
     border-radius: 5px;
     padding: 4px;
     font-size: 14px;
@@ -202,8 +198,7 @@ button.reference-button[aria-expanded="true"]::before {
     transform: rotate(90deg);
 }
 button.reference-expand-button {
-    background: var(--khoj-winter-sun);
-    color: var(--khoj-storm-grey);
+    background-color: transparent;
     border: 1px solid var(--khoj-storm-grey);
     border-radius: 5px;
     padding: 8px;
@@ -216,8 +211,8 @@ button.reference-expand-button {
     text-align: left;
 }
 button.reference-expand-button:hover {
-    background: var(--khoj-sun);
-    color: var(--khoj-storm-grey);
+    background: var(--background-modifier-active-hover);
+    color: var(--text-normal);
 }
 a.inline-chat-link {
     color: #475569;
@@ -229,15 +224,6 @@ a.inline-chat-link {
     border-bottom: 1px dotted var(--khoj-storm-grey);
 }
 
-button.copy-button {
-    display: block;
-    border-radius: 4px;
-    background-color: var(--color-base-00);
-}
-button.copy-button:hover {
-    background: #f5f5f5;
-    cursor: pointer;
-}
 img {
     max-width: 60%;
 }
@@ -270,19 +256,8 @@ div.conversation-session {
     grid-template-columns: 1fr auto;
 }
 
-.three-dot-menu {
-    display: block;
-    /* background: var(--background-color); */
-    /* border: 1px solid var(--main-text-color); */
-    border-radius: 5px;
-    /* position: relative; */
-}
-
-button.selected-conversation {
-    background: var(--khoj-winter-sun);
-}
 button.three-dot-menu-button-item {
-    color: var(--color-base-90);
+    color: var(--text-accent);
     border: none;
     box-shadow: none;
     font-size: 14px;
@@ -296,26 +271,7 @@ button.three-dot-menu-button-item {
 }
 
 button.three-dot-menu-button-item:hover {
-    background: var(--khoj-storm-grey);
-    color: var(--khoj-winter-sun);
-}
-
-.three-dot-menu-button {
-    background: var(--khoj-winter-sun);
-    border: none;
-    box-shadow: none;
-    font-size: 14px;
-    font-weight: 300;
-    line-height: 1.5em;
-    cursor: pointer;
-    transition: background 0.3s ease-in-out;
-    font-family: var(--font-family);
-    border-radius: 4px;
-    right: 0;
-}
-
-.conversation-button:hover .three-dot-menu {
-    display: block;
+    background: var(--background-modifier-active-hover);
 }
 
 div.conversation-menu {
@@ -325,13 +281,15 @@ div.conversation-menu {
     text-align: right;
     border-radius: 5px;
     padding: 5px;
+    display: grid;
+    grid-gap: 4px;
+    grid-auto-flow: column;
 }
 div.conversation-session:hover {
     transform: scale(1.03);
 }
 div.selected-conversation {
-    background: var(--khoj-winter-sun) !important;
-    color: var(--khoj-storm-grey) !important;
+    background: var(--background-modifier-active-hover) !important;
 }
 
 #khoj-chat-footer {
@@ -373,9 +331,8 @@ div.selected-conversation {
     position: relative;
 }
 #khoj-chat-send .lucide-arrow-up-circle {
-    background: var(--khoj-sun);
+    background: var(--background-modifier-active-hover);
     border-radius: 50%;
-    color: #222;
 }
 #khoj-chat-send .lucide-stop-circle {
     transform: rotateY(-180deg) rotateZ(-90deg);
@@ -488,7 +445,7 @@ div.khoj-logo {
 }
 
 .khoj-nav a {
-    color: var(--main-text-color);
+    color: var(--text-normal);
     text-decoration: none;
     font-size: small;
     font-weight: normal;
@@ -498,11 +455,11 @@ div.khoj-logo {
     margin: 0;
 }
 .khoj-nav a:hover {
-    background-color: var(--khoj-sun);
+    background-color: var(--background-modifier-active-hover);
     color: var(--main-text-color);
 }
 a.khoj-nav-selected {
-    background-color: var(--khoj-winter-sun);
+    background-color: var(--background-modifier-active-hover);
 }
 #similar-nav-icon-svg,
 .khoj-nav-icon {
@@ -520,10 +477,12 @@ span.khoj-nav-item-text {
 }
 
 /* Copy button */
-button.copy-button {
+button.chat-action-button {
+    display: block;
     border-radius: 4px;
-    background-color: var(--background-color);
-    border: 1px solid var(--main-text-color);
+    color: var(--text-muted);
+    background-color: transparent;
+    border: 1px solid var(--khoj-storm-grey);
     text-align: center;
     font-size: 16px;
     transition: all 0.5s;
@@ -532,28 +491,54 @@ button.copy-button {
     margin-top: 8px;
     float: right;
 }
-button.copy-button span {
+button.chat-action-button span {
     cursor: pointer;
     display: inline-block;
     position: relative;
     transition: 0.5s;
 }
+button.chat-action-button:hover {
+    background-color: var(--background-modifier-active-hover);
+    color: var(--text-normal);
+}
+
 img.copy-icon {
     width: 16px;
     height: 16px;
 }
-.you button.copy-button {
-    color: var(--text-on-accent);
+
+/* Circular Loading Spinner */
+.loader {
+    width: 18px;
+    height: 18px;
+    border: 3px solid #FFF;
+    border-radius: 50%;
+    display: inline-block;
+    position: relative;
+    box-sizing: border-box;
+    animation: rotation 1s linear infinite;
 }
-.khoj button.copy-button {
-    color: var(--khoj-storm-grey);
+.loader::after {
+    content: '';
+    box-sizing: border-box;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-bottom-color: var(--flower);
 }
-.you button.copy-button:hover {
-    color: var(--khoj-storm-grey);
-    background: var(--text-on-accent);
-}
-.khoj button.copy-button:hover {
-    background: var(--text-on-accent);
+
+@keyframes rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 /* Loading Spinner */
@@ -613,6 +598,44 @@ img.copy-icon {
     }
 }
 
+/* Loading Encircle */
+.loading-encircle {
+    position: relative;
+}
+
+.loading-encircle::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 24px;
+    height: 24px;
+    margin-top: -16px;
+    margin-left: -16px;
+    border: 4px solid transparent;
+    border-color: var(--icon-color-active);
+    border-radius: 50%;
+    animation: pulse 3s ease-in-out infinite;
+}
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.2;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
 @media only screen and (max-width: 600px) {
     div.khoj-header {
         display: grid;
