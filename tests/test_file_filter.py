@@ -78,31 +78,33 @@ def test_multiple_file_filter():
 def test_get_file_filter_terms():
     # Arrange
     file_filter = FileFilter()
-    q_with_filter_terms = 'head tail file:"file 1.org" file:"/path/to/dir/*.org"'
+    q_with_filter_terms = (
+        'head tail file:"file 1.org" file:"/path/to/dir/.*.org" -file:"file 1.org" -file:"/path/to/dir/.*.org"'
+    )
 
     # Act
     filter_terms = file_filter.get_filter_terms(q_with_filter_terms)
 
     # Assert
-    assert filter_terms == ["file 1\\.org", "/path/to/dir/.*\\.org"]
+    assert filter_terms == ["file 1.org", "/path/to/dir/.*.org", "-file 1.org", "-/path/to/dir/.*.org"]
 
 
-def test_exclude_file_filter_terms():
+def test_include_and_exclude_file_filter_terms():
     # Arrange
     file_filter = FileFilter()
-    q_with_filter_terms = 'head tail file:-"file 1.org" file:"/path/to/dir/*.org"'
+    q_with_filter_terms = 'head tail -file:"file 1.org" file:"/path/to/dir/.*.org"'
 
     # Act
     filter_terms = file_filter.get_filter_terms(q_with_filter_terms)
 
     # Assert
-    assert filter_terms == ["file 1\\.org", "/path/to/dir/.*\\.org"]
+    assert filter_terms == ["/path/to/dir/.*.org", "-file 1.org"]
 
 
 def test_file_exclude_filter():
     # Arrange
     file_filter = FileFilter()
-    q_with_exclude_filter = 'head -"exclude_file" tail'
+    q_with_exclude_filter = 'head -file:"/path/to/excluded_file" tail'
 
     # Act
     can_filter = file_filter.can_filter(q_with_exclude_filter)
@@ -114,7 +116,7 @@ def test_file_exclude_filter():
 def test_file_include_and_exclude_filter():
     # Arrange
     file_filter = FileFilter()
-    q_with_include_and_exclude_filter = 'head "include_file" -"exclude_file" tail'
+    q_with_include_and_exclude_filter = 'head file:"include_file" -file:"exclude_file" tail'
 
     # Act
     can_filter = file_filter.can_filter(q_with_include_and_exclude_filter)

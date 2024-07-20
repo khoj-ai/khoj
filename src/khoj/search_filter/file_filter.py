@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class FileFilter(BaseFilter):
-    file_filter_regex = r'file:"(.+?)" ?'
+    file_filter_regex = r'(?<!-)file:"(.+?)" ?'
     excluded_file_filter_regex = r'-file:"(.+?)" ?'
 
     def __init__(self, entry_key="file"):
