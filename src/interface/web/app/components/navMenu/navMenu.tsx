@@ -142,7 +142,7 @@ export default function NavMenu(props: NavMenuProps) {
                     :
                     <Menubar className='items-top inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground'>
                         <MenubarMenu>
-                            <Link href='/home' className={`${props.selected.toLowerCase() === 'chat' ? styles.selected : ''} hover:bg-background no-underline`}>
+                            <Link href='/' className={`${props.selected.toLowerCase() === 'chat' ? styles.selected : ''} hover:bg-background no-underline`}>
                                 <MenubarTrigger>Chat</MenubarTrigger>
                             </Link>
                         </MenubarMenu>

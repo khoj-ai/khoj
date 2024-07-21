@@ -299,24 +299,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }
 
     function handleAgentsClick(slug: string) {
-        return async () => {
-            try {
-                const unauthenticatedRedirectUrl = `/login?next=/agents?agent=${slug}`;
-                const response = await fetch(`/api/chat/sessions?agent_slug=${slug}`, { method: "POST" });
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                if (response.status == 200) {
-                    setSelectedAgent(slug);
-                } else if (response.status == 403 || response.status == 401) {
-                    window.location.href = unauthenticatedRedirectUrl;
-                } else {
-                    alert("Failed to start chat session");
-                }
-            } catch (error) {
-                console.error("Error starting a conversation with the agent:", error);
-            }
-        };
+        setSelectedAgent(slug);
     }
 
     return (
@@ -330,7 +313,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     <div className="flex pb-6 gap-2 items-center justify-center">
                         {icons.map((icon, index) => (
                             <Card key={`${index}-${agents[index].slug}`} className={`${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : 'border-stone-100'} hover:cursor-pointer `}>
-                                <CardTitle className='text-center text-md font-medium flex justify-center items-center px-1 py-2' onClick={handleAgentsClick(agents[index].slug)}>
+                                <CardTitle className='text-center text-md font-medium flex justify-center items-center px-1 py-2' onClick={() => handleAgentsClick(agents[index].slug)}>
                                     {icon} {agents[index].name}
                                 </CardTitle>
                             </Card>
@@ -391,7 +374,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                                 className={
                                     `${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : 'border-muted text-muted-foreground'} hover:cursor-pointer`
                                 }>
-                                <CardTitle className='text-center text-xs font-medium flex justify-center items-center px-1 py-2' onClick={handleAgentsClick(agents[index].slug)}>
+                                <CardTitle className='text-center text-xs font-medium flex justify-center items-center px-1 py-2' onClick={() => handleAgentsClick(agents[index].slug)}>
                                     {icon} {agents[index].name}
                                 </CardTitle>
                             </Card>
