@@ -74,13 +74,12 @@ To get started, just start typing below. You can also type / to see a list of co
                 }, 1000);
             });
         }
-        var sseConnection = null;
+
         let region = null;
         let city = null;
         let countryName = null;
         let timezone = null;
         let waitingForLocation = true;
-
         let chatMessageState = {
             newResponseTextEl: null,
             newResponseEl: null,
@@ -105,7 +104,7 @@ To get started, just start typing below. You can also type / to see a list of co
             .finally(() => {
                 console.debug("Region:", region, "City:", city, "Country:", countryName, "Timezone:", timezone);
                 waitingForLocation = false;
-                initializeSSE();
+                initMessageState();
             });
 
         function formatDate(date) {
@@ -599,7 +598,7 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         async function chat(isVoice=false) {
-            sendMessageViaSSE(isVoice);
+            renderMessageStream(isVoice);
             return;
 
             let query = document.getElementById("chat-input").value.trim();
@@ -1067,7 +1066,7 @@ To get started, just start typing below. You can also type / to see a list of co
 
         window.onload = loadChat;
 
-        function initializeSSE(isVoice=false) {
+        function initMessageState(isVoice=false) {
             if (waitingForLocation) {
                 console.debug("Waiting for location data to be fetched. Will setup WebSocket once location data is available.");
                 return;
@@ -1084,136 +1083,180 @@ To get started, just start typing below. You can also type / to see a list of co
             }
         }
 
-        function sendSSEMessage(query) {
+        function sendMessageStream(query) {
             let chatBody = document.getElementById("chat-body");
-            let sseProtocol = window.location.protocol;
-            let sseUrl = `/api/chat/stream?q=${query}`;
+            let chatStreamUrl = `/api/chat/stream?q=${query}`;
 
             if (chatBody.dataset.conversationId) {
-                sseUrl += `&conversation_id=${chatBody.dataset.conversationId}`;
-                sseUrl += (!!region && !!city && !!countryName) && !!timezone ? `&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}` : '';
+                chatStreamUrl += `&conversation_id=${chatBody.dataset.conversationId}`;
+                chatStreamUrl += (!!region && !!city && !!countryName && !!timezone)
+                    ? `&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}`
+                    : '';
 
-                function handleChatResponse(event) {
-                    // Get the last element in the chat-body
-                    let chunk = event.data;
-                    try {
-                        if (chunk.includes("application/json"))
-                            chunk = JSON.parse(chunk);
-                    } catch (error) {
-                        // If the chunk is not a JSON object, continue.
+                fetch(chatStreamUrl)
+                    .then(response => {
+                        const reader = response.body.getReader();
+                        const decoder = new TextDecoder();
+                        let buffer = '';
+                        let netBracketCount = 0;
+
+                        function readStream() {
+                            reader.read().then(({ done, value }) => {
+                                if (done) {
+                                    console.log("Stream complete");
+                                    handleChunk(buffer);
+                                    buffer = '';
+                                    return;
+                                }
+
+                                const chunk = decoder.decode(value, { stream: true });
+                                buffer += chunk;
+
+                                netBracketCount += (chunk.match(/{/g) || []).length - (chunk.match(/}/g) || []).length;
+                                if (netBracketCount === 0) {
+                                    chunks = processJsonObjects(buffer);
+                                    chunks.objects.forEach(obj => handleChunk(obj));
+                                    buffer = chunks.remainder;
+                                }
+                                readStream();
+                            });
+                        }
+
+                        readStream();
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        if (chatMessageState.newResponseEl.getElementsByClassName("lds-ellipsis").length > 0 && chatMessageState.loadingEllipsis) {
+                            chatMessageState.newResponseTextEl.removeChild(chatMessageState.loadingEllipsis);
+                        }
+                        chatMessageState.newResponseTextEl.textContent += "Failed to get response! Try again or contact developers at team@khoj.dev"
+                    });
+
+                function processJsonObjects(str) {
+                    let startIndex = str.indexOf('{');
+                    if (startIndex === -1) return { objects: [str], remainder: '' };
+                    const objects = [str.slice(0, startIndex)];
+                    let openBraces = 0;
+                    let currentObject = '';
+
+                    for (let i = startIndex; i < str.length; i++) {
+                        if (str[i] === '{') {
+                            if (openBraces === 0) startIndex = i;
+                            openBraces++;
+                        }
+                        if (str[i] === '}') {
+                            openBraces--;
+                            if (openBraces === 0) {
+                                currentObject = str.slice(startIndex, i + 1);
+                                objects.push(currentObject);
+                                currentObject = '';
+                            }
+                        }
                     }
 
-                    const contentType = chunk["content-type"]
-                    if (contentType === "application/json") {
-                        // Handle JSON response
-                        try {
-                            if (chunk.image || chunk.detail) {
-                                ({rawResponse, references } = handleImageResponse(chunk, chatMessageState.rawResponse));
-                                chatMessageState.rawResponse = rawResponse;
-                                chatMessageState.references = references;
-                            } else {
-                                rawResponse = chunk.response;
-                            }
-                        } catch (error) {
-                            // If the chunk is not a JSON object, just display it as is
-                            chatMessageState.rawResponse += chunk;
-                        } finally {
-                            addMessageToChatBody(chatMessageState.rawResponse, chatMessageState.newResponseTextEl, chatMessageState.references);
-                        }
-                    } else {
-                        // Handle streamed response of type text/event-stream or text/plain
-                        if (chunk && chunk.includes("### compiled references:")) {
-                            ({ rawResponse, references } = handleCompiledReferences(chatMessageState.newResponseTextEl, chunk, chatMessageState.references, chatMessageState.rawResponse));
-                            chatMessageState.rawResponse = rawResponse;
-                            chatMessageState.references = references;
-                        } else {
-                            // If the chunk is not a JSON object, just display it as is
-                            chatMessageState.rawResponse += chunk;
-                            if (chatMessageState.newResponseTextEl) {
-                                handleStreamResponse(chatMessageState.newResponseTextEl, chatMessageState.rawResponse, chatMessageState.rawQuery, chatMessageState.loadingEllipsis);
-                            }
-                        }
-
-                        // Scroll to bottom of chat window as chat response is streamed
-                        document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+                    return {
+                        objects: objects,
+                        remainder: openBraces > 0 ? str.slice(startIndex) : ''
                     };
                 }
-            };
 
-            sseConnection = new EventSource(sseUrl);
-            sseConnection.onmessage = handleChatResponse;
-            sseConnection.addEventListener("complete_llm_response", handleChatResponse);
-            sseConnection.addEventListener("status", (event) => {
-                console.log(`${event.data}`);
-                handleStreamResponse(chatMessageState.newResponseTextEl, event.data, chatMessageState.rawQuery, null, false);
-            });
-            sseConnection.addEventListener("rate_limit", (event) => {
-                handleStreamResponse(chatMessageState.newResponseTextEl, event.data, chatMessageState.rawQuery, chatMessageState.loadingEllipsis, true);
-            });
-            sseConnection.addEventListener("start_llm_response", (event) => {
-                console.log("Started streaming", new Date());
-            });
-            sseConnection.addEventListener("end_llm_response", (event) => {
-                sseConnection.close();
-                console.log("Stopped streaming", new Date());
+                function handleChunk(rawChunk) {
+                    // Split the chunk into lines
+                    console.log("Chunk:", rawChunk);
+                    if (rawChunk?.startsWith("{") && rawChunk?.endsWith("}")) {
+                        try {
+                            let jsonChunk = JSON.parse(rawChunk);
+                            if (!jsonChunk.type)
+                                jsonChunk = {type: 'message', data: jsonChunk};
+                            processChunk(jsonChunk);
+                        } catch (e) {
+                            const jsonChunk = {type: 'message', data: rawChunk};
+                            processChunk(jsonChunk);
+                        }
+                    } else if (rawChunk.length > 0) {
+                        const jsonChunk = {type: 'message', data: rawChunk};
+                        processChunk(jsonChunk);
+                    }
+                }
+                function processChunk(chunk) {
+                    console.log(chunk);
+                    if (chunk.type ==='status') {
+                        console.log(`status: ${chunk.data}`);
+                        const statusMessage = chunk.data;
+                        handleStreamResponse(chatMessageState.newResponseTextEl, statusMessage, chatMessageState.rawQuery, null, false);
+                    } else if (chunk.type === 'start_llm_response') {
+                        console.log("Started streaming", new Date());
+                    } else if (chunk.type === 'end_llm_response') {
+                        console.log("Stopped streaming", new Date());
 
-                // Automatically respond with voice if the subscribed user has sent voice message
-                if (chatMessageState.isVoice && "{{ is_active }}" == "True")
-                    textToSpeech(chatMessageState.rawResponse);
+                        // Automatically respond with voice if the subscribed user has sent voice message
+                        if (chatMessageState.isVoice && "{{ is_active }}" == "True")
+                            textToSpeech(chatMessageState.rawResponse);
 
-                // Append any references after all the data has been streamed
-                finalizeChatBodyResponse(chatMessageState.references, chatMessageState.newResponseTextEl);
+                        // Append any references after all the data has been streamed
+                        finalizeChatBodyResponse(chatMessageState.references, chatMessageState.newResponseTextEl);
 
-                const liveQuery = chatMessageState.rawQuery;
-                // Reset variables
-                chatMessageState = {
-                    newResponseTextEl: null,
-                    newResponseEl: null,
-                    loadingEllipsis: null,
-                    references: {},
-                    rawResponse: "",
-                    rawQuery: liveQuery,
+                        const liveQuery = chatMessageState.rawQuery;
+                        // Reset variables
+                        chatMessageState = {
+                            newResponseTextEl: null,
+                            newResponseEl: null,
+                            loadingEllipsis: null,
+                            references: {},
+                            rawResponse: "",
+                            rawQuery: liveQuery,
+                        }
+                    } else if (chunk.type === "references") {
+                        const rawReferenceAsJson = JSON.parse(chunk.data);
+                        console.log(`${chunk.type}: ${rawReferenceAsJson}`);
+                        chatMessageState.references = {"notes": rawReferenceAsJson.context, "online": rawReferenceAsJson.online_results};
+                    } else if (chunk.type === 'message') {
+                        if (chunk.data.trim()?.startsWith("{") && chunk.data.trim()?.endsWith("}")) {
+                            // Try process chunk data as if it is a JSON object
+                            try {
+                                const jsonData = JSON.parse(chunk.data.trim());
+                                handleJsonResponse(jsonData);
+                            } catch (e) {
+                                // Handle text response chunk with compiled references
+                                if (chunk?.data.includes("### compiled references:")) {
+                                    chatMessageState.rawResponse += chunk.data.split("### compiled references:")[0];
+                                // Handle text response chunk
+                                } else {
+                                    chatMessageState.rawResponse += chunk.data;
+                                }
+                                handleStreamResponse(chatMessageState.newResponseTextEl, chatMessageState.rawResponse, chatMessageState.rawQuery, chatMessageState.loadingEllipsis);
+                            }
+                        } else {
+                            // Handle text response chunk with compiled references
+                            if (chunk?.data.includes("### compiled references:")) {
+                                chatMessageState.rawResponse += chunk.data.split("### compiled references:")[0];
+                            // Handle text response chunk
+                            } else {
+                                chatMessageState.rawResponse += chunk.data;
+                            }
+                            handleStreamResponse(chatMessageState.newResponseTextEl, chatMessageState.rawResponse, chatMessageState.rawQuery, chatMessageState.loadingEllipsis);
+                        }
+                    }
                 }
 
-                // Reset status icon
-                let statusDotIcon = document.getElementById("connection-status-icon");
-                statusDotIcon.style.backgroundColor = "green";
-                let statusDotText = document.getElementById("connection-status-text");
-                statusDotText.textContent = "Ready";
-                statusDotText.style.marginTop = "5px";
-            });
-            sseConnection.onclose = function(event) {
-                sseConnection = null;
-                console.debug("SSE is closed now.");
-                let statusDotIcon = document.getElementById("connection-status-icon");
-                statusDotIcon.style.backgroundColor = "green";
-                let statusDotText = document.getElementById("connection-status-text");
-                statusDotText.textContent = "Ready";
-                statusDotText.style.marginTop = "5px";
-            }
-            sseConnection.onerror = function(event) {
-                console.log("SSE error observed:", event);
-                sseConnection.close();
-                sseConnection = null;
-                let statusDotIcon = document.getElementById("connection-status-icon");
-                statusDotIcon.style.backgroundColor = "red";
-                let statusDotText = document.getElementById("connection-status-text");
-                statusDotText.textContent = "Server Error";
-                if (chatMessageState.newResponseEl.getElementsByClassName("lds-ellipsis").length > 0 && chatMessageState.loadingEllipsis) {
-                    chatMessageState.newResponseTextEl.removeChild(chatMessageState.loadingEllipsis);
+                function handleJsonResponse(jsonData) {
+                    if (jsonData.image || jsonData.detail) {
+                        let { rawResponse, references } = handleImageResponse(jsonData, chatMessageState.rawResponse);
+                        chatMessageState.rawResponse = rawResponse;
+                        chatMessageState.references = references;
+                    } else if (jsonData.response) {
+                        chatMessageState.rawResponse = jsonData.response;
+                        chatMessageState.references = {
+                            notes: jsonData.context || {},
+                            online: jsonData.online_results || {}
+                        };
+                    }
+                    addMessageToChatBody(chatMessageState.rawResponse, chatMessageState.newResponseTextEl, chatMessageState.references);
                 }
-                chatMessageState.newResponseTextEl.textContent += "Failed to get response! Try again or contact developers at team@khoj.dev"
-            }
-            sseConnection.onopen = function(event) {
-                console.debug("SSE is open now.")
-                let statusDotIcon = document.getElementById("connection-status-icon");
-                statusDotIcon.style.backgroundColor = "orange";
-                let statusDotText = document.getElementById("connection-status-text");
-                statusDotText.textContent = "Processing";
             }
         }
 
-        function sendMessageViaSSE(isVoice=false) {
+        function renderMessageStream(isVoice=false) {
             let chatBody = document.getElementById("chat-body");
 
             var query = document.getElementById("chat-input").value.trim();
@@ -1253,7 +1296,7 @@ To get started, just start typing below. You can also type / to see a list of co
             chatInput.classList.remove("option-enabled");
 
             // Call specified Khoj API
-            sendSSEMessage(query);
+            sendMessageStream(query);
             let rawResponse = "";
             let references = {};
 
@@ -1267,6 +1310,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 isVoice: isVoice,
             }
         }
+
         var userMessages = [];
         var userMessageIndex = -1;
         function loadChat() {
@@ -1276,7 +1320,7 @@ To get started, just start typing below. You can also type / to see a list of co
             let chatHistoryUrl = `/api/chat/history?client=web`;
             if (chatBody.dataset.conversationId) {
                 chatHistoryUrl += `&conversation_id=${chatBody.dataset.conversationId}`;
-                initializeSSE();
+                initMessageState();
                 loadFileFiltersFromConversation();
             }
 
@@ -1316,7 +1360,7 @@ To get started, just start typing below. You can also type / to see a list of co
                     let chatBody = document.getElementById("chat-body");
                     chatBody.dataset.conversationId = response.conversation_id;
                     loadFileFiltersFromConversation();
-                    initializeSSE();
+                    initMessageState();
                     chatBody.dataset.conversationTitle = response.slug || `New conversation 🌱`;
 
                     let agentMetadata = response.agent;

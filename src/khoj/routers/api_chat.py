@@ -11,7 +11,6 @@ from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.requests import Request
 from fastapi.responses import Response, StreamingResponse
-from sse_starlette import EventSourceResponse
 from starlette.authentication import requires
 
 from khoj.app.settings import ALLOWED_HOSTS
@@ -543,15 +542,24 @@ async def stream_chat(
         async def send_event(event_type: str, data: str):
             nonlocal connection_alive
             if not connection_alive or await request.is_disconnected():
+                connection_alive = False
                 return
             try:
                 if event_type == "message":
                     yield data
                 else:
-                    yield {"event": event_type, "data": data, "retry": 15000}
+                    yield json.dumps({"type": event_type, "data": data})
             except Exception as e:
                 connection_alive = False
-                logger.info(f"User {user} disconnected SSE. Emitting rest of responses to clear thread: {e}")
+                logger.info(f"User {user} disconnected. Emitting rest of responses to clear thread: {e}")
+
+        async def send_llm_response(response: str):
+            async for result in send_event("start_llm_response", ""):
+                yield result
+            async for result in send_event("message", response):
+                yield result
+            async for result in send_event("end_llm_response", ""):
+                yield result
 
         user: KhojUser = request.user.object
         conversation = await ConversationAdapters.aget_conversation_by_user(
@@ -585,17 +593,10 @@ async def stream_chat(
                 except HTTPException as e:
                     async for result in send_event("rate_limit", e.detail):
                         yield result
-                    break
+                    return
 
                 if is_query_empty(q):
-                    async for event in send_event("start_llm_response", ""):
-                        yield event
-                    async for event in send_event(
-                        "message",
-                        "It seems like your query is incomplete. Could you please provide more details or specify what you need help with?",
-                    ):
-                        yield event
-                    async for event in send_event("end_llm_response", ""):
+                    async for event in send_llm_response("Please ask your query to get started."):
                         yield event
                     return
 
@@ -645,25 +646,19 @@ async def stream_chat(
                         response_log = (
                             "No files selected for summarization. Please add files using the section on the left."
                         )
-                        async for result in send_event("complete_llm_response", response_log):
+                        async for result in send_llm_response(response_log):
                             yield result
-                        async for event in send_event("end_llm_response", ""):
-                            yield event
                     elif len(file_filters) > 1:
                         response_log = "Only one file can be selected for summarization."
-                        async for result in send_event("complete_llm_response", response_log):
+                        async for result in send_llm_response(response_log):
                             yield result
-                        async for event in send_event("end_llm_response", ""):
-                            yield event
                     else:
                         try:
                             file_object = await FileObjectAdapters.async_get_file_objects_by_name(user, file_filters[0])
                             if len(file_object) == 0:
                                 response_log = "Sorry, we couldn't find the full text of this file. Please re-upload the document and try again."
-                                async for result in send_event("complete_llm_response", response_log):
+                                async for result in send_llm_response(response_log):
                                     yield result
-                                async for event in send_event("end_llm_response", ""):
-                                    yield event
                                 return
                             contextual_data = " ".join([file.raw_text for file in file_object])
                             if not q:
@@ -675,17 +670,13 @@ async def stream_chat(
 
                             response = await extract_relevant_summary(q, contextual_data)
                             response_log = str(response)
-                            async for result in send_event("complete_llm_response", response_log):
+                            async for result in send_llm_response(response_log):
                                 yield result
-                            async for event in send_event("end_llm_response", ""):
-                                yield event
                         except Exception as e:
                             response_log = "Error summarizing file."
                             logger.error(f"Error summarizing file for {user.email}: {e}", exc_info=True)
-                            async for result in send_event("complete_llm_response", response_log):
+                            async for result in send_llm_response(response_log):
                                 yield result
-                            async for event in send_event("end_llm_response", ""):
-                                yield event
                     await sync_to_async(save_to_conversation_log)(
                         q,
                         response_log,
@@ -714,10 +705,8 @@ async def stream_chat(
                         formatted_help = help_message.format(
                             model=model_type, version=state.khoj_version, device=get_device()
                         )
-                        async for result in send_event("complete_llm_response", formatted_help):
+                        async for result in send_llm_response(formatted_help):
                             yield result
-                        async for event in send_event("end_llm_response", ""):
-                            yield event
                         return
                     custom_filters.append("site:khoj.dev")
                     conversation_commands.append(ConversationCommand.Online)
@@ -730,10 +719,8 @@ async def stream_chat(
                     except Exception as e:
                         logger.error(f"Error scheduling task {q} for {user.email}: {e}")
                         error_message = f"Unable to create automation. Ensure the automation doesn't already exist."
-                        async for result in send_event("complete_llm_response", error_message):
+                        async for result in send_llm_response(error_message):
                             yield result
-                        async for event in send_event("end_llm_response", ""):
-                            yield event
                         return
 
                     llm_response = construct_automation_created_message(automation, crontime, query_to_run, subject)
@@ -760,10 +747,8 @@ async def stream_chat(
                         api="chat",
                         **common.__dict__,
                     )
-                    async for result in send_event("complete_llm_response", llm_response):
+                    async for result in send_llm_response(llm_response):
                         yield result
-                    async for event in send_event("end_llm_response", ""):
-                        yield event
                     return
 
                 compiled_references, inferred_queries, defiltered_query = [], [], None
@@ -797,9 +782,7 @@ async def stream_chat(
                 if conversation_commands == [ConversationCommand.Notes] and not await EntryAdapters.auser_has_entries(
                     user
                 ):
-                    async for result in send_event("complete_llm_response", f"{no_entries_found.format()}"):
-                        yield result
-                    async for event in send_event("end_llm_response", ""):
+                    async for result in send_llm_response(f"{no_entries_found.format()}"):
                         yield event
                     return
 
@@ -818,10 +801,8 @@ async def stream_chat(
                     except ValueError as e:
                         error_message = f"Error searching online: {e}. Attempting to respond without online results"
                         logger.warning(error_message)
-                        async for result in send_event("complete_llm_response", error_message):
+                        async for result in send_llm_response(error_message):
                             yield result
-                        async for event in send_event("end_llm_response", ""):
-                            yield event
                         return
 
                 if ConversationCommand.Webpage in conversation_commands:
@@ -873,15 +854,13 @@ async def stream_chat(
 
                     if image is None or status_code != 200:
                         content_obj = {
-                            "image": image,
+                            "content-type": "application/json",
                             "intentType": intent_type,
                             "detail": improved_image_prompt,
-                            "content-type": "application/json",
+                            "image": image,
                         }
-                        async for result in send_event("complete_llm_response", json.dumps(content_obj)):
+                        async for result in send_llm_response(json.dumps(content_obj)):
                             yield result
-                        async for event in send_event("end_llm_response", ""):
-                            yield event
                         return
 
                     await sync_to_async(save_to_conversation_log)(
@@ -898,18 +877,21 @@ async def stream_chat(
                         online_results=online_results,
                     )
                     content_obj = {
-                        "image": image,
-                        "intentType": intent_type,
-                        "inferredQueries": [improved_image_prompt],
-                        "context": compiled_references,
                         "content-type": "application/json",
+                        "intentType": intent_type,
+                        "context": compiled_references,
                         "online_results": online_results,
+                        "inferredQueries": [improved_image_prompt],
+                        "image": image,
                     }
-                    async for result in send_event("complete_llm_response", json.dumps(content_obj)):
+                    async for result in send_llm_response(json.dumps(content_obj)):
                         yield result
-                    async for event in send_event("end_llm_response", ""):
-                        yield event
                     return
+
+                async for result in send_event(
+                    "references", json.dumps({"context": compiled_references, "online_results": online_results})
+                ):
+                    yield result
 
                 async for result in send_event("status", f"**💭 Generating a well-informed response**"):
                     yield result
@@ -941,27 +923,33 @@ async def stream_chat(
                 async for result in send_event("start_llm_response", ""):
                     yield result
 
+                continue_stream = True
                 async for item in iterator:
                     if item is None:
-                        break
-                    if connection_alive:
-                        try:
-                            async for result in send_event("message", f"{item}"):
-                                yield result
-                        except Exception as e:
-                            connection_alive = False
-                            logger.info(
-                                f"User {user} disconnected SSE. Emitting rest of responses to clear thread: {e}"
-                            )
-                async for result in send_event("end_llm_response", ""):
-                    yield result
+                        async for result in send_event("end_llm_response", ""):
+                            yield result
+                        logger.debug("Finished streaming response")
+                        return
+                    if not connection_alive or not continue_stream:
+                        continue
+                    try:
+                        async for result in send_event("message", f"{item}"):
+                            yield result
+                    except Exception as e:
+                        continue_stream = False
+                        logger.info(f"User {user} disconnected. Emitting rest of responses to clear thread: {e}")
+                    # Stop streaming after compiled references section of response starts
+                    # References are being processed via the references event rather than the message event
+                    if "### compiled references:" in item:
+                        continue_stream = False
             except asyncio.CancelledError:
-                break
+                logger.error(f"Cancelled Error in API endpoint: {e}", exc_info=True)
+                return
             except Exception as e:
-                logger.error(f"Error in SSE endpoint: {e}", exc_info=True)
-                break
+                logger.error(f"General Error in API endpoint: {e}", exc_info=True)
+                return
 
-    return EventSourceResponse(event_generator(q))
+    return StreamingResponse(event_generator(q), media_type="text/plain")
 
 
 @api_chat.get("", response_class=Response)
