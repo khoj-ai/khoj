@@ -71,8 +71,9 @@ async function openChat(slug: string, userData: UserProfile | null) {
     }
 
     const response = await fetch(`/api/chat/sessions?agent_slug=${slug}`, { method: "POST" });
+    const data = await response.json();
     if (response.status == 200) {
-        window.location.href = `/home`;
+        window.location.href = `/chat?conversationId=${data.conversation_id}`;
     } else if (response.status == 403 || response.status == 401) {
         window.location.href = unauthenticatedRedirectUrl;
     } else {

@@ -40,6 +40,8 @@ import {
     LinkBreak,
 } from "@phosphor-icons/react";
 import Chat from './page';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
 
 interface IconMap {
     [key: string]: (color: string, width: string, height: string) => JSX.Element | null;
@@ -131,6 +133,27 @@ function convertColorToClass(color: string) {
     return `bg-gray-500 hover:bg-gray-600`;
 }
 
+function convertColorToBorderClass(color: string) {
+    console.log("Color:", color);
+    if (color === 'red') return `border-red-500`;
+    if (color === 'yellow') return `border-yellow-500`;
+    if (color === 'green') return `border-green-500`;
+    if (color === 'blue') return `border-blue-500`;
+    if (color === 'orange') return `border-orange-500`;
+    if (color === 'purple') return `border-purple-500`;
+    if (color === 'pink') return `border-pink-500`;
+    if (color === 'teal') return `border-teal-500`;
+    if (color === 'cyan') return `border-cyan-500`;
+    if (color === 'lime') return `border-lime-500`;
+    if (color === 'indigo') return `border-indigo-500`;
+    if (color === 'fuschia') return `border-fuschia-500`;
+    if (color === 'rose') return `border-rose-500`;
+    if (color === 'sky') return `border-sky-500`;
+    if (color === 'amber') return `border-amber-500`;
+    if (color === 'emerald') return `border-emerald-500`;
+    return `border-gray-500`;
+}
+
 
 
 export interface AgentData {
@@ -157,22 +180,22 @@ type Suggestion = [string, string, string, string, string];
 
 async function createNewConvo(slug: string) {
     try {
-      const response = await fetch(`/api/chat/sessions?client=web&agent_slug=${slug}`, { method: "POST" });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      const conversationID = data.conversation_id;
-      console.log("New conversation ID (create new convo):", conversationID);
-      if (!conversationID) {
-        throw new Error("Conversation ID not found in response");
-      }
-      return conversationID;
+        const response = await fetch(`/api/chat/sessions?client=web&agent_slug=${slug}`, { method: "POST" });
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        const conversationID = data.conversation_id;
+        console.log("New conversation ID (create new convo):", conversationID);
+        if (!conversationID) {
+            throw new Error("Conversation ID not found in response");
+        }
+        return conversationID;
     } catch (error) {
-      console.error("Error creating new conversation:", error);
-      throw error;
+        console.error("Error creating new conversation:", error);
+        throw error;
     }
-  }
+}
 
 function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState('');
@@ -202,27 +225,28 @@ function ChatBodyData(props: ChatBodyDataProps) {
         shuffleAndSetOptions();
     }
 
-    useEffect(() => { const processMessage = async () => {
-        if (message && !processingMessage) {
-            setProcessingMessage(true);
-            try {
-                const newConversationId = await createNewConvo(selectedAgent || "khoj");
-                console.log("New conversation ID (useEffect):", newConversationId);
-                props.onConversationIdChange?.(newConversationId);
-                window.location.href = `/chat?conversationId=${newConversationId}`;
-                localStorage.setItem('message', message);
-                console.log("Message stored in local storage:", message);
-                console.log("selectedAgent:", selectedAgent);
+    useEffect(() => {
+        const processMessage = async () => {
+            if (message && !processingMessage) {
+                setProcessingMessage(true);
+                try {
+                    const newConversationId = await createNewConvo(selectedAgent || "khoj");
+                    console.log("New conversation ID (useEffect):", newConversationId);
+                    props.onConversationIdChange?.(newConversationId);
+                    window.location.href = `/chat?conversationId=${newConversationId}`;
+                    localStorage.setItem('message', message);
+                    console.log("Message stored in local storage:", message);
+                    console.log("selectedAgent:", selectedAgent);
+                }
+                catch (error) {
+                    console.error("Error creating new conversation:", error);
+                    setProcessingMessage(false);
+                }
+                setMessage('');
             }
-            catch (error) {
-                console.error("Error creating new conversation:", error);
-                setProcessingMessage(false);
-            }
-            setMessage('');
-        }
         };
         processMessage();
-        if(message){
+        if (message) {
             setProcessingMessage(true);
             props.setQueryToProcess(message);
         };
@@ -242,36 +266,38 @@ function ChatBodyData(props: ChatBodyDataProps) {
     //generate colored icons for the selected agents
     const icons = agents.map(agent => getIconFromIconName(agent.icon, agent.color) || <Image src={agent.avatar} alt={agent.name} width={50} height={50} />);
     function fillArea(link: string, type: string, prompt: string) {
-        if (!link){
-            var message_str = "";
+        if (!link) {
+            let message_str = "";
             prompt = prompt.charAt(0).toLowerCase() + prompt.slice(1);
-            if(type === "Online Search"){
+
+            if (type === "Online Search") {
                 message_str = "/online " + prompt;
-            }
-            else if(type === "Paint"){
-                message_str = "/paint " + prompt;
-            }
-            else{
+            } else if (type === "Paint") {
+                message_str = "/image " + prompt;
+            } else {
                 message_str = prompt;
             }
-            const message_area = document.getElementById("message") as HTMLInputElement;
+
+            // Get the textarea element
+            const message_area = document.getElementById("message") as HTMLTextAreaElement;
+
             if (message_area) {
+                // Update the value directly
                 message_area.value = message_str;
+                setMessage(message_str);
             }
         }
     }
     function handleAgentsClick(slug: string) {
         return async () => {
-            setSelectedAgent(slug);
-            console.log(slug);
             try {
                 const unauthenticatedRedirectUrl = `/login?next=/agents?agent=${slug}`;
                 const response = await fetch(`/api/chat/sessions?agent_slug=${slug}`, { method: "POST" });
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                if (response.status == 200) {;
-                    highlightHandler(slug);
+                if (response.status == 200) {
+                    setSelectedAgent(slug);
                 } else if (response.status == 403 || response.status == 401) {
                     window.location.href = unauthenticatedRedirectUrl;
                 } else {
@@ -283,113 +309,59 @@ function ChatBodyData(props: ChatBodyDataProps) {
         };
     }
 
-// Helper function to convert Tailwind color class to actual color value to prevent default border changes from being applied
-function tailwindColorToHex(colorClass: string): string {
-    const colorMap: { [key: string]: string } = {
-        'border-red-500': '#ef4444',
-        'border-blue-500': '#3b82f6',
-        'border-green-500': '#22c55e',
-        'border-yellow-500': '#eab308',
-        'border-purple-500': '#a855f7',
-        'border-pink-500': '#ec4899',
-        'border-indigo-500': '#6366f1',
-        'border-gray-500': '#6b7280',
-        'border-orange-500': '#f97316',
-    };
-    return colorMap[colorClass] || '#000000'; // Default to black if color not found
-}
-
-function highlightHandler(slug: string) {
-    // find buttons with AGENT in their class name
-    const buttons = document.getElementsByClassName("AGENT");
-
-    // find the color of the icon inside the agent
-    const color = agents.find(agent => agent.slug === slug)?.color;
-    const color_class = convertColorToClass(color || 'gray').split(' ')[0];
-
-    // replace 'bg' with 'border' to get the tailwind border color
-    const border_color = color_class.replace('bg', 'border');
-    console.log(border_color);
-
-    // Convert Tailwind color class to actual color value
-    const hexColor = tailwindColorToHex(border_color);
-
-    for (let i = 0; i < buttons.length; i++) {
-        const button = buttons[i] as HTMLElement;
-        if (button.classList.contains(slug)) {
-            // Set the border color directly using the hex value
-            button.style.borderColor = hexColor;
-            button.style.borderWidth = '1px';
-            button.style.borderStyle = 'solid';
-        } else {
-            // Remove border from other buttons
-            button.style.borderColor = '';
-            button.style.borderWidth = '';
-            button.style.borderStyle = '';
-            button.style.boxShadow = '';
-
-            // also remove any -500 ending class (handles start case where khoj is selected by default at the start)
-            for (let j = 0; j < button.classList.length; j++) {
-                if (button.classList[j].endsWith('-500')) {
-                    button.classList.remove(button.classList[j]);
-                }
-            }
-        }
-    }
-}
-
     return (
         <div>
-        <div className="w-full text-center">
-        <div className="items-center">
-            <h1 className="text-center pb-6">What would you like to do?</h1>
-        </div>
-        <div className="flex pb-6 ms-10 gap-2">
-            {icons.map((icon, index) => (
-                <a className={`AGENT ${agents[index].slug} no-underline w-200 flex pl-3 pt-1 pb-1 border ${agents[index].slug === "khoj" ? "border-orange-500" : "border-stone-100"} rounded-md shadow-sm`} onClick={handleAgentsClick(agents[index].slug)}>
-                {icon}
-                <p className="relative top-1 pr-3">{agents[index].name}</p>
-                </a>
-            ))}
-            <a className="no-underline w-200 flex pl-3 pt-1 pb-1 ps-4" href="/agents">
-                <p className="relative top-1 hover:underline">See More →</p>
-            </a>
-        </div>
-        </div>
-        <div className="w-fit">
-            <div className={`${styles.inputBox} bg-background align-middle items-center justify-center px-3`}>
-                <ChatInputArea
-                    isLoggedIn={props.isLoggedIn}
-                    sendMessage={(message) => setMessage(message)}
-                    sendDisabled={processingMessage}
-                    chatOptionsData={props.chatOptionsData}
-                    conversationId={null}
-                    isMobileWidth={props.isMobileWidth}
-                    setUploadedFiles={props.setUploadedFiles} />
+            <div className="w-full text-center">
+                <div className="items-center">
+                    <h1 className="text-center pb-6">What would you like to do?</h1>
+                </div>
+                <div className="flex pb-6 gap-2 items-center justify-center">
+                    {icons.map((icon, index) => (
+                        <Card key={`${index}-${agents[index].slug}`} className={`${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : 'border-stone-100'} hover:cursor-pointer `}>
+                            <CardTitle className='text-center text-md font-medium flex justify-center items-center px-1 py-2' onClick={handleAgentsClick(agents[index].slug)}>
+                                {icon} {agents[index].name}
+                            </CardTitle>
+                        </Card>
+                    ))}
+                    <Card className='border-none shadow-none flex justify-center items-center hover:cursor-pointer' onClick={() => window.location.href = "/agents"}>
+                        <CardTitle className="text-center text-md font-normal flex justify-center items-center px-1.5 py-2">See More →</CardTitle>
+                    </Card>
+                </div>
             </div>
-            <div className={`suggestions ${styles.suggestions} w-full flex`}>
-                {shuffledOptions.map(([key, styleClass, image, value, link], index) => (
-                    <div onClick={() => fillArea(link, key, value)}>
-                        <SuggestionCard
-                        key={key + Math.random()}
-                        title={key}
-                        body={value.length > 65 ? value.substring(0, 65) + '...' : value}
-                        link={link}
-                        color={shuffledColors[index]}
-                        image={shuffledColors[index]}
-                        />
-                    </div>
-                ))}
+            <div className="w-fit">
+                <div className={`${styles.inputBox} bg-background align-middle items-center justify-center p-3`}>
+                    <ChatInputArea
+                        isLoggedIn={props.isLoggedIn}
+                        sendMessage={(message) => setMessage(message)}
+                        sendDisabled={processingMessage}
+                        chatOptionsData={props.chatOptionsData}
+                        conversationId={null}
+                        isMobileWidth={props.isMobileWidth}
+                        setUploadedFiles={props.setUploadedFiles} />
+                </div>
+                <div className={`suggestions ${styles.suggestions} w-full ${props.isMobileWidth ? 'flex flex-col' : 'flex flex-row'} justify-center items-center`}>
+                    {shuffledOptions.map(([key, styleClass, image, value, link], index) => (
+                        <div onClick={() => fillArea(link, key, value)}>
+                            <SuggestionCard
+                                key={key + Math.random()}
+                                title={key}
+                                body={value.length > 65 ? value.substring(0, 65) + '...' : value}
+                                link={link}
+                                color={shuffledColors[index]}
+                                image={shuffledColors[index]}
+                            />
+                        </div>
+                    ))}
+                </div>
+                <div className="flex items-center justify-center">
+                    <button onClick={onButtonClick} className="m-2 p-1 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm text-stone-500">More Examples ⟳</button>
+                </div>
             </div>
-            <div className="flex items-center justify-center">
-                <button onClick={onButtonClick} className="m-2 p-1 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm text-stone-500">More Examples ⟳</button>
-            </div>
-        </div>
         </div>
     );
 }
 
-export default function Home(){
+export default function Home() {
     const [chatOptionsData, setChatOptionsData] = useState<ChatOptions | null>(null);
     const [isLoading, setLoading] = useState(true);
     const [title, setTitle] = useState('');
@@ -445,8 +417,8 @@ export default function Home(){
                     isMobileWidth={isMobileWidth}
                 />
             </div>
+            <NavMenu selected="Chat" title={title}></NavMenu>
             <div className={`${styles.chatBox}`}>
-                <NavMenu selected="Chat" title={title}></NavMenu>
                 <div className={`${styles.chatBoxBody} flex flex-col justify-center fixed top-3/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2`}>
                     <ChatBodyData
                         isLoggedIn={authenticatedData !== null}

@@ -701,13 +701,13 @@ export default function SidePanel(props: SidePanelProps) {
     }, [chatSessions]);
 
     function newConvo() {
-        window.location.href = '/home';
+        window.location.href = '/';
     }
 
     return (
         <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed}`}>
             <div className="flex items-center justify-between">
-                <img src="/khoj-logo.svg" alt="logo" className="w-16 relative bottom-1"/>
+                <img src="/khoj-logo.svg" alt="logo" className="w-16 relative"/>
                 {
                     authenticatedData && props.isMobileWidth ?
                         <Drawer open={enabled} onOpenChange={(open) => {
@@ -742,13 +742,13 @@ export default function SidePanel(props: SidePanelProps) {
                             </DrawerContent>
                         </Drawer>
                         :
-                        <div>
-                        <button className={`ml-4 mr-4 ${styles.button}`} onClick={newConvo}>
-                            {enabled ? <NotePencil className="h-7 w-7"/> : <NotePencil className="h-7 w-7" color="gray"/>}
-                        </button>
-                        <button className={styles.button} onClick={() => setEnabled(!enabled)}>
-                            {enabled ? <Sidebar className="h-7 w-7"/> : <Sidebar className="ml-2 h-7 w-7" color="gray"/>}
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <Link className={`ml-2`} href="/">
+                                {enabled ? <NotePencil className="h-6 w-6"/> : <NotePencil className="h-6 w-6" color="gray"/>}
+                            </Link>
+                            <button className={styles.button} onClick={() => setEnabled(!enabled)}>
+                                {enabled ? <Sidebar className="h-6 w-6"/> : <Sidebar className="h-6 w-6" color="gray"/>}
+                            </button>
                         </div>
                 }
             </div>
