@@ -4,6 +4,11 @@ div.automationsLayout {
     gap: 1rem;
 }
 
+div.automationCard {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+}
+
 @media screen and (max-width: 768px) {
     div.automationsLayout {
         grid-template-columns: 1fr;
