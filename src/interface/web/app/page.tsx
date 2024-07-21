@@ -312,8 +312,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     !props.isMobileWidth &&
                     <div className="flex pb-6 gap-2 items-center justify-center">
                         {icons.map((icon, index) => (
-                            <Card key={`${index}-${agents[index].slug}`} className={`${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : 'border-stone-100'} hover:cursor-pointer `}>
-                                <CardTitle className='text-center text-md font-medium flex justify-center items-center px-1 py-2' onClick={() => handleAgentsClick(agents[index].slug)}>
+                            <Card key={`${index}-${agents[index].slug}`} className={`${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : 'border-stone-100 text-muted-foreground'} hover:cursor-pointer rounded-lg px-2 py-2`}>
+                                <CardTitle className='text-center text-md font-medium flex justify-center items-center' onClick={() => handleAgentsClick(agents[index].slug)}>
                                     {icon} {agents[index].name}
                                 </CardTitle>
                             </Card>
