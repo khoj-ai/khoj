@@ -20,6 +20,7 @@ interface ShareLinkProps {
     onShare: () => void;
     buttonVariant?: keyof typeof buttonVariants;
     includeIcon?: boolean;
+    buttonClassName?: string;
 }
 
 function copyToClipboard(text: string) {
@@ -36,7 +37,7 @@ export default function ShareLink(props: ShareLinkProps) {
             <DialogTrigger
                 asChild
                 onClick={props.onShare}>
-                <Button size="sm" className={`px-3`} variant={props.buttonVariant ?? 'default' as const}>
+                <Button size="sm" className={`${props.buttonClassName || 'px-3'}`} variant={props.buttonVariant ?? 'default' as const}>
                     {
                         props.includeIcon && (
                             <Share className="w-4 h-4 mr-2" />

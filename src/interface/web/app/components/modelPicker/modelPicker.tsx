@@ -68,8 +68,8 @@ interface ModelPickerProps {
 }
 
 export const ModelPicker: React.FC<any> = (props: ModelPickerProps) => {
-    const { data: models } = useOptionsRequest('/api/config/data/conversation/model/options');
-    const { data: selectedModel } = useSelectedModel('/api/config/data/conversation/model');
+    const { data: models } = useOptionsRequest('/api/configure/chat/model/options');
+    const { data: selectedModel } = useSelectedModel('/api/configure/chat/model');
     const [openLoginDialog, setOpenLoginDialog] = React.useState(false);
 
     let userData = useAuthenticatedData();
@@ -94,7 +94,7 @@ export const ModelPicker: React.FC<any> = (props: ModelPickerProps) => {
             props.setModelUsed(model);
         }
 
-        fetch('/api/config/data/conversation/model' + '?id=' + String(model.id), { method: 'POST', body: JSON.stringify(model) })
+        fetch('/api/configure/chat/model' + '?id=' + String(model.id), { method: 'POST', body: JSON.stringify(model) })
             .then((response) => {
                 if (!response.ok) {
                     throw new Error('Failed to select model');

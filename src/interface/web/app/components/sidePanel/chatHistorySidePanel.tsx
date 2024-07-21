@@ -148,7 +148,7 @@ interface FilesMenuProps {
 
 function FilesMenu(props: FilesMenuProps) {
     // Use SWR to fetch files
-    const { data: files, error } = useSWR<string[]>(props.conversationId ? '/api/config/data/computer' : null, fetcher);
+    const { data: files, error } = useSWR<string[]>(props.conversationId ? '/api/configure/content/computer' : null, fetcher);
     const { data: selectedFiles, error: selectedFilesError } = useSWR(props.conversationId ? `/api/chat/conversation/file-filters/${props.conversationId}` : null, fetcher);
     const [isOpen, setIsOpen] = useState(false);
     const [unfilteredFiles, setUnfilteredFiles] = useState<string[]>([]);
@@ -604,7 +604,7 @@ function UserProfileComponent(props: UserProfileProps) {
 
     return (
         <div className={styles.profile}>
-            <Link href="/config" target="_blank" rel="noopener noreferrer">
+            <Link href="/settings">
                 <Avatar>
                     <AvatarImage src={props.userProfile.photo} alt="user profile" />
                     <AvatarFallback>
