@@ -74,14 +74,14 @@ To get started, just start typing below. You can also type / to see a list of co
                 }, 1000);
             });
         }
-        var websocket = null;
+        var sseConnection = null;
         let region = null;
         let city = null;
         let countryName = null;
         let timezone = null;
         let waitingForLocation = true;
 
-        let websocketState = {
+        let chatMessageState = {
             newResponseTextEl: null,
             newResponseEl: null,
             loadingEllipsis: null,
@@ -105,7 +105,7 @@ To get started, just start typing below. You can also type / to see a list of co
             .finally(() => {
                 console.debug("Region:", region, "City:", city, "Country:", countryName, "Timezone:", timezone);
                 waitingForLocation = false;
-                setupWebSocket();
+                initializeSSE();
             });
 
         function formatDate(date) {
@@ -599,10 +599,8 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         async function chat(isVoice=false) {
-            if (websocket) {
-                sendMessageViaWebSocket(isVoice);
-                return;
-            }
+            sendMessageViaSSE(isVoice);
+            return;
 
             let query = document.getElementById("chat-input").value.trim();
             let resultsCount = localStorage.getItem("khojResultsCount") || 5;
@@ -1069,17 +1067,13 @@ To get started, just start typing below. You can also type / to see a list of co
 
         window.onload = loadChat;
 
-        function setupWebSocket(isVoice=false) {
-            let chatBody = document.getElementById("chat-body");
-            let wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            let webSocketUrl = `${wsProtocol}//${window.location.host}/api/chat/ws`;
-
+        function initializeSSE(isVoice=false) {
             if (waitingForLocation) {
                 console.debug("Waiting for location data to be fetched. Will setup WebSocket once location data is available.");
                 return;
             }
 
-            websocketState = {
+            chatMessageState = {
                 newResponseTextEl: null,
                 newResponseEl: null,
                 loadingEllipsis: null,
@@ -1088,121 +1082,138 @@ To get started, just start typing below. You can also type / to see a list of co
                 rawQuery: "",
                 isVoice: isVoice,
             }
+        }
+
+        function sendSSEMessage(query) {
+            let chatBody = document.getElementById("chat-body");
+            let sseProtocol = window.location.protocol;
+            let sseUrl = `/api/chat/stream?q=${query}`;
 
             if (chatBody.dataset.conversationId) {
-                webSocketUrl += `?conversation_id=${chatBody.dataset.conversationId}`;
-                webSocketUrl += (!!region && !!city && !!countryName) && !!timezone ? `&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}` : '';
+                sseUrl += `&conversation_id=${chatBody.dataset.conversationId}`;
+                sseUrl += (!!region && !!city && !!countryName) && !!timezone ? `&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}` : '';
 
-                websocket = new WebSocket(webSocketUrl);
-                websocket.onmessage = function(event) {
-
+                function handleChatResponse(event) {
                     // Get the last element in the chat-body
                     let chunk = event.data;
-                    if (chunk == "start_llm_response") {
-                        console.log("Started streaming", new Date());
-                    } else if (chunk == "end_llm_response") {
-                        console.log("Stopped streaming", new Date());
+                    try {
+                        if (chunk.includes("application/json"))
+                            chunk = JSON.parse(chunk);
+                    } catch (error) {
+                        // If the chunk is not a JSON object, continue.
+                    }
 
-                        // Automatically respond with voice if the subscribed user has sent voice message
-                        if (websocketState.isVoice && "{{ is_active }}" == "True")
-                            textToSpeech(websocketState.rawResponse);
-
-                        // Append any references after all the data has been streamed
-                        finalizeChatBodyResponse(websocketState.references, websocketState.newResponseTextEl);
-
-                        const liveQuery = websocketState.rawQuery;
-                        // Reset variables
-                        websocketState = {
-                            newResponseTextEl: null,
-                            newResponseEl: null,
-                            loadingEllipsis: null,
-                            references: {},
-                            rawResponse: "",
-                            rawQuery: liveQuery,
-                            isVoice: false,
-                        }
-                    } else {
+                    const contentType = chunk["content-type"]
+                    if (contentType === "application/json") {
+                        // Handle JSON response
                         try {
-                            if (chunk.includes("application/json"))
-                            {
-                                chunk = JSON.parse(chunk);
+                            if (chunk.image || chunk.detail) {
+                                ({rawResponse, references } = handleImageResponse(chunk, chatMessageState.rawResponse));
+                                chatMessageState.rawResponse = rawResponse;
+                                chatMessageState.references = references;
+                            } else {
+                                rawResponse = chunk.response;
                             }
                         } catch (error) {
-                            // If the chunk is not a JSON object, continue.
+                            // If the chunk is not a JSON object, just display it as is
+                            chatMessageState.rawResponse += chunk;
+                        } finally {
+                            addMessageToChatBody(chatMessageState.rawResponse, chatMessageState.newResponseTextEl, chatMessageState.references);
+                        }
+                    } else {
+                        // Handle streamed response of type text/event-stream or text/plain
+                        if (chunk && chunk.includes("### compiled references:")) {
+                            ({ rawResponse, references } = handleCompiledReferences(chatMessageState.newResponseTextEl, chunk, chatMessageState.references, chatMessageState.rawResponse));
+                            chatMessageState.rawResponse = rawResponse;
+                            chatMessageState.references = references;
+                        } else {
+                            // If the chunk is not a JSON object, just display it as is
+                            chatMessageState.rawResponse += chunk;
+                            if (chatMessageState.newResponseTextEl) {
+                                handleStreamResponse(chatMessageState.newResponseTextEl, chatMessageState.rawResponse, chatMessageState.rawQuery, chatMessageState.loadingEllipsis);
+                            }
                         }
 
-                        const contentType = chunk["content-type"]
-
-                        if (contentType === "application/json") {
-                            // Handle JSON response
-                            try {
-                                if (chunk.image || chunk.detail) {
-                                    ({rawResponse, references } = handleImageResponse(chunk, websocketState.rawResponse));
-                                    websocketState.rawResponse = rawResponse;
-                                    websocketState.references = references;
-                                } else if (chunk.type == "status") {
-                                    handleStreamResponse(websocketState.newResponseTextEl, chunk.message, websocketState.rawQuery, null, false);
-                                } else if (chunk.type == "rate_limit") {
-                                    handleStreamResponse(websocketState.newResponseTextEl, chunk.message, websocketState.rawQuery, websocketState.loadingEllipsis, true);
-                                } else {
-                                    rawResponse = chunk.response;
-                                }
-                            } catch (error) {
-                                // If the chunk is not a JSON object, just display it as is
-                                websocketState.rawResponse += chunk;
-                            } finally {
-                                if (chunk.type != "status" && chunk.type != "rate_limit") {
-                                    addMessageToChatBody(websocketState.rawResponse, websocketState.newResponseTextEl, websocketState.references);
-                                }
-                            }
-                        } else {
-
-                            // Handle streamed response of type text/event-stream or text/plain
-                            if (chunk && chunk.includes("### compiled references:")) {
-                                ({ rawResponse, references } = handleCompiledReferences(websocketState.newResponseTextEl, chunk, websocketState.references, websocketState.rawResponse));
-                                websocketState.rawResponse = rawResponse;
-                                websocketState.references = references;
-                            } else {
-                                // If the chunk is not a JSON object, just display it as is
-                                websocketState.rawResponse += chunk;
-                                if (websocketState.newResponseTextEl) {
-                                    handleStreamResponse(websocketState.newResponseTextEl, websocketState.rawResponse, websocketState.rawQuery, websocketState.loadingEllipsis);
-                                }
-                            }
-
-                            // Scroll to bottom of chat window as chat response is streamed
-                            document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
-                        };
-                    }
+                        // Scroll to bottom of chat window as chat response is streamed
+                        document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+                    };
                 }
             };
-            websocket.onclose = function(event) {
-                websocket = null;
-                console.log("WebSocket is closed now.");
-                let setupWebSocketButton = document.createElement("button");
-                setupWebSocketButton.textContent = "Reconnect to Server";
-                setupWebSocketButton.onclick = setupWebSocket;
-                let statusDotIcon = document.getElementById("connection-status-icon");
-                statusDotIcon.style.backgroundColor = "red";
-                let statusDotText = document.getElementById("connection-status-text");
-                statusDotText.innerHTML = "";
-                statusDotText.style.marginTop = "5px";
-                statusDotText.appendChild(setupWebSocketButton);
-            }
-            websocket.onerror = function(event) {
-                console.log("WebSocket error observed:", event);
-            }
 
-            websocket.onopen = function(event) {
-                console.log("WebSocket is open now.")
+            sseConnection = new EventSource(sseUrl);
+            sseConnection.onmessage = handleChatResponse;
+            sseConnection.addEventListener("complete_llm_response", handleChatResponse);
+            sseConnection.addEventListener("status", (event) => {
+                console.log(`${event.data}`);
+                handleStreamResponse(chatMessageState.newResponseTextEl, event.data, chatMessageState.rawQuery, null, false);
+            });
+            sseConnection.addEventListener("rate_limit", (event) => {
+                handleStreamResponse(chatMessageState.newResponseTextEl, event.data, chatMessageState.rawQuery, chatMessageState.loadingEllipsis, true);
+            });
+            sseConnection.addEventListener("start_llm_response", (event) => {
+                console.log("Started streaming", new Date());
+            });
+            sseConnection.addEventListener("end_llm_response", (event) => {
+                sseConnection.close();
+                console.log("Stopped streaming", new Date());
+
+                // Automatically respond with voice if the subscribed user has sent voice message
+                if (chatMessageState.isVoice && "{{ is_active }}" == "True")
+                    textToSpeech(chatMessageState.rawResponse);
+
+                // Append any references after all the data has been streamed
+                finalizeChatBodyResponse(chatMessageState.references, chatMessageState.newResponseTextEl);
+
+                const liveQuery = chatMessageState.rawQuery;
+                // Reset variables
+                chatMessageState = {
+                    newResponseTextEl: null,
+                    newResponseEl: null,
+                    loadingEllipsis: null,
+                    references: {},
+                    rawResponse: "",
+                    rawQuery: liveQuery,
+                }
+
+                // Reset status icon
                 let statusDotIcon = document.getElementById("connection-status-icon");
                 statusDotIcon.style.backgroundColor = "green";
                 let statusDotText = document.getElementById("connection-status-text");
-                statusDotText.textContent = "Connected to Server";
+                statusDotText.textContent = "Ready";
+                statusDotText.style.marginTop = "5px";
+            });
+            sseConnection.onclose = function(event) {
+                sseConnection = null;
+                console.debug("SSE is closed now.");
+                let statusDotIcon = document.getElementById("connection-status-icon");
+                statusDotIcon.style.backgroundColor = "green";
+                let statusDotText = document.getElementById("connection-status-text");
+                statusDotText.textContent = "Ready";
+                statusDotText.style.marginTop = "5px";
+            }
+            sseConnection.onerror = function(event) {
+                console.log("SSE error observed:", event);
+                sseConnection.close();
+                sseConnection = null;
+                let statusDotIcon = document.getElementById("connection-status-icon");
+                statusDotIcon.style.backgroundColor = "red";
+                let statusDotText = document.getElementById("connection-status-text");
+                statusDotText.textContent = "Server Error";
+                if (chatMessageState.newResponseEl.getElementsByClassName("lds-ellipsis").length > 0 && chatMessageState.loadingEllipsis) {
+                    chatMessageState.newResponseTextEl.removeChild(chatMessageState.loadingEllipsis);
+                }
+                chatMessageState.newResponseTextEl.textContent += "Failed to get response! Try again or contact developers at team@khoj.dev"
+            }
+            sseConnection.onopen = function(event) {
+                console.debug("SSE is open now.")
+                let statusDotIcon = document.getElementById("connection-status-icon");
+                statusDotIcon.style.backgroundColor = "orange";
+                let statusDotText = document.getElementById("connection-status-text");
+                statusDotText.textContent = "Processing";
             }
         }
 
-        function sendMessageViaWebSocket(isVoice=false) {
+        function sendMessageViaSSE(isVoice=false) {
             let chatBody = document.getElementById("chat-body");
 
             var query = document.getElementById("chat-input").value.trim();
@@ -1242,11 +1253,11 @@ To get started, just start typing below. You can also type / to see a list of co
             chatInput.classList.remove("option-enabled");
 
             // Call specified Khoj API
-            websocket.send(query);
+            sendSSEMessage(query);
             let rawResponse = "";
             let references = {};
 
-            websocketState = {
+            chatMessageState = {
                 newResponseTextEl,
                 newResponseEl,
                 loadingEllipsis,
@@ -1265,7 +1276,7 @@ To get started, just start typing below. You can also type / to see a list of co
             let chatHistoryUrl = `/api/chat/history?client=web`;
             if (chatBody.dataset.conversationId) {
                 chatHistoryUrl += `&conversation_id=${chatBody.dataset.conversationId}`;
-                setupWebSocket();
+                initializeSSE();
                 loadFileFiltersFromConversation();
             }
 
@@ -1305,7 +1316,7 @@ To get started, just start typing below. You can also type / to see a list of co
                     let chatBody = document.getElementById("chat-body");
                     chatBody.dataset.conversationId = response.conversation_id;
                     loadFileFiltersFromConversation();
-                    setupWebSocket();
+                    initializeSSE();
                     chatBody.dataset.conversationTitle = response.slug || `New conversation 🌱`;
 
                     let agentMetadata = response.agent;

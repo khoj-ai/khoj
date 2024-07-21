@@ -40,6 +40,7 @@ dependencies = [
     "dateparser >= 1.1.1",
     "defusedxml == 0.7.1",
     "fastapi >= 0.104.1",
+    "sse-starlette ~= 2.1.0",
     "python-multipart >= 0.0.7",
     "jinja2 == 3.1.4",
     "openai >= 1.0.0",

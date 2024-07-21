@@ -56,7 +56,8 @@ async def search_online(
     query += " ".join(custom_filters)
     if not is_internet_connected():
         logger.warn("Cannot search online as not connected to internet")
-        return {}
+        yield {}
+        return
 
     # Breakdown the query into subqueries to get the correct answer
     subqueries = await generate_online_subqueries(query, conversation_history, location)
@@ -66,7 +67,8 @@ async def search_online(
         logger.info(f"🌐 Searching the Internet for {list(subqueries)}")
         if send_status_func:
             subqueries_str = "\n- " + "\n- ".join(list(subqueries))
-            await send_status_func(f"**🌐 Searching the Internet for**: {subqueries_str}")
+            async for event in send_status_func(f"**🌐 Searching the Internet for**: {subqueries_str}"):
+                yield {"status": event}
 
     with timer(f"Internet searches for {list(subqueries)} took", logger):
         search_func = search_with_google if SERPER_DEV_API_KEY else search_with_jina
@@ -89,7 +91,8 @@ async def search_online(
         logger.info(f"🌐👀 Reading web pages at: {list(webpage_links)}")
         if send_status_func:
             webpage_links_str = "\n- " + "\n- ".join(list(webpage_links))
-            await send_status_func(f"**📖 Reading web pages**: {webpage_links_str}")
+            async for event in send_status_func(f"**📖 Reading web pages**: {webpage_links_str}"):
+                yield {"status": event}
     tasks = [read_webpage_and_extract_content(subquery, link, content) for link, subquery, content in webpages]
     results = await asyncio.gather(*tasks)
 
@@ -98,7 +101,7 @@ async def search_online(
         if webpage_extract is not None:
             response_dict[subquery]["webpages"] = {"link": url, "snippet": webpage_extract}
 
-    return response_dict
+    yield response_dict
 
 
 async def search_with_google(query: str) -> Tuple[str, Dict[str, List[Dict]]]:
@@ -127,13 +130,15 @@ async def read_webpages(
     "Infer web pages to read from the query and extract relevant information from them"
     logger.info(f"Inferring web pages to read")
     if send_status_func:
-        await send_status_func(f"**🧐 Inferring web pages to read**")
+        async for event in send_status_func(f"**🧐 Inferring web pages to read**"):
+            yield {"status": event}
     urls = await infer_webpage_urls(query, conversation_history, location)
 
     logger.info(f"Reading web pages at: {urls}")
     if send_status_func:
         webpage_links_str = "\n- " + "\n- ".join(list(urls))
-        await send_status_func(f"**📖 Reading web pages**: {webpage_links_str}")
+        async for event in send_status_func(f"**📖 Reading web pages**: {webpage_links_str}"):
+            yield {"status": event}
     tasks = [read_webpage_and_extract_content(query, url) for url in urls]
     results = await asyncio.gather(*tasks)
 
@@ -141,7 +146,7 @@ async def read_webpages(
     response[query]["webpages"] = [
         {"query": q, "link": url, "snippet": web_extract} for q, web_extract, url in results if web_extract is not None
     ]
-    return response
+    yield response
 
 
 async def read_webpage_and_extract_content(
