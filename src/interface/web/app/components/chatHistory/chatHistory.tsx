@@ -348,7 +348,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                 <ProfileCard
                                     name={constructAgentName()}
                                     link={constructAgentLink()}
-                                    avatar={<Lightbulb color='orange' weight='fill' className="mt-1 mx-1" />}
+                                    avatar={<Lightbulb color='orange' weight='fill' />}
                                     description={constructAgentPersona()}
                                 />
                             </div>
