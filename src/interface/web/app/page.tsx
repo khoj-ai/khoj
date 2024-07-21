@@ -262,9 +262,18 @@ function ChatBodyData(props: ChatBodyDataProps) {
         }
     }, [props.streamedMessages]);
 
-    const agents = data ? data.slice(0, 4) : []; //select first 4 agents to show as options
+    const nSlice = props.isMobileWidth ? 3 : 4;
+
+    const agents = data ? data.slice(0, nSlice) : []; //select first 4 agents to show as options
     //generate colored icons for the selected agents
-    const icons = agents.map(agent => getIconFromIconName(agent.icon, agent.color) || <Image src={agent.avatar} alt={agent.name} width={50} height={50} />);
+    const icons = agents.map(agent => getIconFromIconName(
+        agent.icon,
+        agent.color,
+        props.isMobileWidth ? 'w-4' : undefined,
+        props.isMobileWidth ? 'w-4' : undefined)
+        || <Image src={agent.avatar} alt={agent.name} width={50} height={50} />
+    );
+
     function fillArea(link: string, type: string, prompt: string) {
         if (!link) {
             let message_str = "";
@@ -288,6 +297,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             }
         }
     }
+
     function handleAgentsClick(slug: string) {
         return async () => {
             try {
@@ -310,35 +320,41 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }
 
     return (
-        <div>
+        <div className={`${styles.chatBoxBody}`}>
             <div className="w-full text-center">
                 <div className="items-center">
-                    <h1 className="text-center pb-6">What would you like to do?</h1>
+                    <h1 className="text-center pb-6 px-4">What would you like to do?</h1>
                 </div>
-                <div className="flex pb-6 gap-2 items-center justify-center">
-                    {icons.map((icon, index) => (
-                        <Card key={`${index}-${agents[index].slug}`} className={`${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : 'border-stone-100'} hover:cursor-pointer `}>
-                            <CardTitle className='text-center text-md font-medium flex justify-center items-center px-1 py-2' onClick={handleAgentsClick(agents[index].slug)}>
-                                {icon} {agents[index].name}
-                            </CardTitle>
+                {
+                    !props.isMobileWidth &&
+                    <div className="flex pb-6 gap-2 items-center justify-center">
+                        {icons.map((icon, index) => (
+                            <Card key={`${index}-${agents[index].slug}`} className={`${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : 'border-stone-100'} hover:cursor-pointer `}>
+                                <CardTitle className='text-center text-md font-medium flex justify-center items-center px-1 py-2' onClick={handleAgentsClick(agents[index].slug)}>
+                                    {icon} {agents[index].name}
+                                </CardTitle>
+                            </Card>
+                        ))}
+                        <Card className='border-none shadow-none flex justify-center items-center hover:cursor-pointer' onClick={() => window.location.href = "/agents"}>
+                            <CardTitle className="text-center text-md font-normal flex justify-center items-center px-1.5 py-2">See All →</CardTitle>
                         </Card>
-                    ))}
-                    <Card className='border-none shadow-none flex justify-center items-center hover:cursor-pointer' onClick={() => window.location.href = "/agents"}>
-                        <CardTitle className="text-center text-md font-normal flex justify-center items-center px-1.5 py-2">See More →</CardTitle>
-                    </Card>
-                </div>
+                    </div>
+                }
             </div>
-            <div className="w-fit">
-                <div className={`${styles.inputBox} bg-background align-middle items-center justify-center p-3`}>
-                    <ChatInputArea
-                        isLoggedIn={props.isLoggedIn}
-                        sendMessage={(message) => setMessage(message)}
-                        sendDisabled={processingMessage}
-                        chatOptionsData={props.chatOptionsData}
-                        conversationId={null}
-                        isMobileWidth={props.isMobileWidth}
-                        setUploadedFiles={props.setUploadedFiles} />
-                </div>
+            <div className={`${props.isMobileWidth} ? 'w-full' : 'w-fit`}>
+                {
+                    !props.isMobileWidth &&
+                    <div className={`${styles.inputBox} bg-background align-middle items-center justify-center p-3`}>
+                        <ChatInputArea
+                            isLoggedIn={props.isLoggedIn}
+                            sendMessage={(message) => setMessage(message)}
+                            sendDisabled={processingMessage}
+                            chatOptionsData={props.chatOptionsData}
+                            conversationId={null}
+                            isMobileWidth={props.isMobileWidth}
+                            setUploadedFiles={props.setUploadedFiles} />
+                    </div>
+                }
                 <div className={`suggestions ${styles.suggestions} w-full ${props.isMobileWidth ? 'flex flex-col' : 'flex flex-row'} justify-center items-center`}>
                     {shuffledOptions.map(([key, styleClass, image, value, link], index) => (
                         <div onClick={() => fillArea(link, key, value)}>
@@ -353,10 +369,39 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         </div>
                     ))}
                 </div>
-                <div className="flex items-center justify-center">
+                <div className="flex items-center justify-center margin-auto">
                     <button onClick={onButtonClick} className="m-2 p-1 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm text-stone-500">More Examples ⟳</button>
                 </div>
             </div>
+            {
+                props.isMobileWidth &&
+                <div className={`${styles.inputBox} bg-background align-middle items-center justify-center p-3`}>
+                    <ChatInputArea
+                        isLoggedIn={props.isLoggedIn}
+                        sendMessage={(message) => setMessage(message)}
+                        sendDisabled={processingMessage}
+                        chatOptionsData={props.chatOptionsData}
+                        conversationId={null}
+                        isMobileWidth={props.isMobileWidth}
+                        setUploadedFiles={props.setUploadedFiles} />
+                    <div className="flex gap-2 items-center justify-left pt-4">
+                        {icons.map((icon, index) => (
+                            <Card
+                                key={`${index}-${agents[index].slug}`}
+                                className={
+                                    `${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : 'border-muted text-muted-foreground'} hover:cursor-pointer`
+                                }>
+                                <CardTitle className='text-center text-xs font-medium flex justify-center items-center px-1 py-2' onClick={handleAgentsClick(agents[index].slug)}>
+                                    {icon} {agents[index].name}
+                                </CardTitle>
+                            </Card>
+                        ))}
+                        <Card className='border-none shadow-none flex justify-center items-center hover:cursor-pointer' onClick={() => window.location.href = "/agents"}>
+                            <CardTitle className={`text-center ${props.isMobileWidth ? 'text-xs' : 'text-md'} font-normal flex justify-center items-center px-1.5 py-2`}>See All →</CardTitle>
+                        </Card>
+                    </div>
+                </div>
+            }
         </div>
     );
 }
@@ -409,7 +454,7 @@ export default function Home() {
             <title>
                 {title}
             </title>
-            <div className={`${styles.sidePanel}`}>
+            <div>
                 <SidePanel
                     webSocketConnected={true}
                     conversationId={conversationId}
@@ -417,9 +462,9 @@ export default function Home() {
                     isMobileWidth={isMobileWidth}
                 />
             </div>
-            <NavMenu selected="Chat" title={title}></NavMenu>
             <div className={`${styles.chatBox}`}>
-                <div className={`${styles.chatBoxBody} flex flex-col justify-center fixed top-3/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2`}>
+                <NavMenu selected="Chat" title={title}></NavMenu>
+                <div className={`${styles.chatBoxBody}`}>
                     <ChatBodyData
                         isLoggedIn={authenticatedData !== null}
                         streamedMessages={messages}

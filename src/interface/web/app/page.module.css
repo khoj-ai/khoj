@@ -6,12 +6,10 @@ div.main {
 .suggestions {
     display: flex;
     overflow-x: none;
-    height: 50%;
+    height: fit-content;
     padding: 10px;
     white-space: nowrap;
-    /* grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); */
     gap: 1rem;
-    /* justify-content: center; */
 }
 
 div.inputBox {
@@ -84,6 +82,7 @@ div.chatBoxBody {
     display: grid;
     height: 100%;
     margin: auto;
+    grid-template-rows: auto 1fr;
 }
 
 div.agentIndicator a {

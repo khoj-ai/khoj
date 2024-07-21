@@ -282,7 +282,7 @@ export default function Chat() {
             <title>
                 {title}
             </title>
-            <div className={styles.sidePanel}>
+            <div>
                 <SidePanel
                     webSocketConnected={chatWS !== null}
                     conversationId={conversationId}

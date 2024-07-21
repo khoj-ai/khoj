@@ -295,7 +295,7 @@ export default function Agents() {
         return (
             <main className={styles.main}>
                 <div className={`${styles.titleBar} text-5xl`}>
-                    Talk to a Specialized Agent
+                    Agents
                 </div>
                 <div className={styles.agentList}>
                     Error loading agents
@@ -308,7 +308,7 @@ export default function Agents() {
         return (
             <main className={styles.main}>
                 <div className={`${styles.titleBar} text-5xl`}>
-                    Talk to a Specialized Agent
+                    Agents
                 </div>
                 <div className={styles.agentList}>
                     <InlineLoading /> booting up your agents
