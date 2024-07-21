@@ -18,15 +18,6 @@ import { welcomeConsole } from '../common/utils';
 import ChatInputArea, { ChatOptions } from '../components/chatInputArea/chatInputArea';
 import { useAuthenticatedData } from '../common/auth';
 
-export interface AgentData {
-    slug: string;
-    avatar: string;
-    name: string;
-    personality: string;
-    color: string;
-    icon: string;
-}
-
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
     setTitle: (title: string) => void;
@@ -36,9 +27,7 @@ interface ChatBodyDataProps {
     setUploadedFiles: (files: string[]) => void;
     isMobileWidth?: boolean;
     isLoggedIn: boolean;
-    conversationId: string | null; // Added this line
 }
-type Suggestion = [string, string, string, string, string];
 
 function ChatBodyData(props: ChatBodyDataProps) {
     const searchParams = useSearchParams();
@@ -96,7 +85,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     sendMessage={(message) => setMessage(message)}
                     sendDisabled={processingMessage}
                     chatOptionsData={props.chatOptionsData}
-                    conversationId={props.conversationId ?? conversationId}
+                    conversationId={conversationId}
                     isMobileWidth={props.isMobileWidth}
                     setUploadedFiles={props.setUploadedFiles} />
             </div>
@@ -302,8 +291,7 @@ export default function Chat() {
                             setQueryToProcess={setQueryToProcess}
                             setUploadedFiles={setUploadedFiles}
                             isMobileWidth={isMobileWidth}
-                            onConversationIdChange={handleConversationIdChange}
-                            conversationId={conversationId}/>
+                            onConversationIdChange={handleConversationIdChange} />
                     </Suspense>
                 </div>
             </div>

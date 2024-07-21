@@ -176,6 +176,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
         fetch(conversationFetchURL)
             .then(response => response.json())
             .then((chatData: ChatResponse) => {
+                console.log("CHAT DATA RESPONSE", chatData);
                 props.setTitle(chatData.response.slug);
                 if (chatData && chatData.response && chatData.response.chat && chatData.response.chat.length > 0) {
 
@@ -192,6 +193,16 @@ export default function ChatHistory(props: ChatHistoryProps) {
                     }
                     setFetchingData(false);
                 } else {
+                    if (chatData.response.agent && chatData.response.conversation_id) {
+                        const chatMetadata ={
+                            chat: [],
+                            agent: chatData.response.agent,
+                            conversation_id: chatData.response.conversation_id,
+                            slug: chatData.response.slug,
+                        }
+                        setData(chatMetadata);
+                    }
+
                     setHasMoreMessages(false);
                     setFetchingData(false);
                 }
@@ -242,6 +253,8 @@ export default function ChatHistory(props: ChatHistoryProps) {
     if (!props.conversationId && !props.publicConversationSlug) {
         return null;
     }
+
+    console.log("CHAT HISTORY DATA", data);
 
     return (
         <ScrollArea className={`h-[80vh]`}>
