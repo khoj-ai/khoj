@@ -84,25 +84,15 @@ function convertColorToTextClass(color: string) {
 }
 
 function convertSuggestionColorToTextClass(color: string) {
-    if (color === 'blue') return `bg-gradient-to-b from-white 50% to-sky-50`;
-    if (color === 'yellow') return `bg-gradient-to-b from-white 50% to-yellow-50`;
-    if (color === 'green') return `bg-gradient-to-b from-white 50% to-green-50`;
-    if (color === 'pink') return `bg-gradient-to-b from-white 50% to-pink-50`;
-    if (color === 'purple') return `bg-gradient-to-b from-white 50% to-purple-50`;
+    if (color === 'blue') return `bg-gradient-to-b from-white dark:from-[hsl(var(--background))] dark:from-20% 50% to-sky-50 dark:to-blue-950 dark:border dark:border-neutral-700`;
+    if (color === 'yellow') return `bg-gradient-to-b from-white dark:from-[hsl(var(--background))] dark:from-20% 50% to-yellow-50 dark:to-yellow-950 dark:border dark:border-neutral-700`;
+    if (color === 'green') return `bg-gradient-to-b from-white 50% to-green-50 dark:from-[hsl(var(--background))] dark:from-20% dark:to-green-950 to-green-50 dark:border dark:border-neutral-700`;
+    if (color === 'pink') return `bg-gradient-to-b from-white 50% to-pink-50 dark:from-[hsl(var(--background))] dark:from-20% dark:to-pink-950 to-pink-50 dark:border dark:border-neutral-700`;
+    if (color === 'purple') return `bg-gradient-to-b from-white 50% to-purple-50 dark:from-[hsl(var(--background))] dark:from-20% dark:to-purple-950 to-purple-50 dark:border dark:border-neutral-700`;
     return `bg-gradient-to-b from-white 50% to-orange-50`;
 }
 
-function convertSuggestionColorToIconClass(color: string) {
-    if (color === 'blue') return iconMap.Robot('blue', 'w-8', 'h-8');
-    if (color === 'yellow') return iconMap.Globe('yellow', 'w-8', 'h-8');
-    if (color === 'green') return iconMap.Palette('green', 'w-8', 'h-8');
-    else return iconMap.Lightbulb('orange', 'w-8', 'h-8');
-}
-
-
-
-
-function getIconFromIconName(iconName: string, color: string = 'gray', width: string = 'w-8', height: string = 'h-8') {
+function getIconFromIconName(iconName: string, color: string = 'gray', width: string = 'w-6', height: string = 'h-6') {
     const icon = iconMap[iconName];
     const colorName = color.toLowerCase();
     const colorClass = convertColorToTextClass(colorName);
@@ -331,6 +321,8 @@ function highlightHandler(slug: string) {
             for (let j = 0; j < button.classList.length; j++) {
                 if (button.classList[j].endsWith('-500')) {
                     button.classList.remove(button.classList[j]);
+                    button.classList.add('border-stone-100');
+                    button.classList.add('dark:border-neutral-700');
                 }
             }
         }
@@ -345,9 +337,9 @@ function highlightHandler(slug: string) {
         </div>
         <div className="flex pb-6 ms-10 gap-2">
             {icons.map((icon, index) => (
-                <a className={`AGENT ${agents[index].slug} no-underline w-200 flex pl-3 pt-1 pb-1 border ${agents[index].slug === "khoj" ? "border-orange-500" : "border-stone-100"} rounded-md shadow-sm`} onClick={handleAgentsClick(agents[index].slug)}>
+                <a className={`AGENT ${agents[index].slug} no-underline w-200 flex pl-4 pt-3 pb-3 border rounded-xl ${agents[index].slug === "khoj" ? "border-orange-500" : "border-stone-100 dark:border-neutral-700"} rounded-md shadow-sm`} onClick={handleAgentsClick(agents[index].slug)}>
                 {icon}
-                <p className="relative top-1 pr-3">{agents[index].name}</p>
+                <p className="pr-4">{agents[index].name}</p>
                 </a>
             ))}
             <a className="no-underline w-200 flex pl-3 pt-1 pb-1 ps-4" href="/agents">
@@ -356,7 +348,7 @@ function highlightHandler(slug: string) {
         </div>
         </div>
         <div className="w-fit">
-            <div className={`${styles.inputBox} bg-background align-middle items-center justify-center px-3`}>
+            <div className={`${styles.inputBox} bg-background align-middle items-center justify-center px-3 dark:bg-neutral-700 dark:border-0 dark:shadow-none`}>
                 <ChatInputArea
                     isLoggedIn={props.isLoggedIn}
                     sendMessage={(message) => setMessage(message)}
@@ -381,7 +373,7 @@ function highlightHandler(slug: string) {
                 ))}
             </div>
             <div className="flex items-center justify-center">
-                <button onClick={onButtonClick} className="m-2 p-1 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm text-stone-500">More Examples ⟳</button>
+                <button onClick={onButtonClick} className="m-2 p-1 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm text-stone-500 dark:text-stone-300 dark:border-neutral-700">More Examples ⟳</button>
             </div>
         </div>
         </div>
