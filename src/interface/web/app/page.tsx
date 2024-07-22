@@ -1,4 +1,5 @@
 'use client'
+import './globals.css';
 
 import styles from './page.module.css';
 import React, { Suspense, useEffect, useState, useMemo } from 'react';
@@ -163,7 +164,6 @@ async function createNewConvo(slug: string) {
       }
       const data = await response.json();
       const conversationID = data.conversation_id;
-      console.log("New conversation ID (create new convo):", conversationID);
       if (!conversationID) {
         throw new Error("Conversation ID not found in response");
       }
@@ -207,12 +207,9 @@ function ChatBodyData(props: ChatBodyDataProps) {
             setProcessingMessage(true);
             try {
                 const newConversationId = await createNewConvo(selectedAgent || "khoj");
-                console.log("New conversation ID (useEffect):", newConversationId);
                 props.onConversationIdChange?.(newConversationId);
                 window.location.href = `/chat?conversationId=${newConversationId}`;
                 localStorage.setItem('message', message);
-                console.log("Message stored in local storage:", message);
-                console.log("selectedAgent:", selectedAgent);
             }
             catch (error) {
                 console.error("Error creating new conversation:", error);
@@ -242,28 +239,31 @@ function ChatBodyData(props: ChatBodyDataProps) {
     //generate colored icons for the selected agents
     const icons = agents.map(agent => getIconFromIconName(agent.icon, agent.color) || <Image src={agent.avatar} alt={agent.name} width={50} height={50} />);
     function fillArea(link: string, type: string, prompt: string) {
-        if (!link){
-            var message_str = "";
+        if (!link) {
+            let message_str = "";
             prompt = prompt.charAt(0).toLowerCase() + prompt.slice(1);
-            if(type === "Online Search"){
+
+            if (type === "Online Search") {
                 message_str = "/online " + prompt;
-            }
-            else if(type === "Paint"){
+            } else if (type === "Paint") {
                 message_str = "/paint " + prompt;
-            }
-            else{
+            } else {
                 message_str = prompt;
             }
-            const message_area = document.getElementById("message") as HTMLInputElement;
+
+            // Get the textarea element
+            const message_area = document.getElementById("message") as HTMLTextAreaElement;
+
             if (message_area) {
+                // Update the value directly
                 message_area.value = message_str;
+                setMessage(message_str);
             }
         }
     }
     function handleAgentsClick(slug: string) {
         return async () => {
             setSelectedAgent(slug);
-            console.log(slug);
             try {
                 const unauthenticatedRedirectUrl = `/login?next=/agents?agent=${slug}`;
                 const response = await fetch(`/api/chat/sessions?agent_slug=${slug}`, { method: "POST" });
@@ -309,7 +309,6 @@ function highlightHandler(slug: string) {
 
     // replace 'bg' with 'border' to get the tailwind border color
     const border_color = color_class.replace('bg', 'border');
-    console.log(border_color);
 
     // Convert Tailwind color class to actual color value
     const hexColor = tailwindColorToHex(border_color);
@@ -402,7 +401,6 @@ export default function Home(){
     const authenticatedData = useAuthenticatedData();
 
     const handleConversationIdChange = (newConversationId: string) => {
-        console.log("Conversation ID changed to", newConversationId);
         setConversationID(newConversationId);
     };
 

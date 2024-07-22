@@ -701,7 +701,7 @@ export default function SidePanel(props: SidePanelProps) {
     }, [chatSessions]);
 
     function newConvo() {
-        window.location.href = '/home';
+        window.location.href = '/';
     }
 
     return (
