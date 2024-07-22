@@ -18,6 +18,7 @@ export default function RootLayout({
     <html lang="en">
       <meta httpEquiv="Content-Security-Policy"
         content="default-src 'self' https://assets.khoj.dev;
+                       media-src * blob:;
                        script-src 'self' https://assets.khoj.dev 'unsafe-inline' 'unsafe-eval';
                        connect-src 'self' https://ipapi.co/json ws://localhost:42110;
                        style-src 'self' https://assets.khoj.dev 'unsafe-inline' https://fonts.googleapis.com;

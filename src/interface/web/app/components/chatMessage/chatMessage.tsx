@@ -10,7 +10,7 @@ import 'katex/dist/katex.min.css';
 
 import { TeaserReferencesSection, constructAllReferences } from '../referencePanel/referencePanel';
 
-import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture, SpeakerHigh, MagnifyingGlass } from '@phosphor-icons/react';
+import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture, SpeakerHigh, MagnifyingGlass, Pause } from '@phosphor-icons/react';
 
 import * as DomPurify from 'dompurify';
 
@@ -206,7 +206,15 @@ export default function ChatMessage(props: ChatMessageProps) {
     const [copySuccess, setCopySuccess] = useState<boolean>(false);
     const [isHovering, setIsHovering] = useState<boolean>(false);
     const [markdownRendered, setMarkdownRendered] = useState<string>('');
+    const [isPlaying, setIsPlaying] = useState<boolean>(false);
+    const [interrupted, setInterrupted] = useState<boolean>(false);
+
+    const interruptedRef = useRef<boolean>(false);
     const messageRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        interruptedRef.current = interrupted;
+    }, [interrupted]);
 
     useEffect(() => {
         let message = props.chatMessage.message;
@@ -278,8 +286,8 @@ export default function ChatMessage(props: ChatMessageProps) {
     function formatDate(timestamp: string) {
         // Format date in HH:MM, DD MMM YYYY format
         let date = new Date(timestamp + "Z");
-        let time_string = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
-        let date_string = date.toLocaleString('en-IN', { year: 'numeric', month: 'short', day: '2-digit'}).replaceAll('-', ' ');
+        let time_string = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
+        let date_string = date.toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit' }).replaceAll('-', ' ');
         return `${time_string} on ${date_string}`;
     }
 
@@ -329,6 +337,55 @@ export default function ChatMessage(props: ChatMessageProps) {
 
         return classes.join(' ');
     }
+    async function playTextToSpeech() {
+        // Browser native speech API
+        // const utterance = new SpeechSynthesisUtterance(props.chatMessage.message);
+        // speechSynthesis.speak(utterance);
+
+        // Using the Khoj speech API
+        // Break the message up into chunks of sentences
+        const sentenceRegex = /[^.!?]+[.!?]*/g;
+        const chunks = props.chatMessage.message.match(sentenceRegex) || [];
+        setIsPlaying(true);
+
+        for (let i = 0; i < chunks.length; i++) {
+            if (interruptedRef.current) {
+                break; // Exit the loop if interrupted
+            }
+
+            try {
+                const response = await fetch(`/api/chat/speech?text=${encodeURIComponent(chunks[i])}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                await playAudio(url);
+            } catch (error) {
+                console.error('Error:', error);
+                break; // Exit the loop on error
+            }
+        }
+
+        setIsPlaying(false);
+        setInterrupted(false); // Reset interrupted state after playback
+    }
+
+    function playAudio(url: string) {
+        return new Promise((resolve, reject) => {
+            const audio = new Audio(url);
+            audio.onended = resolve;
+            audio.onerror = reject;
+            audio.play();
+        });
+    }
 
     const allReferences = constructAllReferences(props.chatMessage.context, props.chatMessage.onlineContext);
 
@@ -349,7 +406,7 @@ export default function ChatMessage(props: ChatMessageProps) {
             </div>
             <div className={styles.chatFooter}>
                 {
-                    (isHovering || props.isMobileWidth || props.isLastMessage) &&
+                    (isHovering || props.isMobileWidth || props.isLastMessage || isPlaying) &&
                     (
                         <>
                             <div title={formatDate(props.chatMessage.created)} className={`text-gray-400 relative top-0 left-4`}>
@@ -359,9 +416,13 @@ export default function ChatMessage(props: ChatMessageProps) {
                                 {
                                     (props.chatMessage.by === "khoj") &&
                                     (
-                                        <button title="Speak" onClick={(event) => console.log("speaker")}>
-                                            <SpeakerHigh alt="Speak Message" color='hsl(var(--muted-foreground))' />
-                                        </button>
+                                        isPlaying ?
+                                            <button title="Pause Speech" onClick={(event) => setInterrupted(true)}>
+                                                <Pause alt="Pause Message" color='hsl(var(--muted-foreground))' />
+                                            </button>
+                                            : <button title="Speak" onClick={(event) => playTextToSpeech()}>
+                                                <SpeakerHigh alt="Speak Message" color='hsl(var(--muted-foreground))' />
+                                            </button>
                                     )
                                 }
                                 <button title="Copy" className={`${styles.copyButton}`} onClick={() => {
