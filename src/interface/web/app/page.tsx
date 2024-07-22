@@ -271,7 +271,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
         agent.color,
         props.isMobileWidth ? 'w-4' : undefined,
         props.isMobileWidth ? 'w-4' : undefined)
-        || <Image src={agent.avatar} alt={agent.name} width={50} height={50} />
+        || <Image key={agent.name} src={agent.avatar} alt={agent.name} width={50} height={50} />
     );
 
     function fillArea(link: string, type: string, prompt: string) {
@@ -340,7 +340,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 }
                 <div className={`suggestions ${styles.suggestions} w-full ${props.isMobileWidth ? 'flex flex-col' : 'flex flex-row'} justify-center items-center`}>
                     {shuffledOptions.map(([key, styleClass, image, value, link], index) => (
-                        <div onClick={() => fillArea(link, key, value)}>
+                        <div key={key} onClick={() => fillArea(link, key, value)}>
                             <SuggestionCard
                                 key={key + Math.random()}
                                 title={key}
