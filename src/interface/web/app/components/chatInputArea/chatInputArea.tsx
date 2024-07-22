@@ -211,11 +211,32 @@ export default function ChatInputArea(props: ChatInputProps) {
 
             const audioChunks: Blob[] = [];
 
-            mediaRecorder.ondataavailable = event => {
+            mediaRecorder.ondataavailable = async (event) => {
                 audioChunks.push(event.data);
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const formData = new FormData();
+                formData.append('file', audioBlob);
+
+                // Send the incremental audio blob to the server
+                try {
+                    const response = await fetch('/api/transcribe', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+
+                    const transcription = await response.json();
+                    setMessage(transcription.text.trim());
+                } catch (error) {
+                    console.error('Error sending audio to server:', error);
+                }
             };
 
-            mediaRecorder.start();
+            // Send an audio blob every 1.5 seconds
+            mediaRecorder.start(1500);
 
             mediaRecorder.onstop = async () => {
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
@@ -373,26 +394,19 @@ export default function ChatInputArea(props: ChatInputProps) {
                     <FileArrowUp weight='fill' className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
                 </Button>
                 <div className="grid w-full gap-1.5 relative">
-                    {
-                        recording ?
-                            <div className="w-full h-full bg-white bg-opacity-50 rounded-lg flex">
-                                <Waveform className="w-6 h-6 m-2 text-gray-300 animate-bounce " />
-                            </div>
-                            :
-                            <Textarea
-                                className={`border-none w-full h-16 min-h-16 md:py-4 rounded-lg resize-none ${props.isMobileWidth ? 'text-md' : 'text-lg'}`}
-                                placeholder="Type / to see a list of commands"
-                                id="message"
-                                value={message}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        onSendMessage();
-                                    }
-                                }}
-                                onChange={(e) => setMessage(e.target.value)}
-                                disabled={props.sendDisabled} />
-                    }
+                    <Textarea
+                        className={`border-none w-full h-16 min-h-16 rounded-lg resize-none ${props.isMobileWidth ? 'text-md' : 'text-lg'}`}
+                        placeholder="Type / to see a list of commands"
+                        id="message"
+                        value={message}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                onSendMessage();
+                            }
+                        }}
+                        onChange={(e) => setMessage(e.target.value)}
+                        disabled={props.sendDisabled || recording} />
                 </div>
                 {
                     recording ?
@@ -409,7 +423,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                        Click to stop recording and transcribe your voice.
+                                    Click to stop recording and transcribe your voice.
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -431,7 +445,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                                Click to start recording and transcribe your voice.
+                                            Click to start recording and transcribe your voice.
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
