@@ -18,7 +18,7 @@ import ChatInputArea, { ChatOptions } from './components/chatInputArea/chatInput
 import { useAuthenticatedData } from './common/auth';
 
 //samples for suggestion cards (should be moved to json later)
-const suggestions: Suggestion[] = [["Automation", "blue", "/automate.svg", "Send me a summary of HackerNews every morning.", "/automations?subject=Summarizing%20Top%20Headlines%20from%20HackerNews&query=Summarize%20the%20top%20headlines%20on%20HackerNews&crontime=00%207%20*%20*%20*"], ["Automation", "blue", "/automate.svg", "Compose a bedtime story that a five-year-old might enjoy.", "/automations?subject=Daily%20Bedtime%20Story&query=Compose%20a%20bedtime%20story%20that%20a%20five-year-old%20might%20enjoy.%20It%20should%20not%20exceed%20five%20paragraphs.%20Appeal%20to%20the%20imagination%2C%20but%20weave%20in%20learnings.&crontime=0%2021%20*%20*%20*"], ["Paint", "green", "/paint.svg", "Paint a picture of a sunset but it's made of stained glass tiles", ""], ["Online Search", "yellow", "/online_search.svg", "Search for the best attractions in Austria Hungary", ""]];
+const suggestions: Suggestion[] = [["Automation", "blue", "Send me a summary of HackerNews every morning.", "/automations?subject=Summarizing%20Top%20Headlines%20from%20HackerNews&query=Summarize%20the%20top%20headlines%20on%20HackerNews&crontime=00%207%20*%20*%20*"], ["Automation", "blue", "Compose a bedtime story that a five-year-old might enjoy.", "/automations?subject=Daily%20Bedtime%20Story&query=Compose%20a%20bedtime%20story%20that%20a%20five-year-old%20might%20enjoy.%20It%20should%20not%20exceed%20five%20paragraphs.%20Appeal%20to%20the%20imagination%2C%20but%20weave%20in%20learnings.&crontime=0%2021%20*%20*%20*"], ["Paint", "green", "Paint a picture of a sunset but it's made of stained glass tiles", ""], ["Online Search", "yellow", "Search for the best attractions in Austria Hungary", ""]];
 
 import {
     Lightbulb,
@@ -100,30 +100,6 @@ function getIconFromIconName(iconName: string, color: string = 'gray', width: st
     return icon ? icon(colorClass, width, height) : null;
 }
 
-function convertColorToClass(color: string) {
-    // We can't dyanmically generate the classes for tailwindcss, so we have to explicitly use the whole string.
-    // See models/__init__.py 's definition of the Agent model for the color choices.
-    if (color === 'red') return `bg-red-500 hover:bg-red-600`;
-    if (color === 'yellow') return `bg-yellow-500 hover:bg-yellow-600`;
-    if (color === 'green') return `bg-green-500 hover:bg-green-600`;
-    if (color === 'blue') return `bg-blue-500 hover:bg-blue-600`;
-    if (color === 'orange') return `bg-orange-500 hover:bg-orange-600`;
-    if (color === 'purple') return `bg-purple-500 hover:bg-purple-600`;
-    if (color === 'pink') return `bg-pink-500 hover:bg-pink-600`;
-    if (color === 'teal') return `bg-teal-500 hover:bg-teal-600`;
-    if (color === 'cyan') return `bg-cyan-500 hover:bg-cyan-600`;
-    if (color === 'lime') return `bg-lime-500 hover:bg-lime-600`;
-    if (color === 'indigo') return `bg-indigo-500 hover:bg-indigo-600`;
-    if (color === 'fuschia') return `bg-fuschia-500 hover:bg-fuschia-600`;
-    if (color === 'rose') return `bg-rose-500 hover:bg-rose-600`;
-    if (color === 'sky') return `bg-sky-500 hover:bg-sky-600`;
-    if (color === 'amber') return `bg-amber-500 hover:bg-amber-600`;
-    if (color === 'emerald') return `bg-emerald-500 hover:bg-emerald-600`;
-    return `bg-gray-500 hover:bg-gray-600`;
-}
-
-
-
 export interface AgentData {
     slug: string;
     avatar: string;
@@ -144,7 +120,7 @@ interface ChatBodyDataProps {
     isLoggedIn: boolean;
     conversationId: string | null; // Added this line
 }
-type Suggestion = [string, string, string, string, string];
+type Suggestion = [string, string, string, string];
 
 async function createNewConvo(slug: string) {
     try {
@@ -273,61 +249,41 @@ function ChatBodyData(props: ChatBodyDataProps) {
         };
     }
 
-// Helper function to convert Tailwind color class to actual color value to prevent default border changes from being applied
-function tailwindColorToHex(colorClass: string): string {
-    const colorMap: { [key: string]: string } = {
-        'border-red-500': '#ef4444',
-        'border-blue-500': '#3b82f6',
-        'border-green-500': '#22c55e',
-        'border-yellow-500': '#eab308',
-        'border-purple-500': '#a855f7',
-        'border-pink-500': '#ec4899',
-        'border-indigo-500': '#6366f1',
-        'border-gray-500': '#6b7280',
-        'border-orange-500': '#f97316',
+    const colorMap: Record<string, string> = {
+        'red': 'border-red-500',
+        'blue': 'border-blue-500',
+        'green': 'border-green-500',
+        'yellow': 'border-yellow-500',
+        'purple': 'border-purple-500',
+        'pink': 'border-pink-500',
+        'indigo': 'border-indigo-500',
+        'gray': 'border-gray-500',
+        'orange': 'border-orange-500',
     };
-    return colorMap[colorClass] || '#000000'; // Default to black if color not found
-}
 
-function highlightHandler(slug: string) {
-    // find buttons with AGENT in their class name
-    const buttons = document.getElementsByClassName("AGENT");
-
-    // find the color of the icon inside the agent
-    const color = agents.find(agent => agent.slug === slug)?.color;
-    const color_class = convertColorToClass(color || 'gray').split(' ')[0];
-
-    // replace 'bg' with 'border' to get the tailwind border color
-    const border_color = color_class.replace('bg', 'border');
-
-    // Convert Tailwind color class to actual color value
-    const hexColor = tailwindColorToHex(border_color);
-
-    for (let i = 0; i < buttons.length; i++) {
-        const button = buttons[i] as HTMLElement;
-        if (button.classList.contains(slug)) {
-            // Set the border color directly using the hex value
-            button.style.borderColor = hexColor;
-            button.style.borderWidth = '1px';
-            button.style.borderStyle = 'solid';
-        } else {
-            // Remove border from other buttons
-            button.style.borderColor = '';
-            button.style.borderWidth = '';
-            button.style.borderStyle = '';
-            button.style.boxShadow = '';
-
-            // also remove any -500 ending class (handles start case where khoj is selected by default at the start)
-            for (let j = 0; j < button.classList.length; j++) {
-                if (button.classList[j].endsWith('-500')) {
-                    button.classList.remove(button.classList[j]);
-                    button.classList.add('border-stone-100');
-                    button.classList.add('dark:border-neutral-700');
-                }
-            }
-        }
+    function getTailwindBorderClass(color: string): string {
+        return colorMap[color] || 'border-black'; // Default to black if color not found
     }
-}
+
+    function highlightHandler(slug: string): void {
+        const buttons = document.getElementsByClassName("agent");
+        const agent = agents.find(agent => agent.slug === slug);
+        const borderColorClass = getTailwindBorderClass(agent?.color || 'gray');
+
+        Array.from(buttons).forEach((button: Element) => {
+          const buttonElement = button as HTMLElement;
+          if (buttonElement.classList.contains(slug)) {
+            buttonElement.classList.add(borderColorClass, 'border');
+            buttonElement.classList.remove('border-stone-100', 'dark:border-neutral-700');
+          }
+          else {
+            Object.values(colorMap).forEach(colorClass => {
+                buttonElement.classList.remove(colorClass, 'border');
+            });
+            buttonElement.classList.add('border', 'border-stone-100', 'dark:border-neutral-700');
+          }
+        });
+    }
 
     return (
         <div>
@@ -337,7 +293,7 @@ function highlightHandler(slug: string) {
         </div>
         <div className="flex pb-6 ms-10 gap-2">
             {icons.map((icon, index) => (
-                <a className={`AGENT ${agents[index].slug} no-underline w-200 flex pl-4 pt-3 pb-3 border rounded-xl ${agents[index].slug === "khoj" ? "border-orange-500" : "border-stone-100 dark:border-neutral-700"} rounded-md shadow-sm`} onClick={handleAgentsClick(agents[index].slug)}>
+                <a className={`agent ${agents[index].slug} no-underline w-200 flex pl-4 pt-3 pb-3 border rounded-xl ${agents[index].slug === "khoj" ? "border-orange-500" : "border-stone-100 dark:border-neutral-700"} rounded-md shadow-sm`} onClick={handleAgentsClick(agents[index].slug)}>
                 {icon}
                 <p className="pr-4">{agents[index].name}</p>
                 </a>
@@ -359,7 +315,7 @@ function highlightHandler(slug: string) {
                     setUploadedFiles={props.setUploadedFiles} />
             </div>
             <div className={`suggestions ${styles.suggestions} w-full flex`}>
-                {shuffledOptions.map(([key, styleClass, image, value, link], index) => (
+                {shuffledOptions.map(([key, styleClass, value, link], index) => (
                     <div onClick={() => fillArea(link, key, value)}>
                         <SuggestionCard
                         key={key + Math.random()}
