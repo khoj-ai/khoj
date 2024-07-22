@@ -709,27 +709,11 @@ To get started, just start typing below. You can also type / to see a list of co
                     rawResponse += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
                 }
             }
-            let references = {};
-            if (imageJson.context && imageJson.context.length > 0) {
-                const rawReferenceAsJson = imageJson.context;
-                if (rawReferenceAsJson instanceof Array) {
-                    references["notes"] = rawReferenceAsJson;
-                } else if (typeof rawReferenceAsJson === "object" && rawReferenceAsJson !== null) {
-                    references["online"] = rawReferenceAsJson;
-                }
-            }
-            if (imageJson.detail) {
-                // If response has detail field, response is an error message.
-                rawResponse += imageJson.detail;
-            }
-            return { rawResponse, references };
-        }
 
-        function addMessageToChatBody(rawResponse, newResponseElement, references) {
-            newResponseElement.innerHTML = "";
-            newResponseElement.appendChild(formatHTMLMessage(rawResponse));
+            // If response has detail field, response is an error message.
+            if (imageJson.detail) rawResponse += imageJson.detail;
 
-            finalizeChatBodyResponse(references, newResponseElement);
+            return rawResponse;
         }
 
         function finalizeChatBodyResponse(references, newResponseElement) {
@@ -743,7 +727,6 @@ To get started, just start typing below. You can also type / to see a list of co
         function collectJsonsInBufferedMessageChunk(chunk) {
             // Collect list of JSON objects and raw strings in the chunk
             // Return the list of objects and the remaining raw string
-            console.log("Raw Chunk:", chunk);
             let startIndex = chunk.indexOf('{');
             if (startIndex === -1) return { objects: [chunk], remainder: '' };
             const objects = [chunk.slice(0, startIndex)];
@@ -819,11 +802,13 @@ To get started, just start typing below. You can also type / to see a list of co
                     isVoice: false,
                 }
             } else if (chunk.type === "references") {
-                const rawReferenceAsJson = JSON.parse(chunk.data);
-                chatMessageState.references = {"notes": rawReferenceAsJson.context, "online": rawReferenceAsJson.online_results};
+                chatMessageState.references = {"notes": chunk.data.context, "online": chunk.data.online_results};
             } else if (chunk.type === 'message') {
                 const chunkData = chunk.data;
-                if (chunkData.trim()?.startsWith("{") && chunkData.trim()?.endsWith("}")) {
+                if (typeof chunkData === 'object' && chunkData !== null) {
+                    // If chunkData is already a JSON object
+                    handleJsonResponse(chunkData);
+                } else if (typeof chunkData  === 'string' && chunkData.trim()?.startsWith("{") && chunkData.trim()?.endsWith("}")) {
                     // Try process chunk data as if it is a JSON object
                     try {
                         const jsonData = JSON.parse(chunkData.trim());
@@ -841,17 +826,15 @@ To get started, just start typing below. You can also type / to see a list of co
 
         function handleJsonResponse(jsonData) {
             if (jsonData.image || jsonData.detail) {
-                let { rawResponse, references } = handleImageResponse(jsonData, chatMessageState.rawResponse);
-                chatMessageState.rawResponse = rawResponse;
-                chatMessageState.references = references;
+                chatMessageState.rawResponse = handleImageResponse(jsonData, chatMessageState.rawResponse);
             } else if (jsonData.response) {
                 chatMessageState.rawResponse = jsonData.response;
-                chatMessageState.references = {
-                    notes: jsonData.context || {},
-                    online: jsonData.online_results || {}
-                };
             }
-            addMessageToChatBody(chatMessageState.rawResponse, chatMessageState.newResponseTextEl, chatMessageState.references);
+
+            if (chatMessageState.newResponseTextEl) {
+                chatMessageState.newResponseTextEl.innerHTML = "";
+                chatMessageState.newResponseTextEl.appendChild(formatHTMLMessage(chatMessageState.rawResponse));
+            }
         }
 
         async function sendMessageStream(query) {
@@ -866,7 +849,7 @@ To get started, just start typing below. You can also type / to see a list of co
                 refreshChatSessionsPanel();
             }
 
-            let chatStreamUrl = `/api/chat/stream?q=${encodeURIComponent(query)}&conversation_id=${conversationId}&client=web`;
+            let chatStreamUrl = `/api/chat?q=${encodeURIComponent(query)}&conversation_id=${conversationId}&stream=true&client=web`;
             chatStreamUrl += (!!region && !!city && !!countryName && !!timezone)
                 ? `&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}`
                 : '';
