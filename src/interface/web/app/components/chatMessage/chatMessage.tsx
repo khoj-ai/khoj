@@ -444,9 +444,7 @@ export default function ChatMessage(props: ChatMessageProps) {
                                         isPlaying ?
                                             (
                                                 interrupted ?
-                                                    <button title="Interrupting...">
-                                                        <InlineLoading iconClassName='p-0' className='m-0' />
-                                                    </button>
+                                                    <InlineLoading iconClassName='p-0' className='m-0' />
                                                     : <button title="Pause Speech" onClick={(event) => setInterrupted(true)}>
                                                         <Pause alt="Pause Message" color='hsl(var(--muted-foreground))' />
                                                     </button>
