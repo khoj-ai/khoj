@@ -96,6 +96,9 @@ export default function ChatInputArea(props: ChatInputProps) {
     const [loginRedirectMessage, setLoginRedirectMessage] = useState<string | null>(null);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
+    const [recording, setRecording] = useState(false);
+    const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+
     const [progressValue, setProgressValue] = useState(0);
 
     useEffect(() => {
@@ -194,6 +197,61 @@ export default function ChatInputArea(props: ChatInputProps) {
         }
         return <ArrowRight className={className} />
     }
+
+    // Assuming this function is added within the same context as the provided excerpt
+    async function startRecordingAndTranscribe() {
+        try {
+            const microphone = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mediaRecorder = new MediaRecorder(microphone, { mimeType: 'audio/webm' });
+
+            const audioChunks: Blob[] = [];
+
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
+
+            mediaRecorder.start();
+
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const formData = new FormData();
+                formData.append('file', audioBlob);
+
+                // Send the audio blob to the server
+                try {
+                    const response = await fetch('/api/transcribe', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+
+                    const transcription = await response.json();
+                    console.log('Transcription:', transcription);
+                } catch (error) {
+                    console.error('Error sending audio to server:', error);
+                }
+            };
+
+            setMediaRecorder(mediaRecorder);
+        } catch (error) {
+            console.error("Error getting microphone", error);
+        }
+    }
+
+    useEffect(() => {
+        if (!recording && mediaRecorder) {
+            mediaRecorder.stop();
+            setMediaRecorder(null);
+        }
+
+        if (recording && !mediaRecorder) {
+            startRecordingAndTranscribe();
+        }
+
+    }, [recording]);
 
     return (
         <>
@@ -326,6 +384,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                 <Button
                     variant={'ghost'}
                     className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
+                    onClick={() => setRecording(!recording)}
                     disabled={props.sendDisabled}>
                     <Microphone weight='fill' className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
                 </Button>
