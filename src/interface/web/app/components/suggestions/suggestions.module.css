@@ -2,10 +2,7 @@
 .card {
     padding: 0.5rem;
     margin: 0.05rem;
-    /* border: 1px solid #000000; */
     border-radius: 0.5rem;
-    width: 200px;
-    height: 200px;
 }
 
 .title {

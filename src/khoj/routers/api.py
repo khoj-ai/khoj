@@ -6,7 +6,6 @@ import os
 import threading
 import time
 import uuid
-from random import random
 from typing import Any, Callable, List, Optional, Union
 
 import cron_descriptor
@@ -190,7 +189,7 @@ def update(
 ):
     user = request.user.object
     if not state.config:
-        error_msg = f"🚨 Khoj is not configured.\nConfigure it via http://localhost:42110/config, plugins or by editing {state.config_file}."
+        error_msg = f"🚨 Khoj is not configured.\nConfigure it via http://localhost:42110/settings, plugins or by editing {state.config_file}."
         logger.warning(error_msg)
         raise HTTPException(status_code=500, detail=error_msg)
     try:

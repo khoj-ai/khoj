@@ -148,7 +148,7 @@ interface FilesMenuProps {
 
 function FilesMenu(props: FilesMenuProps) {
     // Use SWR to fetch files
-    const { data: files, error } = useSWR<string[]>(props.conversationId ? '/api/config/data/computer' : null, fetcher);
+    const { data: files, error } = useSWR<string[]>(props.conversationId ? '/api/configure/content/computer' : null, fetcher);
     const { data: selectedFiles, error: selectedFilesError } = useSWR(props.conversationId ? `/api/chat/conversation/file-filters/${props.conversationId}` : null, fetcher);
     const [isOpen, setIsOpen] = useState(false);
     const [unfilteredFiles, setUnfilteredFiles] = useState<string[]>([]);
@@ -351,7 +351,7 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                                         agent_avatar={chatHistory.agent_avatar}
                                         agent_name={chatHistory.agent_name}
                                         showSidePanel={props.setEnabled}
-                                        />
+                                    />
                                 ))}
                             </div>
                         ))}
@@ -548,7 +548,7 @@ function ChatSessionsModal({ data, showSidePanel }: ChatSessionsModalProps) {
         <Dialog>
             <DialogTrigger
                 className="flex text-left text-medium text-gray-500 hover:text-gray-300 cursor-pointer my-4 text-sm p-[0.5rem]">
-                <span className="mr-2">See All <ArrowRight className="inline h-4 w-4" weight="bold"/></span>
+                <span className="mr-2">See All <ArrowRight className="inline h-4 w-4" weight="bold" /></span>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
@@ -570,7 +570,7 @@ function ChatSessionsModal({ data, showSidePanel }: ChatSessionsModalProps) {
                                             slug={chatHistory.slug}
                                             agent_avatar={chatHistory.agent_avatar}
                                             agent_name={chatHistory.agent_name}
-                                            showSidePanel={showSidePanel}/>
+                                            showSidePanel={showSidePanel} />
                                     ))}
                                 </div>
                             ))}
@@ -604,7 +604,7 @@ function UserProfileComponent(props: UserProfileProps) {
 
     return (
         <div className={styles.profile}>
-            <Link href="/config" target="_blank" rel="noopener noreferrer">
+            <Link href="/settings">
                 <Avatar>
                     <AvatarImage src={props.userProfile.photo} alt="user profile" />
                     <AvatarFallback>
@@ -706,8 +706,14 @@ export default function SidePanel(props: SidePanelProps) {
 
     return (
         <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed}`}>
-            <div className="flex items-center justify-between">
-                <img src="/khoj-logo.svg" alt="logo" className="w-16 relative bottom-1"/>
+            <div className={`flex items-center justify-between ${enabled ? 'flex-row' : 'flex-col'}`}>
+                <Link href='/'>
+                    <img
+                        src="/khoj-logo.svg"
+                        alt="khoj logo"
+                        width={52}
+                        height={52} />
+                </Link>
                 {
                     authenticatedData && props.isMobileWidth ?
                         <Drawer open={enabled} onOpenChange={(open) => {
@@ -715,7 +721,7 @@ export default function SidePanel(props: SidePanelProps) {
                             setEnabled(open);
                         }
                         }>
-                            <DrawerTrigger><ArrowRight className="h-4 w-4 mx-2" weight="bold"/></DrawerTrigger>
+                            <DrawerTrigger><ArrowRight className="h-4 w-4 mx-2" weight="bold" /></DrawerTrigger>
                             <DrawerContent>
                                 <DrawerHeader>
                                     <DrawerTitle>Sessions and Files</DrawerTitle>
@@ -742,13 +748,13 @@ export default function SidePanel(props: SidePanelProps) {
                             </DrawerContent>
                         </Drawer>
                         :
-                        <div>
-                        <button className={`ml-4 mr-4 ${styles.button}`} onClick={newConvo}>
-                            {enabled ? <NotePencil className="h-7 w-7"/> : <NotePencil className="h-7 w-7" color="gray"/>}
-                        </button>
-                        <button className={styles.button} onClick={() => setEnabled(!enabled)}>
-                            {enabled ? <Sidebar className="h-7 w-7"/> : <Sidebar className="ml-2 h-7 w-7" color="gray"/>}
-                        </button>
+                        <div className={`flex items-center ${enabled ? 'flex-row gap-2' : 'flex-col pt-2'}`}>
+                            <Link className={` ${enabled ? 'ml-2' : ''}`} href="/">
+                                {enabled ? <NotePencil className="h-6 w-6" /> : <NotePencil className="h-6 w-6" color="gray" />}
+                            </Link>
+                            <button className={styles.button} onClick={() => setEnabled(!enabled)}>
+                                {enabled ? <Sidebar className="h-6 w-6" /> : <Sidebar className="h-6 w-6" color="gray" />}
+                            </button>
                         </div>
                 }
             </div>
@@ -778,7 +784,7 @@ export default function SidePanel(props: SidePanelProps) {
                         <Button variant="ghost"><StackPlus className="h-4 w-4 mr-1" />New Conversation</Button>
                     </Link>
                     <Link href={`/login?next=${encodeURIComponent(window.location.pathname)}`}> {/* Redirect to login page */}
-                        <Button variant="default"><UserCirclePlus className="h-4 w-4 mr-1"/>Sign Up</Button>
+                        <Button variant="default"><UserCirclePlus className="h-4 w-4 mr-1" />Sign Up</Button>
                     </Link>
                 </div>
             }

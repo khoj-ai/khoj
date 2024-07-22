@@ -209,12 +209,12 @@
 
         function populate_type_dropdown() {
             // Populate type dropdown field with enabled content types only
-            fetch("/api/config/types")
+            fetch("/api/configure/types")
                 .then(response => response.json())
                 .then(enabled_types => {
                     // Show warning if no content types are enabled, or just one ("all")
                     if (enabled_types[0] === "all" && enabled_types.length === 1) {
-                        document.getElementById("results").innerHTML = "<div id='results-error'>To use Khoj search, setup your content plugins on the Khoj <a class='inline-chat-link' href='/config'>settings page</a>.</div>";
+                        document.getElementById("results").innerHTML = "<div id='results-error'>To use Khoj search, setup your content plugins on the Khoj <a class='inline-chat-link' href='/settings'>settings page</a>.</div>";
                         document.getElementById("query").setAttribute("disabled", "disabled");
                         document.getElementById("query").setAttribute("placeholder", "Configure Khoj to enable search");
                         return [];

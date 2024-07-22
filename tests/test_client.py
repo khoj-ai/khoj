@@ -269,7 +269,7 @@ def test_get_api_config_types(client, sample_org_data, default_user: KhojUser):
     text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)
 
     # Act
-    response = client.get(f"/api/config/types", headers=headers)
+    response = client.get(f"/api/configure/types", headers=headers)
 
     # Assert
     assert response.status_code == 200
@@ -289,7 +289,7 @@ def test_get_configured_types_with_no_content_config(fastapi_app: FastAPI):
     client = TestClient(fastapi_app)
 
     # Act
-    response = client.get(f"/api/config/types")
+    response = client.get(f"/api/configure/types")
 
     # Assert
     assert response.status_code == 200
