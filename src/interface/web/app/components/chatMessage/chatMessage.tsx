@@ -13,6 +13,7 @@ import { TeaserReferencesSection, constructAllReferences } from '../referencePan
 import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture, SpeakerHigh, MagnifyingGlass, Pause } from '@phosphor-icons/react';
 
 import * as DomPurify from 'dompurify';
+import { InlineLoading } from '../loading/loading';
 
 const md = new markdownIt({
     html: true,
@@ -337,6 +338,7 @@ export default function ChatMessage(props: ChatMessageProps) {
 
         return classes.join(' ');
     }
+
     async function playTextToSpeech() {
         // Browser native speech API
         // const utterance = new SpeechSynthesisUtterance(props.chatMessage.message);
@@ -346,26 +348,34 @@ export default function ChatMessage(props: ChatMessageProps) {
         // Break the message up into chunks of sentences
         const sentenceRegex = /[^.!?]+[.!?]*/g;
         const chunks = props.chatMessage.message.match(sentenceRegex) || [];
+
+        if (!chunks) {
+            return;
+        }
+
+        if (chunks.length === 0) {
+            return;
+        }
+
+        if (!chunks[0]) {
+            return;
+        }
         setIsPlaying(true);
+
+        let nextBlobPromise = fetchBlob(chunks[0]);
 
         for (let i = 0; i < chunks.length; i++) {
             if (interruptedRef.current) {
                 break; // Exit the loop if interrupted
             }
 
+            const currentBlobPromise = nextBlobPromise;
+            if (i < chunks.length - 1) {
+                nextBlobPromise = fetchBlob(chunks[i + 1]);
+            }
+
             try {
-                const response = await fetch(`/api/chat/speech?text=${encodeURIComponent(chunks[i])}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                });
-
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-
-                const blob = await response.blob();
+                const blob = await currentBlobPromise;
                 const url = URL.createObjectURL(blob);
                 await playAudio(url);
             } catch (error) {
@@ -376,6 +386,21 @@ export default function ChatMessage(props: ChatMessageProps) {
 
         setIsPlaying(false);
         setInterrupted(false); // Reset interrupted state after playback
+    }
+
+    async function fetchBlob(text: string) {
+        const response = await fetch(`/api/chat/speech?text=${encodeURIComponent(text)}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+
+        return await response.blob();
     }
 
     function playAudio(url: string) {
@@ -417,9 +442,15 @@ export default function ChatMessage(props: ChatMessageProps) {
                                     (props.chatMessage.by === "khoj") &&
                                     (
                                         isPlaying ?
-                                            <button title="Pause Speech" onClick={(event) => setInterrupted(true)}>
-                                                <Pause alt="Pause Message" color='hsl(var(--muted-foreground))' />
-                                            </button>
+                                            (
+                                                interrupted ?
+                                                    <button title="Interrupting...">
+                                                        <InlineLoading iconClassName='p-0' className='m-0' />
+                                                    </button>
+                                                    : <button title="Pause Speech" onClick={(event) => setInterrupted(true)}>
+                                                        <Pause alt="Pause Message" color='hsl(var(--muted-foreground))' />
+                                                    </button>
+                                            )
                                             : <button title="Speak" onClick={(event) => playTextToSpeech()}>
                                                 <SpeakerHigh alt="Speak Message" color='hsl(var(--muted-foreground))' />
                                             </button>
