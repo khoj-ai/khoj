@@ -19,7 +19,10 @@ import {
     Notebook,
     Question,
     Robot,
-    Shapes
+    Shapes,
+    Stop,
+    Waveform,
+    WaveSine
 } from '@phosphor-icons/react';
 
 import {
@@ -48,6 +51,8 @@ import { PopoverTrigger } from '@radix-ui/react-popover';
 import Link from 'next/link';
 import { AlertDialogCancel } from '@radix-ui/react-alert-dialog';
 import LoginPrompt from '../loginPrompt/loginPrompt';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { InlineLoading } from '../loading/loading';
 
 export interface ChatOptions {
     [key: string]: string
@@ -229,7 +234,9 @@ export default function ChatInputArea(props: ChatInputProps) {
                     }
 
                     const transcription = await response.json();
-                    console.log('Transcription:', transcription);
+                    mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                    setMediaRecorder(null);
+                    setMessage(transcription.text.trim());
                 } catch (error) {
                     console.error('Error sending audio to server:', error);
                 }
@@ -244,7 +251,6 @@ export default function ChatInputArea(props: ChatInputProps) {
     useEffect(() => {
         if (!recording && mediaRecorder) {
             mediaRecorder.stop();
-            setMediaRecorder(null);
         }
 
         if (recording && !mediaRecorder) {
@@ -367,34 +373,77 @@ export default function ChatInputArea(props: ChatInputProps) {
                     <FileArrowUp weight='fill' className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
                 </Button>
                 <div className="grid w-full gap-1.5 relative">
-                    <Textarea
-                        className={`border-none w-full h-16 min-h-16 md:py-4 rounded-lg resize-none ${props.isMobileWidth ? 'text-md' : 'text-lg'}`}
-                        placeholder="Type / to see a list of commands"
-                        id="message"
-                        value={message}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                onSendMessage();
-                            }
-                        }}
-                        onChange={(e) => setMessage(e.target.value)}
-                        disabled={props.sendDisabled} />
+                    {
+                        recording ?
+                            <div className="w-full h-full bg-white bg-opacity-50 rounded-lg flex">
+                                <Waveform className="w-6 h-6 m-2 text-gray-300 animate-bounce " />
+                            </div>
+                            :
+                            <Textarea
+                                className={`border-none w-full h-16 min-h-16 md:py-4 rounded-lg resize-none ${props.isMobileWidth ? 'text-md' : 'text-lg'}`}
+                                placeholder="Type / to see a list of commands"
+                                id="message"
+                                value={message}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        onSendMessage();
+                                    }
+                                }}
+                                onChange={(e) => setMessage(e.target.value)}
+                                disabled={props.sendDisabled} />
+                    }
                 </div>
-                <Button
-                    variant={'ghost'}
-                    className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
-                    onClick={() => setRecording(!recording)}
-                    disabled={props.sendDisabled}>
-                    <Microphone weight='fill' className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
-                </Button>
+                {
+                    recording ?
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant={'ghost'}
+                                        className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
+                                        onClick={() => setRecording(!recording)}
+                                        disabled={props.sendDisabled}
+                                    >
+                                        <Stop weight='fill' className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                        Click to stop recording and transcribe your voice.
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                        :
+                        (
+                            mediaRecorder ?
+                                <InlineLoading />
+                                :
+                                < TooltipProvider >
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant={'ghost'}
+                                                className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
+                                                onClick={() => setRecording(!recording)}
+                                                disabled={props.sendDisabled}
+                                            >
+                                                <Microphone weight='fill' className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                                Click to start recording and transcribe your voice.
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                        )
+                }
                 <Button
                     className="bg-orange-300 hover:bg-orange-500 rounded-full p-0 h-auto text-3xl transition transform hover:-translate-y-1"
                     onClick={onSendMessage}
                     disabled={props.sendDisabled}>
                     <ArrowCircleUp className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
                 </Button>
-            </div>
+            </div >
         </>
     )
 }
