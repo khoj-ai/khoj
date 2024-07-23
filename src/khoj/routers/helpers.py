@@ -780,18 +780,17 @@ async def text_to_image(
             chat_history += f"Q: Prompt: {chat['intent']['query']}\n"
             chat_history += f"A: Improved Prompt: {chat['intent']['inferred-queries'][0]}\n"
 
-    with timer("Improve the original user query", logger):
-        if send_status_func:
-            async for event in send_status_func("**✍🏽 Enhancing the Painting Prompt**"):
-                yield {"status": event}
-        improved_image_prompt = await generate_better_image_prompt(
-            message,
-            chat_history,
-            location_data=location_data,
-            note_references=references,
-            online_results=online_results,
-            model_type=text_to_image_config.model_type,
-        )
+    if send_status_func:
+        async for event in send_status_func("**✍🏽 Enhancing the Painting Prompt**"):
+            yield {"status": event}
+    improved_image_prompt = await generate_better_image_prompt(
+        message,
+        chat_history,
+        location_data=location_data,
+        note_references=references,
+        online_results=online_results,
+        model_type=text_to_image_config.model_type,
+    )
 
     if send_status_func:
         async for event in send_status_func(f"**🖼️ Painting using Enhanced Prompt**:\n{improved_image_prompt}"):
