@@ -598,8 +598,7 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         async function chat(isVoice=false) {
-            let chatBody = document.getElementById("chat-body");
-
+            // Extract chat message from chat input form
             var query = document.getElementById("chat-input").value.trim();
             console.log(`Query: ${query}`);
 
@@ -619,6 +618,16 @@ To get started, just start typing below. You can also type / to see a list of co
             document.getElementById("chat-input").value = "";
             autoResize();
             document.getElementById("chat-input").setAttribute("disabled", "disabled");
+
+            let chatBody = document.getElementById("chat-body");
+            let conversationID = chatBody.dataset.conversationId;
+            if (!conversationID) {
+                let response = await fetch(`${hostURL}/api/chat/sessions`, { method: "POST" });
+                let data = await response.json();
+                conversationID = data.conversation_id;
+                chatBody.dataset.conversationId = conversationID;
+                await refreshChatSessionsPanel();
+            }
 
             let newResponseEl = document.createElement("div");
             newResponseEl.classList.add("chat-message", "khoj");
@@ -641,19 +650,36 @@ To get started, just start typing below. You can also type / to see a list of co
             let chatInput = document.getElementById("chat-input");
             chatInput.classList.remove("option-enabled");
 
-            // Call specified Khoj API
-            await sendMessageStream(query);
-            let rawResponse = "";
-            let references = {};
-
+            // Setup chat message state
             chatMessageState = {
                 newResponseTextEl,
                 newResponseEl,
                 loadingEllipsis,
-                references,
-                rawResponse,
+                references: {},
+                rawResponse: "",
                 rawQuery: query,
                 isVoice: isVoice,
+            }
+
+            // Call Khoj chat API
+            let chatApi = `/api/chat?q=${encodeURIComponent(query)}&conversation_id=${conversationID}&stream=true&client=web`;
+            chatApi += (!!region && !!city && !!countryName && !!timezone)
+                ? `&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}`
+                : '';
+
+            const response = await fetch(chatApi);
+
+            try {
+                if (!response.ok) throw new Error(response.statusText);
+                if (!response.body) throw new Error("Response body is empty");
+                // Stream and render chat response
+                await readChatStream(response);
+            } catch (err) {
+                console.error(`Khoj chat response failed with\n${err}`);
+                if (chatMessageState.newResponseEl.getElementsByClassName("lds-ellipsis").length > 0 && chatMessageState.loadingEllipsis)
+                    chatMessageState.newResponseTextEl.removeChild(chatMessageState.loadingEllipsis);
+                let errorMsg = "Sorry, unable to get response from Khoj backend ❤️‍🩹. Retry or contact developers for help at <a href=mailto:'team@khoj.dev'>team@khoj.dev</a> or <a href='https://discord.gg/BDgyabRM6e'>on Discord</a>";
+                newResponseTextEl.innerHTML = errorMsg;
             }
         }
 
@@ -843,67 +869,35 @@ To get started, just start typing below. You can also type / to see a list of co
             }
         }
 
-        async function sendMessageStream(query) {
-            let chatBody = document.getElementById("chat-body");
-            let conversationId = chatBody.dataset.conversationId;
+        async function readChatStream(response) {
+            if (!response.body) return;
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let netBracketCount = 0;
 
-            if (!conversationId) {
-                let response = await fetch('/api/chat/sessions', { method: "POST" });
-                let data = await response.json();
-                conversationId = data.conversation_id;
-                chatBody.dataset.conversationId = conversationId;
-                refreshChatSessionsPanel();
+            while (true) {
+                const { value, done } = await reader.read();
+                // If the stream is done
+                if (done) {
+                    // Process the last chunk
+                    processMessageChunk(buffer);
+                    buffer = '';
+                    break;
+                }
+
+                // Read chunk from stream and append it to the buffer
+                const chunk = decoder.decode(value, { stream: true });
+                buffer += chunk;
+
+                // Check if the buffer contains (0 or more) complete JSON objects
+                netBracketCount += (chunk.match(/{/g) || []).length - (chunk.match(/}/g) || []).length;
+                if (netBracketCount === 0) {
+                    let chunks = collectJsonsInBufferedMessageChunk(buffer);
+                    chunks.objects.forEach((chunk) => processMessageChunk(chunk));
+                    buffer = chunks.remainder;
+                }
             }
-
-            let chatStreamUrl = `/api/chat?q=${encodeURIComponent(query)}&conversation_id=${conversationId}&stream=true&client=web`;
-            chatStreamUrl += (!!region && !!city && !!countryName && !!timezone)
-                ? `&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}`
-                : '';
-
-            fetch(chatStreamUrl)
-                .then(response => {
-                    const reader = response.body.getReader();
-                    const decoder = new TextDecoder();
-                    let buffer = '';
-                    let netBracketCount = 0;
-
-                    function readStream() {
-                        reader.read().then(({ done, value }) => {
-                            // If the stream is done
-                            if (done) {
-                                // Process the last chunk
-                                processMessageChunk(buffer);
-                                buffer = '';
-                                console.log("Stream complete");
-                                return;
-                            }
-
-                            // Read chunk from stream and append it to the buffer
-                            const chunk = decoder.decode(value, { stream: true });
-                            buffer += chunk;
-
-                            // Check if the buffer contains (0 or more) complete JSON objects
-                            netBracketCount += (chunk.match(/{/g) || []).length - (chunk.match(/}/g) || []).length;
-                            if (netBracketCount === 0) {
-                                let chunks = collectJsonsInBufferedMessageChunk(buffer);
-                                chunks.objects.forEach(processMessageChunk);
-                                buffer = chunks.remainder;
-                            }
-
-                            // Continue reading the stream
-                            readStream();
-                        });
-                    }
-
-                    readStream();
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    if (chatMessageState.newResponseEl.getElementsByClassName("lds-ellipsis").length > 0 && chatMessageState.loadingEllipsis) {
-                        chatMessageState.newResponseTextEl.removeChild(chatMessageState.loadingEllipsis);
-                    }
-                    chatMessageState.newResponseTextEl.textContent += "Failed to get response! Try again or contact developers at team@khoj.dev"
-                });
         }
 
         function incrementalChat(event) {
