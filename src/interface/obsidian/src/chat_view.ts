@@ -27,7 +27,7 @@ export class KhojChatView extends KhojPaneView {
     keyPressTimeout: NodeJS.Timeout | null = null;
 	userMessages: string[] = [];  // New array to store user messages
 	currentMessageIndex: number = -1;  // New property to track current message index
-
+	private  currentUserInput: string = ""; //stores the current user input that is being typed in chat
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
         super(leaf, setting);
 
@@ -1158,7 +1158,9 @@ export class KhojChatView extends KhojPaneView {
     onChatInput() {
         const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
         chatInput.value = chatInput.value.trimStart();
-
+		this.currentMessageIndex = -1;
+		//store the current input
+		this.currentUserInput = chatInput.value;
         this.autoResize();
     }
 
@@ -1327,30 +1329,23 @@ export class KhojChatView extends KhojPaneView {
 	handleArrowKeys(event: KeyboardEvent) {
 		const chatInput = event.target as HTMLTextAreaElement;
 
-		if (event.key === 'ArrowUp') {
+		if (event.ctrlKey && event.key === 'ArrowUp') {
 			event.preventDefault();
 			if (this.currentMessageIndex < this.userMessages.length - 1) {
 				this.currentMessageIndex++;
 				chatInput.value = this.userMessages[this.userMessages.length - 1 - this.currentMessageIndex];
 			}
-		} else if (event.key === 'ArrowDown') {
+		} else if (event.ctrlKey && event.key === 'ArrowDown') {
 			event.preventDefault();
 			if (this.currentMessageIndex > 0) {
 				this.currentMessageIndex--;
 				chatInput.value = this.userMessages[this.userMessages.length - 1 - this.currentMessageIndex];
 			} else if (this.currentMessageIndex === 0) {
 				this.currentMessageIndex = -1;
-				chatInput.value = '';
+				chatInput.value = this.currentUserInput;
 			}
-		} else {
-			// Reset the index if any other key is pressed
-			this.currentMessageIndex = -1;
 		}
 
-		// Move cursor to end of input
-		setTimeout(() => {
-			chatInput.selectionStart = chatInput.selectionEnd = chatInput.value.length;
-		}, 0);
 	}
 
 }
