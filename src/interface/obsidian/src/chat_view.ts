@@ -1329,13 +1329,13 @@ export class KhojChatView extends KhojPaneView {
 	handleArrowKeys(event: KeyboardEvent) {
 		const chatInput = event.target as HTMLTextAreaElement;
 
-		if (event.ctrlKey && event.key === 'ArrowUp') {
+		if ((event.ctrlKey || event.metaKey) && event.key === 'ArrowUp') {
 			event.preventDefault();
 			if (this.currentMessageIndex < this.userMessages.length - 1) {
 				this.currentMessageIndex++;
 				chatInput.value = this.userMessages[this.userMessages.length - 1 - this.currentMessageIndex];
 			}
-		} else if (event.ctrlKey && event.key === 'ArrowDown') {
+		} else if ((event.ctrlKey || event.metaKey) && event.key === 'ArrowDown') {
 			event.preventDefault();
 			if (this.currentMessageIndex > 0) {
 				this.currentMessageIndex--;
