@@ -40,13 +40,9 @@ import {
     Palette,
     LinkBreak,
 } from "@phosphor-icons/react";
-<<<<<<< HEAD
-import Chat from './page';
-=======
 
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
->>>>>>> b810a2149f7d8e4a8ce66c60ed02e2cdab921b0a
 
 interface IconMap {
     [key: string]: (color: string, width: string, height: string) => JSX.Element | null;
@@ -90,10 +86,6 @@ function convertColorToTextClass(color: string) {
 }
 
 function convertSuggestionColorToTextClass(color: string) {
-<<<<<<< HEAD
-    console.log(color);
-=======
->>>>>>> b810a2149f7d8e4a8ce66c60ed02e2cdab921b0a
     const colors = ['blue', 'yellow', 'green', 'pink', 'purple'];
     if (colors.includes(color)) {
         return ""+`bg-gradient-to-b from-[hsl(var(--background))] to-${color}-100/${color=="green" ? "90" : "70"} dark:from-[hsl(var(--background))] dark:to-${color}-950/30 dark:border dark:border-neutral-700`;
@@ -109,8 +101,6 @@ function getIconFromIconName(iconName: string, color: string = 'gray', width: st
     return icon ? icon(colorClass, width, height) : null;
 }
 
-<<<<<<< HEAD
-=======
 function convertColorToClass(color: string) {
     // We can't dyanmically generate the classes for tailwindcss, so we have to explicitly use the whole string.
     // See models/__init__.py 's definition of the Agent model for the color choices.
@@ -133,7 +123,6 @@ function convertColorToClass(color: string) {
     return `bg-gray-500 hover:bg-gray-600`;
 }
 
->>>>>>> b810a2149f7d8e4a8ce66c60ed02e2cdab921b0a
 export interface AgentData {
     slug: string;
     avatar: string;
@@ -250,10 +239,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
             } else {
                 message_str = prompt;
             }
-<<<<<<< HEAD
-
-=======
->>>>>>> b810a2149f7d8e4a8ce66c60ed02e2cdab921b0a
             // Get the textarea element
             const message_area = document.getElementById("message") as HTMLTextAreaElement;
 
@@ -308,82 +293,21 @@ function ChatBodyData(props: ChatBodyDataProps) {
         const borderColorClass = getTailwindBorderClass(agent?.color || 'gray');
 
         Array.from(buttons).forEach((button: Element) => {
-<<<<<<< HEAD
-          const buttonElement = button as HTMLElement;
-          if (buttonElement.classList.contains(slug)) {
-            buttonElement.classList.add(borderColorClass, 'border');
-            buttonElement.classList.remove('border-stone-100', 'dark:border-neutral-700');
-          }
-          else {
-=======
         const buttonElement = button as HTMLElement;
         if (buttonElement.classList.contains(slug)) {
             buttonElement.classList.add(borderColorClass, 'border');
             buttonElement.classList.remove('border-stone-100', 'dark:border-neutral-700');
         }
         else {
->>>>>>> b810a2149f7d8e4a8ce66c60ed02e2cdab921b0a
             Object.values(colorMap).forEach(colorClass => {
                 buttonElement.classList.remove(colorClass, 'border');
             });
             buttonElement.classList.add('border', 'border-stone-100', 'dark:border-neutral-700');
-<<<<<<< HEAD
-          }
-=======
         }
->>>>>>> b810a2149f7d8e4a8ce66c60ed02e2cdab921b0a
         });
     }
 
     return (
-<<<<<<< HEAD
-        <div>
-        <div className="w-full text-center">
-        <div className="items-center">
-            <h1 className="text-center pb-6">What would you like to do?</h1>
-        </div>
-        <div className="flex pb-6 ms-10 gap-2">
-            {icons.map((icon, index) => (
-                <a className={`agent ${agents[index].slug} no-underline w-200 flex pl-4 pt-3 pb-3 border rounded-xl ${agents[index].slug === "khoj" ? "border-orange-500" : "border-stone-100 dark:border-neutral-700"} rounded-md shadow-sm`} onClick={handleAgentsClick(agents[index].slug)}>
-                {icon}
-                <p className="pr-4">{agents[index].name}</p>
-                </a>
-            ))}
-            <a className="no-underline w-200 flex pl-3 pt-1 pb-1 ps-4" href="/agents">
-                <p className="relative top-1 hover:underline">See More →</p>
-            </a>
-        </div>
-        </div>
-        <div className="w-fit">
-            <div className={`${styles.inputBox} bg-background align-middle items-center justify-center px-3 dark:bg-neutral-700 dark:border-0 dark:shadow-none`}>
-                <ChatInputArea
-                    isLoggedIn={props.isLoggedIn}
-                    sendMessage={(message) => setMessage(message)}
-                    sendDisabled={processingMessage}
-                    chatOptionsData={props.chatOptionsData}
-                    conversationId={null}
-                    isMobileWidth={props.isMobileWidth}
-                    setUploadedFiles={props.setUploadedFiles} />
-            </div>
-            <div className={`suggestions ${styles.suggestions} w-full flex`}>
-                {shuffledOptions.map(([key, styleClass, value, link], index) => (
-                    <div onClick={() => fillArea(link, key, value)}>
-                        <SuggestionCard
-                        key={key + Math.random()}
-                        title={key}
-                        body={value.length > 65 ? value.substring(0, 65) + '...' : value}
-                        link={link}
-                        color={shuffledColors[index]}
-                        image={shuffledColors[index]}
-                        />
-                    </div>
-                ))}
-            </div>
-            <div className="flex items-center justify-center">
-                <button onClick={onButtonClick} className="m-2 p-1 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm text-stone-500 dark:text-stone-300 dark:border-neutral-700">More Examples ⟳</button>
-            </div>
-        </div>
-=======
         <div className={`${styles.chatBoxBody}`}>
             <div className="w-full text-center">
                 <div className="items-center">
@@ -480,7 +404,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     </div>
                 </div>
             }
->>>>>>> b810a2149f7d8e4a8ce66c60ed02e2cdab921b0a
         </div>
     );
 }
