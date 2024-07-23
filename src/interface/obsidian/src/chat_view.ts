@@ -409,16 +409,16 @@ export class KhojChatView extends KhojPaneView {
         message = DOMPurify.sanitize(message);
 
         // Convert the message to html, sanitize the message html and render it to the real DOM
-        let chat_message_body_text_el = this.contentEl.createDiv();
-        chat_message_body_text_el.className = "chat-message-text-response";
-        chat_message_body_text_el.innerHTML = this.markdownTextToSanitizedHtml(message, this);
+        let chatMessageBodyTextEl = this.contentEl.createDiv();
+        chatMessageBodyTextEl.className = "chat-message-text-response";
+        chatMessageBodyTextEl.innerHTML = this.markdownTextToSanitizedHtml(message, this);
 
         // Add a copy button to each chat message, if it doesn't already exist
         if (willReplace === true) {
-            this.renderActionButtons(message, chat_message_body_text_el);
+            this.renderActionButtons(message, chatMessageBodyTextEl);
         }
 
-        return chat_message_body_text_el;
+        return chatMessageBodyTextEl;
     }
 
     markdownTextToSanitizedHtml(markdownText: string, component: ItemView): string {
@@ -502,23 +502,23 @@ export class KhojChatView extends KhojPaneView {
                 class: `khoj-chat-message ${sender}`
             },
         })
-        let chat_message_body_el = chatMessageEl.createDiv();
-        chat_message_body_el.addClasses(["khoj-chat-message-text", sender]);
-        let chat_message_body_text_el = chat_message_body_el.createDiv();
+        let chatMessageBodyEl = chatMessageEl.createDiv();
+        chatMessageBodyEl.addClasses(["khoj-chat-message-text", sender]);
+        let chatMessageBodyTextEl = chatMessageBodyEl.createDiv();
 
         // Sanitize the markdown to render
         message = DOMPurify.sanitize(message);
 
         if (raw) {
-            chat_message_body_text_el.innerHTML = message;
+            chatMessageBodyTextEl.innerHTML = message;
         } else {
             // @ts-ignore
-            chat_message_body_text_el.innerHTML = this.markdownTextToSanitizedHtml(message, this);
+            chatMessageBodyTextEl.innerHTML = this.markdownTextToSanitizedHtml(message, this);
         }
 
         // Add action buttons to each chat message element
         if (willReplace === true) {
-            this.renderActionButtons(message, chat_message_body_text_el);
+            this.renderActionButtons(message, chatMessageBodyTextEl);
         }
 
         // Remove user-select: none property to make text selectable
@@ -531,14 +531,14 @@ export class KhojChatView extends KhojPaneView {
     }
 
     createKhojResponseDiv(dt?: Date): HTMLDivElement {
-        let message_time = this.formatDate(dt ?? new Date());
+        let messageTime = this.formatDate(dt ?? new Date());
 
         // Append message to conversation history HTML element.
         // The chat logs should display above the message input box to follow standard UI semantics
-        let chat_body_el = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
-        let chat_message_el = chat_body_el.createDiv({
+        let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
+        let chatMessageEl = chatBodyEl.createDiv({
             attr: {
-                "data-meta": `🏮 Khoj at ${message_time}`,
+                "data-meta": `🏮 Khoj at ${messageTime}`,
                 class: `khoj-chat-message khoj`
             },
         }).createDiv({
@@ -550,7 +550,7 @@ export class KhojChatView extends KhojPaneView {
         // Scroll to bottom after inserting chat messages
         this.scrollChatToBottom();
 
-        return chat_message_el;
+        return chatMessageEl;
     }
 
     async renderIncrementalMessage(htmlElement: HTMLDivElement, additionalMessage: string) {
@@ -566,7 +566,7 @@ export class KhojChatView extends KhojPaneView {
         this.scrollChatToBottom();
     }
 
-    renderActionButtons(message: string, chat_message_body_text_el: HTMLElement) {
+    renderActionButtons(message: string, chatMessageBodyTextEl: HTMLElement) {
         let copyButton = this.contentEl.createEl('button');
         copyButton.classList.add("chat-action-button");
         copyButton.title = "Copy Message to Clipboard";
@@ -593,10 +593,10 @@ export class KhojChatView extends KhojPaneView {
         }
 
         // Append buttons to parent element
-        chat_message_body_text_el.append(copyButton, pasteToFile);
+        chatMessageBodyTextEl.append(copyButton, pasteToFile);
 
         if (speechButton) {
-            chat_message_body_text_el.append(speechButton);
+            chatMessageBodyTextEl.append(speechButton);
         }
     }
 
@@ -895,16 +895,16 @@ export class KhojChatView extends KhojPaneView {
         let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
         this.renderMessage(chatBodyEl, query, "you");
 
-        let conversationID = chatBodyEl.dataset.conversationId;
-        if (!conversationID) {
+        let conversationId = chatBodyEl.dataset.conversationId;
+        if (!conversationId) {
             let chatUrl = `${this.setting.khojUrl}/api/chat/sessions?client=obsidian`;
             let response = await fetch(chatUrl, {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${this.setting.khojApiKey}` },
             });
             let data = await response.json();
-            conversationID = data.conversation_id;
-            chatBodyEl.dataset.conversationId = conversationID;
+            conversationId = data.conversation_id;
+            chatBodyEl.dataset.conversationId = conversationId;
         }
 
         // Get chat response from Khoj backend
