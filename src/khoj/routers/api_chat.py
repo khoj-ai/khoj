@@ -938,11 +938,6 @@ async def chat(
                 return
             if not connection_alive or not continue_stream:
                 continue
-            # Stop streaming after compiled references section of response starts
-            # References are being processed via the references event rather than the message event
-            if "### compiled references:" in item:
-                continue_stream = False
-                item = item.split("### compiled references:")[0]
             try:
                 async for result in send_event("message", f"{item}"):
                     yield result
