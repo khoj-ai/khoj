@@ -27,6 +27,7 @@ export class KhojChatView extends KhojPaneView {
     keyPressTimeout: NodeJS.Timeout | null = null;
 	userMessages: string[] = [];  // New array to store user messages
 	currentMessageIndex: number = -1;  // New property to track current message index
+	private startingMessage : string = "Message";
 	private  currentUserInput: string = ""; //stores the current user input that is being typed in chat
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
         super(leaf, setting);
@@ -80,6 +81,10 @@ export class KhojChatView extends KhojPaneView {
 		// Store the message in the array if it's not empty
 		if (user_message) {
 			this.userMessages.push(user_message);
+			// Update starting message after sending a new message
+			const modifierKey = Platform.isMacOS ? 'cmd' : 'ctrl';
+			this.startingMessage = `(${modifierKey}+↑/↓) for prev messages`;
+			input_el.placeholder = this.startingMessage;
 		}
         input_el.value = "";
         this.autoResize();
@@ -170,9 +175,7 @@ export class KhojChatView extends KhojPaneView {
         // Get chat history from Khoj backend and set chat input state
         let getChatHistorySucessfully = await this.getChatHistory(chatBodyEl);
 
-		// Check the user's os and set the modifier key accordingly
-		const modifierKey : string = Platform.isMacOS ? 'cmd' : 'ctrl';
-        let placeholderText : string = getChatHistorySucessfully ? `(${modifierKey}+↑/↓) for prev messages` : "Configure Khoj to enable chat";
+        let placeholderText : string = getChatHistorySucessfully ? this.startingMessage : "Configure Khoj to enable chat";
         chatInput.placeholder = placeholderText;
         chatInput.disabled = !getChatHistorySucessfully;
 
@@ -623,10 +626,20 @@ export class KhojChatView extends KhojPaneView {
         chatBodyEl.innerHTML = "";
         chatBodyEl.dataset.conversationId = "";
         chatBodyEl.dataset.conversationTitle = "";
+		this.userMessages = [];
+		this.startingMessage = "Message";
+
+		// Update the placeholder of the chat input
+		const chatInput = this.contentEl.querySelector('.khoj-chat-input') as HTMLTextAreaElement;
+		if (chatInput) {
+			chatInput.placeholder = this.startingMessage;
+		}
         this.renderMessage(chatBodyEl, "Hey 👋🏾, what's up?", "khoj");
     }
 
     async toggleChatSessions(forceShow: boolean = false): Promise<boolean> {
+		//clear user history
+		this.userMessages = [];
         let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
         if (!forceShow && this.contentEl.getElementsByClassName("side-panel")?.length > 0) {
             chatBodyEl.innerHTML = "";
@@ -823,13 +836,13 @@ export class KhojChatView extends KhojPaneView {
         }
 
         try {
-            let response = await fetch(chatUrl, {
-                method: "GET",
-                headers: { "Authorization": `Bearer ${this.setting.khojApiKey}` },
-            });
+			let response = await fetch(chatUrl, {
+				method: "GET",
+				headers: { "Authorization": `Bearer ${this.setting.khojApiKey}` },
+			});
 
-            let responseJson: any = await response.json();
-            chatBodyEl.dataset.conversationId = responseJson.conversation_id;
+			let responseJson: any = await response.json();
+			chatBodyEl.dataset.conversationId = responseJson.conversation_id;
 
             if (responseJson.detail) {
                 // If the server returns error details in response, render a setup hint.
@@ -838,25 +851,40 @@ export class KhojChatView extends KhojPaneView {
 
                 return false;
             } else if (responseJson.response) {
-                // Render conversation history, if any
-                chatBodyEl.dataset.conversationId = responseJson.response.conversation_id;
-                chatBodyEl.dataset.conversationTitle = responseJson.response.slug || `New conversation 🌱`;
+				// Render conversation history, if any
+				chatBodyEl.dataset.conversationId = responseJson.response.conversation_id;
+				chatBodyEl.dataset.conversationTitle = responseJson.response.slug || `New conversation 🌱`;
 
+				let chatLogs = responseJson.response?.conversation_id ? responseJson.response.chat ?? [] : responseJson.response;
+				chatLogs.forEach((chatLog: any) => {
+					this.renderMessageWithReferences(
+						chatBodyEl,
+						chatLog.message,
+						chatLog.by,
+						chatLog.context,
+						chatLog.onlineContext,
+						new Date(chatLog.created),
+						chatLog.intent?.type,
+						chatLog.intent?.["inferred-queries"],
+					);
+					//push the user messages to the chat history
+					if(chatLog.by === "you"){
+						this.userMessages.push(chatLog.message);
+					}
+				});
 
-                let chatLogs = responseJson.response?.conversation_id ? responseJson.response.chat ?? [] : responseJson.response;
-                chatLogs.forEach((chatLog: any) => {
-                    this.renderMessageWithReferences(
-                        chatBodyEl,
-                        chatLog.message,
-                        chatLog.by,
-                        chatLog.context,
-                        chatLog.onlineContext,
-                        new Date(chatLog.created),
-                        chatLog.intent?.type,
-                        chatLog.intent?.["inferred-queries"],
-                    );
-                });
-            }
+				// Update starting message after loading history
+				const modifierKey : string = Platform.isMacOS ? 'cmd' : 'ctrl';
+				this.startingMessage = this.userMessages.length > 0
+					? `(${modifierKey}+↑/↓) for prev messages`
+					: "Message";
+
+				// Update the placeholder of the chat input
+				const chatInput = this.contentEl.querySelector('.khoj-chat-input') as HTMLTextAreaElement;
+				if (chatInput) {
+					chatInput.placeholder = this.startingMessage;
+				}
+			}
         } catch (err) {
             let errorMsg = "Unable to get response from Khoj server ❤️‍🩹. Ensure server is running or contact developers for help at [team@khoj.dev](mailto:team@khoj.dev) or in [Discord](https://discord.gg/BDgyabRM6e)";
             this.renderMessage(chatBodyEl, errorMsg, "khoj", undefined);
