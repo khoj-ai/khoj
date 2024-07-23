@@ -17,8 +17,8 @@ import { StreamMessage } from './components/chatMessage/chatMessage';
 import ChatInputArea, { ChatOptions } from './components/chatInputArea/chatInputArea';
 import { useAuthenticatedData } from './common/auth';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
-import {convertSuggestionColorToTextClass, colorMap} from '@/lib/colorUtils';
-import { getIconFromIconName } from '@/lib/iconUtils';
+import {convertSuggestionColorToTextClass, colorMap} from './common/colorUtils';
+import { getIconFromIconName } from './common/iconUtils';
 
 //samples for suggestion cards (should be moved to json later)
 const suggestions: Suggestion[] = [["Automation", "blue", "Send me a summary of HackerNews every morning.", "/automations?subject=Summarizing%20Top%20Headlines%20from%20HackerNews&query=Summarize%20the%20top%20headlines%20on%20HackerNews&crontime=00%207%20*%20*%20*"], ["Automation", "blue", "Compose a bedtime story that a five-year-old might enjoy.", "/automations?subject=Daily%20Bedtime%20Story&query=Compose%20a%20bedtime%20story%20that%20a%20five-year-old%20might%20enjoy.%20It%20should%20not%20exceed%20five%20paragraphs.%20Appeal%20to%20the%20imagination%2C%20but%20weave%20in%20learnings.&crontime=0%2021%20*%20*%20*"], ["Paint", "green", "Paint a picture of a sunset but it's made of stained glass tiles", ""], ["Online Search", "yellow", "Search for the best attractions in Austria Hungary", ""]];
