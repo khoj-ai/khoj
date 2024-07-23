@@ -40,7 +40,13 @@ import {
     Palette,
     LinkBreak,
 } from "@phosphor-icons/react";
+<<<<<<< HEAD
 import Chat from './page';
+=======
+
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
+>>>>>>> b810a2149f7d8e4a8ce66c60ed02e2cdab921b0a
 
 interface IconMap {
     [key: string]: (color: string, width: string, height: string) => JSX.Element | null;
@@ -84,7 +90,10 @@ function convertColorToTextClass(color: string) {
 }
 
 function convertSuggestionColorToTextClass(color: string) {
+<<<<<<< HEAD
     console.log(color);
+=======
+>>>>>>> b810a2149f7d8e4a8ce66c60ed02e2cdab921b0a
     const colors = ['blue', 'yellow', 'green', 'pink', 'purple'];
     if (colors.includes(color)) {
         return ""+`bg-gradient-to-b from-[hsl(var(--background))] to-${color}-100/${color=="green" ? "90" : "70"} dark:from-[hsl(var(--background))] dark:to-${color}-950/30 dark:border dark:border-neutral-700`;
@@ -100,6 +109,31 @@ function getIconFromIconName(iconName: string, color: string = 'gray', width: st
     return icon ? icon(colorClass, width, height) : null;
 }
 
+<<<<<<< HEAD
+=======
+function convertColorToClass(color: string) {
+    // We can't dyanmically generate the classes for tailwindcss, so we have to explicitly use the whole string.
+    // See models/__init__.py 's definition of the Agent model for the color choices.
+    if (color === 'red') return `bg-red-500 hover:bg-red-600`;
+    if (color === 'yellow') return `bg-yellow-500 hover:bg-yellow-600`;
+    if (color === 'green') return `bg-green-500 hover:bg-green-600`;
+    if (color === 'blue') return `bg-blue-500 hover:bg-blue-600`;
+    if (color === 'orange') return `bg-orange-500 hover:bg-orange-600`;
+    if (color === 'purple') return `bg-purple-500 hover:bg-purple-600`;
+    if (color === 'pink') return `bg-pink-500 hover:bg-pink-600`;
+    if (color === 'teal') return `bg-teal-500 hover:bg-teal-600`;
+    if (color === 'cyan') return `bg-cyan-500 hover:bg-cyan-600`;
+    if (color === 'lime') return `bg-lime-500 hover:bg-lime-600`;
+    if (color === 'indigo') return `bg-indigo-500 hover:bg-indigo-600`;
+    if (color === 'fuschia') return `bg-fuschia-500 hover:bg-fuschia-600`;
+    if (color === 'rose') return `bg-rose-500 hover:bg-rose-600`;
+    if (color === 'sky') return `bg-sky-500 hover:bg-sky-600`;
+    if (color === 'amber') return `bg-amber-500 hover:bg-amber-600`;
+    if (color === 'emerald') return `bg-emerald-500 hover:bg-emerald-600`;
+    return `bg-gray-500 hover:bg-gray-600`;
+}
+
+>>>>>>> b810a2149f7d8e4a8ce66c60ed02e2cdab921b0a
 export interface AgentData {
     slug: string;
     avatar: string;
@@ -216,7 +250,10 @@ function ChatBodyData(props: ChatBodyDataProps) {
             } else {
                 message_str = prompt;
             }
+<<<<<<< HEAD
 
+=======
+>>>>>>> b810a2149f7d8e4a8ce66c60ed02e2cdab921b0a
             // Get the textarea element
             const message_area = document.getElementById("message") as HTMLTextAreaElement;
 
@@ -271,21 +308,35 @@ function ChatBodyData(props: ChatBodyDataProps) {
         const borderColorClass = getTailwindBorderClass(agent?.color || 'gray');
 
         Array.from(buttons).forEach((button: Element) => {
+<<<<<<< HEAD
           const buttonElement = button as HTMLElement;
           if (buttonElement.classList.contains(slug)) {
             buttonElement.classList.add(borderColorClass, 'border');
             buttonElement.classList.remove('border-stone-100', 'dark:border-neutral-700');
           }
           else {
+=======
+        const buttonElement = button as HTMLElement;
+        if (buttonElement.classList.contains(slug)) {
+            buttonElement.classList.add(borderColorClass, 'border');
+            buttonElement.classList.remove('border-stone-100', 'dark:border-neutral-700');
+        }
+        else {
+>>>>>>> b810a2149f7d8e4a8ce66c60ed02e2cdab921b0a
             Object.values(colorMap).forEach(colorClass => {
                 buttonElement.classList.remove(colorClass, 'border');
             });
             buttonElement.classList.add('border', 'border-stone-100', 'dark:border-neutral-700');
+<<<<<<< HEAD
           }
+=======
+        }
+>>>>>>> b810a2149f7d8e4a8ce66c60ed02e2cdab921b0a
         });
     }
 
     return (
+<<<<<<< HEAD
         <div>
         <div className="w-full text-center">
         <div className="items-center">
@@ -332,6 +383,104 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 <button onClick={onButtonClick} className="m-2 p-1 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm text-stone-500 dark:text-stone-300 dark:border-neutral-700">More Examples ⟳</button>
             </div>
         </div>
+=======
+        <div className={`${styles.chatBoxBody}`}>
+            <div className="w-full text-center">
+                <div className="items-center">
+                    <h1 className="text-center pb-6 px-4">What would you like to do?</h1>
+                </div>
+                {
+                    !props.isMobileWidth &&
+                    <div className="flex pb-6 gap-2 items-center justify-center">
+                        {icons.map((icon, index) => (
+                        <a key={agents[index].slug} onClick={handleAgentsClick(agents[index].slug)} className="no-underline">
+                            <Card
+                                className={`agent ${agents[index].slug} w-200 cursor-pointer ${
+                                    agents[index].slug === "khoj"
+                                    ? "border-orange-500"
+                                    : "border-stone-100 dark:border-neutral-700"
+                                }`}
+                                >
+                                <CardContent className="flex items-center p-4">
+                                    {icon}
+                                    <p className="ml-1">{agents[index].name}</p>
+                                </CardContent>
+                            </Card>
+                        </a>
+                        ))}
+                        <Card className='border-none shadow-none flex justify-center items-center hover:cursor-pointer' onClick={() => window.location.href = "/agents"}>
+                            <CardTitle className="text-center text-md font-normal flex justify-center items-center px-1.5 py-2">See All →</CardTitle>
+                        </Card>
+                    </div>
+                }
+            </div>
+            <div className={`${props.isMobileWidth} ? 'w-full' : 'w-fit`}>
+                {
+                    !props.isMobileWidth &&
+                    <div className={`${styles.inputBox} bg-background align-middle items-center justify-center p-3 dark:bg-neutral-700 dark:border-0 dark:shadow-sm`}>
+                        <ChatInputArea
+                            isLoggedIn={props.isLoggedIn}
+                            sendMessage={(message) => setMessage(message)}
+                            sendDisabled={processingMessage}
+                            chatOptionsData={props.chatOptionsData}
+                            conversationId={null}
+                            isMobileWidth={props.isMobileWidth}
+                            setUploadedFiles={props.setUploadedFiles} />
+                    </div>
+                }
+                <div className={`suggestions ${styles.suggestions} w-full ${props.isMobileWidth ? 'flex flex-col' : 'flex flex-row'} justify-center items-center`}>
+                    {shuffledOptions.map(([key, styleClass, value, link], index) => (
+                        <div onClick={() => fillArea(link, key, value)}>
+                            <SuggestionCard
+                            key={key + Math.random()}
+                            title={key}
+                            body={value.length > 65 ? value.substring(0, 65) + '...' : value}
+                            link={link}
+                            color={shuffledColors[index]}
+                            image={shuffledColors[index]}
+                            />
+                        </div>
+                    ))}
+                </div>
+                <div className="flex items-center justify-center margin-auto">
+                    <button onClick={onButtonClick} className="m-2 p-1 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm text-stone-500 dark:text-stone-300 dark:border-neutral-700">More Examples ⟳</button>
+                </div>
+            </div>
+            {
+                props.isMobileWidth &&
+                <div className={`${styles.inputBox} bg-background align-middle items-center justify-center p-3 dark:bg-neutral-700`}>
+                    <ChatInputArea
+                        isLoggedIn={props.isLoggedIn}
+                        sendMessage={(message) => setMessage(message)}
+                        sendDisabled={processingMessage}
+                        chatOptionsData={props.chatOptionsData}
+                        conversationId={null}
+                        isMobileWidth={props.isMobileWidth}
+                        setUploadedFiles={props.setUploadedFiles} />
+                    <div className="flex gap-2 items-center justify-left pt-4">
+                        {icons.map((icon, index) => (
+                            <a key={agents[index].slug} onClick={handleAgentsClick(agents[index].slug)} className="no-underline">
+                                <Card
+                                    className={`agent ${agents[index].slug} w-200 cursor-pointer dark:bg-neutral-800 ${
+                                        agents[index].slug === "khoj"
+                                        ? "border-orange-500"
+                                        : "border-stone-100 dark:border-neutral-700"
+                                    }`}
+                                    >
+                                    <CardContent className="flex items-center p-4">
+                                        {icon}
+                                        <p className="ml-1">{agents[index].name}</p>
+                                    </CardContent>
+                                </Card>
+                            </a>
+                        ))}
+                        <Card className='border-none shadow-none flex justify-center items-center hover:cursor-pointer' onClick={() => window.location.href = "/agents"}>
+                            <CardTitle className={`text-center ${props.isMobileWidth ? 'text-xs' : 'text-md'} font-normal flex justify-center items-center px-1.5 py-2`}>See All →</CardTitle>
+                        </Card>
+                    </div>
+                </div>
+            }
+>>>>>>> b810a2149f7d8e4a8ce66c60ed02e2cdab921b0a
         </div>
     );
 }
