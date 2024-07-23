@@ -103,19 +103,19 @@ export default function SuggestionCard(data: SuggestionCardProps) {
 
     const cardContent = (
         <Card className={cardClassName}>
-        <CardHeader className="m-0 p-2 pb-1 relative">
-            {convertSuggestionColorToIconClass(data.image)}
-            <CardTitle className={titleClassName}>{data.title}</CardTitle>
-        </CardHeader>
-        <CardContent className="m-0 p-2 pr-4 pt-1">
-            <CardDescription className={descriptionClassName}>{data.body}</CardDescription>
-        </CardContent>
+            <CardHeader className="m-0 p-2 pb-1 relative">
+                {convertSuggestionColorToIconClass(data.image)}
+                <CardTitle className={titleClassName}>{data.title}</CardTitle>
+            </CardHeader>
+            <CardContent className="m-0 p-2 pr-4 pt-1">
+                <CardDescription className={descriptionClassName}>{data.body}</CardDescription>
+            </CardContent>
         </Card>
     );
 
     return data.link ? (
         <a href={data.link} className="no-underline">
-        {cardContent}
+            {cardContent}
         </a>
     ) : cardContent;
 }

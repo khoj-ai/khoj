@@ -16,112 +16,12 @@ import 'katex/dist/katex.min.css';
 import { StreamMessage } from './components/chatMessage/chatMessage';
 import ChatInputArea, { ChatOptions } from './components/chatInputArea/chatInputArea';
 import { useAuthenticatedData } from './common/auth';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
+import {convertSuggestionColorToTextClass, colorMap} from '@/lib/colorUtils';
+import { getIconFromIconName } from '@/lib/iconUtils';
 
 //samples for suggestion cards (should be moved to json later)
 const suggestions: Suggestion[] = [["Automation", "blue", "Send me a summary of HackerNews every morning.", "/automations?subject=Summarizing%20Top%20Headlines%20from%20HackerNews&query=Summarize%20the%20top%20headlines%20on%20HackerNews&crontime=00%207%20*%20*%20*"], ["Automation", "blue", "Compose a bedtime story that a five-year-old might enjoy.", "/automations?subject=Daily%20Bedtime%20Story&query=Compose%20a%20bedtime%20story%20that%20a%20five-year-old%20might%20enjoy.%20It%20should%20not%20exceed%20five%20paragraphs.%20Appeal%20to%20the%20imagination%2C%20but%20weave%20in%20learnings.&crontime=0%2021%20*%20*%20*"], ["Paint", "green", "Paint a picture of a sunset but it's made of stained glass tiles", ""], ["Online Search", "yellow", "Search for the best attractions in Austria Hungary", ""]];
-
-import {
-    Lightbulb,
-    Robot,
-    Aperture,
-    GraduationCap,
-    Jeep,
-    Island,
-    MathOperations,
-    Asclepius,
-    Couch,
-    Code,
-    Atom,
-    ClockCounterClockwise,
-    PaperPlaneTilt,
-    Info,
-    UserCircle,
-    Globe,
-    Palette,
-    LinkBreak,
-} from "@phosphor-icons/react";
-
-import { Card, CardContent, CardTitle } from '@/components/ui/card';
-import Link from 'next/link';
-
-interface IconMap {
-    [key: string]: (color: string, width: string, height: string) => JSX.Element | null;
-}
-
-const iconMap: IconMap = {
-    Lightbulb: (color: string, width: string, height: string) => <Lightbulb className={`${width} ${height} ${color} mr-2`} />,
-    Robot: (color: string, width: string, height: string) => <Robot className={`${width} ${height} ${color} mr-2`} />,
-    Aperture: (color: string, width: string, height: string) => <Aperture className={`${width} ${height} ${color} mr-2`} />,
-    GraduationCap: (color: string, width: string, height: string) => <GraduationCap className={`${width} ${height} ${color} mr-2`} />,
-    Jeep: (color: string, width: string, height: string) => <Jeep className={`${width} ${height} ${color} mr-2`} />,
-    Island: (color: string, width: string, height: string) => <Island className={`${width} ${height} ${color} mr-2`} />,
-    MathOperations: (color: string, width: string, height: string) => <MathOperations className={`${width} ${height} ${color} mr-2`} />,
-    Asclepius: (color: string, width: string, height: string) => <Asclepius className={`${width} ${height} ${color} mr-2`} />,
-    Couch: (color: string, width: string, height: string) => <Couch className={`${width} ${height} ${color} mr-2`} />,
-    Code: (color: string, width: string, height: string) => <Code className={`${width} ${height} ${color} mr-2`} />,
-    Atom: (color: string, width: string, height: string) => <Atom className={`${width} ${height} ${color} mr-2`} />,
-    ClockCounterClockwise: (color: string, width: string, height: string) => <ClockCounterClockwise className={`${width} ${height} ${color} mr-2`} />,
-    Globe: (color: string, width: string, height: string) => <Globe className={`${width} ${height} ${color} mr-2`} />,
-    Palette: (color: string, width: string, height: string) => <Palette className={`${width} ${height} ${color} mr-2`} />,
-};
-
-function convertColorToTextClass(color: string) {
-    if (color === 'red') return `text-red-500`;
-    if (color === 'yellow') return `text-yellow-500`;
-    if (color === 'green') return `text-green-500`;
-    if (color === 'blue') return `text-blue-500`;
-    if (color === 'orange') return `text-orange-500`;
-    if (color === 'purple') return `text-purple-500`;
-    if (color === 'pink') return `text-pink-500`;
-    if (color === 'teal') return `text-teal-500`;
-    if (color === 'cyan') return `text-cyan-500`;
-    if (color === 'lime') return `text-lime-500`;
-    if (color === 'indigo') return `text-indigo-500`;
-    if (color === 'fuschia') return `text-fuschia-500`;
-    if (color === 'rose') return `text-rose-500`;
-    if (color === 'sky') return `text-sky-500`;
-    if (color === 'amber') return `text-amber-500`;
-    if (color === 'emerald') return `text-emerald-500`;
-    return `text-gray-500`;
-}
-
-function convertSuggestionColorToTextClass(color: string) {
-    const colors = ['blue', 'yellow', 'green', 'pink', 'purple'];
-    if (colors.includes(color)) {
-        return ""+`bg-gradient-to-b from-[hsl(var(--background))] to-${color}-100/${color=="green" ? "90" : "70"} dark:from-[hsl(var(--background))] dark:to-${color}-950/30 dark:border dark:border-neutral-700`;
-    }
-    return `bg-gradient-to-b from-white to-orange-50`;
-}
-
-function getIconFromIconName(iconName: string, color: string = 'gray', width: string = 'w-6', height: string = 'h-6') {
-    const icon = iconMap[iconName];
-    const colorName = color.toLowerCase();
-    const colorClass = convertColorToTextClass(colorName);
-
-    return icon ? icon(colorClass, width, height) : null;
-}
-
-function convertColorToClass(color: string) {
-    // We can't dyanmically generate the classes for tailwindcss, so we have to explicitly use the whole string.
-    // See models/__init__.py 's definition of the Agent model for the color choices.
-    if (color === 'red') return `bg-red-500 hover:bg-red-600`;
-    if (color === 'yellow') return `bg-yellow-500 hover:bg-yellow-600`;
-    if (color === 'green') return `bg-green-500 hover:bg-green-600`;
-    if (color === 'blue') return `bg-blue-500 hover:bg-blue-600`;
-    if (color === 'orange') return `bg-orange-500 hover:bg-orange-600`;
-    if (color === 'purple') return `bg-purple-500 hover:bg-purple-600`;
-    if (color === 'pink') return `bg-pink-500 hover:bg-pink-600`;
-    if (color === 'teal') return `bg-teal-500 hover:bg-teal-600`;
-    if (color === 'cyan') return `bg-cyan-500 hover:bg-cyan-600`;
-    if (color === 'lime') return `bg-lime-500 hover:bg-lime-600`;
-    if (color === 'indigo') return `bg-indigo-500 hover:bg-indigo-600`;
-    if (color === 'fuschia') return `bg-fuschia-500 hover:bg-fuschia-600`;
-    if (color === 'rose') return `bg-rose-500 hover:bg-rose-600`;
-    if (color === 'sky') return `bg-sky-500 hover:bg-sky-600`;
-    if (color === 'amber') return `bg-amber-500 hover:bg-amber-600`;
-    if (color === 'emerald') return `bg-emerald-500 hover:bg-emerald-600`;
-    return `bg-gray-500 hover:bg-gray-600`;
-}
 
 export interface AgentData {
     slug: string;
@@ -147,21 +47,21 @@ type Suggestion = [string, string, string, string];
 
 async function createNewConvo(slug: string) {
     try {
-      const response = await fetch(`/api/chat/sessions?client=web&agent_slug=${slug}`, { method: "POST" });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      const conversationID = data.conversation_id;
-      if (!conversationID) {
-        throw new Error("Conversation ID not found in response");
-      }
-      return conversationID;
+        const response = await fetch(`/api/chat/sessions?client=web&agent_slug=${slug}`, { method: "POST" });
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        const conversationID = data.conversation_id;
+        if (!conversationID) {
+            throw new Error("Conversation ID not found in response");
+        }
+        return conversationID;
     } catch (error) {
-      console.error("Error creating new conversation:", error);
-      throw error;
+        console.error("Error creating new conversation:", error);
+        throw error;
     }
-  }
+}
 
 function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState('');
@@ -191,24 +91,25 @@ function ChatBodyData(props: ChatBodyDataProps) {
         shuffleAndSetOptions();
     }
 
-    useEffect(() => { const processMessage = async () => {
-        if (message && !processingMessage) {
-            setProcessingMessage(true);
-            try {
-                const newConversationId = await createNewConvo(selectedAgent || "khoj");
-                props.onConversationIdChange?.(newConversationId);
-                window.location.href = `/chat?conversationId=${newConversationId}`;
-                localStorage.setItem('message', message);
+    useEffect(() => {
+        const processMessage = async () => {
+            if (message && !processingMessage) {
+                setProcessingMessage(true);
+                try {
+                    const newConversationId = await createNewConvo(selectedAgent || "khoj");
+                    props.onConversationIdChange?.(newConversationId);
+                    window.location.href = `/chat?conversationId=${newConversationId}`;
+                    localStorage.setItem('message', message);
+                }
+                catch (error) {
+                    console.error("Error creating new conversation:", error);
+                    setProcessingMessage(false);
+                }
+                setMessage('');
             }
-            catch (error) {
-                console.error("Error creating new conversation:", error);
-                setProcessingMessage(false);
-            }
-            setMessage('');
-        }
         };
         processMessage();
-        if(message){
+        if (message) {
             setProcessingMessage(true);
             props.setQueryToProcess(message);
         };
@@ -258,7 +159,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                if (response.status == 200) {;
+                if (response.status == 200) {
+                    ;
                     highlightHandler(slug);
                 } else if (response.status == 403 || response.status == 401) {
                     window.location.href = unauthenticatedRedirectUrl;
@@ -271,18 +173,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
         };
     }
 
-    const colorMap: Record<string, string> = {
-        'red': 'border-red-500',
-        'blue': 'border-blue-500',
-        'green': 'border-green-500',
-        'yellow': 'border-yellow-500',
-        'purple': 'border-purple-500',
-        'pink': 'border-pink-500',
-        'indigo': 'border-indigo-500',
-        'gray': 'border-gray-500',
-        'orange': 'border-orange-500',
-    };
-
     function getTailwindBorderClass(color: string): string {
         return colorMap[color] || 'border-black'; // Default to black if color not found
     }
@@ -293,17 +183,17 @@ function ChatBodyData(props: ChatBodyDataProps) {
         const borderColorClass = getTailwindBorderClass(agent?.color || 'gray');
 
         Array.from(buttons).forEach((button: Element) => {
-        const buttonElement = button as HTMLElement;
-        if (buttonElement.classList.contains(slug)) {
-            buttonElement.classList.add(borderColorClass, 'border');
-            buttonElement.classList.remove('border-stone-100', 'dark:border-neutral-700');
-        }
-        else {
-            Object.values(colorMap).forEach(colorClass => {
-                buttonElement.classList.remove(colorClass, 'border');
-            });
-            buttonElement.classList.add('border', 'border-stone-100', 'dark:border-neutral-700');
-        }
+            const buttonElement = button as HTMLElement;
+            if (buttonElement.classList.contains(slug)) {
+                buttonElement.classList.add(borderColorClass, 'border');
+                buttonElement.classList.remove('border-stone-100', 'dark:border-neutral-700');
+            }
+            else {
+                Object.values(colorMap).forEach(colorClass => {
+                    buttonElement.classList.remove(colorClass, 'border');
+                });
+                buttonElement.classList.add('border', 'border-stone-100', 'dark:border-neutral-700');
+            }
         });
     }
 
@@ -317,20 +207,19 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     !props.isMobileWidth &&
                     <div className="flex pb-6 gap-2 items-center justify-center">
                         {icons.map((icon, index) => (
-                        <a key={agents[index].slug} onClick={handleAgentsClick(agents[index].slug)} className="no-underline">
-                            <Card
-                                className={`agent ${agents[index].slug} w-200 cursor-pointer ${
-                                    agents[index].slug === "khoj"
-                                    ? "border-orange-500"
-                                    : "border-stone-100 dark:border-neutral-700"
-                                }`}
+                            <a key={agents[index].slug} onClick={handleAgentsClick(agents[index].slug)} className="no-underline">
+                                <Card
+                                    className={`agent ${agents[index].slug} w-200 cursor-pointer ${agents[index].slug === "khoj"
+                                            ? "border-orange-500"
+                                            : "border-stone-100 dark:border-neutral-700"
+                                        }`}
                                 >
-                                <CardContent className="flex items-center p-4">
-                                    {icon}
-                                    <p className="ml-1">{agents[index].name}</p>
-                                </CardContent>
-                            </Card>
-                        </a>
+                                    <CardContent className="flex items-center p-4">
+                                        {icon}
+                                        <p className="ml-1">{agents[index].name}</p>
+                                    </CardContent>
+                                </Card>
+                            </a>
                         ))}
                         <Card className='border-none shadow-none flex justify-center items-center hover:cursor-pointer' onClick={() => window.location.href = "/agents"}>
                             <CardTitle className="text-center text-md font-normal flex justify-center items-center px-1.5 py-2">See All →</CardTitle>
@@ -356,12 +245,12 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     {shuffledOptions.map(([key, styleClass, value, link], index) => (
                         <div onClick={() => fillArea(link, key, value)}>
                             <SuggestionCard
-                            key={key + Math.random()}
-                            title={key}
-                            body={value.length > 65 ? value.substring(0, 65) + '...' : value}
-                            link={link}
-                            color={shuffledColors[index]}
-                            image={shuffledColors[index]}
+                                key={key + Math.random()}
+                                title={key}
+                                body={value.length > 65 ? value.substring(0, 65) + '...' : value}
+                                link={link}
+                                color={shuffledColors[index]}
+                                image={shuffledColors[index]}
                             />
                         </div>
                     ))}
@@ -385,12 +274,11 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         {icons.map((icon, index) => (
                             <a key={agents[index].slug} onClick={handleAgentsClick(agents[index].slug)} className="no-underline">
                                 <Card
-                                    className={`agent ${agents[index].slug} w-200 cursor-pointer dark:bg-neutral-800 ${
-                                        agents[index].slug === "khoj"
-                                        ? "border-orange-500"
-                                        : "border-stone-100 dark:border-neutral-700"
-                                    }`}
-                                    >
+                                    className={`agent ${agents[index].slug} w-200 cursor-pointer dark:bg-neutral-800 ${agents[index].slug === "khoj"
+                                            ? "border-orange-500"
+                                            : "border-stone-100 dark:border-neutral-700"
+                                        }`}
+                                >
                                     <CardContent className="flex items-center p-4">
                                         {icon}
                                         <p className="ml-1">{agents[index].name}</p>
@@ -408,7 +296,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     );
 }
 
-export default function Home(){
+export default function Home() {
     const [chatOptionsData, setChatOptionsData] = useState<ChatOptions | null>(null);
     const [isLoading, setLoading] = useState(true);
     const [title, setTitle] = useState('');
