@@ -1,4 +1,4 @@
-import { ItemView, MarkdownRenderer, Scope, WorkspaceLeaf, request, requestUrl, setIcon } from 'obsidian';
+import {ItemView, MarkdownRenderer, Scope, WorkspaceLeaf, request, requestUrl, setIcon, Platform} from 'obsidian';
 import * as DOMPurify from 'dompurify';
 import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
@@ -169,7 +169,10 @@ export class KhojChatView extends KhojPaneView {
 
         // Get chat history from Khoj backend and set chat input state
         let getChatHistorySucessfully = await this.getChatHistory(chatBodyEl);
-        let placeholderText = getChatHistorySucessfully ? "Message" : "Configure Khoj to enable chat";
+
+		// Check the user's os and set the modifier key accordingly
+		const modifierKey : string = Platform.isMacOS ? 'cmd' : 'ctrl';
+        let placeholderText : string = getChatHistorySucessfully ? `(${modifierKey}+↑/↓) for prev messages` : "Configure Khoj to enable chat";
         chatInput.placeholder = placeholderText;
         chatInput.disabled = !getChatHistorySucessfully;
 
