@@ -831,7 +831,7 @@ async def chat(
             {
                 "inferredQueries": inferred_queries,
                 "context": compiled_references,
-                "online_results": online_results,
+                "onlineContext": online_results,
             },
         ):
             yield result
@@ -887,7 +887,7 @@ async def chat(
                 "content-type": "application/json",
                 "intentType": intent_type,
                 "context": compiled_references,
-                "online_results": online_results,
+                "onlineContext": online_results,
                 "inferredQueries": [improved_image_prompt],
                 "image": image,
             }

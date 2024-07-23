@@ -947,7 +947,7 @@ export class KhojChatView extends KhojPaneView {
                 isVoice: false,
             };
         } else if (chunk.type === "references") {
-            this.chatMessageState.references = {"notes": chunk.data.context, "online": chunk.data.online_results};
+            this.chatMessageState.references = {"notes": chunk.data.context, "online": chunk.data.onlineContext};
         } else if (chunk.type === 'message') {
             const chunkData = chunk.data;
             if (typeof chunkData === 'object' && chunkData !== null) {

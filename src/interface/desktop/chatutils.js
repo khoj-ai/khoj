@@ -515,7 +515,7 @@ function processMessageChunk(rawChunk) {
             isVoice: false,
         }
     } else if (chunk.type === "references") {
-        chatMessageState.references = {"notes": chunk.data.context, "online": chunk.data.online_results};
+        chatMessageState.references = {"notes": chunk.data.context, "online": chunk.data.onlineContext};
     } else if (chunk.type === 'message') {
         const chunkData = chunk.data;
         if (typeof chunkData === 'object' && chunkData !== null) {
