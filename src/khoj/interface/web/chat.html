@@ -683,13 +683,19 @@ To get started, just start typing below. You can also type / to see a list of co
         }
 
         function handleStreamResponse(newResponseElement, rawResponse, rawQuery, loadingEllipsis, replace=true) {
-            if (newResponseElement.getElementsByClassName("lds-ellipsis").length > 0 && loadingEllipsis) {
+            if (!newResponseElement) return;
+            // Remove loading ellipsis if it exists
+            if (newResponseElement.getElementsByClassName("lds-ellipsis").length > 0 && loadingEllipsis)
                 newResponseElement.removeChild(loadingEllipsis);
-            }
-            if (replace) {
-                newResponseElement.innerHTML = "";
-            }
+            // Clear the response element if replace is true
+            if (replace) newResponseElement.innerHTML = "";
+
+            // Append response to the response element
             newResponseElement.appendChild(formatHTMLMessage(rawResponse, false, replace, rawQuery));
+
+            // Append loading ellipsis if it exists
+            if (!replace && loadingEllipsis) newResponseElement.appendChild(loadingEllipsis);
+            // Scroll to bottom of chat view
             document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
         }
 
@@ -777,7 +783,7 @@ To get started, just start typing below. You can also type / to see a list of co
             if (chunk.type ==='status') {
                 console.log(`status: ${chunk.data}`);
                 const statusMessage = chunk.data;
-                handleStreamResponse(chatMessageState.newResponseTextEl, statusMessage, chatMessageState.rawQuery, null, false);
+                handleStreamResponse(chatMessageState.newResponseTextEl, statusMessage, chatMessageState.rawQuery, chatMessageState.loadingEllipsis, false);
             } else if (chunk.type === 'start_llm_response') {
                 console.log("Started streaming", new Date());
             } else if (chunk.type === 'end_llm_response') {
