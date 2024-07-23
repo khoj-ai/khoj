@@ -81,7 +81,7 @@ function getIconFromIconName(iconName: string, color: string = 'gray', width: st
 }
 
 function convertSuggestionColorToIconClass(color: string) {
-    if (color.includes('sky')) return getIconFromIconName('Robot', 'blue', 'w-8', 'h-8');
+    if (color.includes('blue')) return getIconFromIconName('Robot', 'blue', 'w-8', 'h-8');
     if (color.includes('yellow')) return getIconFromIconName('Globe', 'yellow', 'w-8', 'h-8');
     if (color.includes('green')) return getIconFromIconName('Palette', 'green', 'w-8', 'h-8');
     else return getIconFromIconName('Lightbulb', 'orange', 'w-8', 'h-8');
@@ -97,30 +97,25 @@ interface SuggestionCardProps {
 }
 
 export default function SuggestionCard(data: SuggestionCardProps) {
-    if (data.link !== "") {
-        return (
-            <a href={data.link} className="no-underline">
-                <Card className={`${styles.card} ${data.color} md:w-full md:h-fit sm:w-full sm:h-fit lg:w-[200px] lg:h-[200px]`}>
-                    <CardHeader className="m-0 p-2 pb-1 relative">
-                        {convertSuggestionColorToIconClass(data.image)}
-                        <CardTitle className={`${styles.title} pt-2 dark:text-black`}>{data.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="m-0 p-2 pr-4 pt-1">
-                        <CardDescription className={styles.text}>{data.body}</CardDescription>
-                    </CardContent>
-                </Card>
-            </a>
-        );
-    }
-    return (
-        <Card className={`${styles.card} ${data.color} md:w-full md:h-fit sm:w-full sm:h-fit  lg:w-[200px] lg:h-[200px]`}>
-            <CardHeader className="m-0 p-2 pb-1 relative">
-                {convertSuggestionColorToIconClass(data.image)}
-                <CardTitle className={`${styles.title} pt-2 dark:text-black`}>{data.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="m-0 p-2 pr-4 pt-1">
-                <CardDescription className={styles.text}>{data.body}</CardDescription>
-            </CardContent>
+    const cardClassName = `${styles.card} ${data.color} md:w-full md:h-fit sm:w-full sm:h-fit lg:w-[200px] lg:h-[200px]`;
+    const titleClassName = `${styles.title} pt-2 dark:text-white dark:font-bold`;
+    const descriptionClassName = `${styles.text} dark:text-white`;
+
+    const cardContent = (
+        <Card className={cardClassName}>
+        <CardHeader className="m-0 p-2 pb-1 relative">
+            {convertSuggestionColorToIconClass(data.image)}
+            <CardTitle className={titleClassName}>{data.title}</CardTitle>
+        </CardHeader>
+        <CardContent className="m-0 p-2 pr-4 pt-1">
+            <CardDescription className={descriptionClassName}>{data.body}</CardDescription>
+        </CardContent>
         </Card>
     );
+
+    return data.link ? (
+        <a href={data.link} className="no-underline">
+        {cardContent}
+        </a>
+    ) : cardContent;
 }

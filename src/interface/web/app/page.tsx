@@ -18,7 +18,7 @@ import ChatInputArea, { ChatOptions } from './components/chatInputArea/chatInput
 import { useAuthenticatedData } from './common/auth';
 
 //samples for suggestion cards (should be moved to json later)
-const suggestions: Suggestion[] = [["Automation", "blue", "/automate.svg", "Send me a summary of HackerNews every morning.", "/automations?subject=Summarizing%20Top%20Headlines%20from%20HackerNews&query=Summarize%20the%20top%20headlines%20on%20HackerNews&crontime=00%207%20*%20*%20*"], ["Automation", "blue", "/automate.svg", "Compose a bedtime story that a five-year-old might enjoy.", "/automations?subject=Daily%20Bedtime%20Story&query=Compose%20a%20bedtime%20story%20that%20a%20five-year-old%20might%20enjoy.%20It%20should%20not%20exceed%20five%20paragraphs.%20Appeal%20to%20the%20imagination%2C%20but%20weave%20in%20learnings.&crontime=0%2021%20*%20*%20*"], ["Paint", "green", "/paint.svg", "Paint a picture of a sunset but it's made of stained glass tiles", ""], ["Online Search", "yellow", "/online_search.svg", "Search for the best attractions in Austria Hungary", ""]];
+const suggestions: Suggestion[] = [["Automation", "blue", "Send me a summary of HackerNews every morning.", "/automations?subject=Summarizing%20Top%20Headlines%20from%20HackerNews&query=Summarize%20the%20top%20headlines%20on%20HackerNews&crontime=00%207%20*%20*%20*"], ["Automation", "blue", "Compose a bedtime story that a five-year-old might enjoy.", "/automations?subject=Daily%20Bedtime%20Story&query=Compose%20a%20bedtime%20story%20that%20a%20five-year-old%20might%20enjoy.%20It%20should%20not%20exceed%20five%20paragraphs.%20Appeal%20to%20the%20imagination%2C%20but%20weave%20in%20learnings.&crontime=0%2021%20*%20*%20*"], ["Paint", "green", "Paint a picture of a sunset but it's made of stained glass tiles", ""], ["Online Search", "yellow", "Search for the best attractions in Austria Hungary", ""]];
 
 import {
     Lightbulb,
@@ -40,7 +40,7 @@ import {
     Palette,
     LinkBreak,
 } from "@phosphor-icons/react";
-import Chat from './page';
+
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 
@@ -86,25 +86,15 @@ function convertColorToTextClass(color: string) {
 }
 
 function convertSuggestionColorToTextClass(color: string) {
-    if (color === 'blue') return `bg-gradient-to-b from-white 50% to-sky-50`;
-    if (color === 'yellow') return `bg-gradient-to-b from-white 50% to-yellow-50`;
-    if (color === 'green') return `bg-gradient-to-b from-white 50% to-green-50`;
-    if (color === 'pink') return `bg-gradient-to-b from-white 50% to-pink-50`;
-    if (color === 'purple') return `bg-gradient-to-b from-white 50% to-purple-50`;
-    return `bg-gradient-to-b from-white 50% to-orange-50`;
+    console.log(color);
+    const colors = ['blue', 'yellow', 'green', 'pink', 'purple'];
+    if (colors.includes(color)) {
+        return ""+`bg-gradient-to-b from-[hsl(var(--background))] to-${color}-100/${color=="green" ? "90" : "70"} dark:from-[hsl(var(--background))] dark:to-${color}-950/30 dark:border dark:border-neutral-700`;
+    }
+    return `bg-gradient-to-b from-white to-orange-50`;
 }
 
-function convertSuggestionColorToIconClass(color: string) {
-    if (color === 'blue') return iconMap.Robot('blue', 'w-8', 'h-8');
-    if (color === 'yellow') return iconMap.Globe('yellow', 'w-8', 'h-8');
-    if (color === 'green') return iconMap.Palette('green', 'w-8', 'h-8');
-    else return iconMap.Lightbulb('orange', 'w-8', 'h-8');
-}
-
-
-
-
-function getIconFromIconName(iconName: string, color: string = 'gray', width: string = 'w-8', height: string = 'h-8') {
+function getIconFromIconName(iconName: string, color: string = 'gray', width: string = 'w-6', height: string = 'h-6') {
     const icon = iconMap[iconName];
     const colorName = color.toLowerCase();
     const colorClass = convertColorToTextClass(colorName);
@@ -134,29 +124,6 @@ function convertColorToClass(color: string) {
     return `bg-gray-500 hover:bg-gray-600`;
 }
 
-function convertColorToBorderClass(color: string) {
-    console.log("Color:", color);
-    if (color === 'red') return `border-red-500`;
-    if (color === 'yellow') return `border-yellow-500`;
-    if (color === 'green') return `border-green-500`;
-    if (color === 'blue') return `border-blue-500`;
-    if (color === 'orange') return `border-orange-500`;
-    if (color === 'purple') return `border-purple-500`;
-    if (color === 'pink') return `border-pink-500`;
-    if (color === 'teal') return `border-teal-500`;
-    if (color === 'cyan') return `border-cyan-500`;
-    if (color === 'lime') return `border-lime-500`;
-    if (color === 'indigo') return `border-indigo-500`;
-    if (color === 'fuschia') return `border-fuschia-500`;
-    if (color === 'rose') return `border-rose-500`;
-    if (color === 'sky') return `border-sky-500`;
-    if (color === 'amber') return `border-amber-500`;
-    if (color === 'emerald') return `border-emerald-500`;
-    return `border-gray-500`;
-}
-
-
-
 export interface AgentData {
     slug: string;
     avatar: string;
@@ -177,7 +144,7 @@ interface ChatBodyDataProps {
     isLoggedIn: boolean;
     conversationId: string | null; // Added this line
 }
-type Suggestion = [string, string, string, string, string];
+type Suggestion = [string, string, string, string];
 
 async function createNewConvo(slug: string) {
     try {
@@ -273,11 +240,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     function fillArea(link: string, type: string, prompt: string) {
         if (!link) {
             let message_str = "";
-        if (!link) {
-            let message_str = "";
             prompt = prompt.charAt(0).toLowerCase() + prompt.slice(1);
-
-            if (type === "Online Search") {
 
             if (type === "Online Search") {
                 message_str = "/online " + prompt;
@@ -286,19 +249,12 @@ function ChatBodyData(props: ChatBodyDataProps) {
             } else {
                 message_str = prompt;
             }
-
-            // Get the textarea element
-            const message_area = document.getElementById("message") as HTMLTextAreaElement;
-
-
             // Get the textarea element
             const message_area = document.getElementById("message") as HTMLTextAreaElement;
 
             if (message_area) {
                 // Update the value directly
-                // Update the value directly
                 message_area.value = message_str;
-                setMessage(message_str);
                 setMessage(message_str);
             }
         }
@@ -326,59 +282,41 @@ function ChatBodyData(props: ChatBodyDataProps) {
         };
     }
 
-// Helper function to convert Tailwind color class to actual color value to prevent default border changes from being applied
-function tailwindColorToHex(colorClass: string): string {
-    const colorMap: { [key: string]: string } = {
-        'border-red-500': '#ef4444',
-        'border-blue-500': '#3b82f6',
-        'border-green-500': '#22c55e',
-        'border-yellow-500': '#eab308',
-        'border-purple-500': '#a855f7',
-        'border-pink-500': '#ec4899',
-        'border-indigo-500': '#6366f1',
-        'border-gray-500': '#6b7280',
-        'border-orange-500': '#f97316',
+    const colorMap: Record<string, string> = {
+        'red': 'border-red-500',
+        'blue': 'border-blue-500',
+        'green': 'border-green-500',
+        'yellow': 'border-yellow-500',
+        'purple': 'border-purple-500',
+        'pink': 'border-pink-500',
+        'indigo': 'border-indigo-500',
+        'gray': 'border-gray-500',
+        'orange': 'border-orange-500',
     };
-    return colorMap[colorClass] || '#000000'; // Default to black if color not found
-}
 
-function highlightHandler(slug: string) {
-    // find buttons with AGENT in their class name
-    const buttons = document.getElementsByClassName("AGENT");
-
-    // find the color of the icon inside the agent
-    const color = agents.find(agent => agent.slug === slug)?.color;
-    const color_class = convertColorToClass(color || 'gray').split(' ')[0];
-
-    // replace 'bg' with 'border' to get the tailwind border color
-    const border_color = color_class.replace('bg', 'border');
-
-    // Convert Tailwind color class to actual color value
-    const hexColor = tailwindColorToHex(border_color);
-
-    for (let i = 0; i < buttons.length; i++) {
-        const button = buttons[i] as HTMLElement;
-        if (button.classList.contains(slug)) {
-            // Set the border color directly using the hex value
-            button.style.borderColor = hexColor;
-            button.style.borderWidth = '1px';
-            button.style.borderStyle = 'solid';
-        } else {
-            // Remove border from other buttons
-            button.style.borderColor = '';
-            button.style.borderWidth = '';
-            button.style.borderStyle = '';
-            button.style.boxShadow = '';
-
-            // also remove any -500 ending class (handles start case where khoj is selected by default at the start)
-            for (let j = 0; j < button.classList.length; j++) {
-                if (button.classList[j].endsWith('-500')) {
-                    button.classList.remove(button.classList[j]);
-                }
-            }
-        }
+    function getTailwindBorderClass(color: string): string {
+        return colorMap[color] || 'border-black'; // Default to black if color not found
     }
-}
+
+    function highlightHandler(slug: string): void {
+        const buttons = document.getElementsByClassName("agent");
+        const agent = agents.find(agent => agent.slug === slug);
+        const borderColorClass = getTailwindBorderClass(agent?.color || 'gray');
+
+        Array.from(buttons).forEach((button: Element) => {
+        const buttonElement = button as HTMLElement;
+        if (buttonElement.classList.contains(slug)) {
+            buttonElement.classList.add(borderColorClass, 'border');
+            buttonElement.classList.remove('border-stone-100', 'dark:border-neutral-700');
+        }
+        else {
+            Object.values(colorMap).forEach(colorClass => {
+                buttonElement.classList.remove(colorClass, 'border');
+            });
+            buttonElement.classList.add('border', 'border-stone-100', 'dark:border-neutral-700');
+        }
+        });
+    }
 
     return (
         <div className={`${styles.chatBoxBody}`}>
@@ -390,10 +328,19 @@ function highlightHandler(slug: string) {
                     !props.isMobileWidth &&
                     <div className="flex pb-6 gap-2 items-center justify-center">
                         {icons.map((icon, index) => (
-                            <Card key={`${index}-${agents[index].slug}`} className={`${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : 'border-stone-100 text-muted-foreground'} hover:cursor-pointer rounded-lg px-2 py-2`}>
-                                <CardTitle className='text-center text-md font-medium flex justify-center items-center' onClick={() => handleAgentsClick(agents[index].slug)}>
-                                    {icon} {agents[index].name}
-                                </CardTitle>
+                        <Card
+                            key={agents[index].slug}
+                            className={`w-200 cursor-pointer ${
+                                agents[index].slug === "khoj"
+                                ? "border-orange-500"
+                                : "border-stone-100 dark:border-neutral-700"
+                            }`}
+                            onClick={() => handleAgentsClick(agents[index].slug)}
+                            >
+                            <CardContent className="flex items-center p-4">
+                                {icon}
+                                <p className="ml-1">{agents[index].name}</p>
+                            </CardContent>
                             </Card>
                         ))}
                         <Card className='border-none shadow-none flex justify-center items-center hover:cursor-pointer' onClick={() => window.location.href = "/agents"}>
@@ -405,7 +352,7 @@ function highlightHandler(slug: string) {
             <div className={`${props.isMobileWidth} ? 'w-full' : 'w-fit`}>
                 {
                     !props.isMobileWidth &&
-                    <div className={`${styles.inputBox} bg-background align-middle items-center justify-center p-3`}>
+                    <div className={`${styles.inputBox} bg-background align-middle items-center justify-center p-3 dark:bg-neutral-700 dark:border-0 dark:shadow-sm`}>
                         <ChatInputArea
                             isLoggedIn={props.isLoggedIn}
                             sendMessage={(message) => setMessage(message)}
@@ -417,21 +364,21 @@ function highlightHandler(slug: string) {
                     </div>
                 }
                 <div className={`suggestions ${styles.suggestions} w-full ${props.isMobileWidth ? 'flex flex-col' : 'flex flex-row'} justify-center items-center`}>
-                    {shuffledOptions.map(([key, styleClass, image, value, link], index) => (
-                        <div key={key} onClick={() => fillArea(link, key, value)}>
+                    {shuffledOptions.map(([key, styleClass, value, link], index) => (
+                        <div onClick={() => fillArea(link, key, value)}>
                             <SuggestionCard
-                                key={key + Math.random()}
-                                title={key}
-                                body={value.length > 65 ? value.substring(0, 65) + '...' : value}
-                                link={link}
-                                color={shuffledColors[index]}
-                                image={shuffledColors[index]}
+                            key={key + Math.random()}
+                            title={key}
+                            body={value.length > 65 ? value.substring(0, 65) + '...' : value}
+                            link={link}
+                            color={shuffledColors[index]}
+                            image={shuffledColors[index]}
                             />
                         </div>
                     ))}
                 </div>
                 <div className="flex items-center justify-center margin-auto">
-                    <button onClick={onButtonClick} className="m-2 p-1 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm text-stone-500">More Examples ⟳</button>
+                    <button onClick={onButtonClick} className="m-2 p-1 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm text-stone-500 dark:text-stone-300 dark:border-neutral-700">More Examples ⟳</button>
                 </div>
             </div>
             {
@@ -446,15 +393,20 @@ function highlightHandler(slug: string) {
                         isMobileWidth={props.isMobileWidth}
                         setUploadedFiles={props.setUploadedFiles} />
                     <div className="flex gap-2 items-center justify-left pt-4">
-                        {icons.map((icon, index) => (
-                            <Card
-                                key={`${index}-${agents[index].slug}`}
-                                className={
-                                    `${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : 'border-muted text-muted-foreground'} hover:cursor-pointer`
-                                }>
-                                <CardTitle className='text-center text-xs font-medium flex justify-center items-center px-1 py-2' onClick={() => handleAgentsClick(agents[index].slug)}>
-                                    {icon} {agents[index].name}
-                                </CardTitle>
+                    {icons.map((icon, index) => (
+                        <Card
+                            key={agents[index].slug}
+                            className={`w-200 cursor-pointer ${
+                                agents[index].slug === "khoj"
+                                ? "border-orange-500"
+                                : "border-stone-100 dark:border-neutral-700"
+                            }`}
+                            onClick={() => handleAgentsClick(agents[index].slug)}
+                            >
+                            <CardContent className="flex items-center p-4">
+                                {icon}
+                                <p className="ml-4">{agents[index].name}</p>
+                            </CardContent>
                             </Card>
                         ))}
                         <Card className='border-none shadow-none flex justify-center items-center hover:cursor-pointer' onClick={() => window.location.href = "/agents"}>
