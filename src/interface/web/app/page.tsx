@@ -86,7 +86,6 @@ function convertColorToTextClass(color: string) {
 }
 
 function convertSuggestionColorToTextClass(color: string) {
-    console.log(color);
     const colors = ['blue', 'yellow', 'green', 'pink', 'purple'];
     if (colors.includes(color)) {
         return ""+`bg-gradient-to-b from-[hsl(var(--background))] to-${color}-100/${color=="green" ? "90" : "70"} dark:from-[hsl(var(--background))] dark:to-${color}-950/30 dark:border dark:border-neutral-700`;
@@ -328,20 +327,20 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     !props.isMobileWidth &&
                     <div className="flex pb-6 gap-2 items-center justify-center">
                         {icons.map((icon, index) => (
-                        <Card
-                            key={agents[index].slug}
-                            className={`w-200 cursor-pointer ${
-                                agents[index].slug === "khoj"
-                                ? "border-orange-500"
-                                : "border-stone-100 dark:border-neutral-700"
-                            }`}
-                            onClick={() => handleAgentsClick(agents[index].slug)}
-                            >
-                            <CardContent className="flex items-center p-4">
-                                {icon}
-                                <p className="ml-1">{agents[index].name}</p>
-                            </CardContent>
+                        <a key={agents[index].slug} onClick={handleAgentsClick(agents[index].slug)} className="no-underline">
+                            <Card
+                                className={`agent ${agents[index].slug} w-200 cursor-pointer ${
+                                    agents[index].slug === "khoj"
+                                    ? "border-orange-500"
+                                    : "border-stone-100 dark:border-neutral-700"
+                                }`}
+                                >
+                                <CardContent className="flex items-center p-4">
+                                    {icon}
+                                    <p className="ml-1">{agents[index].name}</p>
+                                </CardContent>
                             </Card>
+                        </a>
                         ))}
                         <Card className='border-none shadow-none flex justify-center items-center hover:cursor-pointer' onClick={() => window.location.href = "/agents"}>
                             <CardTitle className="text-center text-md font-normal flex justify-center items-center px-1.5 py-2">See All →</CardTitle>
@@ -383,7 +382,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             </div>
             {
                 props.isMobileWidth &&
-                <div className={`${styles.inputBox} bg-background align-middle items-center justify-center p-3`}>
+                <div className={`${styles.inputBox} bg-background align-middle items-center justify-center p-3 dark:bg-neutral-700`}>
                     <ChatInputArea
                         isLoggedIn={props.isLoggedIn}
                         sendMessage={(message) => setMessage(message)}
@@ -393,21 +392,21 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         isMobileWidth={props.isMobileWidth}
                         setUploadedFiles={props.setUploadedFiles} />
                     <div className="flex gap-2 items-center justify-left pt-4">
-                    {icons.map((icon, index) => (
-                        <Card
-                            key={agents[index].slug}
-                            className={`w-200 cursor-pointer ${
-                                agents[index].slug === "khoj"
-                                ? "border-orange-500"
-                                : "border-stone-100 dark:border-neutral-700"
-                            }`}
-                            onClick={() => handleAgentsClick(agents[index].slug)}
-                            >
-                            <CardContent className="flex items-center p-4">
-                                {icon}
-                                <p className="ml-4">{agents[index].name}</p>
-                            </CardContent>
-                            </Card>
+                        {icons.map((icon, index) => (
+                            <a key={agents[index].slug} onClick={handleAgentsClick(agents[index].slug)} className="no-underline">
+                                <Card
+                                    className={`agent ${agents[index].slug} w-200 cursor-pointer dark:bg-neutral-800 ${
+                                        agents[index].slug === "khoj"
+                                        ? "border-orange-500"
+                                        : "border-stone-100 dark:border-neutral-700"
+                                    }`}
+                                    >
+                                    <CardContent className="flex items-center p-4">
+                                        {icon}
+                                        <p className="ml-1">{agents[index].name}</p>
+                                    </CardContent>
+                                </Card>
+                            </a>
                         ))}
                         <Card className='border-none shadow-none flex justify-center items-center hover:cursor-pointer' onClick={() => window.location.href = "/agents"}>
                             <CardTitle className={`text-center ${props.isMobileWidth ? 'text-xs' : 'text-md'} font-normal flex justify-center items-center px-1.5 py-2`}>See All →</CardTitle>
