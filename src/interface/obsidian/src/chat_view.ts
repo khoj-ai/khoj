@@ -1299,13 +1299,18 @@ export class KhojChatView extends KhojPaneView {
 
     handleStreamResponse(newResponseElement: HTMLElement | null, rawResponse: string, loadingEllipsis: HTMLElement | null, replace = true) {
         if (!newResponseElement) return;
-        if (replace && newResponseElement.getElementsByClassName("lds-ellipsis").length > 0 && loadingEllipsis) {
+        // Remove loading ellipsis if it exists
+        if (newResponseElement.getElementsByClassName("lds-ellipsis").length > 0 && loadingEllipsis)
             newResponseElement.removeChild(loadingEllipsis);
-        }
-        if (replace) {
-            newResponseElement.innerHTML = "";
-        }
+        // Clear the response element if replace is true
+        if (replace) newResponseElement.innerHTML = "";
+
+        // Append response to the response element
         newResponseElement.appendChild(this.formatHTMLMessage(rawResponse, false, replace));
+
+        // Append loading ellipsis if it exists
+        if (!replace && loadingEllipsis) newResponseElement.appendChild(loadingEllipsis);
+        // Scroll to bottom of chat view
         this.scrollChatToBottom();
     }
 
