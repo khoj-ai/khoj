@@ -559,7 +559,7 @@ class AgentAdapters:
         if default_conversation_config is None:
             logger.info("No default conversation config found, skipping default agent creation")
             return None
-        default_personality = prompts.personality.format(current_date="placeholder")
+        default_personality = prompts.personality.format(current_date="placeholder", day_of_week="placeholder")
 
         agent = Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).first()
 

@@ -24,6 +24,8 @@ def download_model(repo_id: str, filename: str = "*Q4_K_M.gguf", max_tokens: int
     # Add chat format if known
     if "llama-3" in repo_id.lower():
         kwargs["chat_format"] = "llama-3"
+    elif "gemma-2" in repo_id.lower():
+        kwargs["chat_format"] = "gemma"
 
     # Check if the model is already downloaded
     model_path = load_model_from_cache(repo_id, filename)

@@ -307,6 +307,7 @@ async def aget_relevant_output_modes(query: str, conversation_history: dict, is_
             # Check whether the tool exists as a valid ConversationCommand
             return ConversationCommand(response)
 
+        logger.error(f"Invalid output mode selected: {response}. Defaulting to text.")
         return ConversationCommand.Text
     except Exception:
         logger.error(f"Invalid response for determining relevant mode: {response}")
@@ -518,9 +519,6 @@ async def send_message_to_model_wrapper(
     conversation_config: ChatModelOptions = (
         chat_model_option or await ConversationAdapters.aget_default_conversation_config()
     )
-
-    if conversation_config is None:
-        raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
 
     chat_model = conversation_config.chat_model
     max_tokens = conversation_config.max_prompt_size
