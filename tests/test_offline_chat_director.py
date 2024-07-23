@@ -68,10 +68,8 @@ def test_chat_with_online_content(client_offline_chat):
     # Act
     q = "/online give me the link to paul graham's essay how to do great work"
     encoded_q = quote(q, safe="")
-    response = client_offline_chat.get(f"/api/chat?q={encoded_q}&stream=true")
-    response_message = response.content.decode("utf-8")
-
-    response_message = response_message.split("### compiled references")[0]
+    response = client_offline_chat.get(f"/api/chat?q={encoded_q}")
+    response_message = response.json()["response"]
 
     # Assert
     expected_responses = [
@@ -92,10 +90,8 @@ def test_chat_with_online_webpage_content(client_offline_chat):
     # Act
     q = "/online how many firefighters were involved in the great chicago fire and which year did it take place?"
     encoded_q = quote(q, safe="")
-    response = client_offline_chat.get(f"/api/chat?q={encoded_q}&stream=true")
-    response_message = response.content.decode("utf-8")
-
-    response_message = response_message.split("### compiled references")[0]
+    response = client_offline_chat.get(f"/api/chat?q={encoded_q}")
+    response_message = response.json()["response"]
 
     # Assert
     expected_responses = ["185", "1871", "horse"]
