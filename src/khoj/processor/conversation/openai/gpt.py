@@ -125,17 +125,23 @@ def converse(
     Converse with user using OpenAI's ChatGPT
     """
     # Initialize Variables
-    current_date = datetime.now().strftime("%Y-%m-%d")
+    current_date = datetime.now()
     compiled_references = "\n\n".join({f"# {item['compiled']}" for item in references})
 
     conversation_primer = prompts.query_prompt.format(query=user_query)
 
     if agent and agent.personality:
         system_prompt = prompts.custom_personality.format(
-            name=agent.name, bio=agent.personality, current_date=current_date
+            name=agent.name,
+            bio=agent.personality,
+            current_date=current_date.strftime("%Y-%m-%d"),
+            day_of_week=current_date.strftime("%A"),
         )
     else:
-        system_prompt = prompts.personality.format(current_date=current_date)
+        system_prompt = prompts.personality.format(
+            current_date=current_date.strftime("%Y-%m-%d"),
+            day_of_week=current_date.strftime("%A"),
+        )
 
     if location_data:
         location = f"{location_data.city}, {location_data.region}, {location_data.country}"
