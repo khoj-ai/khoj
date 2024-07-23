@@ -84,12 +84,12 @@ function convertColorToTextClass(color: string) {
 }
 
 function convertSuggestionColorToTextClass(color: string) {
-    if (color === 'blue') return `bg-gradient-to-b from-white dark:from-[hsl(var(--background))] dark:from-20% 50% to-sky-50 dark:to-blue-950 dark:border dark:border-neutral-700`;
-    if (color === 'yellow') return `bg-gradient-to-b from-white dark:from-[hsl(var(--background))] dark:from-20% 50% to-yellow-50 dark:to-yellow-950 dark:border dark:border-neutral-700`;
-    if (color === 'green') return `bg-gradient-to-b from-white 50% to-green-50 dark:from-[hsl(var(--background))] dark:from-20% dark:to-green-950 to-green-50 dark:border dark:border-neutral-700`;
-    if (color === 'pink') return `bg-gradient-to-b from-white 50% to-pink-50 dark:from-[hsl(var(--background))] dark:from-20% dark:to-pink-950 to-pink-50 dark:border dark:border-neutral-700`;
-    if (color === 'purple') return `bg-gradient-to-b from-white 50% to-purple-50 dark:from-[hsl(var(--background))] dark:from-20% dark:to-purple-950 to-purple-50 dark:border dark:border-neutral-700`;
-    return `bg-gradient-to-b from-white 50% to-orange-50`;
+    console.log(color);
+    const colors = ['blue', 'yellow', 'green', 'pink', 'purple'];
+    if (colors.includes(color)) {
+        return ""+`bg-gradient-to-b from-[hsl(var(--background))] to-${color}-100/${color=="green" ? "90" : "70"} dark:from-[hsl(var(--background))] dark:to-${color}-950/30 dark:border dark:border-neutral-700`;
+    }
+    return `bg-gradient-to-b from-white to-orange-50`;
 }
 
 function getIconFromIconName(iconName: string, color: string = 'gray', width: string = 'w-6', height: string = 'h-6') {
