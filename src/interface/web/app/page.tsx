@@ -131,7 +131,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const agents = data ? data.slice(0, nSlice) : []; //select first 4 agents to show as options
 
     //generate colored icons for the selected agents
-    const agentIcons = agents.map(agent => getIconFromIconName(agent.icon, agent.color) || <Image src={agent.avatar} alt={agent.name} width={50} height={50} />);
+    const agentIcons = agents.map(agent => getIconFromIconName(agent.icon, agent.color) || <Image key={agent.name} src={agent.avatar} alt={agent.name} width={50} height={50} />);
     function fillArea(link: string, type: string, prompt: string) {
         if (!link) {
             let message_str = "";
@@ -224,7 +224,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 }
                 <div className={`suggestions ${styles.suggestions} w-full ${props.isMobileWidth ? 'flex flex-col' : 'flex flex-row'} justify-center items-center`}>
                     {shuffledOptions.map(([key, styleClass, value, link], index) => (
-                        <div onClick={() => fillArea(link, key, value)}>
+                        <div key={key} onClick={() => fillArea(link, key, value)}>
                             <SuggestionCard
                                 key={key + Math.random()}
                                 title={key}
