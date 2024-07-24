@@ -16,6 +16,16 @@ div.agentPersonality {
     overflow: hidden;
 }
 
+div.sidePanel {
+    position: fixed;
+    height: 100%;
+}
+
+div.chatLayout {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+}
 
 
 button.infoButton {
