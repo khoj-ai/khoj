@@ -50,20 +50,20 @@ function Note(props: NoteResultProps) {
     return (
         <Card className='bg-secondary h-full shadow-sm rounded-lg bg-gradient-to-b from-background to-slate-50 dark:to-gray-950 border border-muted mb-4'>
             <CardHeader>
-                <CardDescription>
-                    <div className='p-1 border-muted border w-fit rounded-lg mb-2'>
-                        {getNoteTypeIcon(note.additional.source)}
-                    </div>
+                <CardDescription className='p-1 border-muted border w-fit rounded-lg mb-2'>
+                    {getNoteTypeIcon(note.additional.source)}
                 </CardDescription>
                 <CardTitle>
                     {fileName}
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <div className='text-sm line-clamp-4'>
+                <div className='line-clamp-4 text-muted-foreground'>
                     {note.entry}
                 </div>
-                <Button onClick={() => props.setFocusSearchResult(note)} className='mt-2'>See content<ArrowRight className='inline ml-2' /></Button>
+                <Button onClick={() => props.setFocusSearchResult(note)} variant={'ghost'} className='p-0 mt-2 text-orange-400 hover:bg-inherit'>
+                    See content<ArrowRight className='inline ml-2' />
+                </Button>
             </CardContent>
             <CardFooter>
                 {
@@ -90,20 +90,19 @@ function focusNote(note: SearchResult) {
                 <CardTitle>
                     {fileName}
                 </CardTitle>
-                <CardDescription className='mt-4'>
-                    {
-                        isFileNameURL ?
-                            <a href={note.additional.file} target="_blank" className='underline text-sm bg-muted p-1 rounded-lg text-muted-foreground'>
-                                <LinkSimple className='inline m-2' />{note.additional.file}
-                            </a>
-                            :
-                            <div className='bg-muted p-1 text-sm rounded-lg text-muted-foreground'>
-                                <FolderOpen className='inline m-2' />{note.additional.file}
-                            </div>
-                    }
-                </CardDescription>
-
             </CardHeader>
+            <CardFooter>
+                {
+                    isFileNameURL ?
+                        <a href={note.additional.file} target="_blank" className='underline text-sm bg-muted p-3 rounded-lg text-muted-foreground flex items-center gap-2'>
+                            <LinkSimple className='inline' />{note.additional.file}
+                        </a>
+                        :
+                        <div className='bg-muted p-3 text-sm rounded-lg text-muted-foreground flex items-center gap-2'>
+                            <FolderOpen className='inline' />{note.additional.file}
+                        </div>
+                }
+            </CardFooter>
             <CardContent>
                 <div className='text-m'>
                     {note.entry}
