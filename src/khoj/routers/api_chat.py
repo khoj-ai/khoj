@@ -890,10 +890,7 @@ async def chat(
                 online_results=online_results,
             )
             content_obj = {
-                "content-type": "application/json",
                 "intentType": intent_type,
-                "context": compiled_references,
-                "onlineContext": online_results,
                 "inferredQueries": [improved_image_prompt],
                 "image": image,
             }
