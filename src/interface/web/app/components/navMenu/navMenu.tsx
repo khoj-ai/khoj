@@ -116,13 +116,13 @@ export default function NavMenu(props: NavMenuProps) {
                         <DropdownMenuTrigger>=</DropdownMenuTrigger>
                         <DropdownMenuContent>
                             <DropdownMenuItem>
-                                <Link href='/chat' className={`${props.selected.toLowerCase() === 'chat' ? styles.selected : ''} hover:bg-background`}>Chat</Link>
+                                <Link href='/' className={`${props.selected.toLowerCase() === 'chat' ? styles.selected : ''} hover:bg-background no-underline`}>Chat</Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem>
-                                <Link href='/agents' className={`${props.selected.toLowerCase() === 'agent' ? styles.selected : ''} hover:bg-background`}>Agents</Link>
+                                <Link href='/agents' className={`${props.selected.toLowerCase() === 'agent' ? styles.selected : ''} hover:bg-background no-underline`}>Agents</Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem>
-                                <Link href='/automations' className={`${props.selected.toLowerCase() === 'automations' ? styles.selected : ''} hover:bg-background`}>Automations</Link>
+                                <Link href='/automations' className={`${props.selected.toLowerCase() === 'automations' ? styles.selected : ''} hover:bg-background no-underline`}>Automations</Link>
                             </DropdownMenuItem>
                             {userData && <>
                                 <DropdownMenuSeparator />
@@ -142,17 +142,17 @@ export default function NavMenu(props: NavMenuProps) {
                     :
                     <Menubar className='items-top inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground'>
                         <MenubarMenu>
-                            <Link href='/chat' className={`${props.selected.toLowerCase() === 'chat' ? styles.selected : ''} hover:bg-background`}>
+                            <Link href='/' className={`${props.selected.toLowerCase() === 'chat' ? styles.selected : ''} hover:bg-background no-underline`}>
                                 <MenubarTrigger>Chat</MenubarTrigger>
                             </Link>
                         </MenubarMenu>
                         <MenubarMenu>
-                            <Link href='/agents' className={`${props.selected.toLowerCase() === 'agent' ? styles.selected : ''} hover:bg-background`}>
+                            <Link href='/agents' className={`${props.selected.toLowerCase() === 'agent' ? styles.selected : ''} hover:bg-background no-underline`}>
                                 <MenubarTrigger>Agents</MenubarTrigger>
                             </Link>
                         </MenubarMenu>
                         <MenubarMenu>
-                            <Link href='/automations' className={`${props.selected.toLowerCase() === 'automations' ? styles.selected : ''} hover:bg-background`}>
+                            <Link href='/automations' className={`${props.selected.toLowerCase() === 'automations' ? styles.selected : ''} hover:bg-background no-underline`}>
                                 <MenubarTrigger>Automations</MenubarTrigger>
                             </Link>
                         </MenubarMenu>

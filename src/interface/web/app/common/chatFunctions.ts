@@ -76,7 +76,9 @@ export const setupWebSocket = async (conversationId: string, initialMessage?: st
 
     let webSocketUrl = `${wsProtocol}//${host}/api/chat/ws`;
 
-    if (conversationId === null) return null;
+    if (conversationId === null) {
+        return null;
+    }
 
     if (conversationId) {
         webSocketUrl += `?conversation_id=${conversationId}`;

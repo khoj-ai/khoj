@@ -3,7 +3,6 @@
 import styles from './chat.module.css';
 import React, { Suspense, useEffect, useState } from 'react';
 
-import SuggestionCard from '../components/suggestions/suggestionCard';
 import SidePanel from '../components/sidePanel/chatHistorySidePanel';
 import ChatHistory from '../components/chatHistory/chatHistory';
 import NavMenu from '../components/navMenu/navMenu';
@@ -18,9 +17,6 @@ import { StreamMessage } from '../components/chatMessage/chatMessage';
 import { welcomeConsole } from '../common/utils';
 import ChatInputArea, { ChatOptions } from '../components/chatInputArea/chatInputArea';
 import { useAuthenticatedData } from '../common/auth';
-
-
-const styleClassOptions = ['pink', 'blue', 'green', 'yellow', 'purple'];
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -40,43 +36,38 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [processingMessage, setProcessingMessage] = useState(false);
 
     useEffect(() => {
-        if (conversationId) {
-            props.onConversationIdChange?.(conversationId);
+        const storedMessage = localStorage.getItem("message");
+        if (storedMessage) {
+            setMessage(storedMessage);
         }
-    }, [conversationId, props.onConversationIdChange]);
+    }, []);
 
     useEffect(() => {
-        if (message) {
+        if(message){
             setProcessingMessage(true);
             props.setQueryToProcess(message);
         }
     }, [message]);
 
     useEffect(() => {
+        if (conversationId) {
+            props.onConversationIdChange?.(conversationId);
+        }
+    }, [conversationId]);
+
+    useEffect(() => {
         if (props.streamedMessages &&
             props.streamedMessages.length > 0 &&
             props.streamedMessages[props.streamedMessages.length - 1].completed) {
-
             setProcessingMessage(false);
         } else {
             setMessage('');
         }
     }, [props.streamedMessages]);
 
-    if (!conversationId) {
-        return (
-            <div className={styles.suggestions}>
-                {props.chatOptionsData && Object.entries(props.chatOptionsData).map(([key, value]) => (
-                    <SuggestionCard
-                        key={key}
-                        title={`/${key}`}
-                        body={value}
-                        link='#' // replace with actual link if available
-                        styleClass={styleClassOptions[Math.floor(Math.random() * styleClassOptions.length)]}
-                    />
-                ))}
-            </div>
-        );
+    if(!conversationId) {
+        window.location.href = '/';
+        return;
     }
 
     return (
@@ -88,7 +79,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     pendingMessage={processingMessage ? message : ''}
                     incomingMessages={props.streamedMessages} />
             </div>
-            <div className={`${styles.inputBox} bg-background align-middle items-center justify-center px-3`}>
+            <div className={`${styles.inputBox} bg-background align-middle items-center justify-center px-3 dark:bg-neutral-700 dark:border-0 dark:shadow-sm`}>
                 <ChatInputArea
                     isLoggedIn={props.isLoggedIn}
                     sendMessage={(message) => setMessage(message)}
@@ -121,7 +112,6 @@ export default function Chat() {
     const handleWebSocketMessage = (event: MessageEvent) => {
         let chunk = event.data;
         let currentMessage = messages.find(message => !message.completed);
-
         if (!currentMessage) {
             console.error("No current message found");
             return;
@@ -205,50 +195,71 @@ export default function Chat() {
     }, []);
 
     useEffect(() => {
-        if (chatWS && queryToProcess) {
-            // Add a new object to the state
-            const newStreamMessage: StreamMessage = {
-                rawResponse: "",
-                trainOfThought: [],
-                context: [],
-                onlineContext: {},
-                completed: false,
-                timestamp: (new Date()).toISOString(),
-                rawQuery: queryToProcess || "",
-            }
-            setMessages(prevMessages => [...prevMessages, newStreamMessage]);
-            setProcessQuerySignal(true);
-        } else {
-            if (!chatWS) {
-                console.error("No WebSocket connection available");
-            }
-            if (!queryToProcess) {
-                console.error("No query to process");
-            }
-        }
-    }, [queryToProcess]);
+    if (chatWS) {
+        chatWS.onmessage = handleWebSocketMessage;
+    }
+    }, [chatWS, messages]);
+
+    //same as ChatBodyData for local storage message
+    useEffect(() => {
+        const storedMessage = localStorage.getItem("message");
+        setQueryToProcess(storedMessage || '');
+    }, []);
 
     useEffect(() => {
-        if (processQuerySignal && chatWS) {
+        if (chatWS && queryToProcess) {
+            const newStreamMessage: StreamMessage = {
+            rawResponse: "",
+            trainOfThought: [],
+            context: [],
+            onlineContext: {},
+            completed: false,
+            timestamp: (new Date()).toISOString(),
+            rawQuery: queryToProcess || "",
+            };
+            setMessages(prevMessages => [...prevMessages, newStreamMessage]);
+
+            if (chatWS.readyState === WebSocket.OPEN) {
+                chatWS.send(queryToProcess);
+                setProcessQuerySignal(true);
+            }
+            else {
+                console.error("WebSocket is not open. ReadyState:", chatWS.readyState);
+            }
+
+          setQueryToProcess('');
+        }
+    }, [queryToProcess, chatWS]);
+
+   useEffect(() => {
+        if (processQuerySignal && chatWS && chatWS.readyState === WebSocket.OPEN) {
             setProcessQuerySignal(false);
             chatWS.onmessage = handleWebSocketMessage;
-            chatWS?.send(queryToProcess);
+            chatWS.send(queryToProcess);
+            localStorage.removeItem("message");
         }
-    }, [processQuerySignal]);
+    }, [processQuerySignal, chatWS]);
 
     useEffect(() => {
-        (async () => {
-            if (conversationId) {
+        const setupWebSocketConnection = async () => {
+          if (conversationId && (!chatWS || chatWS.readyState === WebSocket.CLOSED)) {
+            if(queryToProcess) {
+                const newWS = await setupWebSocket(conversationId, queryToProcess);
+                localStorage.removeItem("message");
+                setChatWS(newWS);
+            }
+            else {
                 const newWS = await setupWebSocket(conversationId);
                 setChatWS(newWS);
             }
-        })();
+          }
+        };
+        setupWebSocketConnection();
     }, [conversationId]);
 
     const handleConversationIdChange = (newConversationId: string) => {
         setConversationID(newConversationId);
     };
-
 
     if (isLoading) {
         return <Loading />;
@@ -260,7 +271,7 @@ export default function Chat() {
             <title>
                 {title}
             </title>
-            <div className={styles.sidePanel}>
+            <div>
                 <SidePanel
                     webSocketConnected={chatWS !== null}
                     conversationId={conversationId}

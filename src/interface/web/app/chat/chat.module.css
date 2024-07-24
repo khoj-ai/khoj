@@ -4,10 +4,14 @@ div.main {
 }
 
 .suggestions {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    display: flex;
+    overflow-x: none;
+    height: 50%;
+    padding: 10px;
+    white-space: nowrap;
+    /* grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); */
     gap: 1rem;
-    justify-content: center;
+    /* justify-content: center; */
 }
 
 div.inputBox {
@@ -123,4 +127,34 @@ div.agentIndicator {
         grid-template-columns: 1fr;
     }
 
+}
+
+#pink {
+    background-color: #f8d1f8;
+    color: #000000;
+    background-image: linear-gradient(to top, #f8d1f8 1%, white 100%);
+}
+
+#blue {
+    background-color: #d1f8f8;
+    color: #000000;
+    background-image: linear-gradient(to top, #d1f8f8 1%, white 100%);
+}
+
+#green {
+    background-color: #d1f8d1;
+    color: #000000;
+    background-image: linear-gradient(to top, #d1f8d1 1%, white 100%);
+}
+
+#purple {
+    background-color: #f8d1f8;
+    color: #000000;
+    background-image: linear-gradient(to top, #f8d1f8 1%, white 100%);
+}
+
+#yellow {
+    background-color: #f8f8d1;
+    color: #000000;
+    background-image: linear-gradient(to top, #f8f8d1 1%, white 100%);
 }

@@ -59,6 +59,11 @@ div.expanded {
 div.collapsed {
     display: grid;
     grid-template-columns: 1fr;
+    height: fit-content;
+    padding-top: 1rem;
+    padding-right: 0;
+    padding-bottom: 0;
+    padding-left: 1rem;
 }
 
 p.session {
@@ -119,8 +124,8 @@ div.modalSessionsList div.session {
 @media screen and (max-width: 768px) {
     div.panel {
         padding: 0.5rem;
-        position: absolute;
-        width: 100%;
+        position: fixed;
+        width: fit-content;
     }
 
     div.expanded {

@@ -177,7 +177,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
             .then(response => response.json())
             .then((chatData: ChatResponse) => {
                 props.setTitle(chatData.response.slug);
-                if (chatData && chatData.response && chatData.response.chat.length > 0) {
+                if (chatData && chatData.response && chatData.response.chat && chatData.response.chat.length > 0) {
 
                     if (chatData.response.chat.length === data?.chat.length) {
                         setHasMoreMessages(false);
@@ -192,7 +192,18 @@ export default function ChatHistory(props: ChatHistoryProps) {
                     }
                     setFetchingData(false);
                 } else {
+                    if (chatData.response.agent && chatData.response.conversation_id) {
+                        const chatMetadata ={
+                            chat: [],
+                            agent: chatData.response.agent,
+                            conversation_id: chatData.response.conversation_id,
+                            slug: chatData.response.slug,
+                        }
+                        setData(chatMetadata);
+                    }
+
                     setHasMoreMessages(false);
+                    setFetchingData(false);
                 }
             })
             .catch(err => {
@@ -241,7 +252,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
     if (!props.conversationId && !props.publicConversationSlug) {
         return null;
     }
-
     return (
         <ScrollArea className={`h-[80vh]`}>
             <div ref={ref}>
@@ -334,7 +344,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                 <ProfileCard
                                     name={constructAgentName()}
                                     link={constructAgentLink()}
-                                    avatar={<Lightbulb color='orange' weight='fill' className="mt-1 mx-1" />}
+                                    avatar={<Lightbulb color='orange' weight='fill' />}
                                     description={constructAgentPersona()}
                                 />
                             </div>

@@ -63,6 +63,29 @@ interface ChatInputProps {
     isLoggedIn: boolean;
 }
 
+async function createNewConvo() {
+    try {
+        const response = await fetch('/api/chat/sessions', { method: "POST" });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const conversationID = data.conversation_id;
+
+        if (!conversationID) {
+            throw new Error("Conversation ID not found in response");
+        }
+
+        const url = `/chat?conversationId=${conversationID}`;
+        return url;
+    } catch (error) {
+        console.error("Error creating new conversation:", error);
+        throw error;
+    }
+}
+
 export default function ChatInputArea(props: ChatInputProps) {
     const [message, setMessage] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -270,7 +293,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                     </Popover>
                 </div>
             }
-            <div className={`${styles.actualInputArea} flex items-center justify-between`}>
+            <div className={`${styles.actualInputArea} flex items-center justify-between dark:bg-neutral-700`}>
                 <input
                     type="file"
                     multiple={true}
@@ -283,11 +306,11 @@ export default function ChatInputArea(props: ChatInputProps) {
                     className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
                     disabled={props.sendDisabled}
                     onClick={handleFileButtonClick}>
-                    <FileArrowUp weight='fill' />
+                    <FileArrowUp weight='fill' className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
                 </Button>
                 <div className="grid w-full gap-1.5 relative">
                     <Textarea
-                        className='border-none w-full h-16 min-h-16 md:py-4 rounded-lg text-lg'
+                        className={`border-none w-full h-16 min-h-16 md:py-4 rounded-lg resize-none dark:bg-neutral-700 ${props.isMobileWidth ? 'text-md' : 'text-lg'}`}
                         placeholder="Type / to see a list of commands"
                         id="message"
                         value={message}
@@ -304,13 +327,13 @@ export default function ChatInputArea(props: ChatInputProps) {
                     variant={'ghost'}
                     className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
                     disabled={props.sendDisabled}>
-                    <Microphone weight='fill' />
+                    <Microphone weight='fill' className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
                 </Button>
                 <Button
                     className="bg-orange-300 hover:bg-orange-500 rounded-full p-0 h-auto text-3xl transition transform hover:-translate-y-1"
                     onClick={onSendMessage}
                     disabled={props.sendDisabled}>
-                    <ArrowCircleUp />
+                    <ArrowCircleUp className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
                 </Button>
             </div>
         </>

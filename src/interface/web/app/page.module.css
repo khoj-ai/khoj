@@ -1,224 +1,121 @@
-.main {
+div.main {
+    height: 100vh;
+    color: hsla(var(--foreground));
+}
+
+.suggestions {
     display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6rem;
-    min-height: 100vh;
+    overflow-x: none;
+    height: fit-content;
+    padding: 10px;
+    white-space: nowrap;
+    gap: 1rem;
 }
 
-.description {
-    display: inherit;
-    justify-content: inherit;
-    align-items: inherit;
-    font-size: 0.85rem;
-    max-width: var(--max-width);
-    width: 100%;
-    z-index: 2;
-    font-family: var(--font-mono);
+div.inputBox {
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 4px 10px var(--box-shadow-color);
+    margin-bottom: 20px;
+    gap: 12px;
+    align-content: center;
 }
 
-.description a {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 0.5rem;
+input.inputBox {
+    border: none;
 }
 
-.description p {
-    position: relative;
-    margin: 0;
-    padding: 1rem;
-    background-color: rgba(var(--callout-rgb), 0.5);
-    border: 1px solid rgba(var(--callout-border-rgb), 0.3);
-    border-radius: var(--border-radius);
+input.inputBox:focus {
+    outline: none;
+    background-color: transparent;
 }
 
-.code {
-    font-weight: 700;
-    font-family: var(--font-mono);
+div.inputBox:focus {
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
 }
 
-.grid {
+div.chatBodyFull {
     display: grid;
-    grid-template-columns: repeat(4, minmax(25%, auto));
-    max-width: 100%;
-    width: var(--max-width);
+    grid-template-columns: 1fr;
+    height: 100%;
 }
 
-.card {
-    padding: 1rem 1.2rem;
-    border-radius: var(--border-radius);
-    background: rgba(var(--card-rgb), 0);
-    border: 1px solid rgba(var(--card-border-rgb), 0);
-    transition: background 200ms, border 200ms;
+button.inputBox {
+    border: none;
+    outline: none;
+    background-color: transparent;
+    cursor: pointer;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    background: linear-gradient(var(--calm-green), var(--calm-blue));
 }
 
-.card span {
-    display: inline-block;
-    transition: transform 200ms;
+div.chatBody {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 100%;
 }
 
-.card h2 {
-    font-weight: 600;
-    margin-bottom: 0.7rem;
+.inputBox {
+    color: hsla(var(--foreground));
 }
 
-.card p {
-    margin: 0;
-    opacity: 0.6;
-    font-size: 0.9rem;
-    line-height: 1.5;
-    max-width: 30ch;
-    text-wrap: balance;
+div.chatLayout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
 }
 
-.center {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    padding: 4rem 0;
+div.chatBox {
+    display: grid;
+    height: 100%;
 }
 
-.center::before {
-    background: var(--secondary-glow);
-    border-radius: 50%;
-    width: 480px;
-    height: 360px;
-    margin-left: -400px;
+div.titleBar {
+    display: grid;
+    grid-template-columns: 1fr auto;
 }
 
-.center::after {
-    background: var(--primary-glow);
-    width: 240px;
-    height: 180px;
-    z-index: -1;
+div.chatBoxBody {
+    display: grid;
+    height: 100%;
+    margin: auto;
+    grid-template-rows: auto 1fr;
 }
 
-.center::before,
-.center::after {
-    content: "";
-    left: 50%;
-    position: absolute;
-    filter: blur(45px);
-    transform: translateZ(0);
+
+div.sidePanel {
+    position: fixed;
+    height: 100%;
 }
 
-.logo {
-    position: relative;
-}
 
-/* Enable hover only on non-touch devices */
-@media (hover: hover) and (pointer: fine) {
-    .card:hover {
-        background: rgba(var(--card-rgb), 0.1);
-        border: 1px solid rgba(var(--card-border-rgb), 0.15);
+@media (max-width: 768px) {
+    div.chatBody {
+        grid-template-columns: 0fr 1fr;
     }
 
-    .card:hover span {
-        transform: translateX(4px);
+    div.chatBox {
+        padding: 0;
     }
 }
 
-@media (prefers-reduced-motion) {
-    .card:hover span {
-        transform: none;
-    }
-}
-
-/* Mobile */
-@media (max-width: 700px) {
-    .content {
-        padding: 4rem;
+@media screen and (max-width: 768px) {
+    div.inputBox {
+        margin-bottom: 0px;
     }
 
-    .grid {
-        grid-template-columns: 1fr;
-        margin-bottom: 120px;
-        max-width: 320px;
-        text-align: center;
-    }
-
-    .card {
-        padding: 1rem 2.5rem;
-    }
-
-    .card h2 {
-        margin-bottom: 0.5rem;
-    }
-
-    .center {
-        padding: 8rem 0 6rem;
-    }
-
-    .center::before {
-        transform: none;
-        height: 300px;
-    }
-
-    .description {
-        font-size: 0.8rem;
-    }
-
-    .description a {
-        padding: 1rem;
-    }
-
-    .description p,
-    .description div {
-        display: flex;
-        justify-content: center;
-        position: fixed;
+    div.chatBoxBody {
         width: 100%;
     }
 
-    .description p {
-        align-items: center;
-        inset: 0 0 auto;
-        padding: 2rem 1rem 1.4rem;
-        border-radius: 0;
-        border: none;
-        border-bottom: 1px solid rgba(var(--callout-border-rgb), 0.25);
-        background: linear-gradient(to bottom,
-                rgba(var(--background-start-rgb), 1),
-                rgba(var(--callout-rgb), 0.5));
-        background-clip: padding-box;
-        backdrop-filter: blur(24px);
+    div.chatBox {
+        padding: 0;
     }
 
-    .description div {
-        align-items: flex-end;
-        pointer-events: none;
-        inset: auto 0 0;
-        padding: 2rem;
-        height: 200px;
-        background: linear-gradient(to bottom,
-                transparent 0%,
-                rgb(var(--background-end-rgb)) 40%);
-        z-index: 1;
-    }
-}
-
-/* Tablet and Smaller Desktop */
-@media (min-width: 701px) and (max-width: 1120px) {
-    .grid {
-        grid-template-columns: repeat(2, 50%);
-    }
-}
-
-@media (prefers-color-scheme: dark) {
-    .logo {
-        filter: invert(1) drop-shadow(0 0 0.3rem #ffffff70);
-    }
-}
-
-@keyframes rotate {
-    from {
-        transform: rotate(360deg);
+    div.chatLayout {
+        gap: 0;
+        grid-template-columns: 1fr;
     }
 
-    to {
-        transform: rotate(0deg);
-    }
 }
