@@ -804,7 +804,7 @@ async def text_to_image(
 
     with timer("Improve the original user query", logger):
         if send_status_func:
-            await send_status_func("**✍🏽 Enhancing the Painting Prompt**")
+            await send_status_func("**Enhancing the Painting Prompt**")
         improved_image_prompt = await generate_better_image_prompt(
             message,
             chat_history,

@@ -2,10 +2,6 @@ import type { Config } from "tailwindcss"
 
 const config = {
     safelist: [
-        {
-        pattern: /to-(blue|yellow|green|pink|purple)-(50|100|200|950)/,
-        variants: ['dark'],
-        },
     ],
     darkMode: ["class"],
     content: [

@@ -2,6 +2,7 @@ import { CircleNotch } from '@phosphor-icons/react';
 
 interface LoadingProps {
     className?: string;
+    iconClassName?: string;
     message?: string;
 }
 
@@ -17,7 +18,7 @@ export default function Loading(props: LoadingProps) {
 export function InlineLoading(props: LoadingProps) {
     return (
         <button className={`${props.className}`}>
-            <span>{props.message} <CircleNotch className="inline animate-spin h-5 w-5 mx-3" /></span>
+            <span>{props.message} <CircleNotch className={`inline animate-spin ${props.iconClassName ? props.iconClassName : 'h-5 w-5 mx-3'}`}/></span>
         </button>
     )
 }

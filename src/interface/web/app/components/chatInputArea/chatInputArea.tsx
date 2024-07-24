@@ -19,7 +19,10 @@ import {
     Notebook,
     Question,
     Robot,
-    Shapes
+    Shapes,
+    Stop,
+    Waveform,
+    WaveSine
 } from '@phosphor-icons/react';
 
 import {
@@ -48,6 +51,8 @@ import { PopoverTrigger } from '@radix-ui/react-popover';
 import Link from 'next/link';
 import { AlertDialogCancel } from '@radix-ui/react-alert-dialog';
 import LoginPrompt from '../loginPrompt/loginPrompt';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { InlineLoading } from '../loading/loading';
 
 export interface ChatOptions {
     [key: string]: string
@@ -95,6 +100,9 @@ export default function ChatInputArea(props: ChatInputProps) {
     const [uploading, setUploading] = useState(false);
     const [loginRedirectMessage, setLoginRedirectMessage] = useState<string | null>(null);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+    const [recording, setRecording] = useState(false);
+    const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
     const [progressValue, setProgressValue] = useState(0);
 
@@ -194,6 +202,83 @@ export default function ChatInputArea(props: ChatInputProps) {
         }
         return <ArrowRight className={className} />
     }
+
+    // Assuming this function is added within the same context as the provided excerpt
+    async function startRecordingAndTranscribe() {
+        try {
+            const microphone = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mediaRecorder = new MediaRecorder(microphone, { mimeType: 'audio/webm' });
+
+            const audioChunks: Blob[] = [];
+
+            mediaRecorder.ondataavailable = async (event) => {
+                audioChunks.push(event.data);
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const formData = new FormData();
+                formData.append('file', audioBlob);
+
+                // Send the incremental audio blob to the server
+                try {
+                    const response = await fetch('/api/transcribe', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+
+                    const transcription = await response.json();
+                    setMessage(transcription.text.trim());
+                } catch (error) {
+                    console.error('Error sending audio to server:', error);
+                }
+            };
+
+            // Send an audio blob every 1.5 seconds
+            mediaRecorder.start(1500);
+
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const formData = new FormData();
+                formData.append('file', audioBlob);
+
+                // Send the audio blob to the server
+                try {
+                    const response = await fetch('/api/transcribe', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+
+                    const transcription = await response.json();
+                    mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                    setMediaRecorder(null);
+                    setMessage(transcription.text.trim());
+                } catch (error) {
+                    console.error('Error sending audio to server:', error);
+                }
+            };
+
+            setMediaRecorder(mediaRecorder);
+        } catch (error) {
+            console.error("Error getting microphone", error);
+        }
+    }
+
+    useEffect(() => {
+        if (!recording && mediaRecorder) {
+            mediaRecorder.stop();
+        }
+
+        if (recording && !mediaRecorder) {
+            startRecordingAndTranscribe();
+        }
+
+    }, [recording]);
 
     return (
         <>
@@ -321,21 +406,58 @@ export default function ChatInputArea(props: ChatInputProps) {
                             }
                         }}
                         onChange={(e) => setMessage(e.target.value)}
-                        disabled={props.sendDisabled} />
+                        disabled={props.sendDisabled || recording} />
                 </div>
-                <Button
-                    variant={'ghost'}
-                    className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
-                    disabled={props.sendDisabled}>
-                    <Microphone weight='fill' className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
-                </Button>
+                {
+                    recording ?
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant={'ghost'}
+                                        className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
+                                        onClick={() => setRecording(!recording)}
+                                        disabled={props.sendDisabled}
+                                    >
+                                        <Stop weight='fill' className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    Click to stop recording and transcribe your voice.
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                        :
+                        (
+                            mediaRecorder ?
+                                <InlineLoading />
+                                :
+                                < TooltipProvider >
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant={'ghost'}
+                                                className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
+                                                onClick={() => setRecording(!recording)}
+                                                disabled={props.sendDisabled}
+                                            >
+                                                <Microphone weight='fill' className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            Click to start recording and transcribe your voice.
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                        )
+                }
                 <Button
                     className="bg-orange-300 hover:bg-orange-500 rounded-full p-0 h-auto text-3xl transition transform hover:-translate-y-1"
                     onClick={onSendMessage}
                     disabled={props.sendDisabled}>
                     <ArrowCircleUp className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
                 </Button>
-            </div>
+            </div >
         </>
     )
 }

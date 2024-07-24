@@ -88,7 +88,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
         }
     }, [props.chatOptionsData]);
 
-    function onButtonClick() {
+    function shuffleSuggestionsCards() {
         shuffleAndSetOptions();
     }
 
@@ -224,7 +224,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 }
                 <div className={`suggestions ${styles.suggestions} w-full ${props.isMobileWidth ? 'flex flex-col' : 'flex flex-row'} justify-center items-center`}>
                     {shuffledOptions.map(([key, styleClass, value, link], index) => (
-                        <div key={key} onClick={() => fillArea(link, key, value)}>
+                        <div key={`${key} ${value}`} onClick={() => fillArea(link, key, value)}>
                             <SuggestionCard
                                 key={key + Math.random()}
                                 title={key}
@@ -238,7 +238,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 </div>
                 <div className="flex items-center justify-center margin-auto">
                     <button
-                        onClick={onButtonClick}
+                        onClick={shuffleSuggestionsCards}
                         className="m-2 p-1.5 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm text-stone-500 dark:text-stone-300 dark:border-neutral-700">
                         More Examples <ClockCounterClockwise className='h-4 w-4 inline' />
                     </button>

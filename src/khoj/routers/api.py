@@ -222,10 +222,10 @@ async def transcribe(
     common: CommonQueryParams,
     file: UploadFile = File(...),
     rate_limiter_per_minute=Depends(
-        ApiUserRateLimiter(requests=1, subscribed_requests=10, window=60, slug="transcribe_minute")
+        ApiUserRateLimiter(requests=20, subscribed_requests=20, window=60, slug="transcribe_minute")
     ),
     rate_limiter_per_day=Depends(
-        ApiUserRateLimiter(requests=10, subscribed_requests=600, window=60 * 60 * 24, slug="transcribe_day")
+        ApiUserRateLimiter(requests=60, subscribed_requests=600, window=60 * 60 * 24, slug="transcribe_day")
     ),
 ):
     user: KhojUser = request.user.object
