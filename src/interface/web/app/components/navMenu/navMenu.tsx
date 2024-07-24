@@ -46,6 +46,8 @@ export default function NavMenu(props: NavMenuProps) {
         setIsMobileWidth(window.innerWidth < 768);
         if (props.title) {
             setDisplayTitle(props.title);
+        } else if (!props.title) {
+            setDisplayTitle(undefined);
         }
 
     }, [props.title]);
