@@ -4,6 +4,8 @@ import NavMenu from '../components/navMenu/navMenu';
 import styles from './agentsLayout.module.css';
 
 import "../globals.css";
+import SidePanel from "../components/sidePanel/chatHistorySidePanel";
+import { nullable } from "zod";
 
 export const metadata: Metadata = {
     title: "Khoj AI - Agents",
@@ -19,9 +21,11 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <div className={`${styles.agentsLayout}`}>
-            <NavMenu selected="Agents" showLogo={true} />
-            {children}
+        <div>
+            <div className={`${styles.agentsLayout}`}>
+                <NavMenu selected="Agents" showLogo={false} />
+                {children}
+            </div>
         </div>
     );
 }
