@@ -172,7 +172,7 @@ export default function Search() {
             </div>
             <div className="md:w-3/4 sm:w-full mr-auto ml-auto">
                 <NavMenu title={title} selected='Chat' />
-                <div className='p-4'>
+                <div className='p-4 md:w-3/4 sm:w-full mr-auto ml-auto'>
                     {
                         isMobileWidth && <div className='font-bold'>Search</div>
                     }
@@ -180,11 +180,12 @@ export default function Search() {
                         <MagnifyingGlass className='inline m-2' />
                         <Input
                             className='border-none'
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => setSearchQuery(e.currentTarget.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && search(searchQuery)}
                             type="search"
                             placeholder="Search Documents" />
                         <button className='px-4 rounded' onClick={() => search(searchQuery)}>
-                            Search
+                            Find
                         </button>
                     </div>
                     {
