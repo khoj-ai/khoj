@@ -9,7 +9,8 @@ import NavMenu from '../components/navMenu/navMenu';
 import styles from './search.module.css';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Folder, FolderOpen, GithubLogo, LinkSimple, MagnifyingGlass, NoteBlank, NotionLogo } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowRight, Folder, FolderOpen, GithubLogo, LinkSimple, MagnifyingGlass, NoteBlank, NotionLogo } from '@phosphor-icons/react';
+import { Button } from '@/components/ui/button';
 
 interface AdditionalData {
     file: string;
@@ -36,16 +37,21 @@ function getNoteTypeIcon(source: string) {
     return <NoteBlank className='text-muted-foreground' />;
 }
 
-function Note(note: SearchResult) {
+interface NoteResultProps {
+    note: SearchResult;
+    setFocusSearchResult: (note: SearchResult) => void;
+}
+
+function Note(props: NoteResultProps) {
+    const note = props.note;
     const isFileNameURL = (note.additional.file || '').startsWith('http');
     const fileName = isFileNameURL ? note.additional.heading : note.additional.file.split('/').pop();
-    console.log("note.additional.file", note.additional.file);
-    console.log("filename", fileName);
+
     return (
         <Card className='bg-secondary h-full shadow-sm rounded-lg bg-gradient-to-b from-background to-slate-50 dark:to-gray-950 border border-muted mb-4'>
             <CardHeader>
                 <CardDescription>
-                    <div className='p-1 border-muted border-2 w-fit rounded-lg mb-2'>
+                    <div className='p-1 border-muted border w-fit rounded-lg mb-2'>
                         {getNoteTypeIcon(note.additional.source)}
                     </div>
                 </CardDescription>
@@ -57,6 +63,7 @@ function Note(note: SearchResult) {
                 <div className='text-sm line-clamp-4'>
                     {note.entry}
                 </div>
+                <Button onClick={() => props.setFocusSearchResult(note)} className='mt-2'>See content<ArrowRight className='inline ml-2' /></Button>
             </CardContent>
             <CardFooter>
                 {
@@ -72,7 +79,38 @@ function Note(note: SearchResult) {
             </CardFooter>
         </Card>
     );
+}
 
+function focusNote(note: SearchResult) {
+    const isFileNameURL = (note.additional.file || '').startsWith('http');
+    const fileName = isFileNameURL ? note.additional.heading : note.additional.file.split('/').pop();
+    return (
+        <Card className='bg-secondary h-full shadow-sm rounded-lg bg-gradient-to-b from-background to-slate-50 dark:to-gray-950 border border-muted mb-4'>
+            <CardHeader>
+                <CardTitle>
+                    {fileName}
+                </CardTitle>
+                <CardDescription className='mt-4'>
+                    {
+                        isFileNameURL ?
+                            <a href={note.additional.file} target="_blank" className='underline text-sm bg-muted p-1 rounded-lg text-muted-foreground'>
+                                <LinkSimple className='inline m-2' />{note.additional.file}
+                            </a>
+                            :
+                            <div className='bg-muted p-1 text-sm rounded-lg text-muted-foreground'>
+                                <FolderOpen className='inline m-2' />{note.additional.file}
+                            </div>
+                    }
+                </CardDescription>
+
+            </CardHeader>
+            <CardContent>
+                <div className='text-m'>
+                    {note.entry}
+                </div>
+            </CardContent>
+        </Card>
+    );
 }
 
 export default function Search() {
@@ -82,6 +120,7 @@ export default function Search() {
     const [title, setTitle] = useState('Search');
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
     const [searchResultsLoading, setSearchResultsLoading] = useState(false);
+    const [focusSearchResult, setFocusSearchResult] = useState<SearchResult | null>(null);
 
     useEffect(() => {
         setIsMobileWidth(window.innerWidth < 786);
@@ -150,13 +189,25 @@ export default function Search() {
                         </button>
                     </div>
                     {
-                        searchResults.length > 0 &&
+                        focusSearchResult &&
+                        <div className='mt-4'>
+                            <Button onClick={() => setFocusSearchResult(null)} className='mb-4' variant={'outline'}>
+                                <ArrowLeft className='inline mr-2' />
+                                Back
+                            </Button>
+                            {focusNote(focusSearchResult)}
+                        </div>
+                    }
+                    {
+                        !focusSearchResult && searchResults.length > 0 &&
                         <div className='mt-4'>
                             <ScrollArea className="h-[80vh]">
                                 {
                                     searchResults.map((result, index) => {
                                         return (
-                                            <Note key={result["corpus-id"]} {...result} />
+                                            <Note key={result["corpus-id"]}
+                                                note={result}
+                                                setFocusSearchResult={setFocusSearchResult} />
                                         );
                                     })
                                 }
