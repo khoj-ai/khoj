@@ -36,6 +36,8 @@ def collect_files(search_type: Optional[SearchType] = SearchType.All, user=None)
     if search_type == SearchType.All or search_type == SearchType.Pdf:
         pdf_config = LocalPdfConfig.objects.filter(user=user).first()
         files["pdf"] = get_pdf_files(construct_config_from_db(pdf_config)) if pdf_config else {}
+    files["image"] = {}
+    files["docx"] = {}
     return files
 
 
