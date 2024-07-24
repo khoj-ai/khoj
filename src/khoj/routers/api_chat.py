@@ -548,6 +548,7 @@ async def chat(
         chat_metadata: dict = {}
         connection_alive = True
         user: KhojUser = request.user.object
+        event_delimiter = "␃🔚␗"
         q = unquote(q)
 
         async def send_event(event_type: str, data: str | dict):
@@ -564,7 +565,7 @@ async def chat(
                 if event_type == "message":
                     yield data
                 elif event_type == "references" or stream:
-                    yield json.dumps({"type": event_type, "data": data})
+                    yield json.dumps({"type": event_type, "data": data}, ensure_ascii=False)
             except asyncio.CancelledError:
                 connection_alive = False
                 logger.warn(f"User {user} disconnected from {common.client} client")
@@ -573,6 +574,9 @@ async def chat(
                 connection_alive = False
                 logger.error(f"Failed to stream chat API response to {user} on {common.client}: {e}", exc_info=True)
                 return
+            finally:
+                if stream:
+                    yield event_delimiter
 
         async def send_llm_response(response: str):
             async for result in send_event("start_llm_response", ""):

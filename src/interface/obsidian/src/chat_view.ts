@@ -869,36 +869,6 @@ export class KhojChatView extends KhojPaneView {
         return true;
     }
 
-    collectJsonsInBufferedMessageChunk(chunk: string): ChunkResult {
-        // Collect list of JSON objects and raw strings in the chunk
-        // Return the list of objects and the remaining raw string
-        let startIndex = chunk.indexOf('{');
-        if (startIndex === -1) return { objects: [chunk], remainder: '' };
-        const objects: string[] = [chunk.slice(0, startIndex)];
-        let openBraces = 0;
-        let currentObject = '';
-
-        for (let i = startIndex; i < chunk.length; i++) {
-            if (chunk[i] === '{') {
-                if (openBraces === 0) startIndex = i;
-                openBraces++;
-            }
-            if (chunk[i] === '}') {
-                openBraces--;
-                if (openBraces === 0) {
-                    currentObject = chunk.slice(startIndex, i + 1);
-                    objects.push(currentObject);
-                    currentObject = '';
-                }
-            }
-        }
-
-        return {
-            objects: objects,
-            remainder: openBraces > 0 ? chunk.slice(startIndex) : ''
-        };
-    }
-
     convertMessageChunkToJson(rawChunk: string): MessageChunk {
         if (rawChunk?.startsWith("{") && rawChunk?.endsWith("}")) {
             try {
@@ -988,8 +958,8 @@ export class KhojChatView extends KhojPaneView {
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
+        const eventDelimiter = '␃🔚␗';
         let buffer = '';
-        let netBracketCount = 0;
 
         while (true) {
             const { value, done } = await reader.read();
@@ -1002,14 +972,19 @@ export class KhojChatView extends KhojPaneView {
             }
 
             const chunk = decoder.decode(value, { stream: true });
+            console.debug("Raw Chunk:", chunk)
+            // Start buffering chunks until complete event is received
             buffer += chunk;
 
-            // Check if the buffer contains (0 or more) complete JSON objects
-            netBracketCount += (chunk.match(/{/g) || []).length - (chunk.match(/}/g) || []).length;
-            if (netBracketCount === 0) {
-                let chunks = this.collectJsonsInBufferedMessageChunk(buffer);
-                chunks.objects.forEach((chunk) => this.processMessageChunk(chunk));
-                buffer = chunks.remainder;
+            // Once the buffer contains a complete event
+            let newEventIndex;
+            while ((newEventIndex = buffer.indexOf(eventDelimiter)) !== -1) {
+                // Extract the event from the buffer
+                const event = buffer.slice(0, newEventIndex);
+                buffer = buffer.slice(newEventIndex + eventDelimiter.length);
+
+                // Process the event
+                if (event) this.processMessageChunk(event);
             }
         }
     }
