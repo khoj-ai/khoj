@@ -705,8 +705,8 @@ export default function SidePanel(props: SidePanelProps) {
     }
 
     return (
-        <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed}`}>
-            <div className={`flex items-center justify-between ${(enabled || props.isMobileWidth) ? 'flex-row' : 'flex-col'}`}>
+        <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed} mt-1`}>
+            <div className={`flex justify-between ${(enabled || props.isMobileWidth) ? 'flex-row' : 'flex-col'}`}>
                 <Link href='/'>
                     <img
                         src="/khoj-logo.svg"
@@ -748,7 +748,7 @@ export default function SidePanel(props: SidePanelProps) {
                             </DrawerContent>
                         </Drawer>
                         :
-                        <div className={`flex items-center ${enabled ? 'flex-row gap-2' : 'flex-col pt-2'}`}>
+                        <div className={`${enabled ? 'flex items-center flex-row gap-2' : 'pt-2'}`}>
                             <Link className={` ${enabled ? 'ml-2' : ''}`} href="/">
                                 {enabled ? <NotePencil className="h-6 w-6" /> : <NotePencil className="h-6 w-6" color="gray" />}
                             </Link>

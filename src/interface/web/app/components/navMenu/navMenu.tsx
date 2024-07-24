@@ -23,7 +23,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Toggle } from '@/components/ui/toggle';
-import { Moon } from '@phosphor-icons/react';
+import { Moon, Sun, UserCircle, User, Robot, MagnifyingGlass, Question, GearFine, ArrowRight } from '@phosphor-icons/react';
 import Image from 'next/image';
 
 
@@ -142,52 +142,75 @@ export default function NavMenu(props: NavMenuProps) {
                         </DropdownMenuContent>
                     </DropdownMenu>
                     :
-                    <Menubar className='items-top inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground'>
+                    <Menubar className='border-none hover:bg-stone-100 dark:hover:bg-neutral-900 bg-none'>
+
                         <MenubarMenu>
-                            <Link href='/' className={`${props.selected.toLowerCase() === 'chat' ? styles.selected : ''} hover:bg-background no-underline`}>
-                                <MenubarTrigger>Chat</MenubarTrigger>
-                            </Link>
-                        </MenubarMenu>
-                        <MenubarMenu>
-                            <Link href='/agents' className={`${props.selected.toLowerCase() === 'agent' ? styles.selected : ''} hover:bg-background no-underline`}>
-                                <MenubarTrigger>Agents</MenubarTrigger>
-                            </Link>
-                        </MenubarMenu>
-                        <MenubarMenu>
-                            <Link href='/automations' className={`${props.selected.toLowerCase() === 'automations' ? styles.selected : ''} hover:bg-background no-underline`}>
-                                <MenubarTrigger>Automations</MenubarTrigger>
-                            </Link>
-                        </MenubarMenu>
-                        <MenubarMenu>
-                            <MenubarTrigger>Profile</MenubarTrigger>
-                            <MenubarContent>
+                            <MenubarTrigger>
+                                {/* change width */}
+                                {/* <p className="pr-1">Settings</p> */}
+                                <UserCircle className="w-8 h-8"/>
+                            </MenubarTrigger>
+                            <MenubarContent align="end" className="rounded-xl w-60">
                                 <MenubarItem>
-                                    <Toggle
-                                        pressed={darkMode}
+                                    <div
                                         onClick={() => {
                                             setDarkMode(!darkMode)
                                         }
-                                        }>
-                                        <Moon />
-                                    </Toggle>
+                                        }
+                                        className="flex flex-rows pt-1 pb-1">
+                                        {darkMode ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
+                                        <p className="ml-3 pt-[2px]">{darkMode ? 'Light Mode' : 'Dark Mode'}</p>
+                                    </div>
                                 </MenubarItem>
                                 {userData &&
                                     <>
                                         <MenubarItem>
-                                            <Link href="/settings">
-                                                Settings
+                                            <Link href="/agents" className="no-underline">
+                                                <div className="flex flex-rows pt-1 pb-1">
+                                                <User className="w-6 h-6"/>
+                                                <p className="ml-3 pt-[2px]">Agents</p>
+                                                </div>
                                             </Link>
                                         </MenubarItem>
-                                        <MenubarSeparator />
                                         <MenubarItem>
-                                            <Link href="https://docs.khoj.dev">
-                                                Help
+                                            <Link href="/automations" className="no-underline">
+                                                <div className="flex flex-rows pt-1 pb-1">
+                                                <Robot className="w-6 h-6"/>
+                                                <p className="ml-3 pt-[2px]">Automations</p>
+                                                </div>
                                             </Link>
                                         </MenubarItem>
-                                        <MenubarSeparator />
                                         <MenubarItem>
-                                            <Link href="/auth/logout">
-                                                Logout
+                                            <Link href="/search" className="no-underline">
+                                                <div className="flex flex-rows pt-1 pb-1">
+                                                <MagnifyingGlass className="w-6 h-6"/>
+                                                <p className="ml-3 pt-[2px]">Search</p>
+                                                </div>
+                                            </Link>
+                                        </MenubarItem>
+                                        <MenubarSeparator className="dark:bg-white height-[2px] bg-black" />
+                                        <MenubarItem>
+                                            <Link href="/settings" className="no-underline">
+                                                <div className="flex flex-rows pt-1 pb-1">
+                                                <GearFine className="w-6 h-6"/>
+                                                <p className="ml-3 pt-[2px]">Settings</p>
+                                                </div>
+                                            </Link>
+                                        </MenubarItem>
+                                        <MenubarItem>
+                                            <Link href="https://docs.khoj.dev" className="no-underline">
+                                                <div className="flex flex-rows pt-1 pb-1">
+                                                <Question className="w-6 h-6"/>
+                                                <p className="ml-3 pt-[2px]">Help</p>
+                                                </div>
+                                            </Link>
+                                        </MenubarItem>
+                                        <MenubarItem>
+                                            <Link href="/auth/logout" className="no-underline">
+                                                <div className="flex flex-rows pt-1 pb-1">
+                                                <ArrowRight className="w-6 h-6"/>
+                                                <p className="ml-3 pt-[2px]">Logout</p>
+                                                </div>
                                             </Link>
                                         </MenubarItem>
                                     </>
