@@ -65,7 +65,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
         }
     }, [props.streamedMessages]);
 
-    if(!conversationId) {
+    if (!conversationId) {
         window.location.href = '/';
         return;
     }

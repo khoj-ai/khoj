@@ -88,6 +88,18 @@ function convertSuggestionColorToIconClass(color: string) {
 }
 
 
+
+import { getIconFromIconName } from "@/app/common/iconUtils";
+
+
+function convertSuggestionColorToIconClass(color: string) {
+    if (color.includes('blue')) return getIconFromIconName('Robot', 'blue', 'w-8', 'h-8');
+    if (color.includes('yellow')) return getIconFromIconName('Globe', 'yellow', 'w-8', 'h-8');
+    if (color.includes('green')) return getIconFromIconName('Palette', 'green', 'w-8', 'h-8');
+    else return getIconFromIconName('Lightbulb', 'orange', 'w-8', 'h-8');
+}
+
+
 interface SuggestionCardProps {
     title: string;
     body: string;
