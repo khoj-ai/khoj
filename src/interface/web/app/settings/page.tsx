@@ -20,8 +20,16 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+  } from "@/components/ui/table"
 
-import { ArrowRight, ChatCircleText, Key, Palette, SpeakerHigh, UserCircle, FileMagnifyingGlass } from "@phosphor-icons/react";
+import { ArrowRight, ChatCircleText, Key, Palette, SpeakerHigh, UserCircle, FileMagnifyingGlass, Trash, Copy, PlusCircle } from "@phosphor-icons/react";
 
 import NavMenu from "../components/navMenu/navMenu";
 import SidePanel from "../components/sidePanel/chatHistorySidePanel";
@@ -62,9 +70,82 @@ const DropdownComponent: React.FC<DropdownComponentProps> = ({ items, selected, 
     );
 }
 
+interface TokenObject {
+    token: string;
+    name: string;
+}
+
+export const useApiKeys = () => {
+    const [apiKeys, setApiKeys] = useState<TokenObject[]>([]);
+    const { toast } = useToast();
+
+    const generateAPIKey = async () => {
+        try {
+            const response = await fetch(`/auth/token`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            const tokenObj = await response.json();
+            setApiKeys(prevKeys => [...prevKeys, tokenObj]);
+        } catch (error) {
+            console.error('Error generating API key:', error);
+        }
+    };
+
+    const copyAPIKey = async (token: string) => {
+        try {
+            await navigator.clipboard.writeText(token);
+            toast({
+                title: "🔑 API Key",
+                description: "Copied to clipboard",
+            });
+        } catch (error) {
+            console.error('Error copying API key:', error);
+        }
+    };
+
+    const deleteAPIKey = async (token: string) => {
+        try {
+            const response = await fetch(`/auth/token?token=${token}`, { method: 'DELETE' });
+            if (response.ok) {
+                setApiKeys(prevKeys => prevKeys.filter(key => key.token !== token));
+            }
+        } catch (error) {
+            console.error('Error deleting API key:', error);
+        }
+    };
+
+    const listApiKeys = async () => {
+        try {
+            const response = await fetch(`/auth/token`);
+            const tokens = await response.json();
+            if (tokens?.length > 0) {
+                setApiKeys(tokens);
+            }
+        } catch (error) {
+            console.error('Error listing API keys:', error);
+        }
+    };
+
+    useEffect(() => {
+        listApiKeys();
+    }, []);
+
+    return {
+        apiKeys,
+        generateAPIKey,
+        copyAPIKey,
+        deleteAPIKey,
+    };
+};
+
+
 export default function SettingsView() {
     const [title, setTitle] = useState("Settings");
     const [isMobileWidth, setIsMobileWidth] = useState(false);
+    const { apiKeys, generateAPIKey, copyAPIKey, deleteAPIKey } = useApiKeys();
     const userConfig = useUserConfig(true);
     const cardClassName = "w-1/3 grid grid-flow-column border border-gray-300 shadow-md rounded-lg";
     const { toast } = useToast();
@@ -216,6 +297,49 @@ export default function SettingsView() {
                                                 callbackFunc={updateModel("voice")}
                                             />
                                         </CardContent>
+                                    </Card>
+                                </div>
+                            </div>
+                            <div className="section grid gap-8">
+                                <div className="text-4xl">Clients</div>
+                                <div className="cards flex flex-wrap gap-16">
+                                    <Card className="grid grid-flow-column border border-gray-300 shadow-md rounded-lg">
+                                        <CardHeader className="text-xl flex flex-row"><Key className="h-7 w-7 mr-2"/>API Keys</CardHeader>
+                                        <CardContent className="overflow-hidden">
+                                            <p className="text-md text-gray-400">
+                                            Access Khoj from your Desktop App, Obsidian plugin, and more.
+                                            </p>
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead>Name</TableHead>
+                                                        <TableHead>Token</TableHead>
+                                                        <TableHead>Actions</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {apiKeys.map((key) => (
+                                                        <TableRow key={key.token}>
+                                                            <TableCell><b>{key.name}</b></TableCell>
+                                                            <TableCell>{`${key.token.slice(0, 4)}...${key.token.slice(-4)}`}</TableCell>
+                                                            <TableCell>
+                                                                <Button variant="outline" className="border border-green-400" onClick={() => copyAPIKey(key.token)}>
+                                                                    <Copy className="h-4 w-4 mr-2" /><span className="hidden md:inline">Copy</span>
+                                                                </Button>
+                                                                <Button variant="outline" className="ml-4 border border-red-400" onClick={() => deleteAPIKey(key.token)}>
+                                                                    <Trash className='h-4 w-4 mr-2' /><span className="hidden md:inline">Delete</span>
+                                                                </Button>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </CardContent>
+                                        <CardFooter className="flex flex-wrap gap-4">
+                                            <Button variant="outline" className="border border-green-300" onClick={generateAPIKey}>
+                                                <PlusCircle className='h-4 w-4 mr-2' />Generate Key
+                                            </Button>
+                                        </CardFooter>
                                     </Card>
                                 </div>
                             </div>
