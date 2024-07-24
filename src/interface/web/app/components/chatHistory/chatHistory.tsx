@@ -176,7 +176,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
         fetch(conversationFetchURL)
             .then(response => response.json())
             .then((chatData: ChatResponse) => {
-                console.log("CHAT DATA RESPONSE", chatData);
                 props.setTitle(chatData.response.slug);
                 if (chatData && chatData.response && chatData.response.chat && chatData.response.chat.length > 0) {
 

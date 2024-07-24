@@ -90,7 +90,6 @@ export const setupWebSocket = async (conversationId: string, initialMessage?: st
         console.log('WebSocket connection established');
         if (initialMessage) {
             chatWS.send(initialMessage);
-            console.log("ws data: ", initialMessage, conversationId, webSocketUrl);
         }
     };
 
