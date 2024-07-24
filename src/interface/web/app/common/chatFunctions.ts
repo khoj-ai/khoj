@@ -77,7 +77,6 @@ export const setupWebSocket = async (conversationId: string, initialMessage?: st
     let webSocketUrl = `${wsProtocol}//${host}/api/chat/ws`;
 
     if (conversationId === null) {
-        console.error("No conversation ID provided");
         return null;
     }
 

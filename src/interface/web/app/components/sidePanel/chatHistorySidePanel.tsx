@@ -706,7 +706,7 @@ export default function SidePanel(props: SidePanelProps) {
 
     return (
         <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed}`}>
-            <div className={`flex items-center justify-between ${enabled ? 'flex-row' : 'flex-col'}`}>
+            <div className={`flex items-center justify-between ${(enabled || props.isMobileWidth) ? 'flex-row' : 'flex-col'}`}>
                 <Link href='/'>
                     <img
                         src="/khoj-logo.svg"
@@ -721,7 +721,7 @@ export default function SidePanel(props: SidePanelProps) {
                             setEnabled(open);
                         }
                         }>
-                            <DrawerTrigger><ArrowRight className="h-4 w-4 mx-2" weight="bold" /></DrawerTrigger>
+                            <DrawerTrigger><Sidebar className="h-4 w-4 mx-2" weight="thin" /></DrawerTrigger>
                             <DrawerContent>
                                 <DrawerHeader>
                                     <DrawerTitle>Sessions and Files</DrawerTitle>

@@ -1,4 +1,5 @@
 'use client'
+import './globals.css';
 
 import styles from './page.module.css';
 import React, { Suspense, useEffect, useState, useMemo } from 'react';
@@ -15,146 +16,13 @@ import 'katex/dist/katex.min.css';
 import { StreamMessage } from './components/chatMessage/chatMessage';
 import ChatInputArea, { ChatOptions } from './components/chatInputArea/chatInputArea';
 import { useAuthenticatedData } from './common/auth';
+import { Card, CardContent, CardTitle } from '@/components/ui/card';
+import { convertSuggestionColorToTextClass, colorMap, convertColorToBorderClass } from './common/colorUtils';
+import { getIconFromIconName } from './common/iconUtils';
+import { ClockCounterClockwise } from '@phosphor-icons/react';
 
 //samples for suggestion cards (should be moved to json later)
-const suggestions: Suggestion[] = [["Automation", "blue", "/automate.svg", "Send me a summary of HackerNews every morning.", "/automations?subject=Summarizing%20Top%20Headlines%20from%20HackerNews&query=Summarize%20the%20top%20headlines%20on%20HackerNews&crontime=00%207%20*%20*%20*"], ["Automation", "blue", "/automate.svg", "Compose a bedtime story that a five-year-old might enjoy.", "/automations?subject=Daily%20Bedtime%20Story&query=Compose%20a%20bedtime%20story%20that%20a%20five-year-old%20might%20enjoy.%20It%20should%20not%20exceed%20five%20paragraphs.%20Appeal%20to%20the%20imagination%2C%20but%20weave%20in%20learnings.&crontime=0%2021%20*%20*%20*"], ["Paint", "green", "/paint.svg", "Paint a picture of a sunset but it's made of stained glass tiles", ""], ["Online Search", "yellow", "/online_search.svg", "Search for the best attractions in Austria Hungary", ""]];
-
-import {
-    Lightbulb,
-    Robot,
-    Aperture,
-    GraduationCap,
-    Jeep,
-    Island,
-    MathOperations,
-    Asclepius,
-    Couch,
-    Code,
-    Atom,
-    ClockCounterClockwise,
-    PaperPlaneTilt,
-    Info,
-    UserCircle,
-    Globe,
-    Palette,
-    LinkBreak,
-} from "@phosphor-icons/react";
-import Chat from './page';
-import { Card, CardContent, CardTitle } from '@/components/ui/card';
-import Link from 'next/link';
-
-interface IconMap {
-    [key: string]: (color: string, width: string, height: string) => JSX.Element | null;
-}
-
-const iconMap: IconMap = {
-    Lightbulb: (color: string, width: string, height: string) => <Lightbulb className={`${width} ${height} ${color} mr-2`} />,
-    Robot: (color: string, width: string, height: string) => <Robot className={`${width} ${height} ${color} mr-2`} />,
-    Aperture: (color: string, width: string, height: string) => <Aperture className={`${width} ${height} ${color} mr-2`} />,
-    GraduationCap: (color: string, width: string, height: string) => <GraduationCap className={`${width} ${height} ${color} mr-2`} />,
-    Jeep: (color: string, width: string, height: string) => <Jeep className={`${width} ${height} ${color} mr-2`} />,
-    Island: (color: string, width: string, height: string) => <Island className={`${width} ${height} ${color} mr-2`} />,
-    MathOperations: (color: string, width: string, height: string) => <MathOperations className={`${width} ${height} ${color} mr-2`} />,
-    Asclepius: (color: string, width: string, height: string) => <Asclepius className={`${width} ${height} ${color} mr-2`} />,
-    Couch: (color: string, width: string, height: string) => <Couch className={`${width} ${height} ${color} mr-2`} />,
-    Code: (color: string, width: string, height: string) => <Code className={`${width} ${height} ${color} mr-2`} />,
-    Atom: (color: string, width: string, height: string) => <Atom className={`${width} ${height} ${color} mr-2`} />,
-    ClockCounterClockwise: (color: string, width: string, height: string) => <ClockCounterClockwise className={`${width} ${height} ${color} mr-2`} />,
-    Globe: (color: string, width: string, height: string) => <Globe className={`${width} ${height} ${color} mr-2`} />,
-    Palette: (color: string, width: string, height: string) => <Palette className={`${width} ${height} ${color} mr-2`} />,
-};
-
-function convertColorToTextClass(color: string) {
-    if (color === 'red') return `text-red-500`;
-    if (color === 'yellow') return `text-yellow-500`;
-    if (color === 'green') return `text-green-500`;
-    if (color === 'blue') return `text-blue-500`;
-    if (color === 'orange') return `text-orange-500`;
-    if (color === 'purple') return `text-purple-500`;
-    if (color === 'pink') return `text-pink-500`;
-    if (color === 'teal') return `text-teal-500`;
-    if (color === 'cyan') return `text-cyan-500`;
-    if (color === 'lime') return `text-lime-500`;
-    if (color === 'indigo') return `text-indigo-500`;
-    if (color === 'fuschia') return `text-fuschia-500`;
-    if (color === 'rose') return `text-rose-500`;
-    if (color === 'sky') return `text-sky-500`;
-    if (color === 'amber') return `text-amber-500`;
-    if (color === 'emerald') return `text-emerald-500`;
-    return `text-gray-500`;
-}
-
-function convertSuggestionColorToTextClass(color: string) {
-    if (color === 'blue') return `bg-gradient-to-b from-white 50% to-sky-50`;
-    if (color === 'yellow') return `bg-gradient-to-b from-white 50% to-yellow-50`;
-    if (color === 'green') return `bg-gradient-to-b from-white 50% to-green-50`;
-    if (color === 'pink') return `bg-gradient-to-b from-white 50% to-pink-50`;
-    if (color === 'purple') return `bg-gradient-to-b from-white 50% to-purple-50`;
-    return `bg-gradient-to-b from-white 50% to-orange-50`;
-}
-
-function convertSuggestionColorToIconClass(color: string) {
-    if (color === 'blue') return iconMap.Robot('blue', 'w-8', 'h-8');
-    if (color === 'yellow') return iconMap.Globe('yellow', 'w-8', 'h-8');
-    if (color === 'green') return iconMap.Palette('green', 'w-8', 'h-8');
-    else return iconMap.Lightbulb('orange', 'w-8', 'h-8');
-}
-
-
-
-
-function getIconFromIconName(iconName: string, color: string = 'gray', width: string = 'w-8', height: string = 'h-8') {
-    const icon = iconMap[iconName];
-    const colorName = color.toLowerCase();
-    const colorClass = convertColorToTextClass(colorName);
-
-    return icon ? icon(colorClass, width, height) : null;
-}
-
-function convertColorToClass(color: string) {
-    // We can't dyanmically generate the classes for tailwindcss, so we have to explicitly use the whole string.
-    // See models/__init__.py 's definition of the Agent model for the color choices.
-    if (color === 'red') return `bg-red-500 hover:bg-red-600`;
-    if (color === 'yellow') return `bg-yellow-500 hover:bg-yellow-600`;
-    if (color === 'green') return `bg-green-500 hover:bg-green-600`;
-    if (color === 'blue') return `bg-blue-500 hover:bg-blue-600`;
-    if (color === 'orange') return `bg-orange-500 hover:bg-orange-600`;
-    if (color === 'purple') return `bg-purple-500 hover:bg-purple-600`;
-    if (color === 'pink') return `bg-pink-500 hover:bg-pink-600`;
-    if (color === 'teal') return `bg-teal-500 hover:bg-teal-600`;
-    if (color === 'cyan') return `bg-cyan-500 hover:bg-cyan-600`;
-    if (color === 'lime') return `bg-lime-500 hover:bg-lime-600`;
-    if (color === 'indigo') return `bg-indigo-500 hover:bg-indigo-600`;
-    if (color === 'fuschia') return `bg-fuschia-500 hover:bg-fuschia-600`;
-    if (color === 'rose') return `bg-rose-500 hover:bg-rose-600`;
-    if (color === 'sky') return `bg-sky-500 hover:bg-sky-600`;
-    if (color === 'amber') return `bg-amber-500 hover:bg-amber-600`;
-    if (color === 'emerald') return `bg-emerald-500 hover:bg-emerald-600`;
-    return `bg-gray-500 hover:bg-gray-600`;
-}
-
-function convertColorToBorderClass(color: string) {
-    console.log("Color:", color);
-    if (color === 'red') return `border-red-500`;
-    if (color === 'yellow') return `border-yellow-500`;
-    if (color === 'green') return `border-green-500`;
-    if (color === 'blue') return `border-blue-500`;
-    if (color === 'orange') return `border-orange-500`;
-    if (color === 'purple') return `border-purple-500`;
-    if (color === 'pink') return `border-pink-500`;
-    if (color === 'teal') return `border-teal-500`;
-    if (color === 'cyan') return `border-cyan-500`;
-    if (color === 'lime') return `border-lime-500`;
-    if (color === 'indigo') return `border-indigo-500`;
-    if (color === 'fuschia') return `border-fuschia-500`;
-    if (color === 'rose') return `border-rose-500`;
-    if (color === 'sky') return `border-sky-500`;
-    if (color === 'amber') return `border-amber-500`;
-    if (color === 'emerald') return `border-emerald-500`;
-    return `border-gray-500`;
-}
-
-
+const suggestions: Suggestion[] = [["Automation", "blue", "Send me a summary of HackerNews every morning.", "/automations?subject=Summarizing%20Top%20Headlines%20from%20HackerNews&query=Summarize%20the%20top%20headlines%20on%20HackerNews&crontime=00%207%20*%20*%20*"], ["Automation", "blue", "Compose a bedtime story that a five-year-old might enjoy.", "/automations?subject=Daily%20Bedtime%20Story&query=Compose%20a%20bedtime%20story%20that%20a%20five-year-old%20might%20enjoy.%20It%20should%20not%20exceed%20five%20paragraphs.%20Appeal%20to%20the%20imagination%2C%20but%20weave%20in%20learnings.&crontime=0%2021%20*%20*%20*"], ["Paint", "green", "Paint a picture of a sunset but it's made of stained glass tiles", ""], ["Online Search", "yellow", "Search for the best attractions in Austria Hungary", ""]];
 
 export interface AgentData {
     slug: string;
@@ -176,7 +44,7 @@ interface ChatBodyDataProps {
     isLoggedIn: boolean;
     conversationId: string | null; // Added this line
 }
-type Suggestion = [string, string, string, string, string];
+type Suggestion = [string, string, string, string];
 
 async function createNewConvo(slug: string) {
     try {
@@ -186,7 +54,6 @@ async function createNewConvo(slug: string) {
         }
         const data = await response.json();
         const conversationID = data.conversation_id;
-        console.log("New conversation ID (create new convo):", conversationID);
         if (!conversationID) {
             throw new Error("Conversation ID not found in response");
         }
@@ -231,12 +98,9 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 setProcessingMessage(true);
                 try {
                     const newConversationId = await createNewConvo(selectedAgent || "khoj");
-                    console.log("New conversation ID (useEffect):", newConversationId);
                     props.onConversationIdChange?.(newConversationId);
                     window.location.href = `/chat?conversationId=${newConversationId}`;
                     localStorage.setItem('message', message);
-                    console.log("Message stored in local storage:", message);
-                    console.log("selectedAgent:", selectedAgent);
                 }
                 catch (error) {
                     console.error("Error creating new conversation:", error);
@@ -265,15 +129,9 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const nSlice = props.isMobileWidth ? 3 : 4;
 
     const agents = data ? data.slice(0, nSlice) : []; //select first 4 agents to show as options
-    //generate colored icons for the selected agents
-    const icons = agents.map(agent => getIconFromIconName(
-        agent.icon,
-        agent.color,
-        props.isMobileWidth ? 'w-4' : undefined,
-        props.isMobileWidth ? 'w-4' : undefined)
-        || <Image src={agent.avatar} alt={agent.name} width={50} height={50} />
-    );
 
+    //generate colored icons for the selected agents
+    const agentIcons = agents.map(agent => getIconFromIconName(agent.icon, agent.color) || <Image key={agent.name} src={agent.avatar} alt={agent.name} width={50} height={50} />);
     function fillArea(link: string, type: string, prompt: string) {
         if (!link) {
             let message_str = "";
@@ -282,11 +140,10 @@ function ChatBodyData(props: ChatBodyDataProps) {
             if (type === "Online Search") {
                 message_str = "/online " + prompt;
             } else if (type === "Paint") {
-                message_str = "/image " + prompt;
+                message_str = "/paint " + prompt;
             } else {
                 message_str = prompt;
             }
-
             // Get the textarea element
             const message_area = document.getElementById("message") as HTMLTextAreaElement;
 
@@ -298,8 +155,28 @@ function ChatBodyData(props: ChatBodyDataProps) {
         }
     }
 
-    function handleAgentsClick(slug: string) {
-        setSelectedAgent(slug);
+    function getTailwindBorderClass(color: string): string {
+        return colorMap[color] || 'border-black'; // Default to black if color not found
+    }
+
+    function highlightHandler(slug: string): void {
+        const buttons = document.getElementsByClassName("agent");
+        const agent = agents.find(agent => agent.slug === slug);
+        const borderColorClass = getTailwindBorderClass(agent?.color || 'gray');
+
+        Array.from(buttons).forEach((button: Element) => {
+            const buttonElement = button as HTMLElement;
+            if (buttonElement.classList.contains(slug)) {
+                buttonElement.classList.add(borderColorClass, 'border');
+                buttonElement.classList.remove('border-stone-100', 'dark:border-neutral-700');
+            }
+            else {
+                Object.values(colorMap).forEach(colorClass => {
+                    buttonElement.classList.remove(colorClass, 'border');
+                });
+                buttonElement.classList.add('border', 'border-stone-100', 'dark:border-neutral-700');
+            }
+        });
     }
 
     return (
@@ -311,9 +188,16 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 {
                     !props.isMobileWidth &&
                     <div className="flex pb-6 gap-2 items-center justify-center">
-                        {icons.map((icon, index) => (
-                            <Card key={`${index}-${agents[index].slug}`} className={`${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : 'border-stone-100 text-muted-foreground'} hover:cursor-pointer rounded-lg px-2 py-2`}>
-                                <CardTitle className='text-center text-md font-medium flex justify-center items-center' onClick={() => handleAgentsClick(agents[index].slug)}>
+                        {agentIcons.map((icon, index) => (
+                            <Card
+                                key={`${index}-${agents[index].slug}`}
+                                className={
+                                    `${selectedAgent === agents[index].slug ?
+                                        convertColorToBorderClass(agents[index].color) : 'border-stone-100 text-muted-foreground'}
+                                    hover:cursor-pointer rounded-lg px-2 py-2`}>
+                                <CardTitle
+                                    className='text-center text-md font-medium flex justify-center items-center'
+                                    onClick={() => setSelectedAgent(agents[index].slug)}>
                                     {icon} {agents[index].name}
                                 </CardTitle>
                             </Card>
@@ -327,7 +211,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             <div className={`${props.isMobileWidth} ? 'w-full' : 'w-fit`}>
                 {
                     !props.isMobileWidth &&
-                    <div className={`${styles.inputBox} bg-background align-middle items-center justify-center p-3`}>
+                    <div className={`${styles.inputBox} bg-background align-middle items-center justify-center p-3 dark:bg-neutral-700`}>
                         <ChatInputArea
                             isLoggedIn={props.isLoggedIn}
                             sendMessage={(message) => setMessage(message)}
@@ -339,8 +223,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     </div>
                 }
                 <div className={`suggestions ${styles.suggestions} w-full ${props.isMobileWidth ? 'flex flex-col' : 'flex flex-row'} justify-center items-center`}>
-                    {shuffledOptions.map(([key, styleClass, image, value, link], index) => (
-                        <div onClick={() => fillArea(link, key, value)}>
+                    {shuffledOptions.map(([key, styleClass, value, link], index) => (
+                        <div key={key} onClick={() => fillArea(link, key, value)}>
                             <SuggestionCard
                                 key={key + Math.random()}
                                 title={key}
@@ -353,12 +237,16 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     ))}
                 </div>
                 <div className="flex items-center justify-center margin-auto">
-                    <button onClick={onButtonClick} className="m-2 p-1 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm text-stone-500">More Examples ⟳</button>
+                    <button
+                        onClick={onButtonClick}
+                        className="m-2 p-1.5 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm text-stone-500 dark:text-stone-300 dark:border-neutral-700">
+                        More Examples <ClockCounterClockwise className='h-4 w-4 inline' />
+                    </button>
                 </div>
             </div>
             {
                 props.isMobileWidth &&
-                <div className={`${styles.inputBox} bg-background align-middle items-center justify-center p-3`}>
+                <div className={`${styles.inputBox} dark:bg-neutral-700 bg-background dark: align-middle items-center justify-center py-3 px-1`}>
                     <ChatInputArea
                         isLoggedIn={props.isLoggedIn}
                         sendMessage={(message) => setMessage(message)}
@@ -368,13 +256,15 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         isMobileWidth={props.isMobileWidth}
                         setUploadedFiles={props.setUploadedFiles} />
                     <div className="flex gap-2 items-center justify-left pt-4">
-                        {icons.map((icon, index) => (
+                        {agentIcons.map((icon, index) => (
                             <Card
                                 key={`${index}-${agents[index].slug}`}
                                 className={
                                     `${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : 'border-muted text-muted-foreground'} hover:cursor-pointer`
                                 }>
-                                <CardTitle className='text-center text-xs font-medium flex justify-center items-center px-1 py-2' onClick={() => handleAgentsClick(agents[index].slug)}>
+                                <CardTitle
+                                    className='text-center text-xs font-medium flex justify-center items-center px-1.5 py-2'
+                                    onClick={() => setSelectedAgent(agents[index].slug)}>
                                     {icon} {agents[index].name}
                                 </CardTitle>
                             </Card>
@@ -402,7 +292,6 @@ export default function Home() {
     const authenticatedData = useAuthenticatedData();
 
     const handleConversationIdChange = (newConversationId: string) => {
-        console.log("Conversation ID changed to", newConversationId);
         setConversationID(newConversationId);
     };
 
@@ -437,7 +326,7 @@ export default function Home() {
             <title>
                 {title}
             </title>
-            <div>
+            <div className={`${styles.sidePanel}`}>
                 <SidePanel
                     webSocketConnected={true}
                     conversationId={conversationId}

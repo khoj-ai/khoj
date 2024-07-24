@@ -116,7 +116,7 @@ export default function NavMenu(props: NavMenuProps) {
                         <DropdownMenuTrigger>=</DropdownMenuTrigger>
                         <DropdownMenuContent>
                             <DropdownMenuItem>
-                                <Link href='/chat' className={`${props.selected.toLowerCase() === 'chat' ? styles.selected : ''} hover:bg-background no-underline`}>Chat</Link>
+                                <Link href='/' className={`${props.selected.toLowerCase() === 'chat' ? styles.selected : ''} hover:bg-background no-underline`}>Chat</Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem>
                                 <Link href='/agents' className={`${props.selected.toLowerCase() === 'agent' ? styles.selected : ''} hover:bg-background no-underline`}>Agents</Link>

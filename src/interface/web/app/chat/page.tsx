@@ -65,8 +65,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
         }
     }, [props.streamedMessages]);
 
-    if(!conversationId) {
-        window.location.href = '/home';
+    if (!conversationId) {
+        window.location.href = '/';
         return;
     }
 
@@ -79,7 +79,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     pendingMessage={processingMessage ? message : ''}
                     incomingMessages={props.streamedMessages} />
             </div>
-            <div className={`${styles.inputBox} bg-background align-middle items-center justify-center px-3`}>
+            <div className={`${styles.inputBox} bg-background align-middle items-center justify-center px-3 dark:bg-neutral-700 dark:border-0 dark:shadow-sm`}>
                 <ChatInputArea
                     isLoggedIn={props.isLoggedIn}
                     sendMessage={(message) => setMessage(message)}

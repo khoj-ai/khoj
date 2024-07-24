@@ -253,9 +253,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
     if (!props.conversationId && !props.publicConversationSlug) {
         return null;
     }
-
-    console.log("CHAT HISTORY DATA", data);
-
     return (
         <ScrollArea className={`h-[80vh]`}>
             <div ref={ref}>
