@@ -23,6 +23,18 @@ import { ClockCounterClockwise } from '@phosphor-icons/react';
 
 //samples for suggestion cards (should be moved to json later)
 const suggestions: Suggestion[] = [["Automation", "blue", "Send me a summary of HackerNews every morning.", "/automations?subject=Summarizing%20Top%20Headlines%20from%20HackerNews&query=Summarize%20the%20top%20headlines%20on%20HackerNews&crontime=00%207%20*%20*%20*"], ["Automation", "blue", "Compose a bedtime story that a five-year-old might enjoy.", "/automations?subject=Daily%20Bedtime%20Story&query=Compose%20a%20bedtime%20story%20that%20a%20five-year-old%20might%20enjoy.%20It%20should%20not%20exceed%20five%20paragraphs.%20Appeal%20to%20the%20imagination%2C%20but%20weave%20in%20learnings.&crontime=0%2021%20*%20*%20*"], ["Paint", "green", "Paint a picture of a sunset but it's made of stained glass tiles", ""], ["Online Search", "yellow", "Search for the best attractions in Austria Hungary", ""]];
+//get today's day
+const today = new Date();
+const day = today.getDay();
+const greetings = [
+    `Good ${today.getHours() < 12 ? 'morning' : today.getHours() < 18 ? 'afternoon' : 'evening'}! What would you like to do today?`,
+    'How can I help you today?',
+    `Good ${today.getHours() < 12 ? 'morning' : today.getHours() < 18 ? 'afternoon' : 'evening'}! What can I do for you today?`,
+    `Ready to breeze through your ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][day]}?`,
+    `Need help navigating your ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][day]} workload?`
+];
+const greeting = greetings[~~(Math.random() * greetings.length)];
+
 
 export interface AgentData {
     slug: string;
@@ -179,22 +191,11 @@ function ChatBodyData(props: ChatBodyDataProps) {
         });
     }
 
-    //get today's day
-    const today = new Date();
-    const day = today.getDay();
-    const greetings = [
-        `Good ${today.getHours() < 12 ? 'morning' : today.getHours() < 18 ? 'afternoon' : 'evening'}! What would you like to do today?`,
-        'How can I help you today?',
-        `Good ${today.getHours() < 12 ? 'morning' : today.getHours() < 18 ? 'afternoon' : 'evening'}! What can I do for you today?`,
-        `Ready to breeze through your ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][day]}?`,
-        `Need help navigating your ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][day]} workload?`
-    ];
-
     return (
         <div className={`${styles.chatBoxBody}`}>
             <div className="w-full text-center">
                 <div className="items-center">
-                    <h1 className="text-center pb-6 px-4 w-fit ml-auto mr-auto">{greetings[~~(Math.random() * greetings.length)]}</h1>
+                    <h1 className="text-center pb-6 px-4 w-fit ml-auto mr-auto">{greeting}</h1>
                 </div>
                 {
                     !props.isMobileWidth &&
