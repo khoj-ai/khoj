@@ -487,6 +487,9 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
                             onClick={() => {
                                 deleteConversation(props.conversationId);
                                 setIsDeleting(false);
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 1000);
                             }}
                             className="bg-rose-500 hover:bg-rose-600">Delete</AlertDialogAction>
                     </AlertDialogFooter>
