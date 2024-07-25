@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 from markdownify import markdownify
 
 from khoj.routers.helpers import (
+    ChatEvent,
     extract_relevant_info,
     generate_online_subqueries,
     infer_webpage_urls,
@@ -68,7 +69,7 @@ async def search_online(
         if send_status_func:
             subqueries_str = "\n- " + "\n- ".join(list(subqueries))
             async for event in send_status_func(f"**🌐 Searching the Internet for**: {subqueries_str}"):
-                yield {"status": event}
+                yield {ChatEvent.STATUS: event}
 
     with timer(f"Internet searches for {list(subqueries)} took", logger):
         search_func = search_with_google if SERPER_DEV_API_KEY else search_with_jina
@@ -92,7 +93,7 @@ async def search_online(
         if send_status_func:
             webpage_links_str = "\n- " + "\n- ".join(list(webpage_links))
             async for event in send_status_func(f"**📖 Reading web pages**: {webpage_links_str}"):
-                yield {"status": event}
+                yield {ChatEvent.STATUS: event}
     tasks = [read_webpage_and_extract_content(subquery, link, content) for link, subquery, content in webpages]
     results = await asyncio.gather(*tasks)
 
@@ -131,14 +132,14 @@ async def read_webpages(
     logger.info(f"Inferring web pages to read")
     if send_status_func:
         async for event in send_status_func(f"**🧐 Inferring web pages to read**"):
-            yield {"status": event}
+            yield {ChatEvent.STATUS: event}
     urls = await infer_webpage_urls(query, conversation_history, location)
 
     logger.info(f"Reading web pages at: {urls}")
     if send_status_func:
         webpage_links_str = "\n- " + "\n- ".join(list(urls))
         async for event in send_status_func(f"**📖 Reading web pages**: {webpage_links_str}"):
-            yield {"status": event}
+            yield {ChatEvent.STATUS: event}
     tasks = [read_webpage_and_extract_content(query, url) for url in urls]
     results = await asyncio.gather(*tasks)
 

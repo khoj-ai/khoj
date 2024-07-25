@@ -36,6 +36,7 @@ from khoj.processor.conversation.openai.gpt import extract_questions
 from khoj.processor.conversation.openai.whisper import transcribe_audio
 from khoj.routers.helpers import (
     ApiUserRateLimiter,
+    ChatEvent,
     CommonQueryParams,
     ConversationCommandRateLimiter,
     acreate_title_from_query,
@@ -375,7 +376,7 @@ async def extract_references_and_questions(
         if send_status_func:
             inferred_queries_str = "\n- " + "\n- ".join(inferred_queries)
             async for event in send_status_func(f"**🔍 Searching Documents for:** {inferred_queries_str}"):
-                yield {"status": event}
+                yield {ChatEvent.STATUS: event}
         for query in inferred_queries:
             n_items = min(n, 3) if using_offline_chat else n
             search_results.extend(

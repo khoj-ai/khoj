@@ -8,6 +8,7 @@ import math
 import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
+from enum import Enum
 from functools import partial
 from random import random
 from typing import (
@@ -782,7 +783,7 @@ async def text_to_image(
 
     if send_status_func:
         async for event in send_status_func("**✍🏽 Enhancing the Painting Prompt**"):
-            yield {"status": event}
+            yield {ChatEvent.STATUS: event}
     improved_image_prompt = await generate_better_image_prompt(
         message,
         chat_history,
@@ -794,7 +795,7 @@ async def text_to_image(
 
     if send_status_func:
         async for event in send_status_func(f"**🖼️ Painting using Enhanced Prompt**:\n{improved_image_prompt}"):
-            yield {"status": event}
+            yield {ChatEvent.STATUS: event}
 
     if text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
         with timer("Generate image with OpenAI", logger):
@@ -1191,3 +1192,11 @@ def construct_automation_created_message(automation: Job, crontime: str, query_t
 
 Manage your automations [here](/automations).
     """.strip()
+
+
+class ChatEvent(Enum):
+    START_LLM_RESPONSE = "start_llm_response"
+    END_LLM_RESPONSE = "end_llm_response"
+    MESSAGE = "message"
+    REFERENCES = "references"
+    STATUS = "status"
