@@ -150,66 +150,66 @@ export default function NavMenu(props: NavMenuProps) {
                                 {/* <p className="pr-1">Settings</p> */}
                                 <UserCircle className="w-8 h-8"/>
                             </MenubarTrigger>
-                            <MenubarContent align="end" className="rounded-xl w-60">
+                            <MenubarContent align="end" className="rounded-xl w-40">
                                 <MenubarItem>
                                     <div
                                         onClick={() => {
                                             setDarkMode(!darkMode)
                                         }
                                         }
-                                        className="flex flex-rows pt-1 pb-1">
+                                        className="flex flex-rows">
                                         {darkMode ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
-                                        <p className="ml-3 pt-[2px]">{darkMode ? 'Light Mode' : 'Dark Mode'}</p>
+                                        <p className="ml-3 pt-[2px] font-semibold">{darkMode ? 'Light Mode' : 'Dark Mode'}</p>
                                     </div>
                                 </MenubarItem>
                                 {userData &&
                                     <>
                                         <MenubarItem>
                                             <Link href="/agents" className="no-underline">
-                                                <div className="flex flex-rows pt-1 pb-1">
+                                                <div className="flex flex-rows">
                                                 <User className="w-6 h-6"/>
-                                                <p className="ml-3 pt-[2px]">Agents</p>
+                                                <p className="ml-3 pt-[2px] font-semibold">Agents</p>
                                                 </div>
                                             </Link>
                                         </MenubarItem>
                                         <MenubarItem>
                                             <Link href="/automations" className="no-underline">
-                                                <div className="flex flex-rows pt-1 pb-1">
+                                                <div className="flex flex-rows">
                                                 <Robot className="w-6 h-6"/>
-                                                <p className="ml-3 pt-[2px]">Automations</p>
+                                                <p className="ml-3 pt-[2px] font-semibold">Automations</p>
                                                 </div>
                                             </Link>
                                         </MenubarItem>
                                         <MenubarItem>
                                             <Link href="/search" className="no-underline">
-                                                <div className="flex flex-rows pt-1 pb-1">
+                                                <div className="flex flex-rows">
                                                 <MagnifyingGlass className="w-6 h-6"/>
-                                                <p className="ml-3 pt-[2px]">Search</p>
+                                                <p className="ml-3 pt-[2px] font-semibold">Search</p>
                                                 </div>
                                             </Link>
                                         </MenubarItem>
                                         <MenubarSeparator className="dark:bg-white height-[2px] bg-black" />
                                         <MenubarItem>
                                             <Link href="/settings" className="no-underline">
-                                                <div className="flex flex-rows pt-1 pb-1">
+                                                <div className="flex flex-rows">
                                                 <GearFine className="w-6 h-6"/>
-                                                <p className="ml-3 pt-[2px]">Settings</p>
+                                                <p className="ml-3 pt-[2px] font-semibold">Settings</p>
                                                 </div>
                                             </Link>
                                         </MenubarItem>
                                         <MenubarItem>
                                             <Link href="https://docs.khoj.dev" className="no-underline">
-                                                <div className="flex flex-rows pt-1 pb-1">
+                                                <div className="flex flex-rows">
                                                 <Question className="w-6 h-6"/>
-                                                <p className="ml-3 pt-[2px]">Help</p>
+                                                <p className="ml-3 pt-[2px] font-semibold">Help</p>
                                                 </div>
                                             </Link>
                                         </MenubarItem>
                                         <MenubarItem>
                                             <Link href="/auth/logout" className="no-underline">
-                                                <div className="flex flex-rows pt-1 pb-1">
+                                                <div className="flex flex-rows">
                                                 <ArrowRight className="w-6 h-6"/>
-                                                <p className="ml-3 pt-[2px]">Logout</p>
+                                                <p className="ml-3 pt-[2px] font-semibold">Logout</p>
                                                 </div>
                                             </Link>
                                         </MenubarItem>
