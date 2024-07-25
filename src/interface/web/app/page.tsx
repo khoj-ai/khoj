@@ -179,11 +179,22 @@ function ChatBodyData(props: ChatBodyDataProps) {
         });
     }
 
+    //get today's day
+    const today = new Date();
+    const day = today.getDay();
+    const greetings = [
+        `Good ${today.getHours() < 12 ? 'morning' : today.getHours() < 18 ? 'afternoon' : 'evening'}! What would you like to do today?`,
+        'How can I help you today?',
+        `Good ${today.getHours() < 12 ? 'morning' : today.getHours() < 18 ? 'afternoon' : 'evening'}! What can I do for you today?`,
+        `Ready to breeze through your ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][day]}?`,
+        `Need help navigating your ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][day]} workload?`
+    ];
+
     return (
         <div className={`${styles.chatBoxBody}`}>
             <div className="w-full text-center">
                 <div className="items-center">
-                    <h1 className="text-center pb-6 px-4">What would you like to do?</h1>
+                    <h1 className="text-center pb-6 px-4 w-fit ml-auto mr-auto">{greetings[~~(Math.random() * greetings.length)]}</h1>
                 </div>
                 {
                     !props.isMobileWidth &&
@@ -208,10 +219,10 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     </div>
                 }
             </div>
-            <div className={`${props.isMobileWidth} ? 'w-full' : 'w-fit`}>
+            <div className={`ml-auto mr-auto ${props.isMobileWidth ? 'w-full' : 'w-fit'}`}>
                 {
                     !props.isMobileWidth &&
-                    <div className={`${styles.inputBox} bg-background align-middle items-center justify-center p-3 dark:bg-neutral-700`}>
+                    <div className={`w-full ${styles.inputBox} bg-background align-middle items-center justify-center p-3 dark:bg-neutral-700`}>
                         <ChatInputArea
                             isLoggedIn={props.isLoggedIn}
                             sendMessage={(message) => setMessage(message)}
