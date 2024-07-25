@@ -182,7 +182,7 @@ export default function SettingsView() {
     const [otp, setOTP] = useState("");
     const [numberValidationState, setNumberValidationState] = useState<PhoneNumberValidationState>(PhoneNumberValidationState.Verified);
     const { toast } = useToast();
-    const cardClassName = "w-1/3 grid grid-flow-column border border-gray-300 shadow-md rounded-lg";
+    const cardClassName = "w-full lg:w-1/3 grid grid-flow-column border border-gray-300 shadow-md rounded-lg";
 
     useEffect(() => {
         setUserConfig(initialUserConfig);
@@ -321,7 +321,7 @@ export default function SettingsView() {
                 <NavMenu selected="Settings" title="Settings" showLogo={true} />
                 <div className={styles.contentBody}>
                     <Suspense fallback={<Loading />}>
-                        <div id="content" className="grid grid-flow-column gap-16 m-8">
+                        <div id="content" className="grid grid-flow-column sm:grid-flow-row gap-16 m-8">
                             <div className="section grid gap-8">
                                 <div className="text-4xl">Profile</div>
                                 <div className="cards flex flex-wrap gap-16">
@@ -428,7 +428,7 @@ export default function SettingsView() {
                                             <Table>
                                                 <TableHeader>
                                                     <TableRow>
-                                                        <TableHead>Name</TableHead>
+                                                        <TableHead className="pl-0">Name</TableHead>
                                                         <TableHead>Token</TableHead>
                                                         <TableHead>Actions</TableHead>
                                                     </TableRow>
@@ -436,13 +436,13 @@ export default function SettingsView() {
                                                 <TableBody>
                                                     {apiKeys.map((key) => (
                                                         <TableRow key={key.token}>
-                                                            <TableCell><b>{key.name}</b></TableCell>
+                                                            <TableCell className="pl-0"><b>{key.name}</b></TableCell>
                                                             <TableCell>{`${key.token.slice(0, 4)}...${key.token.slice(-4)}`}</TableCell>
                                                             <TableCell>
                                                                 <Button variant="outline" className="border border-green-400" onClick={() => copyAPIKey(key.token)}>
                                                                     <Copy className="h-4 w-4 mr-2" /><span className="hidden md:inline">Copy</span>
                                                                 </Button>
-                                                                <Button variant="outline" className="ml-4 border border-red-400" onClick={() => deleteAPIKey(key.token)}>
+                                                                <Button variant="outline" className="md:ml-4 border border-red-400" onClick={() => deleteAPIKey(key.token)}>
                                                                     <Trash className='h-4 w-4 mr-2' /><span className="hidden md:inline">Delete</span>
                                                                 </Button>
                                                             </TableCell>
