@@ -4,6 +4,7 @@ import styles from './navMenu.module.css';
 import Link from 'next/link';
 import { useAuthenticatedData } from '@/app/common/auth';
 import { useState, useEffect } from 'react';
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 import {
     Menubar,
@@ -146,11 +147,14 @@ export default function NavMenu(props: NavMenuProps) {
 
                         <MenubarMenu>
                             <MenubarTrigger>
-                                {/* change width */}
-                                {/* <p className="pr-1">Settings</p> */}
-                                <UserCircle className="w-8 h-8"/>
+                                <Avatar className="h-7 w-7">
+                                    <AvatarImage src={userData?.photo} alt="user profile" />
+                                    <AvatarFallback>
+                                        {userData?.username[0]}
+                                    </AvatarFallback>
+                                </Avatar>
                             </MenubarTrigger>
-                            <MenubarContent align="end" className="rounded-xl w-40">
+                            <MenubarContent align="end" className="rounded-xl">
                                 <MenubarItem>
                                     <div
                                         onClick={() => {
