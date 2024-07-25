@@ -532,14 +532,13 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
 
 function ChatSession(props: ChatHistory) {
     const [isHovered, setIsHovered] = useState(false);
-    var currConversationId = new URLSearchParams(window.location.search).get('conversationId');
-    currConversationId = currConversationId?.replace(/[^a-zA-Z0-9]/g, '') || '';
+    var currConversationId = parseInt(new URLSearchParams(window.location.search).get('conversationId') || "-1");
     return (
         <div
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             key={props.conversation_id}
-            className={`${styles.session} ${props.compressed ? styles.compressed : '!max-w-full'} ${isHovered ? `${styles.sessionHover}` : ''} ${currConversationId === props.conversation_id ? "" : ""}`}>
+            className={`${styles.session} ${props.compressed ? styles.compressed : '!max-w-full'} ${isHovered ? `${styles.sessionHover}` : ''} ${currConversationId === parseInt(props.conversation_id) && currConversationId != -1 ? "dark:bg-neutral-800 bg-white" : ""}`}>
             <Link href={`/chat?conversationId=${props.conversation_id}`} onClick={() => props.showSidePanel(false)}>
                 <p className={styles.session}>{props.slug || "New Conversation 🌱"}</p>
             </Link>
