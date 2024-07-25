@@ -72,7 +72,6 @@ export function useUserConfig(detailed: boolean = false) {
     const { data, error } = useSWR<UserConfig>(url, fetcher, { revalidateOnFocus: false });
 
     if (error || !data || data.detail === 'Forbidden') return null;
-    console.log(data);
 
     return data;
 }

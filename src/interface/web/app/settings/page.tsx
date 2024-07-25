@@ -42,6 +42,9 @@ import {
     PlusCircle,
     CreditCard,
     CheckCircle,
+    NotionLogo,
+    GithubLogo,
+    Files
 } from "@phosphor-icons/react";
 
 import NavMenu from "../components/navMenu/navMenu";
@@ -73,7 +76,7 @@ const DropdownComponent: React.FC<DropdownComponentProps> = ({ items, selected, 
                         onValueChange={async (value) => { setPosition(value); await callbackFunc(value); }}
                     >
                         {items.map((item) => (
-                            <DropdownMenuRadioItem value={item.id.toString()}>
+                            <DropdownMenuRadioItem key={item.id.toString()} value={item.id.toString()}>
                                 {item.name}
                             </DropdownMenuRadioItem>
                         ))}
@@ -267,7 +270,7 @@ export default function SettingsView() {
                                 <div className="text-4xl">Content</div>
                                 <div className="cards flex flex-wrap gap-16">
                                     <Card className={cardClassName}>
-                                        <CardHeader className="text-xl flex flex-row">Files</CardHeader>
+                                        <CardHeader className="text-xl flex flex-row"><Files className="h-7 w-7 mr-2" />Files</CardHeader>
                                         <CardContent className="overflow-hidden">
                                             Manage your synced files
                                         </CardContent>
@@ -277,7 +280,7 @@ export default function SettingsView() {
                                         </CardFooter>
                                     </Card>
                                     <Card className={cardClassName}>
-                                        <CardHeader className="text-xl flex flex-row">Github</CardHeader>
+                                        <CardHeader className="text-xl flex flex-row"><GithubLogo className="h-7 w-7 mr-2" />Github</CardHeader>
                                         <CardContent className="overflow-hidden">
                                             Set repositories to index
                                         </CardContent>
@@ -287,7 +290,7 @@ export default function SettingsView() {
                                         </CardFooter>
                                     </Card>
                                     <Card className={cardClassName}>
-                                        <CardHeader className="text-xl flex flex-row">Notion</CardHeader>
+                                        <CardHeader className="text-xl flex flex-row"><NotionLogo className="h-7 w-7 mr-2" />Notion</CardHeader>
                                         <CardContent className="overflow-hidden">
                                             Sync your Notion pages
                                         </CardContent>
