@@ -147,7 +147,7 @@ export default function NavMenu(props: NavMenuProps) {
 
                         <MenubarMenu>
                             <MenubarTrigger>
-                                <Avatar className="h-7 w-7">
+                                <Avatar className="h-8 w-8">
                                     <AvatarImage src={userData?.photo} alt="user profile" />
                                     <AvatarFallback>
                                         {userData?.username[0]}
