@@ -487,17 +487,15 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
                             onClick={() => {
                                 deleteConversation(props.conversationId);
                                 setIsDeleting(false);
-                                var currConversationId = new URLSearchParams(window.location.search).get('conversationId');
-                                currConversationId = currConversationId?.replace(/[^a-zA-Z0-9]/g, '') || '';
+                                var currConversationId = parseInt(new URLSearchParams(window.location.search).get('conversationId') || "0");
                                 //edge case for deleting current conversation
-                                if (currConversationId.includes(props.conversationId)) {
+                                if (currConversationId === parseInt(props.conversationId)) {
                                     window.location.href = '/';
                                 }
                                 //reload side panel
                                 setTimeout(() => {
                                     window.location.reload();
                                 }, 1000);
-
                             }}
                             className="bg-rose-500 hover:bg-rose-600">Delete</AlertDialogAction>
                     </AlertDialogFooter>
@@ -534,13 +532,14 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
 
 function ChatSession(props: ChatHistory) {
     const [isHovered, setIsHovered] = useState(false);
-
+    var currConversationId = new URLSearchParams(window.location.search).get('conversationId');
+    currConversationId = currConversationId?.replace(/[^a-zA-Z0-9]/g, '') || '';
     return (
         <div
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             key={props.conversation_id}
-            className={`${styles.session} ${props.compressed ? styles.compressed : '!max-w-full'} ${isHovered ? `${styles.sessionHover}` : ''}`}>
+            className={`${styles.session} ${props.compressed ? styles.compressed : '!max-w-full'} ${isHovered ? `${styles.sessionHover}` : ''} ${currConversationId === props.conversation_id ? "" : ""}`}>
             <Link href={`/chat?conversationId=${props.conversation_id}`} onClick={() => props.showSidePanel(false)}>
                 <p className={styles.session}>{props.slug || "New Conversation 🌱"}</p>
             </Link>
