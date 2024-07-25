@@ -6,6 +6,9 @@ import { Suspense, useEffect, useState } from "react";
 import { useToast } from "@/components/ui/use-toast"
 
 import { useUserConfig, ModelOptions, UserConfig } from "../common/auth";
+
+import { isValidPhoneNumber } from 'libphonenumber-js';
+
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -44,13 +47,17 @@ import {
     CheckCircle,
     NotionLogo,
     GithubLogo,
-    Files
+    Files,
+    WhatsappLogo,
+    ExclamationMark
 } from "@phosphor-icons/react";
 
 import NavMenu from "../components/navMenu/navMenu";
 import SidePanel from "../components/sidePanel/chatHistorySidePanel";
 import Loading from "../components/loading/loading";
 import { ExternalLinkIcon } from "lucide-react";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { Input } from "@/components/ui/input";
 
 
 interface DropdownComponentProps {
@@ -158,6 +165,12 @@ export const useApiKeys = () => {
     };
 };
 
+enum PhoneNumberValidationState {
+  Setup = "setup",
+  SendOTP = "otp",
+  VerifyOTP = "verify",
+  Verified = "verified",
+}
 
 export default function SettingsView() {
     const [title, setTitle] = useState("Settings");
@@ -165,10 +178,24 @@ export default function SettingsView() {
     const { apiKeys, generateAPIKey, copyAPIKey, deleteAPIKey } = useApiKeys();
     const initialUserConfig = useUserConfig(true);
     const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
+    const [number, setNumber] = useState<string | undefined>(undefined);
+    const [otp, setOTP] = useState("");
+    const [isValidNumber, setIsValidNumber] = useState<boolean>(false);
+    const [numberValidationState, setNumberValidationState] = useState<PhoneNumberValidationState>(PhoneNumberValidationState.Verified);
     const { toast } = useToast();
     const cardClassName = "w-1/3 grid grid-flow-column border border-gray-300 shadow-md rounded-lg";
 
-    useEffect(() => setUserConfig(initialUserConfig), [initialUserConfig]);
+    useEffect(() => {
+        setUserConfig(initialUserConfig);
+        setNumber(initialUserConfig?.phone_number);
+        setNumberValidationState(
+            initialUserConfig?.is_phone_number_verified
+            ? PhoneNumberValidationState.Verified
+            : initialUserConfig?.phone_number
+            ? PhoneNumberValidationState.SendOTP
+            : PhoneNumberValidationState.Setup
+        );
+    }, [initialUserConfig]);
 
     useEffect(() => {
         setIsMobileWidth(window.innerWidth < 786);
@@ -385,6 +412,78 @@ export default function SettingsView() {
                                             <Button variant="outline" className="border border-green-300" onClick={generateAPIKey}>
                                                 <PlusCircle className='h-4 w-4 mr-2' />Generate Key
                                             </Button>
+                                        </CardFooter>
+                                    </Card>
+                                    <Card className={cardClassName}>
+                                        <CardHeader className="text-xl flex flex-row">
+                                            <WhatsappLogo className="h-7 w-7 mr-2"/>
+                                            Chat on Whatsapp
+                                            {numberValidationState === PhoneNumberValidationState.Verified && (
+                                                <CheckCircle weight="bold" className="h-4 w-4 ml-1 text-green-400" />
+                                            ) || numberValidationState !== PhoneNumberValidationState.Setup && (
+                                                <ExclamationMark weight="bold" className="h-4 w-4 ml-1 text-yellow-400" />
+                                            )}
+                                        </CardHeader>
+                                        <CardContent className="grid gap-4">
+                                            <p>
+                                                Connect your number to chat with Khoj on WhatsApp. Learn more about the integration <a href="https://docs.khoj.dev/clients/whatsapp">here</a>.
+                                            </p>
+                                            <div>
+                                            {numberValidationState === PhoneNumberValidationState.VerifyOTP && (
+                                                <div>
+                                                    <p>{`Enter the OTP sent to your WhatsApp number: ${number}`}</p>
+                                                    <InputOTP
+                                                        autoFocus={true}
+                                                        maxLength={6}
+                                                        value={otp}
+                                                        onChange={setOTP}
+                                                        onComplete={() => setNumberValidationState(PhoneNumberValidationState.Verified)}
+                                                    >
+                                                        <InputOTPGroup>
+                                                            <InputOTPSlot index={0} />
+                                                            <InputOTPSlot index={1} />
+                                                            <InputOTPSlot index={2} />
+                                                            <InputOTPSlot index={3} />
+                                                            <InputOTPSlot index={4} />
+                                                            <InputOTPSlot index={5} />
+                                                        </InputOTPGroup>
+                                                    </InputOTP>
+                                                </div>
+                                            ) || (
+                                                <div>
+                                                    <Input
+                                                        onChange={(e) => setNumber(e.target.value)}
+                                                        value={number}
+                                                        placeholder="Enter your WhatsApp number"
+                                                        className="w-full border border-gray-300 rounded-lg p-4"
+                                                    />
+                                                </div>
+                                            )}
+                                            </div>
+                                        </CardContent>
+                                        <CardFooter className="flex flex-wrap gap-4">
+                                            {numberValidationState === PhoneNumberValidationState.VerifyOTP && (
+                                                <Button
+                                                    variant="outline"
+                                                    className="border border-green-400"
+                                                    onClick={() => setNumberValidationState(PhoneNumberValidationState.Verified)}
+                                                >
+                                                    Verify
+                                                </Button>
+                                            ) || (
+                                                <Button
+                                                    variant="outline"
+                                                    className="border border-green-400"
+                                                    disabled={!number || number === userConfig.phone_number || !isValidPhoneNumber(number)}
+                                                    onClick={() => setNumberValidationState(PhoneNumberValidationState.VerifyOTP)}
+                                                >
+                                                    {!number || number === userConfig.phone_number || !isValidPhoneNumber(number)
+                                                    ? "Update"
+                                                    : (
+                                                        <>Send OTP to Whatsapp <ArrowRight className="inline ml-2" weight="bold"/></>
+                                                    )}
+                                                </Button>
+                                            )}
                                         </CardFooter>
                                     </Card>
                                 </div>
