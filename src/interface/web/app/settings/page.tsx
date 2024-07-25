@@ -180,7 +180,6 @@ export default function SettingsView() {
     const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
     const [number, setNumber] = useState<string | undefined>(undefined);
     const [otp, setOTP] = useState("");
-    const [isValidNumber, setIsValidNumber] = useState<boolean>(false);
     const [numberValidationState, setNumberValidationState] = useState<PhoneNumberValidationState>(PhoneNumberValidationState.Verified);
     const { toast } = useToast();
     const cardClassName = "w-1/3 grid grid-flow-column border border-gray-300 shadow-md rounded-lg";
@@ -203,6 +202,50 @@ export default function SettingsView() {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
+
+    const sendOTP = async () => {
+        try {
+            const response = await fetch(`/api/phone?phone_number=${number}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            if (!response.ok) throw new Error('Failed to send OTP');
+
+            setNumberValidationState(PhoneNumberValidationState.VerifyOTP);
+        } catch (error) {
+            console.error('Error sending OTP:', error);
+            toast({
+                title: "📱 Phone",
+                description: "Failed to send OTP. Try again or contact us at team@khoj.dev",
+            });
+        }
+    };
+
+    const verifyOTP = async () => {
+        try {
+            const response = await fetch(`/api/phone/verify?code=${otp}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            if (!response.ok) throw new Error('Failed to verify OTP');
+
+            setNumberValidationState(PhoneNumberValidationState.Verified);
+            toast({
+                title: "📱 Phone",
+                description: "Phone number verified",
+            });
+        } catch (error) {
+            console.error('Error verifying OTP:', error);
+            toast({
+                title: "📱 Phone",
+                description: "Failed to verify OTP. Try again or contact us at team@khoj.dev",
+            });
+        }
+    };
 
     const setSubscription = async (state: string) => {
         try {
@@ -466,7 +509,7 @@ export default function SettingsView() {
                                                 <Button
                                                     variant="outline"
                                                     className="border border-green-400"
-                                                    onClick={() => setNumberValidationState(PhoneNumberValidationState.Verified)}
+                                                    onClick={verifyOTP}
                                                 >
                                                     Verify
                                                 </Button>
@@ -475,7 +518,7 @@ export default function SettingsView() {
                                                     variant="outline"
                                                     className="border border-green-400"
                                                     disabled={!number || number === userConfig.phone_number || !isValidPhoneNumber(number)}
-                                                    onClick={() => setNumberValidationState(PhoneNumberValidationState.VerifyOTP)}
+                                                    onClick={sendOTP}
                                                 >
                                                     {!number || number === userConfig.phone_number || !isValidPhoneNumber(number)
                                                     ? "Update"
