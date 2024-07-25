@@ -10,15 +10,11 @@ import { useEffect, useState } from 'react';
 import { useAuthenticatedData, UserProfile } from '../common/auth';
 import { Button } from '@/components/ui/button';
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 import {
     PaperPlaneTilt,
@@ -292,38 +288,23 @@ export default function Agents() {
                         isMobileWidth={isMobileWidth}
                     />
                 </div>
-                <div className={`ml-auto mr-auto ${isMobileWidth ? "w-11/12" : "w-1/2"} pt-10`}>
+                <div className={`ml-auto mr-auto ${isMobileWidth ? "w-11/12" : "w-1/2"} pt-4`}>
                     <div className="pt-8 flex">
-                        <h1 className="text-3xl relative top-2">Agents</h1>
-                        <div className="ml-auto float-right">
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button
-                                        className={`bg-[hsl(var(--background))] rounded-xl border dark:border-neutral-700 shadow-sm h-14 hover:bg-stone-100 dark:hover:bg-neutral-900`}
-                                        onClick={() => createAgent()}
-                                    >
-                                        <Plus className='w-6 h-6' color='gray' />
-                                        <p className="text-black dark:text-white ml-2">
-                                            <strong>Create Agent</strong>
-                                        </p>
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Custom Agents</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            Custom Agents will be coming to Khoj soon!
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogAction asChild>
-                                            <Button className="bg-stone-100 dark:bg-[hsl(var(--background))] text-neutral-500 dark:text-white hover:bg-stone-100 dark:hover:bg-neutral-900" onClick={() => { }}>
-                                                Close
-                                            </Button>
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                        <h1 className="text-3xl">Agents</h1>
+                        <div className="ml-auto float-right border pt-3 pb-2 pl-2 pr-2 rounded-xl font-bold">
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <div className="flex flex-row">
+                                        <Plus className='pr-2 w-6 h-6' />
+                                        <p className="pr-2">Create Agent</p>
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                    <p>Coming Soon!</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         </div>
                     </div>
                     <div>
