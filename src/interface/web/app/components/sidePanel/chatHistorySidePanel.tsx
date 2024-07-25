@@ -487,9 +487,17 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
                             onClick={() => {
                                 deleteConversation(props.conversationId);
                                 setIsDeleting(false);
+                                var currConversationId = new URLSearchParams(window.location.search).get('conversationId');
+                                currConversationId = currConversationId?.replace(/[^a-zA-Z0-9]/g, '') || '';
+                                //edge case for deleting current conversation
+                                if (currConversationId.includes(props.conversationId)) {
+                                    window.location.href = '/';
+                                }
+                                //reload side panel
                                 setTimeout(() => {
                                     window.location.reload();
                                 }, 1000);
+
                             }}
                             className="bg-rose-500 hover:bg-rose-600">Delete</AlertDialogAction>
                     </AlertDialogFooter>
