@@ -1,11 +1,11 @@
-"use client";
+'use client'
 
 import styles from "./settings.module.css";
 
 import { Suspense, useEffect, useState } from "react";
 import { useToast } from "@/components/ui/use-toast"
 
-import { useUserConfig, ModelOptions } from "../common/auth";
+import { useUserConfig, ModelOptions, UserConfig } from "../common/auth";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -29,11 +29,25 @@ import {
     TableRow,
   } from "@/components/ui/table"
 
-import { ArrowRight, ChatCircleText, Key, Palette, SpeakerHigh, UserCircle, FileMagnifyingGlass, Trash, Copy, PlusCircle } from "@phosphor-icons/react";
+import {
+    ArrowRight,
+    ChatCircleText,
+    Key,
+    Palette,
+    SpeakerHigh,
+    UserCircle,
+    FileMagnifyingGlass,
+    Trash,
+    Copy,
+    PlusCircle,
+    CreditCard,
+    CheckCircle,
+} from "@phosphor-icons/react";
 
 import NavMenu from "../components/navMenu/navMenu";
 import SidePanel from "../components/sidePanel/chatHistorySidePanel";
 import Loading from "../components/loading/loading";
+import { ExternalLinkIcon } from "lucide-react";
 
 
 interface DropdownComponentProps {
@@ -146,9 +160,12 @@ export default function SettingsView() {
     const [title, setTitle] = useState("Settings");
     const [isMobileWidth, setIsMobileWidth] = useState(false);
     const { apiKeys, generateAPIKey, copyAPIKey, deleteAPIKey } = useApiKeys();
-    const userConfig = useUserConfig(true);
-    const cardClassName = "w-1/3 grid grid-flow-column border border-gray-300 shadow-md rounded-lg";
+    const initialUserConfig = useUserConfig(true);
+    const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
     const { toast } = useToast();
+    const cardClassName = "w-1/3 grid grid-flow-column border border-gray-300 shadow-md rounded-lg";
+
+    useEffect(() => setUserConfig(initialUserConfig), [initialUserConfig]);
 
     useEffect(() => {
         setIsMobileWidth(window.innerWidth < 786);
@@ -156,6 +173,38 @@ export default function SettingsView() {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
+
+    const setSubscription = async (state: string) => {
+        try {
+            const url = `/api/subscription?email=${userConfig?.username}&operation=${state}`;
+            const response = await fetch(url, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            if (!response.ok) throw new Error('Failed to change subscription');
+
+            // Set updated user settings
+            if (userConfig) {
+                let newUserConfig = userConfig;
+                newUserConfig.subscription_state = state === "cancel" ? "unsubscribed" : "subscribed";
+                setUserConfig(newUserConfig);
+            }
+
+            // Notify user of subscription change
+            toast({
+                title: "💳 Billing",
+                description: userConfig?.subscription_state === "unsubscribed" ? "Your subscription was cancelled" : "Your Futurist subscription has been renewed",
+            });
+        } catch (error) {
+            console.error('Error changing subscription:', error);
+            toast({
+                title: "💳 Billing",
+                description: state === "cancel" ? "Failed to cancel subscription. Try again or contact us at team@khoj.dev" : "Failed to renew subscription. Try again or contact us at team@khoj.dev",
+            });
+         }
+    };
 
     const updateModel = (name: string) => async (id: string) => {
         try {
@@ -166,21 +215,15 @@ export default function SettingsView() {
                 }
             });
 
-            if (response.ok) {
-                const result = await response.json();
-                toast({
-                    description: `${name} model updated succesfully`,
-                });
-            } else {
-                toast({
-                    description: `Failed to update ${name} model`,
-                    variant: "destructive",
-                });
-            }
-        } catch (error) {
-            console.error('Error updating search model:', error);
+            if (!response.ok) throw new Error('Failed to update model');
+
             toast({
-                description: `An error occured while updating the ${name} model`,
+                description: `${name} model updated succesfully`,
+            });
+        } catch (error) {
+            console.error(`Failed to update ${name} model:`, error);
+            toast({
+                description: `Failed to update ${name} model. Try again.`,
                 variant: "destructive",
             });
         }
@@ -339,6 +382,75 @@ export default function SettingsView() {
                                             <Button variant="outline" className="border border-green-300" onClick={generateAPIKey}>
                                                 <PlusCircle className='h-4 w-4 mr-2' />Generate Key
                                             </Button>
+                                        </CardFooter>
+                                    </Card>
+                                </div>
+                            </div>
+                            <div className="section grid gap-8">
+                                <div className="text-4xl">Billing</div>
+                                <div className="cards flex flex-wrap gap-16">
+                                    <Card className={cardClassName}>
+                                        <CardHeader className="text-xl flex flex-row">
+                                            <CreditCard className="h-7 w-7 mr-2"/>
+                                            Subscription
+                                            {(userConfig.subscription_state === "subscribed" || userConfig.subscription_state === "unsubscribed") && (
+                                                <CheckCircle weight="bold" className="h-4 w-4 ml-1 text-green-400" />
+                                            )}
+                                        </CardHeader>
+                                        <CardContent className="overflow-hidden">
+                                            {userConfig.subscription_state === "trial" && (
+                                                <div>
+                                                    <p>You are on a 14 day trial of the Khoj <i>Futurist</i> plan</p>
+                                                    <p>See <a href="https://khoj.dev/pricing">pricing</a> for details</p>
+                                                </div>
+                                            ) || userConfig.subscription_state === "subscribed" && (
+                                                <div>
+                                                    <p>You are <b>subscribed</b> to Khoj <i>Futurist</i></p>
+                                                    <p>Subscription will <b>renew</b> on <b>{ userConfig.subscription_renewal_date }</b></p>
+                                                </div>
+                                            ) || userConfig.subscription_state === "unsubscribed" && (
+                                                <div>
+                                                    <p>You are <b>subscribed</b> to Khoj <i>Futurist</i></p>
+                                                    <p>Subscription will <b>expire</b> on <b>{ userConfig.subscription_renewal_date }</b></p>
+                                                </div>
+                                            ) || userConfig.subscription_state === "expired" && (
+                                                <div>
+                                                    <p>Subscribe to the Khoj <i>Futurist</i> plan</p>
+                                                    {userConfig.subscription_renewal_date && (
+                                                        <p>Your subscription <b>expired</b> on <b>{ userConfig.subscription_renewal_date }</b></p>
+                                                    ) || (
+                                                        <p>See <a href="https://khoj.dev/pricing">pricing</a> for details</p>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                        <CardFooter className="flex flex-wrap gap-4">
+                                            {(userConfig.subscription_state == "subscribed") && (
+                                                <Button
+                                                    variant="outline"
+                                                    className="border border-red-400"
+                                                    onClick={() => setSubscription("cancel")}
+                                                >
+                                                    Unsubscribe
+                                                </Button>
+                                            ) || (userConfig.subscription_state == "unsubscribed") && (
+                                                <Button
+                                                    variant="outline"
+                                                    className="border border-green-400"
+                                                    onClick={() => setSubscription("resubscribe")}
+                                                >
+                                                    Resubscribe
+                                                </Button>
+                                            ) || (
+                                                <Button
+                                                    variant="outline"
+                                                    className="border border-green-400"
+                                                    onClick={() => window.open(`${userConfig.khoj_cloud_subscription_url}?prefilled_email=${userConfig.username}`, '_blank', 'noopener,noreferrer')}
+                                                >
+                                                   Subscribe
+                                                   <ExternalLinkIcon className="h-4 w-4 ml-1" />
+                                                </Button>
+                                            )}
                                         </CardFooter>
                                     </Card>
                                 </div>
