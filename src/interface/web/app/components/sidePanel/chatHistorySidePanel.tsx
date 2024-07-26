@@ -718,7 +718,7 @@ export default function SidePanel(props: SidePanelProps) {
             <div className={`flex justify-between flex-row`}>
                 <Link href='/'>
                     <img
-                        src="/khoj-logo.svg"
+                        src="/static/khoj-logo.svg"
                         alt="khoj logo"
                         width={52}
                         height={52} />

@@ -953,7 +953,7 @@ export default function Automations() {
                     />
                 </div>
                 <div className={`${styles.pageLayout} w-full`}>
-                    <div className='py-4 flex justify-between sm:grid sm:gap-1'>
+                    <div className='py-4 sm:grid sm:gap-1 flex justify-between'>
                         <h1 className="text-3xl">Automations</h1>
                         <div className='flex flex-wrap gap-2 items-center md:justify-start justify-end'>
                             {

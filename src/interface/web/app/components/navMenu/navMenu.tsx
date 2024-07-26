@@ -106,7 +106,7 @@ export default function NavMenu(props: NavMenuProps) {
                     !displayTitle && props.showLogo &&
                     <Link href='/'>
                         <Image
-                            src="/khoj-logo.svg"
+                            src="/static/khoj-logo.svg"
                             alt="Khoj"
                             width={52}
                             height={52} />

@@ -5,19 +5,22 @@ import "../globals.css";
 const inter = Noto_Sans({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Khoj AI - Chat",
-  description: "Use this page to chat with Khoj AI.",
+    title: "Khoj AI - Chat",
+    description: "Use this page to chat with Khoj AI.",
+    icons: {
+        icon: '/static/favicon.ico',
+    },
 };
 
 export default function RootLayout({
-  children,
+    children,
 }: Readonly<{
-  children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
-  return (
-    <html lang="en">
-      <meta httpEquiv="Content-Security-Policy"
-        content="default-src 'self' https://assets.khoj.dev;
+    return (
+        <html lang="en">
+            <meta httpEquiv="Content-Security-Policy"
+                content="default-src 'self' https://assets.khoj.dev;
                        media-src * blob:;
                        script-src 'self' https://assets.khoj.dev 'unsafe-inline' 'unsafe-eval';
                        connect-src 'self' https://ipapi.co/json ws://localhost:42110;
@@ -26,9 +29,9 @@ export default function RootLayout({
                        font-src 'self' https://assets.khoj.dev https://fonts.gstatic.com;
                        child-src 'none';
                        object-src 'none';"></meta>
-      <body className={inter.className}>
-        {children}
-      </body>
-    </html>
-  );
+            <body className={inter.className}>
+                {children}
+            </body>
+        </html>
+    );
 }
