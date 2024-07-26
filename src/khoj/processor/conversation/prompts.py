@@ -208,6 +208,7 @@ Construct search queries to retrieve relevant information to answer the user's q
 - Add as much context from the previous questions and answers as required into your search queries.
 - Break messages into multiple search queries when required to retrieve the relevant information.
 - Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
+- When asked a meta, vague or random questions, search for a variety of broad topics to answer the user's question.
 - Share relevant search queries as a JSON list of strings. Do not say anything else.
 
 Current Date: {day_of_week}, {current_date}
@@ -239,6 +240,9 @@ Khoj: ["What kind of plants do I have?", "What issues do my plants have?"]
 Q: Who all did I meet here yesterday?
 Khoj: ["Met in {location} on {yesterday_date} dt>='{yesterday_date}' dt<'{current_date}'"]
 
+Q: Share some random, interesting experiences from this month
+Khoj: ["Exciting travel adventures from {current_month}", "Fun social events dt>='{current_month}-01' dt<'{current_date}'", "Intense emotional experiences in {current_month}"]
+
 Chat History:
 {chat_history}
 What searches will you perform to answer the following question, using the chat history as reference? Respond only with relevant search queries as a valid JSON list of strings.
@@ -255,6 +259,7 @@ Construct search queries to retrieve relevant information to answer the user's q
 - Add as much context from the previous questions and answers as required into your search queries.
 - Break messages into multiple search queries when required to retrieve the relevant information.
 - Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
+- When asked a meta, vague or random questions, search for a variety of broad topics to answer the user's question.
 
 What searches will you perform to answer the users question? Respond with search queries as list of strings in a JSON object.
 Current Date: {day_of_week}, {current_date}
@@ -280,6 +285,10 @@ A: I can help you live healthier and happier across work and personal life
 Q: How many tennis balls fit in the back of a 2002 Honda Civic?
 Khoj: {{"queries": ["What is the size of a tennis ball?", "What is the trunk size of a 2002 Honda Civic?"]}}
 A: 1085 tennis balls will fit in the trunk of a Honda Civic
+
+Q: Share some random, interesting experiences from this month
+Khoj: {{"queries": ["Exciting travel adventures from {current_month}", "Fun social events dt>='{current_month}-01' dt<'{current_date}'", "Intense emotional experiences in {current_month}"]}}
+A: You had a great time at the local beach with your friends, attended a music concert and had a deep conversation with your friend, Khalid.
 
 Q: Is Bob older than Tom?
 Khoj: {{"queries": ["When was Bob born?", "What is Tom's age?"]}}
@@ -307,6 +316,7 @@ Construct search queries to retrieve relevant information to answer the user's q
 - Add as much context from the previous questions and answers as required into your search queries.
 - Break messages into multiple search queries when required to retrieve the relevant information.
 - Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
+- When asked a meta, vague or random questions, search for a variety of broad topics to answer the user's question.
 
 What searches will you perform to answer the users question? Respond with a JSON object with the key "queries" mapping to a list of searches you would perform on the user's knowledge base. Just return the queries and nothing else.
 
@@ -331,6 +341,11 @@ A: I can help you live healthier and happier across work and personal life
 User: Who all did I meet here yesterday?
 Assistant: {{"queries": ["Met in {location} on {yesterday_date} dt>='{yesterday_date}' dt<'{current_date}'"]}}
 A: Yesterday's note mentions your visit to your local beach with Ram and Shyam.
+
+User: Share some random, interesting experiences from this month
+Assistant: {{"queries": ["Exciting travel adventures from {current_month}", "Fun social events dt>='{current_month}-01' dt<'{current_date}'", "Intense emotional experiences in {current_month}"]}}
+A: You had a great time at the local beach with your friends, attended a music concert and had a deep conversation with your friend, Khalid.
+
 """.strip()
 )
 

@@ -32,7 +32,7 @@ def extract_questions_offline(
     location_data: LocationData = None,
     user: KhojUser = None,
     max_prompt_size: int = None,
-    temperature: float = 0,
+    temperature: float = 0.7,
 ) -> List[str]:
     """
     Infer search queries to retrieve relevant notes to answer user query
@@ -67,6 +67,7 @@ def extract_questions_offline(
         chat_history=chat_history,
         current_date=today.strftime("%Y-%m-%d"),
         day_of_week=today.strftime("%A"),
+        current_month=today.strftime("%Y-%m"),
         yesterday_date=yesterday,
         last_year=last_year,
         this_year=today.year,
