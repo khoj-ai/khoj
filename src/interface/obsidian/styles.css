@@ -85,6 +85,12 @@ If your plugin does not need CSS, delete this file.
     margin-left: auto;
     white-space: pre-line;
 }
+/* Override white-space for ul, ol, li under khoj-chat-message-text.khoj */
+.khoj-chat-message-text.khoj ul,
+.khoj-chat-message-text.khoj ol,
+.khoj-chat-message-text.khoj li {
+    white-space: normal;
+}
 /* add left protrusion to khoj chat bubble */
 .khoj-chat-message-text.khoj:after {
     content: '';

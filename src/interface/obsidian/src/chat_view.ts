@@ -12,6 +12,25 @@ export interface ChatJsonResult {
     inferredQueries?: string[];
 }
 
+interface ChunkResult {
+    objects: string[];
+    remainder: string;
+}
+
+interface MessageChunk {
+    type: string;
+    data: any;
+}
+
+interface ChatMessageState {
+    newResponseTextEl: HTMLElement | null;
+    newResponseEl: HTMLElement | null;
+    loadingEllipsis: HTMLElement | null;
+    references: any;
+    rawResponse: string;
+    rawQuery: string;
+    isVoice: boolean;
+}
 
 interface Location {
     region: string;
@@ -26,6 +45,7 @@ export class KhojChatView extends KhojPaneView {
     waitingForLocation: boolean;
     location: Location;
     keyPressTimeout: NodeJS.Timeout | null = null;
+    chatMessageState: ChatMessageState;
 
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
         super(leaf, setting);
@@ -409,16 +429,15 @@ export class KhojChatView extends KhojPaneView {
         message = DOMPurify.sanitize(message);
 
         // Convert the message to html, sanitize the message html and render it to the real DOM
-        let chat_message_body_text_el = this.contentEl.createDiv();
-        chat_message_body_text_el.className = "chat-message-text-response";
-        chat_message_body_text_el.innerHTML = this.markdownTextToSanitizedHtml(message, this);
+        let chatMessageBodyTextEl = this.contentEl.createDiv();
+        chatMessageBodyTextEl.innerHTML = this.markdownTextToSanitizedHtml(message, this);
 
         // Add a copy button to each chat message, if it doesn't already exist
         if (willReplace === true) {
-            this.renderActionButtons(message, chat_message_body_text_el);
+            this.renderActionButtons(message, chatMessageBodyTextEl);
         }
 
-        return chat_message_body_text_el;
+        return chatMessageBodyTextEl;
     }
 
     markdownTextToSanitizedHtml(markdownText: string, component: ItemView): string {
@@ -502,23 +521,23 @@ export class KhojChatView extends KhojPaneView {
                 class: `khoj-chat-message ${sender}`
             },
         })
-        let chat_message_body_el = chatMessageEl.createDiv();
-        chat_message_body_el.addClasses(["khoj-chat-message-text", sender]);
-        let chat_message_body_text_el = chat_message_body_el.createDiv();
+        let chatMessageBodyEl = chatMessageEl.createDiv();
+        chatMessageBodyEl.addClasses(["khoj-chat-message-text", sender]);
+        let chatMessageBodyTextEl = chatMessageBodyEl.createDiv();
 
         // Sanitize the markdown to render
         message = DOMPurify.sanitize(message);
 
         if (raw) {
-            chat_message_body_text_el.innerHTML = message;
+            chatMessageBodyTextEl.innerHTML = message;
         } else {
             // @ts-ignore
-            chat_message_body_text_el.innerHTML = this.markdownTextToSanitizedHtml(message, this);
+            chatMessageBodyTextEl.innerHTML = this.markdownTextToSanitizedHtml(message, this);
         }
 
         // Add action buttons to each chat message element
         if (willReplace === true) {
-            this.renderActionButtons(message, chat_message_body_text_el);
+            this.renderActionButtons(message, chatMessageBodyTextEl);
         }
 
         // Remove user-select: none property to make text selectable
@@ -531,42 +550,38 @@ export class KhojChatView extends KhojPaneView {
     }
 
     createKhojResponseDiv(dt?: Date): HTMLDivElement {
-        let message_time = this.formatDate(dt ?? new Date());
+        let messageTime = this.formatDate(dt ?? new Date());
 
         // Append message to conversation history HTML element.
         // The chat logs should display above the message input box to follow standard UI semantics
-        let chat_body_el = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
-        let chat_message_el = chat_body_el.createDiv({
+        let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
+        let chatMessageEl = chatBodyEl.createDiv({
             attr: {
-                "data-meta": `🏮 Khoj at ${message_time}`,
+                "data-meta": `🏮 Khoj at ${messageTime}`,
                 class: `khoj-chat-message khoj`
             },
-        }).createDiv({
-            attr: {
-                class: `khoj-chat-message-text khoj`
-            },
-        }).createDiv();
+        })
 
         // Scroll to bottom after inserting chat messages
         this.scrollChatToBottom();
 
-        return chat_message_el;
+        return chatMessageEl;
     }
 
     async renderIncrementalMessage(htmlElement: HTMLDivElement, additionalMessage: string) {
-        this.result += additionalMessage;
+        this.chatMessageState.rawResponse += additionalMessage;
         htmlElement.innerHTML = "";
         // Sanitize the markdown to render
-        this.result = DOMPurify.sanitize(this.result);
+        this.chatMessageState.rawResponse = DOMPurify.sanitize(this.chatMessageState.rawResponse);
         // @ts-ignore
-        htmlElement.innerHTML = this.markdownTextToSanitizedHtml(this.result, this);
+        htmlElement.innerHTML = this.markdownTextToSanitizedHtml(this.chatMessageState.rawResponse, this);
         // Render action buttons for the message
-        this.renderActionButtons(this.result, htmlElement);
+        this.renderActionButtons(this.chatMessageState.rawResponse, htmlElement);
         // Scroll to bottom of modal, till the send message input box
         this.scrollChatToBottom();
     }
 
-    renderActionButtons(message: string, chat_message_body_text_el: HTMLElement) {
+    renderActionButtons(message: string, chatMessageBodyTextEl: HTMLElement) {
         let copyButton = this.contentEl.createEl('button');
         copyButton.classList.add("chat-action-button");
         copyButton.title = "Copy Message to Clipboard";
@@ -593,10 +608,10 @@ export class KhojChatView extends KhojPaneView {
         }
 
         // Append buttons to parent element
-        chat_message_body_text_el.append(copyButton, pasteToFile);
+        chatMessageBodyTextEl.append(copyButton, pasteToFile);
 
         if (speechButton) {
-            chat_message_body_text_el.append(speechButton);
+            chatMessageBodyTextEl.append(speechButton);
         }
     }
 
@@ -854,35 +869,122 @@ export class KhojChatView extends KhojPaneView {
         return true;
     }
 
-    async readChatStream(response: Response, responseElement: HTMLDivElement, isVoice: boolean = false): Promise<void> {
+    convertMessageChunkToJson(rawChunk: string): MessageChunk {
+        if (rawChunk?.startsWith("{") && rawChunk?.endsWith("}")) {
+            try {
+                let jsonChunk = JSON.parse(rawChunk);
+                if (!jsonChunk.type)
+                    jsonChunk = {type: 'message', data: jsonChunk};
+                return jsonChunk;
+            } catch (e) {
+                return {type: 'message', data: rawChunk};
+            }
+        } else if (rawChunk.length > 0) {
+            return {type: 'message', data: rawChunk};
+        }
+        return {type: '', data: ''};
+    }
+
+    processMessageChunk(rawChunk: string): void {
+        const chunk = this.convertMessageChunkToJson(rawChunk);
+        console.debug("Chunk:", chunk);
+        if (!chunk || !chunk.type) return;
+        if (chunk.type === 'status') {
+            console.log(`status: ${chunk.data}`);
+            const statusMessage = chunk.data;
+            this.handleStreamResponse(this.chatMessageState.newResponseTextEl, statusMessage, this.chatMessageState.loadingEllipsis, false);
+        } else if (chunk.type === 'start_llm_response') {
+            console.log("Started streaming", new Date());
+        } else if (chunk.type === 'end_llm_response') {
+            console.log("Stopped streaming", new Date());
+
+            // Automatically respond with voice if the subscribed user has sent voice message
+            if (this.chatMessageState.isVoice && this.setting.userInfo?.is_active)
+                this.textToSpeech(this.chatMessageState.rawResponse);
+
+            // Append any references after all the data has been streamed
+            this.finalizeChatBodyResponse(this.chatMessageState.references, this.chatMessageState.newResponseTextEl);
+
+            const liveQuery = this.chatMessageState.rawQuery;
+            // Reset variables
+            this.chatMessageState = {
+                newResponseTextEl: null,
+                newResponseEl: null,
+                loadingEllipsis: null,
+                references: {},
+                rawResponse: "",
+                rawQuery: liveQuery,
+                isVoice: false,
+            };
+        } else if (chunk.type === "references") {
+            this.chatMessageState.references = {"notes": chunk.data.context, "online": chunk.data.onlineContext};
+        } else if (chunk.type === 'message') {
+            const chunkData = chunk.data;
+            if (typeof chunkData === 'object' && chunkData !== null) {
+                // If chunkData is already a JSON object
+                this.handleJsonResponse(chunkData);
+            } else if (typeof chunkData === 'string' && chunkData.trim()?.startsWith("{") && chunkData.trim()?.endsWith("}")) {
+                // Try process chunk data as if it is a JSON object
+                try {
+                    const jsonData = JSON.parse(chunkData.trim());
+                    this.handleJsonResponse(jsonData);
+                } catch (e) {
+                    this.chatMessageState.rawResponse += chunkData;
+                    this.handleStreamResponse(this.chatMessageState.newResponseTextEl, this.chatMessageState.rawResponse, this.chatMessageState.loadingEllipsis);
+                }
+            } else {
+                this.chatMessageState.rawResponse += chunkData;
+                this.handleStreamResponse(this.chatMessageState.newResponseTextEl, this.chatMessageState.rawResponse, this.chatMessageState.loadingEllipsis);
+            }
+        }
+    }
+
+    handleJsonResponse(jsonData: any): void {
+        if (jsonData.image || jsonData.detail) {
+            this.chatMessageState.rawResponse = this.handleImageResponse(jsonData, this.chatMessageState.rawResponse);
+        } else if (jsonData.response) {
+            this.chatMessageState.rawResponse = jsonData.response;
+        }
+
+        if (this.chatMessageState.newResponseTextEl) {
+            this.chatMessageState.newResponseTextEl.innerHTML = "";
+            this.chatMessageState.newResponseTextEl.appendChild(this.formatHTMLMessage(this.chatMessageState.rawResponse));
+        }
+    }
+
+    async readChatStream(response: Response): Promise<void> {
         // Exit if response body is empty
         if (response.body == null) return;
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
+        const eventDelimiter = '␃🔚␗';
+        let buffer = '';
 
         while (true) {
             const { value, done } = await reader.read();
 
             if (done) {
-                // Automatically respond with voice if the subscribed user has sent voice message
-                if (isVoice && this.setting.userInfo?.is_active) this.textToSpeech(this.result);
+                this.processMessageChunk(buffer);
+                buffer = '';
                 // Break if the stream is done
                 break;
             }
 
-            let responseText = decoder.decode(value);
-            if (responseText.includes("### compiled references:")) {
-                // Render any references used to generate the response
-                const [additionalResponse, rawReference] = responseText.split("### compiled references:", 2);
-                await this.renderIncrementalMessage(responseElement, additionalResponse);
+            const chunk = decoder.decode(value, { stream: true });
+            console.debug("Raw Chunk:", chunk)
+            // Start buffering chunks until complete event is received
+            buffer += chunk;
 
-                const rawReferenceAsJson = JSON.parse(rawReference);
-                let references = this.extractReferences(rawReferenceAsJson);
-                responseElement.appendChild(this.createReferenceSection(references));
-            } else {
-                // Render incremental chat response
-                await this.renderIncrementalMessage(responseElement, responseText);
+            // Once the buffer contains a complete event
+            let newEventIndex;
+            while ((newEventIndex = buffer.indexOf(eventDelimiter)) !== -1) {
+                // Extract the event from the buffer
+                const event = buffer.slice(0, newEventIndex);
+                buffer = buffer.slice(newEventIndex + eventDelimiter.length);
+
+                // Process the event
+                if (event) this.processMessageChunk(event);
             }
         }
     }
@@ -895,83 +997,59 @@ export class KhojChatView extends KhojPaneView {
         let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
         this.renderMessage(chatBodyEl, query, "you");
 
-        let conversationID = chatBodyEl.dataset.conversationId;
-        if (!conversationID) {
+        let conversationId = chatBodyEl.dataset.conversationId;
+        if (!conversationId) {
             let chatUrl = `${this.setting.khojUrl}/api/chat/sessions?client=obsidian`;
             let response = await fetch(chatUrl, {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${this.setting.khojApiKey}` },
             });
             let data = await response.json();
-            conversationID = data.conversation_id;
-            chatBodyEl.dataset.conversationId = conversationID;
+            conversationId = data.conversation_id;
+            chatBodyEl.dataset.conversationId = conversationId;
         }
 
         // Get chat response from Khoj backend
         let encodedQuery = encodeURIComponent(query);
-        let chatUrl = `${this.setting.khojUrl}/api/chat?q=${encodedQuery}&n=${this.setting.resultsCount}&client=obsidian&stream=true&region=${this.location.region}&city=${this.location.city}&country=${this.location.countryName}&timezone=${this.location.timezone}`;
-        let responseElement = this.createKhojResponseDiv();
+        let chatUrl = `${this.setting.khojUrl}/api/chat?q=${encodedQuery}&conversation_id=${conversationId}&n=${this.setting.resultsCount}&stream=true&client=obsidian`;
+        if (!!this.location) chatUrl += `&region=${this.location.region}&city=${this.location.city}&country=${this.location.countryName}&timezone=${this.location.timezone}`;
+
+        let newResponseEl = this.createKhojResponseDiv();
+        let newResponseTextEl = newResponseEl.createDiv();
+        newResponseTextEl.classList.add("khoj-chat-message-text", "khoj");
 
         // Temporary status message to indicate that Khoj is thinking
-        this.result = "";
         let loadingEllipsis = this.createLoadingEllipse();
-        responseElement.appendChild(loadingEllipsis);
+        newResponseTextEl.appendChild(loadingEllipsis);
+
+        // Set chat message state
+        this.chatMessageState = {
+            newResponseEl: newResponseEl,
+            newResponseTextEl: newResponseTextEl,
+            loadingEllipsis: loadingEllipsis,
+            references: {},
+            rawQuery: query,
+            rawResponse: "",
+            isVoice: isVoice,
+        };
 
         let response = await fetch(chatUrl, {
             method: "GET",
             headers: {
-                "Content-Type": "text/event-stream",
+                "Content-Type": "text/plain",
                 "Authorization": `Bearer ${this.setting.khojApiKey}`,
             },
         })
 
         try {
-            if (response.body === null) {
-                throw new Error("Response body is null");
-            }
+            if (response.body === null) throw new Error("Response body is null");
 
-            // Clear loading status message
-            if (responseElement.getElementsByClassName("lds-ellipsis").length > 0 && loadingEllipsis) {
-                responseElement.removeChild(loadingEllipsis);
-            }
-
-            // Reset collated chat result to empty string
-            this.result = "";
-            responseElement.innerHTML = "";
-            if (response.headers.get("content-type") === "application/json") {
-                let responseText = ""
-                try {
-                    const responseAsJson = await response.json() as ChatJsonResult;
-                    if (responseAsJson.image) {
-                        // If response has image field, response is a generated image.
-                        if (responseAsJson.intentType === "text-to-image") {
-                            responseText += `![${query}](data:image/png;base64,${responseAsJson.image})`;
-                        } else if (responseAsJson.intentType === "text-to-image2") {
-                            responseText += `![${query}](${responseAsJson.image})`;
-                        } else if (responseAsJson.intentType === "text-to-image-v3") {
-                            responseText += `![${query}](data:image/webp;base64,${responseAsJson.image})`;
-                        }
-                        const inferredQuery = responseAsJson.inferredQueries?.[0];
-                        if (inferredQuery) {
-                            responseText += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
-                        }
-                    } else if (responseAsJson.detail) {
-                        responseText = responseAsJson.detail;
-                    }
-                } catch (error) {
-                    // If the chunk is not a JSON object, just display it as is
-                    responseText = await response.text();
-                } finally {
-                    await this.renderIncrementalMessage(responseElement, responseText);
-                }
-            } else {
-                // Stream and render chat response
-                await this.readChatStream(response, responseElement, isVoice);
-            }
+            // Stream and render chat response
+            await this.readChatStream(response);
         } catch (err) {
-            console.log(`Khoj chat response failed with\n${err}`);
+            console.error(`Khoj chat response failed with\n${err}`);
             let errorMsg = "Sorry, unable to get response from Khoj backend ❤️‍🩹. Retry or contact developers for help at <a href=mailto:'team@khoj.dev'>team@khoj.dev</a> or <a href='https://discord.gg/BDgyabRM6e'>on Discord</a>";
-            responseElement.innerHTML = errorMsg
+            newResponseTextEl.textContent = errorMsg;
         }
     }
 
@@ -1196,28 +1274,19 @@ export class KhojChatView extends KhojPaneView {
 
     handleStreamResponse(newResponseElement: HTMLElement | null, rawResponse: string, loadingEllipsis: HTMLElement | null, replace = true) {
         if (!newResponseElement) return;
-        if (newResponseElement.getElementsByClassName("lds-ellipsis").length > 0 && loadingEllipsis) {
+        // Remove loading ellipsis if it exists
+        if (newResponseElement.getElementsByClassName("lds-ellipsis").length > 0 && loadingEllipsis)
             newResponseElement.removeChild(loadingEllipsis);
-        }
-        if (replace) {
-            newResponseElement.innerHTML = "";
-        }
+        // Clear the response element if replace is true
+        if (replace) newResponseElement.innerHTML = "";
+
+        // Append response to the response element
         newResponseElement.appendChild(this.formatHTMLMessage(rawResponse, false, replace));
+
+        // Append loading ellipsis if it exists
+        if (!replace && loadingEllipsis) newResponseElement.appendChild(loadingEllipsis);
+        // Scroll to bottom of chat view
         this.scrollChatToBottom();
-    }
-
-    handleCompiledReferences(rawResponseElement: HTMLElement | null, chunk: string, references: any, rawResponse: string) {
-        if (!rawResponseElement || !chunk) return { rawResponse, references };
-
-        const [additionalResponse, rawReference] = chunk.split("### compiled references:", 2);
-        rawResponse += additionalResponse;
-        rawResponseElement.innerHTML = "";
-        rawResponseElement.appendChild(this.formatHTMLMessage(rawResponse));
-
-        const rawReferenceAsJson = JSON.parse(rawReference);
-        references = this.extractReferences(rawReferenceAsJson);
-
-        return { rawResponse, references };
     }
 
     handleImageResponse(imageJson: any, rawResponse: string) {
@@ -1236,33 +1305,10 @@ export class KhojChatView extends KhojPaneView {
                 rawResponse += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
             }
         }
-        let references = {};
-        if (imageJson.context && imageJson.context.length > 0) {
-            references = this.extractReferences(imageJson.context);
-        }
-        if (imageJson.detail) {
-            // If response has detail field, response is an error message.
-            rawResponse += imageJson.detail;
-        }
-        return { rawResponse, references };
-    }
+        // If response has detail field, response is an error message.
+        if (imageJson.detail) rawResponse += imageJson.detail;
 
-    extractReferences(rawReferenceAsJson: any): object {
-        let references: any = {};
-        if (rawReferenceAsJson instanceof Array) {
-            references["notes"] = rawReferenceAsJson;
-        } else if (typeof rawReferenceAsJson === "object" && rawReferenceAsJson !== null) {
-            references["online"] = rawReferenceAsJson;
-        }
-        return references;
-    }
-
-    addMessageToChatBody(rawResponse: string, newResponseElement: HTMLElement | null, references: any) {
-        if (!newResponseElement) return;
-        newResponseElement.innerHTML = "";
-        newResponseElement.appendChild(this.formatHTMLMessage(rawResponse));
-
-        this.finalizeChatBodyResponse(references, newResponseElement);
+        return rawResponse;
     }
 
     finalizeChatBodyResponse(references: object, newResponseElement: HTMLElement | null) {
