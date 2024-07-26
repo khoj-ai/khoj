@@ -46,7 +46,6 @@ function getIconFromIconName(iconName: string, color: string = 'gray', width: st
     const icon = iconMap[iconName];
     const colorName = color.toLowerCase();
     const colorClass = convertColorToTextClass(colorName);
-
     return icon ? icon(colorClass, width, height) : null;
 }
 

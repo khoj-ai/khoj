@@ -77,6 +77,8 @@ interface AgentData {
     avatar: string;
     slug: string;
     persona: string;
+    color: string;
+    icon: string;
 }
 
 interface Intent {
@@ -97,6 +99,7 @@ export interface SingleChatMessage {
     }
     rawQuery?: string;
     intent?: Intent;
+    agent?: AgentData;
 }
 
 export interface StreamMessage {
@@ -109,6 +112,7 @@ export interface StreamMessage {
     completed: boolean;
     rawQuery: string;
     timestamp: string;
+    agent?: AgentData;
 }
 
 export interface ChatHistoryData {
@@ -147,6 +151,7 @@ interface ChatMessageProps {
     customClassName?: string;
     borderLeftColor?: string;
     isLastMessage?: boolean;
+    agent?: AgentData;
 }
 
 interface TrainOfThoughtProps {
@@ -330,9 +335,9 @@ export default function ChatMessage(props: ChatMessageProps) {
     function chatMessageWrapperClasses(chatMessage: SingleChatMessage) {
         let classes = [styles.chatMessageWrapper];
         classes.push(styles[chatMessage.by]);
-
         if (chatMessage.by === "khoj") {
-            const dynamicBorderColor = `border-l-${props.borderLeftColor}`;
+            console.log("chatMessage.agent", chatMessage);
+            const dynamicBorderColor = `border-l-${chatMessage.agent?.color}-500`;
             classes.push(`border-l-4 border-opacity-50 border-l-orange-400 ${dynamicBorderColor}`);
         }
 

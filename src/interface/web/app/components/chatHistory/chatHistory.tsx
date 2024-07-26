@@ -15,6 +15,7 @@ import { InlineLoading } from '../loading/loading';
 import { Lightbulb } from "@phosphor-icons/react";
 
 import ProfileCard from '../profileCard/profileCard';
+import { getIconFromIconName } from '@/app/common/iconUtils';
 
 interface ChatResponse {
     status: string;
@@ -344,7 +345,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                 <ProfileCard
                                     name={constructAgentName()}
                                     link={constructAgentLink()}
-                                    avatar={<Lightbulb color='orange' weight='fill' />}
+                                    avatar={getIconFromIconName(data.agent.icon, data.agent.color) || <Lightbulb />}
                                     description={constructAgentPersona()}
                                 />
                             </div>

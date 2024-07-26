@@ -17,6 +17,15 @@ import { StreamMessage } from '../components/chatMessage/chatMessage';
 import { welcomeConsole } from '../common/utils';
 import ChatInputArea, { ChatOptions } from '../components/chatInputArea/chatInputArea';
 import { useAuthenticatedData } from '../common/auth';
+import useSWR from 'swr';
+interface AgentData {
+    slug: string;
+    avatar: string;
+    name: string;
+    personality: string;
+    color: string;
+    icon: string;
+}
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -92,7 +101,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
         </>
     );
 }
-
+const agentsFetcher = () => window.fetch('/api/agents').then(res => res.json()).catch(err => console.log(err));
 export default function Chat() {
     const [chatOptionsData, setChatOptionsData] = useState<ChatOptions | null>(null);
     const [isLoading, setLoading] = useState(true);
