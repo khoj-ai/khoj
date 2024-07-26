@@ -212,6 +212,7 @@ Construct search queries to retrieve relevant information to answer the user's q
 
 Current Date: {day_of_week}, {current_date}
 User's Location: {location}
+{username}
 
 Examples:
 Q: How was my trip to Cambodia?
@@ -258,6 +259,7 @@ Construct search queries to retrieve relevant information to answer the user's q
 What searches will you perform to answer the users question? Respond with search queries as list of strings in a JSON object.
 Current Date: {day_of_week}, {current_date}
 User's Location: {location}
+{username}
 
 Q: How was my trip to Cambodia?
 Khoj: {{"queries": ["How was my trip to Cambodia?"]}}
@@ -310,6 +312,7 @@ What searches will you perform to answer the users question? Respond with a JSON
 
 Current Date: {day_of_week}, {current_date}
 User's Location: {location}
+{username}
 
 Here are some examples of how you can construct search queries to answer the user's question:
 
@@ -525,6 +528,7 @@ Which webpages will you need to read to answer the user's question?
 Provide web page links as a list of strings in a JSON object.
 Current Date: {current_date}
 User's Location: {location}
+{username}
 
 Here are some examples:
 History:
@@ -571,6 +575,7 @@ What Google searches, if any, will you need to perform to answer the user's ques
 Provide search queries as a list of strings in a JSON object. Do not wrap the json in a codeblock.
 Current Date: {current_date}
 User's Location: {location}
+{username}
 
 Here are some examples:
 History:

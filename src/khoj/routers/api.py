@@ -343,6 +343,7 @@ async def extract_references_and_questions(
                 conversation_log=meta_log,
                 should_extract_questions=True,
                 location_data=location_data,
+                user=user,
                 max_prompt_size=conversation_config.max_prompt_size,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
@@ -357,6 +358,7 @@ async def extract_references_and_questions(
                 api_base_url=base_url,
                 conversation_log=meta_log,
                 location_data=location_data,
+                user=user,
                 max_tokens=conversation_config.max_prompt_size,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
@@ -368,6 +370,7 @@ async def extract_references_and_questions(
                 api_key=api_key,
                 conversation_log=meta_log,
                 location_data=location_data,
+                user=user,
             )
 
     # Collate search results as context for GPT
