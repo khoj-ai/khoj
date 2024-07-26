@@ -205,7 +205,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                                 key={`${index}-${agents[index].slug}`}
                                 className={
                                     `${selectedAgent === agents[index].slug ?
-                                        convertColorToBorderClass(agents[index].color) : 'border-stone-100 text-muted-foreground'}
+                                        convertColorToBorderClass(agents[index].color) : 'border-stone-100 dark:border-neutral-700 text-muted-foreground'}
                                     hover:cursor-pointer rounded-lg px-2 py-2`}>
                                 <CardTitle
                                     className='text-center text-md font-medium flex justify-center items-center'
@@ -223,7 +223,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             <div className={`ml-auto mr-auto ${props.isMobileWidth ? 'w-full' : 'w-fit'}`}>
                 {
                     !props.isMobileWidth &&
-                    <div className={`w-full ${styles.inputBox} bg-background align-middle items-center justify-center p-3 dark:bg-neutral-700`}>
+                    <div className={`w-full ${styles.inputBox} bg-background align-middle items-center justify-center p-3 dark:bg-neutral-700 border-stone-100 dark:border-none dark:shadow-none`}>
                         <ChatInputArea
                             isLoggedIn={props.isLoggedIn}
                             sendMessage={(message) => setMessage(message)}
