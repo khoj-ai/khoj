@@ -276,7 +276,7 @@ export default function Agents() {
                     loginRedirectMessage="Sign in to start chatting with a specialized agent"
                     onOpenChange={setShowLoginPrompt} />
             }
-            <div className={`${styles.chatLayout} w-full ml-auto mr-auto`}>
+            <div className={`${styles.pageLayout} w-full ml-auto mr-auto`}>
                 <div className={`${styles.sidePanel} top-0`}>
                     <SidePanel
                         webSocketConnected={true}

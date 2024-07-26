@@ -27,9 +27,9 @@ const suggestions: Suggestion[] = [["Automation", "blue", "Send me a summary of 
 const today = new Date();
 const day = today.getDay();
 const greetings = [
-    `Good ${today.getHours() < 12 ? 'morning' : today.getHours() < 18 ? 'afternoon' : 'evening'}! What would you like to do today?`,
+    `Good ${today.getHours() < 12 ? 'morning' : today.getHours() < 15 ? 'afternoon' : 'evening'}! What would you like to do today?`,
     'How can I help you today?',
-    `Good ${today.getHours() < 12 ? 'morning' : today.getHours() < 18 ? 'afternoon' : 'evening'}! What can I do for you today?`,
+    `Good ${today.getHours() < 12 ? 'morning' : today.getHours() < 15 ? 'afternoon' : 'evening'}! What can I do for you today?`,
     `Ready to breeze through your ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]}?`,
     `Need help navigating your ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]} workload?`
 ];
