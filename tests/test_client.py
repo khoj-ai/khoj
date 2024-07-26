@@ -127,6 +127,8 @@ def test_index_update_big_files(client):
     # Arrange
     state.billing_enabled = True
     files = get_big_size_sample_files_data()
+
+    # Credential for the default_user, who is subscribed
     headers = {"Authorization": "Bearer kk-secret"}
 
     # Act
@@ -497,7 +499,8 @@ def get_sample_files_data():
 
 
 def get_big_size_sample_files_data():
-    big_text = "a" * (25 * 1024 * 1024)  # a string of approximately 25 MB
+    # a string of approximately 100 MB
+    big_text = "a" * (100 * 1024 * 1024)
     return [
         (
             "files",
