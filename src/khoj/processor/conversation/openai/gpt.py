@@ -25,7 +25,6 @@ def extract_questions(
     api_key=None,
     api_base_url=None,
     temperature=0.7,
-    max_tokens=100,
     location_data: LocationData = None,
     user: KhojUser = None,
 ):

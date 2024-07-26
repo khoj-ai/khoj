@@ -359,7 +359,6 @@ async def extract_references_and_questions(
                 conversation_log=meta_log,
                 location_data=location_data,
                 user=user,
-                max_tokens=conversation_config.max_prompt_size,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
             api_key = conversation_config.openai_config.api_key
