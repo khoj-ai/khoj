@@ -21,7 +21,7 @@ div.sidePanel {
     height: 100%;
 }
 
-div.chatLayout {
+div.pageLayout {
     display: grid;
     grid-template-columns: auto 1fr;
     gap: 1rem;

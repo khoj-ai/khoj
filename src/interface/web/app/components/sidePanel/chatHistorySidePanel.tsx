@@ -8,6 +8,7 @@ import { UserProfile, useAuthenticatedData } from "@/app/common/auth";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import Link from "next/link";
 import useSWR from "swr";
+import Image from "next/image";
 
 import {
     Command,
@@ -717,7 +718,7 @@ export default function SidePanel(props: SidePanelProps) {
         <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed} mt-1`}>
             <div className={`flex justify-between flex-row`}>
                 <Link href='/'>
-                    <img
+                    <Image
                         src="/khoj-logo.svg"
                         alt="khoj logo"
                         width={52}
