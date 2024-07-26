@@ -10,6 +10,8 @@ import { useUserConfig, ModelOptions, UserConfig } from "../common/auth";
 import { isValidPhoneNumber } from 'libphonenumber-js';
 
 import { Button } from "@/components/ui/button";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { Input } from "@/components/ui/input";
 import {
     Card,
     CardContent,
@@ -17,20 +19,18 @@ import {
     CardHeader,
 } from "@/components/ui/card";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
     Table,
     TableBody,
     TableCell,
-    TableHead,
-    TableHeader,
     TableRow,
-  } from "@/components/ui/table"
+} from "@/components/ui/table"
 
 import {
     ArrowRight,
@@ -42,22 +42,25 @@ import {
     FileMagnifyingGlass,
     Trash,
     Copy,
-    PlusCircle,
     CreditCard,
     CheckCircle,
     NotionLogo,
     GithubLogo,
     Files,
     WhatsappLogo,
-    ExclamationMark
+    ExclamationMark,
+    Plugs,
+    CloudSlash,
+    Laptop,
+    Plus,
+    FloppyDisk,
+    PlugsConnected,
+    ArrowCircleUp,
 } from "@phosphor-icons/react";
 
 import NavMenu from "../components/navMenu/navMenu";
 import SidePanel from "../components/sidePanel/chatHistorySidePanel";
 import Loading from "../components/loading/loading";
-import { ExternalLinkIcon } from "lucide-react";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { Input } from "@/components/ui/input";
 
 
 interface DropdownComponentProps {
@@ -73,7 +76,7 @@ const DropdownComponent: React.FC<DropdownComponentProps> = ({ items, selected, 
         <div className="overflow-hidden">
             <DropdownMenu>
                 <DropdownMenuTrigger asChild className="w-full">
-                    <Button variant="outline" className="justify-start">
+                    <Button variant="outline" className="justify-start py-6">
                         {items.find(item => item.id === Number(position))?.name}
                     </Button>
                 </DropdownMenuTrigger>
@@ -323,128 +326,197 @@ export default function SettingsView() {
                     <Suspense fallback={<Loading />}>
                         <div id="content" className="grid grid-flow-column sm:grid-flow-row gap-16 m-8">
                             <div className="section grid gap-8">
-                                <div className="text-4xl">Profile</div>
+                                <div className="text-2xl">Profile</div>
                                 <div className="cards flex flex-wrap gap-16">
                                     <Card className={cardClassName}>
                                         <CardHeader className="text-xl flex flex-row"><UserCircle className="h-7 w-7 mr-2"/>Name</CardHeader>
                                         <CardContent className="overflow-hidden">
-                                            <input type="text" className="w-full border border-gray-300 rounded-lg p-4" defaultValue={userConfig.given_name} />
+                                            <p className="pb-4 text-gray-400">What should Khoj refer to you as?</p>
+                                            <Input type="text" className="w-full border border-gray-300 rounded-lg p-4 py-6" defaultValue={userConfig.given_name} />
                                         </CardContent>
                                         <CardFooter className="flex flex-wrap gap-4">
-                                            <Button variant="outline" size="sm" className="border-green-400">Save</Button>
+                                            <Button variant="outline" size="sm"><FloppyDisk className="h-5 w-5 inline mr-2" />Save</Button>
                                         </CardFooter>
                                     </Card>
                                 </div>
                             </div>
                             <div className="section grid gap-8">
-                                <div className="text-4xl">Content</div>
+                                <div className="text-2xl">Content</div>
                                 <div className="cards flex flex-wrap gap-16">
                                     <Card className={cardClassName}>
-                                        <CardHeader className="text-xl flex flex-row"><Files className="h-7 w-7 mr-2" />Files</CardHeader>
-                                        <CardContent className="overflow-hidden">
+                                        <CardHeader className="text-xl flex flex-row text-2xl"><Laptop className="h-8 w-8 mr-2" />Files</CardHeader>
+                                        <CardContent className="overflow-hidden pb-12 text-gray-400">
                                             Manage your synced files
                                         </CardContent>
                                         <CardFooter className="flex flex-wrap gap-4">
-                                            <Button variant="outline" size="sm" className="border-green-400">{userConfig.enabled_content_source.computer ? "Update" : "Setup"} <ArrowRight className="inline ml-2" weight="bold"/></Button>
-                                            <Button variant="outline" size="sm" className={`${userConfig.enabled_content_source.computer ? "border-red-400" : "hidden"}`}>Disable</Button>
+                                            <Button variant="outline" size="sm">
+                                                {userConfig.enabled_content_source.computer && (
+                                                    <>
+                                                        <Files className="h-5 w-5 inline mr-1" />Manage
+                                                    </>
+                                                ) || (
+                                                    <>
+                                                        <Plugs className="h-5 w-5 inline mr-1" />Connect
+                                                    </>
+                                                )}
+                                            </Button>
+                                            <Button variant="outline" size="sm" className={`${userConfig.enabled_content_source.computer || "hidden"}`}>
+                                                <CloudSlash className="h-5 w-5 inline mr-1" />Disable
+                                            </Button>
                                         </CardFooter>
                                     </Card>
                                     <Card className={cardClassName}>
-                                        <CardHeader className="text-xl flex flex-row"><GithubLogo className="h-7 w-7 mr-2" />Github</CardHeader>
-                                        <CardContent className="overflow-hidden">
-                                            Set repositories to index
+                                        <CardHeader className="text-xl flex flex-row text-2xl"><GithubLogo className="h-8 w-8 mr-2" />Github</CardHeader>
+                                        <CardContent className="overflow-hidden pb-12 text-gray-400">
+                                            Set Github repositories to index
                                         </CardContent>
                                         <CardFooter className="flex flex-wrap gap-4">
-                                            <Button variant="outline" size="sm" className="border-green-400">{userConfig.enabled_content_source.github ? "Update" : "Setup"} <ArrowRight className="inline ml-2" weight="bold"/></Button>
-                                            <Button variant="outline" size="sm" className={`${userConfig.enabled_content_source.github ? "border-red-400" : "hidden"}`}>Disable</Button>
+                                            <Button variant="outline" size="sm">
+                                                {userConfig.enabled_content_source.github && (
+                                                    <>
+                                                        <Files className="h-5 w-5 inline mr-1" />Manage
+                                                    </>
+                                                ) || (
+                                                    <>
+                                                        <Plugs className="h-5 w-5 inline mr-1" />Connect
+                                                    </>
+                                                )}
+                                            </Button>
+                                            <Button variant="outline" size="sm" className={`${userConfig.enabled_content_source.github || "hidden"}`}>
+                                                <CloudSlash className="h-5 w-5 inline mr-1" />Disable
+                                            </Button>
                                         </CardFooter>
                                     </Card>
                                     <Card className={cardClassName}>
                                         <CardHeader className="text-xl flex flex-row"><NotionLogo className="h-7 w-7 mr-2" />Notion</CardHeader>
-                                        <CardContent className="overflow-hidden">
+                                        <CardContent className="overflow-hidden pb-12 text-gray-400">
                                             Sync your Notion pages
                                         </CardContent>
                                         <CardFooter className="flex flex-wrap gap-4">
-                                            <Button variant="outline" size="sm" className="border-green-400">{userConfig.enabled_content_source.notion ? "Update" : "Setup"} <ArrowRight className="inline ml-2" weight="bold"/></Button>
-                                            <Button variant="outline" size="sm" className={`${userConfig.enabled_content_source.notion ? "border-red-400" : "hidden"}`}>Disable</Button>
+                                            <Button variant="outline" size="sm">
+                                                {userConfig.enabled_content_source.notion && (
+                                                    <>
+                                                        <Files className="h-5 w-5 inline mr-1" />Manage
+                                                    </>
+                                                ) || (
+                                                    <>
+                                                        <Plugs className="h-5 w-5 inline mr-1" />Connect
+                                                    </>
+                                                )}
+                                            </Button>
+                                            <Button variant="outline" size="sm" className={`${userConfig.enabled_content_source.notion || "hidden"}`}>
+                                                <CloudSlash className="h-5 w-5 inline mr-1" />Disable
+                                            </Button>
                                         </CardFooter>
                                     </Card>
                                 </div>
                             </div>
                             <div className="section grid gap-8">
-                                <div className="text-4xl">Features</div>
+                                <div className="text-2xl">Models</div>
                                 <div className="cards flex flex-wrap gap-16">
+                                    {userConfig.chat_model_options.length > 0 && (
                                     <Card className={cardClassName}>
                                         <CardHeader className="text-xl flex flex-row"><ChatCircleText className="h-7 w-7 mr-2"/>Chat</CardHeader>
-                                        <CardContent className="overflow-hidden">
+                                        <CardContent className="overflow-hidden pb-12 grid gap-8">
+                                            <p className="text-gray-400">Pick the chat model to generate text responses</p>
                                             <DropdownComponent
                                                 items={userConfig.chat_model_options}
                                                 selected={userConfig.selected_chat_model_config}
                                                 callbackFunc={updateModel("chat")}
                                             />
                                         </CardContent>
-                                    </Card>
+                                        <CardFooter className="flex flex-wrap gap-4">
+                                            {!userConfig.is_active && (
+                                                <p className="text-gray-400">Subscribe to switch model</p>
+                                            )}
+                                        </CardFooter>
+                                     </Card>
+                                    )}
+                                    {userConfig.search_model_options.length > 0 && (
                                     <Card className={cardClassName}>
                                         <CardHeader className="text-xl flex flex-row"><FileMagnifyingGlass className="h-7 w-7 mr-2"/>Search</CardHeader>
-                                        <CardContent className="overflow-hidden">
+                                        <CardContent className="overflow-hidden pb-12 grid gap-8">
+                                            <p className="text-gray-400">Pick the search model to find your documents</p>
                                             <DropdownComponent
                                                 items={userConfig.search_model_options}
                                                 selected={userConfig.selected_search_model_config}
                                                 callbackFunc={updateModel("search")}
                                             />
                                         </CardContent>
+                                        <CardFooter className="flex flex-wrap gap-4">
+                                            {!userConfig.is_active && (
+                                                <p className="text-gray-400">Subscribe to switch model</p>
+                                            )}
+                                        </CardFooter>
                                     </Card>
+                                    )}
+                                    {userConfig.paint_model_options.length > 0 && (
                                     <Card className={cardClassName}>
                                         <CardHeader className="text-xl flex flex-row"><Palette className="h-7 w-7 mr-2"/>Paint</CardHeader>
-                                        <CardContent className="overflow-hidden">
+                                        <CardContent className="overflow-hidden pb-12 grid gap-8">
+                                            <p className="text-gray-400">Pick the paint model to generate image responses</p>
                                             <DropdownComponent
                                                 items={userConfig.paint_model_options}
                                                 selected={userConfig.selected_paint_model_config}
                                                 callbackFunc={updateModel("paint")}
                                             />
                                         </CardContent>
+                                        <CardFooter className="flex flex-wrap gap-4">
+                                            {!userConfig.is_active && (
+                                                <p className="text-gray-400">Subscribe to switch model</p>
+                                            )}
+                                        </CardFooter>
                                     </Card>
+                                    )}
+                                    {userConfig.voice_model_options.length > 0 && (
                                     <Card className={cardClassName}>
                                         <CardHeader className="text-xl flex flex-row"><SpeakerHigh className="h-7 w-7 mr-2"/>Voice</CardHeader>
-                                        <CardContent className="overflow-hidden">
+                                        <CardContent className="overflow-hidden pb-12 grid gap-8">
+                                            <p className="text-gray-400">Pick the voice model to generate speech responses</p>
                                             <DropdownComponent
                                                 items={userConfig.voice_model_options}
                                                 selected={userConfig.selected_voice_model_config}
                                                 callbackFunc={updateModel("voice")}
                                             />
                                         </CardContent>
+                                        <CardFooter className="flex flex-wrap gap-4">
+                                            {!userConfig.is_active && (
+                                                <p className="text-gray-400">Subscribe to switch model</p>
+                                            )}
+                                        </CardFooter>
                                     </Card>
+                                    )}
                                 </div>
                             </div>
                             <div className="section grid gap-8">
-                                <div className="text-4xl">Clients</div>
-                                <div className="cards flex flex-wrap gap-16">
+                                <div className="text-2xl">Clients</div>
+                                <div className="cards flex flex-wrap gap-8">
                                     <Card className="grid grid-flow-column border border-gray-300 shadow-md rounded-lg">
-                                        <CardHeader className="text-xl flex flex-row"><Key className="h-7 w-7 mr-2"/>API Keys</CardHeader>
-                                        <CardContent className="overflow-hidden">
+                                        <CardHeader className="text-xl grid grid-flow-col grid-cols-[1fr_auto] pb-0">
+                                            <span className="flex flex-wrap">
+                                                <Key className="h-7 w-7 mr-2" />API Keys
+                                            </span>
+                                            <Button variant="secondary" className="!mt-0" onClick={generateAPIKey}>
+                                                <Plus weight="bold" className='h-5 w-5 mr-2' />Generate Key
+                                            </Button>
+                                        </CardHeader>
+                                        <CardContent className="overflow-hidden grid gap-6">
                                             <p className="text-md text-gray-400">
-                                            Access Khoj from your Desktop App, Obsidian plugin, and more.
+                                            Access Khoj from the <a href="https://docs.khoj.dev/clients/Desktop" target="_blank">Desktop</a>, <a href="https://docs.khoj.dev/clients/Obsidian">Obsidian</a>, <a href="https://docs.khoj.dev/clients/Emacs">Emacs</a> apps and more.
                                             </p>
                                             <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead className="pl-0">Name</TableHead>
-                                                        <TableHead>Token</TableHead>
-                                                        <TableHead>Actions</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
                                                 <TableBody>
                                                     {apiKeys.map((key) => (
                                                         <TableRow key={key.token}>
-                                                            <TableCell className="pl-0"><b>{key.name}</b></TableCell>
-                                                            <TableCell>{`${key.token.slice(0, 4)}...${key.token.slice(-4)}`}</TableCell>
-                                                            <TableCell>
-                                                                <Button variant="outline" className="border border-green-400" onClick={() => copyAPIKey(key.token)}>
-                                                                    <Copy className="h-4 w-4 mr-2" /><span className="hidden md:inline">Copy</span>
-                                                                </Button>
-                                                                <Button variant="outline" className="md:ml-4 border border-red-400" onClick={() => deleteAPIKey(key.token)}>
-                                                                    <Trash className='h-4 w-4 mr-2' /><span className="hidden md:inline">Delete</span>
-                                                                </Button>
+                                                            <TableCell className="pl-0 py-3">{key.name}</TableCell>
+                                                            <TableCell className="grid grid-flow-col grid-cols-[1fr_auto] bg-secondary rounded-xl p-3">
+                                                                <span>
+                                                                    {`${key.token.slice(0, 6)}...${key.token.slice(-4)}`}
+                                                                </span>
+                                                                <div className="grid grid-flow-col">
+                                                                    <Copy weight="bold" className="h-4 w-4 mr-2 hover:bg-primary/40" onClick={() => copyAPIKey(key.token)}/>
+                                                                    <Trash weight="bold" className='h-4 w-4 mr-2 md:ml-4 text-red-400 hover:bg-primary/40' onClick={() => deleteAPIKey(key.token)}/>
+                                                                </div>
                                                             </TableCell>
                                                         </TableRow>
                                                     ))}
@@ -452,9 +524,6 @@ export default function SettingsView() {
                                             </Table>
                                         </CardContent>
                                         <CardFooter className="flex flex-wrap gap-4">
-                                            <Button variant="outline" className="border border-green-300" onClick={generateAPIKey}>
-                                                <PlusCircle className='h-4 w-4 mr-2' />Generate Key
-                                            </Button>
                                         </CardFooter>
                                     </Card>
                                     <Card className={cardClassName}>
@@ -468,17 +537,17 @@ export default function SettingsView() {
                                             )}
                                         </CardHeader>
                                         <CardContent className="grid gap-4">
-                                            <p>
+                                            <p className="text-gray-400">
                                                 Connect your number to chat with Khoj on WhatsApp. Learn more about the integration <a href="https://docs.khoj.dev/clients/whatsapp">here</a>.
                                             </p>
                                             <div>
                                             {numberValidationState === PhoneNumberValidationState.VerifyOTP && (
-                                                <div>
+                                                <>
                                                     <p>{`Enter the OTP sent to your WhatsApp number: ${number}`}</p>
                                                     <InputOTP
                                                         autoFocus={true}
                                                         maxLength={6}
-                                                        value={otp}
+                                                        value={otp || ""}
                                                         onChange={setOTP}
                                                         onComplete={() => setNumberValidationState(PhoneNumberValidationState.Verified)}
                                                     >
@@ -491,16 +560,17 @@ export default function SettingsView() {
                                                             <InputOTPSlot index={5} />
                                                         </InputOTPGroup>
                                                     </InputOTP>
-                                                </div>
+                                                </>
                                             ) || (
-                                                <div>
+                                                <>
                                                     <Input
+                                                        type="tel"
                                                         onChange={(e) => setNumber(e.target.value)}
-                                                        value={number}
+                                                        value={number || ""}
                                                         placeholder="Enter your WhatsApp number"
-                                                        className="w-full border border-gray-300 rounded-lg p-4"
+                                                        className="w-full border border-gray-300 rounded-lg px-4 py-6"
                                                     />
-                                                </div>
+                                                </>
                                             )}
                                             </div>
                                         </CardContent>
@@ -508,7 +578,6 @@ export default function SettingsView() {
                                             {numberValidationState === PhoneNumberValidationState.VerifyOTP && (
                                                 <Button
                                                     variant="outline"
-                                                    className="border border-green-400"
                                                     onClick={verifyOTP}
                                                 >
                                                     Verify
@@ -516,15 +585,15 @@ export default function SettingsView() {
                                             ) || (
                                                 <Button
                                                     variant="outline"
-                                                    className="border border-green-400"
                                                     disabled={!number || number === userConfig.phone_number || !isValidPhoneNumber(number)}
                                                     onClick={sendOTP}
                                                 >
-                                                    {!number || number === userConfig.phone_number || !isValidPhoneNumber(number)
-                                                    ? "Update"
-                                                    : (
-                                                        <>Send OTP to Whatsapp <ArrowRight className="inline ml-2" weight="bold"/></>
-                                                    )}
+                                                    {!userConfig.phone_number
+                                                    ? (<><Plugs className="inline mr-2" />Setup Whatsapp</>)
+                                                    : !number || number === userConfig.phone_number || !isValidPhoneNumber(number)
+                                                    ? (<><PlugsConnected className="inline mr-2 text-green-400" />Switch Number</>)
+                                                    : (<>Send OTP to Whatsapp <ArrowRight className="inline ml-2" weight="bold"/></>)
+                                                    }
                                                 </Button>
                                             )}
                                         </CardFooter>
@@ -532,68 +601,66 @@ export default function SettingsView() {
                                 </div>
                             </div>
                             <div className="section grid gap-8">
-                                <div className="text-4xl">Billing</div>
+                                <div className="text-2xl">Billing</div>
                                 <div className="cards flex flex-wrap gap-16">
                                     <Card className={cardClassName}>
                                         <CardHeader className="text-xl flex flex-row">
                                             <CreditCard className="h-7 w-7 mr-2"/>
                                             Subscription
-                                            {(userConfig.subscription_state === "subscribed" || userConfig.subscription_state === "unsubscribed") && (
-                                                <CheckCircle weight="bold" className="h-4 w-4 ml-1 text-green-400" />
-                                            )}
                                         </CardHeader>
-                                        <CardContent className="overflow-hidden">
+                                        <CardContent className="grid gap-2 overflow-hidden">
+                                            <p className="text-gray-400">Current Plan</p>
                                             {userConfig.subscription_state === "trial" && (
-                                                <div>
-                                                    <p>You are on a 14 day trial of the Khoj <i>Futurist</i> plan</p>
-                                                    <p>See <a href="https://khoj.dev/pricing">pricing</a> for details</p>
-                                                </div>
+                                                <>
+                                                    <p className="text-xl">Futurist Trial</p>
+                                                    <p className="text-gray-400">You are on a 14 day trial of the Khoj <i>Futurist</i> plan</p>
+                                                    <p className="text-gray-400">See <a href="https://khoj.dev/pricing">pricing</a> for details</p>
+                                                </>
                                             ) || userConfig.subscription_state === "subscribed" && (
-                                                <div>
-                                                    <p>You are <b>subscribed</b> to Khoj <i>Futurist</i></p>
-                                                    <p>Subscription will <b>renew</b> on <b>{ userConfig.subscription_renewal_date }</b></p>
-                                                </div>
+                                                <>
+                                                    <p className="text-xl">Futurist</p>
+                                                    <p className="text-gray-400">Subscription <b>renews</b> on <b>{ userConfig.subscription_renewal_date }</b></p>
+                                                </>
                                             ) || userConfig.subscription_state === "unsubscribed" && (
-                                                <div>
-                                                    <p>You are <b>subscribed</b> to Khoj <i>Futurist</i></p>
-                                                    <p>Subscription will <b>expire</b> on <b>{ userConfig.subscription_renewal_date }</b></p>
-                                                </div>
+                                                <>
+                                                    <p className="text-xl">Futurist</p>
+                                                    <p className="text-gray-400">Subscription <b>ends</b> on <b>{ userConfig.subscription_renewal_date }</b></p>
+                                                </>
                                             ) || userConfig.subscription_state === "expired" && (
-                                                <div>
-                                                    <p>Subscribe to the Khoj <i>Futurist</i> plan</p>
+                                                <>
+                                                    <p className="text-xl">Trial</p>
                                                     {userConfig.subscription_renewal_date && (
-                                                        <p>Your subscription <b>expired</b> on <b>{ userConfig.subscription_renewal_date }</b></p>
+                                                        <p className="text-gray-400">Your subscription <b>expired</b> on <b>{ userConfig.subscription_renewal_date }</b></p>
                                                     ) || (
-                                                        <p>See <a href="https://khoj.dev/pricing">pricing</a> for details</p>
+                                                        <p className="text-gray-400">See <a href="https://khoj.dev/pricing">pricing</a> for details</p>
                                                     )}
-                                                </div>
+                                                </>
                                             )}
                                         </CardContent>
                                         <CardFooter className="flex flex-wrap gap-4">
                                             {(userConfig.subscription_state == "subscribed") && (
                                                 <Button
                                                     variant="outline"
-                                                    className="border border-red-400"
+                                                    className="hover:text-red-400"
                                                     onClick={() => setSubscription("cancel")}
                                                 >
-                                                    Unsubscribe
+                                                    <CloudSlash className="h-5 w-5 mr-2" />Unsubscribe
                                                 </Button>
                                             ) || (userConfig.subscription_state == "unsubscribed") && (
                                                 <Button
                                                     variant="outline"
-                                                    className="border border-green-400"
+                                                    className="text-primary/80 hover:text-primary"
                                                     onClick={() => setSubscription("resubscribe")}
                                                 >
-                                                    Resubscribe
+                                                    <ArrowCircleUp weight="bold" className="h-5 w-5 mr-2" />Resubscribe
                                                 </Button>
                                             ) || (
                                                 <Button
                                                     variant="outline"
-                                                    className="border border-green-400"
+                                                    className="text-primary/80 hover:text-primary"
                                                     onClick={() => window.open(`${userConfig.khoj_cloud_subscription_url}?prefilled_email=${userConfig.username}`, '_blank', 'noopener,noreferrer')}
                                                 >
-                                                   Subscribe
-                                                   <ExternalLinkIcon className="h-4 w-4 ml-1" />
+                                                   <ArrowCircleUp weight="bold" className="h-5 w-5 mr-2" />Subscribe
                                                 </Button>
                                             )}
                                         </CardFooter>
