@@ -392,7 +392,6 @@ async def indexer(
             save_config_to_file_updated_state()
             configure_search(state.search_models, state.config.search_type)
 
-        # Extract required fields from config
         loop = asyncio.get_event_loop()
         success = await loop.run_in_executor(
             None,
