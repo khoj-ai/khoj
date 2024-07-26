@@ -8,8 +8,6 @@ import {
 } from "@/components/ui/card"
 
 import styles from "./suggestions.module.css";
-
-
 import { getIconFromIconName } from "@/app/common/iconUtils";
 
 

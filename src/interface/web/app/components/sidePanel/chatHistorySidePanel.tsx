@@ -700,6 +700,10 @@ export default function SidePanel(props: SidePanelProps) {
         }
     }, [chatSessions]);
 
+    function newConvo() {
+        window.location.href = '/';
+    }
+
     return (
         <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed}`}>
             <div className={`flex items-center justify-between ${(enabled || props.isMobileWidth) ? 'flex-row' : 'flex-col'}`}>

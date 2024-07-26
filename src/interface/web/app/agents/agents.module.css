@@ -6,7 +6,7 @@ div.titleBar {
 .agentPersonality p {
     white-space: inherit;
     overflow: hidden;
-    height: 78px;
+    height: 77px;
     line-height: 1.5;
 }
 
@@ -16,6 +16,16 @@ div.agentPersonality {
     overflow: hidden;
 }
 
+div.sidePanel {
+    position: fixed;
+    height: 100%;
+}
+
+div.chatLayout {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+}
 
 
 button.infoButton {
@@ -30,7 +40,7 @@ button.infoButton {
 div.agentList {
     display: grid;
     gap: 20px;
-    padding: 20px;
+    padding-top: 30px;
     margin-right: auto;
     grid-auto-flow: row;
     grid-template-columns: 1fr 1fr;
@@ -40,7 +50,7 @@ div.agentList {
 
 @media only screen and (max-width: 700px) {
     div.agentList {
-        width: 90%;
+        width: 100%;
         padding: 0;
         margin-right: auto;
         margin-left: auto;
