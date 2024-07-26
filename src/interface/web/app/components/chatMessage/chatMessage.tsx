@@ -336,11 +336,8 @@ export default function ChatMessage(props: ChatMessageProps) {
         let classes = [styles.chatMessageWrapper];
         classes.push(styles[chatMessage.by]);
         if (chatMessage.by === "khoj") {
-            console.log("chatMessage.agent", chatMessage);
-            const dynamicBorderColor = `border-l-${chatMessage.agent?.color}-500`;
-            classes.push(`border-l-4 border-opacity-50 border-l-orange-400 ${dynamicBorderColor}`);
+            classes.push(`border-l-4 border-opacity-50 ${"border-l-" + props.borderLeftColor || "border-l-orange-400"}`);
         }
-
         return classes.join(' ');
     }
 

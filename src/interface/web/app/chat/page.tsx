@@ -17,15 +17,6 @@ import { StreamMessage } from '../components/chatMessage/chatMessage';
 import { welcomeConsole } from '../common/utils';
 import ChatInputArea, { ChatOptions } from '../components/chatInputArea/chatInputArea';
 import { useAuthenticatedData } from '../common/auth';
-import useSWR from 'swr';
-interface AgentData {
-    slug: string;
-    avatar: string;
-    name: string;
-    personality: string;
-    color: string;
-    icon: string;
-}
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -86,7 +77,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     conversationId={conversationId}
                     setTitle={props.setTitle}
                     pendingMessage={processingMessage ? message : ''}
-                    incomingMessages={props.streamedMessages} />
+                    incomingMessages={props.streamedMessages}
+                     />
             </div>
             <div className={`${styles.inputBox} bg-background align-middle items-center justify-center px-3 dark:bg-neutral-700 dark:border-0 dark:shadow-sm`}>
                 <ChatInputArea
@@ -101,7 +93,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
         </>
     );
 }
-const agentsFetcher = () => window.fetch('/api/agents').then(res => res.json()).catch(err => console.log(err));
 export default function Chat() {
     const [chatOptionsData, setChatOptionsData] = useState<ChatOptions | null>(null);
     const [isLoading, setLoading] = useState(true);
@@ -115,7 +106,6 @@ export default function Chat() {
     const [isMobileWidth, setIsMobileWidth] = useState(false);
 
     const authenticatedData = useAuthenticatedData();
-
     welcomeConsole();
 
     const handleWebSocketMessage = (event: MessageEvent) => {

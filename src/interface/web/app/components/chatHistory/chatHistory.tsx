@@ -51,7 +51,6 @@ function constructTrainOfThought(trainOfThought: string[], lastMessage: boolean,
     )
 }
 
-
 export default function ChatHistory(props: ChatHistoryProps) {
     const [data, setData] = useState<ChatHistoryData | null>(null);
     const [currentPage, setCurrentPage] = useState(0);
@@ -64,7 +63,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
     const [incompleteIncomingMessageIndex, setIncompleteIncomingMessageIndex] = useState<number | null>(null);
     const [fetchingData, setFetchingData] = useState(false);
     const [isMobileWidth, setIsMobileWidth] = useState(false);
-
 
     useEffect(() => {
         window.addEventListener('resize', () => {
@@ -266,7 +264,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                             isMobileWidth={isMobileWidth}
                             chatMessage={chatMessage}
                             customClassName='fullHistory'
-                            borderLeftColor='orange-500'
+                            borderLeftColor={`${data?.agent.color}-500`}
                             isLastMessage={index === data.chat.length - 1}
                         />
                     ))}
@@ -288,7 +286,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                             }
                                         }
                                         customClassName='fullHistory'
-                                        borderLeftColor='orange-500'
+                                        borderLeftColor={`${data?.agent.color}-500`}
                                     />
                                     {
                                         message.trainOfThought &&
@@ -312,7 +310,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                             }
                                         }
                                         customClassName='fullHistory'
-                                        borderLeftColor='orange-500'
+                                        borderLeftColor={`${data?.agent.color}-500`}
                                         isLastMessage={true}
                                     />
                                 </>
@@ -335,7 +333,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                 }
                             }
                             customClassName='fullHistory'
-                            borderLeftColor='orange-500'
+                            borderLeftColor={`${data?.agent.color}-500`}
                             isLastMessage={true}
                         />
                     }
