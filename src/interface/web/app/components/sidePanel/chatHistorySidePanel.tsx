@@ -203,7 +203,7 @@ function FilesMenu(props: FilesMenuProps) {
             <Command>
                 <CommandInput placeholder="Find file" />
                 <CommandList>
-                    <CommandEmpty>No results found.</CommandEmpty>
+                    <CommandEmpty>No results found. <Link href="/search">Try advanced search</Link>.</CommandEmpty>
                     <CommandGroup heading="Quick">
                         <CommandItem
                             onSelect={() => {
