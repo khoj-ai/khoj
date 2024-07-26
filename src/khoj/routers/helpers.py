@@ -8,6 +8,7 @@ import math
 import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
+from enum import Enum
 from functools import partial
 from random import random
 from typing import (
@@ -753,7 +754,7 @@ async def text_to_image(
     references: List[Dict[str, Any]],
     online_results: Dict[str, Any],
     send_status_func: Optional[Callable] = None,
-) -> Tuple[Optional[str], int, Optional[str], str]:
+):
     status_code = 200
     image = None
     response = None
@@ -765,7 +766,8 @@ async def text_to_image(
         # If the user has not configured a text to image model, return an unsupported on server error
         status_code = 501
         message = "Failed to generate image. Setup image generation on the server."
-        return image_url or image, status_code, message, intent_type.value
+        yield image_url or image, status_code, message, intent_type.value
+        return
 
     text2image_model = text_to_image_config.model_name
     chat_history = ""
@@ -777,20 +779,21 @@ async def text_to_image(
             chat_history += f"Q: Prompt: {chat['intent']['query']}\n"
             chat_history += f"A: Improved Prompt: {chat['intent']['inferred-queries'][0]}\n"
 
-    with timer("Improve the original user query", logger):
-        if send_status_func:
-            await send_status_func("**✍🏽 Enhancing the Painting Prompt**")
-        improved_image_prompt = await generate_better_image_prompt(
-            message,
-            chat_history,
-            location_data=location_data,
-            note_references=references,
-            online_results=online_results,
-            model_type=text_to_image_config.model_type,
-        )
+    if send_status_func:
+        async for event in send_status_func("**✍🏽 Enhancing the Painting Prompt**"):
+            yield {ChatEvent.STATUS: event}
+    improved_image_prompt = await generate_better_image_prompt(
+        message,
+        chat_history,
+        location_data=location_data,
+        note_references=references,
+        online_results=online_results,
+        model_type=text_to_image_config.model_type,
+    )
 
     if send_status_func:
-        await send_status_func(f"**🖼️ Painting using Enhanced Prompt**:\n{improved_image_prompt}")
+        async for event in send_status_func(f"**🖼️ Painting using Enhanced Prompt**:\n{improved_image_prompt}"):
+            yield {ChatEvent.STATUS: event}
 
     if text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
         with timer("Generate image with OpenAI", logger):
@@ -815,12 +818,14 @@ async def text_to_image(
                     logger.error(f"Image Generation blocked by OpenAI: {e}")
                     status_code = e.status_code  # type: ignore
                     message = f"Image generation blocked by OpenAI: {e.message}"  # type: ignore
-                    return image_url or image, status_code, message, intent_type.value
+                    yield image_url or image, status_code, message, intent_type.value
+                    return
                 else:
                     logger.error(f"Image Generation failed with {e}", exc_info=True)
                     message = f"Image generation failed with OpenAI error: {e.message}"  # type: ignore
                     status_code = e.status_code  # type: ignore
-                    return image_url or image, status_code, message, intent_type.value
+                    yield image_url or image, status_code, message, intent_type.value
+                    return
 
     elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.STABILITYAI:
         with timer("Generate image with Stability AI", logger):
@@ -842,7 +847,8 @@ async def text_to_image(
                 logger.error(f"Image Generation failed with {e}", exc_info=True)
                 message = f"Image generation failed with Stability AI error: {e}"
                 status_code = e.status_code  # type: ignore
-                return image_url or image, status_code, message, intent_type.value
+                yield image_url or image, status_code, message, intent_type.value
+                return
 
     with timer("Convert image to webp", logger):
         # Convert png to webp for faster loading
@@ -862,7 +868,7 @@ async def text_to_image(
         intent_type = ImageIntentType.TEXT_TO_IMAGE_V3
         image = base64.b64encode(webp_image_bytes).decode("utf-8")
 
-    return image_url or image, status_code, improved_image_prompt, intent_type.value
+    yield image_url or image, status_code, improved_image_prompt, intent_type.value
 
 
 class ApiUserRateLimiter:
@@ -1184,3 +1190,11 @@ def construct_automation_created_message(automation: Job, crontime: str, query_t
 
 Manage your automations [here](/automations).
     """.strip()
+
+
+class ChatEvent(Enum):
+    START_LLM_RESPONSE = "start_llm_response"
+    END_LLM_RESPONSE = "end_llm_response"
+    MESSAGE = "message"
+    REFERENCES = "references"
+    STATUS = "status"

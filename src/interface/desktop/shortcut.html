@@ -346,7 +346,7 @@
             inp.focus();
         }
 
-        async function chat() {
+        async function chat(isVoice=false) {
             //set chat body to empty
             let chatBody = document.getElementById("chat-body");
             chatBody.innerHTML = "";
@@ -375,9 +375,6 @@
                 chat_body.dataset.conversationId = conversationID;
             }
 
-            // Generate backend API URL to execute query
-            let chatApi = `${hostURL}/api/chat?q=${encodeURIComponent(query)}&n=${resultsCount}&client=web&stream=true&conversation_id=${conversationID}&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}`;
-
             let newResponseEl = document.createElement("div");
             newResponseEl.classList.add("chat-message", "khoj");
             newResponseEl.attributes["data-meta"] = "🏮 Khoj at " + formatDate(new Date());
@@ -388,128 +385,41 @@
             newResponseEl.appendChild(newResponseTextEl);
 
             // Temporary status message to indicate that Khoj is thinking
-            let loadingEllipsis = document.createElement("div");
-            loadingEllipsis.classList.add("lds-ellipsis");
-
-            let firstEllipsis = document.createElement("div");
-            firstEllipsis.classList.add("lds-ellipsis-item");
-
-            let secondEllipsis = document.createElement("div");
-            secondEllipsis.classList.add("lds-ellipsis-item");
-
-            let thirdEllipsis = document.createElement("div");
-            thirdEllipsis.classList.add("lds-ellipsis-item");
-
-            let fourthEllipsis = document.createElement("div");
-            fourthEllipsis.classList.add("lds-ellipsis-item");
-
-            loadingEllipsis.appendChild(firstEllipsis);
-            loadingEllipsis.appendChild(secondEllipsis);
-            loadingEllipsis.appendChild(thirdEllipsis);
-            loadingEllipsis.appendChild(fourthEllipsis);
-
-            newResponseTextEl.appendChild(loadingEllipsis);
+            let loadingEllipsis = createLoadingEllipsis();
             document.body.scrollTop = document.getElementById("chat-body").scrollHeight;
 
-            // Call Khoj chat API
-            let response = await fetch(chatApi, { headers });
-            let rawResponse = "";
-            let references = null;
-            const contentType = response.headers.get("content-type");
             toggleLoading();
-            if (contentType === "application/json") {
-                // Handle JSON response
-                try {
-                    const responseAsJson = await response.json();
-                    if (responseAsJson.image) {
-                        // If response has image field, response is a generated image.
-                        if (responseAsJson.intentType === "text-to-image") {
-                            rawResponse += `![${query}](data:image/png;base64,${responseAsJson.image})`;
-                        } else if (responseAsJson.intentType === "text-to-image2") {
-                            rawResponse += `![${query}](${responseAsJson.image})`;
-                        } else if (responseAsJson.intentType === "text-to-image-v3") {
-                            rawResponse += `![${query}](data:image/webp;base64,${responseAsJson.image})`;
-                        }
-                        const inferredQueries = responseAsJson.inferredQueries?.[0];
-                        if (inferredQueries) {
-                            rawResponse += `\n\n**Inferred Query**:\n\n${inferredQueries}`;
-                        }
-                    }
-                    if (responseAsJson.context) {
-                        const rawReferenceAsJson = responseAsJson.context;
-                        references = createReferenceSection(rawReferenceAsJson, createLinkerSection=true);
-                    }
-                    if (responseAsJson.detail) {
-                        // If response has detail field, response is an error message.
-                        rawResponse += responseAsJson.detail;
-                    }
-                } catch (error) {
-                    // If the chunk is not a JSON object, just display it as is
-                    rawResponse += chunk;
-                } finally {
-                    newResponseTextEl.innerHTML = "";
-                    newResponseTextEl.appendChild(formatHTMLMessage(rawResponse));
 
-                    if (references != null) {
-                        newResponseTextEl.appendChild(references);
-                    }
+            // Setup chat message state
+            chatMessageState = {
+                newResponseTextEl,
+                newResponseEl,
+                loadingEllipsis,
+                references: {},
+                rawResponse: "",
+                rawQuery: query,
+                isVoice: isVoice,
+            }
 
-                    document.body.scrollTop = document.getElementById("chat-body").scrollHeight;
-                }
-            } else {
-                // Handle streamed response of type text/event-stream or text/plain
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let references = {};
+            // Construct API URL to execute chat query
+            let chatApi = `${hostURL}/api/chat?q=${encodeURIComponent(query)}&conversation_id=${conversationID}&stream=true&client=desktop`;
+            chatApi += (!!region && !!city && !!countryName && !!timezone)
+                ? `&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}`
+                : '';
 
-                readStream();
+            const response = await fetch(chatApi, { headers });
 
-                function readStream() {
-                    reader.read().then(({ done, value }) => {
-                        if (done) {
-                            // Append any references after all the data has been streamed
-                            if (references != {}) {
-                                newResponseTextEl.appendChild(createReferenceSection(references, createLinkerSection=true));
-                            }
-                            document.body.scrollTop = document.getElementById("chat-body").scrollHeight;
-                            return;
-                        }
-
-                        // Decode message chunk from stream
-                        const chunk = decoder.decode(value, { stream: true });
-
-                        if (chunk.includes("### compiled references:")) {
-                            const additionalResponse = chunk.split("### compiled references:")[0];
-                            rawResponse += additionalResponse;
-                            newResponseTextEl.innerHTML = "";
-                            newResponseTextEl.appendChild(formatHTMLMessage(rawResponse));
-
-                            const rawReference = chunk.split("### compiled references:")[1];
-                            const rawReferenceAsJson = JSON.parse(rawReference);
-                            if (rawReferenceAsJson instanceof Array) {
-                                references["notes"] = rawReferenceAsJson;
-                            } else if (typeof rawReferenceAsJson === "object" && rawReferenceAsJson !== null) {
-                                references["online"] = rawReferenceAsJson;
-                            }
-                            readStream();
-                        } else {
-                            // Display response from Khoj
-                            if (newResponseTextEl.getElementsByClassName("lds-ellipsis").length > 0) {
-                                newResponseTextEl.removeChild(loadingEllipsis);
-                            }
-
-                            // If the chunk is not a JSON object, just display it as is
-                            rawResponse += chunk;
-                            newResponseTextEl.innerHTML = "";
-                            newResponseTextEl.appendChild(formatHTMLMessage(rawResponse));
-
-                            readStream();
-                        }
-
-                        // Scroll to bottom of chat window as chat response is streamed
-                        document.body.scrollTop = document.getElementById("chat-body").scrollHeight;
-                    });
-                }
+            try {
+                if (!response.ok) throw new Error(response.statusText);
+                if (!response.body) throw new Error("Response body is empty");
+                // Stream and render chat response
+                await readChatStream(response);
+            } catch (err) {
+                console.error(`Khoj chat response failed with\n${err}`);
+                if (chatMessageState.newResponseEl.getElementsByClassName("lds-ellipsis").length > 0 && chatMessageState.loadingEllipsis)
+                    chatMessageState.newResponseTextEl.removeChild(chatMessageState.loadingEllipsis);
+                let errorMsg = "Sorry, unable to get response from Khoj backend ❤️‍🩹. Retry or contact developers for help at <a href=mailto:'team@khoj.dev'>team@khoj.dev</a> or <a href='https://discord.gg/BDgyabRM6e'>on Discord</a>";
+                newResponseTextEl.textContent = errorMsg;
             }
             document.body.scrollTop = document.getElementById("chat-body").scrollHeight;
         }

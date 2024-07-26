@@ -680,34 +680,18 @@ class ConversationAdapters:
     async def aget_conversation_by_user(
         user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None, title: str = None
     ) -> Optional[Conversation]:
+        query = Conversation.objects.filter(user=user, client=client_application).prefetch_related("agent")
+
         if conversation_id:
-            return (
-                await Conversation.objects.filter(user=user, client=client_application, id=conversation_id)
-                .prefetch_related("agent")
-                .afirst()
-            )
+            return await query.filter(id=conversation_id).afirst()
         elif title:
-            return (
-                await Conversation.objects.filter(user=user, client=client_application, title=title)
-                .prefetch_related("agent")
-                .afirst()
-            )
-        else:
-            conversation = (
-                Conversation.objects.filter(user=user, client=client_application)
-                .prefetch_related("agent")
-                .order_by("-updated_at")
-            )
+            return await query.filter(title=title).afirst()
 
-        if await conversation.aexists():
-            return await conversation.prefetch_related("agent").afirst()
+        conversation = await query.order_by("-updated_at").afirst()
 
-        return await (
-            Conversation.objects.filter(user=user, client=client_application)
-            .prefetch_related("agent")
-            .order_by("-updated_at")
-            .afirst()
-        ) or await Conversation.objects.prefetch_related("agent").acreate(user=user, client=client_application)
+        return conversation or await Conversation.objects.prefetch_related("agent").acreate(
+            user=user, client=client_application
+        )
 
     @staticmethod
     async def adelete_conversation_by_user(

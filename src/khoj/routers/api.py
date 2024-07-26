@@ -6,7 +6,6 @@ import os
 import threading
 import time
 import uuid
-from random import random
 from typing import Any, Callable, List, Optional, Union
 
 import cron_descriptor
@@ -37,6 +36,7 @@ from khoj.processor.conversation.openai.gpt import extract_questions
 from khoj.processor.conversation.openai.whisper import transcribe_audio
 from khoj.routers.helpers import (
     ApiUserRateLimiter,
+    ChatEvent,
     CommonQueryParams,
     ConversationCommandRateLimiter,
     acreate_title_from_query,
@@ -298,11 +298,13 @@ async def extract_references_and_questions(
         not ConversationCommand.Notes in conversation_commands
         and not ConversationCommand.Default in conversation_commands
     ):
-        return compiled_references, inferred_queries, q
+        yield compiled_references, inferred_queries, q
+        return
 
     if not await sync_to_async(EntryAdapters.user_has_entries)(user=user):
         logger.debug("No documents in knowledge base. Use a Khoj client to sync and chat with your docs.")
-        return compiled_references, inferred_queries, q
+        yield compiled_references, inferred_queries, q
+        return
 
     # Extract filter terms from user message
     defiltered_query = q
@@ -313,7 +315,8 @@ async def extract_references_and_questions(
 
     if not conversation:
         logger.error(f"Conversation with id {conversation_id} not found.")
-        return compiled_references, inferred_queries, defiltered_query
+        yield compiled_references, inferred_queries, defiltered_query
+        return
 
     filters_in_query += " ".join([f'file:"{filter}"' for filter in conversation.file_filters])
     using_offline_chat = False
@@ -373,7 +376,8 @@ async def extract_references_and_questions(
         logger.info(f"🔍 Searching knowledge base with queries: {inferred_queries}")
         if send_status_func:
             inferred_queries_str = "\n- " + "\n- ".join(inferred_queries)
-            await send_status_func(f"**🔍 Searching Documents for:** {inferred_queries_str}")
+            async for event in send_status_func(f"**🔍 Searching Documents for:** {inferred_queries_str}"):
+                yield {ChatEvent.STATUS: event}
         for query in inferred_queries:
             n_items = min(n, 3) if using_offline_chat else n
             search_results.extend(
@@ -392,7 +396,7 @@ async def extract_references_and_questions(
             {"compiled": item.additional["compiled"], "file": item.additional["file"]} for item in search_results
         ]
 
-    return compiled_references, inferred_queries, defiltered_query
+    yield compiled_references, inferred_queries, defiltered_query
 
 
 @api.get("/health", response_class=Response)
