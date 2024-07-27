@@ -265,7 +265,7 @@ export default function Agents() {
     }
 
     return (
-        <main className={`${styles.main} w-full ml-auto mr-auto`}>
+        <main className={`${styles.main} w-full mx-auto`}>
             <div className="float-right w-fit h-fit">
                 <NavMenu selected="Agents" />
             </div>
@@ -275,7 +275,7 @@ export default function Agents() {
                     loginRedirectMessage="Sign in to start chatting with a specialized agent"
                     onOpenChange={setShowLoginPrompt} />
             }
-            <div className={`${styles.pageLayout} w-full ml-auto mr-auto`}>
+            <div className={`${styles.pageLayout} w-full mx-auto`}>
                 <div className={`${styles.sidePanel} top-0`}>
                     <SidePanel
                         webSocketConnected={true}
@@ -284,10 +284,10 @@ export default function Agents() {
                         isMobileWidth={isMobileWidth}
                     />
                 </div>
-                <div className={`ml-auto mr-auto ${isMobileWidth ? "w-11/12" : "w-1/2"} pt-4`}>
+                <div className={`mx-auto ${isMobileWidth ? "w-11/12" : "w-1/2"} pt-4`}>
                     <div className="pt-8 flex justify-between align-middle w-full">
                         <h1 className="text-3xl">Agents</h1>
-                        <div className="ml-auto float-right border pt-3 pb-2 pl-2 pr-2 rounded-xl font-bold hover:bg-stone-100 dark:hover:bg-neutral-900">
+                        <div className="ml-auto float-right border p-2 pt-3 rounded-xl font-bold hover:bg-stone-100 dark:hover:bg-neutral-900">
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger>

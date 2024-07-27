@@ -19,13 +19,10 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Toggle } from '@/components/ui/toggle';
 import { Moon, Sun, UserCircle, User, Robot, MagnifyingGlass, Question, GearFine, ArrowRight } from '@phosphor-icons/react';
-import Image from 'next/image';
 import { KhojLogo } from '../logo/khogLogo';
 
 
@@ -126,7 +123,7 @@ export default function NavMenu(props: NavMenuProps) {
                                     <UserCircle className="w-6 h-6" />
                             }
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent>
+                        <DropdownMenuContent className='gap-2'>
                             <DropdownMenuItem>
                                 <div
                                     onClick={() => {
@@ -135,14 +132,14 @@ export default function NavMenu(props: NavMenuProps) {
                                     }
                                     className="flex flex-rows">
                                     {darkMode ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
-                                    <p className="ml-3 pt-[2px] font-semibold">{darkMode ? 'Light Mode' : 'Dark Mode'}</p>
+                                    <p className="ml-3 font-semibold">{darkMode ? 'Light Mode' : 'Dark Mode'}</p>
                                 </div>
                             </DropdownMenuItem>
                             <DropdownMenuItem>
                                 <Link href="/agents" className="no-underline">
                                     <div className="flex flex-rows">
                                         <User className="w-6 h-6" />
-                                        <p className="ml-3 pt-[2px] font-semibold">Agents</p>
+                                        <p className="ml-3 font-semibold">Agents</p>
                                     </div>
                                 </Link>
                             </DropdownMenuItem>
@@ -150,7 +147,7 @@ export default function NavMenu(props: NavMenuProps) {
                                 <Link href="/automations" className="no-underline">
                                     <div className="flex flex-rows">
                                         <Robot className="w-6 h-6" />
-                                        <p className="ml-3 pt-[2px] font-semibold">Automations</p>
+                                        <p className="ml-3 font-semibold">Automations</p>
                                     </div>
                                 </Link>
                             </DropdownMenuItem>
@@ -158,7 +155,7 @@ export default function NavMenu(props: NavMenuProps) {
                                 <Link href="/search" className="no-underline">
                                     <div className="flex flex-rows">
                                         <MagnifyingGlass className="w-6 h-6" />
-                                        <p className="ml-3 pt-[2px] font-semibold">Search</p>
+                                        <p className="ml-3 font-semibold">Search</p>
                                     </div>
                                 </Link>
                             </DropdownMenuItem>
@@ -169,7 +166,7 @@ export default function NavMenu(props: NavMenuProps) {
                                         <Link href="/settings" className="no-underline">
                                             <div className="flex flex-rows">
                                                 <GearFine className="w-6 h-6" />
-                                                <p className="ml-3 pt-[2px] font-semibold">Settings</p>
+                                                <p className="ml-3 font-semibold">Settings</p>
                                             </div>
                                         </Link>
                                     </DropdownMenuItem>
@@ -178,7 +175,7 @@ export default function NavMenu(props: NavMenuProps) {
                                     <Link href="https://docs.khoj.dev" className="no-underline">
                                         <div className="flex flex-rows">
                                             <Question className="w-6 h-6" />
-                                            <p className="ml-3 pt-[2px] font-semibold">Help</p>
+                                            <p className="ml-3 font-semibold">Help</p>
                                         </div>
                                     </Link>
                                 </DropdownMenuItem>
@@ -188,7 +185,7 @@ export default function NavMenu(props: NavMenuProps) {
                                             <Link href="/auth/logout" className="no-underline">
                                                 <div className="flex flex-rows">
                                                     <ArrowRight className="w-6 h-6" />
-                                                    <p className="ml-3 pt-[2px] font-semibold">Logout</p>
+                                                    <p className="ml-3 font-semibold">Logout</p>
                                                 </div>
                                             </Link>
                                         </DropdownMenuItem>
@@ -197,7 +194,7 @@ export default function NavMenu(props: NavMenuProps) {
                                             <Link href="/auth/login" className="no-underline">
                                                 <div className="flex flex-rows">
                                                     <ArrowRight className="w-6 h-6" />
-                                                    <p className="ml-3 pt-[2px] font-semibold">Login</p>
+                                                    <p className="ml-3 font-semibold">Login</p>
                                                 </div>
                                             </Link>
                                         </DropdownMenuItem>
@@ -221,7 +218,7 @@ export default function NavMenu(props: NavMenuProps) {
                                         <UserCircle className="w-8 h-8" />
                                 }
                             </MenubarTrigger>
-                            <MenubarContent align="end" className="rounded-xl">
+                            <MenubarContent align="end" className="rounded-xl gap-2">
                                 <MenubarItem>
                                     <div
                                         onClick={() => {
@@ -230,14 +227,14 @@ export default function NavMenu(props: NavMenuProps) {
                                         }
                                         className="flex flex-rows">
                                         {darkMode ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
-                                        <p className="ml-3 pt-[2px] font-semibold">{darkMode ? 'Light Mode' : 'Dark Mode'}</p>
+                                        <p className="ml-3 font-semibold">{darkMode ? 'Light Mode' : 'Dark Mode'}</p>
                                     </div>
                                 </MenubarItem>
                                 <MenubarItem>
                                     <Link href="/agents" className="no-underline">
                                         <div className="flex flex-rows">
                                             <User className="w-6 h-6" />
-                                            <p className="ml-3 pt-[2px] font-semibold">Agents</p>
+                                            <p className="ml-3 font-semibold">Agents</p>
                                         </div>
                                     </Link>
                                 </MenubarItem>
@@ -245,7 +242,7 @@ export default function NavMenu(props: NavMenuProps) {
                                     <Link href="/automations" className="no-underline">
                                         <div className="flex flex-rows">
                                             <Robot className="w-6 h-6" />
-                                            <p className="ml-3 pt-[2px] font-semibold">Automations</p>
+                                            <p className="ml-3 font-semibold">Automations</p>
                                         </div>
                                     </Link>
                                 </MenubarItem>
@@ -253,7 +250,7 @@ export default function NavMenu(props: NavMenuProps) {
                                     <Link href="/search" className="no-underline">
                                         <div className="flex flex-rows">
                                             <MagnifyingGlass className="w-6 h-6" />
-                                            <p className="ml-3 pt-[2px] font-semibold">Search</p>
+                                            <p className="ml-3 font-semibold">Search</p>
                                         </div>
                                     </Link>
                                 </MenubarItem>
@@ -263,7 +260,7 @@ export default function NavMenu(props: NavMenuProps) {
                                         <Link href="https://docs.khoj.dev" className="no-underline">
                                             <div className="flex flex-rows">
                                                 <Question className="w-6 h-6" />
-                                                <p className="ml-3 pt-[2px] font-semibold">Help</p>
+                                                <p className="ml-3 font-semibold">Help</p>
                                             </div>
                                         </Link>
                                     </MenubarItem>
@@ -273,7 +270,7 @@ export default function NavMenu(props: NavMenuProps) {
                                             <Link href="/settings" className="no-underline">
                                                 <div className="flex flex-rows">
                                                     <GearFine className="w-6 h-6" />
-                                                    <p className="ml-3 pt-[2px] font-semibold">Settings</p>
+                                                    <p className="ml-3 font-semibold">Settings</p>
                                                 </div>
                                             </Link>
                                         </MenubarItem>
@@ -284,7 +281,7 @@ export default function NavMenu(props: NavMenuProps) {
                                                 <Link href="/auth/logout" className="no-underline">
                                                     <div className="flex flex-rows">
                                                         <ArrowRight className="w-6 h-6" />
-                                                        <p className="ml-3 pt-[2px] font-semibold">Logout</p>
+                                                        <p className="ml-3 font-semibold">Logout</p>
                                                     </div>
                                                 </Link>
                                             </MenubarItem>
@@ -293,7 +290,7 @@ export default function NavMenu(props: NavMenuProps) {
                                                 <Link href="/auth/login" className="no-underline">
                                                     <div className="flex flex-rows">
                                                         <ArrowRight className="w-6 h-6" />
-                                                        <p className="ml-3 pt-[2px] font-semibold">Login</p>
+                                                        <p className="ml-3 font-semibold">Login</p>
                                                     </div>
                                                 </Link>
                                             </MenubarItem>
