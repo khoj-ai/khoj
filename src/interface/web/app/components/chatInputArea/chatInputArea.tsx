@@ -377,7 +377,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                 <div className="grid w-full gap-1.5 relative">
                     <Textarea
                         ref={chatInputRef}
-                        className={`border-none w-full h-16 min-h-16 max-h-64 md:py-4 rounded-lg resize-none dark:bg-neutral-700 ${props.isMobileWidth ? 'text-md' : 'text-lg'}`}
+                        className={`border-none w-full h-16 min-h-16 max-h-[128px] md:py-4 rounded-lg resize-none dark:bg-neutral-700 ${props.isMobileWidth ? 'text-md' : 'text-lg'}`}
                         placeholder="Type / to see a list of commands"
                         id="message"
                         value={message}
