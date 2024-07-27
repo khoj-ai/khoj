@@ -11,8 +11,8 @@
         --card-foreground: 224 71.4% 4.1%;
         --popover: 0 0% 100%;
         --popover-foreground: 224 71.4% 4.1%;
-        --primary: 209.1 100% 40.8%;
-        --primary-foreground: 210 20% 98%;
+        --primary: 24.6 95% 53.1%;
+        --primary-foreground: 60 9.1% 97.8%;
         --secondary: 220 14.3% 95.9%;
         --secondary-foreground: 220.9 39.3% 11%;
         --muted: 220 14.3% 95.9%;
@@ -23,16 +23,12 @@
         --destructive-foreground: 210 20% 98%;
         --border: 220 13% 91%;
         --input: 220 13% 91%;
-        --ring: 209.1 100% 40.8%;
+        --ring: 24.6 95% 53.1%;
         --radius: 0.5rem;
         --font-family: "Noto Sans", "Noto Sans Arabic", sans-serif !important;
 
         /* Khoj Custom Colors */
-        --primary-hover: #fee285;
         --frosted-background-color: 20 13% 95%;
-        --secondary-background-color: #F7F7F5;
-        --secondary-accent: #EDEDED;
-        --khoj-orange: #FFE7D1;
         --border-color: #e2e2e2;
         --box-shadow-color: rgba(0, 0, 0, 0.03);
 
@@ -181,8 +177,8 @@
         --card-foreground: 210 20% 98%;
         --popover: 0 0% 14%;
         --popover-foreground: 210 20% 98%;
-        --primary: 263.4 70% 50.4%;
-        --primary-foreground: 210 20% 98%;
+        --popover: 20 14.3% 4.1%;
+        --popover-foreground: 60 9.1% 97.8%;
         --secondary: 0 0% 9%;
         --secondary-foreground: 210 20% 98%;
         --muted: 0 0% 9%;
@@ -193,7 +189,7 @@
         --destructive-foreground: 210 20% 98%;
         --border: 0 0% 9%;
         --input: 0 0% 9%;
-        --ring: 263.4 70% 50.4%;
+        --ring: 20.5 90.2% 48.2%;
         --font-family: "Noto Sans", "Noto Sans Arabic", sans-serif !important;
         --box-shadow-color: rgba(255, 255, 255, 0.05);
 
