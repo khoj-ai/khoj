@@ -51,11 +51,6 @@ div.settingsMenu {
     align-items: center;
 }
 
-div.settingsMenu:hover {
-    background-color: var(--primary-hover);
-    cursor: pointer;
-}
-
 div.settingsMenuOptions {
     display: block;
     grid-auto-flow: row;

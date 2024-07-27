@@ -80,7 +80,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     incomingMessages={props.streamedMessages}
                      />
             </div>
-            <div className={`${styles.inputBox} bg-background align-middle items-center justify-center px-3 dark:bg-neutral-700 dark:border-0 dark:shadow-sm`}>
+            <div className={`${styles.inputBox} shadow-md bg-background align-middle items-center justify-center px-3 dark:bg-neutral-700 dark:border-0 dark:shadow-sm`}>
                 <ChatInputArea
                     isLoggedIn={props.isLoggedIn}
                     sendMessage={(message) => setMessage(message)}

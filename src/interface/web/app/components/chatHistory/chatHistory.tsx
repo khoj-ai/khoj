@@ -35,17 +35,17 @@ interface ChatHistoryProps {
 }
 
 
-function constructTrainOfThought(trainOfThought: string[], lastMessage: boolean, key: string, completed: boolean = false) {
+function constructTrainOfThought(trainOfThought: string[], lastMessage: boolean, agentColor: string, key: string, completed: boolean = false) {
     const lastIndex = trainOfThought.length - 1;
     return (
-        <div className={`${styles.trainOfThought}`} key={key}>
+        <div className={`${styles.trainOfThought} shadow-sm`} key={key}>
             {
                 !completed &&
                 <InlineLoading className='float-right' />
             }
 
             {trainOfThought.map((train, index) => (
-                <TrainOfThought key={`train-${index}`} message={train} primary={index === lastIndex && lastMessage && !completed} />
+                <TrainOfThought key={`train-${index}`} message={train} primary={index === lastIndex && lastMessage && !completed} agentColor={agentColor} />
             ))}
         </div>
     )
@@ -293,6 +293,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         constructTrainOfThought(
                                             message.trainOfThought,
                                             index === incompleteIncomingMessageIndex,
+                                            data?.agent.color || 'orange',
                                             `${index}trainOfThought`, message.completed)
                                     }
                                     <ChatMessage

@@ -223,7 +223,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             <div className={`ml-auto mr-auto ${props.isMobileWidth ? 'w-full' : 'w-fit'}`}>
                 {
                     !props.isMobileWidth &&
-                    <div className={`w-full ${styles.inputBox} bg-background align-middle items-center justify-center p-3 dark:bg-neutral-700 border-stone-100 dark:border-none dark:shadow-none`}>
+                    <div className={`w-full ${styles.inputBox} shadow-lg bg-background align-middle items-center justify-center p-3 dark:bg-neutral-700 border-stone-100 dark:border-none dark:shadow-none`}>
                         <ChatInputArea
                             isLoggedIn={props.isLoggedIn}
                             sendMessage={(message) => setMessage(message)}
@@ -258,7 +258,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             </div>
             {
                 props.isMobileWidth &&
-                <div className={`${styles.inputBox} dark:bg-neutral-700 bg-background dark: align-middle items-center justify-center py-3 px-1`}>
+                <div className={`${styles.inputBox} shadow-md dark:bg-neutral-700 bg-background dark: align-middle items-center justify-center py-3 px-1`}>
                     <ChatInputArea
                         isLoggedIn={props.isLoggedIn}
                         sendMessage={(message) => setMessage(message)}

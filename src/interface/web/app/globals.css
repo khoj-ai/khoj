@@ -30,7 +30,6 @@
         /* Khoj Custom Colors */
         --frosted-background-color: 20 13% 95%;
         --border-color: #e2e2e2;
-        --box-shadow-color: rgba(0, 0, 0, 0.03);
 
         /* Imported from Highlight.js */
         pre code.hljs {
@@ -191,7 +190,6 @@
         --input: 0 0% 9%;
         --ring: 20.5 90.2% 48.2%;
         --font-family: "Noto Sans", "Noto Sans Arabic", sans-serif !important;
-        --box-shadow-color: rgba(255, 255, 255, 0.05);
 
         /* Imported from highlight.js */
         pre code.hljs {

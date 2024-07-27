@@ -4,7 +4,6 @@ div.chatMessageContainer {
     margin: 12px;
     border-radius: 16px;
     padding: 8px 16px 0 16px;
-    box-shadow: 0 4px 10px var(--box-shadow-color)
 }
 
 div.chatMessageWrapper {
@@ -79,7 +78,6 @@ div.chatButtons {
     position: relative;
     bottom: -12px;
     background-color: hsla(var(--secondary));
-    box-shadow: 0 4px 10px var(--box-shadow-color);
 }
 
 div.chatFooter button {

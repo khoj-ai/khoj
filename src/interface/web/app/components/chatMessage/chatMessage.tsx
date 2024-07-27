@@ -14,6 +14,7 @@ import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture, Speak
 
 import * as DomPurify from 'dompurify';
 import { InlineLoading } from '../loading/loading';
+import { convertColorToTextClass } from '@/app/common/colorUtils';
 
 const md = new markdownIt({
     html: true,
@@ -157,11 +158,12 @@ interface ChatMessageProps {
 interface TrainOfThoughtProps {
     message: string;
     primary: boolean;
+    agentColor: string;
 }
 
 function chooseIconFromHeader(header: string, iconColor: string) {
     const compareHeader = header.toLowerCase();
-    const classNames = `inline mt-1 mr-2 ${iconColor}`;
+    const classNames = `inline mt-1 mr-2 ${iconColor} h-4 w-4`;
     if (compareHeader.includes("understanding")) {
         return <Brain className={`${classNames}`} />
     }
@@ -197,7 +199,7 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
     // The train of thought comes in as a markdown-formatted string. It starts with a heading delimited by two asterisks at the start and end and a colon, followed by the message. Example: **header**: status. This function will parse the message and render it as a div.
     let extractedHeader = props.message.match(/\*\*(.*)\*\*/);
     let header = extractedHeader ? extractedHeader[1] : "";
-    const iconColor = props.primary ? 'text-orange-400' : 'text-gray-500';
+    const iconColor = props.primary ? convertColorToTextClass(props.agentColor) : 'text-gray-500';
     const icon = chooseIconFromHeader(header, iconColor);
     let markdownRendered = DomPurify.sanitize(md.render(props.message));
     return (
@@ -322,7 +324,7 @@ export default function ChatMessage(props: ChatMessageProps) {
     }
 
     function constructClasses(chatMessage: SingleChatMessage) {
-        let classes = [styles.chatMessageContainer];
+        let classes = [styles.chatMessageContainer, "shadow-md"];
         classes.push(styles[chatMessage.by]);
 
         if (props.customClassName) {
@@ -439,7 +441,7 @@ export default function ChatMessage(props: ChatMessageProps) {
                             <div title={formatDate(props.chatMessage.created)} className={`text-gray-400 relative top-0 left-4`}>
                                 {renderTimeStamp(props.chatMessage.created)}
                             </div>
-                            <div className={styles.chatButtons}>
+                            <div className={`${styles.chatButtons} shadow-sm`}>
                                 {
                                     (props.chatMessage.by === "khoj") &&
                                     (
