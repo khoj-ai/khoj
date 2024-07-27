@@ -154,7 +154,7 @@ function AgentCard(props: AgentCardProps) {
                                                 openChat(props.data.slug, userData);
                                                 setShowModal(false);
                                             }}>
-                                            <PaperPlaneTilt className='mr-2 w-6 h-6' color={props.data.color} />
+                                            <PaperPlaneTilt className={`w-6 h-6 m-2 ${convertColorToTextClass(props.data.color)}`} />
                                             Start Chatting
                                         </Button>
                                     </DialogFooter>
@@ -222,7 +222,6 @@ function AgentCard(props: AgentCardProps) {
     )
 }
 
-
 export default function Agents() {
     const { data, error } = useSWR<AgentData[]>('agents', agentsFetcher, { revalidateOnFocus: false });
     const authenticatedData = useAuthenticatedData();
@@ -286,7 +285,7 @@ export default function Agents() {
                     />
                 </div>
                 <div className={`ml-auto mr-auto ${isMobileWidth ? "w-11/12" : "w-1/2"} pt-4`}>
-                    <div className="pt-8 flex">
+                    <div className="pt-8 flex justify-between align-middle w-full">
                         <h1 className="text-3xl">Agents</h1>
                         <div className="ml-auto float-right border pt-3 pb-2 pl-2 pr-2 rounded-xl font-bold hover:bg-stone-100 dark:hover:bg-neutral-900">
                             <TooltipProvider>

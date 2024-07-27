@@ -25,7 +25,7 @@ from khoj.database.models import (
 from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
 from khoj.processor.content.plaintext.plaintext_to_entries import PlaintextToEntries
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
-from khoj.routers.indexer import configure_content
+from khoj.routers.api_content import configure_content
 from khoj.search_type import text_search
 from khoj.utils import fs_syncer, state
 from khoj.utils.config import SearchModels

@@ -150,7 +150,7 @@ interface FilesMenuProps {
 
 function FilesMenu(props: FilesMenuProps) {
     // Use SWR to fetch files
-    const { data: files, error } = useSWR<string[]>(props.conversationId ? '/api/configure/content/computer' : null, fetcher);
+    const { data: files, error } = useSWR<string[]>(props.conversationId ? '/api/content/computer' : null, fetcher);
     const { data: selectedFiles, error: selectedFilesError } = useSWR(props.conversationId ? `/api/chat/conversation/file-filters/${props.conversationId}` : null, fetcher);
     const [isOpen, setIsOpen] = useState(false);
     const [unfilteredFiles, setUnfilteredFiles] = useState<string[]>([]);
@@ -205,7 +205,7 @@ function FilesMenu(props: FilesMenuProps) {
             <Command>
                 <CommandInput placeholder="Find file" />
                 <CommandList>
-                    <CommandEmpty>No results found.</CommandEmpty>
+                    <CommandEmpty>No results found. <Link href="/search">Try advanced search</Link>.</CommandEmpty>
                     <CommandGroup heading="Quick">
                         <CommandItem
                             onSelect={() => {
@@ -710,6 +710,10 @@ export default function SidePanel(props: SidePanelProps) {
             setOrganizedData(groupedData);
         }
     }, [chatSessions]);
+
+    function newConvo() {
+        window.location.href = '/';
+    }
 
     return (
         <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed} mt-1`}>

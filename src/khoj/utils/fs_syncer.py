@@ -124,7 +124,7 @@ def get_org_files(config: TextContentConfig):
         logger.debug("At least one of org-files or org-file-filter is required to be specified")
         return {}
 
-    "Get Org files to process"
+    # Get Org files to process
     absolute_org_files, filtered_org_files = set(), set()
     if org_files:
         absolute_org_files = {get_absolute_path(org_file) for org_file in org_files}

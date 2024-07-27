@@ -212,7 +212,7 @@
             const headers = { 'Authorization': `Bearer ${khojToken}` };
 
             // Populate type dropdown field with enabled content types only
-            fetch(`${hostURL}/api/configure/types`, { headers })
+            fetch(`${hostURL}/api/content/types`, { headers })
                 .then(response => response.json())
                 .then(enabled_types => {
                     // Show warning if no content types are enabled

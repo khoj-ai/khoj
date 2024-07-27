@@ -1313,7 +1313,6 @@ def configure_content(
     files: Optional[dict[str, dict[str, str]]],
     regenerate: bool = False,
     t: Optional[state.SearchType] = state.SearchType.All,
-    full_corpus: bool = True,
     user: KhojUser = None,
 ) -> bool:
     success = True
@@ -1344,7 +1343,6 @@ def configure_content(
                 OrgToEntries,
                 files.get("org"),
                 regenerate=regenerate,
-                full_corpus=full_corpus,
                 user=user,
             )
     except Exception as e:
@@ -1362,7 +1360,6 @@ def configure_content(
                 MarkdownToEntries,
                 files.get("markdown"),
                 regenerate=regenerate,
-                full_corpus=full_corpus,
                 user=user,
             )
 
@@ -1379,7 +1376,6 @@ def configure_content(
                 PdfToEntries,
                 files.get("pdf"),
                 regenerate=regenerate,
-                full_corpus=full_corpus,
                 user=user,
             )
 
@@ -1398,7 +1394,6 @@ def configure_content(
                 PlaintextToEntries,
                 files.get("plaintext"),
                 regenerate=regenerate,
-                full_corpus=full_corpus,
                 user=user,
             )
 
@@ -1418,7 +1413,6 @@ def configure_content(
                     GithubToEntries,
                     None,
                     regenerate=regenerate,
-                    full_corpus=full_corpus,
                     user=user,
                     config=github_config,
                 )
@@ -1439,7 +1433,6 @@ def configure_content(
                     NotionToEntries,
                     None,
                     regenerate=regenerate,
-                    full_corpus=full_corpus,
                     user=user,
                     config=notion_config,
                 )
@@ -1459,7 +1452,6 @@ def configure_content(
                 ImageToEntries,
                 files.get("image"),
                 regenerate=regenerate,
-                full_corpus=full_corpus,
                 user=user,
             )
     except Exception as e:
@@ -1472,7 +1464,6 @@ def configure_content(
                 DocxToEntries,
                 files.get("docx"),
                 regenerate=regenerate,
-                full_corpus=full_corpus,
                 user=user,
             )
     except Exception as e:

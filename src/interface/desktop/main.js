@@ -233,11 +233,15 @@ function pushDataToKhoj (regenerate = false) {
 
     // Request indexing files on server. With upto 1000 files in each request
     for (let i = 0; i < filesDataToPush.length; i += 1000) {
+        const syncUrl = `${hostURL}/api/content?client=desktop`;
         const filesDataGroup = filesDataToPush.slice(i, i + 1000);
         const formData = new FormData();
         filesDataGroup.forEach(fileData => { formData.append('files', fileData.blob, fileData.path) });
-        let request = axios.post(`${hostURL}/api/v1/index/update?force=${regenerate}&client=desktop`, formData, { headers });
-        requests.push(request);
+        requests.push(
+            regenerate
+            ? axios.put(syncUrl, formData, { headers })
+            : axios.patch(syncUrl, formData, { headers })
+        );
     }
 
     // Wait for requests batch to finish

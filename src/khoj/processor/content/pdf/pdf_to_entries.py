@@ -22,16 +22,11 @@ class PdfToEntries(TextToEntries):
         super().__init__()
 
     # Define Functions
-    def process(
-        self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
-    ) -> Tuple[int, int]:
+    def process(self, files: dict[str, str] = None, user: KhojUser = None, regenerate: bool = False) -> Tuple[int, int]:
         # Extract required fields from config
-        if not full_corpus:
-            deletion_file_names = set([file for file in files if files[file] == b""])
-            files_to_process = set(files) - deletion_file_names
-            files = {file: files[file] for file in files_to_process}
-        else:
-            deletion_file_names = None
+        deletion_file_names = set([file for file in files if files[file] == b""])
+        files_to_process = set(files) - deletion_file_names
+        files = {file: files[file] for file in files_to_process}
 
         # Extract Entries from specified Pdf files
         with timer("Extract entries from specified PDF files", logger):

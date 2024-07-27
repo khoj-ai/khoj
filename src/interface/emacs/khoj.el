@@ -424,12 +424,12 @@ Auto invokes setup steps on calling main entrypoint."
   "Send multi-part form `BODY' of `CONTENT-TYPE' in request to khoj server.
 Append 'TYPE-QUERY' as query parameter in request url.
 Specify `BOUNDARY' used to separate files in request header."
-  (let ((url-request-method "POST")
+  (let ((url-request-method ((if force) "PUT" "PATCH"))
         (url-request-data body)
           (url-request-extra-headers `(("content-type" . ,(format "multipart/form-data; boundary=%s" boundary))
                                        ("Authorization" . ,(format "Bearer %s" khoj-api-key)))))
       (with-current-buffer
-          (url-retrieve (format "%s/api/v1/index/update?%s&force=%s&client=emacs" khoj-server-url type-query (or force "false"))
+          (url-retrieve (format "%s/api/content?%s&client=emacs" khoj-server-url type-query)
                         ;; render response from indexing API endpoint on server
                         (lambda (status)
                           (if (not (plist-get status :error))
@@ -697,7 +697,7 @@ Optionally apply CALLBACK with JSON parsed response and CBARGS."
 
 (defun khoj--get-enabled-content-types ()
   "Get content types enabled for search from API."
-  (khoj--call-api "/api/configure/types" "GET" nil `(lambda (item) (mapcar #'intern item))))
+  (khoj--call-api "/api/content/types" "GET" nil `(lambda (item) (mapcar #'intern item))))
 
 (defun khoj--query-search-api-and-render-results (query content-type buffer-name &optional rerank is-find-similar)
   "Query Khoj Search API with QUERY, CONTENT-TYPE and RERANK as query params.
