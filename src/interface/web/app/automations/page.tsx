@@ -936,8 +936,6 @@ export default function Automations() {
 
     if (error) return <div>Failed to load</div>;
 
-    if (isLoading) return <Loading />;
-
     return (
         <main className={`${styles.main} w-full ml-auto mr-auto`}>
             <div className="float-right w-fit h-fit">
@@ -953,7 +951,7 @@ export default function Automations() {
                     />
                 </div>
                 <div className={`${styles.pageLayout} w-full`}>
-                    <div className='py-4 sm:grid sm:gap-1 flex justify-between'>
+                    <div className='py-4 sm:flex sm:justify-between grid gap-1'>
                         <h1 className="text-3xl">Automations</h1>
                         <div className='flex flex-wrap gap-2 items-center md:justify-start justify-end'>
                             {
@@ -1042,7 +1040,7 @@ export default function Automations() {
                             setNewAutomationData={setNewAutomationData} />
                     </Suspense>
                     {
-                        ((!personalAutomations || personalAutomations.length === 0) && (allNewAutomations.length == 0)) && (
+                        ((!personalAutomations || personalAutomations.length === 0) && (allNewAutomations.length == 0) && !isLoading) && (
                             <div>
                                 So empty! Create your own automation to get started.
                                 <div className='mt-4'>
@@ -1080,6 +1078,11 @@ export default function Automations() {
                                     }
                                 </div>
                             </div>
+                        )
+                    }
+                    {
+                        isLoading && (
+                            <InlineLoading message='booting up your automations' />
                         )
                     }
                     <div
