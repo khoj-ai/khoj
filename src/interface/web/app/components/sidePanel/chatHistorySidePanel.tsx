@@ -718,11 +718,7 @@ export default function SidePanel(props: SidePanelProps) {
         <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed} mt-1`}>
             <div className={`flex justify-between flex-row`}>
                 <Link href='/'>
-                    <Image
-                        src="/khoj-logo.svg"
-                        alt="khoj logo"
-                        width={52}
-                        height={52} />
+                    <KhojLogo />
                 </Link>
                 {
                     authenticatedData && props.isMobileWidth ?
