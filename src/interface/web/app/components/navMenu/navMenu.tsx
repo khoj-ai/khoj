@@ -26,6 +26,7 @@ import {
 import { Toggle } from '@/components/ui/toggle';
 import { Moon, Sun, UserCircle, User, Robot, MagnifyingGlass, Question, GearFine, ArrowRight } from '@phosphor-icons/react';
 import Image from 'next/image';
+import { KhojLogo } from '../logo/khogLogo';
 
 
 interface NavMenuProps {
@@ -113,12 +114,17 @@ export default function NavMenu(props: NavMenuProps) {
                 isMobileWidth ?
                     <DropdownMenu>
                         <DropdownMenuTrigger>
-                            <Avatar className="h-8 w-8">
-                                <AvatarImage src={userData?.photo} alt="user profile" />
-                                <AvatarFallback>
-                                    {userData?.username[0]}
-                                </AvatarFallback>
-                            </Avatar>
+                            {
+                                userData ?
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarImage src={userData?.photo} alt="user profile" />
+                                        <AvatarFallback>
+                                            {userData?.username[0]}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    :
+                                    <UserCircle className="w-6 h-6" />
+                            }
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
                             <DropdownMenuItem>
@@ -189,15 +195,19 @@ export default function NavMenu(props: NavMenuProps) {
                     </DropdownMenu>
                     :
                     <Menubar className='border-none hover:bg-stone-100 dark:hover:bg-neutral-900 bg-none'>
-
                         <MenubarMenu>
                             <MenubarTrigger>
-                                <Avatar className="h-8 w-8">
-                                    <AvatarImage src={userData?.photo} alt="user profile" />
-                                    <AvatarFallback>
-                                        {userData?.username[0]}
-                                    </AvatarFallback>
-                                </Avatar>
+                                {
+                                    userData ?
+                                        <Avatar className="h-8 w-8">
+                                            <AvatarImage src={userData?.photo} alt="user profile" />
+                                            <AvatarFallback>
+                                                {userData?.username[0]}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        :
+                                        <UserCircle className="w-8 h-8" />
+                                }
                             </MenubarTrigger>
                             <MenubarContent align="end" className="rounded-xl">
                                 <MenubarItem>
