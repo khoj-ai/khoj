@@ -211,6 +211,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
             })
             .catch(err => {
                 console.error(err);
+                window.location.href = "/";
             });
     };
 
@@ -235,11 +236,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
     function constructAgentLink() {
         if (!data || !data.agent || !data.agent.slug) return `/agents`;
         return `/agents?agent=${data.agent.slug}`
-    }
-
-    function constructAgentAvatar() {
-        if (!data || !data.agent || !data.agent.avatar) return `/avatar.png`;
-        return data.agent.avatar;
     }
 
     function constructAgentName() {

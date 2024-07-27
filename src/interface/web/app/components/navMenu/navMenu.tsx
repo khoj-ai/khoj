@@ -162,9 +162,9 @@ export default function NavMenu(props: NavMenuProps) {
                                     </div>
                                 </Link>
                             </DropdownMenuItem>
-                            {userData &&
-                                <>
-                                    <DropdownMenuSeparator />
+                            <>
+                                <DropdownMenuSeparator />
+                                {userData &&
                                     <DropdownMenuItem>
                                         <Link href="/settings" className="no-underline">
                                             <div className="flex flex-rows">
@@ -173,24 +173,36 @@ export default function NavMenu(props: NavMenuProps) {
                                             </div>
                                         </Link>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem>
-                                        <Link href="https://docs.khoj.dev" className="no-underline">
-                                            <div className="flex flex-rows">
-                                                <Question className="w-6 h-6" />
-                                                <p className="ml-3 pt-[2px] font-semibold">Help</p>
-                                            </div>
-                                        </Link>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem>
-                                        <Link href="/auth/logout" className="no-underline">
-                                            <div className="flex flex-rows">
-                                                <ArrowRight className="w-6 h-6" />
-                                                <p className="ml-3 pt-[2px] font-semibold">Logout</p>
-                                            </div>
-                                        </Link>
-                                    </DropdownMenuItem>
-                                </>
-                            }
+                                }
+                                <DropdownMenuItem>
+                                    <Link href="https://docs.khoj.dev" className="no-underline">
+                                        <div className="flex flex-rows">
+                                            <Question className="w-6 h-6" />
+                                            <p className="ml-3 pt-[2px] font-semibold">Help</p>
+                                        </div>
+                                    </Link>
+                                </DropdownMenuItem>
+                                {
+                                    userData ?
+                                        <DropdownMenuItem>
+                                            <Link href="/auth/logout" className="no-underline">
+                                                <div className="flex flex-rows">
+                                                    <ArrowRight className="w-6 h-6" />
+                                                    <p className="ml-3 pt-[2px] font-semibold">Logout</p>
+                                                </div>
+                                            </Link>
+                                        </DropdownMenuItem>
+                                        :
+                                        <DropdownMenuItem>
+                                            <Link href="/auth/login" className="no-underline">
+                                                <div className="flex flex-rows">
+                                                    <ArrowRight className="w-6 h-6" />
+                                                    <p className="ml-3 pt-[2px] font-semibold">Login</p>
+                                                </div>
+                                            </Link>
+                                        </DropdownMenuItem>
+                                }
+                            </>
                         </DropdownMenuContent>
                     </DropdownMenu>
                     :
@@ -245,9 +257,18 @@ export default function NavMenu(props: NavMenuProps) {
                                         </div>
                                     </Link>
                                 </MenubarItem>
-                                {userData &&
-                                    <>
-                                        <MenubarSeparator className="dark:bg-white height-[2px] bg-black" />
+                                <>
+                                    <MenubarSeparator className="dark:bg-white height-[2px] bg-black" />
+                                    <MenubarItem>
+                                        <Link href="https://docs.khoj.dev" className="no-underline">
+                                            <div className="flex flex-rows">
+                                                <Question className="w-6 h-6" />
+                                                <p className="ml-3 pt-[2px] font-semibold">Help</p>
+                                            </div>
+                                        </Link>
+                                    </MenubarItem>
+                                    {
+                                        userData &&
                                         <MenubarItem>
                                             <Link href="/settings" className="no-underline">
                                                 <div className="flex flex-rows">
@@ -256,24 +277,28 @@ export default function NavMenu(props: NavMenuProps) {
                                                 </div>
                                             </Link>
                                         </MenubarItem>
-                                        <MenubarItem>
-                                            <Link href="https://docs.khoj.dev" className="no-underline">
-                                                <div className="flex flex-rows">
-                                                    <Question className="w-6 h-6" />
-                                                    <p className="ml-3 pt-[2px] font-semibold">Help</p>
-                                                </div>
-                                            </Link>
-                                        </MenubarItem>
-                                        <MenubarItem>
-                                            <Link href="/auth/logout" className="no-underline">
-                                                <div className="flex flex-rows">
-                                                    <ArrowRight className="w-6 h-6" />
-                                                    <p className="ml-3 pt-[2px] font-semibold">Logout</p>
-                                                </div>
-                                            </Link>
-                                        </MenubarItem>
-                                    </>
-                                }
+                                    }
+                                    {
+                                        userData ?
+                                            <MenubarItem>
+                                                <Link href="/auth/logout" className="no-underline">
+                                                    <div className="flex flex-rows">
+                                                        <ArrowRight className="w-6 h-6" />
+                                                        <p className="ml-3 pt-[2px] font-semibold">Logout</p>
+                                                    </div>
+                                                </Link>
+                                            </MenubarItem>
+                                            :
+                                            <MenubarItem>
+                                                <Link href="/auth/login" className="no-underline">
+                                                    <div className="flex flex-rows">
+                                                        <ArrowRight className="w-6 h-6" />
+                                                        <p className="ml-3 pt-[2px] font-semibold">Login</p>
+                                                    </div>
+                                                </Link>
+                                            </MenubarItem>
+                                    }
+                                </>
                             </MenubarContent>
                         </MenubarMenu>
                     </Menubar>

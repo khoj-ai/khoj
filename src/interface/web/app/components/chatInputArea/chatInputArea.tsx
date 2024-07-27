@@ -11,12 +11,12 @@ import {
     ArrowRight,
     Browser,
     ChatsTeardrop,
-    FileArrowUp,
     GlobeSimple,
     Gps,
     Image,
     Microphone,
     Notebook,
+    Paperclip,
     Question,
     Robot,
     Shapes,
@@ -372,7 +372,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                     className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
                     disabled={props.sendDisabled}
                     onClick={handleFileButtonClick}>
-                    <FileArrowUp weight='fill' className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
+                    <Paperclip className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
                 </Button>
                 <div className="grid w-full gap-1.5 relative">
                     <Textarea
