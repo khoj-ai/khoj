@@ -15,6 +15,8 @@ import { InlineLoading } from '../loading/loading';
 import { Lightbulb } from "@phosphor-icons/react";
 
 import ProfileCard from '../profileCard/profileCard';
+import { getIconFromIconName } from '@/app/common/iconUtils';
+import { AgentData } from '@/app/agents/page';
 
 interface ChatResponse {
     status: string;
@@ -31,25 +33,25 @@ interface ChatHistoryProps {
     incomingMessages?: StreamMessage[];
     pendingMessage?: string;
     publicConversationSlug?: string;
+    setAgent: (agent: AgentData) => void;
 }
 
 
-function constructTrainOfThought(trainOfThought: string[], lastMessage: boolean, key: string, completed: boolean = false) {
+function constructTrainOfThought(trainOfThought: string[], lastMessage: boolean, agentColor: string, key: string, completed: boolean = false) {
     const lastIndex = trainOfThought.length - 1;
     return (
-        <div className={`${styles.trainOfThought}`} key={key}>
+        <div className={`${styles.trainOfThought} shadow-sm`} key={key}>
             {
                 !completed &&
                 <InlineLoading className='float-right' />
             }
 
             {trainOfThought.map((train, index) => (
-                <TrainOfThought key={`train-${index}`} message={train} primary={index === lastIndex && lastMessage && !completed} />
+                <TrainOfThought key={`train-${index}`} message={train} primary={index === lastIndex && lastMessage && !completed} agentColor={agentColor} />
             ))}
         </div>
     )
 }
-
 
 export default function ChatHistory(props: ChatHistoryProps) {
     const [data, setData] = useState<ChatHistoryData | null>(null);
@@ -63,7 +65,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
     const [incompleteIncomingMessageIndex, setIncompleteIncomingMessageIndex] = useState<number | null>(null);
     const [fetchingData, setFetchingData] = useState(false);
     const [isMobileWidth, setIsMobileWidth] = useState(false);
-
 
     useEffect(() => {
         window.addEventListener('resize', () => {
@@ -184,6 +185,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                         setFetchingData(false);
                         return;
                     }
+                    props.setAgent(chatData.response.agent);
 
                     setData(chatData.response);
 
@@ -199,6 +201,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                             conversation_id: chatData.response.conversation_id,
                             slug: chatData.response.slug,
                         }
+                        props.setAgent(chatData.response.agent);
                         setData(chatMetadata);
                     }
 
@@ -208,6 +211,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
             })
             .catch(err => {
                 console.error(err);
+                window.location.href = "/";
             });
     };
 
@@ -232,11 +236,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
     function constructAgentLink() {
         if (!data || !data.agent || !data.agent.slug) return `/agents`;
         return `/agents?agent=${data.agent.slug}`
-    }
-
-    function constructAgentAvatar() {
-        if (!data || !data.agent || !data.agent.avatar) return `/avatar.png`;
-        return data.agent.avatar;
     }
 
     function constructAgentName() {
@@ -265,7 +264,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                             isMobileWidth={isMobileWidth}
                             chatMessage={chatMessage}
                             customClassName='fullHistory'
-                            borderLeftColor='orange-500'
+                            borderLeftColor={`${data?.agent.color}-500`}
                             isLastMessage={index === data.chat.length - 1}
                         />
                     ))}
@@ -287,13 +286,14 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                             }
                                         }
                                         customClassName='fullHistory'
-                                        borderLeftColor='orange-500'
+                                        borderLeftColor={`${data?.agent.color}-500`}
                                     />
                                     {
                                         message.trainOfThought &&
                                         constructTrainOfThought(
                                             message.trainOfThought,
                                             index === incompleteIncomingMessageIndex,
+                                            data?.agent.color || 'orange',
                                             `${index}trainOfThought`, message.completed)
                                     }
                                     <ChatMessage
@@ -311,7 +311,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                             }
                                         }
                                         customClassName='fullHistory'
-                                        borderLeftColor='orange-500'
+                                        borderLeftColor={`${data?.agent.color}-500`}
                                         isLastMessage={true}
                                     />
                                 </>
@@ -334,7 +334,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                 }
                             }
                             customClassName='fullHistory'
-                            borderLeftColor='orange-500'
+                            borderLeftColor={`${data?.agent.color}-500`}
                             isLastMessage={true}
                         />
                     }
@@ -344,7 +344,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                 <ProfileCard
                                     name={constructAgentName()}
                                     link={constructAgentLink()}
-                                    avatar={<Lightbulb color='orange' weight='fill' />}
+                                    avatar={getIconFromIconName(data.agent.icon, data.agent.color) || <Lightbulb />}
                                     description={constructAgentPersona()}
                                 />
                             </div>

@@ -20,7 +20,6 @@ div.agentIndicator a {
 div.trainOfThought {
     border: 1px var(--border-color) solid;
     border-radius: 16px;
-    padding: 0 16px;
+    padding: 8px 16px;
     margin: 12px;
-    box-shadow: 0 4px 10px var(--box-shadow-color);
 }

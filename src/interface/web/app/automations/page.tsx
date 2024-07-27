@@ -53,6 +53,8 @@ import LoginPrompt from '../components/loginPrompt/loginPrompt';
 import { useToast } from '@/components/ui/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import SidePanel from '../components/sidePanel/chatHistorySidePanel';
+import NavMenu from '../components/navMenu/navMenu';
 
 const automationsFetcher = () => window.fetch('/api/automations').then(res => res.json()).catch(err => console.log(err));
 
@@ -899,8 +901,19 @@ export default function Automations() {
     const [allNewAutomations, setAllNewAutomations] = useState<AutomationsData[]>([]);
     const [suggestedAutomations, setSuggestedAutomations] = useState<AutomationsData[]>([]);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+    const [isMobileWidth, setIsMobileWidth] = useState(false);
 
     const ipLocationData = useIPLocationData();
+
+    useEffect(() => {
+        if (window.innerWidth < 768) {
+            setIsMobileWidth(true);
+        }
+
+        window.addEventListener('resize', () => {
+            setIsMobileWidth(window.innerWidth < 768);
+        });
+    }, []);
 
     useEffect(() => {
         if (newAutomationData) {
@@ -923,186 +936,201 @@ export default function Automations() {
 
     if (error) return <div>Failed to load</div>;
 
-    if (isLoading) return <Loading />;
-
     return (
-        <div>
-            <div className='py-4 flex justify-between'>
-                <h3
-                    className='text-xl font-bold'>
-                    Automations
-                </h3>
-                <div className='flex flex-wrap gap-2 items-center md:justify-start justify-end'>
-                    {
-                        authenticatedData ? (
-                            <span className='rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm' ><Envelope className='h-4 w-4 mr-2 inline text-orange-500' shadow-s />{authenticatedData.email}</span>
-                        )
-                            : null
-                    }
-                    {
-                        ipLocationData && (
-                            <span className='rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm' ><MapPinSimple className='h-4 w-4 mr-2 inline text-purple-500' />{ipLocationData ? `${ipLocationData.city}, ${ipLocationData.country}` : 'Unknown'}</span>
-                        )
-                    }
-                    {
-                        ipLocationData && (
-                            <span className='rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm' ><Clock className='h-4 w-4 mr-2 inline text-green-500' />{ipLocationData ? `${ipLocationData.timezone}` : 'Unknown'}</span>
-
-                        )
-                    }
+        <main className={`${styles.main} w-full ml-auto mr-auto`}>
+            <div className="float-right w-fit h-fit">
+                <NavMenu selected="Automations" />
+            </div>
+            <div className={`grid w-full ml-auto mr-auto`}>
+                <div className={`${styles.sidePanel} top-0`}>
+                    <SidePanel
+                        webSocketConnected={true}
+                        conversationId={null}
+                        uploadedFiles={[]}
+                        isMobileWidth={isMobileWidth}
+                    />
                 </div>
-            </div>
-            {
-                showLoginPrompt && (
-                    <LoginPrompt
-                        onOpenChange={setShowLoginPrompt}
-                        loginRedirectMessage={"Create an account to make your own automation"} />
-                )
-            }
-            <Alert className='bg-secondary border-none'>
-                <AlertDescription>
-                    <Lightning weight={'fill'} className='h-4 w-4 text-purple-400 inline' />
-                    <span className='font-bold'>How it works</span> Automations help you structure your time by automating tasks you do regularly. Build your own, or try out our presets. Get results straight to your inbox.
-                </AlertDescription>
-            </Alert>
-            <div className='flex justify-between py-4'>
-                <h3
-                    className="text-xl">
-                    Your Creations
-                </h3>
-                {
-                    authenticatedData ? (
-                        <Dialog
-                            open={isCreating}
-                            onOpenChange={(open) => {
-                                setIsCreating(open);
-                            }}
-                        >
-                            <DialogTrigger asChild>
-                                <Button
-                                    className='shadow-sm'
-                                    variant="outline">
-                                    <Plus className='h-4 w-4 mr-2' />
-                                    Create Automation
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogTitle>Create Automation</DialogTitle>
-                                <EditCard
-                                    createNew={true}
-                                    setIsEditing={setIsCreating}
-                                    isLoggedIn={authenticatedData ? true : false}
-                                    authenticatedData={authenticatedData}
-                                    setShowLoginPrompt={setShowLoginPrompt}
-                                    setUpdatedAutomationData={setNewAutomationData}
-                                    locationData={ipLocationData} />
-                            </DialogContent>
-                        </Dialog>
-                    )
-                        : (
-                            <Button
-                                className='shadow-sm'
-                                onClick={() => setShowLoginPrompt(true)}
-                                variant={'outline'}>
-                                <Plus className='h-4 w-4 mr-2' />
-                                Create Automation
-                            </Button>
-                        )
-                }
-            </div>
-            <Suspense>
-                <SharedAutomationCard
-                    authenticatedData={authenticatedData}
-                    locationData={ipLocationData}
-                    isLoggedIn={authenticatedData ? true : false}
-                    setShowLoginPrompt={setShowLoginPrompt}
-                    setNewAutomationData={setNewAutomationData} />
-            </Suspense>
-            {
-                ((!personalAutomations || personalAutomations.length === 0) && (allNewAutomations.length == 0)) && (
-                    <div>
-                        So empty! Create your own automation to get started.
-                        <div className='mt-4'>
+                <div className={`${styles.pageLayout} w-full`}>
+                    <div className='py-4 sm:flex sm:justify-between grid gap-1'>
+                        <h1 className="text-3xl">Automations</h1>
+                        <div className='flex flex-wrap gap-2 items-center md:justify-start justify-end'>
                             {
                                 authenticatedData ? (
-                                    <Dialog
-                                        open={isCreating}
-                                        onOpenChange={(open) => {
-                                            setIsCreating(open);
-                                        }}
-                                    >
-                                        <DialogTrigger asChild>
-                                            <Button variant="default">Design</Button>
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                            <DialogTitle>Create Automation</DialogTitle>
-                                            <EditCard
-                                                authenticatedData={authenticatedData}
-                                                createNew={true}
-                                                isLoggedIn={authenticatedData ? true : false}
-                                                setShowLoginPrompt={setShowLoginPrompt}
-                                                setIsEditing={setIsCreating}
-                                                setUpdatedAutomationData={setNewAutomationData}
-                                                locationData={ipLocationData} />
-                                        </DialogContent>
-                                    </Dialog>
+                                    <span className='rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm' ><Envelope className='h-4 w-4 mr-2 inline text-orange-500' shadow-s />{authenticatedData.email}</span>
                                 )
-                                    : (
-                                        <Button
-                                            onClick={() => setShowLoginPrompt(true)}
-                                            variant={'default'}>
-                                            Design
-                                        </Button>
-                                    )
+                                    : null
+                            }
+                            {
+                                ipLocationData && (
+                                    <span className='rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm' ><MapPinSimple className='h-4 w-4 mr-2 inline text-purple-500' />{ipLocationData ? `${ipLocationData.city}, ${ipLocationData.country}` : 'Unknown'}</span>
+                                )
+                            }
+                            {
+                                ipLocationData && (
+                                    <span className='rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm' ><Clock className='h-4 w-4 mr-2 inline text-green-500' />{ipLocationData ? `${ipLocationData.timezone}` : 'Unknown'}</span>
+
+                                )
                             }
                         </div>
                     </div>
-                )
-            }
-            <div
-                className={`${styles.automationsLayout}`}>
-                {
-                    personalAutomations && personalAutomations.map((automation) => (
-                        <AutomationsCard
-                            key={automation.id}
+                    {
+                        showLoginPrompt && (
+                            <LoginPrompt
+                                onOpenChange={setShowLoginPrompt}
+                                loginRedirectMessage={"Create an account to make your own automation"} />
+                        )
+                    }
+                    <Alert className='bg-secondary border-none'>
+                        <AlertDescription>
+                            <Lightning weight={'fill'} className='h-4 w-4 text-purple-400 inline' />
+                            <span className='font-bold'>How it works</span> Automations help you structure your time by automating tasks you do regularly. Build your own, or try out our presets. Get results straight to your inbox.
+                        </AlertDescription>
+                    </Alert>
+                    <div className='flex justify-between py-4'>
+                        <h3
+                            className="text-xl">
+                            Your Creations
+                        </h3>
+                        {
+                            authenticatedData ? (
+                                <Dialog
+                                    open={isCreating}
+                                    onOpenChange={(open) => {
+                                        setIsCreating(open);
+                                    }}
+                                >
+                                    <DialogTrigger asChild>
+                                        <Button
+                                            className='shadow-sm'
+                                            variant="outline">
+                                            <Plus className='h-4 w-4 mr-2' />
+                                            Create Automation
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogTitle>Create Automation</DialogTitle>
+                                        <EditCard
+                                            createNew={true}
+                                            setIsEditing={setIsCreating}
+                                            isLoggedIn={authenticatedData ? true : false}
+                                            authenticatedData={authenticatedData}
+                                            setShowLoginPrompt={setShowLoginPrompt}
+                                            setUpdatedAutomationData={setNewAutomationData}
+                                            locationData={ipLocationData} />
+                                    </DialogContent>
+                                </Dialog>
+                            )
+                                : (
+                                    <Button
+                                        className='shadow-sm'
+                                        onClick={() => setShowLoginPrompt(true)}
+                                        variant={'outline'}>
+                                        <Plus className='h-4 w-4 mr-2' />
+                                        Create Automation
+                                    </Button>
+                                )
+                        }
+                    </div>
+                    <Suspense>
+                        <SharedAutomationCard
                             authenticatedData={authenticatedData}
-                            automation={automation}
-                            locationData={ipLocationData}
-                            isLoggedIn={authenticatedData ? true : false}
-                            setShowLoginPrompt={setShowLoginPrompt} />
-                    ))}
-                {
-                    allNewAutomations.map((automation) => (
-                        <AutomationsCard
-                            key={automation.id}
-                            authenticatedData={authenticatedData}
-                            automation={automation}
-                            locationData={ipLocationData}
-                            isLoggedIn={authenticatedData ? true : false}
-                            setShowLoginPrompt={setShowLoginPrompt} />
-                    ))
-                }
-            </div>
-            <h3
-                className="text-xl py-4">
-                Try these out
-            </h3>
-            <div
-                className={`${styles.automationsLayout}`}>
-                {
-                    suggestedAutomations.map((automation) => (
-                        <AutomationsCard
-                            setNewAutomationData={setNewAutomationData}
-                            key={automation.id}
-                            authenticatedData={authenticatedData}
-                            automation={automation}
                             locationData={ipLocationData}
                             isLoggedIn={authenticatedData ? true : false}
                             setShowLoginPrompt={setShowLoginPrompt}
-                            suggestedCard={true} />
-                    ))
-                }
+                            setNewAutomationData={setNewAutomationData} />
+                    </Suspense>
+                    {
+                        ((!personalAutomations || personalAutomations.length === 0) && (allNewAutomations.length == 0) && !isLoading) && (
+                            <div>
+                                So empty! Create your own automation to get started.
+                                <div className='mt-4'>
+                                    {
+                                        authenticatedData ? (
+                                            <Dialog
+                                                open={isCreating}
+                                                onOpenChange={(open) => {
+                                                    setIsCreating(open);
+                                                }}
+                                            >
+                                                <DialogTrigger asChild>
+                                                    <Button variant="default">Design</Button>
+                                                </DialogTrigger>
+                                                <DialogContent>
+                                                    <DialogTitle>Create Automation</DialogTitle>
+                                                    <EditCard
+                                                        authenticatedData={authenticatedData}
+                                                        createNew={true}
+                                                        isLoggedIn={authenticatedData ? true : false}
+                                                        setShowLoginPrompt={setShowLoginPrompt}
+                                                        setIsEditing={setIsCreating}
+                                                        setUpdatedAutomationData={setNewAutomationData}
+                                                        locationData={ipLocationData} />
+                                                </DialogContent>
+                                            </Dialog>
+                                        )
+                                            : (
+                                                <Button
+                                                    onClick={() => setShowLoginPrompt(true)}
+                                                    variant={'default'}>
+                                                    Design
+                                                </Button>
+                                            )
+                                    }
+                                </div>
+                            </div>
+                        )
+                    }
+                    {
+                        isLoading && (
+                            <InlineLoading message='booting up your automations' />
+                        )
+                    }
+                    <div
+                        className={`${styles.automationsLayout}`}>
+                        {
+                            personalAutomations && personalAutomations.map((automation) => (
+                                <AutomationsCard
+                                    key={automation.id}
+                                    authenticatedData={authenticatedData}
+                                    automation={automation}
+                                    locationData={ipLocationData}
+                                    isLoggedIn={authenticatedData ? true : false}
+                                    setShowLoginPrompt={setShowLoginPrompt} />
+                            ))}
+                        {
+                            allNewAutomations.map((automation) => (
+                                <AutomationsCard
+                                    key={automation.id}
+                                    authenticatedData={authenticatedData}
+                                    automation={automation}
+                                    locationData={ipLocationData}
+                                    isLoggedIn={authenticatedData ? true : false}
+                                    setShowLoginPrompt={setShowLoginPrompt} />
+                            ))
+                        }
+                    </div>
+                    <h3
+                        className="text-xl py-4">
+                        Try these out
+                    </h3>
+                    <div
+                        className={`${styles.automationsLayout}`}>
+                        {
+                            suggestedAutomations.map((automation) => (
+                                <AutomationsCard
+                                    setNewAutomationData={setNewAutomationData}
+                                    key={automation.id}
+                                    authenticatedData={authenticatedData}
+                                    automation={automation}
+                                    locationData={ipLocationData}
+                                    isLoggedIn={authenticatedData ? true : false}
+                                    setShowLoginPrompt={setShowLoginPrompt}
+                                    suggestedCard={true} />
+                            ))
+                        }
+                    </div>
+                </div>
             </div>
-        </div>
+        </main>
     );
 }

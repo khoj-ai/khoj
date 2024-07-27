@@ -18,7 +18,7 @@ a.selected {
 div.titleBar {
     display: flex;
     padding-left: 12px;
-    padding-right: 32px;
+    padding-right: 12px;
     padding-top: 16px;
     padding-bottom: 16px;
     justify-content: space-between;
@@ -49,11 +49,6 @@ div.settingsMenu {
     justify-self: center;
     margin: 0;
     align-items: center;
-}
-
-div.settingsMenu:hover {
-    background-color: var(--primary-hover);
-    cursor: pointer;
 }
 
 div.settingsMenuOptions {

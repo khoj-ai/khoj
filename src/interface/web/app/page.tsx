@@ -20,18 +20,22 @@ import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { convertSuggestionColorToTextClass, colorMap, convertColorToBorderClass } from './common/colorUtils';
 import { getIconFromIconName } from './common/iconUtils';
 import { ClockCounterClockwise } from '@phosphor-icons/react';
+import { AgentData } from './agents/page';
 
 //samples for suggestion cards (should be moved to json later)
 const suggestions: Suggestion[] = [["Automation", "blue", "Send me a summary of HackerNews every morning.", "/automations?subject=Summarizing%20Top%20Headlines%20from%20HackerNews&query=Summarize%20the%20top%20headlines%20on%20HackerNews&crontime=00%207%20*%20*%20*"], ["Automation", "blue", "Compose a bedtime story that a five-year-old might enjoy.", "/automations?subject=Daily%20Bedtime%20Story&query=Compose%20a%20bedtime%20story%20that%20a%20five-year-old%20might%20enjoy.%20It%20should%20not%20exceed%20five%20paragraphs.%20Appeal%20to%20the%20imagination%2C%20but%20weave%20in%20learnings.&crontime=0%2021%20*%20*%20*"], ["Paint", "green", "Paint a picture of a sunset but it's made of stained glass tiles", ""], ["Online Search", "yellow", "Search for the best attractions in Austria Hungary", ""]];
+//get today's day
+const today = new Date();
+const day = today.getDay();
+const greetings = [
+    `Good ${today.getHours() < 12 ? 'morning' : today.getHours() < 15 ? 'afternoon' : 'evening'}! What would you like to do today?`,
+    'How can I help you today?',
+    `Good ${today.getHours() < 12 ? 'morning' : today.getHours() < 15 ? 'afternoon' : 'evening'}! What can I do for you today?`,
+    `Ready to breeze through your ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]}?`,
+    `Need help navigating your ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]} workload?`
+];
+const greeting = greetings[~~(Math.random() * greetings.length)];
 
-export interface AgentData {
-    slug: string;
-    avatar: string;
-    name: string;
-    personality: string;
-    color: string;
-    icon: string;
-}
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -183,7 +187,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
         <div className={`${styles.chatBoxBody}`}>
             <div className="w-full text-center">
                 <div className="items-center">
-                    <h1 className="text-center pb-6 px-4">What would you like to do?</h1>
+                    <h1 className="text-center pb-6 px-4 w-fit ml-auto mr-auto">{greeting}</h1>
                 </div>
                 {
                     !props.isMobileWidth &&
@@ -193,7 +197,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                                 key={`${index}-${agents[index].slug}`}
                                 className={
                                     `${selectedAgent === agents[index].slug ?
-                                        convertColorToBorderClass(agents[index].color) : 'border-stone-100 text-muted-foreground'}
+                                        convertColorToBorderClass(agents[index].color) : 'border-stone-100 dark:border-neutral-700 text-muted-foreground'}
                                     hover:cursor-pointer rounded-lg px-2 py-2`}>
                                 <CardTitle
                                     className='text-center text-md font-medium flex justify-center items-center'
@@ -208,10 +212,10 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     </div>
                 }
             </div>
-            <div className={`${props.isMobileWidth} ? 'w-full' : 'w-fit`}>
+            <div className={`ml-auto mr-auto ${props.isMobileWidth ? 'w-full' : 'w-fit'}`}>
                 {
                     !props.isMobileWidth &&
-                    <div className={`${styles.inputBox} bg-background align-middle items-center justify-center p-3 dark:bg-neutral-700`}>
+                    <div className={`w-full ${styles.inputBox} shadow-lg bg-background align-middle items-center justify-center p-3 dark:bg-neutral-700 border-stone-100 dark:border-none dark:shadow-none`}>
                         <ChatInputArea
                             isLoggedIn={props.isLoggedIn}
                             sendMessage={(message) => setMessage(message)}
@@ -246,7 +250,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             </div>
             {
                 props.isMobileWidth &&
-                <div className={`${styles.inputBox} dark:bg-neutral-700 bg-background dark: align-middle items-center justify-center py-3 px-1`}>
+                <div className={`${styles.inputBox} shadow-md dark:bg-neutral-700 bg-background dark: align-middle items-center justify-center py-3 px-1`}>
                     <ChatInputArea
                         isLoggedIn={props.isLoggedIn}
                         sendMessage={(message) => setMessage(message)}

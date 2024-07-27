@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import NavMenu from '../components/navMenu/navMenu';
-import styles from './automationsLayout.module.css';
 import { Toaster } from "@/components/ui/toaster";
 
 import "../globals.css";
@@ -20,8 +18,7 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <div className={`${styles.automationsLayout}`}>
-            <NavMenu selected="Automations" showLogo={true} />
+        <div>
             {children}
             <Toaster />
         </div>

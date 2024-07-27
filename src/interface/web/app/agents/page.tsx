@@ -10,15 +10,11 @@ import { useEffect, useState } from 'react';
 import { useAuthenticatedData, UserProfile } from '../common/auth';
 import { Button } from '@/components/ui/button';
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 import {
     PaperPlaneTilt,
@@ -35,12 +31,13 @@ import SidePanel from '../components/sidePanel/chatHistorySidePanel';
 import NavMenu from '../components/navMenu/navMenu';
 import { getIconFromIconName } from '../common/iconUtils';
 import { convertColorToTextClass } from '../common/colorUtils';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export interface AgentData {
     slug: string;
     avatar: string;
     name: string;
-    personality: string;
+    persona: string;
     color: string;
     icon: string;
 }
@@ -123,13 +120,13 @@ function AgentCard(props: AgentCardProps) {
                                         <Button
                                             className={`bg-[hsl(var(--background))] w-14 h-14 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100 dark:hover:bg-neutral-900`}
                                             onClick={() => openChat(props.data.slug, userData)}>
-                                            <PaperPlaneTilt className='w-6 h-6' color={props.data.color} />
+                                            <PaperPlaneTilt className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`} />
                                         </Button>
                                     ) : (
                                         <Button
                                             className={`bg-[hsl(var(--background))] w-14 h-14 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100 dark:hover:bg-neutral-900`}
                                             onClick={() => setShowLoginPrompt(true)}>
-                                            <PaperPlaneTilt className='w-6 h-6' color={props.data.color} />
+                                            <PaperPlaneTilt className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`} />
                                         </Button>
                                     )}
                                 </div>
@@ -148,7 +145,7 @@ function AgentCard(props: AgentCardProps) {
                                         </div>
                                     </DialogHeader>
                                     <div className="max-h-[60vh] overflow-y-scroll text-neutral-500 dark:text-white">
-                                        {props.data.personality}
+                                        {props.data.persona}
                                     </div>
                                     <DialogFooter>
                                         <Button
@@ -157,7 +154,7 @@ function AgentCard(props: AgentCardProps) {
                                                 openChat(props.data.slug, userData);
                                                 setShowModal(false);
                                             }}>
-                                            <PaperPlaneTilt className='mr-2 w-6 h-6' color={props.data.color} />
+                                            <PaperPlaneTilt className={`w-6 h-6 m-2 ${convertColorToTextClass(props.data.color)}`} />
                                             Start Chatting
                                         </Button>
                                     </DialogFooter>
@@ -188,13 +185,13 @@ function AgentCard(props: AgentCardProps) {
                                         <Button
                                             className={`bg-[hsl(var(--background))] w-14 h-14 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100`}
                                             onClick={() => openChat(props.data.slug, userData)}>
-                                            <PaperPlaneTilt className='w-6 h-6' color={props.data.color} />
+                                            <PaperPlaneTilt className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`} />
                                         </Button>
                                     ) : (
                                         <Button
                                             className={`bg-[hsl(var(--background))] w-14 h-14 rounded-xl border dark:border-neutral-700 shadow-sm`}
                                             onClick={() => setShowLoginPrompt(true)}>
-                                            <PaperPlaneTilt className='w-6 h-6' color={props.data.color} />
+                                            <PaperPlaneTilt className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`} />
                                         </Button>
                                     )}
                                 </div>
@@ -203,7 +200,7 @@ function AgentCard(props: AgentCardProps) {
                                         <DrawerTitle>{props.data.name}</DrawerTitle>
                                         <DrawerDescription>Full Prompt</DrawerDescription>
                                     </DrawerHeader>
-                                    {props.data.personality}
+                                    {props.data.persona}
                                     <DrawerFooter>
                                         <DrawerClose>
                                             Done
@@ -217,18 +214,13 @@ function AgentCard(props: AgentCardProps) {
             <CardContent>
                 <div className={styles.agentPersonality}>
                     <button className={`${styles.infoButton} text-neutral-500 dark:text-white`} onClick={() => setShowModal(true)}>
-                        <p>{props.data.personality}</p>
+                        <p>{props.data.persona}</p>
                     </button>
                 </div>
             </CardContent>
         </Card>
     )
 }
-
-function createAgent() {
-    //just show a dialog for now similar to the agent card when the text is pressed
-}
-
 
 export default function Agents() {
     const { data, error } = useSWR<AgentData[]>('agents', agentsFetcher, { revalidateOnFocus: false });
@@ -273,7 +265,7 @@ export default function Agents() {
     }
 
     return (
-        <main className={`${styles.main} w-full ml-auto mr-auto`}>
+        <main className={`${styles.main} w-full mx-auto`}>
             <div className="float-right w-fit h-fit">
                 <NavMenu selected="Agents" />
             </div>
@@ -283,7 +275,7 @@ export default function Agents() {
                     loginRedirectMessage="Sign in to start chatting with a specialized agent"
                     onOpenChange={setShowLoginPrompt} />
             }
-            <div className={`${styles.chatLayout} w-full ml-auto mr-auto`}>
+            <div className={`${styles.pageLayout} w-full mx-auto`}>
                 <div className={`${styles.sidePanel} top-0`}>
                     <SidePanel
                         webSocketConnected={true}
@@ -292,53 +284,31 @@ export default function Agents() {
                         isMobileWidth={isMobileWidth}
                     />
                 </div>
-                <div className={`ml-auto mr-auto ${isMobileWidth ? "w-11/12" : "w-1/2"} pt-10`}>
-                    <div className="pt-8 flex">
-                        <h1 className="text-3xl relative top-2">Agents</h1>
-                        <div className="ml-auto float-right">
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button
-                                        className={`bg-[hsl(var(--background))] rounded-xl border dark:border-neutral-700 shadow-sm h-14 hover:bg-stone-100 dark:hover:bg-neutral-900`}
-                                        onClick={() => createAgent()}
-                                    >
-                                        <Plus className='w-6 h-6' color='gray' />
-                                        <p className="text-black dark:text-white ml-2">
-                                            <strong>Create Agent</strong>
-                                        </p>
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Custom Agents</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            Custom Agents will be coming to Khoj soon!
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogAction asChild>
-                                            <Button className="bg-stone-100 dark:bg-[hsl(var(--background))] text-neutral-500 dark:text-white hover:bg-stone-100 dark:hover:bg-neutral-900" onClick={() => { }}>
-                                                Close
-                                            </Button>
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                <div className={`mx-auto ${isMobileWidth ? "w-11/12" : "w-1/2"} pt-4`}>
+                    <div className="pt-8 flex justify-between align-middle w-full">
+                        <h1 className="text-3xl">Agents</h1>
+                        <div className="ml-auto float-right border p-2 pt-3 rounded-xl font-bold hover:bg-stone-100 dark:hover:bg-neutral-900">
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <div className="flex flex-row">
+                                            <Plus className='pr-2 w-6 h-6' />
+                                            <p className="pr-2">Create Agent</p>
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Coming Soon!</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         </div>
                     </div>
-                    <div>
-                        <Card className={`mt-8 mb-6 pt-1 pb-1 bg-stone-100 dark:bg-[hsl(var(--background))]`}>
-                            <CardContent>
-                                <CardDescription className="flex flex-rows">
-                                    <Lightning className='w-4 h-4 mr-2 relative top-3' weight="fill" color="#a068f5" />
-                                    <p className="relative top-3">
-                                        <strong className="text-black dark:text-white pr-2">How it works</strong>
-                                        Use any of these specialized agents to tune your conversation to your needs.
-                                    </p>
-                                </CardDescription>
-                            </CardContent>
-                        </Card>
-                    </div>
+                    <Alert className='bg-secondary border-none my-4'>
+                        <AlertDescription>
+                            <Lightning weight={'fill'} className='h-4 w-4 text-purple-400 inline' />
+                            <span className='font-bold'>How it works</span> Use any of these specialized personas to tune your conversation to your needs.
+                        </AlertDescription>
+                    </Alert>
                     <div className={`${styles.agentList}`}>
                         {data.map(agent => (
                             <AgentCard key={agent.slug} data={agent} userProfile={authenticatedData} isMobileWidth={isMobileWidth} />

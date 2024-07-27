@@ -11,18 +11,16 @@ import {
     ArrowRight,
     Browser,
     ChatsTeardrop,
-    FileArrowUp,
     GlobeSimple,
     Gps,
     Image,
     Microphone,
     Notebook,
+    Paperclip,
     Question,
     Robot,
     Shapes,
     Stop,
-    Waveform,
-    WaveSine
 } from '@phosphor-icons/react';
 
 import {
@@ -42,17 +40,15 @@ import {
     AlertDialogAction,
     AlertDialogContent,
     AlertDialogDescription,
-    AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 import { Popover, PopoverContent } from '@/components/ui/popover';
 import { PopoverTrigger } from '@radix-ui/react-popover';
-import Link from 'next/link';
-import { AlertDialogCancel } from '@radix-ui/react-alert-dialog';
 import LoginPrompt from '../loginPrompt/loginPrompt';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { InlineLoading } from '../loading/loading';
+import { convertToBGClass } from '@/app/common/colorUtils';
 
 export interface ChatOptions {
     [key: string]: string
@@ -66,29 +62,7 @@ interface ChatInputProps {
     chatOptionsData?: ChatOptions | null;
     isMobileWidth?: boolean;
     isLoggedIn: boolean;
-}
-
-async function createNewConvo() {
-    try {
-        const response = await fetch('/api/chat/sessions', { method: "POST" });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        const conversationID = data.conversation_id;
-
-        if (!conversationID) {
-            throw new Error("Conversation ID not found in response");
-        }
-
-        const url = `/chat?conversationId=${conversationID}`;
-        return url;
-    } catch (error) {
-        console.error("Error creating new conversation:", error);
-        throw error;
-    }
+    agentColor?: string;
 }
 
 export default function ChatInputArea(props: ChatInputProps) {
@@ -280,6 +254,13 @@ export default function ChatInputArea(props: ChatInputProps) {
 
     }, [recording]);
 
+    const chatInputRef = useRef<HTMLTextAreaElement>(null);
+    useEffect(() => {
+        if (!chatInputRef.current) return;
+        chatInputRef.current.style.height = 'auto';
+        chatInputRef.current.style.height = Math.max(chatInputRef.current.scrollHeight-24, 64) + 'px';
+    }, [message]);
+
     return (
         <>
             {
@@ -391,11 +372,12 @@ export default function ChatInputArea(props: ChatInputProps) {
                     className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
                     disabled={props.sendDisabled}
                     onClick={handleFileButtonClick}>
-                    <FileArrowUp weight='fill' className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
+                    <Paperclip className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
                 </Button>
                 <div className="grid w-full gap-1.5 relative">
                     <Textarea
-                        className={`border-none w-full h-16 min-h-16 md:py-4 rounded-lg resize-none dark:bg-neutral-700 ${props.isMobileWidth ? 'text-md' : 'text-lg'}`}
+                        ref={chatInputRef}
+                        className={`border-none w-full h-16 min-h-16 max-h-[128px] md:py-4 rounded-lg resize-none dark:bg-neutral-700 ${props.isMobileWidth ? 'text-md' : 'text-lg'}`}
                         placeholder="Type / to see a list of commands"
                         id="message"
                         value={message}
@@ -452,7 +434,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                         )
                 }
                 <Button
-                    className="bg-orange-300 hover:bg-orange-500 rounded-full p-0 h-auto text-3xl transition transform hover:-translate-y-1"
+                    className={`${props.agentColor ? convertToBGClass(props.agentColor) : 'bg-orange-300 hover:bg-orange-500'} rounded-full p-0 h-auto text-3xl transition transform hover:-translate-y-1`}
                     onClick={onSendMessage}
                     disabled={props.sendDisabled}>
                     <ArrowCircleUp className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />

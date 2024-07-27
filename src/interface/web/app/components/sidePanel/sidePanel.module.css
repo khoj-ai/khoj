@@ -7,7 +7,7 @@ div.session {
     font-size: medium;
     display: grid;
     grid-template-columns: minmax(auto, 400px) 1fr;
-    gap: 1rem;
+    gap: 0rem;
 }
 
 div.compressed {

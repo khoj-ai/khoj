@@ -23,7 +23,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ name, avatar, link, descripti
 			<TooltipProvider>
 				<Tooltip>
 					<TooltipTrigger asChild>
-						<Button variant="ghost" className="flex items-center justify-center gap-2">
+						<Button variant="ghost" className="flex items-center justify-center">
 							{avatar}
 							<div>{name}</div>
 						</Button>

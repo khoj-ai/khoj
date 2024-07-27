@@ -16,6 +16,7 @@ import { useAuthenticatedData } from '@/app/common/auth';
 import ChatInputArea, { ChatOptions } from '@/app/components/chatInputArea/chatInputArea';
 import { StreamMessage } from '@/app/components/chatMessage/chatMessage';
 import { handleCompiledReferences, handleImageResponse, setupWebSocket } from '@/app/common/chatFunctions';
+import { AgentData } from '@/app/agents/page';
 
 
 interface ChatBodyDataProps {
@@ -34,6 +35,7 @@ interface ChatBodyDataProps {
 function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState('');
     const [processingMessage, setProcessingMessage] = useState(false);
+    const [agentMetadata, setAgentMetadata] = useState<AgentData | null>(null);
 
     useEffect(() => {
         if (message) {
@@ -68,17 +70,19 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 <ChatHistory
                     publicConversationSlug={props.publicConversationSlug}
                     conversationId={props.conversationId || ''}
+                    setAgent={setAgentMetadata}
                     setTitle={props.setTitle}
                     pendingMessage={processingMessage ? message : ''}
                     incomingMessages={props.streamedMessages} />
             </div>
-            <div className={`${styles.inputBox} bg-background align-middle items-center justify-center px-3`}>
+            <div className={`${styles.inputBox} shadow-md bg-background align-middle items-center justify-center px-3`}>
                 <ChatInputArea
                     isLoggedIn={props.isLoggedIn}
                     sendMessage={(message) => setMessage(message)}
                     sendDisabled={processingMessage}
                     chatOptionsData={props.chatOptionsData}
                     conversationId={props.conversationId}
+                    agentColor={agentMetadata?.color}
                     isMobileWidth={props.isMobileWidth}
                     setUploadedFiles={props.setUploadedFiles} />
             </div>

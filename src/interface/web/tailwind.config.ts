@@ -3,9 +3,25 @@ import type { Config } from "tailwindcss"
 const config = {
     safelist: [
         {
-        pattern: /to-(blue|yellow|green|pink|purple|orange|red)-(50|100|200|950)/,
-        variants: ['dark'],
+            pattern: /to-(blue|yellow|green|pink|purple|orange|red|slate|gray|zinc|neutral|stone|amber|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|fuchsia|rose)-(50|100|200|950)/,
+            variants: ['dark'],
         },
+        {
+            pattern: /text-(blue|yellow|green|pink|purple|orange|red|slate|gray|zinc|neutral|stone|amber|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|fuchsia|rose)-(50|100|200|950)/,
+            variants: ['dark'],
+        },
+        {
+            pattern: /border-(blue|yellow|green|pink|purple|orange|red|slate|gray|zinc|neutral|stone|amber|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|fuchsia|rose)-(50|100|200|950)/,
+            variants: ['dark'],
+        },
+        {
+            pattern: /border-l-(blue|yellow|green|pink|purple|orange|red|slate|gray|zinc|neutral|stone|amber|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|fuchsia|rose)-(50|100|200|400|500|950)/,
+            variants: ['dark'],
+        },
+        {
+            pattern: /bg-(blue|yellow|green|pink|purple|orange|red|slate|gray|zinc|neutral|stone|amber|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|fuchsia|rose)-(50|100|200|400|500|950)/,
+            variants: ['dark'],
+        }
     ],
     darkMode: ["class"],
     content: [

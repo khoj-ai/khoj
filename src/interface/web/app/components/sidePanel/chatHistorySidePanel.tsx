@@ -8,6 +8,7 @@ import { UserProfile, useAuthenticatedData } from "@/app/common/auth";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import Link from "next/link";
 import useSWR from "swr";
+import Image from "next/image";
 
 import {
     Command,
@@ -77,6 +78,7 @@ import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { modifyFileFilterForConversation } from "@/app/common/chatFunctions";
 import { ScrollAreaScrollbar } from "@radix-ui/react-scroll-area";
+import { KhojLogo } from "../logo/khogLogo";
 
 // Define a fetcher function
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -364,9 +366,7 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                 }
             </div>
             <FilesMenu conversationId={props.conversationId} uploadedFiles={props.uploadedFiles} isMobileWidth={props.isMobileWidth} />
-            {props.userProfile &&
-                <UserProfileComponent userProfile={props.userProfile} webSocketConnected={props.webSocketConnected} collapsed={false} />
-            }</>
+        </>
     )
 }
 
@@ -487,6 +487,15 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
                             onClick={() => {
                                 deleteConversation(props.conversationId);
                                 setIsDeleting(false);
+                                var currConversationId = parseInt(new URLSearchParams(window.location.search).get('conversationId') || "0");
+                                //edge case for deleting current conversation
+                                if (currConversationId === parseInt(props.conversationId)) {
+                                    window.location.href = '/';
+                                }
+                                //reload side panel
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 1000);
                             }}
                             className="bg-rose-500 hover:bg-rose-600">Delete</AlertDialogAction>
                     </AlertDialogFooter>
@@ -523,13 +532,13 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
 
 function ChatSession(props: ChatHistory) {
     const [isHovered, setIsHovered] = useState(false);
-
+    var currConversationId = parseInt(new URLSearchParams(window.location.search).get('conversationId') || "-1");
     return (
         <div
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             key={props.conversation_id}
-            className={`${styles.session} ${props.compressed ? styles.compressed : '!max-w-full'} ${isHovered ? `${styles.sessionHover}` : ''}`}>
+            className={`${styles.session} ${props.compressed ? styles.compressed : '!max-w-full'} ${isHovered ? `${styles.sessionHover}` : ''} ${currConversationId === parseInt(props.conversation_id) && currConversationId != -1 ? "dark:bg-neutral-800 bg-white" : ""}`}>
             <Link href={`/chat?conversationId=${props.conversation_id}`} onClick={() => props.showSidePanel(false)}>
                 <p className={styles.session}>{props.slug || "New Conversation 🌱"}</p>
             </Link>
@@ -586,45 +595,6 @@ interface UserProfileProps {
     userProfile: UserProfile;
     webSocketConnected?: boolean;
     collapsed: boolean;
-}
-
-function UserProfileComponent(props: UserProfileProps) {
-    if (props.collapsed) {
-        return (
-            <div className={styles.profile}>
-                <Avatar className="h-7 w-7">
-                    <AvatarImage src={props.userProfile.photo} alt="user profile" />
-                    <AvatarFallback>
-                        {props.userProfile.username[0]}
-                    </AvatarFallback>
-                </Avatar>
-            </div>
-        );
-    }
-
-    return (
-        <div className={styles.profile}>
-            <Link href="/settings">
-                <Avatar>
-                    <AvatarImage src={props.userProfile.photo} alt="user profile" />
-                    <AvatarFallback>
-                        {props.userProfile.username[0]}
-                    </AvatarFallback>
-                </Avatar>
-            </Link>
-            <div className={styles.profileDetails}>
-                <p>{props.userProfile?.username}</p>
-                {/* Connected Indicator */}
-                <div className="flex gap-2 items-center">
-                    <div className={`inline-flex h-4 w-4 rounded-full opacity-75 ${props.webSocketConnected ? 'bg-green-500' : 'bg-rose-500'}`}></div>
-                    <p className="text-muted-foreground text-sm">
-                        {props.webSocketConnected ? "Connected" : "Disconnected"}
-                    </p>
-                </div>
-            </div>
-        </div>
-    );
-
 }
 
 const fetchChatHistory = async (url: string) => {
@@ -700,19 +670,11 @@ export default function SidePanel(props: SidePanelProps) {
         }
     }, [chatSessions]);
 
-    function newConvo() {
-        window.location.href = '/';
-    }
-
     return (
-        <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed}`}>
-            <div className={`flex items-center justify-between ${(enabled || props.isMobileWidth) ? 'flex-row' : 'flex-col'}`}>
+        <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed} mt-1`}>
+            <div className={`flex justify-between flex-row`}>
                 <Link href='/'>
-                    <img
-                        src="/khoj-logo.svg"
-                        alt="khoj logo"
-                        width={52}
-                        height={52} />
+                    <KhojLogo />
                 </Link>
                 {
                     authenticatedData && props.isMobileWidth ?
@@ -748,8 +710,8 @@ export default function SidePanel(props: SidePanelProps) {
                             </DrawerContent>
                         </Drawer>
                         :
-                        <div className={`flex items-center ${enabled ? 'flex-row gap-2' : 'flex-col pt-2'}`}>
-                            <Link className={` ${enabled ? 'ml-2' : ''}`} href="/">
+                        <div className={`${enabled ? 'flex items-center flex-row gap-2' : 'flex'}`}>
+                            <Link className={`ml-4 mr-4`} href="/">
                                 {enabled ? <NotePencil className="h-6 w-6" /> : <NotePencil className="h-6 w-6" color="gray" />}
                             </Link>
                             <button className={styles.button} onClick={() => setEnabled(!enabled)}>

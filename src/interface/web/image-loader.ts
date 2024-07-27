@@ -2,13 +2,13 @@ export default function khojLoader({
     src,
     width,
     quality,
-  }: {
+}: {
     src: string
     width: number
     quality?: number
-  }) {
+}) {
     if (src.startsWith("http")) {
-      return src
+        return src
     }
 
     if (src.startsWith("/")) {
