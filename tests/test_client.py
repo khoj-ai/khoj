@@ -61,7 +61,7 @@ def test_search_with_invalid_content_type(client):
 @pytest.mark.django_db(transaction=True)
 def test_search_with_valid_content_type(client):
     headers = {"Authorization": "Bearer kk-secret"}
-    for content_type in ["all", "org", "markdown", "image", "pdf", "github", "notion", "plaintext", "docx"]:
+    for content_type in ["all", "org", "markdown", "image", "pdf", "github", "notion", "plaintext", "image", "docx"]:
         # Act
         response = client.get(f"/api/search?q=random&t={content_type}", headers=headers)
         # Assert
@@ -127,6 +127,8 @@ def test_index_update_big_files(client):
     # Arrange
     state.billing_enabled = True
     files = get_big_size_sample_files_data()
+
+    # Credential for the default_user, who is subscribed
     headers = {"Authorization": "Bearer kk-secret"}
 
     # Act
@@ -455,13 +457,13 @@ def test_user_no_data_returns_empty(client, sample_org_data, api_user3: KhojApiU
 
 @pytest.mark.skipif(os.getenv("OPENAI_API_KEY") is None, reason="requires OPENAI_API_KEY")
 @pytest.mark.django_db(transaction=True)
-def test_chat_with_unauthenticated_user(chat_client_with_auth, api_user2: KhojApiUser):
+async def test_chat_with_unauthenticated_user(chat_client_with_auth, api_user2: KhojApiUser):
     # Arrange
     headers = {"Authorization": f"Bearer {api_user2.token}"}
 
     # Act
-    auth_response = chat_client_with_auth.get(f'/api/chat?q="Hello!"&stream=true', headers=headers)
-    no_auth_response = chat_client_with_auth.get(f'/api/chat?q="Hello!"&stream=true')
+    auth_response = chat_client_with_auth.get(f'/api/chat?q="Hello!"', headers=headers)
+    no_auth_response = chat_client_with_auth.get(f'/api/chat?q="Hello!"')
 
     # Assert
     assert auth_response.status_code == 200
@@ -497,7 +499,8 @@ def get_sample_files_data():
 
 
 def get_big_size_sample_files_data():
-    big_text = "a" * (25 * 1024 * 1024)  # a string of approximately 25 MB
+    # a string of approximately 100 MB
+    big_text = "a" * (100 * 1024 * 1024)
     return [
         (
             "files",

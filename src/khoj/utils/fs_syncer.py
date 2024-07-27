@@ -22,7 +22,7 @@ magika = Magika()
 
 
 def collect_files(search_type: Optional[SearchType] = SearchType.All, user=None) -> dict:
-    files = {}
+    files: dict[str, dict] = {"docx": {}, "image": {}}
 
     if search_type == SearchType.All or search_type == SearchType.Org:
         org_config = LocalOrgConfig.objects.filter(user=user).first()

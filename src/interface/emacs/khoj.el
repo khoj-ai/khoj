@@ -6,7 +6,7 @@
 ;;         Saba Imran <saba@khoj.dev>
 ;; Description: An AI copilot for your Second Brain
 ;; Keywords: search, chat, org-mode, outlines, markdown, pdf, image
-;; Version: 1.16.0
+;; Version: 1.17.0
 ;; Package-Requires: ((emacs "27.1") (transient "0.3.0") (dash "2.19.1"))
 ;; URL: https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs
 
@@ -283,9 +283,9 @@ Auto invokes setup steps on calling main entrypoint."
     (if (/= (apply #'call-process khoj-server-python-command
                    nil t nil
                    "-m" "pip" "install" "--upgrade"
-                   '("khoj-assistant"))
+                   '("khoj"))
             0)
-        (message "khoj.el: Failed to install Khoj server. Please install it manually using pip install `khoj-assistant'.\n%s" (buffer-string))
+        (message "khoj.el: Failed to install Khoj server. Please install it manually using pip install `khoj'.\n%s" (buffer-string))
       (message "khoj.el: Installed and upgraded Khoj server version: %s" (khoj--server-get-version)))))
 
 (defun khoj--server-start ()

@@ -364,3 +364,194 @@ function createReferenceSection(references, createLinkerSection=false) {
 
     return referencesDiv;
 }
+
+function createLoadingEllipsis() {
+    let loadingEllipsis = document.createElement("div");
+    loadingEllipsis.classList.add("lds-ellipsis");
+
+    let firstEllipsis = document.createElement("div");
+    firstEllipsis.classList.add("lds-ellipsis-item");
+
+    let secondEllipsis = document.createElement("div");
+    secondEllipsis.classList.add("lds-ellipsis-item");
+
+    let thirdEllipsis = document.createElement("div");
+    thirdEllipsis.classList.add("lds-ellipsis-item");
+
+    let fourthEllipsis = document.createElement("div");
+    fourthEllipsis.classList.add("lds-ellipsis-item");
+
+    loadingEllipsis.appendChild(firstEllipsis);
+    loadingEllipsis.appendChild(secondEllipsis);
+    loadingEllipsis.appendChild(thirdEllipsis);
+    loadingEllipsis.appendChild(fourthEllipsis);
+
+    return loadingEllipsis;
+}
+
+function handleStreamResponse(newResponseElement, rawResponse, rawQuery, loadingEllipsis, replace=true) {
+    if (!newResponseElement) return;
+    // Remove loading ellipsis if it exists
+    if (newResponseElement.getElementsByClassName("lds-ellipsis").length > 0 && loadingEllipsis)
+        newResponseElement.removeChild(loadingEllipsis);
+    // Clear the response element if replace is true
+    if (replace) newResponseElement.innerHTML = "";
+
+    // Append response to the response element
+    newResponseElement.appendChild(formatHTMLMessage(rawResponse, false, replace, rawQuery));
+
+    // Append loading ellipsis if it exists
+    if (!replace && loadingEllipsis) newResponseElement.appendChild(loadingEllipsis);
+    // Scroll to bottom of chat view
+    document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+}
+
+function handleImageResponse(imageJson, rawResponse) {
+    if (imageJson.image) {
+        const inferredQuery = imageJson.inferredQueries?.[0] ?? "generated image";
+
+        // If response has image field, response is a generated image.
+        if (imageJson.intentType === "text-to-image") {
+            rawResponse += `![generated_image](data:image/png;base64,${imageJson.image})`;
+        } else if (imageJson.intentType === "text-to-image2") {
+            rawResponse += `![generated_image](${imageJson.image})`;
+        } else if (imageJson.intentType === "text-to-image-v3") {
+            rawResponse = `![](data:image/webp;base64,${imageJson.image})`;
+        }
+        if (inferredQuery) {
+            rawResponse += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
+        }
+    }
+
+    // If response has detail field, response is an error message.
+    if (imageJson.detail) rawResponse += imageJson.detail;
+
+    return rawResponse;
+}
+
+function finalizeChatBodyResponse(references, newResponseElement) {
+    if (!!newResponseElement && references != null && Object.keys(references).length > 0) {
+        newResponseElement.appendChild(createReferenceSection(references));
+    }
+    document.getElementById("chat-body").scrollTop = document.getElementById("chat-body").scrollHeight;
+    document.getElementById("chat-input")?.removeAttribute("disabled");
+}
+
+function convertMessageChunkToJson(rawChunk) {
+    // Split the chunk into lines
+    if (rawChunk?.startsWith("{") && rawChunk?.endsWith("}")) {
+        try {
+            let jsonChunk = JSON.parse(rawChunk);
+            if (!jsonChunk.type)
+                jsonChunk = {type: 'message', data: jsonChunk};
+            return jsonChunk;
+        } catch (e) {
+            return {type: 'message', data: rawChunk};
+        }
+    } else if (rawChunk.length > 0) {
+        return {type: 'message', data: rawChunk};
+    }
+}
+
+function processMessageChunk(rawChunk) {
+    const chunk = convertMessageChunkToJson(rawChunk);
+    console.debug("Chunk:", chunk);
+    if (!chunk || !chunk.type) return;
+    if (chunk.type ==='status') {
+        console.log(`status: ${chunk.data}`);
+        const statusMessage = chunk.data;
+        handleStreamResponse(chatMessageState.newResponseTextEl, statusMessage, chatMessageState.rawQuery, chatMessageState.loadingEllipsis, false);
+    } else if (chunk.type === 'start_llm_response') {
+        console.log("Started streaming", new Date());
+    } else if (chunk.type === 'end_llm_response') {
+        console.log("Stopped streaming", new Date());
+
+        // Automatically respond with voice if the subscribed user has sent voice message
+        if (chatMessageState.isVoice && "{{ is_active }}" == "True")
+            textToSpeech(chatMessageState.rawResponse);
+
+        // Append any references after all the data has been streamed
+        finalizeChatBodyResponse(chatMessageState.references, chatMessageState.newResponseTextEl);
+
+        const liveQuery = chatMessageState.rawQuery;
+        // Reset variables
+        chatMessageState = {
+            newResponseTextEl: null,
+            newResponseEl: null,
+            loadingEllipsis: null,
+            references: {},
+            rawResponse: "",
+            rawQuery: liveQuery,
+            isVoice: false,
+        }
+    } else if (chunk.type === "references") {
+        chatMessageState.references = {"notes": chunk.data.context, "online": chunk.data.onlineContext};
+    } else if (chunk.type === 'message') {
+        const chunkData = chunk.data;
+        if (typeof chunkData === 'object' && chunkData !== null) {
+            // If chunkData is already a JSON object
+            handleJsonResponse(chunkData);
+        } else if (typeof chunkData  === 'string' && chunkData.trim()?.startsWith("{") && chunkData.trim()?.endsWith("}")) {
+            // Try process chunk data as if it is a JSON object
+            try {
+                const jsonData = JSON.parse(chunkData.trim());
+                handleJsonResponse(jsonData);
+            } catch (e) {
+                chatMessageState.rawResponse += chunkData;
+                handleStreamResponse(chatMessageState.newResponseTextEl, chatMessageState.rawResponse, chatMessageState.rawQuery, chatMessageState.loadingEllipsis);
+            }
+        } else {
+            chatMessageState.rawResponse += chunkData;
+            handleStreamResponse(chatMessageState.newResponseTextEl, chatMessageState.rawResponse, chatMessageState.rawQuery, chatMessageState.loadingEllipsis);
+        }
+    }
+}
+
+function handleJsonResponse(jsonData) {
+    if (jsonData.image || jsonData.detail) {
+        chatMessageState.rawResponse = handleImageResponse(jsonData, chatMessageState.rawResponse);
+    } else if (jsonData.response) {
+        chatMessageState.rawResponse = jsonData.response;
+    }
+
+    if (chatMessageState.newResponseTextEl) {
+        chatMessageState.newResponseTextEl.innerHTML = "";
+        chatMessageState.newResponseTextEl.appendChild(formatHTMLMessage(chatMessageState.rawResponse));
+    }
+}
+
+async function readChatStream(response) {
+    if (!response.body) return;
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    const eventDelimiter = '␃🔚␗';
+    let buffer = '';
+
+    while (true) {
+        const { value, done } = await reader.read();
+        // If the stream is done
+        if (done) {
+            // Process the last chunk
+            processMessageChunk(buffer);
+            buffer = '';
+            break;
+        }
+
+        // Read chunk from stream and append it to the buffer
+        const chunk = decoder.decode(value, { stream: true });
+        console.debug("Raw Chunk:", chunk)
+        // Start buffering chunks until complete event is received
+        buffer += chunk;
+
+        // Once the buffer contains a complete event
+        let newEventIndex;
+        while ((newEventIndex = buffer.indexOf(eventDelimiter)) !== -1) {
+            // Extract the event from the buffer
+            const event = buffer.slice(0, newEventIndex);
+            buffer = buffer.slice(newEventIndex + eventDelimiter.length);
+
+            // Process the event
+            if (event) processMessageChunk(event);
+        }
+    }
+}

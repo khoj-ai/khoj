@@ -286,7 +286,7 @@ def test_answer_from_chat_history_and_currently_retrieved_content(loaded_model):
     # Act
     response_gen = converse_offline(
         references=[
-            "Testatron was born on 1st April 1984 in Testville."
+            {"compiled": "Testatron was born on 1st April 1984 in Testville."}
         ],  # Assume context retrieved from notes for the user_query
         user_query="Where was I born?",
         conversation_log=populate_chat_history(message_list),
@@ -341,14 +341,22 @@ def test_answer_requires_current_date_awareness(loaded_model):
     "Chat actor should be able to answer questions relative to current date using provided notes"
     # Arrange
     context = [
-        f"""{datetime.now().strftime("%Y-%m-%d")} "Naco Taco" "Tacos for Dinner"
-Expenses:Food:Dining  10.00 USD""",
-        f"""{datetime.now().strftime("%Y-%m-%d")} "Sagar Ratna" "Dosa for Lunch"
-Expenses:Food:Dining  10.00 USD""",
-        f"""2020-04-01 "SuperMercado" "Bananas"
-Expenses:Food:Groceries  10.00 USD""",
-        f"""2020-01-01 "Naco Taco" "Burittos for Dinner"
-Expenses:Food:Dining  10.00 USD""",
+        {
+            "compiled": f"""{datetime.now().strftime("%Y-%m-%d")} "Naco Taco" "Tacos for Dinner"
+Expenses:Food:Dining  10.00 USD"""
+        },
+        {
+            "compiled": f"""{datetime.now().strftime("%Y-%m-%d")} "Sagar Ratna" "Dosa for Lunch"
+Expenses:Food:Dining  10.00 USD"""
+        },
+        {
+            "compiled": f"""2020-04-01 "SuperMercado" "Bananas"
+Expenses:Food:Groceries  10.00 USD"""
+        },
+        {
+            "compiled": f"""2020-01-01 "Naco Taco" "Burittos for Dinner"
+Expenses:Food:Dining  10.00 USD"""
+        },
     ]
 
     # Act
@@ -373,14 +381,22 @@ def test_answer_requires_date_aware_aggregation_across_provided_notes(loaded_mod
     "Chat actor should be able to answer questions that require date aware aggregation across multiple notes"
     # Arrange
     context = [
-        f"""# {datetime.now().strftime("%Y-%m-%d")} "Naco Taco" "Tacos for Dinner"
-Expenses:Food:Dining  10.00 USD""",
-        f"""{datetime.now().strftime("%Y-%m-%d")} "Sagar Ratna" "Dosa for Lunch"
-Expenses:Food:Dining  10.00 USD""",
-        f"""2020-04-01 "SuperMercado" "Bananas"
-Expenses:Food:Groceries  10.00 USD""",
-        f"""2020-01-01 "Naco Taco" "Burittos for Dinner"
-Expenses:Food:Dining  10.00 USD""",
+        {
+            "compiled": f"""# {datetime.now().strftime("%Y-%m-%d")} "Naco Taco" "Tacos for Dinner"
+Expenses:Food:Dining  10.00 USD"""
+        },
+        {
+            "compiled": f"""{datetime.now().strftime("%Y-%m-%d")} "Sagar Ratna" "Dosa for Lunch"
+Expenses:Food:Dining  10.00 USD"""
+        },
+        {
+            "compiled": f"""2020-04-01 "SuperMercado" "Bananas"
+Expenses:Food:Groceries  10.00 USD"""
+        },
+        {
+            "compiled": f"""2020-01-01 "Naco Taco" "Burittos for Dinner"
+Expenses:Food:Dining  10.00 USD"""
+        },
     ]
 
     # Act
@@ -430,12 +446,18 @@ def test_ask_for_clarification_if_not_enough_context_in_question(loaded_model):
     "Chat actor should ask for clarification if question cannot be answered unambiguously with the provided context"
     # Arrange
     context = [
-        f"""# Ramya
-My sister, Ramya, is married to Kali Devi. They have 2 kids, Ravi and Rani.""",
-        f"""# Fang
-My sister, Fang Liu is married to Xi Li. They have 1 kid, Xiao Li.""",
-        f"""# Aiyla
-My sister, Aiyla is married to Tolga. They have 3 kids, Yildiz, Ali and Ahmet.""",
+        {
+            "compiled": f"""# Ramya
+My sister, Ramya, is married to Kali Devi. They have 2 kids, Ravi and Rani."""
+        },
+        {
+            "compiled": f"""# Fang
+My sister, Fang Liu is married to Xi Li. They have 1 kid, Xiao Li."""
+        },
+        {
+            "compiled": f"""# Aiyla
+My sister, Aiyla is married to Tolga. They have 3 kids, Yildiz, Ali and Ahmet."""
+        },
     ]
 
     # Act
@@ -459,9 +481,9 @@ def test_agent_prompt_should_be_used(loaded_model, offline_agent):
     "Chat actor should ask be tuned to think like an accountant based on the agent definition"
     # Arrange
     context = [
-        f"""I went to the store and bought some bananas for 2.20""",
-        f"""I went to the store and bought some apples for 1.30""",
-        f"""I went to the store and bought some oranges for 6.00""",
+        {"compiled": f"""I went to the store and bought some bananas for 2.20"""},
+        {"compiled": f"""I went to the store and bought some apples for 1.30"""},
+        {"compiled": f"""I went to the store and bought some oranges for 6.00"""},
     ]
 
     # Act
@@ -499,7 +521,7 @@ def test_chat_does_not_exceed_prompt_size(loaded_model):
     "Ensure chat context and response together do not exceed max prompt size for the model"
     # Arrange
     prompt_size_exceeded_error = "ERROR: The prompt size exceeds the context window size and cannot be processed"
-    context = [" ".join([f"{number}" for number in range(2043)])]
+    context = [{"compiled": " ".join([f"{number}" for number in range(2043)])}]
 
     # Act
     response_gen = converse_offline(
@@ -530,7 +552,7 @@ def test_filter_questions():
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.anyio
 @pytest.mark.django_db(transaction=True)
-async def test_use_default_response_mode(client_offline_chat):
+async def test_use_text_response_mode(client_offline_chat):
     # Arrange
     user_query = "What's the latest in the Israel/Palestine conflict?"
 
@@ -538,7 +560,7 @@ async def test_use_default_response_mode(client_offline_chat):
     mode = await aget_relevant_output_modes(user_query, {})
 
     # Assert
-    assert mode.value == "default"
+    assert mode.value == "text"
 
 
 # ----------------------------------------------------------------------------------------------------

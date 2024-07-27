@@ -62,10 +62,6 @@ class ThreadedGenerator:
         self.queue.put(data)
 
     def close(self):
-        if self.compiled_references and len(self.compiled_references) > 0:
-            self.queue.put(f"### compiled references:{json.dumps(self.compiled_references)}")
-        if self.online_results and len(self.online_results) > 0:
-            self.queue.put(f"### compiled references:{json.dumps(self.online_results)}")
         self.queue.put(StopIteration)
 
 
@@ -186,7 +182,7 @@ def generate_chatml_messages_with_context(
 
 def truncate_messages(
     messages: list[ChatMessage],
-    max_prompt_size,
+    max_prompt_size: int,
     model_name: str,
     loaded_model: Optional[Llama] = None,
     tokenizer_name=None,
@@ -232,7 +228,8 @@ def truncate_messages(
     tokens = sum([len(encoder.encode(message.content)) for message in messages if type(message.content) == str])
 
     # Drop older messages until under max supported prompt size by model
-    while (tokens + system_message_tokens) > max_prompt_size and len(messages) > 1:
+    # Reserves 4 tokens to demarcate each message (e.g <|im_start|>user, <|im_end|>, <|endoftext|> etc.)
+    while (tokens + system_message_tokens + 4 * len(messages)) > max_prompt_size and len(messages) > 1:
         messages.pop()
         tokens = sum([len(encoder.encode(message.content)) for message in messages if type(message.content) == str])
 
@@ -254,6 +251,8 @@ def truncate_messages(
             f"Truncate current message to fit within max prompt size of {max_prompt_size} supported by {model_name} model:\n {truncated_message}"
         )
 
+    if system_message:
+        system_message.role = "user" if "gemma-2" in model_name else "system"
     return messages + [system_message] if system_message else messages
 
 

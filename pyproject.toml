@@ -3,7 +3,7 @@ requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
-name = "khoj-assistant"
+name = "khoj"
 description = "An AI copilot for your Second Brain"
 readme = "README.md"
 license = "AGPL-3.0-or-later"
@@ -27,7 +27,6 @@ classifiers = [
     "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -67,7 +66,7 @@ dependencies = [
     "pymupdf >= 1.23.5",
     "django == 5.0.7",
     "authlib == 1.2.1",
-    "llama-cpp-python == 0.2.76",
+    "llama-cpp-python == 0.2.82",
     "itsdangerous == 2.1.2",
     "httpx == 0.25.0",
     "pgvector == 0.2.4",
@@ -110,7 +109,7 @@ prod = [
     "resend == 1.0.1",
 ]
 dev = [
-    "khoj-assistant[prod]",
+    "khoj[prod]",
     "pytest >= 7.1.2",
     "pytest-xdist[psutil]",
     "pytest-django == 4.5.2",

@@ -45,7 +45,6 @@ def create_conversation(message_list, user, agent=None):
 
 # Tests
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.xfail(AssertionError, reason="Chat director not capable of answering this question yet")
 @pytest.mark.chatquality
 @pytest.mark.django_db(transaction=True)
 def test_offline_chat_with_no_chat_history_or_retrieved_content(client_offline_chat):
@@ -68,10 +67,8 @@ def test_chat_with_online_content(client_offline_chat):
     # Act
     q = "/online give me the link to paul graham's essay how to do great work"
     encoded_q = quote(q, safe="")
-    response = client_offline_chat.get(f"/api/chat?q={encoded_q}&stream=true")
-    response_message = response.content.decode("utf-8")
-
-    response_message = response_message.split("### compiled references")[0]
+    response = client_offline_chat.get(f"/api/chat?q={encoded_q}")
+    response_message = response.json()["response"]
 
     # Assert
     expected_responses = [
@@ -92,10 +89,8 @@ def test_chat_with_online_webpage_content(client_offline_chat):
     # Act
     q = "/online how many firefighters were involved in the great chicago fire and which year did it take place?"
     encoded_q = quote(q, safe="")
-    response = client_offline_chat.get(f"/api/chat?q={encoded_q}&stream=true")
-    response_message = response.content.decode("utf-8")
-
-    response_message = response_message.split("### compiled references")[0]
+    response = client_offline_chat.get(f"/api/chat?q={encoded_q}")
+    response_message = response.json()["response"]
 
     # Assert
     expected_responses = ["185", "1871", "horse"]
@@ -179,10 +174,6 @@ def test_answer_from_chat_history_and_previously_retrieved_content(client_offlin
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.xfail(
-    AssertionError,
-    reason="Chat director not capable of answering this question yet because it requires extract_questions",
-)
 @pytest.mark.chatquality
 @pytest.mark.django_db(transaction=True)
 def test_answer_from_chat_history_and_currently_retrieved_content(client_offline_chat, default_user2):
