@@ -1,4 +1,21 @@
-const tailwindColors = ['red', 'yellow', 'green', 'blue', 'orange', 'purple', 'pink', 'teal', 'cyan', 'lime', 'indigo', 'fuschia', 'rose', 'sky', 'amber', 'emerald'];
+const tailwindColors = [
+    'red',
+    'yellow',
+    'green',
+    'blue',
+    'orange',
+    'purple',
+    'pink',
+    'teal',
+    'cyan',
+    'lime',
+    'indigo',
+    'fuschia',
+    'rose',
+    'sky',
+    'amber',
+    'emerald'
+];
 
 export function convertColorToTextClass(color: string) {
     if (tailwindColors.includes(color)) {
@@ -7,11 +24,18 @@ export function convertColorToTextClass(color: string) {
     return `text-gray-500`;
 }
 
-function convertToBGGradientClass(color: string) {
+export function convertToBGGradientClass(color: string) {
     if (tailwindColors.includes(color)) {
         return `bg-gradient-to-b from-[hsl(var(--background))] to-${color}-100/70 dark:from-[hsl(var(--background))] dark:to-${color}-950/30 `;
     }
     return `bg-gradient-to-b from-white to-orange-50`;
+}
+
+export function convertToBGClass(color: string) {
+    if (tailwindColors.includes(color)) {
+        return `bg-${color}-500 dark:bg-${color}-900`;
+    }
+    return `bg-background`;
 }
 
 export function convertSuggestionColorToTextClass(color: string) {

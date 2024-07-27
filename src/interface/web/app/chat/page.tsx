@@ -17,6 +17,7 @@ import { StreamMessage } from '../components/chatMessage/chatMessage';
 import { welcomeConsole } from '../common/utils';
 import ChatInputArea, { ChatOptions } from '../components/chatInputArea/chatInputArea';
 import { useAuthenticatedData } from '../common/auth';
+import { AgentData } from '../agents/page';
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -34,6 +35,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const conversationId = searchParams.get('conversationId');
     const [message, setMessage] = useState('');
     const [processingMessage, setProcessingMessage] = useState(false);
+    const [agentMetadata, setAgentMetadata] = useState<AgentData | null>(null);
 
     useEffect(() => {
         const storedMessage = localStorage.getItem("message");
@@ -43,7 +45,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }, []);
 
     useEffect(() => {
-        if(message){
+        if (message) {
             setProcessingMessage(true);
             props.setQueryToProcess(message);
         }
@@ -76,12 +78,14 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 <ChatHistory
                     conversationId={conversationId}
                     setTitle={props.setTitle}
+                    setAgent={setAgentMetadata}
                     pendingMessage={processingMessage ? message : ''}
                     incomingMessages={props.streamedMessages}
-                     />
+                />
             </div>
             <div className={`${styles.inputBox} shadow-md bg-background align-middle items-center justify-center px-3 dark:bg-neutral-700 dark:border-0 dark:shadow-sm`}>
                 <ChatInputArea
+                    agentColor={agentMetadata?.color}
                     isLoggedIn={props.isLoggedIn}
                     sendMessage={(message) => setMessage(message)}
                     sendDisabled={processingMessage}
@@ -194,9 +198,9 @@ export default function Chat() {
     }, []);
 
     useEffect(() => {
-    if (chatWS) {
-        chatWS.onmessage = handleWebSocketMessage;
-    }
+        if (chatWS) {
+            chatWS.onmessage = handleWebSocketMessage;
+        }
     }, [chatWS, messages]);
 
     //same as ChatBodyData for local storage message
@@ -208,13 +212,13 @@ export default function Chat() {
     useEffect(() => {
         if (chatWS && queryToProcess) {
             const newStreamMessage: StreamMessage = {
-            rawResponse: "",
-            trainOfThought: [],
-            context: [],
-            onlineContext: {},
-            completed: false,
-            timestamp: (new Date()).toISOString(),
-            rawQuery: queryToProcess || "",
+                rawResponse: "",
+                trainOfThought: [],
+                context: [],
+                onlineContext: {},
+                completed: false,
+                timestamp: (new Date()).toISOString(),
+                rawQuery: queryToProcess || "",
             };
             setMessages(prevMessages => [...prevMessages, newStreamMessage]);
 
@@ -226,11 +230,11 @@ export default function Chat() {
                 console.error("WebSocket is not open. ReadyState:", chatWS.readyState);
             }
 
-          setQueryToProcess('');
+            setQueryToProcess('');
         }
     }, [queryToProcess, chatWS]);
 
-   useEffect(() => {
+    useEffect(() => {
         if (processQuerySignal && chatWS && chatWS.readyState === WebSocket.OPEN) {
             setProcessQuerySignal(false);
             chatWS.onmessage = handleWebSocketMessage;
@@ -241,17 +245,17 @@ export default function Chat() {
 
     useEffect(() => {
         const setupWebSocketConnection = async () => {
-          if (conversationId && (!chatWS || chatWS.readyState === WebSocket.CLOSED)) {
-            if(queryToProcess) {
-                const newWS = await setupWebSocket(conversationId, queryToProcess);
-                localStorage.removeItem("message");
-                setChatWS(newWS);
+            if (conversationId && (!chatWS || chatWS.readyState === WebSocket.CLOSED)) {
+                if (queryToProcess) {
+                    const newWS = await setupWebSocket(conversationId, queryToProcess);
+                    localStorage.removeItem("message");
+                    setChatWS(newWS);
+                }
+                else {
+                    const newWS = await setupWebSocket(conversationId);
+                    setChatWS(newWS);
+                }
             }
-            else {
-                const newWS = await setupWebSocket(conversationId);
-                setChatWS(newWS);
-            }
-          }
         };
         setupWebSocketConnection();
     }, [conversationId]);

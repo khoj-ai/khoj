@@ -15,6 +15,7 @@ import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture, Speak
 import * as DomPurify from 'dompurify';
 import { InlineLoading } from '../loading/loading';
 import { convertColorToTextClass } from '@/app/common/colorUtils';
+import { AgentData } from '@/app/agents/page';
 
 const md = new markdownIt({
     html: true,
@@ -71,15 +72,6 @@ export interface OnlineContextData {
     }
     organic: OrganicContext[];
     peopleAlsoAsk: PeopleAlsoAsk[];
-}
-
-interface AgentData {
-    name: string;
-    avatar: string;
-    slug: string;
-    persona: string;
-    color: string;
-    icon: string;
 }
 
 interface Intent {

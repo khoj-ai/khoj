@@ -16,6 +16,7 @@ import { Lightbulb } from "@phosphor-icons/react";
 
 import ProfileCard from '../profileCard/profileCard';
 import { getIconFromIconName } from '@/app/common/iconUtils';
+import { AgentData } from '@/app/agents/page';
 
 interface ChatResponse {
     status: string;
@@ -32,6 +33,7 @@ interface ChatHistoryProps {
     incomingMessages?: StreamMessage[];
     pendingMessage?: string;
     publicConversationSlug?: string;
+    setAgent: (agent: AgentData) => void;
 }
 
 
@@ -183,6 +185,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                         setFetchingData(false);
                         return;
                     }
+                    props.setAgent(chatData.response.agent);
 
                     setData(chatData.response);
 
@@ -198,6 +201,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                             conversation_id: chatData.response.conversation_id,
                             slug: chatData.response.slug,
                         }
+                        props.setAgent(chatData.response.agent);
                         setData(chatMetadata);
                     }
 

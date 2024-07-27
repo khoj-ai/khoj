@@ -37,7 +37,7 @@ export interface AgentData {
     slug: string;
     avatar: string;
     name: string;
-    personality: string;
+    persona: string;
     color: string;
     icon: string;
 }
@@ -145,7 +145,7 @@ function AgentCard(props: AgentCardProps) {
                                         </div>
                                     </DialogHeader>
                                     <div className="max-h-[60vh] overflow-y-scroll text-neutral-500 dark:text-white">
-                                        {props.data.personality}
+                                        {props.data.persona}
                                     </div>
                                     <DialogFooter>
                                         <Button
@@ -200,7 +200,7 @@ function AgentCard(props: AgentCardProps) {
                                         <DrawerTitle>{props.data.name}</DrawerTitle>
                                         <DrawerDescription>Full Prompt</DrawerDescription>
                                     </DrawerHeader>
-                                    {props.data.personality}
+                                    {props.data.persona}
                                     <DrawerFooter>
                                         <DrawerClose>
                                             Done
@@ -214,7 +214,7 @@ function AgentCard(props: AgentCardProps) {
             <CardContent>
                 <div className={styles.agentPersonality}>
                     <button className={`${styles.infoButton} text-neutral-500 dark:text-white`} onClick={() => setShowModal(true)}>
-                        <p>{props.data.personality}</p>
+                        <p>{props.data.persona}</p>
                     </button>
                 </div>
             </CardContent>
