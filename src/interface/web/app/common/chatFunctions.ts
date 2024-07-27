@@ -277,8 +277,8 @@ export function uploadDataForIndexing(
     // Wait for all files to be read before making the fetch request
     Promise.all(fileReadPromises)
         .then(() => {
-            return fetch("/api/v1/index/update?force=false&client=web", {
-                method: "POST",
+            return fetch("/api/content?client=web", {
+                method: "PATCH",
                 body: formData,
             });
         })

@@ -32,7 +32,7 @@
 </style>
 <script>
     function removeFile(path) {
-        fetch('/api/configure/content/file?filename=' + path, {
+        fetch('/api/content/file?filename=' + path, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -48,7 +48,7 @@
 
     // Get all currently indexed files
     function getAllComputerFilenames() {
-        fetch('/api/configure/content/computer')
+        fetch('/api/content/computer')
             .then(response => response.json())
             .then(data => {
                 var indexedFiles = document.getElementsByClassName("indexed-files")[0];
@@ -122,7 +122,7 @@
         deleteAllComputerFilesButton.textContent = "🗑️ Deleting...";
         deleteAllComputerFilesButton.disabled = true;
 
-        fetch('/api/configure/content/computer', {
+        fetch('/api/content/computer', {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',

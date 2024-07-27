@@ -45,7 +45,7 @@
 
         // Save Notion config on server
         const csrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken'))?.split('=')[1];
-        fetch('/api/configure/content/notion', {
+        fetch('/api/content/notion', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

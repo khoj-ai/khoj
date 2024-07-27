@@ -6,9 +6,16 @@ from pathlib import Path
 
 import pytest
 
+from khoj.database.adapters import EntryAdapters
 from khoj.database.models import Entry, GithubConfig, KhojUser, LocalOrgConfig
+from khoj.processor.content.docx.docx_to_entries import DocxToEntries
 from khoj.processor.content.github.github_to_entries import GithubToEntries
+from khoj.processor.content.images.image_to_entries import ImageToEntries
+from khoj.processor.content.markdown.markdown_to_entries import MarkdownToEntries
 from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
+from khoj.processor.content.pdf.pdf_to_entries import PdfToEntries
+from khoj.processor.content.plaintext.plaintext_to_entries import PlaintextToEntries
+from khoj.processor.content.text_to_entries import TextToEntries
 from khoj.search_type import text_search
 from khoj.utils.fs_syncer import collect_files, get_org_files
 from khoj.utils.rawconfig import ContentConfig, SearchConfig
@@ -151,7 +158,6 @@ async def test_text_search(search_config: SearchConfig):
         OrgToEntries,
         data,
         True,
-        True,
         default_user,
     )
 
@@ -240,7 +246,6 @@ conda activate khoj
             OrgToEntries,
             data,
             regenerate=False,
-            full_corpus=False,
             user=default_user,
         )
 
@@ -394,6 +399,49 @@ def test_update_index_with_new_entry(content_config: ContentConfig, new_org_file
         assert entry not in updated_entries1
     assert len(updated_entries1) == len(existing_entries) + 1
     verify_embeddings(3, default_user)
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "text_to_entries",
+    [
+        (OrgToEntries),
+    ],
+)
+def test_update_index_with_deleted_file(
+    org_config_with_only_new_file: LocalOrgConfig, text_to_entries: TextToEntries, default_user: KhojUser
+):
+    "Delete entries associated with new file when file path with empty content passed."
+    # Arrange
+    file_to_index = "test"
+    new_entry = "* TODO A Chihuahua doing Tango\n- Saw a super cute video of a chihuahua doing the Tango on Youtube\n"
+    initial_data = {file_to_index: new_entry}
+    final_data = {file_to_index: ""}
+
+    # Act
+    # load entries after adding file
+    initial_added_entries, _ = text_search.setup(text_to_entries, initial_data, regenerate=True, user=default_user)
+    initial_total_entries = EntryAdapters.get_existing_entry_hashes_by_file(default_user, file_to_index).count()
+
+    # load entries after deleting file
+    final_added_entries, final_deleted_entries = text_search.setup(
+        text_to_entries, final_data, regenerate=False, user=default_user
+    )
+    final_total_entries = EntryAdapters.get_existing_entry_hashes_by_file(default_user, file_to_index).count()
+
+    # Assert
+    assert initial_total_entries > 0, "File entries not indexed"
+    assert initial_added_entries > 0, "No entries got added"
+
+    assert final_total_entries == 0, "File did not get deleted"
+    assert final_added_entries == 0, "Entries were unexpectedly added in delete entries pass"
+    assert final_deleted_entries == initial_added_entries, "All added entries were not deleted"
+
+    verify_embeddings(0, default_user), "Embeddings still exist for user"
+
+    # Clean up
+    EntryAdapters.delete_all_entries(default_user)
 
 
 # ----------------------------------------------------------------------------------------------------

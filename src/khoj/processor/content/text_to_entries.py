@@ -31,9 +31,7 @@ class TextToEntries(ABC):
         self.date_filter = DateFilter()
 
     @abstractmethod
-    def process(
-        self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
-    ) -> Tuple[int, int]:
+    def process(self, files: dict[str, str] = None, user: KhojUser = None, regenerate: bool = False) -> Tuple[int, int]:
         ...
 
     @staticmethod
