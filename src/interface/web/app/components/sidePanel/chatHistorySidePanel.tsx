@@ -366,9 +366,7 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                 }
             </div>
             <FilesMenu conversationId={props.conversationId} uploadedFiles={props.uploadedFiles} isMobileWidth={props.isMobileWidth} />
-            {props.userProfile &&
-                <UserProfileComponent userProfile={props.userProfile} webSocketConnected={props.webSocketConnected} collapsed={false} />
-            }</>
+        </>
     )
 }
 
@@ -599,45 +597,6 @@ interface UserProfileProps {
     collapsed: boolean;
 }
 
-function UserProfileComponent(props: UserProfileProps) {
-    if (props.collapsed) {
-        return (
-            <div className={styles.profile}>
-                <Avatar className="h-7 w-7">
-                    <AvatarImage src={props.userProfile.photo} alt="user profile" />
-                    <AvatarFallback>
-                        {props.userProfile.username[0]}
-                    </AvatarFallback>
-                </Avatar>
-            </div>
-        );
-    }
-
-    return (
-        <div className={styles.profile}>
-            <Link href="/settings">
-                <Avatar>
-                    <AvatarImage src={props.userProfile.photo} alt="user profile" />
-                    <AvatarFallback>
-                        {props.userProfile.username[0]}
-                    </AvatarFallback>
-                </Avatar>
-            </Link>
-            <div className={styles.profileDetails}>
-                <p>{props.userProfile?.username}</p>
-                {/* Connected Indicator */}
-                <div className="flex gap-2 items-center">
-                    <div className={`inline-flex h-4 w-4 rounded-full opacity-75 ${props.webSocketConnected ? 'bg-green-500' : 'bg-rose-500'}`}></div>
-                    <p className="text-muted-foreground text-sm">
-                        {props.webSocketConnected ? "Connected" : "Disconnected"}
-                    </p>
-                </div>
-            </div>
-        </div>
-    );
-
-}
-
 const fetchChatHistory = async (url: string) => {
     const response = await fetch(url, {
         method: 'GET',
@@ -710,10 +669,6 @@ export default function SidePanel(props: SidePanelProps) {
             setOrganizedData(groupedData);
         }
     }, [chatSessions]);
-
-    function newConvo() {
-        window.location.href = '/';
-    }
 
     return (
         <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed} mt-1`}>
