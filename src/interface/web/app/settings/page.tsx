@@ -182,6 +182,7 @@ export default function SettingsView() {
     const initialUserConfig = useUserConfig(true);
     const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
     const [number, setNumber] = useState<string | undefined>(undefined);
+    const [name, setName] = useState<string | undefined>(undefined);
     const [otp, setOTP] = useState("");
     const [numberValidationState, setNumberValidationState] = useState<PhoneNumberValidationState>(PhoneNumberValidationState.Verified);
     const { toast } = useToast();
@@ -197,6 +198,7 @@ export default function SettingsView() {
             ? PhoneNumberValidationState.SendOTP
             : PhoneNumberValidationState.Setup
         );
+        setName(initialUserConfig?.given_name);
     }, [initialUserConfig]);
 
     useEffect(() => {
@@ -282,6 +284,38 @@ export default function SettingsView() {
          }
     };
 
+    const saveName = async () => {
+        if (!name) return;
+        try {
+            const response = await fetch(`/api/user/name?name=${name}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            if (!response.ok) throw new Error('Failed to update name');
+
+            // Set updated user settings
+            if (userConfig) {
+                let newUserConfig = userConfig;
+                newUserConfig.given_name = name;
+                setUserConfig(newUserConfig);
+            }
+
+            // Notify user of name change
+            toast({
+                title: `✅ Updated Profile`,
+                description: `You name has been updated to ${name}`,
+            });
+        } catch (error) {
+            console.error('Error updating name:', error);
+            toast({
+                title: "⚠️ Failed to Update Profile",
+                description: "Failed to update name. Try again or contact us at team@khoj.dev",
+            });
+        }
+    }
+
     const updateModel = (name: string) => async (id: string) => {
         try {
             const response = await fetch(`/api/model/${name}?id=` + id, {
@@ -332,10 +366,22 @@ export default function SettingsView() {
                                         <CardHeader className="text-xl flex flex-row"><UserCircle className="h-7 w-7 mr-2"/>Name</CardHeader>
                                         <CardContent className="overflow-hidden">
                                             <p className="pb-4 text-gray-400">What should Khoj refer to you as?</p>
-                                            <Input type="text" className="w-full border border-gray-300 rounded-lg p-4 py-6" defaultValue={userConfig.given_name} />
+                                            <Input
+                                                type="text"
+                                                onChange={(e) => setName(e.target.value)}
+                                                value={name}
+                                                className="w-full border border-gray-300 rounded-lg p-4 py-6"
+                                            />
                                         </CardContent>
                                         <CardFooter className="flex flex-wrap gap-4">
-                                            <Button variant="outline" size="sm"><FloppyDisk className="h-5 w-5 inline mr-2" />Save</Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={saveName}
+                                                disabled={name === userConfig.given_name}>
+                                                    <FloppyDisk className="h-5 w-5 inline mr-2" />
+                                                    Save
+                                            </Button>
                                         </CardFooter>
                                     </Card>
                                 </div>

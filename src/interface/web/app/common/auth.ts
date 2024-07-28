@@ -35,7 +35,7 @@ export interface SyncedContent {
 }
 export interface UserConfig {
     // user info
-    username: string | null;
+    username: string;
     user_photo: string | null;
     is_active: boolean;
     given_name: string;
