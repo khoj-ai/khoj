@@ -57,6 +57,7 @@ import {
     PlugsConnected,
     ArrowCircleUp,
     ArrowCircleDown,
+    ArrowsClockwise,
 } from "@phosphor-icons/react";
 
 import NavMenu from "../components/navMenu/navMenu";
@@ -182,8 +183,9 @@ export default function SettingsView() {
     const { apiKeys, generateAPIKey, copyAPIKey, deleteAPIKey } = useApiKeys();
     const initialUserConfig = useUserConfig(true);
     const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
-    const [number, setNumber] = useState<string | undefined>(undefined);
     const [name, setName] = useState<string | undefined>(undefined);
+    const [notionToken, setNotionToken] = useState<string | null>(null);
+    const [number, setNumber] = useState<string | undefined>(undefined);
     const [otp, setOTP] = useState("");
     const [numberValidationState, setNumberValidationState] = useState<PhoneNumberValidationState>(PhoneNumberValidationState.Verified);
     const { toast } = useToast();
@@ -200,6 +202,7 @@ export default function SettingsView() {
             : PhoneNumberValidationState.Setup
         );
         setName(initialUserConfig?.given_name);
+        setNotionToken(initialUserConfig?.notion_token ?? null);
     }, [initialUserConfig]);
 
     useEffect(() => {
@@ -312,7 +315,7 @@ export default function SettingsView() {
             console.error('Error updating name:', error);
             toast({
                 title: "⚠️ Failed to Update Profile",
-                description: "Failed to update name. Try again or contact us at team@khoj.dev",
+                description: "Failed to update name. Try again or contact team@khoj.dev",
             });
         }
     }
@@ -339,6 +342,94 @@ export default function SettingsView() {
             });
         }
     };
+
+    const saveNotionToken = async () => {
+        if (!notionToken) return;
+        // Save Notion API key to server
+        try {
+            const response = await fetch(`/api/content/notion`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ token: notionToken }),
+            });
+            if (!response.ok) throw new Error('Failed to save Notion API key');
+
+            // Set updated user settings
+            if (userConfig) {
+                let newUserConfig = userConfig;
+                newUserConfig.notion_token = notionToken;
+                setUserConfig(newUserConfig);
+            }
+
+            // Notify user of Notion API key save
+            toast({
+                title: `✅ Saved Notion Settings`,
+                description: `You Notion API key has been saved.`,
+            });
+        } catch (error) {
+            console.error('Error updating name:', error);
+            toast({
+                title: "⚠️ Failed to Save Notion Settings",
+                description: "Failed to save Notion API key. Try again or contact team@khoj.dev",
+            });
+        }
+    }
+
+    const syncContent = async (type: string) => {
+        try {
+            const response = await fetch(`/api/content?t=${type}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            if (!response.ok) throw new Error(`Failed to sync content from ${type}`);
+
+            toast({
+                title: `🔄 Syncing ${type}`,
+                description: `Your ${type} content is being synced.`,
+            });
+        } catch (error) {
+            console.error('Error syncing content:', error);
+            toast({
+                title: `⚠️ Failed to Sync ${type}`,
+                description: `Failed to sync ${type} content. Try again or contact team@khoj.dev`,
+            });
+        }
+    }
+
+    const disconnectContent = async (type: string) => {
+        try {
+            const response = await fetch(`/api/content/${type}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            if (!response.ok) throw new Error(`Failed to disconnect ${type}`);
+
+            // Set updated user settings
+            if (userConfig) {
+                let newUserConfig = userConfig;
+                newUserConfig.enabled_content_source.notion = false;
+                setUserConfig(newUserConfig);
+            }
+
+            // Notify user about disconnecting content source
+            toast({
+                title: `✅ Disconnected ${type}`,
+                description: `Your ${type} integration to Khoj has been disconnected.`,
+            });
+        } catch (error) {
+            console.error(`Error disconnecting ${type}:`, error);
+            toast({
+                title: `⚠️ Failed to Disconnect ${type}`,
+                description: `Failed to disconnect from ${type}. Try again or contact team@khoj.dev`,
+            });
+        }
+    }
 
     if (!userConfig) return <Loading />;
 
@@ -497,23 +588,47 @@ export default function SettingsView() {
                                     </Card>
                                     <Card className={cardClassName}>
                                         <CardHeader className="text-xl flex flex-row"><NotionLogo className="h-7 w-7 mr-2" />Notion</CardHeader>
-                                        <CardContent className="overflow-hidden pb-12 text-gray-400">
-                                            Sync your Notion pages
+                                        <CardContent className="grid gap-4">
+                                            <p className="text-gray-400">Sync your Notion pages. See the <a href="https://docs.khoj.dev/data-sources/notion_integration/">setup instructions</a></p>
+                                            {!userConfig.notion_oauth_url && (
+                                            <Input
+                                                onChange={(e) => setNotionToken(e.target.value)}
+                                                value={notionToken || ""}
+                                                placeholder="Enter the API Key of your Khoj integration on Notion"
+                                                className="w-full border border-gray-300 rounded-lg px-4 py-6"
+                                            />
+                                            )}
                                         </CardContent>
                                         <CardFooter className="flex flex-wrap gap-4">
-                                            <Button variant="outline" size="sm">
-                                                {userConfig.enabled_content_source.notion && (
-                                                    <>
-                                                        <Files className="h-5 w-5 inline mr-1" />Manage
-                                                    </>
-                                                ) || (
-                                                    <>
+                                               {(
+                                                /* Show connect to notion button if notion oauth url setup and user disconnected*/
+                                                userConfig.notion_oauth_url && !userConfig.enabled_content_source.notion
+                                                ?
+                                                    <Button variant="outline" size="sm" onClick={() => {window.open(userConfig.notion_oauth_url)}}>
                                                         <Plugs className="h-5 w-5 inline mr-1" />Connect
-                                                    </>
+                                                    </Button>
+                                                /* Show sync button if user connected to notion and API key unchanged */
+                                                : userConfig.enabled_content_source.notion && notionToken === userConfig.notion_token
+                                                ?
+                                                    <Button variant="outline" size="sm" onClick={() => syncContent("notion")}>
+                                                        <ArrowsClockwise className="h-5 w-5 inline mr-1" />Sync
+                                                    </Button>
+                                                /* Show set API key button notion oauth url not set setup */
+                                                : !userConfig.notion_oauth_url
+                                                ?
+                                                    <Button variant="outline" size="sm" onClick={saveNotionToken} disabled={notionToken === userConfig.notion_token}>
+                                                        <FloppyDisk className="h-5 w-5 inline mr-1" />
+                                                        {userConfig.enabled_content_source.notion && "Update API Key" || "Set API Key"}
+                                                    </Button>
+                                                : <></>
                                                 )}
-                                            </Button>
-                                            <Button variant="outline" size="sm" className={`${userConfig.enabled_content_source.notion || "hidden"}`}>
-                                                <CloudSlash className="h-5 w-5 inline mr-1" />Disable
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className={`${userConfig.enabled_content_source.notion || "hidden"}`}
+                                                onClick={() => disconnectContent("notion")}
+                                            >
+                                                <CloudSlash className="h-5 w-5 inline mr-1" />Disconnect
                                             </Button>
                                         </CardFooter>
                                     </Card>
