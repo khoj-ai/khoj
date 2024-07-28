@@ -14,7 +14,7 @@ In order to use Khoj on WhatsApp with your own data, you need to setup a Khoj Cl
 
 If you hit usage limits for the WhatsApp bot, upgrade to [a paid plan](https://khoj.dev/pricing) on Khoj Cloud.
 
-<img src="https://khoj-web-bucket.s3.amazonaws.com/khojwhatsapp.png" alt="WhatsApp QR Code" width="300" height="300">
+<img src="https://khoj-web-bucket.s3.amazonaws.com/khojwhatsapp.png" alt="WhatsApp QR Code" width="300" height="300" />
 
 ## Features
 
