@@ -56,6 +56,7 @@ import {
     FloppyDisk,
     PlugsConnected,
     ArrowCircleUp,
+    ArrowCircleDown,
 } from "@phosphor-icons/react";
 
 import NavMenu from "../components/navMenu/navMenu";
@@ -272,13 +273,13 @@ export default function SettingsView() {
 
             // Notify user of subscription change
             toast({
-                title: "💳 Billing",
+                title: "💳 Subscription",
                 description: userConfig?.subscription_state === "unsubscribed" ? "Your subscription was cancelled" : "Your Futurist subscription has been renewed",
             });
         } catch (error) {
             console.error('Error changing subscription:', error);
             toast({
-                title: "💳 Billing",
+                title: "💳 Subscription",
                 description: state === "cancel" ? "Failed to cancel subscription. Try again or contact us at team@khoj.dev" : "Failed to renew subscription. Try again or contact us at team@khoj.dev",
             });
          }
@@ -382,6 +383,67 @@ export default function SettingsView() {
                                                     <FloppyDisk className="h-5 w-5 inline mr-2" />
                                                     Save
                                             </Button>
+                                        </CardFooter>
+                                    </Card>
+                                    <Card id="billing" className={cardClassName}>
+                                        <CardHeader className="text-xl flex flex-row">
+                                            <CreditCard className="h-7 w-7 mr-2"/>
+                                            Subscription
+                                        </CardHeader>
+                                        <CardContent className="grid gap-2 overflow-hidden">
+                                            <p className="text-gray-400">Current Plan</p>
+                                            {userConfig.subscription_state === "trial" && (
+                                                <>
+                                                    <p className="text-xl text-primary/80">Futurist (Trial)</p>
+                                                    <p className="text-gray-400">You are on a 14 day trial of the Khoj Futurist plan. Check <a href="https://khoj.dev/pricing" target="_blank">pricing page</a> to compare plans.</p>
+                                                </>
+                                            ) || userConfig.subscription_state === "subscribed" && (
+                                                <>
+                                                    <p className="text-xl text-primary/80">Futurist</p>
+                                                    <p className="text-gray-400">Subscription <b>renews</b> on <b>{ userConfig.subscription_renewal_date }</b></p>
+                                                </>
+                                            ) || userConfig.subscription_state === "unsubscribed" && (
+                                                <>
+                                                    <p className="text-xl">Futurist</p>
+                                                    <p className="text-gray-400">Subscription <b>ends</b> on <b>{ userConfig.subscription_renewal_date }</b></p>
+                                                </>
+                                            ) || userConfig.subscription_state === "expired" && (
+                                                <>
+                                                    <p className="text-xl">Free Plan</p>
+                                                    {userConfig.subscription_renewal_date && (
+                                                        <p className="text-gray-400">Subscription <b>expired</b> on <b>{ userConfig.subscription_renewal_date }</b></p>
+                                                    ) || (
+                                                        <p className="text-gray-400">Check <a href="https://khoj.dev/pricing" target="_blank">pricing page</a> to compare plans.</p>
+                                                    )}
+                                                </>
+                                            )}
+                                        </CardContent>
+                                        <CardFooter className="flex flex-wrap gap-4">
+                                            {(userConfig.subscription_state == "subscribed") && (
+                                                <Button
+                                                    variant="outline"
+                                                    className="hover:text-red-400"
+                                                    onClick={() => setSubscription("cancel")}
+                                                >
+                                                    <ArrowCircleDown className="h-5 w-5 mr-2" />Unsubscribe
+                                                </Button>
+                                            ) || (userConfig.subscription_state == "unsubscribed") && (
+                                                <Button
+                                                    variant="outline"
+                                                    className="text-primary/80 hover:text-primary"
+                                                    onClick={() => setSubscription("resubscribe")}
+                                                >
+                                                    <ArrowCircleUp weight="bold" className="h-5 w-5 mr-2" />Resubscribe
+                                                </Button>
+                                            ) || (
+                                                <Button
+                                                    variant="outline"
+                                                    className="text-primary/80 hover:text-primary"
+                                                    onClick={() => window.open(`${userConfig.khoj_cloud_subscription_url}?prefilled_email=${userConfig.username}`, '_blank', 'noopener,noreferrer')}
+                                                >
+                                                   <ArrowCircleUp weight="bold" className="h-5 w-5 mr-2" />Subscribe
+                                                </Button>
+                                            )}
                                         </CardFooter>
                                     </Card>
                                 </div>
@@ -640,73 +702,6 @@ export default function SettingsView() {
                                                     ? (<><PlugsConnected className="inline mr-2 text-green-400" />Switch Number</>)
                                                     : (<>Send OTP to Whatsapp <ArrowRight className="inline ml-2" weight="bold"/></>)
                                                     }
-                                                </Button>
-                                            )}
-                                        </CardFooter>
-                                    </Card>
-                                </div>
-                            </div>
-                            <div className="section grid gap-8">
-                                <div className="text-2xl">Billing</div>
-                                <div className="cards flex flex-wrap gap-16">
-                                    <Card className={cardClassName}>
-                                        <CardHeader className="text-xl flex flex-row">
-                                            <CreditCard className="h-7 w-7 mr-2"/>
-                                            Subscription
-                                        </CardHeader>
-                                        <CardContent className="grid gap-2 overflow-hidden">
-                                            <p className="text-gray-400">Current Plan</p>
-                                            {userConfig.subscription_state === "trial" && (
-                                                <>
-                                                    <p className="text-xl">Futurist Trial</p>
-                                                    <p className="text-gray-400">You are on a 14 day trial of the Khoj <i>Futurist</i> plan</p>
-                                                    <p className="text-gray-400">See <a href="https://khoj.dev/pricing">pricing</a> for details</p>
-                                                </>
-                                            ) || userConfig.subscription_state === "subscribed" && (
-                                                <>
-                                                    <p className="text-xl">Futurist</p>
-                                                    <p className="text-gray-400">Subscription <b>renews</b> on <b>{ userConfig.subscription_renewal_date }</b></p>
-                                                </>
-                                            ) || userConfig.subscription_state === "unsubscribed" && (
-                                                <>
-                                                    <p className="text-xl">Futurist</p>
-                                                    <p className="text-gray-400">Subscription <b>ends</b> on <b>{ userConfig.subscription_renewal_date }</b></p>
-                                                </>
-                                            ) || userConfig.subscription_state === "expired" && (
-                                                <>
-                                                    <p className="text-xl">Trial</p>
-                                                    {userConfig.subscription_renewal_date && (
-                                                        <p className="text-gray-400">Your subscription <b>expired</b> on <b>{ userConfig.subscription_renewal_date }</b></p>
-                                                    ) || (
-                                                        <p className="text-gray-400">See <a href="https://khoj.dev/pricing">pricing</a> for details</p>
-                                                    )}
-                                                </>
-                                            )}
-                                        </CardContent>
-                                        <CardFooter className="flex flex-wrap gap-4">
-                                            {(userConfig.subscription_state == "subscribed") && (
-                                                <Button
-                                                    variant="outline"
-                                                    className="hover:text-red-400"
-                                                    onClick={() => setSubscription("cancel")}
-                                                >
-                                                    <CloudSlash className="h-5 w-5 mr-2" />Unsubscribe
-                                                </Button>
-                                            ) || (userConfig.subscription_state == "unsubscribed") && (
-                                                <Button
-                                                    variant="outline"
-                                                    className="text-primary/80 hover:text-primary"
-                                                    onClick={() => setSubscription("resubscribe")}
-                                                >
-                                                    <ArrowCircleUp weight="bold" className="h-5 w-5 mr-2" />Resubscribe
-                                                </Button>
-                                            ) || (
-                                                <Button
-                                                    variant="outline"
-                                                    className="text-primary/80 hover:text-primary"
-                                                    onClick={() => window.open(`${userConfig.khoj_cloud_subscription_url}?prefilled_email=${userConfig.username}`, '_blank', 'noopener,noreferrer')}
-                                                >
-                                                   <ArrowCircleUp weight="bold" className="h-5 w-5 mr-2" />Subscribe
                                                 </Button>
                                             )}
                                         </CardFooter>
