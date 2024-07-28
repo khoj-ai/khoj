@@ -41,9 +41,11 @@ export interface UserConfig {
     given_name: string;
     phone_number: string;
     is_phone_number_verified: boolean;
-    // user content, model settings
+    // user content settings
     enabled_content_source: SyncedContent;
     has_documents: boolean;
+    notion_token: string | null;
+    // user model settings
     search_model_options: ModelOptions[];
     selected_search_model_config: number;
     chat_model_options: ModelOptions[];

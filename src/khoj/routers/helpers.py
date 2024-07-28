@@ -46,6 +46,7 @@ from khoj.database.adapters import (
     create_khoj_token,
     get_khoj_tokens,
     get_user_name,
+    get_user_notion_config,
     get_user_subscription_state,
     run_with_process_lock,
 )
@@ -1254,6 +1255,10 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
         "notion": ("notion" in enabled_content_sources_set),
     }
 
+    notion_oauth_url = get_notion_auth_url(user)
+    current_notion_config = get_user_notion_config(user)
+    notion_token = current_notion_config.token if current_notion_config else ""
+
     selected_chat_model_config = ConversationAdapters.get_conversation_config(user)
     chat_models = ConversationAdapters.get_conversation_processor_options().all()
     chat_model_options = list()
@@ -1273,10 +1278,6 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
     for paint_model in paint_model_options:
         all_paint_model_options.append({"name": paint_model.model_name, "id": paint_model.id})
 
-    notion_oauth_url = get_notion_auth_url(user)
-
-    eleven_labs_enabled = is_eleven_labs_enabled()
-
     voice_models = ConversationAdapters.get_voice_model_options()
     voice_model_options = list()
     for voice_model in voice_models:
@@ -1284,6 +1285,8 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
 
     if len(voice_model_options) == 0:
         eleven_labs_enabled = False
+    else:
+        eleven_labs_enabled = is_eleven_labs_enabled()
 
     selected_voice_model_config = ConversationAdapters.get_voice_model_config(user)
 
@@ -1296,9 +1299,11 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
         "given_name": given_name,
         "phone_number": user.phone_number,
         "is_phone_number_verified": user.verified_phone_number,
-        # user content, model settings
+        # user content settings
         "enabled_content_source": enabled_content_sources,
         "has_documents": has_documents,
+        "notion_token": notion_token,
+        # user model settings
         "search_model_options": all_search_model_options,
         "selected_search_model_config": current_search_model_option.id,
         "chat_model_options": chat_model_options,

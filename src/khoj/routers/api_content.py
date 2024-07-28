@@ -245,6 +245,18 @@ async def delete_content_source(
 ):
     user = request.user.object
 
+    content_object = map_config_to_object(content_source)
+    if content_object is None:
+        raise ValueError(f"Invalid content source: {content_source}")
+    elif content_object != "Computer":
+        await content_object.objects.filter(user=user).adelete()
+    await sync_to_async(EntryAdapters.delete_all_entries)(user, file_source=content_source)
+
+    if content_source == DbEntry.EntrySource.NOTION:
+        await NotionConfig.objects.filter(user=user).adelete()
+    elif content_source == DbEntry.EntrySource.GITHUB:
+        await GithubConfig.objects.filter(user=user).adelete()
+
     update_telemetry_state(
         request=request,
         telemetry_type="api",
@@ -252,13 +264,6 @@ async def delete_content_source(
         client=client,
         metadata={"content_source": content_source},
     )
-
-    content_object = map_config_to_object(content_source)
-    if content_object is None:
-        raise ValueError(f"Invalid content source: {content_source}")
-    elif content_object != "Computer":
-        await content_object.objects.filter(user=user).adelete()
-    await sync_to_async(EntryAdapters.delete_all_entries)(user, file_source=content_source)
 
     enabled_content = await sync_to_async(EntryAdapters.get_unique_file_types)(user)
     return {"status": "ok"}
