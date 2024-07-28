@@ -31,6 +31,14 @@ import {
     TableCell,
     TableRow,
 } from "@/components/ui/table"
+import {
+    CommandInput,
+    CommandList,
+    CommandEmpty,
+    CommandGroup,
+    CommandItem,
+    CommandDialog
+} from "@/components/ui/command";
 
 import {
     ArrowRight,
@@ -58,11 +66,166 @@ import {
     ArrowCircleUp,
     ArrowCircleDown,
     ArrowsClockwise,
+    Check,
 } from "@phosphor-icons/react";
 
 import NavMenu from "../components/navMenu/navMenu";
 import SidePanel from "../components/sidePanel/chatHistorySidePanel";
 import Loading from "../components/loading/loading";
+
+
+const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+    const [syncedFiles, setSyncedFiles] = useState<string[]>([]);
+    const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    useEffect(() => {
+        const fetchFiles = async () => {
+            try {
+                const response = await fetch('/api/content/computer');
+                if (!response.ok) throw new Error('Failed to fetch files');
+
+                // Extract resonse
+                const syncedFiles = await response.json();
+                // Validate response
+                if (Array.isArray(syncedFiles)) {
+                    // Set synced files state
+                    setSyncedFiles(syncedFiles.toSorted());
+                } else {
+                    console.error('Unexpected data format from API');
+                }
+            } catch (error) {
+                console.error('Error fetching files:', error);
+            }
+        };
+
+        fetchFiles();
+    }, []);
+
+    const filteredFiles = syncedFiles.filter(file =>
+        file.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const deleteSelected = async () => {
+        let filesToDelete = selectedFiles.length > 0 ? selectedFiles : filteredFiles;
+        console.log("Delete selected files", filesToDelete);
+
+        if (filesToDelete.length === 0) {
+            console.log("No files to delete");
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/content/files', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ files: filesToDelete }),
+            });
+
+            if (!response.ok) throw new Error('Failed to delete files');
+
+            // Update the syncedFiles state
+            setSyncedFiles(prevFiles => prevFiles.filter(file => !filesToDelete.includes(file)));
+
+            // Reset selectedFiles
+            setSelectedFiles([]);
+
+            console.log("Deleted files:", filesToDelete);
+        } catch (error) {
+            console.error('Error deleting files:', error);
+        }
+    };
+
+    const deleteFile = async (filename: string) => {
+        console.log("Delete selected file", filename);
+        try {
+            const response = await fetch(`/api/content/file?filename=${encodeURIComponent(filename)}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) throw new Error('Failed to delete file');
+
+            // Update the syncedFiles state
+            setSyncedFiles(prevFiles => prevFiles.filter(file => file !== filename));
+
+            // Remove the file from selectedFiles if it's there
+            setSelectedFiles(prevSelected => prevSelected.filter(file => file !== filename));
+
+            console.log("Deleted file:", filename);
+        } catch (error) {
+            console.error('Error deleting file:', error);
+        }
+    };
+
+    return (
+        <CommandDialog open={true} onOpenChange={onClose}>
+            <div className="flex flex-col h-full">
+                <div className="flex-none p-4 bg-background border-b">
+                    <CommandInput
+                        placeholder="Find synced files"
+                        value={searchQuery}
+                        onValueChange={setSearchQuery}
+                    />
+                </div>
+
+                <div className="flex-grow overflow-auto">
+                    <CommandList>
+                        <CommandEmpty>No such files synced.</CommandEmpty>
+                        <CommandGroup heading="Synced files">
+                            {filteredFiles.map((filename: string) => (
+                                <CommandItem
+                                    key={filename}
+                                    value={filename}
+                                    onSelect={(value) => {
+                                        setSelectedFiles(prev =>
+                                            prev.includes(value)
+                                                ? prev.filter(f => f !== value)
+                                                : [...prev, value]
+                                        );
+                                    }}
+                                >
+                                    <div className="flex items-center justify-between w-full">
+                                        <div className={`flex items-center ${selectedFiles.includes(filename) ? 'font-semibold' : ''}`}>
+                                            {selectedFiles.includes(filename) && <Check className="h-4 w-4 mr-2" />}
+                                            <span className="break-all">{filename}</span>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => deleteFile(filename)}
+                                            className="ml-auto"
+                                        >
+                                            <Trash className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    </CommandList>
+                </div>
+
+                <div className="flex-none p-4 bg-background border-t">
+                    <div className="flex justify-between">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={deleteSelected}
+                            className="mr-2"
+                        >
+                            <Trash className="h-4 w-4 mr-2" />
+                            Delete All
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        </CommandDialog>
+    );
+}
 
 
 interface DropdownComponentProps {
@@ -188,6 +351,7 @@ export default function SettingsView() {
     const [number, setNumber] = useState<string | undefined>(undefined);
     const [otp, setOTP] = useState("");
     const [numberValidationState, setNumberValidationState] = useState<PhoneNumberValidationState>(PhoneNumberValidationState.Verified);
+    const [isManageFilesModalOpen, setIsManageFilesModalOpen] = useState(false);
     const { toast } = useToast();
     const cardClassName = "w-full lg:w-1/3 grid grid-flow-column border border-gray-300 shadow-md rounded-lg";
 
@@ -414,7 +578,9 @@ export default function SettingsView() {
             if (userConfig) {
                 let newUserConfig = userConfig;
                 newUserConfig.enabled_content_source.notion = false;
+                newUserConfig.notion_token = null;
                 setUserConfig(newUserConfig);
+                setNotionToken(newUserConfig.notion_token);
             }
 
             // Notify user about disconnecting content source
@@ -539,6 +705,7 @@ export default function SettingsView() {
                                     </Card>
                                 </div>
                             </div>
+                            {isManageFilesModalOpen && <ManageFilesModal onClose={() => setIsManageFilesModalOpen(false)} />}
                             <div className="section grid gap-8">
                                 <div className="text-2xl">Content</div>
                                 <div className="cards flex flex-wrap gap-16">
@@ -548,10 +715,10 @@ export default function SettingsView() {
                                             Manage your synced files
                                         </CardContent>
                                         <CardFooter className="flex flex-wrap gap-4">
-                                            <Button variant="outline" size="sm">
+                                            <Button variant="outline" size="sm" onClick={() => setIsManageFilesModalOpen(true)}>
                                                 {userConfig.enabled_content_source.computer && (
                                                     <>
-                                                        <Files className="h-5 w-5 inline mr-1" />Manage
+                                                        <Files className="h-5 w-5 inline mr-1"/>Manage
                                                     </>
                                                 ) || (
                                                     <>
@@ -625,7 +792,7 @@ export default function SettingsView() {
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                className={`${userConfig.enabled_content_source.notion || "hidden"}`}
+                                                className={`${userConfig.notion_token || "hidden"}`}
                                                 onClick={() => disconnectContent("notion")}
                                             >
                                                 <CloudSlash className="h-5 w-5 inline mr-1" />Disconnect
