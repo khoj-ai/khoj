@@ -53,10 +53,6 @@ export default function NavMenu(props: NavMenuProps) {
 
     useEffect(() => {
 
-        const mq = window.matchMedia(
-            "(prefers-color-scheme: dark)"
-        );
-
         window.addEventListener('resize', () => {
             setIsMobileWidth(window.innerWidth < 768);
         });

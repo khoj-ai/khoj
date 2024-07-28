@@ -13,42 +13,36 @@ import Image from 'next/image';
 
 import 'katex/dist/katex.min.css';
 
-import { StreamMessage } from './components/chatMessage/chatMessage';
 import ChatInputArea, { ChatOptions } from './components/chatInputArea/chatInputArea';
 import { useAuthenticatedData } from './common/auth';
-import { Card, CardContent, CardTitle } from '@/components/ui/card';
+import { Card, CardTitle } from '@/components/ui/card';
 import { convertSuggestionColorToTextClass, colorMap, convertColorToBorderClass } from './common/colorUtils';
 import { getIconFromIconName } from './common/iconUtils';
 import { ClockCounterClockwise } from '@phosphor-icons/react';
 import { AgentData } from './agents/page';
 
-//samples for suggestion cards (should be moved to json later)
-const suggestions: Suggestion[] = [["Automation", "blue", "Send me a summary of HackerNews every morning.", "/automations?subject=Summarizing%20Top%20Headlines%20from%20HackerNews&query=Summarize%20the%20top%20headlines%20on%20HackerNews&crontime=00%207%20*%20*%20*"], ["Automation", "blue", "Compose a bedtime story that a five-year-old might enjoy.", "/automations?subject=Daily%20Bedtime%20Story&query=Compose%20a%20bedtime%20story%20that%20a%20five-year-old%20might%20enjoy.%20It%20should%20not%20exceed%20five%20paragraphs.%20Appeal%20to%20the%20imagination%2C%20but%20weave%20in%20learnings.&crontime=0%2021%20*%20*%20*"], ["Paint", "green", "Paint a picture of a sunset but it's made of stained glass tiles", ""], ["Online Search", "yellow", "Search for the best attractions in Austria Hungary", ""]];
+import { Suggestion, suggestionsData } from './components/suggestions/suggestionsData';
+
 //get today's day
 const today = new Date();
 const day = today.getDay();
 const greetings = [
     `Good ${today.getHours() < 12 ? 'morning' : today.getHours() < 15 ? 'afternoon' : 'evening'}! What would you like to do today?`,
     'How can I help you today?',
-    `Good ${today.getHours() < 12 ? 'morning' : today.getHours() < 15 ? 'afternoon' : 'evening'}! What can I do for you today?`,
+    `Good ${today.getHours() < 12 ? 'morning' : today.getHours() < 15 ? 'afternoon' : 'evening'}! What's on your mind?`,
     `Ready to breeze through your ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]}?`,
-    `Need help navigating your ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]} workload?`
+    `Want to navigate your ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]} workload?`
 ];
 const greeting = greetings[~~(Math.random() * greetings.length)];
 
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
-    setTitle: (title: string) => void;
     onConversationIdChange?: (conversationId: string) => void;
-    setQueryToProcess: (query: string) => void;
-    streamedMessages: StreamMessage[];
     setUploadedFiles: (files: string[]) => void;
     isMobileWidth?: boolean;
     isLoggedIn: boolean;
-    conversationId: string | null; // Added this line
 }
-type Suggestion = [string, string, string, string];
 
 async function createNewConvo(slug: string) {
     try {
@@ -79,10 +73,11 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const { data, error } = useSWR<AgentData[]>('agents', agentsFetcher, { revalidateOnFocus: false });
 
     function shuffleAndSetOptions() {
-        const shuffled = [...suggestions].sort(() => 0.5 - Math.random());
+        const shuffled = [...suggestionsData].sort(() => 0.5 - Math.random());
         setShuffledOptions(shuffled.slice(0, 3));
-        //use the text to color function above convertSuggestionColorToTextClass
-        const colors = shuffled.map(option => convertSuggestionColorToTextClass(option[1]));
+
+        // Use the text to color function above convertSuggestionColorToTextClass
+        const colors = shuffled.map(option => convertSuggestionColorToTextClass(option.color));
         setShuffledColors(colors);
     }
 
@@ -116,26 +111,27 @@ function ChatBodyData(props: ChatBodyDataProps) {
         processMessage();
         if (message) {
             setProcessingMessage(true);
-            props.setQueryToProcess(message);
         };
     }, [selectedAgent, message]);
 
-    useEffect(() => {
-        if (props.streamedMessages &&
-            props.streamedMessages.length > 0 &&
-            props.streamedMessages[props.streamedMessages.length - 1].completed) {
-            setProcessingMessage(false);
-        } else {
-            setMessage('');
-        }
-    }, [props.streamedMessages]);
-
     const nSlice = props.isMobileWidth ? 3 : 4;
 
-    const agents = data ? data.slice(0, nSlice) : []; //select first 4 agents to show as options
+    const shuffledAgents = data ? [...data].sort(() => 0.5 - Math.random()) : [];
+
+    const agents = data ? [data[0]] : []; // Always add the first/default agent.
+
+    shuffledAgents.slice(0, nSlice - 1).forEach(agent => {
+        if (!agents.find(a => a.slug === agent.slug)) {
+            agents.push(agent);
+        }
+    });
+
 
     //generate colored icons for the selected agents
-    const agentIcons = agents.map(agent => getIconFromIconName(agent.icon, agent.color) || <Image key={agent.name} src={agent.avatar} alt={agent.name} width={50} height={50} />);
+    const agentIcons = agents.map(
+        agent => getIconFromIconName(agent.icon, agent.color) || <Image key={agent.name} src={agent.avatar} alt={agent.name} width={50} height={50} />
+    );
+
     function fillArea(link: string, type: string, prompt: string) {
         if (!link) {
             let message_str = "";
@@ -161,26 +157,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
 
     function getTailwindBorderClass(color: string): string {
         return colorMap[color] || 'border-black'; // Default to black if color not found
-    }
-
-    function highlightHandler(slug: string): void {
-        const buttons = document.getElementsByClassName("agent");
-        const agent = agents.find(agent => agent.slug === slug);
-        const borderColorClass = getTailwindBorderClass(agent?.color || 'gray');
-
-        Array.from(buttons).forEach((button: Element) => {
-            const buttonElement = button as HTMLElement;
-            if (buttonElement.classList.contains(slug)) {
-                buttonElement.classList.add(borderColorClass, 'border');
-                buttonElement.classList.remove('border-stone-100', 'dark:border-neutral-700');
-            }
-            else {
-                Object.values(colorMap).forEach(colorClass => {
-                    buttonElement.classList.remove(colorClass, 'border');
-                });
-                buttonElement.classList.add('border', 'border-stone-100', 'dark:border-neutral-700');
-            }
-        });
     }
 
     return (
@@ -226,14 +202,16 @@ function ChatBodyData(props: ChatBodyDataProps) {
                             setUploadedFiles={props.setUploadedFiles} />
                     </div>
                 }
-                <div className={`suggestions ${styles.suggestions} w-full ${props.isMobileWidth ? 'flex flex-col' : 'flex flex-row'} justify-center items-center`}>
-                    {shuffledOptions.map(([key, styleClass, value, link], index) => (
-                        <div key={`${key} ${value}`} onClick={() => fillArea(link, key, value)}>
+                <div className={`${styles.suggestions} w-full ${props.isMobileWidth ? 'grid' : 'flex flex-row'} justify-center items-center`}>
+                    {shuffledOptions.map((suggestion, index) => (
+                        <div
+                            key={`${suggestion.type} ${suggestion.description}`}
+                            onClick={() => fillArea(suggestion.link, suggestion.type, suggestion.description)}>
                             <SuggestionCard
-                                key={key + Math.random()}
-                                title={key}
-                                body={value.length > 65 ? value.substring(0, 65) + '...' : value}
-                                link={link}
+                                key={suggestion.type + Math.random()}
+                                title={suggestion.type}
+                                body={suggestion.description}
+                                link={suggestion.link}
                                 color={shuffledColors[index]}
                                 image={shuffledColors[index]}
                             />
@@ -288,8 +266,6 @@ export default function Home() {
     const [isLoading, setLoading] = useState(true);
     const [title, setTitle] = useState('');
     const [conversationId, setConversationID] = useState<string | null>(null);
-    const [messages, setMessages] = useState<StreamMessage[]>([]);
-    const [queryToProcess, setQueryToProcess] = useState<string>('');
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [isMobileWidth, setIsMobileWidth] = useState(false);
 
@@ -343,14 +319,10 @@ export default function Home() {
                 <div className={`${styles.chatBoxBody}`}>
                     <ChatBodyData
                         isLoggedIn={authenticatedData !== null}
-                        streamedMessages={messages}
                         chatOptionsData={chatOptionsData}
-                        setTitle={setTitle}
-                        setQueryToProcess={setQueryToProcess}
                         setUploadedFiles={setUploadedFiles}
                         isMobileWidth={isMobileWidth}
                         onConversationIdChange={handleConversationIdChange}
-                        conversationId={conversationId}
                     />
                 </div>
             </div>

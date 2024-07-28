@@ -3,8 +3,7 @@ div.main {
     color: hsla(var(--foreground));
 }
 
-.suggestions {
-    display: flex;
+div.suggestions {
     overflow-x: none;
     height: fit-content;
     padding: 10px;
@@ -106,6 +105,7 @@ div.sidePanel {
 
     div.chatBoxBody {
         width: 100%;
+        grid-template-rows: auto;
     }
 
     div.chatBox {

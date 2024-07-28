@@ -258,7 +258,7 @@ export default function ChatInputArea(props: ChatInputProps) {
     useEffect(() => {
         if (!chatInputRef.current) return;
         chatInputRef.current.style.height = 'auto';
-        chatInputRef.current.style.height = Math.max(chatInputRef.current.scrollHeight-24, 64) + 'px';
+        chatInputRef.current.style.height = Math.max(chatInputRef.current.scrollHeight - 24, 64) + 'px';
     }, [message]);
 
     return (
@@ -398,7 +398,9 @@ export default function ChatInputArea(props: ChatInputProps) {
                                     <Button
                                         variant={'ghost'}
                                         className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
-                                        onClick={() => setRecording(!recording)}
+                                        onClick={() => {
+                                            setRecording(!recording);
+                                        }}
                                         disabled={props.sendDisabled}
                                     >
                                         <Stop weight='fill' className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
@@ -420,7 +422,10 @@ export default function ChatInputArea(props: ChatInputProps) {
                                             <Button
                                                 variant={'ghost'}
                                                 className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
-                                                onClick={() => setRecording(!recording)}
+                                                onClick={() => {
+                                                    setMessage("Listening...");
+                                                    setRecording(!recording);
+                                                }}
                                                 disabled={props.sendDisabled}
                                             >
                                                 <Microphone weight='fill' className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
