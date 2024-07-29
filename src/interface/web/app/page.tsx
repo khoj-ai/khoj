@@ -16,7 +16,7 @@ import 'katex/dist/katex.min.css';
 import ChatInputArea, { ChatOptions } from './components/chatInputArea/chatInputArea';
 import { useAuthenticatedData } from './common/auth';
 import { Card, CardTitle } from '@/components/ui/card';
-import { convertSuggestionColorToTextClass, colorMap, convertColorToBorderClass } from './common/colorUtils';
+import { converColorToBgGradient, colorMap, convertColorToBorderClass } from './common/colorUtils';
 import { getIconFromIconName } from './common/iconUtils';
 import { ClockCounterClockwise } from '@phosphor-icons/react';
 import { AgentData } from './agents/page';
@@ -66,7 +66,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState('');
     const [processingMessage, setProcessingMessage] = useState(false);
     const [shuffledOptions, setShuffledOptions] = useState<Suggestion[]>([]);
-    const [shuffledColors, setShuffledColors] = useState<string[]>([]);
     const [selectedAgent, setSelectedAgent] = useState<string | null>("khoj");
 
     const agentsFetcher = () => window.fetch('/api/agents').then(res => res.json()).catch(err => console.log(err));
@@ -75,10 +74,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
     function shuffleAndSetOptions() {
         const shuffled = [...suggestionsData].sort(() => 0.5 - Math.random());
         setShuffledOptions(shuffled.slice(0, 3));
-
-        // Use the text to color function above convertSuggestionColorToTextClass
-        const colors = shuffled.map(option => convertSuggestionColorToTextClass(option.color));
-        setShuffledColors(colors);
     }
 
     useEffect(() => {
@@ -212,8 +207,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                                 title={suggestion.type}
                                 body={suggestion.description}
                                 link={suggestion.link}
-                                color={shuffledColors[index]}
-                                image={shuffledColors[index]}
+                                color={suggestion.color}
                             />
                         </div>
                     ))}

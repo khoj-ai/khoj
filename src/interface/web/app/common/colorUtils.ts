@@ -38,7 +38,7 @@ export function convertToBGClass(color: string) {
     return `bg-background`;
 }
 
-export function convertSuggestionColorToTextClass(color: string) {
+export function converColorToBgGradient(color: string) {
     return `${convertToBGGradientClass(color)} dark:border dark:border-neutral-700`;
 }
 

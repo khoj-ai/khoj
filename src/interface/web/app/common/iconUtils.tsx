@@ -19,6 +19,10 @@ import {
     Globe,
     Palette,
     LinkBreak,
+    Book,
+    Confetti,
+    House,
+    Translate,
 } from "@phosphor-icons/react";
 
 interface IconMap {
@@ -40,6 +44,10 @@ const iconMap: IconMap = {
     ClockCounterClockwise: (color: string, width: string, height: string) => <ClockCounterClockwise className={`${width} ${height} ${color} mr-2`} />,
     Globe: (color: string, width: string, height: string) => <Globe className={`${width} ${height} ${color} mr-2`} />,
     Palette: (color: string, width: string, height: string) => <Palette className={`${width} ${height} ${color} mr-2`} />,
+    Book: (color: string, width: string, height: string) => <Book className={`${width} ${height} ${color} mr-2`} />,
+    Confetti: (color: string, width: string, height: string) => <Confetti className={`${width} ${height} ${color} mr-2`} />,
+    House: (color: string, width: string, height: string) => <House className={`${width} ${height} ${color} mr-2`} />,
+    Translate: (color: string, width: string, height: string) => <Translate className={`${width} ${height} ${color} mr-2`} />,
 };
 
 function getIconFromIconName(iconName: string, color: string = 'gray', width: string = 'w-6', height: string = 'h-6') {
