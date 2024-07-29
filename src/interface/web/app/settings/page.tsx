@@ -544,7 +544,7 @@ export default function SettingsView() {
     const syncContent = async (type: string) => {
         try {
             const response = await fetch(`/api/content?t=${type}`, {
-                method: 'PUT',
+                method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                 },

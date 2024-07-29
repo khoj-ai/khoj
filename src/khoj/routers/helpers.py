@@ -988,14 +988,15 @@ class ApiIndexedDataLimiter:
         self.total_entries_size_limit = total_entries_size_limit
         self.subscribed_total_entries_size = subscribed_total_entries_size_limit
 
-    def __call__(self, request: Request, files: List[UploadFile]):
+    def __call__(self, request: Request, files: List[UploadFile] = None):
         if state.billing_enabled is False:
             return
+
         subscribed = has_required_scope(request, ["premium"])
         incoming_data_size_mb = 0.0
         deletion_file_names = set()
 
-        if not request.user.is_authenticated:
+        if not request.user.is_authenticated or not files:
             return
 
         user: KhojUser = request.user.object
