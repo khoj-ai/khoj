@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useToast } from "@/components/ui/use-toast"
 
 import { useUserConfig, ModelOptions, UserConfig } from "../common/auth";
+import { toTitleCase } from "../common/utils";
 
 import { isValidPhoneNumber } from 'libphonenumber-js';
 
@@ -449,7 +450,7 @@ export default function SettingsView() {
                 title: "💳 Subscription",
                 description: state === "cancel" ? "Failed to cancel subscription. Try again or contact us at team@khoj.dev" : "Failed to renew subscription. Try again or contact us at team@khoj.dev",
             });
-         }
+        }
     };
 
     const saveName = async () => {
@@ -485,6 +486,7 @@ export default function SettingsView() {
     }
 
     const updateModel = (name: string) => async (id: string) => {
+        if (!userConfig?.is_active && name !== "search") return;
         try {
             const response = await fetch(`/api/model/${name}?id=` + id, {
                 method: 'POST',
@@ -496,12 +498,12 @@ export default function SettingsView() {
             if (!response.ok) throw new Error('Failed to update model');
 
             toast({
-                description: `${name} model updated succesfully`,
+                title: `✅ Updated ${toTitleCase(name)} Model`,
             });
         } catch (error) {
             console.error(`Failed to update ${name} model:`, error);
             toast({
-                description: `Failed to update ${name} model. Try again.`,
+                description: `❌ Failed to update ${toTitleCase(name)} model. Try again.`,
                 variant: "destructive",
             });
         }
@@ -601,7 +603,6 @@ export default function SettingsView() {
                     description: `Your ${type} integration to Khoj has been disconnected.`,
                 });
             }
-
         } catch (error) {
             console.error(`Error disconnecting ${type}:`, error);
             toast({
@@ -853,9 +854,6 @@ export default function SettingsView() {
                                             />
                                         </CardContent>
                                         <CardFooter className="flex flex-wrap gap-4">
-                                            {!userConfig.is_active && (
-                                                <p className="text-gray-400">Subscribe to switch model</p>
-                                            )}
                                         </CardFooter>
                                     </Card>
                                     )}

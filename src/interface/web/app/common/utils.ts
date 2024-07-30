@@ -13,6 +13,8 @@ export interface LocationData {
 
 const locationFetcher = () => window.fetch("https://ipapi.co/json").then((res) => res.json()).catch((err) => console.log(err));
 
+export const toTitleCase = (str: string) => str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase());
+
 export function welcomeConsole() {
     console.log(`%c %s`, "font-family:monospace", `
         __  __     __  __     ______       __        _____      __
