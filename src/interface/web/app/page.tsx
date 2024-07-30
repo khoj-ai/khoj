@@ -2,7 +2,7 @@
 import './globals.css';
 
 import styles from './page.module.css';
-import React, { Suspense, useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import SuggestionCard from './components/suggestions/suggestionCard';
 import SidePanel from './components/sidePanel/chatHistorySidePanel';
@@ -16,7 +16,7 @@ import 'katex/dist/katex.min.css';
 import ChatInputArea, { ChatOptions } from './components/chatInputArea/chatInputArea';
 import { useAuthenticatedData } from './common/auth';
 import { Card, CardTitle } from '@/components/ui/card';
-import { converColorToBgGradient, colorMap, convertColorToBorderClass } from './common/colorUtils';
+import { convertColorToBorderClass } from './common/colorUtils';
 import { getIconFromIconName } from './common/iconUtils';
 import { ClockCounterClockwise } from '@phosphor-icons/react';
 import { AgentData } from './agents/page';
@@ -148,10 +148,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 setMessage(message_str);
             }
         }
-    }
-
-    function getTailwindBorderClass(color: string): string {
-        return colorMap[color] || 'border-black'; // Default to black if color not found
     }
 
     return (

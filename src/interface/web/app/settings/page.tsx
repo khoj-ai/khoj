@@ -731,15 +731,9 @@ export default function SettingsView() {
                                         </CardContent>
                                         <CardFooter className="flex flex-wrap gap-4">
                                             <Button variant="outline" size="sm" onClick={() => setIsManageFilesModalOpen(true)}>
-                                                {userConfig.enabled_content_source.computer && (
-                                                    <>
-                                                        <Files className="h-5 w-5 inline mr-1" />Manage
-                                                    </>
-                                                ) || (
-                                                    <>
-                                                        <Plugs className="h-5 w-5 inline mr-1" />Connect
-                                                    </>
-                                                )}
+                                                <>
+                                                    <Files className="h-5 w-5 inline mr-1" />Manage
+                                                </>
                                             </Button>
                                             <Button
                                                 variant="outline"
@@ -751,7 +745,7 @@ export default function SettingsView() {
                                             </Button>
                                         </CardFooter>
                                     </Card>
-                                    <Card className={cardClassName}>
+                                    <Card className={`${cardClassName} hidden`}>
                                         <CardHeader className="text-xl flex flex-row text-2xl"><GithubLogo className="h-8 w-8 mr-2" />Github</CardHeader>
                                         <CardContent className="overflow-hidden pb-12 text-gray-400">
                                             Set Github repositories to index
