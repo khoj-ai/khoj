@@ -81,7 +81,7 @@ class IndexerInput(BaseModel):
 @requires(["authenticated"])
 async def put_content(
     request: Request,
-    files: Optional[List[UploadFile]] = [],
+    files: List[UploadFile] = [],
     t: Optional[Union[state.SearchType, str]] = state.SearchType.All,
     client: Optional[str] = None,
     user_agent: Optional[str] = Header(None),
@@ -103,7 +103,7 @@ async def put_content(
 @requires(["authenticated"])
 async def patch_content(
     request: Request,
-    files: Optional[List[UploadFile]] = [],
+    files: List[UploadFile] = [],
     t: Optional[Union[state.SearchType, str]] = state.SearchType.All,
     client: Optional[str] = None,
     user_agent: Optional[str] = Header(None),
