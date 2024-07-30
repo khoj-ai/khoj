@@ -90,7 +90,7 @@ async def put_content(
     indexed_data_limiter: ApiIndexedDataLimiter = Depends(
         ApiIndexedDataLimiter(
             incoming_entries_size_limit=10,
-            subscribed_incoming_entries_size_limit=25,
+            subscribed_incoming_entries_size_limit=75,
             total_entries_size_limit=10,
             subscribed_total_entries_size_limit=100,
         )
@@ -112,7 +112,7 @@ async def patch_content(
     indexed_data_limiter: ApiIndexedDataLimiter = Depends(
         ApiIndexedDataLimiter(
             incoming_entries_size_limit=10,
-            subscribed_incoming_entries_size_limit=25,
+            subscribed_incoming_entries_size_limit=75,
             total_entries_size_limit=10,
             subscribed_total_entries_size_limit=100,
         )
