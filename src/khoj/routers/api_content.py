@@ -81,7 +81,7 @@ class IndexerInput(BaseModel):
 @requires(["authenticated"])
 async def put_content(
     request: Request,
-    files: list[UploadFile],
+    files: List[UploadFile] = [],
     t: Optional[Union[state.SearchType, str]] = state.SearchType.All,
     client: Optional[str] = None,
     user_agent: Optional[str] = Header(None),
@@ -90,7 +90,7 @@ async def put_content(
     indexed_data_limiter: ApiIndexedDataLimiter = Depends(
         ApiIndexedDataLimiter(
             incoming_entries_size_limit=10,
-            subscribed_incoming_entries_size_limit=25,
+            subscribed_incoming_entries_size_limit=75,
             total_entries_size_limit=10,
             subscribed_total_entries_size_limit=100,
         )
@@ -103,7 +103,7 @@ async def put_content(
 @requires(["authenticated"])
 async def patch_content(
     request: Request,
-    files: list[UploadFile],
+    files: List[UploadFile] = [],
     t: Optional[Union[state.SearchType, str]] = state.SearchType.All,
     client: Optional[str] = None,
     user_agent: Optional[str] = Header(None),
@@ -112,7 +112,7 @@ async def patch_content(
     indexed_data_limiter: ApiIndexedDataLimiter = Depends(
         ApiIndexedDataLimiter(
             incoming_entries_size_limit=10,
-            subscribed_incoming_entries_size_limit=25,
+            subscribed_incoming_entries_size_limit=75,
             total_entries_size_limit=10,
             subscribed_total_entries_size_limit=100,
         )
@@ -236,37 +236,9 @@ async def set_content_notion(
     return {"status": "ok"}
 
 
-@api_content.delete("/{content_source}", status_code=200)
-@requires(["authenticated"])
-async def delete_content_source(
-    request: Request,
-    content_source: str,
-    client: Optional[str] = None,
-):
-    user = request.user.object
-
-    update_telemetry_state(
-        request=request,
-        telemetry_type="api",
-        api="delete_content_config",
-        client=client,
-        metadata={"content_source": content_source},
-    )
-
-    content_object = map_config_to_object(content_source)
-    if content_object is None:
-        raise ValueError(f"Invalid content source: {content_source}")
-    elif content_object != "Computer":
-        await content_object.objects.filter(user=user).adelete()
-    await sync_to_async(EntryAdapters.delete_all_entries)(user, file_source=content_source)
-
-    enabled_content = await sync_to_async(EntryAdapters.get_unique_file_types)(user)
-    return {"status": "ok"}
-
-
 @api_content.delete("/file", status_code=201)
 @requires(["authenticated"])
-async def delete_content_file(
+async def delete_content_files(
     request: Request,
     filename: str,
     client: Optional[str] = None,
@@ -283,6 +255,31 @@ async def delete_content_file(
     await EntryAdapters.adelete_entry_by_file(user, filename)
 
     return {"status": "ok"}
+
+
+class DeleteFilesRequest(BaseModel):
+    files: List[str]
+
+
+@api_content.delete("/files", status_code=201)
+@requires(["authenticated"])
+async def delete_content_file(
+    request: Request,
+    files: DeleteFilesRequest,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="delete_file",
+        client=client,
+    )
+
+    deleted_count = await EntryAdapters.adelete_entries_by_filenames(user, files.files)
+
+    return {"status": "ok", "deleted_count": deleted_count}
 
 
 @api_content.get("/size", response_model=Dict[str, int])
@@ -329,6 +326,39 @@ async def get_content_source(
     )
 
     return await sync_to_async(list)(EntryAdapters.get_all_filenames_by_source(user, content_source))  # type: ignore[call-arg]
+
+
+@api_content.delete("/{content_source}", status_code=200)
+@requires(["authenticated"])
+async def delete_content_source(
+    request: Request,
+    content_source: str,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+
+    content_object = map_config_to_object(content_source)
+    if content_object is None:
+        raise ValueError(f"Invalid content source: {content_source}")
+    elif content_object != "Computer":
+        await content_object.objects.filter(user=user).adelete()
+    await sync_to_async(EntryAdapters.delete_all_entries)(user, file_source=content_source)
+
+    if content_source == DbEntry.EntrySource.NOTION:
+        await NotionConfig.objects.filter(user=user).adelete()
+    elif content_source == DbEntry.EntrySource.GITHUB:
+        await GithubConfig.objects.filter(user=user).adelete()
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="delete_content_config",
+        client=client,
+        metadata={"content_source": content_source},
+    )
+
+    enabled_content = await sync_to_async(EntryAdapters.get_unique_file_types)(user)
+    return {"status": "ok"}
 
 
 async def indexer(

@@ -46,6 +46,7 @@ from khoj.database.adapters import (
     create_khoj_token,
     get_khoj_tokens,
     get_user_name,
+    get_user_notion_config,
     get_user_subscription_state,
     run_with_process_lock,
 )
@@ -987,14 +988,15 @@ class ApiIndexedDataLimiter:
         self.total_entries_size_limit = total_entries_size_limit
         self.subscribed_total_entries_size = subscribed_total_entries_size_limit
 
-    def __call__(self, request: Request, files: List[UploadFile]):
+    def __call__(self, request: Request, files: List[UploadFile] = None):
         if state.billing_enabled is False:
             return
+
         subscribed = has_required_scope(request, ["premium"])
         incoming_data_size_mb = 0.0
         deletion_file_names = set()
 
-        if not request.user.is_authenticated:
+        if not request.user.is_authenticated or not files:
             return
 
         user: KhojUser = request.user.object
@@ -1254,6 +1256,10 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
         "notion": ("notion" in enabled_content_sources_set),
     }
 
+    notion_oauth_url = get_notion_auth_url(user)
+    current_notion_config = get_user_notion_config(user)
+    notion_token = current_notion_config.token if current_notion_config else ""
+
     selected_chat_model_config = ConversationAdapters.get_conversation_config(user)
     chat_models = ConversationAdapters.get_conversation_processor_options().all()
     chat_model_options = list()
@@ -1273,10 +1279,6 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
     for paint_model in paint_model_options:
         all_paint_model_options.append({"name": paint_model.model_name, "id": paint_model.id})
 
-    notion_oauth_url = get_notion_auth_url(user)
-
-    eleven_labs_enabled = is_eleven_labs_enabled()
-
     voice_models = ConversationAdapters.get_voice_model_options()
     voice_model_options = list()
     for voice_model in voice_models:
@@ -1284,8 +1286,10 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
 
     if len(voice_model_options) == 0:
         eleven_labs_enabled = False
+    else:
+        eleven_labs_enabled = is_eleven_labs_enabled()
 
-    selected_voice_config = ConversationAdapters.get_voice_model_config(user)
+    selected_voice_model_config = ConversationAdapters.get_voice_model_config(user)
 
     return {
         "request": request,
@@ -1296,9 +1300,11 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
         "given_name": given_name,
         "phone_number": user.phone_number,
         "is_phone_number_verified": user.verified_phone_number,
-        # user content, model settings
+        # user content settings
         "enabled_content_source": enabled_content_sources,
         "has_documents": has_documents,
+        "notion_token": notion_token,
+        # user model settings
         "search_model_options": all_search_model_options,
         "selected_search_model_config": current_search_model_option.id,
         "chat_model_options": chat_model_options,
@@ -1306,7 +1312,7 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
         "paint_model_options": all_paint_model_options,
         "selected_paint_model_config": selected_paint_model_config.id if selected_paint_model_config else None,
         "voice_model_options": voice_model_options,
-        "selected_voice_config": selected_voice_config.model_id if selected_voice_config else None,
+        "selected_voice_model_config": selected_voice_model_config.model_id if selected_voice_model_config else None,
         # user billing info
         "subscription_state": user_subscription_state,
         "subscription_renewal_date": subscription_renewal_date,

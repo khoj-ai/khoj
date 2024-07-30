@@ -2,7 +2,7 @@
 import './globals.css';
 
 import styles from './page.module.css';
-import React, { Suspense, useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import SuggestionCard from './components/suggestions/suggestionCard';
 import SidePanel from './components/sidePanel/chatHistorySidePanel';
@@ -16,7 +16,7 @@ import 'katex/dist/katex.min.css';
 import ChatInputArea, { ChatOptions } from './components/chatInputArea/chatInputArea';
 import { useAuthenticatedData } from './common/auth';
 import { Card, CardTitle } from '@/components/ui/card';
-import { converColorToBgGradient, colorMap, convertColorToBorderClass } from './common/colorUtils';
+import { convertColorToBorderClass } from './common/colorUtils';
 import { getIconFromIconName } from './common/iconUtils';
 import { ClockCounterClockwise } from '@phosphor-icons/react';
 import { AgentData } from './agents/page';
@@ -150,10 +150,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
         }
     }
 
-    function getTailwindBorderClass(color: string): string {
-        return colorMap[color] || 'border-black'; // Default to black if color not found
-    }
-
     return (
         <div className={`${styles.chatBoxBody}`}>
             <div className="w-full text-center">
@@ -186,7 +182,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             <div className={`ml-auto mr-auto ${props.isMobileWidth ? 'w-full' : 'w-fit'}`}>
                 {
                     !props.isMobileWidth &&
-                    <div className={`w-full ${styles.inputBox} shadow-lg bg-background align-middle items-center justify-center p-3 dark:bg-neutral-700 border-stone-100 dark:border-none dark:shadow-none`}>
+                    <div className={`w-full ${styles.inputBox} shadow-lg bg-background align-middle items-center justify-center px-3 py-1 dark:bg-neutral-700 border-stone-100 dark:border-none dark:shadow-none`}>
                         <ChatInputArea
                             isLoggedIn={props.isLoggedIn}
                             sendMessage={(message) => setMessage(message)}

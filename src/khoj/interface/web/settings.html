@@ -235,7 +235,7 @@
                     <div class="card-description-row">
                         <select id="voice-models">
                             {% for option in voice_model_options %}
-                                <option value="{{ option.id }}" {% if option.id == selected_voice_config %}selected{% endif %}>{{ option.name }}</option>
+                                <option value="{{ option.id }}" {% if option.id == selected_voice_model_config %}selected{% endif %}>{{ option.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
