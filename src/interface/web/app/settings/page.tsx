@@ -218,7 +218,7 @@ const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                             className="mr-2"
                         >
                             <Trash className="h-4 w-4 mr-2" />
-                            Delete All
+                            {selectedFiles.length > 0 ? `Delect Selected (${selectedFiles.length})` : "Delete All"}
                         </Button>
                     </div>
                 </div>
@@ -242,12 +242,12 @@ const DropdownComponent: React.FC<DropdownComponentProps> = ({ items, selected, 
             <DropdownMenu>
                 <DropdownMenuTrigger asChild className="w-full">
                     <Button variant="outline" className="justify-start py-6">
-                        {items.find(item => item.id === Number(position))?.name}
+                        {items.find(item => item.id.toString() === position)?.name}
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                     <DropdownMenuRadioGroup
-                        value={position.toString()}
+                        value={position}
                         onValueChange={async (value) => { setPosition(value); await callbackFunc(value); }}
                     >
                         {items.map((item) => (
@@ -577,17 +577,31 @@ export default function SettingsView() {
             // Set updated user settings
             if (userConfig) {
                 let newUserConfig = userConfig;
-                newUserConfig.enabled_content_source.notion = false;
-                newUserConfig.notion_token = null;
+                if (type === "computer") {
+                    newUserConfig.enabled_content_source.computer = false;
+                } else if (type === "notion") {
+                    newUserConfig.enabled_content_source.notion = false;
+                    newUserConfig.notion_token = null;
+                    setNotionToken(newUserConfig.notion_token);
+                } else if (type === "github") {
+                    newUserConfig.enabled_content_source.github = false;
+                }
                 setUserConfig(newUserConfig);
-                setNotionToken(newUserConfig.notion_token);
             }
 
             // Notify user about disconnecting content source
-            toast({
-                title: `✅ Disconnected ${type}`,
-                description: `Your ${type} integration to Khoj has been disconnected.`,
-            });
+            if (type === "computer") {
+                toast({
+                    title: `✅ Deleted Synced Files`,
+                    description: "Your synced documents have been deleted.",
+                });
+            } else {
+                toast({
+                    title: `✅ Disconnected ${type}`,
+                    description: `Your ${type} integration to Khoj has been disconnected.`,
+                });
+            }
+
         } catch (error) {
             console.error(`Error disconnecting ${type}:`, error);
             toast({
@@ -718,7 +732,7 @@ export default function SettingsView() {
                                             <Button variant="outline" size="sm" onClick={() => setIsManageFilesModalOpen(true)}>
                                                 {userConfig.enabled_content_source.computer && (
                                                     <>
-                                                        <Files className="h-5 w-5 inline mr-1"/>Manage
+                                                        <Files className="h-5 w-5 inline mr-1" />Manage
                                                     </>
                                                 ) || (
                                                     <>
@@ -726,7 +740,12 @@ export default function SettingsView() {
                                                     </>
                                                 )}
                                             </Button>
-                                            <Button variant="outline" size="sm" className={`${userConfig.enabled_content_source.computer || "hidden"}`}>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className={`${userConfig.enabled_content_source.computer || "hidden"}`}
+                                                onClick={() => disconnectContent("computer")}
+                                            >
                                                 <CloudSlash className="h-5 w-5 inline mr-1" />Disable
                                             </Button>
                                         </CardFooter>
@@ -761,7 +780,7 @@ export default function SettingsView() {
                                             <Input
                                                 onChange={(e) => setNotionToken(e.target.value)}
                                                 value={notionToken || ""}
-                                                placeholder="Enter the API Key of your Khoj integration on Notion"
+                                                placeholder="Enter API Key of your Khoj integration on Notion"
                                                 className="w-full border border-gray-300 rounded-lg px-4 py-6"
                                             />
                                             )}
@@ -957,7 +976,7 @@ export default function SettingsView() {
                                                         type="tel"
                                                         onChange={(e) => setNumber(e.target.value)}
                                                         value={number || ""}
-                                                        placeholder="Enter your WhatsApp number"
+                                                        placeholder="Enter phone number (e.g. +911234567890)"
                                                         className="w-full border border-gray-300 rounded-lg px-4 py-6"
                                                     />
                                                 </>
