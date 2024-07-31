@@ -10,7 +10,7 @@ import 'katex/dist/katex.min.css';
 
 import { TeaserReferencesSection, constructAllReferences } from '../referencePanel/referencePanel';
 
-import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture, SpeakerHigh, MagnifyingGlass, Pause, Palette } from '@phosphor-icons/react';
+import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture, SpeakerHigh, MagnifyingGlass, Pause, Palette, Clock } from '@phosphor-icons/react';
 
 import DOMPurify from 'dompurify';
 import { InlineLoading } from '../loading/loading';
@@ -331,8 +331,12 @@ export default function ChatMessage(props: ChatMessageProps) {
     }
 
     function chatMessageWrapperClasses(chatMessage: SingleChatMessage) {
-        let classes = [styles.chatMessageWrapper];
-        classes.push(styles[chatMessage.by]);
+        let classes = [styles.chatMessageWrapper, styles[chatMessage.by]];
+        if (chatMessage.by === "you") {
+            let fontClass = chatMessage.message.length > 100 ? "text-md" : "text-xl";
+            classes.push(fontClass);
+        }
+
         if (chatMessage.by === "khoj") {
             classes.push(`border-l-4 border-opacity-50 ${"border-l-" + props.borderLeftColor || "border-l-orange-400"}`);
         }
@@ -429,58 +433,64 @@ export default function ChatMessage(props: ChatMessageProps) {
                     notesReferenceCardData={allReferences.notesReferenceCardData}
                     onlineReferenceCardData={allReferences.onlineReferenceCardData} />
             </div>
-            <div className={styles.chatFooter}>
                 {
-                    (isHovering || props.isMobileWidth || props.isLastMessage || isPlaying) &&
+                    props.chatMessage.by === "you" &&
                     (
-                        <>
-                            <div title={formatDate(props.chatMessage.created)} className={`text-gray-400 relative top-0 left-4`}>
-                                {renderTimeStamp(props.chatMessage.created)}
-                            </div>
-                            <div className={`${styles.chatButtons} shadow-sm`}>
-                                {
-                                    (props.chatMessage.by === "khoj") &&
-                                    (
-                                        isPlaying ?
-                                            (
-                                                interrupted ?
-                                                    <InlineLoading iconClassName='p-0' className='m-0' />
-                                                    : <button title="Pause Speech" onClick={(event) => setInterrupted(true)}>
-                                                        <Pause alt="Pause Message" color='hsl(var(--muted-foreground))' />
-                                                    </button>
-                                            )
-                                            : <button title="Speak" onClick={(event) => playTextToSpeech()}>
-                                                <SpeakerHigh alt="Speak Message" color='hsl(var(--muted-foreground))' />
-                                            </button>
-                                    )
-                                }
-                                <button title="Copy" className={`${styles.copyButton}`} onClick={() => {
-                                    navigator.clipboard.writeText(props.chatMessage.message);
-                                    setCopySuccess(true);
-                                }}>
-                                    {
-                                        copySuccess ?
-                                            <Copy alt="Copied Message" weight="fill" color='green' />
-                                            : <Copy alt="Copy Message" color='hsl(var(--muted-foreground))' />
-                                    }
-                                </button>
-                                {
-                                    (props.chatMessage.by === "khoj") &&
-                                    (
-                                        props.chatMessage.intent ?
-                                            <FeedbackButtons
-                                                uquery={props.chatMessage.intent.query}
-                                                kquery={props.chatMessage.message} />
-                                            : <FeedbackButtons
-                                                uquery={props.chatMessage.rawQuery || props.chatMessage.message}
-                                                kquery={props.chatMessage.message} />
-                                    )
-                                }
-                            </div>
-                        </>
+                        <div className={`${styles.chatFooter} flex justify-start`}>
+                            {
+                                (isHovering || props.isMobileWidth || props.isLastMessage || isPlaying) && (
+                                    <div title={formatDate(props.chatMessage.created)} className={`text-gray-400 relative top-0 text-sm`}>
+                                        <Clock className={`inline mr-2 top-1 text-gray-400`} />
+                                        {renderTimeStamp(props.chatMessage.created)}
+                                    </div>
+                                )
+                            }
+                        </div>
+                    ) || props.chatMessage.by === "khoj" &&
+                    (
+                        <div className={`${styles.chatFooter} flex justify-end`}>
+                            {
+                                (isHovering || props.isMobileWidth || props.isLastMessage || isPlaying) &&
+                                (
+                                    <div className={`${styles.chatButtons} shadow-sm`}>
+                                        {
+                                            isPlaying ?
+                                                (
+                                                    interrupted ?
+                                                        <InlineLoading iconClassName='p-0' className='m-0' />
+                                                        : <button title="Pause Speech" onClick={(event) => setInterrupted(true)}>
+                                                            <Pause alt="Pause Message" color='hsl(var(--muted-foreground))' />
+                                                        </button>
+                                                )
+                                                : <button title="Speak" onClick={(event) => playTextToSpeech()}>
+                                                    <SpeakerHigh alt="Speak Message" color='hsl(var(--muted-foreground))' />
+                                                </button>
+                                        }
+                                        <button title="Copy" className={`${styles.copyButton}`} onClick={() => {
+                                            navigator.clipboard.writeText(props.chatMessage.message);
+                                            setCopySuccess(true);
+                                        }}>
+                                            {
+                                                copySuccess ?
+                                                    <Copy alt="Copied Message" weight="fill" color='green' />
+                                                    : <Copy alt="Copy Message" color='hsl(var(--muted-foreground))' />
+                                            }
+                                        </button>
+                                        {
+                                            props.chatMessage.intent ?
+                                                <FeedbackButtons
+                                                    uquery={props.chatMessage.intent.query}
+                                                    kquery={props.chatMessage.message} />
+                                                : <FeedbackButtons
+                                                    uquery={props.chatMessage.rawQuery || props.chatMessage.message}
+                                                    kquery={props.chatMessage.message} />
+                                        }
+                                    </div>
+                                )
+                            }
+                        </div>
                     )
                 }
-            </div>
         </div>
     )
 }
