@@ -12,7 +12,7 @@ import { TeaserReferencesSection, constructAllReferences } from '../referencePan
 
 import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture, SpeakerHigh, MagnifyingGlass, Pause, Palette } from '@phosphor-icons/react';
 
-import * as DomPurify from 'dompurify';
+import DOMPurify from 'dompurify';
 import { InlineLoading } from '../loading/loading';
 import { convertColorToTextClass } from '@/app/common/colorUtils';
 import { AgentData } from '@/app/agents/page';
@@ -197,7 +197,7 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
     let header = extractedHeader ? extractedHeader[1] : "";
     const iconColor = props.primary ? convertColorToTextClass(props.agentColor) : 'text-gray-500';
     const icon = chooseIconFromHeader(header, iconColor);
-    let markdownRendered = DomPurify.sanitize(md.render(props.message));
+    let markdownRendered = DOMPurify.sanitize(md.render(props.message));
     return (
         <div className={`${styles.trainOfThoughtElement} items-center ${props.primary ? 'text-gray-400' : 'text-gray-300'} ${styles.trainOfThought} ${props.primary ? styles.primary : ''}`} >
             {icon}
@@ -245,7 +245,7 @@ export default function ChatMessage(props: ChatMessageProps) {
             .replace(/LEFTBRACKET/g, '\\[').replace(/RIGHTBRACKET/g, '\\]');
 
         // Sanitize and set the rendered markdown
-        setMarkdownRendered(DomPurify.sanitize(markdownRendered));
+        setMarkdownRendered(DOMPurify.sanitize(markdownRendered));
     }, [props.chatMessage.message]);
 
     useEffect(() => {
