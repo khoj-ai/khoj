@@ -112,7 +112,6 @@ export default function Chat() {
     const locationData = useIPLocationData();
 
     const authenticatedData = useAuthenticatedData();
-    welcomeConsole();
 
     useEffect(() => {
         fetch('/api/chat/options')
@@ -128,6 +127,8 @@ export default function Chat() {
                 console.error(err);
                 return;
             });
+
+        welcomeConsole();
 
         setIsMobileWidth(window.innerWidth < 786);
 

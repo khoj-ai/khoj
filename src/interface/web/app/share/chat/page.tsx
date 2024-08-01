@@ -105,9 +105,6 @@ export default function SharedChat() {
     const locationData = useIPLocationData();
     const authenticatedData = useAuthenticatedData();
 
-    welcomeConsole();
-
-
     useEffect(() => {
         fetch('/api/chat/options')
             .then(response => response.json())
@@ -122,6 +119,8 @@ export default function SharedChat() {
                 console.error(err);
                 return;
             });
+
+        welcomeConsole();
 
         setIsMobileWidth(window.innerWidth < 786);
 
