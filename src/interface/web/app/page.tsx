@@ -302,7 +302,6 @@ export default function Home() {
             </title>
             <div className={`${styles.sidePanel}`}>
                 <SidePanel
-                    webSocketConnected={true}
                     conversationId={conversationId}
                     uploadedFiles={uploadedFiles}
                     isMobileWidth={isMobileWidth}

@@ -194,6 +194,7 @@ export default function Chat() {
 
     async function chat() {
         localStorage.removeItem("message");
+        if (!queryToProcess || !conversationId) return;
         let chatAPI = `/api/chat?q=${encodeURIComponent(queryToProcess)}&conversation_id=${conversationId}&stream=true&client=web`;
         if (locationData) {
             chatAPI += `&region=${locationData.region}&country=${locationData.country}&city=${locationData.city}&timezone=${locationData.timezone}`;

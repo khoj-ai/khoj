@@ -278,7 +278,6 @@ export default function Agents() {
             <div className={`${styles.pageLayout} w-full mx-auto`}>
                 <div className={`${styles.sidePanel} top-0`}>
                     <SidePanel
-                        webSocketConnected={true}
                         conversationId={null}
                         uploadedFiles={[]}
                         isMobileWidth={isMobileWidth}

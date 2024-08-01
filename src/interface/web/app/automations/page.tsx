@@ -944,7 +944,6 @@ export default function Automations() {
             <div className={`grid w-full ml-auto mr-auto`}>
                 <div className={`${styles.sidePanel} top-0`}>
                     <SidePanel
-                        webSocketConnected={true}
                         conversationId={null}
                         uploadedFiles={[]}
                         isMobileWidth={isMobileWidth}
