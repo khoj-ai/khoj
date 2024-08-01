@@ -1107,6 +1107,16 @@ class EntryAdapters:
         return await Entry.objects.filter(user=user, file_path=file_path).adelete()
 
     @staticmethod
+    async def adelete_entries_by_filenames(user: KhojUser, filenames: List[str], batch_size=1000):
+        deleted_count = 0
+        for i in range(0, len(filenames), batch_size):
+            batch = filenames[i : i + batch_size]
+            count, _ = await Entry.objects.filter(user=user, file_path__in=batch).adelete()
+            deleted_count += count
+
+        return deleted_count
+
+    @staticmethod
     def get_all_filenames_by_source(user: KhojUser, file_source: str):
         return (
             Entry.objects.filter(user=user, file_source=file_source)
