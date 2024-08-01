@@ -15,24 +15,6 @@ export interface ResponseWithReferences {
     response?: string;
 }
 
-export function handleCompiledReferences(chunk: string, currentResponse: string) {
-    const rawReference = chunk.split("### compiled references:")[1];
-    const rawResponse = chunk.split("### compiled references:")[0];
-    let references: ResponseWithReferences = {};
-
-    // Set the initial response
-    references.response = currentResponse + rawResponse;
-
-    const rawReferenceAsJson = JSON.parse(rawReference);
-    if (rawReferenceAsJson instanceof Array) {
-        references.context = rawReferenceAsJson;
-    } else if (typeof rawReferenceAsJson === "object" && rawReferenceAsJson !== null) {
-        references.online = rawReferenceAsJson;
-    }
-
-    return references;
-}
-
 interface MessageChunk {
     type: string;
     data: string | object;
