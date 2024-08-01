@@ -948,7 +948,7 @@ export default function SettingsView() {
                                             <IntlTelInput
                                                 initialValue={phoneNumber || ""}
                                                 onChangeNumber={setPhoneNumber}
-                                                disabled={numberValidationState === PhoneNumberValidationState.Verified || numberValidationState === PhoneNumberValidationState.VerifyOTP}
+                                                disabled={numberValidationState === PhoneNumberValidationState.VerifyOTP}
                                                 initOptions={{
                                                     separateDialCode: true,
                                                     initialCountry: "us",
