@@ -15,7 +15,7 @@ import { useAuthenticatedData } from '@/app/common/auth';
 
 import ChatInputArea, { ChatOptions } from '@/app/components/chatInputArea/chatInputArea';
 import { StreamMessage } from '@/app/components/chatMessage/chatMessage';
-import { convertMessageChunkToJson, handleCompiledReferences, handleImageResponse, RawReferenceData, setupWebSocket } from '@/app/common/chatFunctions';
+import { convertMessageChunkToJson, handleCompiledReferences, handleImageResponse, RawReferenceData } from '@/app/common/chatFunctions';
 import { AgentData } from '@/app/agents/page';
 
 
