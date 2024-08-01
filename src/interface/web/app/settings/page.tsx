@@ -268,7 +268,7 @@ interface TokenObject {
     name: string;
 }
 
-export const useApiKeys = () => {
+const useApiKeys = () => {
     const [apiKeys, setApiKeys] = useState<TokenObject[]>([]);
     const { toast } = useToast();
 
@@ -621,7 +621,6 @@ export default function SettingsView() {
             </title>
             <div className={styles.sidePanel}>
                 <SidePanel
-                    webSocketConnected={true}
                     conversationId={null}
                     uploadedFiles={[]}
                     isMobileWidth={isMobileWidth}
