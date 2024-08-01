@@ -9,12 +9,12 @@ import NavMenu from '../components/navMenu/navMenu';
 import { useSearchParams } from 'next/navigation'
 import Loading from '../components/loading/loading';
 
-import { handleCompiledReferences, handleImageResponse, setupWebSocket } from '../common/chatFunctions';
+import { convertMessageChunkToJson, handleImageResponse, RawReferenceData } from '../common/chatFunctions';
 
 import 'katex/dist/katex.min.css';
 
 import { StreamMessage } from '../components/chatMessage/chatMessage';
-import { welcomeConsole } from '../common/utils';
+import { useIPLocationData, welcomeConsole } from '../common/utils';
 import ChatInputArea, { ChatOptions } from '../components/chatInputArea/chatInputArea';
 import { useAuthenticatedData } from '../common/auth';
 import { AgentData } from '../agents/page';
@@ -97,82 +97,21 @@ function ChatBodyData(props: ChatBodyDataProps) {
         </>
     );
 }
+
 export default function Chat() {
     const [chatOptionsData, setChatOptionsData] = useState<ChatOptions | null>(null);
     const [isLoading, setLoading] = useState(true);
     const [title, setTitle] = useState('Khoj AI - Chat');
     const [conversationId, setConversationID] = useState<string | null>(null);
-    const [chatWS, setChatWS] = useState<WebSocket | null>(null);
     const [messages, setMessages] = useState<StreamMessage[]>([]);
     const [queryToProcess, setQueryToProcess] = useState<string>('');
     const [processQuerySignal, setProcessQuerySignal] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [isMobileWidth, setIsMobileWidth] = useState(false);
+    const locationData = useIPLocationData();
 
     const authenticatedData = useAuthenticatedData();
     welcomeConsole();
-
-    const handleWebSocketMessage = (event: MessageEvent) => {
-        let chunk = event.data;
-        let currentMessage = messages.find(message => !message.completed);
-        if (!currentMessage) {
-            console.error("No current message found");
-            return;
-        }
-
-        // Process WebSocket streamed data
-        if (chunk === "start_llm_response") {
-            console.log("Started streaming", new Date());
-        } else if (chunk === "end_llm_response") {
-            currentMessage.completed = true;
-        } else {
-            // Get the current message
-            // Process and update state with the new message
-            if (chunk.includes("application/json")) {
-                chunk = JSON.parse(chunk);
-            }
-
-            const contentType = chunk["content-type"];
-            if (contentType === "application/json") {
-                try {
-                    if (chunk.image || chunk.detail) {
-                        let responseWithReference = handleImageResponse(chunk);
-                        console.log("Image response", responseWithReference);
-                        if (responseWithReference.response) currentMessage.rawResponse = responseWithReference.response;
-                        if (responseWithReference.online) currentMessage.onlineContext = responseWithReference.online;
-                        if (responseWithReference.context) currentMessage.context = responseWithReference.context;
-                    } else if (chunk.type == "status") {
-                        currentMessage.trainOfThought.push(chunk.message);
-                    } else if (chunk.type == "rate_limit") {
-                        console.log("Rate limit message", chunk);
-                        currentMessage.rawResponse = chunk.message;
-                    } else {
-                        console.log("any message", chunk);
-                    }
-                } catch (error) {
-                    console.error("Error processing message", error);
-                    currentMessage.completed = true;
-                } finally {
-                    // no-op
-                }
-            } else {
-                // Update the current message with the new chunk
-                if (chunk && chunk.includes("### compiled references:")) {
-                    let responseWithReference = handleCompiledReferences(chunk, "");
-                    currentMessage.rawResponse += responseWithReference.response;
-
-                    if (responseWithReference.response) currentMessage.rawResponse = responseWithReference.response;
-                    if (responseWithReference.online) currentMessage.onlineContext = responseWithReference.online;
-                    if (responseWithReference.context) currentMessage.context = responseWithReference.context;
-                } else {
-                    // If the chunk is not a JSON object, just display it as is
-                    currentMessage.rawResponse += chunk;
-                }
-            }
-        };
-        // Update the state with the new message, currentMessage
-        setMessages([...messages]);
-    }
 
     useEffect(() => {
         fetch('/api/chat/options')
@@ -198,19 +137,7 @@ export default function Chat() {
     }, []);
 
     useEffect(() => {
-        if (chatWS) {
-            chatWS.onmessage = handleWebSocketMessage;
-        }
-    }, [chatWS, messages]);
-
-    //same as ChatBodyData for local storage message
-    useEffect(() => {
-        const storedMessage = localStorage.getItem("message");
-        setQueryToProcess(storedMessage || '');
-    }, []);
-
-    useEffect(() => {
-        if (chatWS && queryToProcess) {
+        if (queryToProcess) {
             const newStreamMessage: StreamMessage = {
                 rawResponse: "",
                 trainOfThought: [],
@@ -221,44 +148,118 @@ export default function Chat() {
                 rawQuery: queryToProcess || "",
             };
             setMessages(prevMessages => [...prevMessages, newStreamMessage]);
-
-            if (chatWS.readyState === WebSocket.OPEN) {
-                chatWS.send(queryToProcess);
-                setProcessQuerySignal(true);
-            }
-            else {
-                console.error("WebSocket is not open. ReadyState:", chatWS.readyState);
-            }
-
-            setQueryToProcess('');
+            setProcessQuerySignal(true);
         }
-    }, [queryToProcess, chatWS]);
+    }, [queryToProcess]);
 
     useEffect(() => {
-        if (processQuerySignal && chatWS && chatWS.readyState === WebSocket.OPEN) {
-            setProcessQuerySignal(false);
-            chatWS.onmessage = handleWebSocketMessage;
-            chatWS.send(queryToProcess);
-            localStorage.removeItem("message");
+        if (processQuerySignal) {
+            chat();
         }
-    }, [processQuerySignal, chatWS]);
+    }, [processQuerySignal]);
 
-    useEffect(() => {
-        const setupWebSocketConnection = async () => {
-            if (conversationId && (!chatWS || chatWS.readyState === WebSocket.CLOSED)) {
-                if (queryToProcess) {
-                    const newWS = await setupWebSocket(conversationId, queryToProcess);
-                    localStorage.removeItem("message");
-                    setChatWS(newWS);
-                }
-                else {
-                    const newWS = await setupWebSocket(conversationId);
-                    setChatWS(newWS);
+    async function readChatStream(response: Response) {
+        if (!response.ok) throw new Error(response.statusText);
+        if (!response.body) throw new Error("Response body is null");
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        const eventDelimiter = '␃🔚␗';
+        let buffer = "";
+
+        while (true) {
+
+            const { done, value } = await reader.read();
+            if (done) {
+                setQueryToProcess('');
+                setProcessQuerySignal(false);
+                break;
+            }
+
+            const chunk = decoder.decode(value, { stream: true });
+
+            buffer += chunk;
+
+            let newEventIndex;
+            while ((newEventIndex = buffer.indexOf(eventDelimiter)) !== -1) {
+                const event = buffer.slice(0, newEventIndex);
+                buffer = buffer.slice(newEventIndex + eventDelimiter.length);
+                if (event) {
+                    processMessageChunk(event);
                 }
             }
-        };
-        setupWebSocketConnection();
-    }, [conversationId]);
+
+        }
+    }
+
+    async function chat() {
+        localStorage.removeItem("message");
+        let chatAPI = `/api/chat?q=${encodeURIComponent(queryToProcess)}&conversation_id=${conversationId}&stream=true&client=web`;
+        if (locationData) {
+            chatAPI += `&region=${locationData.region}&country=${locationData.country}&city=${locationData.city}&timezone=${locationData.timezone}`;
+        }
+
+        const response = await fetch(chatAPI);
+        try {
+            await readChatStream(response);
+        } catch (err) {
+            console.log(err);
+        }
+    }
+
+    function processMessageChunk(rawChunk: string) {
+        const chunk = convertMessageChunkToJson(rawChunk);
+        const currentMessage = messages.find(message => !message.completed);
+
+        if (!currentMessage) {
+            return;
+        }
+
+        if (!chunk || !chunk.type) {
+            return;
+        }
+
+        if (chunk.type === "status") {
+            const statusMessage = chunk.data as string;
+            currentMessage.trainOfThought.push(statusMessage);
+        } else if (chunk.type === "references") {
+            const references = chunk.data as RawReferenceData;
+
+            if (references.context) {
+                currentMessage.context = references.context;
+            }
+
+            if (references.onlineContext) {
+                currentMessage.onlineContext = references.onlineContext;
+            }
+        } else if (chunk.type === "message") {
+            const chunkData = chunk.data;
+
+            if (chunkData !== null && typeof chunkData === 'object') {
+                try {
+                    const jsonData = chunkData as any;
+                    if (jsonData.image || jsonData.detail) {
+                        let responseWithReference = handleImageResponse(chunk.data, true);
+                        if (responseWithReference.response) currentMessage.rawResponse = responseWithReference.response;
+                        if (responseWithReference.online) currentMessage.onlineContext = responseWithReference.online;
+                        if (responseWithReference.context) currentMessage.context = responseWithReference.context;
+                    } else if (jsonData.response) {
+                        currentMessage.rawResponse = jsonData.response;
+                    }
+                    else {
+                        console.log("any message", chunk);
+                    }
+                } catch (e) {
+                    currentMessage.rawResponse += chunkData;
+                }
+            } else {
+                currentMessage.rawResponse += chunkData;
+            }
+        } else if (chunk.type === "end_llm_response") {
+            currentMessage.completed = true;
+        }
+        setMessages([...messages]);
+    }
 
     const handleConversationIdChange = (newConversationId: string) => {
         setConversationID(newConversationId);
@@ -276,7 +277,6 @@ export default function Chat() {
             </title>
             <div>
                 <SidePanel
-                    webSocketConnected={chatWS !== null}
                     conversationId={conversationId}
                     uploadedFiles={uploadedFiles}
                     isMobileWidth={isMobileWidth}

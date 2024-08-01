@@ -1,6 +1,13 @@
 import { Context, OnlineContextData } from "../components/chatMessage/chatMessage";
 
-interface ResponseWithReferences {
+export interface RawReferenceData {
+    context?: Context[];
+    onlineContext?: {
+        [key: string]: OnlineContextData
+    }
+}
+
+export interface ResponseWithReferences {
     context?: Context[];
     online?: {
         [key: string]: OnlineContextData
@@ -108,7 +115,42 @@ export const setupWebSocket = async (conversationId: string, initialMessage?: st
     return chatWS;
 };
 
-export function handleImageResponse(imageJson: any) {
+interface MessageChunk {
+    type: string;
+    data: string | object;
+}
+
+export function convertMessageChunkToJson(chunk: string): MessageChunk {
+    if (chunk.startsWith("{") && chunk.endsWith("}")) {
+        try {
+            const jsonChunk = JSON.parse(chunk);
+            if (!jsonChunk.type) {
+                return {
+                    type: "message",
+                    data: jsonChunk
+                };
+            }
+            return jsonChunk;
+        } catch (error) {
+            return {
+                type: "message",
+                data: chunk
+            };
+        }
+    } else if (chunk.length > 0) {
+        return {
+            type: "message",
+            data: chunk
+        };
+    } else {
+        return {
+            type: "message",
+            data: ""
+        };
+    }
+}
+
+export function handleImageResponse(imageJson: any, liveStream: boolean): ResponseWithReferences {
 
     let rawResponse = "";
 
@@ -123,7 +165,7 @@ export function handleImageResponse(imageJson: any) {
         } else if (imageJson.intentType === "text-to-image-v3") {
             rawResponse = `![](data:image/webp;base64,${imageJson.image})`;
         }
-        if (inferredQuery) {
+        if (inferredQuery && !liveStream) {
             rawResponse += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
         }
     }

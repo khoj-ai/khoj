@@ -10,7 +10,7 @@ import 'katex/dist/katex.min.css';
 
 import { TeaserReferencesSection, constructAllReferences } from '../referencePanel/referencePanel';
 
-import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture, SpeakerHigh, MagnifyingGlass, Pause } from '@phosphor-icons/react';
+import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture, SpeakerHigh, MagnifyingGlass, Pause, Palette } from '@phosphor-icons/react';
 
 import * as DomPurify from 'dompurify';
 import { InlineLoading } from '../loading/loading';
@@ -180,8 +180,12 @@ function chooseIconFromHeader(header: string, iconColor: string) {
         return <MagnifyingGlass className={`${classNames}`} />;
     }
 
-    if (compareHeader.includes("summary") || compareHeader.includes("summarize")) {
+    if (compareHeader.includes("summary") || compareHeader.includes("summarize") || compareHeader.includes("enhanc")) {
         return <Aperture className={`${classNames}`} />;
+    }
+
+    if (compareHeader.includes("paint")) {
+        return <Palette className={`${classNames}`} />;
     }
 
     return <Brain className={`${classNames}`} />;
@@ -195,7 +199,7 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
     const icon = chooseIconFromHeader(header, iconColor);
     let markdownRendered = DomPurify.sanitize(md.render(props.message));
     return (
-        <div className={`flex items-center ${props.primary ? 'text-gray-400' : 'text-gray-300'} ${styles.trainOfThought} ${props.primary ? styles.primary : ''}`} >
+        <div className={`${styles.trainOfThoughtElement} items-center ${props.primary ? 'text-gray-400' : 'text-gray-300'} ${styles.trainOfThought} ${props.primary ? styles.primary : ''}`} >
             {icon}
             <div dangerouslySetInnerHTML={{ __html: markdownRendered }} />
         </div>
