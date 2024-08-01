@@ -627,9 +627,6 @@ async def chat(
 
         user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        async for result in send_event(ChatEvent.STATUS, f"**Understanding Query**: {q}"):
-            yield result
-
         meta_log = conversation.conversation_log
         is_automated_task = conversation_commands == [ConversationCommand.AutomatedTask]
 
