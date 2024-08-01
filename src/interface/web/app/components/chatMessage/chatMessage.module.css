@@ -6,8 +6,6 @@ div.chatMessageContainer {
 div.chatMessageContainer.khoj {
     margin: 0;
     padding: 8px 16px 0 16px;
-    box-shadow: 0 4px 10px var(--box-shadow-color);
-    border-top: transparent;
 }
 div.chatMessageContainer.you {
     margin-top: 12px;
