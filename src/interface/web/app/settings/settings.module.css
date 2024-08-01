@@ -9,3 +9,14 @@ div.contentBody {
     display: grid;
     margin: auto;
 }
+
+div.phoneInput {
+    padding: 0rem;
+}
+
+div.phoneInput input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid hsla(var(--border));
+    border-radius: 0.25rem;
+}
