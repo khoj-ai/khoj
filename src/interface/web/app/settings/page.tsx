@@ -1,6 +1,7 @@
 'use client'
 
 import styles from "./settings.module.css";
+import "intl-tel-input/styles";
 
 import { Suspense, useEffect, useState } from "react";
 import { useToast } from "@/components/ui/use-toast"
@@ -73,6 +74,8 @@ import {
 import NavMenu from "../components/navMenu/navMenu";
 import SidePanel from "../components/sidePanel/chatHistorySidePanel";
 import Loading from "../components/loading/loading";
+
+import IntlTelInput from 'intl-tel-input/react';
 
 
 const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
@@ -349,7 +352,7 @@ export default function SettingsView() {
     const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
     const [name, setName] = useState<string | undefined>(undefined);
     const [notionToken, setNotionToken] = useState<string | null>(null);
-    const [number, setNumber] = useState<string | undefined>(undefined);
+    const [phoneNumber, setPhoneNumber] = useState<string | undefined>(undefined);
     const [otp, setOTP] = useState("");
     const [numberValidationState, setNumberValidationState] = useState<PhoneNumberValidationState>(PhoneNumberValidationState.Verified);
     const [isManageFilesModalOpen, setIsManageFilesModalOpen] = useState(false);
@@ -358,7 +361,7 @@ export default function SettingsView() {
 
     useEffect(() => {
         setUserConfig(initialUserConfig);
-        setNumber(initialUserConfig?.phone_number);
+        setPhoneNumber(initialUserConfig?.phone_number);
         setNumberValidationState(
             initialUserConfig?.is_phone_number_verified
             ? PhoneNumberValidationState.Verified
@@ -379,7 +382,7 @@ export default function SettingsView() {
 
     const sendOTP = async () => {
         try {
-            const response = await fetch(`/api/phone?phone_number=${number}`, {
+            const response = await fetch(`/api/phone?phone_number=${phoneNumber}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -420,6 +423,31 @@ export default function SettingsView() {
             });
         }
     };
+
+    const disconnectNumber = async () => {
+        try {
+            const response = await fetch(`/api/phone`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            if (!response.ok) throw new Error('Failed to disconnect phone number');
+
+            setPhoneNumber(undefined);
+            setNumberValidationState(PhoneNumberValidationState.Setup);
+            toast({
+                title: "📱 Phone",
+                description: "Phone number disconnected",
+            });
+        } catch (error) {
+            console.error('Error disconnecting phone number:', error);
+            toast({
+                title: "📱 Phone",
+                description: "Failed to disconnect phone number. Try again or contact us at team@khoj.dev",
+            });
+        }
+    }
 
     const setSubscription = async (state: string) => {
         try {
@@ -942,15 +970,26 @@ export default function SettingsView() {
                                                 Connect your number to chat with Khoj on WhatsApp. Learn more about the integration <a href="https://docs.khoj.dev/clients/whatsapp">here</a>.
                                             </p>
                                             <div>
+                                            <IntlTelInput
+                                                initialValue={phoneNumber || ""}
+                                                onChangeNumber={setPhoneNumber}
+                                                disabled={numberValidationState === PhoneNumberValidationState.VerifyOTP}
+                                                initOptions={{
+                                                    separateDialCode: true,
+                                                    initialCountry: "af",
+                                                    utilsScript: "https://assets.khoj.dev/intl-tel-input%4023.8.0_build_js_utils.js",
+                                                    containerClass: `${styles.phoneInput}`
+                                            }}
+                                            />
                                             {numberValidationState === PhoneNumberValidationState.VerifyOTP && (
                                                 <>
-                                                    <p>{`Enter the OTP sent to your WhatsApp number: ${number}`}</p>
+                                                    <p>{`Enter the OTP sent to your number: ${phoneNumber}`}</p>
                                                     <InputOTP
                                                         autoFocus={true}
                                                         maxLength={6}
                                                         value={otp || ""}
                                                         onChange={setOTP}
-                                                        onComplete={() => setNumberValidationState(PhoneNumberValidationState.Verified)}
+                                                        onComplete={() => setNumberValidationState(PhoneNumberValidationState.VerifyOTP)}
                                                     >
                                                         <InputOTPGroup>
                                                             <InputOTPSlot index={0} />
@@ -961,16 +1000,6 @@ export default function SettingsView() {
                                                             <InputOTPSlot index={5} />
                                                         </InputOTPGroup>
                                                     </InputOTP>
-                                                </>
-                                            ) || (
-                                                <>
-                                                    <Input
-                                                        type="tel"
-                                                        onChange={(e) => setNumber(e.target.value)}
-                                                        value={number || ""}
-                                                        placeholder="Enter phone number (e.g. +911234567890)"
-                                                        className="w-full border border-gray-300 rounded-lg px-4 py-6"
-                                                    />
                                                 </>
                                             )}
                                             </div>
@@ -986,17 +1015,27 @@ export default function SettingsView() {
                                             ) || (
                                                 <Button
                                                     variant="outline"
-                                                    disabled={!number || number === userConfig.phone_number || !isValidPhoneNumber(number)}
+                                                    disabled={!phoneNumber || (phoneNumber === userConfig.phone_number &&  numberValidationState === PhoneNumberValidationState.Verified) || !isValidPhoneNumber(phoneNumber)}
                                                     onClick={sendOTP}
                                                 >
                                                     {!userConfig.phone_number
                                                     ? (<><Plugs className="inline mr-2" />Setup Whatsapp</>)
-                                                    : !number || number === userConfig.phone_number || !isValidPhoneNumber(number)
+                                                    : !phoneNumber || (phoneNumber === userConfig.phone_number && numberValidationState === PhoneNumberValidationState.Verified) || !isValidPhoneNumber(phoneNumber)
                                                     ? (<><PlugsConnected className="inline mr-2 text-green-400" />Switch Number</>)
-                                                    : (<>Send OTP to Whatsapp <ArrowRight className="inline ml-2" weight="bold"/></>)
+                                                    : (<>Send OTP <ArrowRight className="inline ml-2" weight="bold"/></>)
                                                     }
                                                 </Button>
                                             )}
+                                            {
+                                                numberValidationState === PhoneNumberValidationState.Verified && (
+                                                    <Button
+                                                        variant="outline"
+                                                        onClick={() => disconnectNumber()}
+                                                    >
+                                                        <CloudSlash className="h-5 w-5 mr-2" />Disconnect
+                                                    </Button>
+                                                )
+                                            }
                                         </CardFooter>
                                     </Card>
                                 </div>

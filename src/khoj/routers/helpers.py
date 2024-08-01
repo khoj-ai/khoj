@@ -1298,7 +1298,7 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
         "user_photo": user_picture,
         "is_active": is_active,
         "given_name": given_name,
-        "phone_number": user.phone_number,
+        "phone_number": str(user.phone_number) if user.phone_number else "",
         "is_phone_number_verified": user.verified_phone_number,
         # user content settings
         "enabled_content_source": enabled_content_sources,
