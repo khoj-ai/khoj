@@ -40,7 +40,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
     useEffect(() => {
         const storedMessage = localStorage.getItem("message");
         if (storedMessage) {
-            setMessage(storedMessage);
+            setProcessingMessage(true);
+            props.setQueryToProcess(storedMessage);
         }
     }, []);
 

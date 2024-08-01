@@ -16,7 +16,7 @@ import 'katex/dist/katex.min.css';
 import ChatInputArea, { ChatOptions } from './components/chatInputArea/chatInputArea';
 import { useAuthenticatedData } from './common/auth';
 import { Card, CardTitle } from '@/components/ui/card';
-import { converColorToBgGradient, colorMap, convertColorToBorderClass } from './common/colorUtils';
+import { colorMap, convertColorToBorderClass } from './common/colorUtils';
 import { getIconFromIconName } from './common/iconUtils';
 import { ClockCounterClockwise } from '@phosphor-icons/react';
 import { AgentData } from './agents/page';
@@ -67,9 +67,11 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [processingMessage, setProcessingMessage] = useState(false);
     const [shuffledOptions, setShuffledOptions] = useState<Suggestion[]>([]);
     const [selectedAgent, setSelectedAgent] = useState<string | null>("khoj");
+    const [agentIcons, setAgentIcons] = useState<JSX.Element[]>([]);
+    const [agents, setAgents] = useState<AgentData[]>([]);
 
     const agentsFetcher = () => window.fetch('/api/agents').then(res => res.json()).catch(err => console.log(err));
-    const { data, error } = useSWR<AgentData[]>('agents', agentsFetcher, { revalidateOnFocus: false });
+    const { data: agentsData, error } = useSWR<AgentData[]>('agents', agentsFetcher, { revalidateOnFocus: false });
 
     function shuffleAndSetOptions() {
         const shuffled = [...suggestionsData].sort(() => 0.5 - Math.random());
@@ -81,6 +83,28 @@ function ChatBodyData(props: ChatBodyDataProps) {
             shuffleAndSetOptions();
         }
     }, [props.chatOptionsData]);
+
+    useEffect(() => {
+        const nSlice = props.isMobileWidth ? 3 : 4;
+
+        const shuffledAgents = agentsData ? [...agentsData].sort(() => 0.5 - Math.random()) : [];
+
+        const agents = agentsData ? [agentsData[0]] : []; // Always add the first/default agent.
+
+        shuffledAgents.slice(0, nSlice - 1).forEach(agent => {
+            if (!agents.find(a => a.slug === agent.slug)) {
+                agents.push(agent);
+            }
+        });
+
+        setAgents(agents);
+
+        //generate colored icons for the selected agents
+        const agentIcons = agents.map(
+            agent => getIconFromIconName(agent.icon, agent.color) || <Image key={agent.name} src={agent.avatar} alt={agent.name} width={50} height={50} />
+        );
+        setAgentIcons(agentIcons);
+    }, [agentsData]);
 
     function shuffleSuggestionsCards() {
         shuffleAndSetOptions();
@@ -109,24 +133,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
         };
     }, [selectedAgent, message]);
 
-    const nSlice = props.isMobileWidth ? 3 : 4;
-
-    const shuffledAgents = data ? [...data].sort(() => 0.5 - Math.random()) : [];
-
-    const agents = data ? [data[0]] : []; // Always add the first/default agent.
-
-    shuffledAgents.slice(0, nSlice - 1).forEach(agent => {
-        if (!agents.find(a => a.slug === agent.slug)) {
-            agents.push(agent);
-        }
-    });
-
-
-    //generate colored icons for the selected agents
-    const agentIcons = agents.map(
-        agent => getIconFromIconName(agent.icon, agent.color) || <Image key={agent.name} src={agent.avatar} alt={agent.name} width={50} height={50} />
-    );
-
     function fillArea(link: string, type: string, prompt: string) {
         if (!link) {
             let message_str = "";
@@ -148,10 +154,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 setMessage(message_str);
             }
         }
-    }
-
-    function getTailwindBorderClass(color: string): string {
-        return colorMap[color] || 'border-black'; // Default to black if color not found
     }
 
     return (
