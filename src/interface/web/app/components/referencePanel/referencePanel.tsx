@@ -11,7 +11,7 @@ const md = new markdownIt({
     typographer: true
 });
 
-import { Context, WebPage, OnlineContextData } from "../chatMessage/chatMessage";
+import { Context, WebPage, OnlineContext } from "../chatMessage/chatMessage";
 import { Card } from "@/components/ui/card";
 
 import {
@@ -161,7 +161,7 @@ function GenericOnlineReferenceCard(props: OnlineReferenceCardProps) {
     )
 }
 
-export function constructAllReferences(contextData: Context[], onlineData: { [key: string]: OnlineContextData }) {
+export function constructAllReferences(contextData: Context[], onlineData: OnlineContext) {
 
     const onlineReferences: OnlineReferenceData[] = [];
     const contextReferences: NotesContextReferenceData[] = [];

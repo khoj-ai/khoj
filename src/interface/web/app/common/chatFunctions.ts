@@ -1,17 +1,13 @@
-import { Context, OnlineContextData, StreamMessage } from "../components/chatMessage/chatMessage";
+import { Context, OnlineContext, StreamMessage } from "../components/chatMessage/chatMessage";
 
 export interface RawReferenceData {
     context?: Context[];
-    onlineContext?: {
-        [key: string]: OnlineContextData
-    }
+    onlineContext?: OnlineContext;
 }
 
 export interface ResponseWithReferences {
     context?: Context[];
-    online?: {
-        [key: string]: OnlineContextData
-    }
+    online?: OnlineContext;
     response?: string;
 }
 
@@ -50,57 +46,65 @@ export function convertMessageChunkToJson(chunk: string): MessageChunk {
     }
 }
 
+function handleJsonResponse(chunkData: any) {
+    const jsonData = chunkData as any;
+    if (jsonData.image || jsonData.detail) {
+        let responseWithReference = handleImageResponse(chunkData, true);
+        if (responseWithReference.response) return responseWithReference.response;
+    } else if (jsonData.response) {
+        return jsonData.response;
+    } else {
+        throw new Error("Invalid JSON response");
+    }
+}
 
-export function processMessageChunk(rawChunk: string, currentMessage: StreamMessage) {
+export function processMessageChunk(
+    rawChunk: string,
+    currentMessage: StreamMessage,
+    context: Context[] = [],
+    onlineContext: OnlineContext = {}): { context: Context[], onlineContext: OnlineContext } {
+
     const chunk = convertMessageChunkToJson(rawChunk);
 
-    if (!currentMessage) {
-        return;
-    }
-
-    if (!chunk || !chunk.type) {
-        return;
-    }
+    if (!currentMessage || !chunk || !chunk.type) return {context, onlineContext};
 
     if (chunk.type === "status") {
+        console.log(`status: ${chunk.data}`);
         const statusMessage = chunk.data as string;
         currentMessage.trainOfThought.push(statusMessage);
     } else if (chunk.type === "references") {
         const references = chunk.data as RawReferenceData;
 
-        if (references.context) {
-            currentMessage.context = references.context;
-        }
-
-        if (references.onlineContext) {
-            currentMessage.onlineContext = references.onlineContext;
-        }
+        if (references.context) context = references.context;
+        if (references.onlineContext) onlineContext = references.onlineContext;
+        return {context, onlineContext}
     } else if (chunk.type === "message") {
         const chunkData = chunk.data;
-
         if (chunkData !== null && typeof chunkData === 'object') {
+            currentMessage.rawResponse += handleJsonResponse(chunkData);
+        } else if (typeof chunkData  === 'string' && chunkData.trim()?.startsWith("{") && chunkData.trim()?.endsWith("}")) {
             try {
-                const jsonData = chunkData as any;
-                if (jsonData.image || jsonData.detail) {
-                    let responseWithReference = handleImageResponse(chunk.data, true);
-                    if (responseWithReference.response) currentMessage.rawResponse = responseWithReference.response;
-                    if (responseWithReference.online) currentMessage.onlineContext = responseWithReference.online;
-                    if (responseWithReference.context) currentMessage.context = responseWithReference.context;
-                } else if (jsonData.response) {
-                    currentMessage.rawResponse = jsonData.response;
-                }
-                else {
-                    console.debug("any message", chunk);
-                }
+                const jsonData = JSON.parse(chunkData.trim());
+                currentMessage.rawResponse += handleJsonResponse(jsonData);
             } catch (e) {
-                currentMessage.rawResponse += chunkData;
+                currentMessage.rawResponse += JSON.stringify(chunkData);
             }
         } else {
             currentMessage.rawResponse += chunkData;
         }
+    } else if (chunk.type === "start_llm_response") {
+        console.log(`Started streaming: ${new Date()}`);
     } else if (chunk.type === "end_llm_response") {
+        console.log(`Completed streaming: ${new Date()}`);
+
+        // Append any references after all the data has been streamed
+        if (onlineContext) currentMessage.onlineContext = onlineContext;
+        if (context) currentMessage.context = context;
+
+        // Mark current message streaming as completed
         currentMessage.completed = true;
     }
+    return {context, onlineContext};
 }
 
 export function handleImageResponse(imageJson: any, liveStream: boolean): ResponseWithReferences {

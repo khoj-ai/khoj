@@ -33,6 +33,10 @@ export interface Context {
     file: string;
 }
 
+export interface OnlineContext {
+    [key: string]: OnlineContextData;
+}
+
 export interface WebPage {
     link: string;
     query: string;
@@ -85,11 +89,9 @@ export interface SingleChatMessage {
     automationId: string;
     by: string;
     message: string;
-    context: Context[];
     created: string;
-    onlineContext: {
-        [key: string]: OnlineContextData
-    }
+    context: Context[];
+    onlineContext: OnlineContext;
     rawQuery?: string;
     intent?: Intent;
     agent?: AgentData;
@@ -99,9 +101,7 @@ export interface StreamMessage {
     rawResponse: string;
     trainOfThought: string[];
     context: Context[];
-    onlineContext: {
-        [key: string]: OnlineContextData
-    }
+    onlineContext: OnlineContext;
     completed: boolean;
     rawQuery: string;
     timestamp: string;

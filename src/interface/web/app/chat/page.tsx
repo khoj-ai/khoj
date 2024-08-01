@@ -9,11 +9,11 @@ import NavMenu from '../components/navMenu/navMenu';
 import { useSearchParams } from 'next/navigation'
 import Loading from '../components/loading/loading';
 
-import { convertMessageChunkToJson, handleImageResponse, processMessageChunk, RawReferenceData } from '../common/chatFunctions';
+import { processMessageChunk } from '../common/chatFunctions';
 
 import 'katex/dist/katex.min.css';
 
-import { StreamMessage } from '../components/chatMessage/chatMessage';
+import { Context, OnlineContext, StreamMessage } from '../components/chatMessage/chatMessage';
 import { useIPLocationData, welcomeConsole } from '../common/utils';
 import ChatInputArea, { ChatOptions } from '../components/chatInputArea/chatInputArea';
 import { useAuthenticatedData } from '../common/auth';
@@ -110,7 +110,6 @@ export default function Chat() {
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [isMobileWidth, setIsMobileWidth] = useState(false);
     const locationData = useIPLocationData();
-
     const authenticatedData = useAuthenticatedData();
 
     useEffect(() => {
@@ -169,8 +168,11 @@ export default function Chat() {
         const eventDelimiter = '␃🔚␗';
         let buffer = "";
 
-        while (true) {
+        // Track context used for chat response
+        let context: Context[] = [];
+        let onlineContext: OnlineContext = {};
 
+        while (true) {
             const { done, value } = await reader.read();
             if (done) {
                 setQueryToProcess('');
@@ -179,7 +181,6 @@ export default function Chat() {
             }
 
             const chunk = decoder.decode(value, { stream: true });
-
             buffer += chunk;
 
             let newEventIndex;
@@ -194,7 +195,8 @@ export default function Chat() {
                         return;
                     }
 
-                    processMessageChunk(event, currentMessage);
+                    // Track context used for chat response. References are rendered at the end of the chat
+                    ({context, onlineContext} = processMessageChunk(event, currentMessage, context, onlineContext));
 
                     setMessages([...messages]);
                 }
@@ -222,10 +224,7 @@ export default function Chat() {
         setConversationID(newConversationId);
     };
 
-    if (isLoading) {
-        return <Loading />;
-    }
-
+    if (isLoading) return <Loading />;
 
     return (
         <div className={styles.main + " " + styles.chatLayout}>

@@ -4,7 +4,7 @@ import styles from './factChecker.module.css';
 import { useAuthenticatedData } from '@/app/common/auth';
 import { useState, useEffect } from 'react';
 
-import ChatMessage, { Context, OnlineContextData, WebPage } from '../components/chatMessage/chatMessage';
+import ChatMessage, { Context, OnlineContext, OnlineContextData, WebPage } from '../components/chatMessage/chatMessage';
 import { ModelPicker, Model } from '../components/modelPicker/modelPicker';
 import ShareLink from '../components/shareLink/shareLink';
 
@@ -47,9 +47,7 @@ interface SupplementReferences {
 
 interface ResponseWithReferences {
     context?: Context[];
-    online?: {
-        [key: string]: OnlineContextData
-    }
+    online?: OnlineContext;
     response?: string;
 }
 
