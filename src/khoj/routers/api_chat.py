@@ -603,6 +603,8 @@ async def chat(
                 metadata=chat_metadata,
             )
 
+        conversation_commands = [get_conversation_command(query=q, any_references=True)]
+
         conversation = await ConversationAdapters.aget_conversation_by_user(
             user, client_application=request.user.client_app, conversation_id=conversation_id, title=title
         )
@@ -624,7 +626,6 @@ async def chat(
             return
 
         user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        conversation_commands = [get_conversation_command(query=q, any_references=True)]
 
         async for result in send_event(ChatEvent.STATUS, f"**Understanding Query**: {q}"):
             yield result
