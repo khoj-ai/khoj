@@ -5,8 +5,11 @@ import "../globals.css";
 const inter = Noto_Sans({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Khoj AI - Chat",
-  description: "Use this page to chat with Khoj AI.",
+    title: "Khoj AI - Chat",
+    description: "Ask anything. Khoj will use the internet and your docs to answer, paint and even automate stuff for you.",
+    icons: {
+        icon: '/static/favicon.ico',
+    },
 };
 
 export default function RootLayout({

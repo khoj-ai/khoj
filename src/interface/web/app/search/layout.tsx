@@ -5,7 +5,7 @@ import "../globals.css";
 
 export const metadata: Metadata = {
     title: "Khoj AI - Search",
-    description: "Search through all the documents you've shared with Khoj AI using natural language queries.",
+    description: "Find anything in documents you've shared with Khoj using natural language queries.",
     icons: {
         icon: '/static/favicon.ico',
     },
