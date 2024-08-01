@@ -815,7 +815,7 @@ async def text_to_image(
     )
 
     if send_status_func:
-        async for event in send_status_func(f"**🖼️ Painting using Enhanced Prompt**:\n{improved_image_prompt}"):
+        async for event in send_status_func(f"**Painting to Imagine**:\n{improved_image_prompt}"):
             yield {ChatEvent.STATUS: event}
 
     if text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
