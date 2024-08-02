@@ -333,7 +333,7 @@ export default function ChatMessage(props: ChatMessageProps) {
     function chatMessageWrapperClasses(chatMessage: SingleChatMessage) {
         let classes = [styles.chatMessageWrapper, styles[chatMessage.by]];
         if (chatMessage.by === "you") {
-            let fontClass = chatMessage.message.length > 100 ? "text-md" : "text-xl";
+            let fontClass = chatMessage.message.length > 100 ? "text-md" : "text-3xl";
             classes.push(fontClass);
         }
 
