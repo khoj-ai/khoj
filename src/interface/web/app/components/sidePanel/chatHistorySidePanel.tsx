@@ -76,6 +76,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { modifyFileFilterForConversation } from "@/app/common/chatFunctions";
 import { ScrollAreaScrollbar } from "@radix-ui/react-scroll-area";
 import { KhojLogo, KhojLogoType } from "@/app/components/logo/khogLogo";
+import NavMenu from "../navMenu/navMenu";
 
 // Define a fetcher function
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -660,11 +661,8 @@ export default function SidePanel(props: SidePanelProps) {
     }, [chatSessions]);
 
     return (
-        <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed} mt-1`}>
+        <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed} ${props.isMobileWidth ? 'mt-0' : 'mt-1'}`}>
             <div className={`flex justify-between flex-row`}>
-                <Link href='/'>
-                    {props.isMobileWidth && <KhojLogo /> || <KhojLogoType />}
-                </Link>
                 {
                     authenticatedData && props.isMobileWidth ?
                         <Drawer open={enabled} onOpenChange={(open) => {
@@ -672,7 +670,7 @@ export default function SidePanel(props: SidePanelProps) {
                             setEnabled(open);
                         }
                         }>
-                            <DrawerTrigger><Sidebar className="h-4 w-4 mx-2" weight="thin" /></DrawerTrigger>
+                            <DrawerTrigger><Sidebar className="h-6 w-6 mx-2" weight="thin" /></DrawerTrigger>
                             <DrawerContent>
                                 <DrawerHeader>
                                     <DrawerTitle>Sessions and Files</DrawerTitle>
@@ -698,14 +696,32 @@ export default function SidePanel(props: SidePanelProps) {
                             </DrawerContent>
                         </Drawer>
                         :
-                        <div className={`${enabled ? 'flex items-center flex-row gap-2' : 'flex'}`}>
-                            <Link className={`ml-4 mr-4`} href="/">
-                                {enabled ? <NotePencil className="h-6 w-6" /> : <NotePencil className="h-6 w-6" color="gray" />}
+                        <div className={`flex justify-between flex-row`}>
+                            <Link href='/' className="content-center">
+                                <KhojLogoType />
                             </Link>
-                            <button className={styles.button} onClick={() => setEnabled(!enabled)}>
-                                {enabled ? <Sidebar className="h-6 w-6" /> : <Sidebar className="h-6 w-6" color="gray" />}
-                            </button>
+                            <div className={`${enabled ? 'flex items-center flex-row gap-2' : 'flex items-center'}`}>
+                                <Link className={`ml-4 mr-4`} href="/">
+                                    {enabled ? <NotePencil className="h-6 w-6" /> : <NotePencil className="h-6 w-6" color="gray" />}
+                                </Link>
+                                <button className={styles.button} onClick={() => setEnabled(!enabled)}>
+                                    {enabled ? <Sidebar className="h-6 w-6" /> : <Sidebar className="h-6 w-6" color="gray" />}
+                                </button>
+                            </div>
+                            <div className="fixed right-0 w-fit h-fit">
+                                <NavMenu />
+                            </div>
                         </div>
+                }
+                {
+                    props.isMobileWidth &&
+                    <Link href='/' className="content-center">
+                        <KhojLogoType />
+                    </Link>
+                }
+                {
+                    props.isMobileWidth &&
+                    <NavMenu />
                 }
             </div>
             {

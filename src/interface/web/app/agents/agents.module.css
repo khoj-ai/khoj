@@ -46,12 +46,17 @@ div.agentList {
 }
 
 
-@media only screen and (max-width: 700px) {
+@media only screen and (max-width: 768px) {
     div.agentList {
         width: 100%;
         padding: 0;
         margin-right: auto;
         margin-left: auto;
         grid-template-columns: 1fr;
+    }
+
+    div.sidePanel {
+        position: relative;
+        height: 100%;
     }
 }

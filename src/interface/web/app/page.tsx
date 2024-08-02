@@ -3,7 +3,7 @@ import './globals.css';
 import styles from './page.module.css';
 import 'katex/dist/katex.min.css';
 
-import React, { use, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import Image from 'next/image';
 import { ClockCounterClockwise } from '@phosphor-icons/react';
@@ -11,7 +11,6 @@ import { ClockCounterClockwise } from '@phosphor-icons/react';
 import { Card, CardTitle } from '@/components/ui/card';
 import SuggestionCard from '@/app/components/suggestions/suggestionCard';
 import SidePanel from '@/app/components/sidePanel/chatHistorySidePanel';
-import NavMenu from '@/app/components/navMenu/navMenu';
 import Loading from '@/app/components/loading/loading';
 import ChatInputArea, { ChatOptions } from '@/app/components/chatInputArea/chatInputArea';
 import { Suggestion, suggestionsData } from '@/app/components/suggestions/suggestionsData';
@@ -20,7 +19,6 @@ import { useAuthenticatedData, UserConfig, useUserConfig } from '@/app/common/au
 import { convertColorToBorderClass } from '@/app/common/colorUtils';
 import { getIconFromIconName } from '@/app/common/iconUtils';
 import { AgentData } from '@/app/agents/page';
-
 
 
 interface ChatBodyDataProps {
@@ -164,8 +162,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }
 
     return (
-        <div className={`${styles.chatBoxBody}`}>
-            <div className="w-full text-center">
+        <div className={`${styles.homeGreetings}`}>
+            <div className={`w-full text-center justify-end content-end`}>
                 <div className="items-center">
                     <h1 className="text-center w-fit pb-6 px-4 mx-auto">{greeting}</h1>
                 </div>
@@ -225,7 +223,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     <button
                         onClick={shuffleSuggestionsCards}
                         className="m-2 p-1.5 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm text-stone-500 dark:text-stone-300 dark:border-neutral-700">
-                        More Examples <ClockCounterClockwise className='h-4 w-4 inline' />
+                        More Ideas <ClockCounterClockwise className='h-4 w-4 inline' />
                     </button>
                 </div>
             </div>
@@ -324,7 +322,6 @@ export default function Home() {
                 />
             </div>
             <div className={`${styles.chatBox}`}>
-                <NavMenu selected="Chat" title={title}></NavMenu>
                 <div className={`${styles.chatBoxBody}`}>
                     <ChatBodyData
                         isLoggedIn={authenticatedData !== null}

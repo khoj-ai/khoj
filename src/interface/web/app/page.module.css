@@ -78,7 +78,13 @@ div.chatBoxBody {
     display: grid;
     height: 100%;
     margin: auto;
-    grid-template-rows: auto 1fr;
+}
+
+div.homeGreetings {
+    display: grid;
+    height: 100%;
+    margin: auto;
+    grid-template-rows: 1fr 2fr;
 }
 
 
@@ -108,6 +114,10 @@ div.sidePanel {
         grid-template-rows: auto;
     }
 
+    div.sidePanel {
+        position: relative;
+    }
+
     div.chatBox {
         padding: 0;
     }
@@ -115,6 +125,10 @@ div.sidePanel {
     div.chatLayout {
         gap: 0;
         grid-template-columns: 1fr;
+    }
+
+    div.homeGreetings {
+        grid-template-rows: auto;
     }
 
 }

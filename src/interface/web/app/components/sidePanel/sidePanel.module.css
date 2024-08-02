@@ -123,9 +123,9 @@ div.modalSessionsList div.session {
 
 @media screen and (max-width: 768px) {
     div.panel {
-        padding: 0.5rem;
-        position: fixed;
-        width: fit-content;
+        padding: 0.25rem;
+        /* position: fixed; */
+        width: 100%;
     }
 
     div.expanded {
