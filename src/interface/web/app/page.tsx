@@ -3,7 +3,7 @@ import './globals.css';
 import styles from './page.module.css';
 import 'katex/dist/katex.min.css';
 
-import React, { useEffect, useState } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import useSWR from 'swr';
 import Image from 'next/image';
 import { ClockCounterClockwise } from '@phosphor-icons/react';
@@ -16,7 +16,7 @@ import Loading from '@/app/components/loading/loading';
 import ChatInputArea, { ChatOptions } from '@/app/components/chatInputArea/chatInputArea';
 import { Suggestion, suggestionsData } from '@/app/components/suggestions/suggestionsData';
 
-import { useAuthenticatedData, useUserConfig } from '@/app/common/auth';
+import { useAuthenticatedData, UserConfig, useUserConfig } from '@/app/common/auth';
 import { convertColorToBorderClass } from '@/app/common/colorUtils';
 import { getIconFromIconName } from '@/app/common/iconUtils';
 import { AgentData } from '@/app/agents/page';
@@ -29,6 +29,8 @@ interface ChatBodyDataProps {
     setUploadedFiles: (files: string[]) => void;
     isMobileWidth?: boolean;
     isLoggedIn: boolean;
+    userConfig: UserConfig | null;
+    isLoadingUserConfig: boolean;
 }
 
 async function createNewConvo(slug: string) {
@@ -54,7 +56,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [agentIcons, setAgentIcons] = useState<JSX.Element[]>([]);
     const [agents, setAgents] = useState<AgentData[]>([]);
 
-    const userConfig = useUserConfig(true);
     const agentsFetcher = () => window.fetch('/api/agents').then(res => res.json()).catch(err => console.log(err));
     const { data: agentsData, error } = useSWR<AgentData[]>('agents', agentsFetcher, { revalidateOnFocus: false });
 
@@ -64,12 +65,17 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }
 
     useEffect(() => {
+        console.log(`Loading user config: ${props.isLoadingUserConfig}`);
+        if (props.isLoadingUserConfig) return;
+
+        // Set user config
+        console.log(`Logged In: ${props.isLoggedIn}\nUserConfig: ${props.userConfig}`);
+
         // Get today's day
         const today = new Date();
         const day = today.getDay();
         const timeOfDay = today.getHours() > 4 && today.getHours() < 12 ? 'morning' : today.getHours() < 17 ? 'afternoon' : 'evening';
-        const nameSuffix = userConfig?.given_name ? `, ${userConfig?.given_name}` : "";
-        console.log(userConfig);
+        const nameSuffix = props.userConfig?.given_name ? `, ${props.userConfig?.given_name}` : "";
         const greetings = [
             `What would you like to get done${nameSuffix}?`,
             `Hey${nameSuffix}! How can I help?`,
@@ -79,7 +85,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
         ];
         const greeting = greetings[Math.floor(Math.random() * greetings.length)];
         setGreeting(greeting);
-    }, []);
+    }, [props.isLoadingUserConfig, props.userConfig]);
 
     useEffect(() => {
         if (props.chatOptionsData) {
@@ -161,7 +167,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
         <div className={`${styles.chatBoxBody}`}>
             <div className="w-full text-center">
                 <div className="items-center">
-                    <h1 className="text-center pb-6 px-4 w-fit ml-auto mr-auto">{greeting}</h1>
+                    <h1 className="text-center w-fit pb-6 px-4 mx-auto">{greeting}</h1>
                 </div>
                 {
                     !props.isMobileWidth &&
@@ -266,11 +272,18 @@ export default function Home() {
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [isMobileWidth, setIsMobileWidth] = useState(false);
 
+    const {userConfig: initialUserConfig, isLoadingUserConfig} = useUserConfig(true);
+    const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
+
     const authenticatedData = useAuthenticatedData();
 
     const handleConversationIdChange = (newConversationId: string) => {
         setConversationID(newConversationId);
     };
+
+    useEffect(() => {
+        setUserConfig(initialUserConfig);
+    }, [initialUserConfig]);
 
     useEffect(() => {
         fetch('/api/chat/options')
@@ -319,6 +332,8 @@ export default function Home() {
                         setUploadedFiles={setUploadedFiles}
                         isMobileWidth={isMobileWidth}
                         onConversationIdChange={handleConversationIdChange}
+                        userConfig={userConfig}
+                        isLoadingUserConfig={isLoadingUserConfig}
                     />
                 </div>
             </div>
