@@ -655,7 +655,6 @@ export default function SettingsView() {
                 />
             </div>
             <div className={styles.content}>
-                <NavMenu selected="Settings" title="Settings" showLogo={true} />
                 <div className={styles.contentBody}>
                     <Suspense fallback={<Loading />}>
                         <div id="content" className="grid grid-flow-column sm:grid-flow-row gap-16 m-8">
