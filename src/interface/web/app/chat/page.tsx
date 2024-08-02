@@ -9,7 +9,7 @@ import NavMenu from '../components/navMenu/navMenu';
 import { useSearchParams } from 'next/navigation'
 import Loading from '../components/loading/loading';
 
-import { convertMessageChunkToJson, handleImageResponse, RawReferenceData } from '../common/chatFunctions';
+import { convertMessageChunkToJson, handleImageResponse, processMessageChunk, RawReferenceData } from '../common/chatFunctions';
 
 import 'katex/dist/katex.min.css';
 
@@ -186,10 +186,18 @@ export default function Chat() {
                 const event = buffer.slice(0, newEventIndex);
                 buffer = buffer.slice(newEventIndex + eventDelimiter.length);
                 if (event) {
-                    processMessageChunk(event);
+                    const currentMessage = messages.find(message => !message.completed);
+
+                    if (!currentMessage) {
+                        console.error("No current message found");
+                        return;
+                    }
+
+                    processMessageChunk(event, currentMessage);
+
+                    setMessages([...messages]);
                 }
             }
-
         }
     }
 
@@ -207,60 +215,6 @@ export default function Chat() {
         } catch (err) {
             console.log(err);
         }
-    }
-
-    function processMessageChunk(rawChunk: string) {
-        const chunk = convertMessageChunkToJson(rawChunk);
-        const currentMessage = messages.find(message => !message.completed);
-
-        if (!currentMessage) {
-            return;
-        }
-
-        if (!chunk || !chunk.type) {
-            return;
-        }
-
-        if (chunk.type === "status") {
-            const statusMessage = chunk.data as string;
-            currentMessage.trainOfThought.push(statusMessage);
-        } else if (chunk.type === "references") {
-            const references = chunk.data as RawReferenceData;
-
-            if (references.context) {
-                currentMessage.context = references.context;
-            }
-
-            if (references.onlineContext) {
-                currentMessage.onlineContext = references.onlineContext;
-            }
-        } else if (chunk.type === "message") {
-            const chunkData = chunk.data;
-
-            if (chunkData !== null && typeof chunkData === 'object') {
-                try {
-                    const jsonData = chunkData as any;
-                    if (jsonData.image || jsonData.detail) {
-                        let responseWithReference = handleImageResponse(chunk.data, true);
-                        if (responseWithReference.response) currentMessage.rawResponse = responseWithReference.response;
-                        if (responseWithReference.online) currentMessage.onlineContext = responseWithReference.online;
-                        if (responseWithReference.context) currentMessage.context = responseWithReference.context;
-                    } else if (jsonData.response) {
-                        currentMessage.rawResponse = jsonData.response;
-                    }
-                    else {
-                        console.log("any message", chunk);
-                    }
-                } catch (e) {
-                    currentMessage.rawResponse += chunkData;
-                }
-            } else {
-                currentMessage.rawResponse += chunkData;
-            }
-        } else if (chunk.type === "end_llm_response") {
-            currentMessage.completed = true;
-        }
-        setMessages([...messages]);
     }
 
     const handleConversationIdChange = (newConversationId: string) => {

@@ -1,4 +1,4 @@
-import { Context, OnlineContextData } from "../components/chatMessage/chatMessage";
+import { Context, OnlineContextData, StreamMessage } from "../components/chatMessage/chatMessage";
 
 export interface RawReferenceData {
     context?: Context[];
@@ -65,6 +65,59 @@ export function convertMessageChunkToJson(chunk: string): MessageChunk {
             type: "message",
             data: ""
         };
+    }
+}
+
+
+export function processMessageChunk(rawChunk: string, currentMessage: StreamMessage) {
+    const chunk = convertMessageChunkToJson(rawChunk);
+
+    if (!currentMessage) {
+        return;
+    }
+
+    if (!chunk || !chunk.type) {
+        return;
+    }
+
+    if (chunk.type === "status") {
+        const statusMessage = chunk.data as string;
+        currentMessage.trainOfThought.push(statusMessage);
+    } else if (chunk.type === "references") {
+        const references = chunk.data as RawReferenceData;
+
+        if (references.context) {
+            currentMessage.context = references.context;
+        }
+
+        if (references.onlineContext) {
+            currentMessage.onlineContext = references.onlineContext;
+        }
+    } else if (chunk.type === "message") {
+        const chunkData = chunk.data;
+
+        if (chunkData !== null && typeof chunkData === 'object') {
+            try {
+                const jsonData = chunkData as any;
+                if (jsonData.image || jsonData.detail) {
+                    let responseWithReference = handleImageResponse(chunk.data, true);
+                    if (responseWithReference.response) currentMessage.rawResponse = responseWithReference.response;
+                    if (responseWithReference.online) currentMessage.onlineContext = responseWithReference.online;
+                    if (responseWithReference.context) currentMessage.context = responseWithReference.context;
+                } else if (jsonData.response) {
+                    currentMessage.rawResponse = jsonData.response;
+                }
+                else {
+                    console.debug("any message", chunk);
+                }
+            } catch (e) {
+                currentMessage.rawResponse += chunkData;
+            }
+        } else {
+            currentMessage.rawResponse += chunkData;
+        }
+    } else if (chunk.type === "end_llm_response") {
+        currentMessage.completed = true;
     }
 }
 

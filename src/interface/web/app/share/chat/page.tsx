@@ -15,7 +15,7 @@ import { useAuthenticatedData } from '@/app/common/auth';
 
 import ChatInputArea, { ChatOptions } from '@/app/components/chatInputArea/chatInputArea';
 import { StreamMessage } from '@/app/components/chatMessage/chatMessage';
-import { convertMessageChunkToJson, handleCompiledReferences, handleImageResponse, RawReferenceData } from '@/app/common/chatFunctions';
+import { convertMessageChunkToJson, handleCompiledReferences, handleImageResponse, processMessageChunk, RawReferenceData } from '@/app/common/chatFunctions';
 import { AgentData } from '@/app/agents/page';
 
 
@@ -204,7 +204,16 @@ export default function SharedChat() {
                 const event = buffer.slice(0, newEventIndex);
                 buffer = buffer.slice(newEventIndex + eventDelimiter.length);
                 if (event) {
-                    processMessageChunk(event);
+                    const currentMessage = messages.find(message => !message.completed);
+
+                    if (!currentMessage) {
+                        console.error("No current message found");
+                        return;
+                    }
+
+                    processMessageChunk(event, currentMessage);
+
+                    setMessages([...messages]);
                 }
             }
 
@@ -244,60 +253,6 @@ export default function SharedChat() {
             }
         })();
     }, [conversationId]);
-
-    function processMessageChunk(rawChunk: string) {
-        const chunk = convertMessageChunkToJson(rawChunk);
-        const currentMessage = messages.find(message => !message.completed);
-
-        if (!currentMessage) {
-            return;
-        }
-
-        if (!chunk || !chunk.type) {
-            return;
-        }
-
-        if (chunk.type === "status") {
-            const statusMessage = chunk.data as string;
-            currentMessage.trainOfThought.push(statusMessage);
-        } else if (chunk.type === "references") {
-            const references = chunk.data as RawReferenceData;
-
-            if (references.context) {
-                currentMessage.context = references.context;
-            }
-
-            if (references.onlineContext) {
-                currentMessage.onlineContext = references.onlineContext;
-            }
-        } else if (chunk.type === "message") {
-            const chunkData = chunk.data;
-
-            if (chunkData !== null && typeof chunkData === 'object') {
-                try {
-                    const jsonData = chunkData as any;
-                    if (jsonData.image || jsonData.detail) {
-                        let responseWithReference = handleImageResponse(chunk.data, true);
-                        if (responseWithReference.response) currentMessage.rawResponse = responseWithReference.response;
-                        if (responseWithReference.online) currentMessage.onlineContext = responseWithReference.online;
-                        if (responseWithReference.context) currentMessage.context = responseWithReference.context;
-                    } else if (jsonData.response) {
-                        currentMessage.rawResponse = jsonData.response;
-                    }
-                    else {
-                        console.log("any message", chunk);
-                    }
-                } catch (e) {
-                    currentMessage.rawResponse += chunkData;
-                }
-            } else {
-                currentMessage.rawResponse += chunkData;
-            }
-        } else if (chunk.type === "end_llm_response") {
-            currentMessage.completed = true;
-        }
-        setMessages([...messages]);
-    }
 
     if (isLoading) {
         return <Loading />;
