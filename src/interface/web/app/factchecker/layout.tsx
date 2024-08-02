@@ -1,7 +1,4 @@
-
 import type { Metadata } from "next";
-import NavMenu from '../components/navMenu/navMenu';
-import styles from './factCheckerLayout.module.css';
 
 export const metadata: Metadata = {
     title: "Khoj AI - Fact Checker",
@@ -17,8 +14,7 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <div className={styles.factCheckerLayout}>
-            <NavMenu selected="none" />
+        <div>
             {children}
         </div>
     );
