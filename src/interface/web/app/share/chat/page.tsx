@@ -280,7 +280,6 @@ export default function SharedChat() {
             </div>
 
             <div className={styles.chatBox}>
-                <NavMenu selected="Chat" title={title} />
                 <div className={styles.chatBoxBody}>
                     <Suspense fallback={<Loading />}>
                         <ChatBodyData
