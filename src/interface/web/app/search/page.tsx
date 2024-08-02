@@ -222,7 +222,7 @@ export default function Search() {
                 <div className="md:w-3/4 sm:w-full mr-auto ml-auto pt-4 md:pt-8">
                     <div className='p-4 md:w-3/4 sm:w-full mr-auto ml-auto'>
                         <div className='flex justify-between items-center border-2 border-muted p-2 gap-4 rounded-lg'>
-                            <MagnifyingGlass className='inline m-2' />
+                            <MagnifyingGlass className='inline m-2 h-4 w-4' />
                             <Input
                                 autoFocus
                                 className='border-none'
