@@ -936,9 +936,6 @@ export default function Automations() {
 
     return (
         <main className={`${styles.main} w-full ml-auto mr-auto`}>
-            <div className="float-right w-fit h-fit">
-                <NavMenu selected="Automations" />
-            </div>
             <div className={`grid w-full ml-auto mr-auto`}>
                 <div className={`${styles.sidePanel} top-0`}>
                     <SidePanel
@@ -949,7 +946,7 @@ export default function Automations() {
                 </div>
                 <div className={`${styles.pageLayout} w-full`}>
                     <div className='py-4 sm:flex sm:justify-between grid gap-1'>
-                        <h1 className="text-3xl">Automations</h1>
+                        <h1 className="text-3xl pt-4">Automations</h1>
                         <div className='flex flex-wrap gap-2 items-center md:justify-start justify-end'>
                             {
                                 authenticatedData ? (

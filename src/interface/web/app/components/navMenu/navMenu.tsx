@@ -23,35 +23,16 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Moon, Sun, UserCircle, User, Robot, MagnifyingGlass, Question, GearFine, ArrowRight } from '@phosphor-icons/react';
-import { KhojLogoType } from '../logo/khogLogo';
 
-
-interface NavMenuProps {
-    selected: string;
-    showLogo?: boolean;
-    title?: string;
-}
-
-export default function NavMenu(props: NavMenuProps) {
+export default function NavMenu() {
 
     const userData = useAuthenticatedData();
-    const [displayTitle, setDisplayTitle] = useState<string | undefined>(props.title);
-
     const [isMobileWidth, setIsMobileWidth] = useState(false);
     const [darkMode, setDarkMode] = useState(false);
     const [initialLoadDone, setInitialLoadDone] = useState(false);
 
     useEffect(() => {
         setIsMobileWidth(window.innerWidth < 768);
-        if (props.title) {
-            setDisplayTitle(props.title);
-        } else if (!props.title) {
-            setDisplayTitle(undefined);
-        }
-
-    }, [props.title]);
-
-    useEffect(() => {
 
         window.addEventListener('resize', () => {
             setIsMobileWidth(window.innerWidth < 768);
@@ -94,15 +75,6 @@ export default function NavMenu(props: NavMenuProps) {
 
     return (
         <div className={styles.titleBar}>
-            <div className={`text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mr-8`}>
-                {displayTitle && <h2 className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden`} >{displayTitle}</h2>}
-                {
-                    !displayTitle && props.showLogo &&
-                    <Link href='/'>
-                        <KhojLogoType />
-                    </Link>
-                }
-            </div>
             {
                 isMobileWidth ?
                     <DropdownMenu>

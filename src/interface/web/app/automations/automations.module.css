@@ -28,4 +28,9 @@ div.sidePanel {
     div.pageLayout {
         max-width: 90vw;
     }
+
+    div.sidePanel {
+        position: relative;
+        height: 100%;
+    }
 }

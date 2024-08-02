@@ -6,7 +6,6 @@ import React, { useEffect, useState } from 'react';
 
 import SuggestionCard from './components/suggestions/suggestionCard';
 import SidePanel from './components/sidePanel/chatHistorySidePanel';
-import NavMenu from './components/navMenu/navMenu';
 import Loading from './components/loading/loading';
 import useSWR from 'swr';
 import Image from 'next/image';
@@ -157,8 +156,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }
 
     return (
-        <div className={`${styles.chatBoxBody}`}>
-            <div className="w-full text-center">
+        <div className={`${styles.homeGreetings}`}>
+            <div className={`w-full text-center justify-end content-end`}>
                 <div className="items-center">
                     <h1 className="text-center pb-6 px-4 w-fit ml-auto mr-auto">{greeting}</h1>
                 </div>
@@ -218,7 +217,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     <button
                         onClick={shuffleSuggestionsCards}
                         className="m-2 p-1.5 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm text-stone-500 dark:text-stone-300 dark:border-neutral-700">
-                        More Examples <ClockCounterClockwise className='h-4 w-4 inline' />
+                        More Ideas <ClockCounterClockwise className='h-4 w-4 inline' />
                     </button>
                 </div>
             </div>
@@ -310,7 +309,6 @@ export default function Home() {
                 />
             </div>
             <div className={`${styles.chatBox}`}>
-                <NavMenu selected="Chat" title={title}></NavMenu>
                 <div className={`${styles.chatBoxBody}`}>
                     <ChatBodyData
                         isLoggedIn={authenticatedData !== null}

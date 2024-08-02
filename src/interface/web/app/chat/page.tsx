@@ -196,7 +196,7 @@ export default function Chat() {
                     }
 
                     // Track context used for chat response. References are rendered at the end of the chat
-                    ({context, onlineContext} = processMessageChunk(event, currentMessage, context, onlineContext));
+                    ({ context, onlineContext } = processMessageChunk(event, currentMessage, context, onlineContext));
 
                     setMessages([...messages]);
                 }
@@ -231,16 +231,34 @@ export default function Chat() {
             <title>
                 {title}
             </title>
-            <div>
-                <SidePanel
-                    conversationId={conversationId}
-                    uploadedFiles={uploadedFiles}
-                    isMobileWidth={isMobileWidth}
-                />
-            </div>
+            {
+                !isMobileWidth &&
+                <div>
+                    <SidePanel
+                        conversationId={conversationId}
+                        uploadedFiles={uploadedFiles}
+                        isMobileWidth={isMobileWidth}
+                    />
+                </div>
+            }
             <div className={styles.chatBox}>
-                <NavMenu selected="Chat" title={title} />
+                {
+                    isMobileWidth &&
+                    <div>
+                        <SidePanel
+                            conversationId={conversationId}
+                            uploadedFiles={uploadedFiles}
+                            isMobileWidth={isMobileWidth}
+                        />
+                    </div>
+                }
                 <div className={styles.chatBoxBody}>
+                    {
+                        !isMobileWidth &&
+                        <div className={`text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mr-8`}>
+                            {title && <h2 className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden pt-4`}>{title}</h2>}
+                        </div>
+                    }
                     <Suspense fallback={<Loading />}>
                         <ChatBodyData
                             isLoggedIn={authenticatedData !== null}
