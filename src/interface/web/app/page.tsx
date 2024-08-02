@@ -1,39 +1,26 @@
 'use client'
 import './globals.css';
-
 import styles from './page.module.css';
-import React, { useEffect, useState } from 'react';
-
-import SuggestionCard from './components/suggestions/suggestionCard';
-import SidePanel from './components/sidePanel/chatHistorySidePanel';
-import NavMenu from './components/navMenu/navMenu';
-import Loading from './components/loading/loading';
-import useSWR from 'swr';
-import Image from 'next/image';
-
 import 'katex/dist/katex.min.css';
 
-import ChatInputArea, { ChatOptions } from './components/chatInputArea/chatInputArea';
-import { useAuthenticatedData } from './common/auth';
-import { Card, CardTitle } from '@/components/ui/card';
-import { convertColorToBorderClass } from './common/colorUtils';
-import { getIconFromIconName } from './common/iconUtils';
+import React, { useEffect, useState } from 'react';
+import useSWR from 'swr';
+import Image from 'next/image';
 import { ClockCounterClockwise } from '@phosphor-icons/react';
-import { AgentData } from './agents/page';
 
-import { Suggestion, suggestionsData } from './components/suggestions/suggestionsData';
+import { Card, CardTitle } from '@/components/ui/card';
+import SuggestionCard from '@/app/components/suggestions/suggestionCard';
+import SidePanel from '@/app/components/sidePanel/chatHistorySidePanel';
+import NavMenu from '@/app/components/navMenu/navMenu';
+import Loading from '@/app/components/loading/loading';
+import ChatInputArea, { ChatOptions } from '@/app/components/chatInputArea/chatInputArea';
+import { Suggestion, suggestionsData } from '@/app/components/suggestions/suggestionsData';
 
-//get today's day
-const today = new Date();
-const day = today.getDay();
-const greetings = [
-    `Good ${today.getHours() < 12 ? 'morning' : today.getHours() < 15 ? 'afternoon' : 'evening'}! What would you like to do today?`,
-    'How can I help you today?',
-    `Good ${today.getHours() < 12 ? 'morning' : today.getHours() < 15 ? 'afternoon' : 'evening'}! What's on your mind?`,
-    `Ready to breeze through your ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]}?`,
-    `Want to navigate your ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]} workload?`
-];
-const greeting = greetings[~~(Math.random() * greetings.length)];
+import { useAuthenticatedData, useUserConfig } from '@/app/common/auth';
+import { convertColorToBorderClass } from '@/app/common/colorUtils';
+import { getIconFromIconName } from '@/app/common/iconUtils';
+import { AgentData } from '@/app/agents/page';
+
 
 
 interface ChatBodyDataProps {
@@ -47,14 +34,10 @@ interface ChatBodyDataProps {
 async function createNewConvo(slug: string) {
     try {
         const response = await fetch(`/api/chat/sessions?client=web&agent_slug=${slug}`, { method: "POST" });
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`Failed to fetch chat sessions with status: ${response.status}`);
         const data = await response.json();
         const conversationID = data.conversation_id;
-        if (!conversationID) {
-            throw new Error("Conversation ID not found in response");
-        }
+        if (!conversationID) throw new Error("Conversation ID not found in response");
         return conversationID;
     } catch (error) {
         console.error("Error creating new conversation:", error);
@@ -65,11 +48,13 @@ async function createNewConvo(slug: string) {
 function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState('');
     const [processingMessage, setProcessingMessage] = useState(false);
+    const [greeting, setGreeting] = useState('');
     const [shuffledOptions, setShuffledOptions] = useState<Suggestion[]>([]);
     const [selectedAgent, setSelectedAgent] = useState<string | null>("khoj");
     const [agentIcons, setAgentIcons] = useState<JSX.Element[]>([]);
     const [agents, setAgents] = useState<AgentData[]>([]);
 
+    const userConfig = useUserConfig(true);
     const agentsFetcher = () => window.fetch('/api/agents').then(res => res.json()).catch(err => console.log(err));
     const { data: agentsData, error } = useSWR<AgentData[]>('agents', agentsFetcher, { revalidateOnFocus: false });
 
@@ -79,6 +64,24 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }
 
     useEffect(() => {
+        // Get today's day
+        const today = new Date();
+        const day = today.getDay();
+        const timeOfDay = today.getHours() > 4 && today.getHours() < 12 ? 'morning' : today.getHours() < 17 ? 'afternoon' : 'evening';
+        const nameSuffix = userConfig?.given_name ? `, ${userConfig?.given_name}` : "";
+        console.log(userConfig);
+        const greetings = [
+            `What would you like to get done${nameSuffix}?`,
+            `Hey${nameSuffix}! How can I help?`,
+            `Good ${timeOfDay}${nameSuffix}! What's on your mind?`,
+            `Ready to breeze through your ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]}?`,
+            `Want help navigating your ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]} workload?`
+        ];
+        const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+        setGreeting(greeting);
+    }, []);
+
+    useEffect(() => {
         if (props.chatOptionsData) {
             shuffleAndSetOptions();
         }
@@ -86,9 +89,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
 
     useEffect(() => {
         const nSlice = props.isMobileWidth ? 3 : 4;
-
         const shuffledAgents = agentsData ? [...agentsData].sort(() => 0.5 - Math.random()) : [];
-
         const agents = agentsData ? [agentsData[0]] : []; // Always add the first/default agent.
 
         shuffledAgents.slice(0, nSlice - 1).forEach(agent => {
