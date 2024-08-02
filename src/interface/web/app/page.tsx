@@ -21,6 +21,7 @@ import { ClockCounterClockwise } from '@phosphor-icons/react';
 import { AgentData } from './agents/page';
 
 import { Suggestion, suggestionsData } from './components/suggestions/suggestionsData';
+import LoginPrompt from './components/loginPrompt/loginPrompt';
 
 //get today's day
 const today = new Date();
@@ -68,6 +69,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [selectedAgent, setSelectedAgent] = useState<string | null>("khoj");
     const [agentIcons, setAgentIcons] = useState<JSX.Element[]>([]);
     const [agents, setAgents] = useState<AgentData[]>([]);
+    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
     const agentsFetcher = () => window.fetch('/api/agents').then(res => res.json()).catch(err => console.log(err));
     const { data: agentsData, error } = useSWR<AgentData[]>('agents', agentsFetcher, { revalidateOnFocus: false });
@@ -157,6 +159,13 @@ function ChatBodyData(props: ChatBodyDataProps) {
 
     return (
         <div className={`${styles.homeGreetings}`}>
+            {
+                showLoginPrompt && (
+                    <LoginPrompt
+                        onOpenChange={setShowLoginPrompt}
+                        loginRedirectMessage={"Login to start extending your second brain"} />
+                )
+            }
             <div className={`w-full text-center justify-end content-end`}>
                 <div className="items-center">
                     <h1 className="text-center pb-6 px-4 w-fit ml-auto mr-auto">{greeting}</h1>
@@ -202,7 +211,15 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     {shuffledOptions.map((suggestion, index) => (
                         <div
                             key={`${suggestion.type} ${suggestion.description}`}
-                            onClick={() => fillArea(suggestion.link, suggestion.type, suggestion.description)}>
+                            onClick={(event) => {
+                                if (props.isLoggedIn) {
+                                    fillArea(suggestion.link, suggestion.type, suggestion.description);
+                                } else {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    setShowLoginPrompt(true);
+                                }
+                            }}>
                             <SuggestionCard
                                 key={suggestion.type + Math.random()}
                                 title={suggestion.type}
@@ -259,7 +276,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
 export default function Home() {
     const [chatOptionsData, setChatOptionsData] = useState<ChatOptions | null>(null);
     const [isLoading, setLoading] = useState(true);
-    const [title, setTitle] = useState('');
     const [conversationId, setConversationID] = useState<string | null>(null);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [isMobileWidth, setIsMobileWidth] = useState(false);
@@ -299,7 +315,7 @@ export default function Home() {
     return (
         <div className={`${styles.main} ${styles.chatLayout}`}>
             <title>
-                {title}
+                Khoj AI - Your Second Brain
             </title>
             <div className={`${styles.sidePanel}`}>
                 <SidePanel

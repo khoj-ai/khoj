@@ -742,10 +742,8 @@ export default function SidePanel(props: SidePanelProps) {
             {
                 !authenticatedData && enabled &&
                 <div className={`${styles.panelWrapper}`}>
-                    <Link href="/">
+                    <Link href="/" className="flex flex-col content-start items-start no-underline">
                         <Button variant="ghost"><House className="h-4 w-4 mr-1" />Home</Button>
-                    </Link>
-                    <Link href="/">
                         <Button variant="ghost"><StackPlus className="h-4 w-4 mr-1" />New Conversation</Button>
                     </Link>
                     <Link href={`/login?next=${encodeURIComponent(window.location.pathname)}`}> {/* Redirect to login page */}
