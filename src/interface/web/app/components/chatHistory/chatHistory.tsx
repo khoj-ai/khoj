@@ -17,6 +17,7 @@ import { Lightbulb } from "@phosphor-icons/react";
 import ProfileCard from '../profileCard/profileCard';
 import { getIconFromIconName } from '@/app/common/iconUtils';
 import { AgentData } from '@/app/agents/page';
+import React from 'react';
 
 interface ChatResponse {
     status: string;
@@ -120,7 +121,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
     }, [props.conversationId]);
 
     useEffect(() => {
-        console.log(props.incomingMessages);
         if (props.incomingMessages) {
             const lastMessage = props.incomingMessages[props.incomingMessages.length - 1];
             if (lastMessage && !lastMessage.completed) {
@@ -195,7 +195,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                     setFetchingData(false);
                 } else {
                     if (chatData.response.agent && chatData.response.conversation_id) {
-                        const chatMetadata ={
+                        const chatMetadata = {
                             chat: [],
                             agent: chatData.response.agent,
                             conversation_id: chatData.response.conversation_id,
@@ -256,7 +256,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
             <div ref={ref}>
                 <div className={styles.chatHistory} ref={chatHistoryRef}>
                     <div ref={sentinelRef} style={{ height: '1px' }}>
-                        {fetchingData && <InlineLoading message="Loading Conversation" className='opacity-50'/>}
+                        {fetchingData && <InlineLoading message="Loading Conversation" className='opacity-50' />}
                     </div>
                     {(data && data.chat) && data.chat.map((chatMessage, index) => (
                         <ChatMessage
@@ -271,7 +271,8 @@ export default function ChatHistory(props: ChatHistoryProps) {
                     {
                         props.incomingMessages && props.incomingMessages.map((message, index) => {
                             return (
-                                <>
+                                <React.Fragment key={`incomingMessage${index}`}>
+
                                     <ChatMessage
                                         key={`${index}outgoing`}
                                         isMobileWidth={isMobileWidth}
@@ -314,7 +315,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         borderLeftColor={`${data?.agent.color}-500`}
                                         isLastMessage={true}
                                     />
-                                </>
+                                </React.Fragment>
                             )
                         })
                     }

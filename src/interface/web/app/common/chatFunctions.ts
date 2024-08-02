@@ -1,114 +1,113 @@
-import { Context, OnlineContextData } from "../components/chatMessage/chatMessage";
+import { Context, OnlineContext, StreamMessage } from "../components/chatMessage/chatMessage";
 
-interface ResponseWithReferences {
+export interface RawReferenceData {
     context?: Context[];
-    online?: {
-        [key: string]: OnlineContextData
-    }
+    onlineContext?: OnlineContext;
+}
+
+export interface ResponseWithReferences {
+    context?: Context[];
+    online?: OnlineContext;
     response?: string;
 }
 
-export function handleCompiledReferences(chunk: string, currentResponse: string) {
-    const rawReference = chunk.split("### compiled references:")[1];
-    const rawResponse = chunk.split("### compiled references:")[0];
-    let references: ResponseWithReferences = {};
-
-    // Set the initial response
-    references.response = currentResponse + rawResponse;
-
-    const rawReferenceAsJson = JSON.parse(rawReference);
-    if (rawReferenceAsJson instanceof Array) {
-        references.context = rawReferenceAsJson;
-    } else if (typeof rawReferenceAsJson === "object" && rawReferenceAsJson !== null) {
-        references.online = rawReferenceAsJson;
-    }
-
-    return references;
+interface MessageChunk {
+    type: string;
+    data: string | object;
 }
 
-async function sendChatStream(
-    message: string,
-    conversationId: string,
-    setIsLoading: (loading: boolean) => void,
-    setInitialResponse: (response: string) => void,
-    setInitialReferences: (references: ResponseWithReferences) => void) {
-    setIsLoading(true);
-    // Send a message to the chat server to verify the fact
-    const chatURL = "/api/chat";
-    const apiURL = `${chatURL}?q=${encodeURIComponent(message)}&client=web&stream=true&conversation_id=${conversationId}`;
-    try {
-        const response = await fetch(apiURL);
-        if (!response.body) throw new Error("No response body found");
-
-        const reader = response.body?.getReader();
-        let decoder = new TextDecoder();
-        let result = "";
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            let chunk = decoder.decode(value, { stream: true });
-
-            if (chunk.includes("### compiled references:")) {
-                const references = handleCompiledReferences(chunk, result);
-                if (references.response) {
-                    result = references.response;
-                    setInitialResponse(references.response);
-                    setInitialReferences(references);
-                }
-            } else {
-                result += chunk;
-                setInitialResponse(result);
+export function convertMessageChunkToJson(chunk: string): MessageChunk {
+    if (chunk.startsWith("{") && chunk.endsWith("}")) {
+        try {
+            const jsonChunk = JSON.parse(chunk);
+            if (!jsonChunk.type) {
+                return {
+                    type: "message",
+                    data: jsonChunk
+                };
             }
+            return jsonChunk;
+        } catch (error) {
+            return {
+                type: "message",
+                data: chunk
+            };
         }
-    } catch (error) {
-        console.error("Error verifying statement: ", error);
-    } finally {
-        setIsLoading(false);
+    } else if (chunk.length > 0) {
+        return {
+            type: "message",
+            data: chunk
+        };
+    } else {
+        return {
+            type: "message",
+            data: ""
+        };
     }
 }
 
-export const setupWebSocket = async (conversationId: string, initialMessage?: string) => {
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-
-    const host = process.env.NODE_ENV === 'production' ? window.location.host : 'localhost:42110';
-
-    let webSocketUrl = `${wsProtocol}//${host}/api/chat/ws`;
-
-    if (conversationId === null) {
-        return null;
+function handleJsonResponse(chunkData: any) {
+    const jsonData = chunkData as any;
+    if (jsonData.image || jsonData.detail) {
+        let responseWithReference = handleImageResponse(chunkData, true);
+        if (responseWithReference.response) return responseWithReference.response;
+    } else if (jsonData.response) {
+        return jsonData.response;
+    } else {
+        throw new Error("Invalid JSON response");
     }
+}
 
-    if (conversationId) {
-        webSocketUrl += `?conversation_id=${conversationId}`;
-    }
+export function processMessageChunk(
+    rawChunk: string,
+    currentMessage: StreamMessage,
+    context: Context[] = [],
+    onlineContext: OnlineContext = {}): { context: Context[], onlineContext: OnlineContext } {
 
-    const chatWS = new WebSocket(webSocketUrl);
+    const chunk = convertMessageChunkToJson(rawChunk);
 
-    chatWS.onopen = () => {
-        console.log('WebSocket connection established');
-        if (initialMessage) {
-            chatWS.send(initialMessage);
+    if (!currentMessage || !chunk || !chunk.type) return {context, onlineContext};
+
+    if (chunk.type === "status") {
+        console.log(`status: ${chunk.data}`);
+        const statusMessage = chunk.data as string;
+        currentMessage.trainOfThought.push(statusMessage);
+    } else if (chunk.type === "references") {
+        const references = chunk.data as RawReferenceData;
+
+        if (references.context) context = references.context;
+        if (references.onlineContext) onlineContext = references.onlineContext;
+        return {context, onlineContext}
+    } else if (chunk.type === "message") {
+        const chunkData = chunk.data;
+        if (chunkData !== null && typeof chunkData === 'object') {
+            currentMessage.rawResponse += handleJsonResponse(chunkData);
+        } else if (typeof chunkData  === 'string' && chunkData.trim()?.startsWith("{") && chunkData.trim()?.endsWith("}")) {
+            try {
+                const jsonData = JSON.parse(chunkData.trim());
+                currentMessage.rawResponse += handleJsonResponse(jsonData);
+            } catch (e) {
+                currentMessage.rawResponse += JSON.stringify(chunkData);
+            }
+        } else {
+            currentMessage.rawResponse += chunkData;
         }
-    };
+    } else if (chunk.type === "start_llm_response") {
+        console.log(`Started streaming: ${new Date()}`);
+    } else if (chunk.type === "end_llm_response") {
+        console.log(`Completed streaming: ${new Date()}`);
 
-    chatWS.onmessage = (event) => {
-        console.log(event.data);
-    };
+        // Append any references after all the data has been streamed
+        if (onlineContext) currentMessage.onlineContext = onlineContext;
+        if (context) currentMessage.context = context;
 
-    chatWS.onerror = (error) => {
-        console.error('WebSocket error: ', error);
-    };
+        // Mark current message streaming as completed
+        currentMessage.completed = true;
+    }
+    return {context, onlineContext};
+}
 
-    chatWS.onclose = () => {
-        console.log('WebSocket connection closed');
-    };
-
-    return chatWS;
-};
-
-export function handleImageResponse(imageJson: any) {
+export function handleImageResponse(imageJson: any, liveStream: boolean): ResponseWithReferences {
 
     let rawResponse = "";
 
@@ -123,7 +122,7 @@ export function handleImageResponse(imageJson: any) {
         } else if (imageJson.intentType === "text-to-image-v3") {
             rawResponse = `![](data:image/webp;base64,${imageJson.image})`;
         }
-        if (inferredQuery) {
+        if (inferredQuery && !liveStream) {
             rawResponse += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
         }
     }

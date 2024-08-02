@@ -11,7 +11,7 @@ const md = new markdownIt({
     typographer: true
 });
 
-import { Context, WebPage, OnlineContextData } from "../chatMessage/chatMessage";
+import { Context, WebPage, OnlineContext } from "../chatMessage/chatMessage";
 import { Card } from "@/components/ui/card";
 
 import {
@@ -23,7 +23,7 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import * as DomPurify from 'dompurify';
+import DOMPurify from 'dompurify';
 
 interface NotesContextReferenceData {
     title: string;
@@ -36,7 +36,7 @@ interface NotesContextReferenceCardProps extends NotesContextReferenceData {
 
 
 function NotesContextReferenceCard(props: NotesContextReferenceCardProps) {
-    const snippet = props.showFullContent ? DomPurify.sanitize(md.render(props.content)) : DomPurify.sanitize(props.content);
+    const snippet = props.showFullContent ? DOMPurify.sanitize(md.render(props.content)) : DOMPurify.sanitize(props.content);
     const [isHovering, setIsHovering] = useState(false);
 
     return (
@@ -161,7 +161,7 @@ function GenericOnlineReferenceCard(props: OnlineReferenceCardProps) {
     )
 }
 
-export function constructAllReferences(contextData: Context[], onlineData: { [key: string]: OnlineContextData }) {
+export function constructAllReferences(contextData: Context[], onlineData: OnlineContext) {
 
     const onlineReferences: OnlineReferenceData[] = [];
     const contextReferences: NotesContextReferenceData[] = [];

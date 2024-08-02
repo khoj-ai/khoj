@@ -214,7 +214,6 @@ export default function Search() {
         <div className={`${styles.searchLayout}`}>
             <div className='h-full'>
                 <SidePanel
-                    webSocketConnected={true}
                     conversationId={null}
                     uploadedFiles={[]}
                     isMobileWidth={isMobileWidth}

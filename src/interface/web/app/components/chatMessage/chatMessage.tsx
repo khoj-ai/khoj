@@ -10,9 +10,9 @@ import 'katex/dist/katex.min.css';
 
 import { TeaserReferencesSection, constructAllReferences } from '../referencePanel/referencePanel';
 
-import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture, SpeakerHigh, MagnifyingGlass, Pause } from '@phosphor-icons/react';
+import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture, SpeakerHigh, MagnifyingGlass, Pause, Palette } from '@phosphor-icons/react';
 
-import * as DomPurify from 'dompurify';
+import DOMPurify from 'dompurify';
 import { InlineLoading } from '../loading/loading';
 import { convertColorToTextClass } from '@/app/common/colorUtils';
 import { AgentData } from '@/app/agents/page';
@@ -31,6 +31,10 @@ md.use(mditHljs, {
 export interface Context {
     compiled: string;
     file: string;
+}
+
+export interface OnlineContext {
+    [key: string]: OnlineContextData;
 }
 
 export interface WebPage {
@@ -85,11 +89,9 @@ export interface SingleChatMessage {
     automationId: string;
     by: string;
     message: string;
-    context: Context[];
     created: string;
-    onlineContext: {
-        [key: string]: OnlineContextData
-    }
+    context: Context[];
+    onlineContext: OnlineContext;
     rawQuery?: string;
     intent?: Intent;
     agent?: AgentData;
@@ -99,9 +101,7 @@ export interface StreamMessage {
     rawResponse: string;
     trainOfThought: string[];
     context: Context[];
-    onlineContext: {
-        [key: string]: OnlineContextData
-    }
+    onlineContext: OnlineContext;
     completed: boolean;
     rawQuery: string;
     timestamp: string;
@@ -180,8 +180,12 @@ function chooseIconFromHeader(header: string, iconColor: string) {
         return <MagnifyingGlass className={`${classNames}`} />;
     }
 
-    if (compareHeader.includes("summary") || compareHeader.includes("summarize")) {
+    if (compareHeader.includes("summary") || compareHeader.includes("summarize") || compareHeader.includes("enhanc")) {
         return <Aperture className={`${classNames}`} />;
+    }
+
+    if (compareHeader.includes("paint")) {
+        return <Palette className={`${classNames}`} />;
     }
 
     return <Brain className={`${classNames}`} />;
@@ -193,9 +197,9 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
     let header = extractedHeader ? extractedHeader[1] : "";
     const iconColor = props.primary ? convertColorToTextClass(props.agentColor) : 'text-gray-500';
     const icon = chooseIconFromHeader(header, iconColor);
-    let markdownRendered = DomPurify.sanitize(md.render(props.message));
+    let markdownRendered = DOMPurify.sanitize(md.render(props.message));
     return (
-        <div className={`flex items-center ${props.primary ? 'text-gray-400' : 'text-gray-300'} ${styles.trainOfThought} ${props.primary ? styles.primary : ''}`} >
+        <div className={`${styles.trainOfThoughtElement} items-center ${props.primary ? 'text-gray-400' : 'text-gray-300'} ${styles.trainOfThought} ${props.primary ? styles.primary : ''}`} >
             {icon}
             <div dangerouslySetInnerHTML={{ __html: markdownRendered }} />
         </div>
@@ -241,7 +245,7 @@ export default function ChatMessage(props: ChatMessageProps) {
             .replace(/LEFTBRACKET/g, '\\[').replace(/RIGHTBRACKET/g, '\\]');
 
         // Sanitize and set the rendered markdown
-        setMarkdownRendered(DomPurify.sanitize(markdownRendered));
+        setMarkdownRendered(DOMPurify.sanitize(markdownRendered));
     }, [props.chatMessage.message]);
 
     useEffect(() => {

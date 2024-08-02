@@ -5,10 +5,8 @@ import styles from "./sidePanel.module.css";
 import { useEffect, useState } from "react";
 
 import { UserProfile, useAuthenticatedData } from "@/app/common/auth";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import Link from "next/link";
 import useSWR from "swr";
-import Image from "next/image";
 
 import {
     Command,
@@ -72,13 +70,12 @@ import {
 
 import { Pencil, Trash, Share } from "@phosphor-icons/react";
 
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { modifyFileFilterForConversation } from "@/app/common/chatFunctions";
 import { ScrollAreaScrollbar } from "@radix-ui/react-scroll-area";
-import { KhojLogo } from "../logo/khogLogo";
+import { KhojLogo, KhojLogoType } from "@/app/components/logo/khogLogo";
 
 // Define a fetcher function
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -320,7 +317,6 @@ function FilesMenu(props: FilesMenuProps) {
 }
 
 interface SessionsAndFilesProps {
-    webSocketConnected?: boolean;
     setEnabled: (enabled: boolean) => void;
     subsetOrganizedData: GroupedChatHistory | null;
     organizedData: GroupedChatHistory | null;
@@ -591,12 +587,6 @@ function ChatSessionsModal({ data, showSidePanel }: ChatSessionsModalProps) {
     );
 }
 
-interface UserProfileProps {
-    userProfile: UserProfile;
-    webSocketConnected?: boolean;
-    collapsed: boolean;
-}
-
 const fetchChatHistory = async (url: string) => {
     const response = await fetch(url, {
         method: 'GET',
@@ -618,7 +608,6 @@ export const useChatSessionsFetchRequest = (url: string) => {
 };
 
 interface SidePanelProps {
-    webSocketConnected?: boolean;
     conversationId: string | null;
     uploadedFiles: string[];
     isMobileWidth: boolean;
@@ -674,7 +663,7 @@ export default function SidePanel(props: SidePanelProps) {
         <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed} mt-1`}>
             <div className={`flex justify-between flex-row`}>
                 <Link href='/'>
-                    <KhojLogo />
+                    {props.isMobileWidth && <KhojLogo /> || <KhojLogoType />}
                 </Link>
                 {
                     authenticatedData && props.isMobileWidth ?
@@ -691,7 +680,6 @@ export default function SidePanel(props: SidePanelProps) {
                                 </DrawerHeader>
                                 <div className={`${styles.panelWrapper}`}>
                                     <SessionsAndFiles
-                                        webSocketConnected={props.webSocketConnected}
                                         setEnabled={setEnabled}
                                         subsetOrganizedData={subsetOrganizedData}
                                         organizedData={organizedData}
@@ -724,7 +712,6 @@ export default function SidePanel(props: SidePanelProps) {
                 authenticatedData && !props.isMobileWidth && enabled &&
                 <div className={`${styles.panelWrapper}`}>
                     <SessionsAndFiles
-                        webSocketConnected={props.webSocketConnected}
                         setEnabled={setEnabled}
                         subsetOrganizedData={subsetOrganizedData}
                         organizedData={organizedData}

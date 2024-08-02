@@ -85,7 +85,6 @@ function getEveryBlahFromCron(cron: string) {
 
 function getDayOfWeekFromCron(cron: string) {
     const cronParts = cron.split(' ');
-    console.log(cronParts);
     if (cronParts[3] === '*' && cronParts[4] !== '*') {
         return Number(cronParts[4]);
     }
@@ -248,7 +247,6 @@ function AutomationsCard(props: AutomationsCardProps) {
         setTimeRecurrence(getTimeRecurrenceFromCron(automationData.crontime));
         const frequency = getEveryBlahFromCron(automationData.crontime);
 
-        console.log('frequency', frequency);
         if (frequency === 'Day') {
             setIntervalString('Daily');
         } else if (frequency === 'Week') {
@@ -944,7 +942,6 @@ export default function Automations() {
             <div className={`grid w-full ml-auto mr-auto`}>
                 <div className={`${styles.sidePanel} top-0`}>
                     <SidePanel
-                        webSocketConnected={true}
                         conversationId={null}
                         uploadedFiles={[]}
                         isMobileWidth={isMobileWidth}
