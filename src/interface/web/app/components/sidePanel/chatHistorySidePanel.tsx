@@ -696,7 +696,7 @@ export default function SidePanel(props: SidePanelProps) {
                             </DrawerContent>
                         </Drawer>
                         :
-                        <div className={`flex justify-between flex-row`}>
+                        <div className={`flex justify-between flex-row ${enabled ? 'w-full' : 'w-fit'}`}>
                             <Link href='/' className="content-center">
                                 <KhojLogoType />
                             </Link>
