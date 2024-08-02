@@ -19,6 +19,7 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 import Link from 'next/link';
+import SidePanel from '../components/sidePanel/chatHistorySidePanel';
 
 
 
@@ -76,41 +77,41 @@ async function verifyStatement(
     setIsLoading: (loading: boolean) => void,
     setInitialResponse: (response: string) => void,
     setInitialReferences: (references: ResponseWithReferences) => void) {
-        setIsLoading(true);
-        // Send a message to the chat server to verify the fact
-        let verificationMessage = `${verificationPrecursor} ${message}`;
-        const apiURL = `${chatURL}?q=${encodeURIComponent(verificationMessage)}&client=web&stream=true&conversation_id=${conversationId}`;
-        try {
-            const response = await fetch(apiURL);
-            if (!response.body) throw new Error("No response body found");
+    setIsLoading(true);
+    // Send a message to the chat server to verify the fact
+    let verificationMessage = `${verificationPrecursor} ${message}`;
+    const apiURL = `${chatURL}?q=${encodeURIComponent(verificationMessage)}&client=web&stream=true&conversation_id=${conversationId}`;
+    try {
+        const response = await fetch(apiURL);
+        if (!response.body) throw new Error("No response body found");
 
-            const reader = response.body?.getReader();
-            let decoder = new TextDecoder();
-            let result = "";
+        const reader = response.body?.getReader();
+        let decoder = new TextDecoder();
+        let result = "";
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-                let chunk = decoder.decode(value, { stream: true });
+            let chunk = decoder.decode(value, { stream: true });
 
-                if (chunk.includes("### compiled references:")) {
-                    const references = handleCompiledReferences(chunk, result);
-                    if (references.response) {
-                        result = references.response;
-                        setInitialResponse(references.response);
-                        setInitialReferences(references);
-                    }
-                } else {
-                    result += chunk;
-                    setInitialResponse(result);
+            if (chunk.includes("### compiled references:")) {
+                const references = handleCompiledReferences(chunk, result);
+                if (references.response) {
+                    result = references.response;
+                    setInitialResponse(references.response);
+                    setInitialReferences(references);
                 }
+            } else {
+                result += chunk;
+                setInitialResponse(result);
             }
-        } catch (error) {
-            console.error("Error verifying statement: ", error);
-        } finally {
-            setIsLoading(false);
         }
+    } catch (error) {
+        console.error("Error verifying statement: ", error);
+    } finally {
+        setIsLoading(false);
+    }
 }
 
 
@@ -145,7 +146,7 @@ function ReferenceVerification(props: ReferenceVerificationProps) {
             setInitialResponse(props.prefilledResponse);
             setIsLoading(false);
         } else {
-            verifyStatement(verificationStatement, props.conversationId, setIsLoading, setInitialResponse, () => {});
+            verifyStatement(verificationStatement, props.conversationId, setIsLoading, setInitialResponse, () => { });
         }
 
         setIsMobileWidth(window.innerWidth < 768);
@@ -454,7 +455,7 @@ export default function FactChecker() {
                     additionalLink={additionalLink}
                     setChildReferencesCallback={setChildReferencesCallback} />
             );
-          }).filter(Boolean);
+        }).filter(Boolean);
     };
 
     const renderSupplementalReferences = (references: SupplementReferences[]) => {
@@ -489,102 +490,111 @@ export default function FactChecker() {
     }
 
     return (
-        <div className={styles.factCheckerContainer}>
-            <h1 className={`${styles.response} font-large outline-slate-800 dark:outline-slate-200`}>
-                AI Fact Checker
-            </h1>
-            <footer className={`${styles.footer} mt-4`}>
-                This is an experimental AI tool. It may make mistakes.
-            </footer>
-            {
-                initialResponse && initialReferences && childReferences
-                ?
-                    <div className={styles.reportActions}>
-                        <Button asChild variant='secondary'>
-                            <Link href="/factchecker" target="_blank" rel="noopener noreferrer">
-                                Try Another
-                            </Link>
-                        </Button>
-                        <ShareLink
-                            buttonTitle='Share report'
-                            title="AI Fact Checking Report"
-                            description="Share this fact checking report with others. Anyone who has this link will be able to view the report."
-                            url={constructShareUrl()}
-                            onShare={loadedFromStorage ? () => {} : storeData} />
-                    </div>
-                : <div className={styles.newReportActions}>
-                    <div className={`${styles.inputFields} mt-4`}>
-                        <Input
-                            type="text"
-                            maxLength={200}
-                            placeholder="Enter a falsifiable statement to verify"
-                            disabled={isLoading}
-                            onChange={(e) => setFactToVerify(e.target.value)}
-                            value={factToVerify}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                    onClickVerify();
-                                }
-                            }}
-                            onFocus={(e) => e.target.placeholder = ""}
-                            onBlur={(e) => e.target.placeholder = "Enter a falsifiable statement to verify"} />
-                        <Button disabled={clickedVerify} onClick={() => onClickVerify()}>Verify</Button>
-                    </div>
-                    <h3 className={`mt-4 mb-4`}>
-                        Try with a particular model. You must be <a href="/settings" className="font-medium text-blue-600 dark:text-blue-500 hover:underline">subscribed</a> to configure the model.
-                    </h3>
-                </div>
-            }
-            <ModelPicker disabled={isLoading || loadedFromStorage} setModelUsed={setModelUsed} initialModel={initialModel} />
-            {isLoading && <div className={styles.loading}>
+        <>
+            <div className='relative md:fixed h-full'>
+                <SidePanel
+                    conversationId={null}
+                    uploadedFiles={[]}
+                    isMobileWidth={isMobileWidth}
+                />
+            </div>
+            <div className={styles.factCheckerContainer}>
+                <h1 className={`${styles.response} pt-8 md:pt-4 font-large outline-slate-800 dark:outline-slate-200`}>
+                    AI Fact Checker
+                </h1>
+                <footer className={`${styles.footer} mt-4`}>
+                    This is an experimental AI tool. It may make mistakes.
+                </footer>
+                {
+                    initialResponse && initialReferences && childReferences
+                        ?
+                        <div className={styles.reportActions}>
+                            <Button asChild variant='secondary'>
+                                <Link href="/factchecker" target="_blank" rel="noopener noreferrer">
+                                    Try Another
+                                </Link>
+                            </Button>
+                            <ShareLink
+                                buttonTitle='Share report'
+                                title="AI Fact Checking Report"
+                                description="Share this fact checking report with others. Anyone who has this link will be able to view the report."
+                                url={constructShareUrl()}
+                                onShare={loadedFromStorage ? () => { } : storeData} />
+                        </div>
+                        : <div className={styles.newReportActions}>
+                            <div className={`${styles.inputFields} mt-4`}>
+                                <Input
+                                    type="text"
+                                    maxLength={200}
+                                    placeholder="Enter a falsifiable statement to verify"
+                                    disabled={isLoading}
+                                    onChange={(e) => setFactToVerify(e.target.value)}
+                                    value={factToVerify}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                            onClickVerify();
+                                        }
+                                    }}
+                                    onFocus={(e) => e.target.placeholder = ""}
+                                    onBlur={(e) => e.target.placeholder = "Enter a falsifiable statement to verify"} />
+                                <Button disabled={clickedVerify} onClick={() => onClickVerify()}>Verify</Button>
+                            </div>
+                            <h3 className={`mt-4 mb-4`}>
+                                Try with a particular model. You must be <a href="/settings" className="font-medium text-blue-600 dark:text-blue-500 hover:underline">subscribed</a> to configure the model.
+                            </h3>
+                        </div>
+                }
+                <ModelPicker disabled={isLoading || loadedFromStorage} setModelUsed={setModelUsed} initialModel={initialModel} />
+                {isLoading && <div className={styles.loading}>
                     <LoadingSpinner />
                 </div>}
-            {
-                initialResponse &&
-                <Card className={`mt-4`}>
-                    <CardHeader>
-                        <CardTitle>{officialFactToVerify}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className={styles.responseText}>
-                            <ChatMessage chatMessage={
-                                {
-                                    automationId: "",
-                                    by: "AI",
-                                    message: initialResponse,
-                                    context: [],
-                                    created: (new Date()).toISOString(),
-                                    onlineContext: {}
-                                }
-                            } isMobileWidth={isMobileWidth} />
-
-                        </div>
-                    </CardContent>
-                    <CardFooter>
-                        {
-                            initialReferences && initialReferences.online && Object.keys(initialReferences.online).length > 0 && (
-                                <div className={styles.subLinks}>
+                {
+                    initialResponse &&
+                    <Card className={`mt-4`}>
+                        <CardHeader>
+                            <CardTitle>{officialFactToVerify}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className={styles.responseText}>
+                                <ChatMessage chatMessage={
                                     {
-                                        Object.entries(initialReferences.online).map(([key, onlineData], index) => {
-                                            const webpages = onlineData?.webpages || [];
-                                            return renderWebpages(webpages);
-                                        })
+                                        automationId: "",
+                                        by: "AI",
+                                        message: initialResponse,
+                                        context: [],
+                                        created: (new Date()).toISOString(),
+                                        onlineContext: {}
                                     }
-                                </div>
-                        )}
-                    </CardFooter>
-                </Card>
-            }
-            {
-                initialReferences &&
-                <div className={styles.referenceContainer}>
-                    <h2 className="mt-4 mb-4">Supplements</h2>
-                    <div className={styles.references}>
-                        { initialReferences.online !== undefined &&
-                            renderReferences(conversationID, initialReferences, officialFactToVerify, loadedFromStorage, childReferences)}
+                                } isMobileWidth={isMobileWidth} />
+
+                            </div>
+                        </CardContent>
+                        <CardFooter>
+                            {
+                                initialReferences && initialReferences.online && Object.keys(initialReferences.online).length > 0 && (
+                                    <div className={styles.subLinks}>
+                                        {
+                                            Object.entries(initialReferences.online).map(([key, onlineData], index) => {
+                                                const webpages = onlineData?.webpages || [];
+                                                return renderWebpages(webpages);
+                                            })
+                                        }
+                                    </div>
+                                )}
+                        </CardFooter>
+                    </Card>
+                }
+                {
+                    initialReferences &&
+                    <div className={styles.referenceContainer}>
+                        <h2 className="mt-4 mb-4">Supplements</h2>
+                        <div className={styles.references}>
+                            {initialReferences.online !== undefined &&
+                                renderReferences(conversationID, initialReferences, officialFactToVerify, loadedFromStorage, childReferences)}
+                        </div>
                     </div>
-                </div>
-            }
-        </div>
+                }
+            </div>
+        </>
     )
 }
