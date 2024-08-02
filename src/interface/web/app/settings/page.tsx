@@ -643,7 +643,7 @@ export default function SettingsView() {
     if (!userConfig) return <Loading />;
 
     return (
-        <div id="page" className={styles.page}>
+        <div className={styles.page}>
             <title>
                 {title}
             </title>
@@ -655,7 +655,7 @@ export default function SettingsView() {
                 />
             </div>
             <div className={styles.content}>
-                <div className={styles.contentBody}>
+                <div className={`${styles.contentBody} mx-10 my-2`}>
                     <Suspense fallback={<Loading />}>
                         <div id="content" className="grid grid-flow-column sm:grid-flow-row gap-16 m-8">
                             <div className="section grid gap-8">
