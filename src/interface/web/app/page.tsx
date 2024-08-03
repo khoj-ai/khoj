@@ -242,34 +242,36 @@ function ChatBodyData(props: ChatBodyDataProps) {
             </div>
             {
                 props.isMobileWidth &&
-                <div className={`${styles.inputBox} shadow-md dark:bg-neutral-700 bg-background dark: align-middle items-center justify-center py-3 px-1`}>
-                    <ChatInputArea
-                        isLoggedIn={props.isLoggedIn}
-                        sendMessage={(message) => setMessage(message)}
-                        sendDisabled={processingMessage}
-                        chatOptionsData={props.chatOptionsData}
-                        conversationId={null}
-                        isMobileWidth={props.isMobileWidth}
-                        setUploadedFiles={props.setUploadedFiles} />
-                    <div className="flex gap-2 items-center justify-left pt-4">
-                        {agentIcons.map((icon, index) => (
-                            <Card
-                                key={`${index}-${agents[index].slug}`}
-                                className={
-                                    `${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : 'border-muted text-muted-foreground'} hover:cursor-pointer`
-                                }>
-                                <CardTitle
-                                    className='text-center text-xs font-medium flex justify-center items-center px-1.5 py-2'
-                                    onClick={() => setSelectedAgent(agents[index].slug)}>
-                                    {icon} {agents[index].name}
-                                </CardTitle>
+                <>
+                    <div className={`${styles.inputBox} w-full shadow-md dark:bg-neutral-700 bg-background align-middle items-center justify-center pb-3 px-1`}>
+                        <div className="flex gap-2 items-center justify-left pt-2 pb-4 px-10">
+                            {agentIcons.map((icon, index) => (
+                                <Card
+                                    key={`${index}-${agents[index].slug}`}
+                                    className={
+                                        `${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : 'border-muted text-muted-foreground'} hover:cursor-pointer`
+                                    }>
+                                    <CardTitle
+                                        className='text-center text-xs font-medium flex justify-center items-center px-1.5 py-2'
+                                        onClick={() => setSelectedAgent(agents[index].slug)}>
+                                        {icon} {agents[index].name}
+                                    </CardTitle>
+                                </Card>
+                            ))}
+                            <Card className='border-none shadow-none flex justify-center items-center hover:cursor-pointer' onClick={() => window.location.href = "/agents"}>
+                                <CardTitle className={`text-center ${props.isMobileWidth ? 'text-xs' : 'text-md'} font-normal flex justify-center items-center px-1.5 py-2`}>See All →</CardTitle>
                             </Card>
-                        ))}
-                        <Card className='border-none shadow-none flex justify-center items-center hover:cursor-pointer' onClick={() => window.location.href = "/agents"}>
-                            <CardTitle className={`text-center ${props.isMobileWidth ? 'text-xs' : 'text-md'} font-normal flex justify-center items-center px-1.5 py-2`}>See All →</CardTitle>
-                        </Card>
+                        </div>
+                        <ChatInputArea
+                            isLoggedIn={props.isLoggedIn}
+                            sendMessage={(message) => setMessage(message)}
+                            sendDisabled={processingMessage}
+                            chatOptionsData={props.chatOptionsData}
+                            conversationId={null}
+                            isMobileWidth={props.isMobileWidth}
+                            setUploadedFiles={props.setUploadedFiles} />
                     </div>
-                </div>
+                </>
             }
         </div>
     );
