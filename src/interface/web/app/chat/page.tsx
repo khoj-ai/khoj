@@ -103,9 +103,10 @@ function ChatBodyData(props: ChatBodyDataProps) {
 }
 
 export default function Chat() {
+    const defaultTitle = 'Khoj AI - Chat';
     const [chatOptionsData, setChatOptionsData] = useState<ChatOptions | null>(null);
     const [isLoading, setLoading] = useState(true);
-    const [title, setTitle] = useState('Khoj AI - Chat');
+    const [title, setTitle] = useState(defaultTitle);
     const [conversationId, setConversationID] = useState<string | null>(null);
     const [messages, setMessages] = useState<StreamMessage[]>([]);
     const [queryToProcess, setQueryToProcess] = useState<string>('');
@@ -232,7 +233,7 @@ export default function Chat() {
     return (
         <div className={styles.main + " " + styles.chatLayout}>
             <title>
-                {title}
+                {`${defaultTitle}${(!!title && title !== defaultTitle)? `: ${title}` : ''}`}
             </title>
             {
                 !isMobileWidth &&
