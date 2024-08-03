@@ -22,7 +22,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Moon, Sun, UserCircle, User, Robot, MagnifyingGlass, Question, GearFine, ArrowRight } from '@phosphor-icons/react';
+import { Moon, Sun, UserCircle, User, Robot, MagnifyingGlass, Question, GearFine, ArrowRight, UsersFour } from '@phosphor-icons/react';
 
 export default function NavMenu() {
 
@@ -102,7 +102,7 @@ export default function NavMenu() {
                             <DropdownMenuItem>
                                 <Link href="/agents" className="no-underline w-full">
                                     <div className="flex flex-rows">
-                                        <User className="w-6 h-6" />
+                                        <UsersFour className="w-6 h-6" />
                                         <p className="ml-3 font-semibold">Agents</p>
                                     </div>
                                 </Link>
@@ -115,14 +115,17 @@ export default function NavMenu() {
                                     </div>
                                 </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
-                                <Link href="/search" className="no-underline w-full">
-                                    <div className="flex flex-rows">
-                                        <MagnifyingGlass className="w-6 h-6" />
-                                        <p className="ml-3 font-semibold">Search</p>
-                                    </div>
-                                </Link>
-                            </DropdownMenuItem>
+                            {
+                                userData &&
+                                <DropdownMenuItem>
+                                    <Link href="/search" className="no-underline w-full">
+                                        <div className="flex flex-rows">
+                                            <MagnifyingGlass className="w-6 h-6" />
+                                            <p className="ml-3 font-semibold">Search</p>
+                                        </div>
+                                    </Link>
+                                </DropdownMenuItem>
+                            }
                             <>
                                 <DropdownMenuSeparator />
                                 {userData &&
@@ -193,7 +196,7 @@ export default function NavMenu() {
                                 <MenubarItem>
                                     <Link href="/agents" className="no-underline w-full">
                                         <div className="flex flex-rows">
-                                            <User className="w-6 h-6" />
+                                            <UsersFour className="w-6 h-6" />
                                             <p className="ml-3 font-semibold">Agents</p>
                                         </div>
                                     </Link>
@@ -206,14 +209,17 @@ export default function NavMenu() {
                                         </div>
                                     </Link>
                                 </MenubarItem>
-                                <MenubarItem>
-                                    <Link href="/search" className="no-underline w-full">
-                                        <div className="flex flex-rows">
-                                            <MagnifyingGlass className="w-6 h-6" />
-                                            <p className="ml-3 font-semibold">Search</p>
-                                        </div>
-                                    </Link>
-                                </MenubarItem>
+                                {
+                                    userData &&
+                                    <MenubarItem>
+                                        <Link href="/search" className="no-underline w-full">
+                                            <div className="flex flex-rows">
+                                                <MagnifyingGlass className="w-6 h-6" />
+                                                <p className="ml-3 font-semibold">Search</p>
+                                            </div>
+                                        </Link>
+                                    </MenubarItem>
+                                }
                                 <>
                                     <MenubarSeparator className="dark:bg-white height-[2px] bg-black" />
                                     <MenubarItem>
