@@ -89,7 +89,7 @@ div.homeGreetings {
 
 div.sidePanel {
     position: fixed;
-    height: max-content;
+    height: 100%;
 }
 
 
