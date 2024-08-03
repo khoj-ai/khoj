@@ -144,7 +144,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             if (type === "Online Search") {
                 message_str = "/online " + prompt;
             } else if (type === "Paint") {
-                message_str = "/paint " + prompt;
+                message_str = "/image " + prompt;
             } else {
                 message_str = prompt;
             }
