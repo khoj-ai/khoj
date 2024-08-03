@@ -5,7 +5,6 @@ import React, { Suspense, useEffect, useState } from 'react';
 
 import SidePanel from '../components/sidePanel/chatHistorySidePanel';
 import ChatHistory from '../components/chatHistory/chatHistory';
-import NavMenu from '../components/navMenu/navMenu';
 import { useSearchParams } from 'next/navigation'
 import Loading from '../components/loading/loading';
 
@@ -231,31 +230,18 @@ export default function Chat() {
     if (isLoading) return <Loading />;
 
     return (
-        <div className={styles.main + " " + styles.chatLayout}>
+        <div className={`${styles.main} ${styles.chatLayout}`}>
             <title>
                 {`${defaultTitle}${(!!title && title !== defaultTitle)? `: ${title}` : ''}`}
             </title>
-            {
-                !isMobileWidth &&
-                <div>
-                    <SidePanel
-                        conversationId={conversationId}
-                        uploadedFiles={uploadedFiles}
-                        isMobileWidth={isMobileWidth}
-                    />
-                </div>
-            }
+            <div>
+                <SidePanel
+                    conversationId={conversationId}
+                    uploadedFiles={uploadedFiles}
+                    isMobileWidth={isMobileWidth}
+                />
+            </div>
             <div className={styles.chatBox}>
-                {
-                    isMobileWidth &&
-                    <div>
-                        <SidePanel
-                            conversationId={conversationId}
-                            uploadedFiles={uploadedFiles}
-                            isMobileWidth={isMobileWidth}
-                        />
-                    </div>
-                }
                 <div className={styles.chatBoxBody}>
                     {
                         !isMobileWidth &&
