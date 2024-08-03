@@ -159,7 +159,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             }
             <div className={`w-full text-center justify-end content-end`}>
                 <div className="items-center">
-                    <h1 className="text-2xl md:text-5xl text-center w-fit pb-6 px-4 mx-auto">{greeting}</h1>
+                    <h1 className="text-2xl md:text-3xl text-center w-fit pb-6 px-4 mx-auto">{greeting}</h1>
                 </div>
                 {
                     !props.isMobileWidth &&

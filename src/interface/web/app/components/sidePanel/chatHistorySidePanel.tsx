@@ -335,7 +335,7 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                 <ScrollArea>
                     <ScrollAreaScrollbar orientation="vertical" className="h-full w-2.5 border-l border-l-transparent p-[1px]" />
                     <div className={styles.sessionsList}>
-                        {props.subsetOrganizedData != null && Object.keys(props.subsetOrganizedData).map((timeGrouping) => (
+                        {props.subsetOrganizedData != null && Object.keys(props.subsetOrganizedData).filter(tg => tg !== "All Time").map((timeGrouping) => (
                             <div key={timeGrouping} className={`my-4`}>
                                 <div className={`text-muted-foreground text-sm font-bold p-[0.5rem]`}>
                                     {timeGrouping}
