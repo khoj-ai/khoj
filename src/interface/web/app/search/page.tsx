@@ -218,7 +218,7 @@ export default function Search() {
                         <div className='flex justify-between items-center border-2 border-muted p-2 gap-4 rounded-lg'>
                             <MagnifyingGlass className='inline m-2 h-4 w-4' />
                             <Input
-                                autoFocus
+                                autoFocus={true}
                                 className='border-none'
                                 onChange={(e) => setSearchQuery(e.currentTarget.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && search()}
