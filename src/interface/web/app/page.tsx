@@ -160,7 +160,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }
 
     return (
-        <div className={`${styles.homeGreetings}`}>
+        <div className={`${styles.homeGreetings} w-full md:w-auto`}>
             {
                 showLoginPrompt && (
                     <LoginPrompt

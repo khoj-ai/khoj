@@ -81,14 +81,14 @@ export default function NavMenu() {
                         <DropdownMenuTrigger>
                             {
                                 userData ?
-                                    <Avatar className={`h-8 w-8 border-2 ${userData.is_active ? "border-yellow-500" : "border-stone-700 dark:border-stone-300"}`}>
+                                    <Avatar className={`h-10 w-10 border-2 ${userData.is_active ? "border-yellow-500" : "border-stone-700 dark:border-stone-300"}`}>
                                         <AvatarImage src={userData?.photo} alt="user profile" />
                                         <AvatarFallback className="bg-transparent hover:bg-muted">
                                             {userData?.username[0].toUpperCase()}
                                         </AvatarFallback>
                                     </Avatar>
                                     :
-                                    <UserCircle className="h-6 w-6" />
+                                    <UserCircle className="h-10 w-10" />
                             }
                         </DropdownMenuTrigger>
                         <DropdownMenuContent className='gap-2'>
@@ -172,14 +172,14 @@ export default function NavMenu() {
                             <MenubarTrigger>
                                 {
                                     userData ?
-                                        <Avatar className={`h-8 w-8 border-2 ${userData.is_active ? "border-yellow-500" : "border-stone-700 dark:border-stone-300"}`}>
+                                        <Avatar className={`h-10 w-10 border-2 ${userData.is_active ? "border-yellow-500" : "border-stone-700 dark:border-stone-300"}`}>
                                             <AvatarImage src={userData?.photo} alt="user profile" />
                                             <AvatarFallback className="bg-transparent hover:bg-muted">
                                                 {userData?.username[0].toUpperCase()}
                                             </AvatarFallback>
                                         </Avatar>
                                         :
-                                        <UserCircle className="w-8 h-8" />
+                                        <UserCircle className="w-10 h-10" />
                                 }
                             </MenubarTrigger>
                             <MenubarContent align="end" className="rounded-xl gap-2">

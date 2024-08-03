@@ -256,7 +256,7 @@ export default function Chat() {
                     {
                         !isMobileWidth &&
                         <div className={`text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mr-8`}>
-                            {title && <h2 className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden pt-4`}>{title}</h2>}
+                            {title && <h2 className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden pt-6`}>{title}</h2>}
                         </div>
                     }
                     <Suspense fallback={<Loading />}>

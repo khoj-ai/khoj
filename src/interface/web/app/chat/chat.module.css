@@ -105,6 +105,7 @@ div.agentIndicator {
 
     div.chatBox {
         padding: 0;
+        height: min-content;
     }
 }
 
@@ -119,6 +120,7 @@ div.agentIndicator {
 
     div.chatBox {
         padding: 0;
+        height: min-content;
     }
 
     div.chatLayout {

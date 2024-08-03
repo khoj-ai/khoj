@@ -66,7 +66,6 @@ div.chatLayout {
 
 div.chatBox {
     display: grid;
-    height: 100%;
 }
 
 div.titleBar {
@@ -101,6 +100,7 @@ div.sidePanel {
 
     div.chatBox {
         padding: 0;
+        height: min-content;
     }
 }
 
@@ -120,6 +120,7 @@ div.sidePanel {
 
     div.chatBox {
         padding: 0;
+        height: min-content;
     }
 
     div.chatLayout {
@@ -130,5 +131,4 @@ div.sidePanel {
     div.homeGreetings {
         grid-template-rows: auto;
     }
-
 }

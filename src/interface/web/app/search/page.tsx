@@ -213,8 +213,8 @@ export default function Search() {
                 />
             </div>
             <div className={`${styles.searchLayout}`}>
-                <div className="md:w-3/4 sm:w-full mr-auto ml-auto pt-4 md:pt-8">
-                    <div className='p-4 md:w-3/4 sm:w-full mr-auto ml-auto'>
+                <div className="md:w-3/4 sm:w-full mx-auto pt-6 md:pt-8">
+                    <div className='p-4 md:w-3/4 sm:w-full mx-auto'>
                         <div className='flex justify-between items-center border-2 border-muted p-2 gap-4 rounded-lg'>
                             <MagnifyingGlass className='inline m-2 h-4 w-4' />
                             <Input

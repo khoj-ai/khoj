@@ -281,7 +281,7 @@ export default function Agents() {
                     />
                 </div>
                 <div className={`mx-auto ${isMobileWidth ? "w-11/12" : "w-1/2"} pt-4`}>
-                    <div className={`pt-4 md:pt-8 flex justify-between align-middle w-full`}>
+                    <div className={`pt-6 md:pt-8 flex justify-between align-middle w-full`}>
                         <h1 className="text-3xl">Agents</h1>
                         <div className="ml-auto float-right border p-2 pt-3 rounded-xl font-bold hover:bg-stone-100 dark:hover:bg-neutral-900">
                             <TooltipProvider>

@@ -670,7 +670,7 @@ export default function SidePanel(props: SidePanelProps) {
                             setEnabled(open);
                         }
                         }>
-                            <DrawerTrigger><Sidebar className="h-6 w-6 mx-2" weight="thin" /></DrawerTrigger>
+                            <DrawerTrigger><Sidebar className="h-8 w-8 mx-2" weight="thin" /></DrawerTrigger>
                             <DrawerContent>
                                 <DrawerHeader>
                                     <DrawerTitle>Sessions and Files</DrawerTitle>
