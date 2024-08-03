@@ -936,7 +936,7 @@ export default function SettingsView() {
                                                     {apiKeys.map((key) => (
                                                         <TableRow key={key.token}>
                                                             <TableCell className="pl-0 py-3">{key.name}</TableCell>
-                                                            <TableCell className="grid grid-flow-col grid-cols-[1fr_auto] bg-secondary rounded-xl p-3">
+                                                            <TableCell className="grid grid-flow-col grid-cols-[1fr_auto] bg-secondary rounded-xl p-3 m-1">
                                                                 <span>
                                                                     {`${key.token.slice(0, 6)}...${key.token.slice(-4)}`}
                                                                 </span>

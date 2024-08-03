@@ -243,7 +243,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             {
                 props.isMobileWidth &&
                 <>
-                    <div className={`${styles.inputBox} w-full shadow-md dark:bg-neutral-700 bg-background align-middle items-center justify-center pb-3 px-1`}>
+                    <div className={`${styles.inputBox} w-full pt-1 shadow-[0_-20px_25px_-5px_rgba(0,0,0,0.1)] shadow-[0_-8px_10px_-6px_rgba(0,0,0,0.1)] dark:bg-neutral-700 bg-background align-middle items-center justify-center pb-3 px-1`}>
                         <div className="flex gap-2 items-center justify-left pt-1 pb-2 px-10">
                             {agentIcons.map((icon, index) => (
                                 <Card
@@ -252,7 +252,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                                         `${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : 'border-muted text-muted-foreground'} hover:cursor-pointer`
                                     }>
                                     <CardTitle
-                                        className='text-center text-xs font-medium flex justify-center items-center px-1.5 py-2'
+                                        className='text-center text-xs font-medium flex justify-center items-center px-1.5 py-1'
                                         onClick={() => setSelectedAgent(agents[index].slug)}>
                                         {icon} {agents[index].name}
                                     </CardTitle>
