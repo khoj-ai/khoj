@@ -89,24 +89,17 @@ div.homeGreetings {
 
 div.sidePanel {
     position: fixed;
-    height: 100%;
+    height: max-content;
 }
 
-
-@media (max-width: 768px) {
-    div.chatBody {
-        grid-template-columns: 0fr 1fr;
-    }
-
-    div.chatBox {
-        padding: 0;
-        height: min-content;
-    }
-}
 
 @media screen and (max-width: 768px) {
     div.inputBox {
         margin-bottom: 0px;
+    }
+
+    div.chatBody {
+        grid-template-columns: 0fr 1fr;
     }
 
     div.chatBoxBody {
@@ -120,12 +113,13 @@ div.sidePanel {
 
     div.chatBox {
         padding: 0;
-        height: min-content;
+        height: 100%;
     }
 
     div.chatLayout {
         gap: 0;
         grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
     }
 
     div.homeGreetings {
