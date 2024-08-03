@@ -65,11 +65,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }
 
     useEffect(() => {
-        console.log(`Loading user config: ${props.isLoadingUserConfig}`);
         if (props.isLoadingUserConfig) return;
-
-        // Set user config
-        console.log(`Logged In: ${props.isLoggedIn}\nUserConfig: ${props.userConfig}`);
 
         // Get today's day
         const today = new Date();
