@@ -323,7 +323,7 @@ async def aget_relevant_output_modes(query: str, conversation_history: dict, is_
         response = await send_message_to_model_wrapper(relevant_mode_prompt)
 
     try:
-        response = response.strip()
+        response = response.strip().strip('"')
 
         if is_none_or_empty(response):
             return ConversationCommand.Text
