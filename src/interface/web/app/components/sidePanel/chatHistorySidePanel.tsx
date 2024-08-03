@@ -369,6 +369,7 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
 
 interface ChatSessionActionMenuProps {
     conversationId: string;
+    setTitle: (title: string) => void;
 }
 
 function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
@@ -409,6 +410,7 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
                         <Button
                             onClick={() => {
                                 renameConversation(props.conversationId, renamedTitle);
+                                props.setTitle(renamedTitle);
                                 setIsRenaming(false);
                             }}
                             type="submit">Rename</Button>
@@ -529,6 +531,7 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
 
 function ChatSession(props: ChatHistory) {
     const [isHovered, setIsHovered] = useState(false);
+    const [title, setTitle] = useState(props.slug || "New Conversation 🌱");
     var currConversationId = parseInt(new URLSearchParams(window.location.search).get('conversationId') || "-1");
     return (
         <div
@@ -537,9 +540,9 @@ function ChatSession(props: ChatHistory) {
             key={props.conversation_id}
             className={`${styles.session} ${props.compressed ? styles.compressed : '!max-w-full'} ${isHovered ? `${styles.sessionHover}` : ''} ${currConversationId === parseInt(props.conversation_id) && currConversationId != -1 ? "dark:bg-neutral-800 bg-white" : ""}`}>
             <Link href={`/chat?conversationId=${props.conversation_id}`} onClick={() => props.showSidePanel(false)}>
-                <p className={styles.session}>{props.slug || "New Conversation 🌱"}</p>
+                <p className={styles.session}>{title}</p>
             </Link>
-            <ChatSessionActionMenu conversationId={props.conversation_id} />
+            <ChatSessionActionMenu conversationId={props.conversation_id} setTitle={setTitle} />
         </div>
     );
 }
