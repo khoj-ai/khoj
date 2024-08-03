@@ -232,7 +232,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             {
                 props.isMobileWidth &&
                 <>
-                    <div className={`${styles.inputBox} w-full pt-1 shadow-[0_-20px_25px_-5px_rgba(0,0,0,0.1)] shadow-[0_-8px_10px_-6px_rgba(0,0,0,0.1)] dark:bg-neutral-700 bg-background align-middle items-center justify-center pb-3 px-1`}>
+                    <div className={`${styles.inputBox} pt-1 shadow-[0_-20px_25px_-5px_rgba(0,0,0,0.1)] shadow-[0_-8px_10px_-6px_rgba(0,0,0,0.1)] dark:bg-neutral-700 bg-background align-middle items-center justify-center pb-3 mx-1`}>
                         <div className="flex gap-2 items-center justify-left pt-1 pb-2 px-10">
                             {agentIcons.map((icon, index) => (
                                 <Card

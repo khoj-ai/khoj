@@ -440,7 +440,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                         )
                 }
                 <Button
-                    className={`${props.agentColor ? convertToBGClass(props.agentColor) : 'bg-orange-300 hover:bg-orange-500'} rounded-full p-0 h-auto text-3xl transition transform hover:-translate-y-1`}
+                    className={`${props.agentColor ? convertToBGClass(props.agentColor) : 'bg-orange-300 hover:bg-orange-500'} rounded-full p-0 mr-1 h-auto text-3xl transition transform hover:-translate-y-1`}
                     onClick={onSendMessage}
                     disabled={props.sendDisabled}>
                     <ArrowCircleUp className='w-8 h-8' />
