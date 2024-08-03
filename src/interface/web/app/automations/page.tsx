@@ -1,10 +1,9 @@
 'use client'
 
 import useSWR from 'swr';
-import Loading, { InlineLoading } from '../components/loading/loading';
+import { InlineLoading } from '../components/loading/loading';
 import {
     Card,
-    CardDescription,
     CardContent,
     CardFooter,
     CardHeader,
@@ -54,7 +53,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import SidePanel from '../components/sidePanel/chatHistorySidePanel';
-import NavMenu from '../components/navMenu/navMenu';
+import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 
 const automationsFetcher = () => window.fetch('/api/automations').then(res => res.json()).catch(err => console.log(err));
 
@@ -219,6 +218,7 @@ function sendAPreview(automationId: string, setToastMessage: (toastMessage: stri
 
 interface AutomationsCardProps {
     automation: AutomationsData;
+    isMobileWidth: boolean;
     locationData?: LocationData | null;
     suggestedCard?: boolean;
     setNewAutomationData?: (data: AutomationsData) => void;
@@ -303,30 +303,17 @@ function AutomationsCard(props: AutomationsCardProps) {
                                 <Trash className='h-4 w-4 mr-2' />Delete
                             </Button>
                             {
-                                !props.suggestedCard && (
-                                    <Dialog
-                                        open={isEditing}
-                                        onOpenChange={(open) => {
-                                            setIsEditing(open);
-                                        }}
-                                    >
-                                        <DialogTrigger asChild>
-                                            <Button variant="outline" className="justify-start">
-                                                <Pencil className='h-4 w-4 mr-2' />Edit
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                            <DialogTitle>Edit Automation</DialogTitle>
-                                            <EditCard
-                                                authenticatedData={props.authenticatedData}
-                                                automation={automation}
-                                                setIsEditing={setIsEditing}
-                                                isLoggedIn={props.isLoggedIn}
-                                                setShowLoginPrompt={props.setShowLoginPrompt}
-                                                setUpdatedAutomationData={setUpdatedAutomationData}
-                                                locationData={props.locationData} />
-                                        </DialogContent>
-                                    </Dialog>
+                                (!props.suggestedCard && props.locationData) && (
+                                    <AutomationComponentWrapper
+                                        isMobileWidth={props.isMobileWidth}
+                                        callToAction='Edit'
+                                        createNew={false}
+                                        setIsCreating={setIsEditing}
+                                        setShowLoginPrompt={props.setShowLoginPrompt}
+                                        setNewAutomationData={setUpdatedAutomationData}
+                                        authenticatedData={props.authenticatedData}
+                                        isCreating={isEditing}
+                                        ipLocationData={props.locationData} />
                                 )
                             }
                             {
@@ -375,31 +362,17 @@ function AutomationsCard(props: AutomationsCardProps) {
                 </div>
                 {
                     props.suggestedCard && props.setNewAutomationData && (
-                        <Dialog
-                            open={isEditing}
-                            onOpenChange={(open) => {
-                                setIsEditing(open);
-                            }}
-                        >
-                            <DialogTrigger asChild>
-                                <Button variant="outline">
-                                    <Plus className='h-4 w-4 mr-2' />
-                                    Add
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogTitle>Add Automation</DialogTitle>
-                                <EditCard
-                                    authenticatedData={props.authenticatedData}
-                                    createNew={true}
-                                    automation={automation}
-                                    setIsEditing={setIsEditing}
-                                    isLoggedIn={props.isLoggedIn}
-                                    setShowLoginPrompt={props.setShowLoginPrompt}
-                                    setUpdatedAutomationData={props.setNewAutomationData}
-                                    locationData={props.locationData} />
-                            </DialogContent>
-                        </Dialog>
+                        <AutomationComponentWrapper
+                            isMobileWidth={props.isMobileWidth}
+                            callToAction='Add'
+                            createNew={true}
+                            setIsCreating={setIsEditing}
+                            setShowLoginPrompt={props.setShowLoginPrompt}
+                            setNewAutomationData={props.setNewAutomationData}
+                            authenticatedData={props.authenticatedData}
+                            isCreating={isEditing}
+                            automation={automation}
+                            ipLocationData={props.locationData} />
                     )
                 }
             </CardFooter>
@@ -413,6 +386,7 @@ interface SharedAutomationCardProps {
     isLoggedIn: boolean;
     setShowLoginPrompt: (showLoginPrompt: boolean) => void;
     authenticatedData: UserProfile | null;
+    isMobileWidth: boolean;
 }
 
 function SharedAutomationCard(props: SharedAutomationCardProps) {
@@ -438,30 +412,19 @@ function SharedAutomationCard(props: SharedAutomationCardProps) {
     }
 
     return (
-        <Dialog
-            open={isCreating}
-            onOpenChange={(open) => {
-                setIsCreating(open);
-            }}
-        >
-            <DialogTrigger>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogTitle className='py-0'>
-                    <Plus className='h-4 w-4 mr-2' />
-                    Create Automation
-                </DialogTitle>
-                <EditCard
-                    authenticatedData={props.authenticatedData}
-                    createNew={true}
-                    setIsEditing={setIsCreating}
-                    setUpdatedAutomationData={props.setNewAutomationData}
-                    isLoggedIn={props.isLoggedIn}
-                    setShowLoginPrompt={props.setShowLoginPrompt}
-                    automation={automation}
-                    locationData={props.locationData} />
-            </DialogContent>
-        </Dialog>
+        isCreating ?
+            <AutomationComponentWrapper
+                isMobileWidth={props.isMobileWidth}
+                callToAction='Shared'
+                createNew={true}
+                setIsCreating={setIsCreating}
+                setShowLoginPrompt={props.setShowLoginPrompt}
+                setNewAutomationData={props.setNewAutomationData}
+                authenticatedData={props.authenticatedData}
+                isCreating={isCreating}
+                automation={automation}
+                ipLocationData={props.locationData} />
+            : null
     )
 }
 
@@ -595,8 +558,6 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
 
     const [isSaving, setIsSaving] = useState(false);
     const { errors } = props.form.formState;
-
-    console.log(errors);
 
     function recommendationPill(recommendationText: string, onChange: (value: any, event: React.MouseEvent<HTMLButtonElement>) => void) {
         return (
@@ -867,10 +828,10 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
 
 function metadataMap(ipLocationData: LocationData, authenticatedData: UserProfile | null) {
     return (
-        <div className='flex flex-wrap gap-2 items-center md:justify-start justify-end'>
+        <div className='flex flex-wrap gap-2 items-center justify-start md:justify-end'>
             {
                 authenticatedData ? (
-                    <span className='rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm' ><Envelope className='h-4 w-4 mr-2 inline text-orange-500' shadow-s />{authenticatedData.email}</span>
+                    <span className='rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm' ><Envelope className='h-4 w-4 mr-2 inline text-orange-500 shadow-sm' />{authenticatedData.email}</span>
                 )
                     : null
             }
@@ -887,6 +848,82 @@ function metadataMap(ipLocationData: LocationData, authenticatedData: UserProfil
             }
         </div>
     )
+}
+
+interface AutomationComponentWrapperProps {
+    isMobileWidth: boolean;
+    callToAction: string;
+    createNew: boolean;
+    setIsCreating: (completed: boolean) => void;
+    setShowLoginPrompt: (showLoginPrompt: boolean) => void;
+    setNewAutomationData: (data: AutomationsData) => void;
+    authenticatedData: UserProfile | null;
+    isCreating: boolean;
+    ipLocationData: LocationData | null | undefined;
+    automation?: AutomationsData;
+}
+
+function AutomationComponentWrapper(props: AutomationComponentWrapperProps) {
+    return (
+        props.isMobileWidth ? (
+            <Drawer
+                open={props.isCreating}
+                onOpenChange={(open) => {
+                    props.setIsCreating(open);
+                }}>
+                <DrawerTrigger asChild>
+                    <Button
+                        className='shadow-sm'
+                        variant="outline">
+                        <Plus className='h-4 w-4 mr-2' />
+                        {props.callToAction}
+                    </Button>
+                </DrawerTrigger>
+                <DrawerContent className='p-2'>
+                    <DrawerTitle>Automation</DrawerTitle>
+                    <EditCard
+                        createNew={props.createNew}
+                        automation={props.automation}
+                        setIsEditing={props.setIsCreating}
+                        isLoggedIn={props.authenticatedData ? true : false}
+                        authenticatedData={props.authenticatedData}
+                        setShowLoginPrompt={props.setShowLoginPrompt}
+                        setUpdatedAutomationData={props.setNewAutomationData}
+                        locationData={props.ipLocationData} />
+                </DrawerContent>
+            </Drawer>
+        ) :
+            (
+                <Dialog
+                    open={props.isCreating}
+                    onOpenChange={(open) => {
+                        props.setIsCreating(open);
+                    }}
+                >
+                    <DialogTrigger asChild>
+                        <Button
+                            className='shadow-sm'
+                            variant="outline">
+                            <Plus className='h-4 w-4 mr-2' />
+                            {props.callToAction}
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogTitle>Automation</DialogTitle>
+                        <EditCard
+                            automation={props.automation}
+                            createNew={props.createNew}
+                            setIsEditing={props.setIsCreating}
+                            isLoggedIn={props.authenticatedData ? true : false}
+                            authenticatedData={props.authenticatedData}
+                            setShowLoginPrompt={props.setShowLoginPrompt}
+                            setUpdatedAutomationData={props.setNewAutomationData}
+                            locationData={props.ipLocationData} />
+                    </DialogContent>
+                </Dialog>
+            )
+    );
+
 }
 
 
@@ -932,7 +969,7 @@ export default function Automations() {
         }
     }, [personalAutomations, allNewAutomations]);
 
-    if (error) return <div>Failed to load</div>;
+    if (error) return <InlineLoading message='Oops, something went wrong. Please refresh the page.' />;
 
     return (
         <main className={`${styles.main} w-full ml-auto mr-auto`}>
@@ -950,7 +987,7 @@ export default function Automations() {
                         <div className='flex flex-wrap gap-2 items-center justify-start'>
                             {
                                 authenticatedData ? (
-                                    <span className='rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm' ><Envelope className='h-4 w-4 mr-2 inline text-orange-500' shadow-s />{authenticatedData.email}</span>
+                                    <span className='rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm' ><Envelope className='h-4 w-4 mr-2 inline text-orange-500 shadow-sm' />{authenticatedData.email}</span>
                                 )
                                     : null
                             }
@@ -986,34 +1023,18 @@ export default function Automations() {
                             Your Creations
                         </h3>
                         {
-                            authenticatedData ? (
-                                <Dialog
-                                    open={isCreating}
-                                    onOpenChange={(open) => {
-                                        setIsCreating(open);
-                                    }}
-                                >
-                                    <DialogTrigger asChild>
-                                        <Button
-                                            className='shadow-sm'
-                                            variant="outline">
-                                            <Plus className='h-4 w-4 mr-2' />
-                                            Create Automation
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogTitle>Create Automation</DialogTitle>
-                                        <EditCard
-                                            createNew={true}
-                                            setIsEditing={setIsCreating}
-                                            isLoggedIn={authenticatedData ? true : false}
-                                            authenticatedData={authenticatedData}
-                                            setShowLoginPrompt={setShowLoginPrompt}
-                                            setUpdatedAutomationData={setNewAutomationData}
-                                            locationData={ipLocationData} />
-                                    </DialogContent>
-                                </Dialog>
-                            )
+                            authenticatedData ?
+                                <AutomationComponentWrapper
+                                    isMobileWidth={isMobileWidth}
+                                    callToAction="Create Automation"
+                                    createNew={true}
+                                    setIsCreating={setIsCreating}
+                                    setShowLoginPrompt={setShowLoginPrompt}
+                                    setNewAutomationData={setNewAutomationData}
+                                    authenticatedData={authenticatedData}
+                                    isCreating={isCreating}
+                                    ipLocationData={ipLocationData}
+                                />
                                 : (
                                     <Button
                                         className='shadow-sm'
@@ -1027,6 +1048,7 @@ export default function Automations() {
                     </div>
                     <Suspense>
                         <SharedAutomationCard
+                            isMobileWidth={isMobileWidth}
                             authenticatedData={authenticatedData}
                             locationData={ipLocationData}
                             isLoggedIn={authenticatedData ? true : false}
@@ -1039,29 +1061,18 @@ export default function Automations() {
                                 So empty! Create your own automation to get started.
                                 <div className='mt-4'>
                                     {
-                                        authenticatedData ? (
-                                            <Dialog
-                                                open={isCreating}
-                                                onOpenChange={(open) => {
-                                                    setIsCreating(open);
-                                                }}
-                                            >
-                                                <DialogTrigger asChild>
-                                                    <Button variant="default">Design</Button>
-                                                </DialogTrigger>
-                                                <DialogContent>
-                                                    <DialogTitle>Create Automation</DialogTitle>
-                                                    <EditCard
-                                                        authenticatedData={authenticatedData}
-                                                        createNew={true}
-                                                        isLoggedIn={authenticatedData ? true : false}
-                                                        setShowLoginPrompt={setShowLoginPrompt}
-                                                        setIsEditing={setIsCreating}
-                                                        setUpdatedAutomationData={setNewAutomationData}
-                                                        locationData={ipLocationData} />
-                                                </DialogContent>
-                                            </Dialog>
-                                        )
+                                        authenticatedData ?
+                                            <AutomationComponentWrapper
+                                                isMobileWidth={isMobileWidth}
+                                                callToAction="Design Automation"
+                                                createNew={true}
+                                                setIsCreating={setIsCreating}
+                                                setShowLoginPrompt={setShowLoginPrompt}
+                                                setNewAutomationData={setNewAutomationData}
+                                                authenticatedData={authenticatedData}
+                                                isCreating={isCreating}
+                                                ipLocationData={ipLocationData}
+                                            />
                                             : (
                                                 <Button
                                                     onClick={() => setShowLoginPrompt(true)}
@@ -1084,6 +1095,7 @@ export default function Automations() {
                         {
                             personalAutomations && personalAutomations.map((automation) => (
                                 <AutomationsCard
+                                    isMobileWidth={isMobileWidth}
                                     key={automation.id}
                                     authenticatedData={authenticatedData}
                                     automation={automation}
@@ -1094,6 +1106,7 @@ export default function Automations() {
                         {
                             allNewAutomations.map((automation) => (
                                 <AutomationsCard
+                                    isMobileWidth={isMobileWidth}
                                     key={automation.id}
                                     authenticatedData={authenticatedData}
                                     automation={automation}
@@ -1112,6 +1125,7 @@ export default function Automations() {
                         {
                             suggestedAutomations.map((automation) => (
                                 <AutomationsCard
+                                    isMobileWidth={isMobileWidth}
                                     setNewAutomationData={setNewAutomationData}
                                     key={automation.id}
                                     authenticatedData={authenticatedData}
