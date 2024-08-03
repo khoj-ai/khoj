@@ -348,7 +348,7 @@ enum PhoneNumberValidationState {
 export default function SettingsView() {
     const [title, setTitle] = useState("Settings");
     const [isMobileWidth, setIsMobileWidth] = useState(false);
-    const { apiKeys, generateAPIKey, copyAPIKey, deleteAPIKey } = useApiKeys();
+    const {apiKeys, generateAPIKey, copyAPIKey, deleteAPIKey} = useApiKeys();
     const {userConfig: initialUserConfig} = useUserConfig(true);
     const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
     const [name, setName] = useState<string | undefined>(undefined);
@@ -845,6 +845,7 @@ export default function SettingsView() {
                             <div className="section grid gap-8">
                                 <div className="text-2xl">Clients</div>
                                 <div className="cards flex flex-wrap gap-8">
+                                    {!userConfig.anonymous_mode && (
                                     <Card className="grid grid-flow-column border border-gray-300 shadow-md rounded-lg bg-gradient-to-b from-background to-gray-50 dark:to-gray-950">
                                         <CardHeader className="text-xl grid grid-flow-col grid-cols-[1fr_auto] pb-0">
                                             <span className="flex flex-wrap">
@@ -868,8 +869,22 @@ export default function SettingsView() {
                                                                     {`${key.token.slice(0, 6)}...${key.token.slice(-4)}`}
                                                                 </span>
                                                                 <div className="grid grid-flow-col">
-                                                                    <Copy weight="bold" className="h-4 w-4 mr-2 hover:bg-primary/40" onClick={() => copyAPIKey(key.token)}/>
-                                                                    <Trash weight="bold" className='h-4 w-4 mr-2 md:ml-4 text-red-400 hover:bg-primary/40' onClick={() => deleteAPIKey(key.token)}/>
+                                                                    <Copy
+                                                                        weight="bold"
+                                                                        className="h-4 w-4 mr-2 hover:bg-primary/40"
+                                                                        onClick={() => {
+                                                                            toast({title: `🔑 Copied API Key: ${key.name}`, description: `Set this API key in the Khoj apps you want to connect to this Khoj account`});
+                                                                            copyAPIKey(key.token);
+                                                                        }}
+                                                                    />
+                                                                    <Trash
+                                                                        weight="bold"
+                                                                        className='h-4 w-4 mr-2 md:ml-4 text-red-400 hover:bg-primary/40'
+                                                                        onClick={() => {
+                                                                            toast({title: `🔑 Deleted API Key: ${key.name}`, description: `Apps using this API key will no longer connect to this Khoj account`});
+                                                                            deleteAPIKey(key.token);
+                                                                        }}
+                                                                    />
                                                                 </div>
                                                             </TableCell>
                                                         </TableRow>
@@ -880,6 +895,7 @@ export default function SettingsView() {
                                         <CardFooter className="flex flex-wrap gap-4">
                                         </CardFooter>
                                     </Card>
+                                    )}
                                     <Card className={cardClassName}>
                                         <CardHeader className="text-xl flex flex-row">
                                             <WhatsappLogo className="h-7 w-7 mr-2"/>
