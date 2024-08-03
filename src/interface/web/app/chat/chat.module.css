@@ -1,5 +1,5 @@
 div.main {
-    height: 100vh;
+    height: 100dvh;
     color: hsla(var(--foreground));
 }
 
@@ -120,5 +120,4 @@ div.agentIndicator {
         gap: 0;
         grid-template-columns: 1fr;
     }
-
 }

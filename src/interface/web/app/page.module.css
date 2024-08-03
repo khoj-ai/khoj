@@ -1,5 +1,5 @@
 div.main {
-    height: 100vh;
+    height: 100dvh;
     color: hsla(var(--foreground));
 }
 
@@ -15,7 +15,6 @@ div.inputBox {
     border: 1px solid var(--border-color);
     border-radius: 16px;
     margin-bottom: 20px;
-    gap: 12px;
     align-content: center;
 }
 
@@ -86,12 +85,10 @@ div.homeGreetings {
     grid-template-rows: 1fr 2fr;
 }
 
-
 div.sidePanel {
     position: fixed;
     height: 100%;
 }
-
 
 @media screen and (max-width: 768px) {
     div.inputBox {
@@ -123,6 +120,6 @@ div.sidePanel {
     }
 
     div.homeGreetings {
-        grid-template-rows: auto;
+        grid-template-rows: auto 1fr;
     }
 }

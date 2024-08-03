@@ -359,7 +359,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                     </Popover>
                 </div>
             }
-            <div className={`${styles.actualInputArea} flex items-center justify-between dark:bg-neutral-700`}>
+            <div className={`${styles.actualInputArea} items-center justify-between dark:bg-neutral-700`}>
                 <input
                     type="file"
                     multiple={true}

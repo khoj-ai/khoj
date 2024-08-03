@@ -244,7 +244,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 props.isMobileWidth &&
                 <>
                     <div className={`${styles.inputBox} w-full shadow-md dark:bg-neutral-700 bg-background align-middle items-center justify-center pb-3 px-1`}>
-                        <div className="flex gap-2 items-center justify-left pt-2 pb-4 px-10">
+                        <div className="flex gap-2 items-center justify-left pt-1 pb-2 px-10">
                             {agentIcons.map((icon, index) => (
                                 <Card
                                     key={`${index}-${agents[index].slug}`}
