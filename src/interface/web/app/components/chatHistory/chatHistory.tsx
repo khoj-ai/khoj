@@ -92,7 +92,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
             scrollToBottomAfterDataLoad();
         }
 
-    }, [chatHistoryRef.current, data]);
+    }, [data, currentPage]);
 
     useEffect(() => {
         if (!hasMoreMessages || fetchingData) return;
@@ -111,7 +111,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
         }
 
         return () => observer.disconnect();
-    }, [sentinelRef.current, hasMoreMessages, currentPage, fetchingData]);
+    }, [hasMoreMessages, currentPage, fetchingData]);
 
     useEffect(() => {
         setHasMoreMessages(true);
@@ -160,7 +160,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
         return () => observer.disconnect();
     }, []);
 
-    const fetchMoreMessages = (currentPage: number) => {
+    function fetchMoreMessages(currentPage: number) {
         if (!hasMoreMessages || fetchingData) return;
         const nextPage = currentPage + 1;
 

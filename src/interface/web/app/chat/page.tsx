@@ -37,26 +37,29 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [processingMessage, setProcessingMessage] = useState(false);
     const [agentMetadata, setAgentMetadata] = useState<AgentData | null>(null);
 
+    const setQueryToProcess = props.setQueryToProcess;
+    const onConversationIdChange = props.onConversationIdChange;
+
     useEffect(() => {
         const storedMessage = localStorage.getItem("message");
         if (storedMessage) {
             setProcessingMessage(true);
-            props.setQueryToProcess(storedMessage);
+            setQueryToProcess(storedMessage);
         }
-    }, []);
+    }, [setQueryToProcess]);
 
     useEffect(() => {
         if (message) {
             setProcessingMessage(true);
-            props.setQueryToProcess(message);
+            setQueryToProcess(message);
         }
-    }, [message]);
+    }, [message, setQueryToProcess]);
 
     useEffect(() => {
         if (conversationId) {
-            props.onConversationIdChange?.(conversationId);
+            onConversationIdChange?.(conversationId);
         }
-    }, [conversationId]);
+    }, [conversationId, onConversationIdChange]);
 
     useEffect(() => {
         if (props.streamedMessages &&

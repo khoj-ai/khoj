@@ -387,7 +387,7 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
             setShowShareUrl(true);
             setIsSharing(false);
         }
-    }, [isSharing]);
+    }, [isSharing, props.conversationId]);
 
     if (isRenaming) {
         return (

@@ -20,6 +20,7 @@ import { useAuthenticatedData, UserConfig, useUserConfig } from '@/app/common/au
 import { convertColorToBorderClass } from '@/app/common/colorUtils';
 import { getIconFromIconName } from '@/app/common/iconUtils';
 import { AgentData } from '@/app/agents/page';
+import { createNewConversation } from './common/chatFunctions';
 
 
 interface ChatBodyDataProps {
@@ -32,20 +33,6 @@ interface ChatBodyDataProps {
     isLoadingUserConfig: boolean;
 }
 
-async function createNewConvo(slug: string) {
-    try {
-        const response = await fetch(`/api/chat/sessions?client=web&agent_slug=${slug}`, { method: "POST" });
-        if (!response.ok) throw new Error(`Failed to fetch chat sessions with status: ${response.status}`);
-        const data = await response.json();
-        const conversationID = data.conversation_id;
-        if (!conversationID) throw new Error("Conversation ID not found in response");
-        return conversationID;
-    } catch (error) {
-        console.error("Error creating new conversation:", error);
-        throw error;
-    }
-}
-
 function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState('');
     const [processingMessage, setProcessingMessage] = useState(false);
@@ -55,6 +42,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [agentIcons, setAgentIcons] = useState<JSX.Element[]>([]);
     const [agents, setAgents] = useState<AgentData[]>([]);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+    const onConversationIdChange = props.onConversationIdChange;
 
     const agentsFetcher = () => window.fetch('/api/agents').then(res => res.json()).catch(err => console.log(err));
     const { data: agentsData, error } = useSWR<AgentData[]>('agents', agentsFetcher, { revalidateOnFocus: false });
@@ -107,7 +96,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             agent => getIconFromIconName(agent.icon, agent.color) || <Image key={agent.name} src={agent.avatar} alt={agent.name} width={50} height={50} />
         );
         setAgentIcons(agentIcons);
-    }, [agentsData]);
+    }, [agentsData, props.isMobileWidth]);
 
     function shuffleSuggestionsCards() {
         shuffleAndSetOptions();
@@ -118,8 +107,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
             if (message && !processingMessage) {
                 setProcessingMessage(true);
                 try {
-                    const newConversationId = await createNewConvo(selectedAgent || "khoj");
-                    props.onConversationIdChange?.(newConversationId);
+                    const newConversationId = await createNewConversation(selectedAgent || "khoj");
+                    onConversationIdChange?.(newConversationId);
                     window.location.href = `/chat?conversationId=${newConversationId}`;
                     localStorage.setItem('message', message);
                 }
@@ -134,7 +123,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
         if (message) {
             setProcessingMessage(true);
         };
-    }, [selectedAgent, message]);
+    }, [selectedAgent, message, processingMessage, onConversationIdChange]);
 
     function fillArea(link: string, type: string, prompt: string) {
         if (!link) {

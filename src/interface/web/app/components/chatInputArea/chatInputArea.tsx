@@ -252,7 +252,7 @@ export default function ChatInputArea(props: ChatInputProps) {
             startRecordingAndTranscribe();
         }
 
-    }, [recording]);
+    }, [recording, mediaRecorder]);
 
     const chatInputRef = useRef<HTMLTextAreaElement>(null);
     useEffect(() => {

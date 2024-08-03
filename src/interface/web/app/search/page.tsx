@@ -201,8 +201,6 @@ export default function Search() {
 
     }, [searchQuery]);
 
-    console.log('searchResults', searchResults);
-
     return (
         <div>
             <div className={`h-full ${styles.sidePanel}`}>

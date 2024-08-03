@@ -62,7 +62,7 @@ export default function NavMenu() {
     useEffect(() => {
         if (!initialLoadDone) return;
         toggleDarkMode(darkMode);
-    }, [darkMode]);
+    }, [darkMode, initialLoadDone]);
 
     function toggleDarkMode(darkMode: boolean) {
         if (darkMode) {

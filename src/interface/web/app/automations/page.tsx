@@ -260,7 +260,7 @@ function AutomationsCard(props: AutomationsCardProps) {
             const dayOfMonth = getDayOfMonthFromCron(automationData.crontime);
             setIntervalString(`Monthly on the ${dayOfMonth}`);
         }
-    }, [updatedAutomationData, props.automation]);
+    }, [updatedAutomationData, automation]);
 
 
     useEffect(() => {
@@ -275,7 +275,7 @@ function AutomationsCard(props: AutomationsCardProps) {
             })
             setToastMessage('');
         }
-    }, [toastMessage]);
+    }, [toastMessage, updatedAutomationData, automation, toast]);
 
     if (isDeleted) {
         return null;
@@ -955,7 +955,7 @@ export default function Automations() {
             setAllNewAutomations([...allNewAutomations, newAutomationData]);
             setNewAutomationData(null);
         }
-    }, [newAutomationData]);
+    }, [newAutomationData, allNewAutomations]);
 
     useEffect(() => {
 

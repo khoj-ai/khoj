@@ -37,24 +37,26 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [processingMessage, setProcessingMessage] = useState(false);
     const [agentMetadata, setAgentMetadata] = useState<AgentData | null>(null);
 
+    const setQueryToProcess = props.setQueryToProcess
+    const streamedMessages = props.streamedMessages;
+
     useEffect(() => {
         if (message) {
             setProcessingMessage(true);
-            props.setQueryToProcess(message);
+            setQueryToProcess(message);
         }
-    }, [message]);
+    }, [message, setQueryToProcess]);
 
     useEffect(() => {
-        console.log("Streamed messages", props.streamedMessages);
-        if (props.streamedMessages &&
-            props.streamedMessages.length > 0 &&
-            props.streamedMessages[props.streamedMessages.length - 1].completed) {
+        if (streamedMessages &&
+            streamedMessages.length > 0 &&
+            streamedMessages[streamedMessages.length - 1].completed) {
 
             setProcessingMessage(false);
         } else {
             setMessage('');
         }
-    }, [props.streamedMessages]);
+    }, [streamedMessages]);
 
     if (!props.publicConversationSlug && !props.conversationId) {
         return (
@@ -167,7 +169,7 @@ export default function SharedChat() {
             setMessages(prevMessages => [...prevMessages, newStreamMessage]);
             setProcessQuerySignal(true);
         }
-    }, [queryToProcess]);
+    }, [queryToProcess, conversationId, paramSlug]);
 
     useEffect(() => {
         if (processQuerySignal) {
@@ -251,7 +253,7 @@ export default function SharedChat() {
                 setMessages(prevMessages => [...prevMessages, newStreamMessage]);
             }
         })();
-    }, [conversationId]);
+    }, [conversationId, queryToProcess]);
 
     if (isLoading) {
         return <Loading />;
