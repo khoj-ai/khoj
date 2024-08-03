@@ -447,7 +447,7 @@ function SharedAutomationCard(props: SharedAutomationCardProps) {
             <DialogTrigger>
             </DialogTrigger>
             <DialogContent>
-                <DialogTitle>
+                <DialogTitle className='py-0'>
                     <Plus className='h-4 w-4 mr-2' />
                     Create Automation
                 </DialogTitle>
@@ -946,8 +946,8 @@ export default function Automations() {
                 </div>
                 <div className={`${styles.pageLayout} w-full`}>
                     <div className='py-4 sm:flex sm:justify-between grid gap-1'>
-                        <h1 className="text-3xl pt-4">Automations</h1>
-                        <div className='flex flex-wrap gap-2 items-center md:justify-start justify-end'>
+                        <h1 className="text-3xl">Automations</h1>
+                        <div className='flex flex-wrap gap-2 items-center justify-start'>
                             {
                                 authenticatedData ? (
                                     <span className='rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm' ><Envelope className='h-4 w-4 mr-2 inline text-orange-500' shadow-s />{authenticatedData.email}</span>
@@ -1035,7 +1035,7 @@ export default function Automations() {
                     </Suspense>
                     {
                         ((!personalAutomations || personalAutomations.length === 0) && (allNewAutomations.length == 0) && !isLoading) && (
-                            <div>
+                            <div className="px-4">
                                 So empty! Create your own automation to get started.
                                 <div className='mt-4'>
                                     {

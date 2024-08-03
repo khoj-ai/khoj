@@ -696,19 +696,19 @@ export default function SidePanel(props: SidePanelProps) {
                             </DrawerContent>
                         </Drawer>
                         :
-                        <div className={`flex justify-between flex-row ${enabled ? 'w-full' : 'w-fit'}`}>
+                        <div className={`grid grid-flow-col gap-4 w-fit`}>
                             <Link href='/' className="content-center">
                                 <KhojLogoType />
                             </Link>
-                            <div className={`${enabled ? 'flex items-center flex-row gap-2' : 'flex items-center'}`}>
-                                <Link className={`ml-4 mr-4`} href="/">
+                            <div className='grid grid-flow-col gap-2 items-center'>
+                                <Link className='mx-4' href="/">
                                     {enabled ? <NotePencil className="h-6 w-6" /> : <NotePencil className="h-6 w-6" color="gray" />}
                                 </Link>
                                 <button className={styles.button} onClick={() => setEnabled(!enabled)}>
                                     {enabled ? <Sidebar className="h-6 w-6" /> : <Sidebar className="h-6 w-6" color="gray" />}
                                 </button>
                             </div>
-                            <div className="fixed right-0 w-fit h-fit">
+                            <div className="fixed right-0 top-[0.9rem] w-fit h-fit">
                                 <NavMenu />
                             </div>
                         </div>

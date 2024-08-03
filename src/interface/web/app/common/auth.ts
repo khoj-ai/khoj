@@ -71,9 +71,9 @@ export interface UserConfig {
 
 export function useUserConfig(detailed: boolean = false) {
     const url = `/api/settings?detailed=${detailed}`;
-    const { data, error } = useSWR<UserConfig>(url, fetcher, { revalidateOnFocus: false });
+    const { data: userConfig, error, isLoading: isLoadingUserConfig } = useSWR<UserConfig>(url, fetcher, { revalidateOnFocus: false });
 
-    if (error || !data || data.detail === 'Forbidden') return null;
+    if (error || !userConfig || userConfig?.detail === 'Forbidden') return {userConfig: null, isLoadingUserConfig};
 
-    return data;
+    return {userConfig, isLoadingUserConfig};
 }

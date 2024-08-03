@@ -38,7 +38,7 @@ interface SuggestionCardProps {
 
 export default function SuggestionCard(data: SuggestionCardProps) {
     const bgColors = converColorToBgGradient(data.color);
-    const cardClassName = `${styles.card} ${bgColors} md:w-full md:h-fit sm:w-full sm:h-fit lg:w-[200px] lg:h-[200px]`;
+    const cardClassName = `${styles.card} ${bgColors} md:w-full md:h-fit sm:w-full sm:h-fit lg:w-[200px] lg:h-[200px] cursor-pointer`;
     const titleClassName = `${styles.title} pt-2 dark:text-white dark:font-bold`;
     const descriptionClassName = `${styles.text} dark:text-white`;
 

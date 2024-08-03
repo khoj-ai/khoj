@@ -159,13 +159,7 @@ export default function Search() {
     }, [isMobileWidth]);
 
     function search() {
-        if (searchResultsLoading) {
-            return;
-        }
-
-        if (!searchQuery.trim()) {
-            return;
-        }
+        if (searchResultsLoading || !searchQuery.trim()) return;
 
         const apiUrl = `/api/search?q=${encodeURIComponent(searchQuery)}&client=web`;
         fetch(apiUrl, {
@@ -246,7 +240,7 @@ export default function Search() {
                         }
                         {
                             !focusSearchResult && searchResults && searchResults.length > 0 &&
-                            <div className='mt-4'>
+                            <div className='mt-4 max-w-[92vw] break-all'>
                                 <ScrollArea className="h-[80vh]">
                                     {
                                         searchResults.map((result, index) => {

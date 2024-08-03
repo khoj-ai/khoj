@@ -1,39 +1,25 @@
 'use client'
 import './globals.css';
-
 import styles from './page.module.css';
-import React, { useEffect, useState } from 'react';
-
-import SuggestionCard from './components/suggestions/suggestionCard';
-import SidePanel from './components/sidePanel/chatHistorySidePanel';
-import Loading from './components/loading/loading';
-import useSWR from 'swr';
-import Image from 'next/image';
-
 import 'katex/dist/katex.min.css';
 
-import ChatInputArea, { ChatOptions } from './components/chatInputArea/chatInputArea';
-import { useAuthenticatedData } from './common/auth';
-import { Card, CardTitle } from '@/components/ui/card';
-import { convertColorToBorderClass } from './common/colorUtils';
-import { getIconFromIconName } from './common/iconUtils';
+import React, { useEffect, useState } from 'react';
+import useSWR from 'swr';
+import Image from 'next/image';
 import { ClockCounterClockwise } from '@phosphor-icons/react';
-import { AgentData } from './agents/page';
 
-import { Suggestion, suggestionsData } from './components/suggestions/suggestionsData';
-import LoginPrompt from './components/loginPrompt/loginPrompt';
+import { Card, CardTitle } from '@/components/ui/card';
+import SuggestionCard from '@/app/components/suggestions/suggestionCard';
+import SidePanel from '@/app/components/sidePanel/chatHistorySidePanel';
+import Loading from '@/app/components/loading/loading';
+import ChatInputArea, { ChatOptions } from '@/app/components/chatInputArea/chatInputArea';
+import { Suggestion, suggestionsData } from '@/app/components/suggestions/suggestionsData';
+import LoginPrompt from '@/app/components/loginPrompt/loginPrompt';
 
-//get today's day
-const today = new Date();
-const day = today.getDay();
-const greetings = [
-    `Good ${today.getHours() < 12 ? 'morning' : today.getHours() < 15 ? 'afternoon' : 'evening'}! What would you like to do today?`,
-    'How can I help you today?',
-    `Good ${today.getHours() < 12 ? 'morning' : today.getHours() < 15 ? 'afternoon' : 'evening'}! What's on your mind?`,
-    `Ready to breeze through your ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]}?`,
-    `Want to navigate your ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]} workload?`
-];
-const greeting = greetings[~~(Math.random() * greetings.length)];
+import { useAuthenticatedData, UserConfig, useUserConfig } from '@/app/common/auth';
+import { convertColorToBorderClass } from '@/app/common/colorUtils';
+import { getIconFromIconName } from '@/app/common/iconUtils';
+import { AgentData } from '@/app/agents/page';
 
 
 interface ChatBodyDataProps {
@@ -42,19 +28,17 @@ interface ChatBodyDataProps {
     setUploadedFiles: (files: string[]) => void;
     isMobileWidth?: boolean;
     isLoggedIn: boolean;
+    userConfig: UserConfig | null;
+    isLoadingUserConfig: boolean;
 }
 
 async function createNewConvo(slug: string) {
     try {
         const response = await fetch(`/api/chat/sessions?client=web&agent_slug=${slug}`, { method: "POST" });
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`Failed to fetch chat sessions with status: ${response.status}`);
         const data = await response.json();
         const conversationID = data.conversation_id;
-        if (!conversationID) {
-            throw new Error("Conversation ID not found in response");
-        }
+        if (!conversationID) throw new Error("Conversation ID not found in response");
         return conversationID;
     } catch (error) {
         console.error("Error creating new conversation:", error);
@@ -65,6 +49,7 @@ async function createNewConvo(slug: string) {
 function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState('');
     const [processingMessage, setProcessingMessage] = useState(false);
+    const [greeting, setGreeting] = useState('');
     const [shuffledOptions, setShuffledOptions] = useState<Suggestion[]>([]);
     const [selectedAgent, setSelectedAgent] = useState<string | null>("khoj");
     const [agentIcons, setAgentIcons] = useState<JSX.Element[]>([]);
@@ -80,6 +65,29 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }
 
     useEffect(() => {
+        console.log(`Loading user config: ${props.isLoadingUserConfig}`);
+        if (props.isLoadingUserConfig) return;
+
+        // Set user config
+        console.log(`Logged In: ${props.isLoggedIn}\nUserConfig: ${props.userConfig}`);
+
+        // Get today's day
+        const today = new Date();
+        const day = today.getDay();
+        const timeOfDay = today.getHours() > 4 && today.getHours() < 12 ? 'morning' : today.getHours() < 17 ? 'afternoon' : 'evening';
+        const nameSuffix = props.userConfig?.given_name ? `, ${props.userConfig?.given_name}` : "";
+        const greetings = [
+            `What would you like to get done${nameSuffix}?`,
+            `Hey${nameSuffix}! How can I help?`,
+            `Good ${timeOfDay}${nameSuffix}! What's on your mind?`,
+            `Ready to breeze through your ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]}?`,
+            `Want help navigating your ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]} workload?`
+        ];
+        const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+        setGreeting(greeting);
+    }, [props.isLoadingUserConfig, props.userConfig]);
+
+    useEffect(() => {
         if (props.chatOptionsData) {
             shuffleAndSetOptions();
         }
@@ -87,9 +95,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
 
     useEffect(() => {
         const nSlice = props.isMobileWidth ? 3 : 4;
-
         const shuffledAgents = agentsData ? [...agentsData].sort(() => 0.5 - Math.random()) : [];
-
         const agents = agentsData ? [agentsData[0]] : []; // Always add the first/default agent.
 
         shuffledAgents.slice(0, nSlice - 1).forEach(agent => {
@@ -168,7 +174,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             }
             <div className={`w-full text-center justify-end content-end`}>
                 <div className="items-center">
-                    <h1 className="text-center pb-6 px-4 w-fit ml-auto mr-auto">{greeting}</h1>
+                    <h1 className="text-center w-fit pb-6 px-4 mx-auto">{greeting}</h1>
                 </div>
                 {
                     !props.isMobileWidth &&
@@ -280,11 +286,18 @@ export default function Home() {
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [isMobileWidth, setIsMobileWidth] = useState(false);
 
+    const {userConfig: initialUserConfig, isLoadingUserConfig} = useUserConfig(true);
+    const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
+
     const authenticatedData = useAuthenticatedData();
 
     const handleConversationIdChange = (newConversationId: string) => {
         setConversationID(newConversationId);
     };
+
+    useEffect(() => {
+        setUserConfig(initialUserConfig);
+    }, [initialUserConfig]);
 
     useEffect(() => {
         fetch('/api/chat/options')
@@ -332,6 +345,8 @@ export default function Home() {
                         setUploadedFiles={setUploadedFiles}
                         isMobileWidth={isMobileWidth}
                         onConversationIdChange={handleConversationIdChange}
+                        userConfig={userConfig}
+                        isLoadingUserConfig={isLoadingUserConfig}
                     />
                 </div>
             </div>

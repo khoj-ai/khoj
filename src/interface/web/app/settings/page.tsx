@@ -348,7 +348,7 @@ export default function SettingsView() {
     const [title, setTitle] = useState("Settings");
     const [isMobileWidth, setIsMobileWidth] = useState(false);
     const { apiKeys, generateAPIKey, copyAPIKey, deleteAPIKey } = useApiKeys();
-    const initialUserConfig = useUserConfig(true);
+    const {userConfig: initialUserConfig} = useUserConfig(true);
     const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
     const [name, setName] = useState<string | undefined>(undefined);
     const [notionToken, setNotionToken] = useState<string | null>(null);

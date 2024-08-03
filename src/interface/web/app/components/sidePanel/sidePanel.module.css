@@ -143,7 +143,8 @@ div.modalSessionsList div.session {
 
     div.session.compressed {
         max-width: 100%;
-        grid-template-columns: minmax(auto, 300px) 1fr;
+        display: flex;
+        justify-content: space-between;
     }
 
     div.session {
