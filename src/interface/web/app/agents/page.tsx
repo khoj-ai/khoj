@@ -254,9 +254,6 @@ export default function Agents() {
     if (!data) {
         return (
             <main className={styles.main}>
-                <div className={`${styles.titleBar} text-5xl`}>
-                    Agents
-                </div>
                 <div className={styles.agentList}>
                     <InlineLoading /> booting up your agents
                 </div>
