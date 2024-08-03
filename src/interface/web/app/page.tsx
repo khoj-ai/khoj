@@ -59,7 +59,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
         // Get today's day
         const today = new Date();
         const day = today.getDay();
-        const timeOfDay = today.getHours() > 4 && today.getHours() < 12 ? 'morning' : today.getHours() < 17 ? 'afternoon' : 'evening';
+        const timeOfDay = today.getHours() >= 17 || today.getHours() < 4 ? 'evening' : today.getHours() >= 12 ? 'afternoon' : 'morning';
         const nameSuffix = props.userConfig?.given_name ? `, ${props.userConfig?.given_name}` : "";
         const greetings = [
             `What would you like to get done${nameSuffix}?`,
