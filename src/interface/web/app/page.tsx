@@ -90,7 +90,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }, [props.chatOptionsData]);
 
     useEffect(() => {
-        const nSlice = props.isMobileWidth ? 3 : 4;
+        const nSlice = props.isMobileWidth ? 2 : 4;
         const shuffledAgents = agentsData ? [...agentsData].sort(() => 0.5 - Math.random()) : [];
         const agents = agentsData ? [agentsData[0]] : []; // Always add the first/default agent.
 
@@ -170,7 +170,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             }
             <div className={`w-full text-center justify-end content-end`}>
                 <div className="items-center">
-                    <h1 className="text-2xl text-center w-fit pb-6 px-4 mx-auto">{greeting}</h1>
+                    <h1 className="text-2xl md:text-5xl text-center w-fit pb-6 px-4 mx-auto">{greeting}</h1>
                 </div>
                 {
                     !props.isMobileWidth &&
