@@ -664,7 +664,7 @@ export default function SidePanel(props: SidePanelProps) {
         <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed} ${props.isMobileWidth ? 'mt-0' : 'mt-1'}`}>
             <div className={`flex justify-between flex-row`}>
                 {
-                    authenticatedData && props.isMobileWidth ?
+                    props.isMobileWidth ?
                         <Drawer open={enabled} onOpenChange={(open) => {
                             if (!enabled) setEnabled(false);
                             setEnabled(open);
@@ -676,18 +676,27 @@ export default function SidePanel(props: SidePanelProps) {
                                     <DrawerTitle>Sessions and Files</DrawerTitle>
                                     <DrawerDescription>View all conversation sessions and manage conversation file filters</DrawerDescription>
                                 </DrawerHeader>
-                                <div className={`${styles.panelWrapper}`}>
-                                    <SessionsAndFiles
-                                        setEnabled={setEnabled}
-                                        subsetOrganizedData={subsetOrganizedData}
-                                        organizedData={organizedData}
-                                        data={data}
-                                        uploadedFiles={props.uploadedFiles}
-                                        userProfile={authenticatedData}
-                                        conversationId={props.conversationId}
-                                        isMobileWidth={props.isMobileWidth}
-                                    />
-                                </div>
+                                {
+                                    authenticatedData ?
+                                        <div className={`${styles.panelWrapper}`}>
+                                            <SessionsAndFiles
+                                                setEnabled={setEnabled}
+                                                subsetOrganizedData={subsetOrganizedData}
+                                                organizedData={organizedData}
+                                                data={data}
+                                                uploadedFiles={props.uploadedFiles}
+                                                userProfile={authenticatedData}
+                                                conversationId={props.conversationId}
+                                                isMobileWidth={props.isMobileWidth}
+                                            />
+                                        </div>
+                                        :
+                                        <div className={`${styles.panelWrapper}`}>
+                                            <Link href={`/login?next=${encodeURIComponent(window.location.pathname)}`} className="text-center"> {/* Redirect to login page */}
+                                                <Button variant="default"><UserCirclePlus className="h-4 w-4 mr-1" />Sign Up</Button>
+                                            </Link>
+                                        </div>
+                                }
                                 <DrawerFooter>
                                     <DrawerClose>
                                         <Button variant="outline">Done</Button>
@@ -740,7 +749,7 @@ export default function SidePanel(props: SidePanelProps) {
                 </div>
             }
             {
-                !authenticatedData && enabled &&
+                !authenticatedData && enabled && !props.isMobileWidth &&
                 <div className={`${styles.panelWrapper}`}>
                     <Link href="/" className="flex flex-col content-start items-start no-underline">
                         <Button variant="ghost"><House className="h-4 w-4 mr-1" />Home</Button>
