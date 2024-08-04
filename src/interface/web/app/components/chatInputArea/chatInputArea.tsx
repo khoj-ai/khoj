@@ -7,7 +7,6 @@ import { Progress } from "@/components/ui/progress"
 
 import 'katex/dist/katex.min.css';
 import {
-    ArrowCircleUp,
     ArrowRight,
     ArrowUp,
     Browser,
@@ -370,10 +369,10 @@ export default function ChatInputArea(props: ChatInputProps) {
                 />
                 <Button
                     variant={'ghost'}
-                    className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
+                    className="!bg-none p-0 m-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
                     disabled={props.sendDisabled}
                     onClick={handleFileButtonClick}>
-                    <Paperclip className='w-6 h-6 md:w-8 md:h-8' />
+                    <Paperclip className='w-8 h-8' />
                 </Button>
                 <div className="grid w-full gap-1.5 relative">
                     <Textarea
@@ -399,13 +398,13 @@ export default function ChatInputArea(props: ChatInputProps) {
                                 <TooltipTrigger asChild>
                                     <Button
                                         variant={'ghost'}
-                                        className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
+                                        className="!bg-none p-0 m-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
                                         onClick={() => {
                                             setRecording(!recording);
                                         }}
                                         disabled={props.sendDisabled}
                                     >
-                                        <Stop weight='fill' className='w-6 h-6 md:w-8 md:h-8' />
+                                        <Stop weight='fill' className='w-8 h-8' />
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
@@ -423,14 +422,14 @@ export default function ChatInputArea(props: ChatInputProps) {
                                         <TooltipTrigger asChild>
                                             <Button
                                                 variant={'ghost'}
-                                                className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
+                                                className="!bg-none p-0 m-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
                                                 onClick={() => {
                                                     setMessage("Listening...");
                                                     setRecording(!recording);
                                                 }}
                                                 disabled={props.sendDisabled}
                                             >
-                                                <Microphone weight='fill' className='w-6 h-6 md:w-8 md:h-8' />
+                                                <Microphone weight='fill' className='w-8 h-8' />
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent>
@@ -441,10 +440,10 @@ export default function ChatInputArea(props: ChatInputProps) {
                         )
                 }
                 <Button
-                    className={`${props.agentColor ? convertToBGClass(props.agentColor) : 'bg-orange-300 hover:bg-orange-500'} rounded-full p-1 h-auto text-3xl transition transform hover:-translate-y-1`}
+                    className={`${props.agentColor ? convertToBGClass(props.agentColor) : 'bg-orange-300 hover:bg-orange-500'} rounded-full p-1 mr-1 h-auto text-3xl transition transform hover:-translate-y-1`}
                     onClick={onSendMessage}
                     disabled={props.sendDisabled}>
-                    <ArrowUp className='w-4 h-4 md:w-6 md:h-6' weight='bold' />
+                    <ArrowUp className='w-6 h-6' weight='bold' />
                 </Button>
             </div >
         </>

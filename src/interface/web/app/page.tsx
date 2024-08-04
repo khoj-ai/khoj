@@ -184,7 +184,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     </div>
                 }
             </div>
-            <div className={`ml-auto mr-auto ${props.isMobileWidth ? 'w-full' : 'w-fit'}`}>
+            <div className={`mx-auto ${props.isMobileWidth ? 'w-full' : 'w-fit'}`}>
                 {
                     !props.isMobileWidth &&
                     <div className={`w-full ${styles.inputBox} shadow-lg bg-background align-middle items-center justify-center px-3 py-1 dark:bg-neutral-700 border-stone-100 dark:border-none dark:shadow-none rounded-2xl`}>
