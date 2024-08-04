@@ -433,7 +433,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            Click to start recording and transcribe your voice.
+                                            Click to transcribe your message with voice.
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>

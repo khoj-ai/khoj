@@ -684,7 +684,7 @@ export default function SettingsView() {
                                             </Button>
                                         </CardFooter>
                                     </Card>
-                                    <Card id="billing" className={cardClassName}>
+                                    <Card id="subscription" className={cardClassName}>
                                         <CardHeader className="text-xl flex flex-row">
                                             <CreditCard className="h-7 w-7 mr-2"/>
                                             Subscription
@@ -751,7 +751,7 @@ export default function SettingsView() {
                             <div className="section grid gap-8">
                                 <div className="text-2xl">Content</div>
                                 <div className="cards flex flex-wrap gap-16">
-                                    <Card className={cardClassName}>
+                                    <Card id="computer" className={cardClassName}>
                                         <CardHeader className="flex flex-row text-2xl"><Laptop className="h-8 w-8 mr-2" />Files</CardHeader>
                                         <CardContent className="overflow-hidden pb-12 text-gray-400">
                                             Manage your synced files
@@ -772,7 +772,7 @@ export default function SettingsView() {
                                             </Button>
                                         </CardFooter>
                                     </Card>
-                                    <Card className={`${cardClassName} hidden`}>
+                                    <Card id="github" className={`${cardClassName} hidden`}>
                                         <CardHeader className="flex flex-row text-2xl"><GithubLogo className="h-8 w-8 mr-2" />Github</CardHeader>
                                         <CardContent className="overflow-hidden pb-12 text-gray-400">
                                             Set Github repositories to index
@@ -794,7 +794,7 @@ export default function SettingsView() {
                                             </Button>
                                         </CardFooter>
                                     </Card>
-                                    <Card className={cardClassName}>
+                                    <Card id="notion" className={cardClassName}>
                                         <CardHeader className="text-xl flex flex-row"><NotionLogo className="h-7 w-7 mr-2" />Notion</CardHeader>
                                         <CardContent className="grid gap-4">
                                             <p className="text-gray-400">Sync your Notion pages. See the <a href="https://docs.khoj.dev/data-sources/notion_integration/">setup instructions</a></p>
@@ -917,7 +917,7 @@ export default function SettingsView() {
                                 </div>
                             </div>
                             <div className="section grid gap-8">
-                                <div className="text-2xl">Clients</div>
+                                <div id="clients" className="text-2xl">Clients</div>
                                 <div className="cards flex flex-wrap gap-8">
                                     {!userConfig.anonymous_mode && (
                                     <Card className="grid grid-flow-column border border-gray-300 shadow-md rounded-lg bg-gradient-to-b from-background to-gray-50 dark:to-gray-950">

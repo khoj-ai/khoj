@@ -9,6 +9,6 @@ The Github integration allows you to index as many repositories as you want. It'
 ## Use the Github plugin
 
 1. Generate a [classic PAT (personal access token)](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) from [Github](https://github.com/settings/tokens) with `repo` and `admin:org` scopes at least.
-2. Navigate to [https://app.khoj.dev/settings/content/github](https://app.khoj.dev/settings/content/github) to configure your Github settings. Enter in your PAT, along with details for each repository you want to index.
+2. Navigate to [https://app.khoj.dev/settings#github](https://app.khoj.dev/settings#github) to configure your Github settings. Enter in your PAT, along with details for each repository you want to index.
 3. Click `Save`. Go back to the settings page and click `Configure`.
 4. Go to [https://app.khoj.dev/](https://app.khoj.dev/) and start searching!
