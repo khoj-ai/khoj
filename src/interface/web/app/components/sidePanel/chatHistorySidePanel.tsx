@@ -89,12 +89,11 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { modifyFileFilterForConversation } from "@/app/common/chatFunctions";
 import { ScrollAreaScrollbar } from "@radix-ui/react-scroll-area";
-import { KhojLogo, KhojLogoType } from "@/app/components/logo/khogLogo";
-import NavMenu from "../navMenu/navMenu";
+import { KhojLogoType } from "@/app/components/logo/khojLogo";
+import NavMenu from "@/app/components/navMenu/navMenu";
 
 // Define a fetcher function
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
