@@ -252,15 +252,11 @@ export default function ChatMessage(props: ChatMessageProps) {
 
     useEffect(() => {
         const observer = new MutationObserver((mutationsList, observer) => {
-            console.log("called mutation observer");
             // If the addedNodes property has one or more nodes
             if (messageRef.current) {
                 for (let mutation of mutationsList) {
                     if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
                         // Call your function here
-
-                        console.log("render katex in body");
-
                         renderMathInElement(messageRef.current, {
                             delimiters: [
                                 { left: "$$", right: "$$", display: true },

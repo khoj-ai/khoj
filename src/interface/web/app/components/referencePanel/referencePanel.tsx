@@ -35,14 +35,23 @@ interface NotesContextReferenceCardProps extends NotesContextReferenceData {
     showFullContent: boolean;
 }
 
+function extractSnippet(props: NotesContextReferenceCardProps): string {
+    const hierarchicalFileExtensions = ["org", "md", "markdown"];
+    const extension = props.title.split(".").pop() || "";
+    const cleanContent = hierarchicalFileExtensions.includes(extension)
+        ? props.content.split("\n").slice(1).join("\n")
+        : props.content;
+    return props.showFullContent
+        ? DOMPurify.sanitize(md.render(cleanContent))
+        : DOMPurify.sanitize(cleanContent);
+}
+
 function NotesContextReferenceCard(props: NotesContextReferenceCardProps) {
-    const snippet = props.showFullContent
-        ? DOMPurify.sanitize(md.render(props.content))
-        : DOMPurify.sanitize(props.content);
     const fileIcon = getIconFromFilename(
         props.title || ".txt",
         "w-6 h-6 text-muted-foreground inline-flex mr-2",
     );
+    const snippet = extractSnippet(props);
     const [isHovering, setIsHovering] = useState(false);
 
     return (
