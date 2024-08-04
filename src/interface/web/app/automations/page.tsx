@@ -291,17 +291,6 @@ function AutomationsCard(props: AutomationsCardProps) {
                             <Button className='bg-background' variant={'ghost'}><DotsThreeVertical className='h-4 w-4' /></Button>
                         </PopoverTrigger>
                         <PopoverContent className='w-auto grid gap-2 text-left bg-secondary'>
-                            <Button variant={'destructive'}
-                                className='justify-start'
-                                onClick={() => {
-                                    if (props.suggestedCard) {
-                                        setIsDeleted(true);
-                                        return;
-                                    }
-                                    deleteAutomation(automation.id.toString(), setIsDeleted);
-                                }}>
-                                <Trash className='h-4 w-4 mr-2' />Delete
-                            </Button>
                             {
                                 (!props.suggestedCard && props.locationData) && (
                                     <AutomationComponentWrapper
@@ -316,6 +305,18 @@ function AutomationsCard(props: AutomationsCardProps) {
                                         ipLocationData={props.locationData} />
                                 )
                             }
+                            <ShareLink
+                                buttonTitle="Share"
+                                includeIcon={true}
+                                buttonClassName='justify-start px-4 py-2 h-10'
+                                buttonVariant={'outline' as keyof typeof buttonVariants}
+                                title="Share Automation"
+                                description="Copy the link below and share it with your coworkers or friends."
+                                url={createShareLink(automation)}
+                                onShare={() => {
+                                    navigator.clipboard.writeText(createShareLink(automation));
+                                }}
+                            />
                             {
                                 !props.suggestedCard && (
                                     <Button variant={'outline'}
@@ -327,17 +328,17 @@ function AutomationsCard(props: AutomationsCardProps) {
                                     </Button>
                                 )
                             }
-                            <ShareLink
-                                buttonTitle="Share"
-                                includeIcon={true}
-                                buttonClassName='justify-start px-4 py-2 h-10'
-                                buttonVariant={'outline' as keyof typeof buttonVariants}
-                                title="Share Automation"
-                                description="Copy the link below and share it with your coworkers or friends."
-                                url={createShareLink(automation)}
-                                onShare={() => {
-                                    navigator.clipboard.writeText(createShareLink(automation));
-                                }} />
+                            <Button variant={'destructive'}
+                                className='justify-start'
+                                onClick={() => {
+                                    if (props.suggestedCard) {
+                                        setIsDeleted(true);
+                                        return;
+                                    }
+                                    deleteAutomation(automation.id.toString(), setIsDeleted);
+                                }}>
+                                <Trash className='h-4 w-4 mr-2' />Delete
+                            </Button>
                         </PopoverContent>
                     </Popover>
                 </CardTitle>
