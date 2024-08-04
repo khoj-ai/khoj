@@ -843,6 +843,80 @@ export default function SettingsView() {
                                 </div>
                             </div>
                             <div className="section grid gap-8">
+                                <div className="text-2xl">Models</div>
+                                <div className="cards flex flex-wrap gap-16">
+                                    {userConfig.chat_model_options.length > 0 && (
+                                    <Card className={cardClassName}>
+                                        <CardHeader className="text-xl flex flex-row"><ChatCircleText className="h-7 w-7 mr-2"/>Chat</CardHeader>
+                                        <CardContent className="overflow-hidden pb-12 grid gap-8">
+                                            <p className="text-gray-400">Pick the chat model to generate text responses</p>
+                                            <DropdownComponent
+                                                items={userConfig.chat_model_options}
+                                                selected={userConfig.selected_chat_model_config}
+                                                callbackFunc={updateModel("chat")}
+                                            />
+                                        </CardContent>
+                                        <CardFooter className="flex flex-wrap gap-4">
+                                            {!userConfig.is_active && (
+                                                <p className="text-gray-400">Subscribe to switch model</p>
+                                            )}
+                                        </CardFooter>
+                                     </Card>
+                                    )}
+                                    {userConfig.search_model_options.length > 0 && (
+                                    <Card className={cardClassName}>
+                                        <CardHeader className="text-xl flex flex-row"><FileMagnifyingGlass className="h-7 w-7 mr-2"/>Search</CardHeader>
+                                        <CardContent className="overflow-hidden pb-12 grid gap-8">
+                                            <p className="text-gray-400">Pick the search model to find your documents</p>
+                                            <DropdownComponent
+                                                items={userConfig.search_model_options}
+                                                selected={userConfig.selected_search_model_config}
+                                                callbackFunc={updateModel("search")}
+                                            />
+                                        </CardContent>
+                                        <CardFooter className="flex flex-wrap gap-4">
+                                        </CardFooter>
+                                    </Card>
+                                    )}
+                                    {userConfig.paint_model_options.length > 0 && (
+                                    <Card className={cardClassName}>
+                                        <CardHeader className="text-xl flex flex-row"><Palette className="h-7 w-7 mr-2"/>Paint</CardHeader>
+                                        <CardContent className="overflow-hidden pb-12 grid gap-8">
+                                            <p className="text-gray-400">Pick the paint model to generate image responses</p>
+                                            <DropdownComponent
+                                                items={userConfig.paint_model_options}
+                                                selected={userConfig.selected_paint_model_config}
+                                                callbackFunc={updateModel("paint")}
+                                            />
+                                        </CardContent>
+                                        <CardFooter className="flex flex-wrap gap-4">
+                                            {!userConfig.is_active && (
+                                                <p className="text-gray-400">Subscribe to switch model</p>
+                                            )}
+                                        </CardFooter>
+                                    </Card>
+                                    )}
+                                    {userConfig.voice_model_options.length > 0 && (
+                                    <Card className={cardClassName}>
+                                        <CardHeader className="text-xl flex flex-row"><Waveform className="h-7 w-7 mr-2"/>Voice</CardHeader>
+                                        <CardContent className="overflow-hidden pb-12 grid gap-8">
+                                            <p className="text-gray-400">Pick the voice model to generate speech responses</p>
+                                            <DropdownComponent
+                                                items={userConfig.voice_model_options}
+                                                selected={userConfig.selected_voice_model_config}
+                                                callbackFunc={updateModel("voice")}
+                                            />
+                                        </CardContent>
+                                        <CardFooter className="flex flex-wrap gap-4">
+                                            {!userConfig.is_active && (
+                                                <p className="text-gray-400">Subscribe to switch model</p>
+                                            )}
+                                        </CardFooter>
+                                    </Card>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="section grid gap-8">
                                 <div className="text-2xl">Clients</div>
                                 <div className="cards flex flex-wrap gap-8">
                                     {!userConfig.anonymous_mode && (
@@ -979,80 +1053,6 @@ export default function SettingsView() {
                                             }
                                         </CardFooter>
                                     </Card>
-                                </div>
-                            </div>
-                            <div className="section grid gap-8">
-                                <div className="text-2xl">Models</div>
-                                <div className="cards flex flex-wrap gap-16">
-                                    {userConfig.chat_model_options.length > 0 && (
-                                    <Card className={cardClassName}>
-                                        <CardHeader className="text-xl flex flex-row"><ChatCircleText className="h-7 w-7 mr-2"/>Chat</CardHeader>
-                                        <CardContent className="overflow-hidden pb-12 grid gap-8">
-                                            <p className="text-gray-400">Pick the chat model to generate text responses</p>
-                                            <DropdownComponent
-                                                items={userConfig.chat_model_options}
-                                                selected={userConfig.selected_chat_model_config}
-                                                callbackFunc={updateModel("chat")}
-                                            />
-                                        </CardContent>
-                                        <CardFooter className="flex flex-wrap gap-4">
-                                            {!userConfig.is_active && (
-                                                <p className="text-gray-400">Subscribe to switch model</p>
-                                            )}
-                                        </CardFooter>
-                                     </Card>
-                                    )}
-                                    {userConfig.search_model_options.length > 0 && (
-                                    <Card className={cardClassName}>
-                                        <CardHeader className="text-xl flex flex-row"><FileMagnifyingGlass className="h-7 w-7 mr-2"/>Search</CardHeader>
-                                        <CardContent className="overflow-hidden pb-12 grid gap-8">
-                                            <p className="text-gray-400">Pick the search model to find your documents</p>
-                                            <DropdownComponent
-                                                items={userConfig.search_model_options}
-                                                selected={userConfig.selected_search_model_config}
-                                                callbackFunc={updateModel("search")}
-                                            />
-                                        </CardContent>
-                                        <CardFooter className="flex flex-wrap gap-4">
-                                        </CardFooter>
-                                    </Card>
-                                    )}
-                                    {userConfig.paint_model_options.length > 0 && (
-                                    <Card className={cardClassName}>
-                                        <CardHeader className="text-xl flex flex-row"><Palette className="h-7 w-7 mr-2"/>Paint</CardHeader>
-                                        <CardContent className="overflow-hidden pb-12 grid gap-8">
-                                            <p className="text-gray-400">Pick the paint model to generate image responses</p>
-                                            <DropdownComponent
-                                                items={userConfig.paint_model_options}
-                                                selected={userConfig.selected_paint_model_config}
-                                                callbackFunc={updateModel("paint")}
-                                            />
-                                        </CardContent>
-                                        <CardFooter className="flex flex-wrap gap-4">
-                                            {!userConfig.is_active && (
-                                                <p className="text-gray-400">Subscribe to switch model</p>
-                                            )}
-                                        </CardFooter>
-                                    </Card>
-                                    )}
-                                    {userConfig.voice_model_options.length > 0 && (
-                                    <Card className={cardClassName}>
-                                        <CardHeader className="text-xl flex flex-row"><Waveform className="h-7 w-7 mr-2"/>Voice</CardHeader>
-                                        <CardContent className="overflow-hidden pb-12 grid gap-8">
-                                            <p className="text-gray-400">Pick the voice model to generate speech responses</p>
-                                            <DropdownComponent
-                                                items={userConfig.voice_model_options}
-                                                selected={userConfig.selected_voice_model_config}
-                                                callbackFunc={updateModel("voice")}
-                                            />
-                                        </CardContent>
-                                        <CardFooter className="flex flex-wrap gap-4">
-                                            {!userConfig.is_active && (
-                                                <p className="text-gray-400">Subscribe to switch model</p>
-                                            )}
-                                        </CardFooter>
-                                    </Card>
-                                    )}
                                 </div>
                             </div>
                         </div>
