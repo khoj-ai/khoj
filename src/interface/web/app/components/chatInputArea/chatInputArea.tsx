@@ -369,7 +369,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                 />
                 <Button
                     variant={'ghost'}
-                    className="!bg-none p-0 m-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
+                    className="!bg-none p-0 m-2 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
                     disabled={props.sendDisabled}
                     onClick={handleFileButtonClick}>
                     <Paperclip className='w-8 h-8' />
@@ -398,7 +398,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                                 <TooltipTrigger asChild>
                                     <Button
                                         variant={'ghost'}
-                                        className="!bg-none p-0 m-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
+                                        className={`${message && 'hidden'} !bg-none p-0 m-2 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500`}
                                         onClick={() => {
                                             setRecording(!recording);
                                         }}
@@ -422,7 +422,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                                         <TooltipTrigger asChild>
                                             <Button
                                                 variant={'ghost'}
-                                                className="!bg-none p-0 m-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
+                                                className={`${message && 'hidden'} !bg-none p-0 m-2 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500`}
                                                 onClick={() => {
                                                     setMessage("Listening...");
                                                     setRecording(!recording);
@@ -440,7 +440,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                         )
                 }
                 <Button
-                    className={`${props.agentColor ? convertToBGClass(props.agentColor) : 'bg-orange-300 hover:bg-orange-500'} rounded-full p-1 mr-1 h-auto text-3xl transition transform hover:-translate-y-1`}
+                    className={`${!message && 'hidden'} ${props.agentColor ? convertToBGClass(props.agentColor) : 'bg-orange-300 hover:bg-orange-500'} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
                     onClick={onSendMessage}
                     disabled={props.sendDisabled}>
                     <ArrowUp className='w-6 h-6' weight='bold' />
