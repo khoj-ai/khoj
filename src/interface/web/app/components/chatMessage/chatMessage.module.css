@@ -1,14 +1,20 @@
 div.chatMessageContainer {
     display: flex;
     flex-direction: column;
-    margin: 12px;
     border-radius: 16px;
+}
+div.chatMessageContainer.khoj {
+    margin: 0;
     padding: 8px 16px 0 16px;
+}
+div.chatMessageContainer.you {
+    margin-top: 12px;
+    padding-top: 16px;
+    box-shadow: none;
+    border-top: transparent;
 }
 
 div.chatMessageWrapper {
-    padding-left: 1rem;
-    padding-bottom: 1rem;
     max-width: 80vw;
 }
 div.chatMessageWrapper p:not(:last-child) {
@@ -16,7 +22,7 @@ div.chatMessageWrapper p:not(:last-child) {
 }
 
 div.khojfullHistory {
-    border-width: 1px;
+    border-width: 1px 2px 3px 4px;
     padding-left: 4px;
 }
 
@@ -25,23 +31,22 @@ div.youfullHistory {
 }
 
 div.chatMessageContainer.youfullHistory {
-    padding-left: 0px;
+    padding-left: 16px;
 }
 
 div.you {
-    background-color: hsla(var(--secondary));
-    align-self: flex-end;
-    border-radius: 16px;
+    background-color: transparent;
+    align-self: flex-start;
 }
 
 div.khoj {
     background-color: transparent;
     color: hsl(var(--accent-foreground));
     align-self: flex-start;
+    padding-left: 1rem;
 }
 
 div.khojChatMessage {
-    padding-top: 8px;
     padding-left: 16px;
 }
 
@@ -64,8 +69,6 @@ div.author {
 }
 
 div.chatFooter {
-    display: flex;
-    justify-content: space-between;
     min-height: 28px;
 }
 

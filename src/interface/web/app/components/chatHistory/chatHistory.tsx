@@ -236,7 +236,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                             chatMessage={chatMessage}
                             customClassName='fullHistory'
                             borderLeftColor={`${data?.agent.color}-500`}
-                            isLastMessage={index === data.chat.length - 1}
+                            isLastMessage={index === data.chat.length - 2}
                         />
                     ))}
                     {
@@ -259,6 +259,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         }
                                         customClassName='fullHistory'
                                         borderLeftColor={`${data?.agent.color}-500`}
+                                        isLastMessage={true}
                                     />
                                     {
                                         message.trainOfThought &&
@@ -284,7 +285,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         }
                                         customClassName='fullHistory'
                                         borderLeftColor={`${data?.agent.color}-500`}
-                                        isLastMessage={true}
                                     />
                                 </React.Fragment>
                             )
