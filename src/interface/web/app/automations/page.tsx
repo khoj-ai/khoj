@@ -972,7 +972,7 @@ export default function Automations() {
     if (error) return <InlineLoading message='Oops, something went wrong. Please refresh the page.' />;
 
     return (
-        <main className={`${styles.main} w-full ml-auto mr-auto`}>
+        <main className={`${styles.main} w-full ml-auto mr-auto pt-4`}>
             <div className={`grid w-full ml-auto mr-auto`}>
                 <div className={`${styles.sidePanel} top-0`}>
                     <SidePanel
@@ -983,7 +983,7 @@ export default function Automations() {
                 </div>
                 <div className={`${styles.pageLayout} w-full`}>
                     <div className='py-4 sm:flex sm:justify-between grid gap-1'>
-                        <h1 className="text-3xl">Automations</h1>
+                        <h1 className="text-3xl pt-6">Automations</h1>
                         <div className='flex flex-wrap gap-2 items-center justify-start'>
                             {
                                 authenticatedData ? (
