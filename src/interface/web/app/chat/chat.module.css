@@ -16,7 +16,6 @@ div.main {
 
 div.inputBox {
     border: 1px solid var(--border-color);
-    border-radius: 16px;
     margin-bottom: 20px;
     gap: 12px;
     padding-left: 20px;

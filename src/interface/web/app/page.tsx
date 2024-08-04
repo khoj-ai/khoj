@@ -6,7 +6,7 @@ import 'katex/dist/katex.min.css';
 import React, { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import Image from 'next/image';
-import { ClockCounterClockwise } from '@phosphor-icons/react';
+import { ArrowCounterClockwise, ClockCounterClockwise } from '@phosphor-icons/react';
 
 import { Card, CardTitle } from '@/components/ui/card';
 import SuggestionCard from '@/app/components/suggestions/suggestionCard';
@@ -187,7 +187,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             <div className={`ml-auto mr-auto ${props.isMobileWidth ? 'w-full' : 'w-fit'}`}>
                 {
                     !props.isMobileWidth &&
-                    <div className={`w-full ${styles.inputBox} shadow-lg bg-background align-middle items-center justify-center px-3 py-1 dark:bg-neutral-700 border-stone-100 dark:border-none dark:shadow-none`}>
+                    <div className={`w-full ${styles.inputBox} shadow-lg bg-background align-middle items-center justify-center px-3 py-1 dark:bg-neutral-700 border-stone-100 dark:border-none dark:shadow-none rounded-2xl`}>
                         <ChatInputArea
                             isLoggedIn={props.isLoggedIn}
                             sendMessage={(message) => setMessage(message)}
@@ -225,14 +225,14 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     <button
                         onClick={shuffleSuggestionsCards}
                         className="m-2 p-1.5 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm text-stone-500 dark:text-stone-300 dark:border-neutral-700">
-                        More Ideas <ClockCounterClockwise className='h-4 w-4 inline' />
+                        More Ideas <ArrowCounterClockwise className='h-4 w-4 inline' />
                     </button>
                 </div>
             </div>
             {
                 props.isMobileWidth &&
                 <>
-                    <div className={`${styles.inputBox} pt-1 shadow-[0_-20px_25px_-5px_rgba(0,0,0,0.1)] shadow-[0_-8px_10px_-6px_rgba(0,0,0,0.1)] dark:bg-neutral-700 bg-background align-middle items-center justify-center pb-3 mx-1`}>
+                    <div className={`${styles.inputBox} pt-1 shadow-[0_-20px_25px_-5px_rgba(0,0,0,0.1)] dark:bg-neutral-700 bg-background align-middle items-center justify-center pb-3 mx-1 rounded-t-2xl rounded-b-none`}>
                         <div className="flex gap-2 items-center justify-left pt-1 pb-2 px-10">
                             {agentIcons.map((icon, index) => (
                                 <Card
