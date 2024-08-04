@@ -86,7 +86,8 @@
     "typescript": "^5"
   },
   "prettier": {
-    "tabWidth": 4
+    "tabWidth": 4,
+    "printWidth": 100
   },
   "lint-staged": {
     "*": "yarn lint --fix"
