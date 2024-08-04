@@ -7,9 +7,6 @@ import ChatMessage, { ChatHistoryData, StreamMessage, TrainOfThought } from '../
 
 import { ScrollArea } from "@/components/ui/scroll-area"
 
-import renderMathInElement from 'katex/contrib/auto-render';
-import 'katex/dist/katex.min.css';
-
 import { InlineLoading } from '../loading/loading';
 
 import { Lightbulb } from "@phosphor-icons/react";
@@ -133,32 +130,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
         }
 
     }, [props.incomingMessages]);
-
-    useEffect(() => {
-        const observer = new MutationObserver((mutationsList, observer) => {
-            // If the addedNodes property has one or more nodes
-            for (let mutation of mutationsList) {
-                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                    // Call your function here
-                    renderMathInElement(document.body, {
-                        delimiters: [
-                            { left: '$$', right: '$$', display: true },
-                            { left: '\\[', right: '\\]', display: true },
-                            { left: '$', right: '$', display: false },
-                            { left: '\\(', right: '\\)', display: false },
-                        ],
-                    });
-                }
-            }
-        });
-
-        if (chatHistoryRef.current) {
-            observer.observe(chatHistoryRef.current, { childList: true });
-        }
-
-        // Clean up the observer on component unmount
-        return () => observer.disconnect();
-    }, []);
 
     function fetchMoreMessages(currentPage: number) {
         if (!hasMoreMessages || fetchingData) return;

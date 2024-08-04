@@ -17,6 +17,9 @@ import { InlineLoading } from '../loading/loading';
 import { convertColorToTextClass } from '@/app/common/colorUtils';
 import { AgentData } from '@/app/agents/page';
 
+import renderMathInElement from 'katex/contrib/auto-render';
+import 'katex/dist/katex.min.css';
+
 const md = new markdownIt({
     html: true,
     linkify: true,
@@ -221,6 +224,38 @@ export default function ChatMessage(props: ChatMessageProps) {
     }, [interrupted]);
 
     useEffect(() => {
+        const observer = new MutationObserver((mutationsList, observer) => {
+            console.log("called mutation observer");
+            // If the addedNodes property has one or more nodes
+            if (messageRef.current) {
+                for (let mutation of mutationsList) {
+                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                        // Call your function here
+
+                        console.log("render katex in body");
+
+                        renderMathInElement(messageRef.current, {
+                            delimiters: [
+                                { left: '$$', right: '$$', display: true },
+                                { left: '\\[', right: '\\]', display: true },
+                                { left: '$', right: '$', display: false },
+                                { left: '\\(', right: '\\)', display: false },
+                            ],
+                        });
+                    }
+                }
+            }
+        });
+
+        if (messageRef.current) {
+            observer.observe(messageRef.current, { childList: true });
+        }
+
+        // Clean up the observer on component unmount
+        return () => observer.disconnect();
+    }, [messageRef.current]);
+
+    useEffect(() => {
         let message = props.chatMessage.message;
 
         // Replace LaTeX delimiters with placeholders
@@ -279,6 +314,17 @@ export default function ChatMessage(props: ChatMessageProps) {
                     copyImage.src = '/static/copy-button-success.svg';
                 });
                 preElement.prepend(copyButton);
+            });
+
+            console.log("render katex within the chat message");
+
+            renderMathInElement(messageRef.current, {
+                delimiters: [
+                    { left: '$$', right: '$$', display: true },
+                    { left: '\\[', right: '\\]', display: true },
+                    { left: '$', right: '$', display: false },
+                    { left: '\\(', right: '\\)', display: false },
+                ],
             });
         }
     }, [markdownRendered, isHovering, messageRef]);
