@@ -262,14 +262,8 @@ export default function Agents() {
     }
 
     return (
-        <main className={`${styles.main} w-full mx-auto`}>
-            {
-                showLoginPrompt &&
-                <LoginPrompt
-                    loginRedirectMessage="Sign in to start chatting with a specialized agent"
-                    onOpenChange={setShowLoginPrompt} />
-            }
-            <div className={`${styles.pageLayout} w-full mx-auto`}>
+        <main className={`w-full mx-auto`}>
+            <div className={`grid w-full mx-auto`}>
                 <div className={`${styles.sidePanel} top-0`}>
                     <SidePanel
                         conversationId={null}
@@ -277,9 +271,9 @@ export default function Agents() {
                         isMobileWidth={isMobileWidth}
                     />
                 </div>
-                <div className={`mx-auto ${isMobileWidth ? "w-11/12" : "w-1/2"} pt-4`}>
-                    <div className={`pt-6 md:pt-8 flex justify-between align-middle w-full`}>
-                        <h1 className="text-3xl">Agents</h1>
+                <div className={`${styles.pageLayout} w-full`}>
+                    <div className={`pt-6 md:pt-8 flex justify-between`}>
+                        <h1 className="text-3xl flex items-center">Agents</h1>
                         <div className="ml-auto float-right border p-2 pt-3 rounded-xl font-bold hover:bg-stone-100 dark:hover:bg-neutral-900">
                             <TooltipProvider>
                                 <Tooltip>
@@ -296,6 +290,12 @@ export default function Agents() {
                             </TooltipProvider>
                         </div>
                     </div>
+                    {
+                        showLoginPrompt &&
+                        <LoginPrompt
+                            loginRedirectMessage="Sign in to start chatting with a specialized agent"
+                            onOpenChange={setShowLoginPrompt} />
+                    }
                     <Alert className='bg-secondary border-none my-4'>
                         <AlertDescription>
                             <Lightning weight={'fill'} className='h-4 w-4 text-purple-400 inline' />

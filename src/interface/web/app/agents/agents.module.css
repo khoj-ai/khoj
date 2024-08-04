@@ -16,15 +16,16 @@ div.agentPersonality {
     overflow: hidden;
 }
 
+div.pageLayout {
+    max-width: 60vw;
+    margin: auto;
+    margin-bottom: 2rem;
+}
+
 div.sidePanel {
     position: fixed;
     height: 100%;
 }
-
-div.pageLayout {
-    gap: 1rem;
-}
-
 
 button.infoButton {
     border: none;
@@ -53,6 +54,10 @@ div.agentList {
         margin-right: auto;
         margin-left: auto;
         grid-template-columns: 1fr;
+    }
+
+    div.pageLayout {
+        max-width: 90vw;
     }
 
     div.sidePanel {

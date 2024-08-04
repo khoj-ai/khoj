@@ -342,7 +342,7 @@ function AutomationsCard(props: AutomationsCardProps) {
                     </Popover>
                 </CardTitle>
             </CardHeader>
-            <CardContent className='text-secondary-foreground'>
+            <CardContent className='text-secondary-foreground break-all'>
                 {updatedAutomationData?.query_to_run || automation.query_to_run}
             </CardContent>
             <CardFooter className="flex flex-col items-start md:flex-row md:justify-between md:items-center gap-2">
@@ -873,7 +873,7 @@ function AutomationComponentWrapper(props: AutomationComponentWrapperProps) {
                 }}>
                 <DrawerTrigger asChild>
                     <Button
-                        className='shadow-sm'
+                        className='shadow-sm justify-start'
                         variant="outline">
                         <Plus className='h-4 w-4 mr-2' />
                         {props.callToAction}
@@ -902,7 +902,7 @@ function AutomationComponentWrapper(props: AutomationComponentWrapperProps) {
                 >
                     <DialogTrigger asChild>
                         <Button
-                            className='shadow-sm'
+                            className='shadow-sm justify-start'
                             variant="outline">
                             <Plus className='h-4 w-4 mr-2' />
                             {props.callToAction}
@@ -972,8 +972,8 @@ export default function Automations() {
     if (error) return <InlineLoading message='Oops, something went wrong. Please refresh the page.' />;
 
     return (
-        <main className={`${styles.main} w-full ml-auto mr-auto pt-4`}>
-            <div className={`grid w-full ml-auto mr-auto`}>
+        <main className={`w-full mx-auto`}>
+            <div className={`grid w-full mx-auto`}>
                 <div className={`${styles.sidePanel} top-0`}>
                     <SidePanel
                         conversationId={null}
@@ -982,14 +982,13 @@ export default function Automations() {
                     />
                 </div>
                 <div className={`${styles.pageLayout} w-full`}>
-                    <div className='py-4 sm:flex sm:justify-between grid gap-1'>
-                        <h1 className="text-3xl pt-6">Automations</h1>
+                    <div className='pt-6 md:pt-8 grid gap-1 md:flex md:justify-between'>
+                        <h1 className="text-3xl flex items-center">Automations</h1>
                         <div className='flex flex-wrap gap-2 items-center justify-start'>
                             {
                                 authenticatedData ? (
                                     <span className='rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm' ><Envelope className='h-4 w-4 mr-2 inline text-orange-500 shadow-sm' />{authenticatedData.email}</span>
-                                )
-                                    : null
+                                ) : null
                             }
                             {
                                 ipLocationData && (
@@ -999,7 +998,6 @@ export default function Automations() {
                             {
                                 ipLocationData && (
                                     <span className='rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm' ><Clock className='h-4 w-4 mr-2 inline text-green-500' />{ipLocationData ? `${ipLocationData.timezone}` : 'Unknown'}</span>
-
                                 )
                             }
                         </div>
@@ -1007,17 +1005,17 @@ export default function Automations() {
                     {
                         showLoginPrompt && (
                             <LoginPrompt
-                                onOpenChange={setShowLoginPrompt}
-                                loginRedirectMessage={"Create an account to make your own automation"} />
+                                loginRedirectMessage={"Create an account to make your own automation"}
+                                onOpenChange={setShowLoginPrompt} />
                         )
                     }
-                    <Alert className='bg-secondary border-none'>
+                    <Alert className='bg-secondary border-none my-4'>
                         <AlertDescription>
                             <Lightning weight={'fill'} className='h-4 w-4 text-purple-400 inline' />
                             <span className='font-bold'>How it works</span> Automations help you structure your time by automating tasks you do regularly. Build your own, or try out our presets. Get results straight to your inbox.
                         </AlertDescription>
                     </Alert>
-                    <div className='flex justify-between py-4'>
+                    <div className='flex justify-between items-center py-4'>
                         <h3
                             className="text-xl">
                             Your Creations
