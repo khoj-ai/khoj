@@ -7,8 +7,8 @@ import { Progress } from "@/components/ui/progress"
 
 import 'katex/dist/katex.min.css';
 import {
-    ArrowCircleUp,
     ArrowRight,
+    ArrowUp,
     Browser,
     ChatsTeardrop,
     GlobeSimple,
@@ -252,7 +252,7 @@ export default function ChatInputArea(props: ChatInputProps) {
             startRecordingAndTranscribe();
         }
 
-    }, [recording]);
+    }, [recording, mediaRecorder]);
 
     const chatInputRef = useRef<HTMLTextAreaElement>(null);
     useEffect(() => {
@@ -359,7 +359,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                     </Popover>
                 </div>
             }
-            <div className={`${styles.actualInputArea} flex items-center justify-between dark:bg-neutral-700`}>
+            <div className={`${styles.actualInputArea} items-center justify-between dark:bg-neutral-700`}>
                 <input
                     type="file"
                     multiple={true}
@@ -369,10 +369,10 @@ export default function ChatInputArea(props: ChatInputProps) {
                 />
                 <Button
                     variant={'ghost'}
-                    className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
+                    className="!bg-none p-0 m-2 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
                     disabled={props.sendDisabled}
                     onClick={handleFileButtonClick}>
-                    <Paperclip className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
+                    <Paperclip className='w-8 h-8' />
                 </Button>
                 <div className="grid w-full gap-1.5 relative">
                     <Textarea
@@ -380,6 +380,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                         className={`border-none w-full h-16 min-h-16 max-h-[128px] md:py-4 rounded-lg resize-none dark:bg-neutral-700 ${props.isMobileWidth ? 'text-md' : 'text-lg'}`}
                         placeholder="Type / to see a list of commands"
                         id="message"
+                        autoFocus={true}
                         value={message}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
@@ -396,14 +397,14 @@ export default function ChatInputArea(props: ChatInputProps) {
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button
-                                        variant={'ghost'}
-                                        className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
+                                        variant='default'
+                                        className={`${!recording && 'hidden'} ${props.agentColor ? convertToBGClass(props.agentColor) : 'bg-orange-300 hover:bg-orange-500'} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
                                         onClick={() => {
                                             setRecording(!recording);
                                         }}
                                         disabled={props.sendDisabled}
                                     >
-                                        <Stop weight='fill' className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
+                                        <Stop weight='fill' className='w-6 h-6' />
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
@@ -420,15 +421,15 @@ export default function ChatInputArea(props: ChatInputProps) {
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <Button
-                                                variant={'ghost'}
-                                                className="!bg-none p-1 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
+                                                variant='default'
+                                                className={`${(!message || recording) || 'hidden'} ${props.agentColor ? convertToBGClass(props.agentColor) : 'bg-orange-300 hover:bg-orange-500'} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
                                                 onClick={() => {
                                                     setMessage("Listening...");
                                                     setRecording(!recording);
                                                 }}
                                                 disabled={props.sendDisabled}
                                             >
-                                                <Microphone weight='fill' className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
+                                                <Microphone weight='fill' className='w-6 h-6' />
                                             </Button>
                                         </TooltipTrigger>
                                         <TooltipContent>
@@ -439,10 +440,10 @@ export default function ChatInputArea(props: ChatInputProps) {
                         )
                 }
                 <Button
-                    className={`${props.agentColor ? convertToBGClass(props.agentColor) : 'bg-orange-300 hover:bg-orange-500'} rounded-full p-0 h-auto text-3xl transition transform hover:-translate-y-1`}
+                    className={`${(!message || recording) && 'hidden'} ${props.agentColor ? convertToBGClass(props.agentColor) : 'bg-orange-300 hover:bg-orange-500'} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
                     onClick={onSendMessage}
                     disabled={props.sendDisabled}>
-                    <ArrowCircleUp className={`${props.isMobileWidth ? 'w-6 h-6' : 'w-8 h-8'}`} />
+                    <ArrowUp className='w-6 h-6' weight='bold' />
                 </Button>
             </div >
         </>

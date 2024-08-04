@@ -17,10 +17,6 @@ a.selected {
 
 div.titleBar {
     display: flex;
-    padding-left: 12px;
-    padding-right: 12px;
-    padding-top: 16px;
-    padding-bottom: 16px;
     justify-content: space-between;
     align-content: space-evenly;
     align-items: start;

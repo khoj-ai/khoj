@@ -123,9 +123,9 @@ div.modalSessionsList div.session {
 
 @media screen and (max-width: 768px) {
     div.panel {
-        padding: 0.5rem;
-        position: fixed;
-        width: fit-content;
+        padding: 0.25rem;
+        /* position: fixed; */
+        width: 100%;
     }
 
     div.expanded {
@@ -143,7 +143,9 @@ div.modalSessionsList div.session {
 
     div.session.compressed {
         max-width: 100%;
-        grid-template-columns: minmax(auto, 300px) 1fr;
+        display: grid;
+        grid-template-columns: 70vw auto;
+        justify-content: space-between;
     }
 
     div.session {

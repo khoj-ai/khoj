@@ -184,6 +184,20 @@ export function modifyFileFilterForConversation(
         });
 }
 
+export async function createNewConversation(slug: string) {
+    try {
+        const response = await fetch(`/api/chat/sessions?client=web&agent_slug=${slug}`, { method: "POST" });
+        if (!response.ok) throw new Error(`Failed to fetch chat sessions with status: ${response.status}`);
+        const data = await response.json();
+        const conversationID = data.conversation_id;
+        if (!conversationID) throw new Error("Conversation ID not found in response");
+        return conversationID;
+    } catch (error) {
+        console.error("Error creating new conversation:", error);
+        throw error;
+    }
+}
+
 export function uploadDataForIndexing(
     files: FileList,
     setWarning: (warning: string) => void,

@@ -22,36 +22,17 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Moon, Sun, UserCircle, User, Robot, MagnifyingGlass, Question, GearFine, ArrowRight } from '@phosphor-icons/react';
-import { KhojLogoType } from '../logo/khogLogo';
+import { Moon, Sun, UserCircle, User, Robot, MagnifyingGlass, Question, GearFine, ArrowRight, UsersFour } from '@phosphor-icons/react';
 
-
-interface NavMenuProps {
-    selected: string;
-    showLogo?: boolean;
-    title?: string;
-}
-
-export default function NavMenu(props: NavMenuProps) {
+export default function NavMenu() {
 
     const userData = useAuthenticatedData();
-    const [displayTitle, setDisplayTitle] = useState<string | undefined>(props.title);
-
     const [isMobileWidth, setIsMobileWidth] = useState(false);
     const [darkMode, setDarkMode] = useState(false);
     const [initialLoadDone, setInitialLoadDone] = useState(false);
 
     useEffect(() => {
         setIsMobileWidth(window.innerWidth < 768);
-        if (props.title) {
-            setDisplayTitle(props.title);
-        } else if (!props.title) {
-            setDisplayTitle(undefined);
-        }
-
-    }, [props.title]);
-
-    useEffect(() => {
 
         window.addEventListener('resize', () => {
             setIsMobileWidth(window.innerWidth < 768);
@@ -81,7 +62,7 @@ export default function NavMenu(props: NavMenuProps) {
     useEffect(() => {
         if (!initialLoadDone) return;
         toggleDarkMode(darkMode);
-    }, [darkMode]);
+    }, [darkMode, initialLoadDone]);
 
     function toggleDarkMode(darkMode: boolean) {
         if (darkMode) {
@@ -94,72 +75,62 @@ export default function NavMenu(props: NavMenuProps) {
 
     return (
         <div className={styles.titleBar}>
-            <div className={`text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mr-8`}>
-                {displayTitle && <h2 className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden`} >{displayTitle}</h2>}
-                {
-                    !displayTitle && props.showLogo &&
-                    <Link href='/'>
-                        <KhojLogoType />
-                    </Link>
-                }
-            </div>
             {
                 isMobileWidth ?
                     <DropdownMenu>
                         <DropdownMenuTrigger>
                             {
                                 userData ?
-                                    <Avatar className="h-8 w-8">
+                                    <Avatar className={`h-10 w-10 border-2 ${userData.is_active ? "border-yellow-500" : "border-stone-700 dark:border-stone-300"}`}>
                                         <AvatarImage src={userData?.photo} alt="user profile" />
-                                        <AvatarFallback>
-                                            {userData?.username[0]}
+                                        <AvatarFallback className="bg-transparent hover:bg-muted">
+                                            {userData?.username[0].toUpperCase()}
                                         </AvatarFallback>
                                     </Avatar>
                                     :
-                                    <UserCircle className="w-6 h-6" />
+                                    <UserCircle className="h-10 w-10" />
                             }
                         </DropdownMenuTrigger>
                         <DropdownMenuContent className='gap-2'>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setDarkMode(!darkMode)} className='w-full cursor-pointer'>
                                 <div
-                                    onClick={() => {
-                                        setDarkMode(!darkMode)
-                                    }
-                                    }
                                     className="flex flex-rows">
                                     {darkMode ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
                                     <p className="ml-3 font-semibold">{darkMode ? 'Light Mode' : 'Dark Mode'}</p>
                                 </div>
                             </DropdownMenuItem>
                             <DropdownMenuItem>
-                                <Link href="/agents" className="no-underline">
+                                <Link href="/agents" className="no-underline w-full">
                                     <div className="flex flex-rows">
-                                        <User className="w-6 h-6" />
+                                        <UsersFour className="w-6 h-6" />
                                         <p className="ml-3 font-semibold">Agents</p>
                                     </div>
                                 </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem>
-                                <Link href="/automations" className="no-underline">
+                                <Link href="/automations" className="no-underline w-full">
                                     <div className="flex flex-rows">
                                         <Robot className="w-6 h-6" />
                                         <p className="ml-3 font-semibold">Automations</p>
                                     </div>
                                 </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
-                                <Link href="/search" className="no-underline">
-                                    <div className="flex flex-rows">
-                                        <MagnifyingGlass className="w-6 h-6" />
-                                        <p className="ml-3 font-semibold">Search</p>
-                                    </div>
-                                </Link>
-                            </DropdownMenuItem>
+                            {
+                                userData &&
+                                <DropdownMenuItem>
+                                    <Link href="/search" className="no-underline w-full">
+                                        <div className="flex flex-rows">
+                                            <MagnifyingGlass className="w-6 h-6" />
+                                            <p className="ml-3 font-semibold">Search</p>
+                                        </div>
+                                    </Link>
+                                </DropdownMenuItem>
+                            }
                             <>
                                 <DropdownMenuSeparator />
                                 {userData &&
                                     <DropdownMenuItem>
-                                        <Link href="/settings" className="no-underline">
+                                        <Link href="/settings" className="no-underline w-full">
                                             <div className="flex flex-rows">
                                                 <GearFine className="w-6 h-6" />
                                                 <p className="ml-3 font-semibold">Settings</p>
@@ -168,7 +139,7 @@ export default function NavMenu(props: NavMenuProps) {
                                     </DropdownMenuItem>
                                 }
                                 <DropdownMenuItem>
-                                    <Link href="https://docs.khoj.dev" className="no-underline">
+                                    <Link href="https://docs.khoj.dev" className="no-underline w-full">
                                         <div className="flex flex-rows">
                                             <Question className="w-6 h-6" />
                                             <p className="ml-3 font-semibold">Help</p>
@@ -178,7 +149,7 @@ export default function NavMenu(props: NavMenuProps) {
                                 {
                                     userData ?
                                         <DropdownMenuItem>
-                                            <Link href="/auth/logout" className="no-underline">
+                                            <Link href="/auth/logout" className="no-underline w-full">
                                                 <div className="flex flex-rows">
                                                     <ArrowRight className="w-6 h-6" />
                                                     <p className="ml-3 font-semibold">Logout</p>
@@ -187,7 +158,7 @@ export default function NavMenu(props: NavMenuProps) {
                                         </DropdownMenuItem>
                                         :
                                         <DropdownMenuItem>
-                                            <Link href="/auth/login" className="no-underline">
+                                            <Link href="/auth/login" className="no-underline w-full">
                                                 <div className="flex flex-rows">
                                                     <ArrowRight className="w-6 h-6" />
                                                     <p className="ml-3 font-semibold">Login</p>
@@ -199,61 +170,60 @@ export default function NavMenu(props: NavMenuProps) {
                         </DropdownMenuContent>
                     </DropdownMenu>
                     :
-                    <Menubar className='border-none hover:bg-stone-100 dark:hover:bg-neutral-900 bg-none'>
+                    <Menubar className='border-none'>
                         <MenubarMenu>
                             <MenubarTrigger>
                                 {
                                     userData ?
-                                        <Avatar className="h-8 w-8">
+                                        <Avatar className={`h-10 w-10 border-2 ${userData.is_active ? "border-yellow-500" : "border-stone-700 dark:border-stone-300"}`}>
                                             <AvatarImage src={userData?.photo} alt="user profile" />
-                                            <AvatarFallback>
-                                                {userData?.username[0]}
+                                            <AvatarFallback className="bg-transparent hover:bg-muted">
+                                                {userData?.username[0].toUpperCase()}
                                             </AvatarFallback>
                                         </Avatar>
                                         :
-                                        <UserCircle className="w-8 h-8" />
+                                        <UserCircle className="w-10 h-10" />
                                 }
                             </MenubarTrigger>
                             <MenubarContent align="end" className="rounded-xl gap-2">
-                                <MenubarItem>
+                                <MenubarItem onClick={() => setDarkMode(!darkMode)} className="w-full hover:cursor-pointer">
                                     <div
-                                        onClick={() => {
-                                            setDarkMode(!darkMode)
-                                        }
-                                        }
                                         className="flex flex-rows">
                                         {darkMode ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
                                         <p className="ml-3 font-semibold">{darkMode ? 'Light Mode' : 'Dark Mode'}</p>
                                     </div>
                                 </MenubarItem>
                                 <MenubarItem>
-                                    <Link href="/agents" className="no-underline">
+                                    <Link href="/agents" className="no-underline w-full">
                                         <div className="flex flex-rows">
-                                            <User className="w-6 h-6" />
+                                            <UsersFour className="w-6 h-6" />
                                             <p className="ml-3 font-semibold">Agents</p>
                                         </div>
                                     </Link>
                                 </MenubarItem>
                                 <MenubarItem>
-                                    <Link href="/automations" className="no-underline">
+                                    <Link href="/automations" className="no-underline w-full">
                                         <div className="flex flex-rows">
                                             <Robot className="w-6 h-6" />
                                             <p className="ml-3 font-semibold">Automations</p>
                                         </div>
                                     </Link>
                                 </MenubarItem>
-                                <MenubarItem>
-                                    <Link href="/search" className="no-underline">
-                                        <div className="flex flex-rows">
-                                            <MagnifyingGlass className="w-6 h-6" />
-                                            <p className="ml-3 font-semibold">Search</p>
-                                        </div>
-                                    </Link>
-                                </MenubarItem>
+                                {
+                                    userData &&
+                                    <MenubarItem>
+                                        <Link href="/search" className="no-underline w-full">
+                                            <div className="flex flex-rows">
+                                                <MagnifyingGlass className="w-6 h-6" />
+                                                <p className="ml-3 font-semibold">Search</p>
+                                            </div>
+                                        </Link>
+                                    </MenubarItem>
+                                }
                                 <>
                                     <MenubarSeparator className="dark:bg-white height-[2px] bg-black" />
                                     <MenubarItem>
-                                        <Link href="https://docs.khoj.dev" className="no-underline">
+                                        <Link href="https://docs.khoj.dev" className="no-underline w-full">
                                             <div className="flex flex-rows">
                                                 <Question className="w-6 h-6" />
                                                 <p className="ml-3 font-semibold">Help</p>
@@ -263,7 +233,7 @@ export default function NavMenu(props: NavMenuProps) {
                                     {
                                         userData &&
                                         <MenubarItem>
-                                            <Link href="/settings" className="no-underline">
+                                            <Link href="/settings" className="no-underline w-full">
                                                 <div className="flex flex-rows">
                                                     <GearFine className="w-6 h-6" />
                                                     <p className="ml-3 font-semibold">Settings</p>
@@ -274,7 +244,7 @@ export default function NavMenu(props: NavMenuProps) {
                                     {
                                         userData ?
                                             <MenubarItem>
-                                                <Link href="/auth/logout" className="no-underline">
+                                                <Link href="/auth/logout" className="no-underline w-full">
                                                     <div className="flex flex-rows">
                                                         <ArrowRight className="w-6 h-6" />
                                                         <p className="ml-3 font-semibold">Logout</p>
@@ -283,7 +253,7 @@ export default function NavMenu(props: NavMenuProps) {
                                             </MenubarItem>
                                             :
                                             <MenubarItem>
-                                                <Link href="/auth/login" className="no-underline">
+                                                <Link href="/auth/login" className="no-underline w-full">
                                                     <div className="flex flex-rows">
                                                         <ArrowRight className="w-6 h-6" />
                                                         <p className="ml-3 font-semibold">Login</p>

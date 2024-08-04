@@ -246,7 +246,7 @@ export default function ChatMessage(props: ChatMessageProps) {
 
         // Sanitize and set the rendered markdown
         setMarkdownRendered(DOMPurify.sanitize(markdownRendered));
-    }, [props.chatMessage.message]);
+    }, [props.chatMessage.message, props.chatMessage.intent]);
 
     useEffect(() => {
         if (copySuccess) {

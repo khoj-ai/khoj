@@ -74,11 +74,13 @@ export const ModelPicker: React.FC<any> = (props: ModelPickerProps) => {
 
     let userData = useAuthenticatedData();
 
+    const setModelUsed = props.setModelUsed;
+
     useEffect(() => {
-        if (props.setModelUsed && selectedModel) {
-            props.setModelUsed(selectedModel);
+        if (setModelUsed && selectedModel) {
+            setModelUsed(selectedModel);
         }
-    }, [selectedModel]);
+    }, [selectedModel, setModelUsed]);
 
     if (!models) {
         return <div>Loading...</div>;

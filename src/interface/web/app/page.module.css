@@ -1,5 +1,5 @@
 div.main {
-    height: 100vh;
+    height: 100dvh;
     color: hsla(var(--foreground));
 }
 
@@ -13,9 +13,7 @@ div.suggestions {
 
 div.inputBox {
     border: 1px solid var(--border-color);
-    border-radius: 16px;
     margin-bottom: 20px;
-    gap: 12px;
     align-content: center;
 }
 
@@ -66,7 +64,6 @@ div.chatLayout {
 
 div.chatBox {
     display: grid;
-    height: 100%;
 }
 
 div.titleBar {
@@ -78,24 +75,18 @@ div.chatBoxBody {
     display: grid;
     height: 100%;
     margin: auto;
-    grid-template-rows: auto 1fr;
 }
 
+div.homeGreetings {
+    display: grid;
+    height: 100%;
+    margin: auto;
+    grid-template-rows: 1fr 2fr;
+}
 
 div.sidePanel {
     position: fixed;
     height: 100%;
-}
-
-
-@media (max-width: 768px) {
-    div.chatBody {
-        grid-template-columns: 0fr 1fr;
-    }
-
-    div.chatBox {
-        padding: 0;
-    }
 }
 
 @media screen and (max-width: 768px) {
@@ -103,18 +94,31 @@ div.sidePanel {
         margin-bottom: 0px;
     }
 
+    div.chatBody {
+        grid-template-columns: 0fr 1fr;
+    }
+
     div.chatBoxBody {
         width: 100%;
         grid-template-rows: auto;
     }
 
+    div.sidePanel {
+        position: relative;
+    }
+
     div.chatBox {
         padding: 0;
+        height: 100%;
     }
 
     div.chatLayout {
         gap: 0;
         grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
     }
 
+    div.homeGreetings {
+        grid-template-rows: auto 1fr;
+    }
 }

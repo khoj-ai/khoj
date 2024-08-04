@@ -5,7 +5,6 @@ import React, { Suspense, useEffect, useState } from 'react';
 
 import SidePanel from '../components/sidePanel/chatHistorySidePanel';
 import ChatHistory from '../components/chatHistory/chatHistory';
-import NavMenu from '../components/navMenu/navMenu';
 import { useSearchParams } from 'next/navigation'
 import Loading from '../components/loading/loading';
 
@@ -37,26 +36,29 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [processingMessage, setProcessingMessage] = useState(false);
     const [agentMetadata, setAgentMetadata] = useState<AgentData | null>(null);
 
+    const setQueryToProcess = props.setQueryToProcess;
+    const onConversationIdChange = props.onConversationIdChange;
+
     useEffect(() => {
         const storedMessage = localStorage.getItem("message");
         if (storedMessage) {
             setProcessingMessage(true);
-            props.setQueryToProcess(storedMessage);
+            setQueryToProcess(storedMessage);
         }
-    }, []);
+    }, [setQueryToProcess]);
 
     useEffect(() => {
         if (message) {
             setProcessingMessage(true);
-            props.setQueryToProcess(message);
+            setQueryToProcess(message);
         }
-    }, [message]);
+    }, [message, setQueryToProcess]);
 
     useEffect(() => {
         if (conversationId) {
-            props.onConversationIdChange?.(conversationId);
+            onConversationIdChange?.(conversationId);
         }
-    }, [conversationId]);
+    }, [conversationId, onConversationIdChange]);
 
     useEffect(() => {
         if (props.streamedMessages &&
@@ -84,7 +86,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     incomingMessages={props.streamedMessages}
                 />
             </div>
-            <div className={`${styles.inputBox} shadow-md bg-background align-middle items-center justify-center px-3 dark:bg-neutral-700 dark:border-0 dark:shadow-sm`}>
+            <div className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-t-2xl rounded-b-none md:rounded-xl`}>
                 <ChatInputArea
                     agentColor={agentMetadata?.color}
                     isLoggedIn={props.isLoggedIn}
@@ -100,9 +102,10 @@ function ChatBodyData(props: ChatBodyDataProps) {
 }
 
 export default function Chat() {
+    const defaultTitle = 'Khoj AI - Chat';
     const [chatOptionsData, setChatOptionsData] = useState<ChatOptions | null>(null);
     const [isLoading, setLoading] = useState(true);
-    const [title, setTitle] = useState('Khoj AI - Chat');
+    const [title, setTitle] = useState(defaultTitle);
     const [conversationId, setConversationID] = useState<string | null>(null);
     const [messages, setMessages] = useState<StreamMessage[]>([]);
     const [queryToProcess, setQueryToProcess] = useState<string>('');
@@ -196,7 +199,7 @@ export default function Chat() {
                     }
 
                     // Track context used for chat response. References are rendered at the end of the chat
-                    ({context, onlineContext} = processMessageChunk(event, currentMessage, context, onlineContext));
+                    ({ context, onlineContext } = processMessageChunk(event, currentMessage, context, onlineContext));
 
                     setMessages([...messages]);
                 }
@@ -227,9 +230,9 @@ export default function Chat() {
     if (isLoading) return <Loading />;
 
     return (
-        <div className={styles.main + " " + styles.chatLayout}>
+        <div className={`${styles.main} ${styles.chatLayout}`}>
             <title>
-                {title}
+                {`${defaultTitle}${(!!title && title !== defaultTitle)? `: ${title}` : ''}`}
             </title>
             <div>
                 <SidePanel
@@ -239,8 +242,13 @@ export default function Chat() {
                 />
             </div>
             <div className={styles.chatBox}>
-                <NavMenu selected="Chat" title={title} />
                 <div className={styles.chatBoxBody}>
+                    {
+                        !isMobileWidth &&
+                        <div className={`text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mr-8`}>
+                            {title && <h2 className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden pt-6`}>{title}</h2>}
+                        </div>
+                    }
                     <Suspense fallback={<Loading />}>
                         <ChatBodyData
                             isLoggedIn={authenticatedData !== null}

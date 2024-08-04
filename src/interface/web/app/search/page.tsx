@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { useAuthenticatedData } from '../common/auth';
 import { useEffect, useRef, useState } from 'react';
 import SidePanel from '../components/sidePanel/chatHistorySidePanel';
-import NavMenu from '../components/navMenu/navMenu';
 import styles from './search.module.css';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -160,13 +159,7 @@ export default function Search() {
     }, [isMobileWidth]);
 
     function search() {
-        if (searchResultsLoading) {
-            return;
-        }
-
-        if (!searchQuery.trim()) {
-            return;
-        }
+        if (searchResultsLoading || !searchQuery.trim()) return;
 
         const apiUrl = `/api/search?q=${encodeURIComponent(searchQuery)}&client=web`;
         fetch(apiUrl, {
@@ -208,101 +201,97 @@ export default function Search() {
 
     }, [searchQuery]);
 
-    console.log('searchResults', searchResults);
-
     return (
-        <div className={`${styles.searchLayout}`}>
-            <div className='h-full'>
+        <div>
+            <div className={`h-full ${styles.sidePanel}`}>
                 <SidePanel
                     conversationId={null}
                     uploadedFiles={[]}
                     isMobileWidth={isMobileWidth}
                 />
             </div>
-            <div className="md:w-3/4 sm:w-full mr-auto ml-auto">
-                <NavMenu title={title} selected='Chat' />
-                <div className='p-4 md:w-3/4 sm:w-full mr-auto ml-auto'>
-                    {
-                        isMobileWidth && <div className='font-bold'>Search</div>
-                    }
-                    <div className='flex justify-between items-center border-2 border-muted p-2 gap-4 rounded-lg'>
-                        <MagnifyingGlass className='inline m-2' />
-                        <Input
-                            autoFocus
-                            className='border-none'
-                            onChange={(e) => setSearchQuery(e.currentTarget.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && search()}
-                            type="search"
-                            placeholder="Search Documents" />
-                        <button className='px-4 rounded' onClick={() => search()}>
-                            Find
-                        </button>
-                    </div>
-                    {
-                        focusSearchResult &&
-                        <div className='mt-4'>
-                            <Button onClick={() => setFocusSearchResult(null)} className='mb-4' variant={'outline'}>
-                                <ArrowLeft className='inline mr-2' />
-                                Back
-                            </Button>
-                            {focusNote(focusSearchResult)}
+            <div className={`${styles.searchLayout}`}>
+                <div className="md:w-3/4 sm:w-full mx-auto pt-6 md:pt-8">
+                    <div className='p-4 md:w-3/4 sm:w-full mx-auto'>
+                        <div className='flex justify-between items-center border-2 border-muted p-2 gap-4 rounded-lg'>
+                            <MagnifyingGlass className='inline m-2 h-4 w-4' />
+                            <Input
+                                autoFocus={true}
+                                className='border-none'
+                                onChange={(e) => setSearchQuery(e.currentTarget.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && search()}
+                                type="search"
+                                placeholder="Search Documents" />
+                            <button className='px-4 rounded' onClick={() => search()}>
+                                Find
+                            </button>
                         </div>
-                    }
-                    {
-                        !focusSearchResult && searchResults && searchResults.length > 0 &&
-                        <div className='mt-4'>
-                            <ScrollArea className="h-[80vh]">
-                                {
-                                    searchResults.map((result, index) => {
-                                        return (
-                                            <Note key={result["corpus-id"]}
-                                                note={result}
-                                                setFocusSearchResult={setFocusSearchResult} />
-                                        );
-                                    })
-                                }
-                            </ScrollArea>
-                        </div>
-                    }
-                    {
-                        searchResults == null &&
-                        <Card className='flex flex-col items-center justify-center border-none shadow-none'>
-                            <CardHeader className='flex flex-col items-center justify-center'>
-                                <CardDescription className='border-muted-foreground border w-fit rounded-lg mb-2 text-center text-lg p-4'>
-                                    <FileMagnifyingGlass weight='fill' className='text-muted-foreground h-10 w-10' />
-                                </CardDescription>
-                                <CardTitle className='text-center'>
-                                    Search across your documents
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className='text-muted-foreground items-center justify-center text-center flex'>
-                                <Lightbulb className='inline mr-2' /> {exampleQuery}
-                            </CardContent>
-                        </Card>
-                    }
-                    {
-                        searchResults && searchResults.length === 0 &&
-                        <Card className='flex flex-col items-center justify-center border-none shadow-none'>
-                            <CardHeader className='flex flex-col items-center justify-center'>
-                                <CardDescription className='border-muted-foreground border w-fit rounded-lg mb-2 text-center text-lg p-4'>
-                                    <FileDashed weight='fill' className='text-muted-foreground h-10 w-10' />
-                                </CardDescription>
-                                <CardTitle className='text-center'>
-                                    No documents found
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className='text-muted-foreground items-center justify-center text-center flex'>
-                                    To use search, upload your docs to your account.
-                                </div>
-                                <Link href="https://docs.khoj.dev/data-sources/share_your_data" className='no-underline'>
-                                    <div className='mt-4 text-center text-secondary-foreground bg-secondary w-fit m-auto p-2 rounded-lg'>
-                                        Learn More
+                        {
+                            focusSearchResult &&
+                            <div className='mt-4'>
+                                <Button onClick={() => setFocusSearchResult(null)} className='mb-4' variant={'outline'}>
+                                    <ArrowLeft className='inline mr-2' />
+                                    Back
+                                </Button>
+                                {focusNote(focusSearchResult)}
+                            </div>
+                        }
+                        {
+                            !focusSearchResult && searchResults && searchResults.length > 0 &&
+                            <div className='mt-4 max-w-[92vw] break-all'>
+                                <ScrollArea className="h-[80vh]">
+                                    {
+                                        searchResults.map((result, index) => {
+                                            return (
+                                                <Note key={result["corpus-id"]}
+                                                    note={result}
+                                                    setFocusSearchResult={setFocusSearchResult} />
+                                            );
+                                        })
+                                    }
+                                </ScrollArea>
+                            </div>
+                        }
+                        {
+                            searchResults == null &&
+                            <Card className='flex flex-col items-center justify-center border-none shadow-none'>
+                                <CardHeader className='flex flex-col items-center justify-center'>
+                                    <CardDescription className='border-muted-foreground border w-fit rounded-lg mb-2 text-center text-lg p-4'>
+                                        <FileMagnifyingGlass weight='fill' className='text-muted-foreground h-10 w-10' />
+                                    </CardDescription>
+                                    <CardTitle className='text-center'>
+                                        Search across your documents
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className='text-muted-foreground items-center justify-center text-center flex'>
+                                    <Lightbulb className='inline mr-2' /> {exampleQuery}
+                                </CardContent>
+                            </Card>
+                        }
+                        {
+                            searchResults && searchResults.length === 0 &&
+                            <Card className='flex flex-col items-center justify-center border-none shadow-none'>
+                                <CardHeader className='flex flex-col items-center justify-center'>
+                                    <CardDescription className='border-muted-foreground border w-fit rounded-lg mb-2 text-center text-lg p-4'>
+                                        <FileDashed weight='fill' className='text-muted-foreground h-10 w-10' />
+                                    </CardDescription>
+                                    <CardTitle className='text-center'>
+                                        No documents found
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className='text-muted-foreground items-center justify-center text-center flex'>
+                                        To use search, upload your docs to your account.
                                     </div>
-                                </Link>
-                            </CardContent>
-                        </Card>
-                    }
+                                    <Link href="https://docs.khoj.dev/data-sources/share_your_data" className='no-underline'>
+                                        <div className='mt-4 text-center text-secondary-foreground bg-secondary w-fit m-auto p-2 rounded-lg'>
+                                            Learn More
+                                        </div>
+                                    </Link>
+                                </CardContent>
+                            </Card>
+                        }
+                    </div>
                 </div>
             </div>
         </div>

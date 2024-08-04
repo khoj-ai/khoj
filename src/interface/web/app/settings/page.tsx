@@ -69,9 +69,10 @@ import {
     ArrowCircleDown,
     ArrowsClockwise,
     Check,
+    CaretDown,
+    Waveform,
 } from "@phosphor-icons/react";
 
-import NavMenu from "../components/navMenu/navMenu";
 import SidePanel from "../components/sidePanel/chatHistorySidePanel";
 import Loading from "../components/loading/loading";
 
@@ -242,11 +243,11 @@ const DropdownComponent: React.FC<DropdownComponentProps> = ({ items, selected, 
     const [position, setPosition] = useState(selected?.toString() ?? "0");
 
     return !!selected && (
-        <div className="overflow-hidden">
+        <div className="overflow-hidden shadow-md rounded-lg">
             <DropdownMenu>
-                <DropdownMenuTrigger asChild className="w-full">
-                    <Button variant="outline" className="justify-start py-6">
-                        {items.find(item => item.id.toString() === position)?.name}
+                <DropdownMenuTrigger asChild className="w-full rounded-lg">
+                    <Button variant="outline" className="justify-start py-6 rounded-lg">
+                        {items.find(item => item.id.toString() === position)?.name} <CaretDown className="h-4 w-4 ml-auto text-muted-foreground" />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -347,7 +348,7 @@ enum PhoneNumberValidationState {
 export default function SettingsView() {
     const [title, setTitle] = useState("Settings");
     const [isMobileWidth, setIsMobileWidth] = useState(false);
-    const { apiKeys, generateAPIKey, copyAPIKey, deleteAPIKey } = useApiKeys();
+    const {apiKeys, generateAPIKey, copyAPIKey, deleteAPIKey} = useApiKeys();
     const {userConfig: initialUserConfig} = useUserConfig(true);
     const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
     const [name, setName] = useState<string | undefined>(undefined);
@@ -357,7 +358,7 @@ export default function SettingsView() {
     const [numberValidationState, setNumberValidationState] = useState<PhoneNumberValidationState>(PhoneNumberValidationState.Verified);
     const [isManageFilesModalOpen, setIsManageFilesModalOpen] = useState(false);
     const { toast } = useToast();
-    const cardClassName = "w-full lg:w-1/3 grid grid-flow-column border border-gray-300 shadow-md rounded-lg";
+    const cardClassName = "w-full lg:w-1/3 grid grid-flow-column border border-gray-300 shadow-md rounded-lg bg-gradient-to-b from-background to-gray-50 dark:to-gray-950";
 
     useEffect(() => {
         setUserConfig(initialUserConfig);
@@ -643,7 +644,7 @@ export default function SettingsView() {
     if (!userConfig) return <Loading />;
 
     return (
-        <div id="page" className={styles.page}>
+        <div className={styles.page}>
             <title>
                 {title}
             </title>
@@ -655,8 +656,7 @@ export default function SettingsView() {
                 />
             </div>
             <div className={styles.content}>
-                <NavMenu selected="Settings" title="Settings" showLogo={true} />
-                <div className={styles.contentBody}>
+                <div className={`${styles.contentBody} mx-10 my-2`}>
                     <Suspense fallback={<Loading />}>
                         <div id="content" className="grid grid-flow-column sm:grid-flow-row gap-16 m-8">
                             <div className="section grid gap-8">
@@ -752,7 +752,7 @@ export default function SettingsView() {
                                 <div className="text-2xl">Content</div>
                                 <div className="cards flex flex-wrap gap-16">
                                     <Card className={cardClassName}>
-                                        <CardHeader className="text-xl flex flex-row text-2xl"><Laptop className="h-8 w-8 mr-2" />Files</CardHeader>
+                                        <CardHeader className="flex flex-row text-2xl"><Laptop className="h-8 w-8 mr-2" />Files</CardHeader>
                                         <CardContent className="overflow-hidden pb-12 text-gray-400">
                                             Manage your synced files
                                         </CardContent>
@@ -773,7 +773,7 @@ export default function SettingsView() {
                                         </CardFooter>
                                     </Card>
                                     <Card className={`${cardClassName} hidden`}>
-                                        <CardHeader className="text-xl flex flex-row text-2xl"><GithubLogo className="h-8 w-8 mr-2" />Github</CardHeader>
+                                        <CardHeader className="flex flex-row text-2xl"><GithubLogo className="h-8 w-8 mr-2" />Github</CardHeader>
                                         <CardContent className="overflow-hidden pb-12 text-gray-400">
                                             Set Github repositories to index
                                         </CardContent>
@@ -898,7 +898,7 @@ export default function SettingsView() {
                                     )}
                                     {userConfig.voice_model_options.length > 0 && (
                                     <Card className={cardClassName}>
-                                        <CardHeader className="text-xl flex flex-row"><SpeakerHigh className="h-7 w-7 mr-2"/>Voice</CardHeader>
+                                        <CardHeader className="text-xl flex flex-row"><Waveform className="h-7 w-7 mr-2"/>Voice</CardHeader>
                                         <CardContent className="overflow-hidden pb-12 grid gap-8">
                                             <p className="text-gray-400">Pick the voice model to generate speech responses</p>
                                             <DropdownComponent
@@ -919,7 +919,8 @@ export default function SettingsView() {
                             <div className="section grid gap-8">
                                 <div className="text-2xl">Clients</div>
                                 <div className="cards flex flex-wrap gap-8">
-                                    <Card className="grid grid-flow-column border border-gray-300 shadow-md rounded-lg">
+                                    {!userConfig.anonymous_mode && (
+                                    <Card className="grid grid-flow-column border border-gray-300 shadow-md rounded-lg bg-gradient-to-b from-background to-gray-50 dark:to-gray-950">
                                         <CardHeader className="text-xl grid grid-flow-col grid-cols-[1fr_auto] pb-0">
                                             <span className="flex flex-wrap">
                                                 <Key className="h-7 w-7 mr-2" />API Keys
@@ -937,13 +938,27 @@ export default function SettingsView() {
                                                     {apiKeys.map((key) => (
                                                         <TableRow key={key.token}>
                                                             <TableCell className="pl-0 py-3">{key.name}</TableCell>
-                                                            <TableCell className="grid grid-flow-col grid-cols-[1fr_auto] bg-secondary rounded-xl p-3">
+                                                            <TableCell className="grid grid-flow-col grid-cols-[1fr_auto] bg-secondary rounded-xl p-3 m-1">
                                                                 <span>
                                                                     {`${key.token.slice(0, 6)}...${key.token.slice(-4)}`}
                                                                 </span>
                                                                 <div className="grid grid-flow-col">
-                                                                    <Copy weight="bold" className="h-4 w-4 mr-2 hover:bg-primary/40" onClick={() => copyAPIKey(key.token)}/>
-                                                                    <Trash weight="bold" className='h-4 w-4 mr-2 md:ml-4 text-red-400 hover:bg-primary/40' onClick={() => deleteAPIKey(key.token)}/>
+                                                                    <Copy
+                                                                        weight="bold"
+                                                                        className="h-4 w-4 mr-2 hover:bg-primary/40"
+                                                                        onClick={() => {
+                                                                            toast({title: `🔑 Copied API Key: ${key.name}`, description: `Set this API key in the Khoj apps you want to connect to this Khoj account`});
+                                                                            copyAPIKey(key.token);
+                                                                        }}
+                                                                    />
+                                                                    <Trash
+                                                                        weight="bold"
+                                                                        className='h-4 w-4 mr-2 md:ml-4 text-red-400 hover:bg-primary/40'
+                                                                        onClick={() => {
+                                                                            toast({title: `🔑 Deleted API Key: ${key.name}`, description: `Apps using this API key will no longer connect to this Khoj account`});
+                                                                            deleteAPIKey(key.token);
+                                                                        }}
+                                                                    />
                                                                 </div>
                                                             </TableCell>
                                                         </TableRow>
@@ -954,6 +969,7 @@ export default function SettingsView() {
                                         <CardFooter className="flex flex-wrap gap-4">
                                         </CardFooter>
                                     </Card>
+                                    )}
                                     <Card className={cardClassName}>
                                         <CardHeader className="text-xl flex flex-row">
                                             <WhatsappLogo className="h-7 w-7 mr-2"/>

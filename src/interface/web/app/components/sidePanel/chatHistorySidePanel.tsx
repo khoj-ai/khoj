@@ -76,6 +76,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { modifyFileFilterForConversation } from "@/app/common/chatFunctions";
 import { ScrollAreaScrollbar } from "@radix-ui/react-scroll-area";
 import { KhojLogo, KhojLogoType } from "@/app/components/logo/khogLogo";
+import NavMenu from "../navMenu/navMenu";
 
 // Define a fetcher function
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -334,7 +335,7 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                 <ScrollArea>
                     <ScrollAreaScrollbar orientation="vertical" className="h-full w-2.5 border-l border-l-transparent p-[1px]" />
                     <div className={styles.sessionsList}>
-                        {props.subsetOrganizedData != null && Object.keys(props.subsetOrganizedData).map((timeGrouping) => (
+                        {props.subsetOrganizedData != null && Object.keys(props.subsetOrganizedData).filter(tg => tg !== "All Time").map((timeGrouping) => (
                             <div key={timeGrouping} className={`my-4`}>
                                 <div className={`text-muted-foreground text-sm font-bold p-[0.5rem]`}>
                                     {timeGrouping}
@@ -368,6 +369,7 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
 
 interface ChatSessionActionMenuProps {
     conversationId: string;
+    setTitle: (title: string) => void;
 }
 
 function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
@@ -386,7 +388,7 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
             setShowShareUrl(true);
             setIsSharing(false);
         }
-    }, [isSharing]);
+    }, [isSharing, props.conversationId]);
 
     if (isRenaming) {
         return (
@@ -408,6 +410,7 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
                         <Button
                             onClick={() => {
                                 renameConversation(props.conversationId, renamedTitle);
+                                props.setTitle(renamedTitle);
                                 setIsRenaming(false);
                             }}
                             type="submit">Rename</Button>
@@ -528,6 +531,7 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
 
 function ChatSession(props: ChatHistory) {
     const [isHovered, setIsHovered] = useState(false);
+    const [title, setTitle] = useState(props.slug || "New Conversation 🌱");
     var currConversationId = parseInt(new URLSearchParams(window.location.search).get('conversationId') || "-1");
     return (
         <div
@@ -536,9 +540,9 @@ function ChatSession(props: ChatHistory) {
             key={props.conversation_id}
             className={`${styles.session} ${props.compressed ? styles.compressed : '!max-w-full'} ${isHovered ? `${styles.sessionHover}` : ''} ${currConversationId === parseInt(props.conversation_id) && currConversationId != -1 ? "dark:bg-neutral-800 bg-white" : ""}`}>
             <Link href={`/chat?conversationId=${props.conversation_id}`} onClick={() => props.showSidePanel(false)}>
-                <p className={styles.session}>{props.slug || "New Conversation 🌱"}</p>
+                <p className={styles.session}>{title}</p>
             </Link>
-            <ChatSessionActionMenu conversationId={props.conversation_id} />
+            <ChatSessionActionMenu conversationId={props.conversation_id} setTitle={setTitle} />
         </div>
     );
 }
@@ -660,36 +664,42 @@ export default function SidePanel(props: SidePanelProps) {
     }, [chatSessions]);
 
     return (
-        <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed} mt-1`}>
+        <div className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed} ${props.isMobileWidth ? 'mt-0' : 'mt-1'}`}>
             <div className={`flex justify-between flex-row`}>
-                <Link href='/'>
-                    {props.isMobileWidth && <KhojLogo /> || <KhojLogoType />}
-                </Link>
                 {
-                    authenticatedData && props.isMobileWidth ?
+                    props.isMobileWidth ?
                         <Drawer open={enabled} onOpenChange={(open) => {
                             if (!enabled) setEnabled(false);
                             setEnabled(open);
                         }
                         }>
-                            <DrawerTrigger><Sidebar className="h-4 w-4 mx-2" weight="thin" /></DrawerTrigger>
+                            <DrawerTrigger><Sidebar className="h-8 w-8 mx-2" weight="thin" /></DrawerTrigger>
                             <DrawerContent>
                                 <DrawerHeader>
                                     <DrawerTitle>Sessions and Files</DrawerTitle>
                                     <DrawerDescription>View all conversation sessions and manage conversation file filters</DrawerDescription>
                                 </DrawerHeader>
-                                <div className={`${styles.panelWrapper}`}>
-                                    <SessionsAndFiles
-                                        setEnabled={setEnabled}
-                                        subsetOrganizedData={subsetOrganizedData}
-                                        organizedData={organizedData}
-                                        data={data}
-                                        uploadedFiles={props.uploadedFiles}
-                                        userProfile={authenticatedData}
-                                        conversationId={props.conversationId}
-                                        isMobileWidth={props.isMobileWidth}
-                                    />
-                                </div>
+                                {
+                                    authenticatedData ?
+                                        <div className={`${styles.panelWrapper}`}>
+                                            <SessionsAndFiles
+                                                setEnabled={setEnabled}
+                                                subsetOrganizedData={subsetOrganizedData}
+                                                organizedData={organizedData}
+                                                data={data}
+                                                uploadedFiles={props.uploadedFiles}
+                                                userProfile={authenticatedData}
+                                                conversationId={props.conversationId}
+                                                isMobileWidth={props.isMobileWidth}
+                                            />
+                                        </div>
+                                        :
+                                        <div className={`${styles.panelWrapper}`}>
+                                            <Link href={`/login?next=${encodeURIComponent(window.location.pathname)}`} className="text-center"> {/* Redirect to login page */}
+                                                <Button variant="default"><UserCirclePlus className="h-4 w-4 mr-1" />Sign Up</Button>
+                                            </Link>
+                                        </div>
+                                }
                                 <DrawerFooter>
                                     <DrawerClose>
                                         <Button variant="outline">Done</Button>
@@ -698,14 +708,32 @@ export default function SidePanel(props: SidePanelProps) {
                             </DrawerContent>
                         </Drawer>
                         :
-                        <div className={`${enabled ? 'flex items-center flex-row gap-2' : 'flex'}`}>
-                            <Link className={`ml-4 mr-4`} href="/">
-                                {enabled ? <NotePencil className="h-6 w-6" /> : <NotePencil className="h-6 w-6" color="gray" />}
+                        <div className={`grid grid-flow-col gap-4 w-fit`}>
+                            <Link href='/' className="content-center">
+                                <KhojLogoType />
                             </Link>
-                            <button className={styles.button} onClick={() => setEnabled(!enabled)}>
-                                {enabled ? <Sidebar className="h-6 w-6" /> : <Sidebar className="h-6 w-6" color="gray" />}
-                            </button>
+                            <div className='grid grid-flow-col gap-2 items-center'>
+                                <Link className='mx-4' href="/">
+                                    {enabled ? <NotePencil className="h-6 w-6" weight="fill" /> : <NotePencil className="h-6 w-6" color="gray" />}
+                                </Link>
+                                <button className={styles.button} onClick={() => setEnabled(!enabled)}>
+                                    {enabled ? <Sidebar className="h-6 w-6" weight="fill" /> : <Sidebar className="h-6 w-6" color="gray" />}
+                                </button>
+                            </div>
+                            <div className="fixed right-0 top-[0.9rem] w-fit h-fit">
+                                <NavMenu />
+                            </div>
                         </div>
+                }
+                {
+                    props.isMobileWidth &&
+                    <Link href='/' className="content-center">
+                        <KhojLogoType />
+                    </Link>
+                }
+                {
+                    props.isMobileWidth &&
+                    <NavMenu />
                 }
             </div>
             {
@@ -724,12 +752,10 @@ export default function SidePanel(props: SidePanelProps) {
                 </div>
             }
             {
-                !authenticatedData && enabled &&
+                !authenticatedData && enabled && !props.isMobileWidth &&
                 <div className={`${styles.panelWrapper}`}>
-                    <Link href="/">
+                    <Link href="/" className="flex flex-col content-start items-start no-underline">
                         <Button variant="ghost"><House className="h-4 w-4 mr-1" />Home</Button>
-                    </Link>
-                    <Link href="/">
                         <Button variant="ghost"><StackPlus className="h-4 w-4 mr-1" />New Conversation</Button>
                     </Link>
                     <Link href={`/login?next=${encodeURIComponent(window.location.pathname)}`}> {/* Redirect to login page */}

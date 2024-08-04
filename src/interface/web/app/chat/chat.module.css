@@ -1,5 +1,5 @@
 div.main {
-    height: 100vh;
+    height: 100dvh;
     color: hsla(var(--foreground));
 }
 
@@ -16,11 +16,8 @@ div.main {
 
 div.inputBox {
     border: 1px solid var(--border-color);
-    border-radius: 16px;
     margin-bottom: 20px;
     gap: 12px;
-    padding-left: 20px;
-    padding-right: 20px;
     align-content: center;
 }
 
@@ -98,16 +95,6 @@ div.agentIndicator {
 }
 
 
-@media (max-width: 768px) {
-    div.chatBody {
-        grid-template-columns: 0fr 1fr;
-    }
-
-    div.chatBox {
-        padding: 0;
-    }
-}
-
 @media screen and (max-width: 768px) {
     div.inputBox {
         margin-bottom: 0px;
@@ -117,13 +104,17 @@ div.agentIndicator {
         width: 100%;
     }
 
+    div.chatBody {
+        grid-template-columns: 0fr 1fr;
+    }
+
     div.chatBox {
         padding: 0;
+        height: 100%;
     }
 
     div.chatLayout {
         gap: 0;
         grid-template-columns: 1fr;
     }
-
 }

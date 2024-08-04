@@ -3,24 +3,24 @@ import './globals.css';
 import styles from './page.module.css';
 import 'katex/dist/katex.min.css';
 
-import React, { use, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import Image from 'next/image';
-import { ClockCounterClockwise } from '@phosphor-icons/react';
+import { ArrowCounterClockwise, ClockCounterClockwise } from '@phosphor-icons/react';
 
 import { Card, CardTitle } from '@/components/ui/card';
 import SuggestionCard from '@/app/components/suggestions/suggestionCard';
 import SidePanel from '@/app/components/sidePanel/chatHistorySidePanel';
-import NavMenu from '@/app/components/navMenu/navMenu';
 import Loading from '@/app/components/loading/loading';
 import ChatInputArea, { ChatOptions } from '@/app/components/chatInputArea/chatInputArea';
 import { Suggestion, suggestionsData } from '@/app/components/suggestions/suggestionsData';
+import LoginPrompt from '@/app/components/loginPrompt/loginPrompt';
 
 import { useAuthenticatedData, UserConfig, useUserConfig } from '@/app/common/auth';
 import { convertColorToBorderClass } from '@/app/common/colorUtils';
 import { getIconFromIconName } from '@/app/common/iconUtils';
 import { AgentData } from '@/app/agents/page';
-
+import { createNewConversation } from './common/chatFunctions';
 
 
 interface ChatBodyDataProps {
@@ -33,20 +33,6 @@ interface ChatBodyDataProps {
     isLoadingUserConfig: boolean;
 }
 
-async function createNewConvo(slug: string) {
-    try {
-        const response = await fetch(`/api/chat/sessions?client=web&agent_slug=${slug}`, { method: "POST" });
-        if (!response.ok) throw new Error(`Failed to fetch chat sessions with status: ${response.status}`);
-        const data = await response.json();
-        const conversationID = data.conversation_id;
-        if (!conversationID) throw new Error("Conversation ID not found in response");
-        return conversationID;
-    } catch (error) {
-        console.error("Error creating new conversation:", error);
-        throw error;
-    }
-}
-
 function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState('');
     const [processingMessage, setProcessingMessage] = useState(false);
@@ -55,6 +41,9 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [selectedAgent, setSelectedAgent] = useState<string | null>("khoj");
     const [agentIcons, setAgentIcons] = useState<JSX.Element[]>([]);
     const [agents, setAgents] = useState<AgentData[]>([]);
+    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+    const onConversationIdChange = props.onConversationIdChange;
 
     const agentsFetcher = () => window.fetch('/api/agents').then(res => res.json()).catch(err => console.log(err));
     const { data: agentsData, error } = useSWR<AgentData[]>('agents', agentsFetcher, { revalidateOnFocus: false });
@@ -65,16 +54,12 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }
 
     useEffect(() => {
-        console.log(`Loading user config: ${props.isLoadingUserConfig}`);
         if (props.isLoadingUserConfig) return;
-
-        // Set user config
-        console.log(`Logged In: ${props.isLoggedIn}\nUserConfig: ${props.userConfig}`);
 
         // Get today's day
         const today = new Date();
         const day = today.getDay();
-        const timeOfDay = today.getHours() > 4 && today.getHours() < 12 ? 'morning' : today.getHours() < 17 ? 'afternoon' : 'evening';
+        const timeOfDay = today.getHours() >= 17 || today.getHours() < 4 ? 'evening' : today.getHours() >= 12 ? 'afternoon' : 'morning';
         const nameSuffix = props.userConfig?.given_name ? `, ${props.userConfig?.given_name}` : "";
         const greetings = [
             `What would you like to get done${nameSuffix}?`,
@@ -94,7 +79,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }, [props.chatOptionsData]);
 
     useEffect(() => {
-        const nSlice = props.isMobileWidth ? 3 : 4;
+        const nSlice = props.isMobileWidth ? 2 : 4;
         const shuffledAgents = agentsData ? [...agentsData].sort(() => 0.5 - Math.random()) : [];
         const agents = agentsData ? [agentsData[0]] : []; // Always add the first/default agent.
 
@@ -111,7 +96,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             agent => getIconFromIconName(agent.icon, agent.color) || <Image key={agent.name} src={agent.avatar} alt={agent.name} width={50} height={50} />
         );
         setAgentIcons(agentIcons);
-    }, [agentsData]);
+    }, [agentsData, props.isMobileWidth]);
 
     function shuffleSuggestionsCards() {
         shuffleAndSetOptions();
@@ -122,8 +107,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
             if (message && !processingMessage) {
                 setProcessingMessage(true);
                 try {
-                    const newConversationId = await createNewConvo(selectedAgent || "khoj");
-                    props.onConversationIdChange?.(newConversationId);
+                    const newConversationId = await createNewConversation(selectedAgent || "khoj");
+                    onConversationIdChange?.(newConversationId);
                     window.location.href = `/chat?conversationId=${newConversationId}`;
                     localStorage.setItem('message', message);
                 }
@@ -138,7 +123,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
         if (message) {
             setProcessingMessage(true);
         };
-    }, [selectedAgent, message]);
+    }, [selectedAgent, message, processingMessage, onConversationIdChange]);
 
     function fillArea(link: string, type: string, prompt: string) {
         if (!link) {
@@ -148,7 +133,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             if (type === "Online Search") {
                 message_str = "/online " + prompt;
             } else if (type === "Paint") {
-                message_str = "/paint " + prompt;
+                message_str = "/image " + prompt;
             } else {
                 message_str = prompt;
             }
@@ -164,10 +149,17 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }
 
     return (
-        <div className={`${styles.chatBoxBody}`}>
-            <div className="w-full text-center">
+        <div className={`${styles.homeGreetings} w-full md:w-auto`}>
+            {
+                showLoginPrompt && (
+                    <LoginPrompt
+                        onOpenChange={setShowLoginPrompt}
+                        loginRedirectMessage={"Login to start extending your second brain"} />
+                )
+            }
+            <div className={`w-full text-center justify-end content-end`}>
                 <div className="items-center">
-                    <h1 className="text-center w-fit pb-6 px-4 mx-auto">{greeting}</h1>
+                    <h1 className="text-2xl md:text-3xl text-center w-fit pb-6 px-4 mx-auto">{greeting}</h1>
                 </div>
                 {
                     !props.isMobileWidth &&
@@ -192,10 +184,10 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     </div>
                 }
             </div>
-            <div className={`ml-auto mr-auto ${props.isMobileWidth ? 'w-full' : 'w-fit'}`}>
+            <div className={`mx-auto ${props.isMobileWidth ? 'w-full' : 'w-fit'}`}>
                 {
                     !props.isMobileWidth &&
-                    <div className={`w-full ${styles.inputBox} shadow-lg bg-background align-middle items-center justify-center px-3 py-1 dark:bg-neutral-700 border-stone-100 dark:border-none dark:shadow-none`}>
+                    <div className={`w-full ${styles.inputBox} shadow-lg bg-background align-middle items-center justify-center px-3 py-1 dark:bg-neutral-700 border-stone-100 dark:border-none dark:shadow-none rounded-2xl`}>
                         <ChatInputArea
                             isLoggedIn={props.isLoggedIn}
                             sendMessage={(message) => setMessage(message)}
@@ -210,7 +202,15 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     {shuffledOptions.map((suggestion, index) => (
                         <div
                             key={`${suggestion.type} ${suggestion.description}`}
-                            onClick={() => fillArea(suggestion.link, suggestion.type, suggestion.description)}>
+                            onClick={(event) => {
+                                if (props.isLoggedIn) {
+                                    fillArea(suggestion.link, suggestion.type, suggestion.description);
+                                } else {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    setShowLoginPrompt(true);
+                                }
+                            }}>
                             <SuggestionCard
                                 key={suggestion.type + Math.random()}
                                 title={suggestion.type}
@@ -225,40 +225,42 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     <button
                         onClick={shuffleSuggestionsCards}
                         className="m-2 p-1.5 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm text-stone-500 dark:text-stone-300 dark:border-neutral-700">
-                        More Examples <ClockCounterClockwise className='h-4 w-4 inline' />
+                        More Ideas <ArrowCounterClockwise className='h-4 w-4 inline' />
                     </button>
                 </div>
             </div>
             {
                 props.isMobileWidth &&
-                <div className={`${styles.inputBox} shadow-md dark:bg-neutral-700 bg-background dark: align-middle items-center justify-center py-3 px-1`}>
-                    <ChatInputArea
-                        isLoggedIn={props.isLoggedIn}
-                        sendMessage={(message) => setMessage(message)}
-                        sendDisabled={processingMessage}
-                        chatOptionsData={props.chatOptionsData}
-                        conversationId={null}
-                        isMobileWidth={props.isMobileWidth}
-                        setUploadedFiles={props.setUploadedFiles} />
-                    <div className="flex gap-2 items-center justify-left pt-4">
-                        {agentIcons.map((icon, index) => (
-                            <Card
-                                key={`${index}-${agents[index].slug}`}
-                                className={
-                                    `${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : 'border-muted text-muted-foreground'} hover:cursor-pointer`
-                                }>
-                                <CardTitle
-                                    className='text-center text-xs font-medium flex justify-center items-center px-1.5 py-2'
-                                    onClick={() => setSelectedAgent(agents[index].slug)}>
-                                    {icon} {agents[index].name}
-                                </CardTitle>
+                <>
+                    <div className={`${styles.inputBox} pt-1 shadow-[0_-20px_25px_-5px_rgba(0,0,0,0.1)] dark:bg-neutral-700 bg-background align-middle items-center justify-center pb-3 mx-1 rounded-t-2xl rounded-b-none`}>
+                        <div className="flex gap-2 items-center justify-left pt-1 pb-2 px-12">
+                            {agentIcons.map((icon, index) => (
+                                <Card
+                                    key={`${index}-${agents[index].slug}`}
+                                    className={
+                                        `${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : 'border-muted text-muted-foreground'} hover:cursor-pointer`
+                                    }>
+                                    <CardTitle
+                                        className='text-center text-xs font-medium flex justify-center items-center px-1.5 py-1'
+                                        onClick={() => setSelectedAgent(agents[index].slug)}>
+                                        {icon} {agents[index].name}
+                                    </CardTitle>
+                                </Card>
+                            ))}
+                            <Card className='border-none shadow-none flex justify-center items-center hover:cursor-pointer' onClick={() => window.location.href = "/agents"}>
+                                <CardTitle className={`text-center ${props.isMobileWidth ? 'text-xs' : 'text-md'} font-normal flex justify-center items-center px-1.5 py-2`}>See All →</CardTitle>
                             </Card>
-                        ))}
-                        <Card className='border-none shadow-none flex justify-center items-center hover:cursor-pointer' onClick={() => window.location.href = "/agents"}>
-                            <CardTitle className={`text-center ${props.isMobileWidth ? 'text-xs' : 'text-md'} font-normal flex justify-center items-center px-1.5 py-2`}>See All →</CardTitle>
-                        </Card>
+                        </div>
+                        <ChatInputArea
+                            isLoggedIn={props.isLoggedIn}
+                            sendMessage={(message) => setMessage(message)}
+                            sendDisabled={processingMessage}
+                            chatOptionsData={props.chatOptionsData}
+                            conversationId={null}
+                            isMobileWidth={props.isMobileWidth}
+                            setUploadedFiles={props.setUploadedFiles} />
                     </div>
-                </div>
+                </>
             }
         </div>
     );
@@ -267,7 +269,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
 export default function Home() {
     const [chatOptionsData, setChatOptionsData] = useState<ChatOptions | null>(null);
     const [isLoading, setLoading] = useState(true);
-    const [title, setTitle] = useState('');
     const [conversationId, setConversationID] = useState<string | null>(null);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [isMobileWidth, setIsMobileWidth] = useState(false);
@@ -314,7 +315,7 @@ export default function Home() {
     return (
         <div className={`${styles.main} ${styles.chatLayout}`}>
             <title>
-                {title}
+                Khoj AI - Your Second Brain
             </title>
             <div className={`${styles.sidePanel}`}>
                 <SidePanel
@@ -324,7 +325,6 @@ export default function Home() {
                 />
             </div>
             <div className={`${styles.chatBox}`}>
-                <NavMenu selected="Chat" title={title}></NavMenu>
                 <div className={`${styles.chatBoxBody}`}>
                     <ChatBodyData
                         isLoggedIn={authenticatedData !== null}

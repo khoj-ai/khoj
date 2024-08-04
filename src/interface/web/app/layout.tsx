@@ -10,6 +10,7 @@ export const metadata: Metadata = {
     icons: {
         icon: '/static/favicon.ico',
     },
+    manifest: '/static/khoj.webmanifest',
 };
 
 export default function RootLayout({

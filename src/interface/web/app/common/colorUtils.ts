@@ -33,7 +33,7 @@ export function convertToBGGradientClass(color: string) {
 
 export function convertToBGClass(color: string) {
     if (tailwindColors.includes(color)) {
-        return `bg-${color}-500 dark:bg-${color}-900`;
+        return `bg-${color}-500 dark:bg-${color}-900 hover:bg-${color}-400 dark:hover:bg-${color}-800`;
     }
     return `bg-background`;
 }
