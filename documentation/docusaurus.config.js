@@ -9,7 +9,7 @@ import {themes as prismThemes} from 'prism-react-renderer';
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Khoj AI',
-  tagline: 'An AI copilot for your Second Brain',
+  tagline: 'Your Second Brain',
 
   staticDirectories: ['assets'],
 

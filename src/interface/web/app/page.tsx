@@ -154,7 +154,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 showLoginPrompt && (
                     <LoginPrompt
                         onOpenChange={setShowLoginPrompt}
-                        loginRedirectMessage={"Login to start extending your second brain"} />
+                        loginRedirectMessage={"Login to your second brain"} />
                 )
             }
             <div className={`w-full text-center justify-end content-end`}>

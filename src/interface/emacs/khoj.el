@@ -4,8 +4,8 @@
 
 ;; Author: Debanjum Singh Solanky <debanjum@khoj.dev>
 ;;         Saba Imran <saba@khoj.dev>
-;; Description: An AI copilot for your Second Brain
-;; Keywords: search, chat, org-mode, outlines, markdown, pdf, image
+;; Description: Your Second Brain
+;; Keywords: search, chat, ai, org-mode, outlines, markdown, pdf, image
 ;; Version: 1.17.0
 ;; Package-Requires: ((emacs "27.1") (transient "0.3.0") (dash "2.19.1"))
 ;; URL: https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs

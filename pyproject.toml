@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "khoj"
-description = "An AI copilot for your Second Brain"
+description = "Your Second Brain"
 readme = "README.md"
 license = "AGPL-3.0-or-later"
 requires-python = ">=3.10"

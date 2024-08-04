@@ -1,8 +1,8 @@
 {
   "name": "Khoj",
   "version": "1.17.0",
-  "description": "An AI copilot for your Second Brain",
-  "author": "Saba Imran, Debanjum Singh Solanky <team@khoj.dev>",
+  "description": "Your Second Brain",
+  "author": "Khoj Inc. <team@khoj.dev>",
   "license": "GPL-3.0-or-later",
   "homepage": "https://khoj.dev",
   "repository": "\"https://github.com/khoj-ai/khoj\"",
