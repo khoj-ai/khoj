@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { ArrowRight, File } from "@phosphor-icons/react";
+import { ArrowRight } from "@phosphor-icons/react";
 
 import markdownIt from "markdown-it";
 const md = new markdownIt({
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/sheet";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import DOMPurify from "dompurify";
+import { getIconFromFilename } from "@/app/common/iconUtils";
 
 interface NotesContextReferenceData {
     title: string;
@@ -38,6 +39,10 @@ function NotesContextReferenceCard(props: NotesContextReferenceCardProps) {
     const snippet = props.showFullContent
         ? DOMPurify.sanitize(md.render(props.content))
         : DOMPurify.sanitize(props.content);
+    const fileIcon = getIconFromFilename(
+        props.title || ".txt",
+        "w-6 h-6 text-muted-foreground inline-flex mr-2",
+    );
     const [isHovering, setIsHovering] = useState(false);
 
     return (
@@ -52,7 +57,7 @@ function NotesContextReferenceCard(props: NotesContextReferenceCardProps) {
                         <h3
                             className={`${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground}`}
                         >
-                            <File className="w-6 h-6 text-muted-foreground inline-flex" />
+                            {fileIcon}
                             {props.title}
                         </h3>
                         <p
@@ -66,7 +71,7 @@ function NotesContextReferenceCard(props: NotesContextReferenceCardProps) {
                         className={`w-auto overflow-hidden break-words text-balance rounded-lg p-2 border-none`}
                     >
                         <h3 className={`line-clamp-2 text-muted-foreground}`}>
-                            <File className="w-6 h-6 text-muted-foreground inline-flex" />
+                            {fileIcon}
                             {props.title}
                         </h3>
                         <p

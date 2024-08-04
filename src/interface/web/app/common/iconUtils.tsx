@@ -13,17 +13,16 @@ import {
     Code,
     Atom,
     ClockCounterClockwise,
-    PaperPlaneTilt,
-    Info,
-    UserCircle,
+    File,
     Globe,
     Palette,
-    LinkBreak,
     Book,
     Confetti,
     House,
     Translate,
+    Image,
 } from "@phosphor-icons/react";
+import { Markdown, OrgMode, Pdf, Word } from "@/app/components/logo/fileLogo";
 
 interface IconMap {
     [key: string]: (color: string, width: string, height: string) => JSX.Element | null;
@@ -98,4 +97,28 @@ function getIconFromIconName(
     return icon ? icon(colorClass, width, height) : null;
 }
 
-export { getIconFromIconName };
+function getIconFromFilename(
+    filename: string,
+    className: string = "w-6 h-6 text-muted-foreground inline-flex mr-1",
+) {
+    const extension = filename.split(".").pop();
+    switch (extension) {
+        case "org":
+            return <OrgMode className={className} />;
+        case "markdown":
+        case "md":
+            return <Markdown className={className} />;
+        case "pdf":
+            return <Pdf className={className} />;
+        case "doc":
+            return <Word className={className} />;
+        case "jpg":
+        case "jpeg":
+        case "png":
+            return <Image className={className} weight="fill" />;
+        default:
+            return <File className={className} weight="fill" />;
+    }
+}
+
+export { getIconFromIconName, getIconFromFilename };
