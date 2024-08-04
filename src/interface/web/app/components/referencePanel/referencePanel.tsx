@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import { useEffect, useState } from "react";
 
@@ -8,7 +8,7 @@ import markdownIt from "markdown-it";
 const md = new markdownIt({
     html: true,
     linkify: true,
-    typographer: true
+    typographer: true,
 });
 
 import { Context, WebPage, OnlineContext } from "../chatMessage/chatMessage";
@@ -23,7 +23,7 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import DOMPurify from 'dompurify';
+import DOMPurify from "dompurify";
 
 interface NotesContextReferenceData {
     title: string;
@@ -34,50 +34,56 @@ interface NotesContextReferenceCardProps extends NotesContextReferenceData {
     showFullContent: boolean;
 }
 
-
 function NotesContextReferenceCard(props: NotesContextReferenceCardProps) {
-    const snippet = props.showFullContent ? DOMPurify.sanitize(md.render(props.content)) : DOMPurify.sanitize(props.content);
+    const snippet = props.showFullContent
+        ? DOMPurify.sanitize(md.render(props.content))
+        : DOMPurify.sanitize(props.content);
     const [isHovering, setIsHovering] = useState(false);
 
     return (
         <>
-            <Popover
-                open={isHovering && !props.showFullContent}
-                onOpenChange={setIsHovering}
-            >
+            <Popover open={isHovering && !props.showFullContent} onOpenChange={setIsHovering}>
                 <PopoverTrigger asChild>
                     <Card
                         onMouseEnter={() => setIsHovering(true)}
                         onMouseLeave={() => setIsHovering(false)}
-                        className={`${props.showFullContent ? 'w-auto' : 'w-[200px]'} overflow-hidden break-words text-balance rounded-lg p-2 bg-muted border-none`}
+                        className={`${props.showFullContent ? "w-auto" : "w-[200px]"} overflow-hidden break-words text-balance rounded-lg p-2 bg-muted border-none`}
                     >
-                        <h3 className={`${props.showFullContent ? 'block' : 'line-clamp-1'} text-muted-foreground}`}>
-                            <File className='w-6 h-6 text-muted-foreground inline-flex' />
+                        <h3
+                            className={`${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground}`}
+                        >
+                            <File className="w-6 h-6 text-muted-foreground inline-flex" />
                             {props.title}
                         </h3>
-                        <p className={`${props.showFullContent ? 'block' : 'overflow-hidden line-clamp-2'}`} dangerouslySetInnerHTML={{ __html: snippet }}></p>
+                        <p
+                            className={`${props.showFullContent ? "block" : "overflow-hidden line-clamp-2"}`}
+                            dangerouslySetInnerHTML={{ __html: snippet }}
+                        ></p>
                     </Card>
                 </PopoverTrigger>
-                <PopoverContent
-                    className="w-[400px] mx-2">
-                    <Card className={`w-auto overflow-hidden break-words text-balance rounded-lg p-2 border-none`}>
+                <PopoverContent className="w-[400px] mx-2">
+                    <Card
+                        className={`w-auto overflow-hidden break-words text-balance rounded-lg p-2 border-none`}
+                    >
                         <h3 className={`line-clamp-2 text-muted-foreground}`}>
-                            <File className='w-6 h-6 text-muted-foreground inline-flex' />
+                            <File className="w-6 h-6 text-muted-foreground inline-flex" />
                             {props.title}
                         </h3>
-                        <p className={`overflow-hidden line-clamp-3`} dangerouslySetInnerHTML={{ __html: snippet }}></p>
+                        <p
+                            className={`overflow-hidden line-clamp-3`}
+                            dangerouslySetInnerHTML={{ __html: snippet }}
+                        ></p>
                     </Card>
                 </PopoverContent>
             </Popover>
         </>
-    )
+    );
 }
 
 export interface ReferencePanelData {
     notesReferenceCardData: NotesContextReferenceData[];
     onlineReferenceCardData: OnlineReferenceData[];
 }
-
 
 interface OnlineReferenceData {
     title: string;
@@ -92,7 +98,7 @@ interface OnlineReferenceCardProps extends OnlineReferenceData {
 function GenericOnlineReferenceCard(props: OnlineReferenceCardProps) {
     const [isHovering, setIsHovering] = useState(false);
 
-    if (!props.link || props.link.split(' ').length > 1) {
+    if (!props.link || props.link.split(" ").length > 1) {
         return null;
     }
 
@@ -108,61 +114,89 @@ function GenericOnlineReferenceCard(props: OnlineReferenceCardProps) {
 
     const handleMouseEnter = () => {
         setIsHovering(true);
-    }
+    };
 
     const handleMouseLeave = () => {
         setIsHovering(false);
-    }
+    };
 
     return (
         <>
-            <Popover
-                open={isHovering && !props.showFullContent}
-                onOpenChange={setIsHovering}
-            >
+            <Popover open={isHovering && !props.showFullContent} onOpenChange={setIsHovering}>
                 <PopoverTrigger asChild>
                     <Card
                         onMouseEnter={handleMouseEnter}
                         onMouseLeave={handleMouseLeave}
-                        className={`${props.showFullContent ? 'w-auto' : 'w-[200px]'} overflow-hidden break-words rounded-lg text-balance p-2 bg-muted border-none`}>
-
-                        <div className='flex flex-col'>
-                            <a href={props.link} target="_blank" rel="noreferrer" className='!no-underline p-2'>
-                                <div className='flex items-center'>
-                                    <img src={favicon} alt="" className='!w-4 h-4 mr-2' />
-                                    <h3 className={`overflow-hidden ${props.showFullContent ? 'block' : 'line-clamp-1'} text-muted-foreground`}>{domain}</h3>
+                        className={`${props.showFullContent ? "w-auto" : "w-[200px]"} overflow-hidden break-words rounded-lg text-balance p-2 bg-muted border-none`}
+                    >
+                        <div className="flex flex-col">
+                            <a
+                                href={props.link}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="!no-underline p-2"
+                            >
+                                <div className="flex items-center">
+                                    <img src={favicon} alt="" className="!w-4 h-4 mr-2" />
+                                    <h3
+                                        className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground`}
+                                    >
+                                        {domain}
+                                    </h3>
                                 </div>
-                                <h3 className={`overflow-hidden ${props.showFullContent ? 'block' : 'line-clamp-1'} font-bold`}>{props.title}</h3>
-                                <p className={`overflow-hidden ${props.showFullContent ? 'block' : 'line-clamp-2'}`}>{props.description}</p>
+                                <h3
+                                    className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} font-bold`}
+                                >
+                                    {props.title}
+                                </h3>
+                                <p
+                                    className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-2"}`}
+                                >
+                                    {props.description}
+                                </p>
                             </a>
                         </div>
                     </Card>
                 </PopoverTrigger>
-                <PopoverContent
-                    className="w-[400px] mx-2">
+                <PopoverContent className="w-[400px] mx-2">
                     <Card
-                        className={`w-auto overflow-hidden break-words text-balance rounded-lg border-none`}>
-
-                        <div className='flex flex-col'>
-                            <a href={props.link} target="_blank" rel="noreferrer" className='!no-underline p-2'>
-                                <div className='flex items-center'>
-                                    <img src={favicon} alt="" className='!w-4 h-4 mr-2' />
-                                    <h3 className={`overflow-hidden ${props.showFullContent ? 'block' : 'line-clamp-2'} text-muted-foreground`}>{domain}</h3>
+                        className={`w-auto overflow-hidden break-words text-balance rounded-lg border-none`}
+                    >
+                        <div className="flex flex-col">
+                            <a
+                                href={props.link}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="!no-underline p-2"
+                            >
+                                <div className="flex items-center">
+                                    <img src={favicon} alt="" className="!w-4 h-4 mr-2" />
+                                    <h3
+                                        className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-2"} text-muted-foreground`}
+                                    >
+                                        {domain}
+                                    </h3>
                                 </div>
-                                <h3 className={`overflow-hidden ${props.showFullContent ? 'block' : 'line-clamp-2'} font-bold`}>{props.title}</h3>
-                                <p className={`overflow-hidden ${props.showFullContent ? 'block' : 'line-clamp-3'}`}>{props.description}</p>
+                                <h3
+                                    className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-2"} font-bold`}
+                                >
+                                    {props.title}
+                                </h3>
+                                <p
+                                    className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-3"}`}
+                                >
+                                    {props.description}
+                                </p>
                             </a>
                         </div>
                     </Card>
                 </PopoverContent>
             </Popover>
-
         </>
-    )
+    );
 }
 
 export function constructAllReferences(contextData: Context[], onlineData: OnlineContext) {
-
     const onlineReferences: OnlineReferenceData[] = [];
     const contextReferences: NotesContextReferenceData[] = [];
 
@@ -173,14 +207,14 @@ export function constructAllReferences(contextData: Context[], onlineData: Onlin
                 localOnlineReferences.push({
                     title: value.answerBox.title,
                     description: value.answerBox.answer,
-                    link: value.answerBox.source
+                    link: value.answerBox.source,
                 });
             }
             if (value.knowledgeGraph) {
                 localOnlineReferences.push({
                     title: value.knowledgeGraph.title,
                     description: value.knowledgeGraph.description,
-                    link: value.knowledgeGraph.descriptionLink
+                    link: value.knowledgeGraph.descriptionLink,
                 });
             }
 
@@ -191,8 +225,8 @@ export function constructAllReferences(contextData: Context[], onlineData: Onlin
                         return {
                             title: webPage.query,
                             description: webPage.snippet,
-                            link: webPage.link
-                        }
+                            link: webPage.link,
+                        };
                     });
                     localOnlineReferences.push(...webPageResults);
                 } else {
@@ -202,7 +236,7 @@ export function constructAllReferences(contextData: Context[], onlineData: Onlin
                     localOnlineReferences.push({
                         title: singleWebpage.query,
                         description: singleWebpage.snippet,
-                        link: singleWebpage.link
+                        link: singleWebpage.link,
                     });
                 }
             }
@@ -212,8 +246,8 @@ export function constructAllReferences(contextData: Context[], onlineData: Onlin
                     return {
                         title: organicContext.title,
                         description: organicContext.snippet,
-                        link: organicContext.link
-                    }
+                        link: organicContext.link,
+                    };
                 });
 
                 localOnlineReferences.push(...organicResults);
@@ -224,21 +258,20 @@ export function constructAllReferences(contextData: Context[], onlineData: Onlin
     }
 
     if (contextData) {
-
         let localContextReferences = contextData.map((context) => {
             if (!context.compiled) {
                 const fileContent = context as unknown as string;
-                const title = fileContent.split('\n')[0];
-                const content = fileContent.split('\n').slice(1).join('\n');
+                const title = fileContent.split("\n")[0];
+                const content = fileContent.split("\n").slice(1).join("\n");
                 return {
                     title: title,
-                    content: content
+                    content: content,
                 };
             }
             return {
                 title: context.file,
-                content: context.compiled
-            }
+                content: context.compiled,
+            };
         });
 
         contextReferences.push(...localContextReferences);
@@ -246,10 +279,9 @@ export function constructAllReferences(contextData: Context[], onlineData: Onlin
 
     return {
         notesReferenceCardData: contextReferences,
-        onlineReferenceCardData: onlineReferences
-    }
+        onlineReferenceCardData: onlineReferences,
+    };
 }
-
 
 export interface TeaserReferenceSectionProps {
     notesReferenceCardData: NotesContextReferenceData[];
@@ -265,11 +297,16 @@ export function TeaserReferencesSection(props: TeaserReferenceSectionProps) {
     }, [props.isMobileWidth]);
 
     const notesDataToShow = props.notesReferenceCardData.slice(0, numTeaserSlots);
-    const onlineDataToShow = notesDataToShow.length < numTeaserSlots ? props.onlineReferenceCardData.slice(0, numTeaserSlots - notesDataToShow.length) : [];
+    const onlineDataToShow =
+        notesDataToShow.length < numTeaserSlots
+            ? props.onlineReferenceCardData.slice(0, numTeaserSlots - notesDataToShow.length)
+            : [];
 
-    const shouldShowShowMoreButton = props.notesReferenceCardData.length > 0 || props.onlineReferenceCardData.length > 0;
+    const shouldShowShowMoreButton =
+        props.notesReferenceCardData.length > 0 || props.onlineReferenceCardData.length > 0;
 
-    const numReferences = props.notesReferenceCardData.length + props.onlineReferenceCardData.length;
+    const numReferences =
+        props.notesReferenceCardData.length + props.onlineReferenceCardData.length;
 
     if (numReferences === 0) {
         return null;
@@ -279,32 +316,37 @@ export function TeaserReferencesSection(props: TeaserReferenceSectionProps) {
         <div className="pt-0 px-4 pb-4 md:px-6">
             <h3 className="inline-flex items-center">
                 References
-                <p className="text-gray-400 m-2">
-                    {numReferences} sources
-                </p>
+                <p className="text-gray-400 m-2">{numReferences} sources</p>
             </h3>
             <div className={`flex flex-wrap gap-2 w-auto mt-2`}>
-                {
-                    notesDataToShow.map((note, index) => {
-                        return <NotesContextReferenceCard showFullContent={false} {...note} key={`${note.title}-${index}`} />
-                    })
-                }
-                {
-                    onlineDataToShow.map((online, index) => {
-                        return <GenericOnlineReferenceCard showFullContent={false} {...online} key={`${online.title}-${index}`} />
-                    })
-                }
-                {
-                    shouldShowShowMoreButton &&
+                {notesDataToShow.map((note, index) => {
+                    return (
+                        <NotesContextReferenceCard
+                            showFullContent={false}
+                            {...note}
+                            key={`${note.title}-${index}`}
+                        />
+                    );
+                })}
+                {onlineDataToShow.map((online, index) => {
+                    return (
+                        <GenericOnlineReferenceCard
+                            showFullContent={false}
+                            {...online}
+                            key={`${online.title}-${index}`}
+                        />
+                    );
+                })}
+                {shouldShowShowMoreButton && (
                     <ReferencePanel
                         notesReferenceCardData={props.notesReferenceCardData}
-                        onlineReferenceCardData={props.onlineReferenceCardData} />
-                }
+                        onlineReferenceCardData={props.onlineReferenceCardData}
+                    />
+                )}
             </div>
         </div>
-    )
+    );
 }
-
 
 interface ReferencePanelDataProps {
     notesReferenceCardData: NotesContextReferenceData[];
@@ -312,17 +354,15 @@ interface ReferencePanelDataProps {
 }
 
 export default function ReferencePanel(props: ReferencePanelDataProps) {
-
     if (!props.notesReferenceCardData && !props.onlineReferenceCardData) {
         return null;
     }
 
     return (
         <Sheet>
-            <SheetTrigger
-                className='text-balance w-auto md:w-[200px] justify-start overflow-hidden break-words p-0 bg-transparent border-none text-gray-400 align-middle items-center !m-2 inline-flex'>
+            <SheetTrigger className="text-balance w-auto md:w-[200px] justify-start overflow-hidden break-words p-0 bg-transparent border-none text-gray-400 align-middle items-center !m-2 inline-flex">
                 View references
-                <ArrowRight className='m-1' />
+                <ArrowRight className="m-1" />
             </SheetTrigger>
             <SheetContent className="overflow-y-scroll">
                 <SheetHeader>
@@ -330,16 +370,24 @@ export default function ReferencePanel(props: ReferencePanelDataProps) {
                     <SheetDescription>View all references for this response</SheetDescription>
                 </SheetHeader>
                 <div className="flex flex-wrap gap-2 w-auto mt-2">
-                    {
-                        props.notesReferenceCardData.map((note, index) => {
-                            return <NotesContextReferenceCard showFullContent={true} {...note} key={`${note.title}-${index}`} />
-                        })
-                    }
-                    {
-                        props.onlineReferenceCardData.map((online, index) => {
-                            return <GenericOnlineReferenceCard showFullContent={true} {...online} key={`${online.title}-${index}`} />
-                        })
-                    }
+                    {props.notesReferenceCardData.map((note, index) => {
+                        return (
+                            <NotesContextReferenceCard
+                                showFullContent={true}
+                                {...note}
+                                key={`${note.title}-${index}`}
+                            />
+                        );
+                    })}
+                    {props.onlineReferenceCardData.map((online, index) => {
+                        return (
+                            <GenericOnlineReferenceCard
+                                showFullContent={true}
+                                {...online}
+                                key={`${online.title}-${index}`}
+                            />
+                        );
+                    })}
                 </div>
             </SheetContent>
         </Sheet>

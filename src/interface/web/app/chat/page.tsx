@@ -1,22 +1,22 @@
-'use client'
+"use client";
 
-import styles from './chat.module.css';
-import React, { Suspense, useEffect, useState } from 'react';
+import styles from "./chat.module.css";
+import React, { Suspense, useEffect, useState } from "react";
 
-import SidePanel from '../components/sidePanel/chatHistorySidePanel';
-import ChatHistory from '../components/chatHistory/chatHistory';
-import { useSearchParams } from 'next/navigation'
-import Loading from '../components/loading/loading';
+import SidePanel from "../components/sidePanel/chatHistorySidePanel";
+import ChatHistory from "../components/chatHistory/chatHistory";
+import { useSearchParams } from "next/navigation";
+import Loading from "../components/loading/loading";
 
-import { processMessageChunk } from '../common/chatFunctions';
+import { processMessageChunk } from "../common/chatFunctions";
 
-import 'katex/dist/katex.min.css';
+import "katex/dist/katex.min.css";
 
-import { Context, OnlineContext, StreamMessage } from '../components/chatMessage/chatMessage';
-import { useIPLocationData, welcomeConsole } from '../common/utils';
-import ChatInputArea, { ChatOptions } from '../components/chatInputArea/chatInputArea';
-import { useAuthenticatedData } from '../common/auth';
-import { AgentData } from '../agents/page';
+import { Context, OnlineContext, StreamMessage } from "../components/chatMessage/chatMessage";
+import { useIPLocationData, welcomeConsole } from "../common/utils";
+import ChatInputArea, { ChatOptions } from "../components/chatInputArea/chatInputArea";
+import { useAuthenticatedData } from "../common/auth";
+import { AgentData } from "../agents/page";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -31,8 +31,8 @@ interface ChatBodyDataProps {
 
 function ChatBodyData(props: ChatBodyDataProps) {
     const searchParams = useSearchParams();
-    const conversationId = searchParams.get('conversationId');
-    const [message, setMessage] = useState('');
+    const conversationId = searchParams.get("conversationId");
+    const [message, setMessage] = useState("");
     const [processingMessage, setProcessingMessage] = useState(false);
     const [agentMetadata, setAgentMetadata] = useState<AgentData | null>(null);
 
@@ -61,17 +61,19 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }, [conversationId, onConversationIdChange]);
 
     useEffect(() => {
-        if (props.streamedMessages &&
+        if (
+            props.streamedMessages &&
             props.streamedMessages.length > 0 &&
-            props.streamedMessages[props.streamedMessages.length - 1].completed) {
+            props.streamedMessages[props.streamedMessages.length - 1].completed
+        ) {
             setProcessingMessage(false);
         } else {
-            setMessage('');
+            setMessage("");
         }
     }, [props.streamedMessages]);
 
     if (!conversationId) {
-        window.location.href = '/';
+        window.location.href = "/";
         return;
     }
 
@@ -82,11 +84,13 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     conversationId={conversationId}
                     setTitle={props.setTitle}
                     setAgent={setAgentMetadata}
-                    pendingMessage={processingMessage ? message : ''}
+                    pendingMessage={processingMessage ? message : ""}
                     incomingMessages={props.streamedMessages}
                 />
             </div>
-            <div className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-t-2xl rounded-b-none md:rounded-xl`}>
+            <div
+                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-t-2xl rounded-b-none md:rounded-xl`}
+            >
                 <ChatInputArea
                     agentColor={agentMetadata?.color}
                     isLoggedIn={props.isLoggedIn}
@@ -95,20 +99,21 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     chatOptionsData={props.chatOptionsData}
                     conversationId={conversationId}
                     isMobileWidth={props.isMobileWidth}
-                    setUploadedFiles={props.setUploadedFiles} />
+                    setUploadedFiles={props.setUploadedFiles}
+                />
             </div>
         </>
     );
 }
 
 export default function Chat() {
-    const defaultTitle = 'Khoj AI - Chat';
+    const defaultTitle = "Khoj AI - Chat";
     const [chatOptionsData, setChatOptionsData] = useState<ChatOptions | null>(null);
     const [isLoading, setLoading] = useState(true);
     const [title, setTitle] = useState(defaultTitle);
     const [conversationId, setConversationID] = useState<string | null>(null);
     const [messages, setMessages] = useState<StreamMessage[]>([]);
-    const [queryToProcess, setQueryToProcess] = useState<string>('');
+    const [queryToProcess, setQueryToProcess] = useState<string>("");
     const [processQuerySignal, setProcessQuerySignal] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [isMobileWidth, setIsMobileWidth] = useState(false);
@@ -116,8 +121,8 @@ export default function Chat() {
     const authenticatedData = useAuthenticatedData();
 
     useEffect(() => {
-        fetch('/api/chat/options')
-            .then(response => response.json())
+        fetch("/api/chat/options")
+            .then((response) => response.json())
             .then((data: ChatOptions) => {
                 setLoading(false);
                 // Render chat options, if any
@@ -125,7 +130,7 @@ export default function Chat() {
                     setChatOptionsData(data);
                 }
             })
-            .catch(err => {
+            .catch((err) => {
                 console.error(err);
                 return;
             });
@@ -134,10 +139,9 @@ export default function Chat() {
 
         setIsMobileWidth(window.innerWidth < 786);
 
-        window.addEventListener('resize', () => {
+        window.addEventListener("resize", () => {
             setIsMobileWidth(window.innerWidth < 786);
         });
-
     }, []);
 
     useEffect(() => {
@@ -148,10 +152,10 @@ export default function Chat() {
                 context: [],
                 onlineContext: {},
                 completed: false,
-                timestamp: (new Date()).toISOString(),
+                timestamp: new Date().toISOString(),
                 rawQuery: queryToProcess || "",
             };
-            setMessages(prevMessages => [...prevMessages, newStreamMessage]);
+            setMessages((prevMessages) => [...prevMessages, newStreamMessage]);
             setProcessQuerySignal(true);
         }
     }, [queryToProcess]);
@@ -168,7 +172,7 @@ export default function Chat() {
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        const eventDelimiter = '␃🔚␗';
+        const eventDelimiter = "␃🔚␗";
         let buffer = "";
 
         // Track context used for chat response
@@ -178,7 +182,7 @@ export default function Chat() {
         while (true) {
             const { done, value } = await reader.read();
             if (done) {
-                setQueryToProcess('');
+                setQueryToProcess("");
                 setProcessQuerySignal(false);
                 break;
             }
@@ -191,7 +195,7 @@ export default function Chat() {
                 const event = buffer.slice(0, newEventIndex);
                 buffer = buffer.slice(newEventIndex + eventDelimiter.length);
                 if (event) {
-                    const currentMessage = messages.find(message => !message.completed);
+                    const currentMessage = messages.find((message) => !message.completed);
 
                     if (!currentMessage) {
                         console.error("No current message found");
@@ -199,7 +203,12 @@ export default function Chat() {
                     }
 
                     // Track context used for chat response. References are rendered at the end of the chat
-                    ({ context, onlineContext } = processMessageChunk(event, currentMessage, context, onlineContext));
+                    ({ context, onlineContext } = processMessageChunk(
+                        event,
+                        currentMessage,
+                        context,
+                        onlineContext,
+                    ));
 
                     setMessages([...messages]);
                 }
@@ -232,7 +241,7 @@ export default function Chat() {
     return (
         <div className={`${styles.main} ${styles.chatLayout}`}>
             <title>
-                {`${defaultTitle}${(!!title && title !== defaultTitle)? `: ${title}` : ''}`}
+                {`${defaultTitle}${!!title && title !== defaultTitle ? `: ${title}` : ""}`}
             </title>
             <div>
                 <SidePanel
@@ -243,12 +252,19 @@ export default function Chat() {
             </div>
             <div className={styles.chatBox}>
                 <div className={styles.chatBoxBody}>
-                    {
-                        !isMobileWidth &&
-                        <div className={`text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mr-8`}>
-                            {title && <h2 className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden pt-6`}>{title}</h2>}
+                    {!isMobileWidth && (
+                        <div
+                            className={`text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mr-8`}
+                        >
+                            {title && (
+                                <h2
+                                    className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden pt-6`}
+                                >
+                                    {title}
+                                </h2>
+                            )}
                         </div>
-                    }
+                    )}
                     <Suspense fallback={<Loading />}>
                         <ChatBodyData
                             isLoggedIn={authenticatedData !== null}
@@ -258,10 +274,11 @@ export default function Chat() {
                             setQueryToProcess={setQueryToProcess}
                             setUploadedFiles={setUploadedFiles}
                             isMobileWidth={isMobileWidth}
-                            onConversationIdChange={handleConversationIdChange} />
+                            onConversationIdChange={handleConversationIdChange}
+                        />
                     </Suspense>
                 </div>
             </div>
         </div>
-    )
+    );
 }

@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import useSWR from 'swr'
+import useSWR from "swr";
 
 export interface UserProfile {
     email: string;
@@ -12,14 +12,17 @@ export interface UserProfile {
 }
 
 const fetcher = (url: string) =>
-    window.fetch(url)
-        .then(res => res.json())
-        .catch(err => console.warn(err));
+    window
+        .fetch(url)
+        .then((res) => res.json())
+        .catch((err) => console.warn(err));
 
 export function useAuthenticatedData() {
-    const { data, error } = useSWR<UserProfile>('/api/v1/user', fetcher, { revalidateOnFocus: false });
+    const { data, error } = useSWR<UserProfile>("/api/v1/user", fetcher, {
+        revalidateOnFocus: false,
+    });
 
-    if (error || !data || data.detail === 'Forbidden') return null;
+    if (error || !data || data.detail === "Forbidden") return null;
 
     return data;
 }
@@ -68,12 +71,16 @@ export interface UserConfig {
     detail: string;
 }
 
-
 export function useUserConfig(detailed: boolean = false) {
     const url = `/api/settings?detailed=${detailed}`;
-    const { data: userConfig, error, isLoading: isLoadingUserConfig } = useSWR<UserConfig>(url, fetcher, { revalidateOnFocus: false });
+    const {
+        data: userConfig,
+        error,
+        isLoading: isLoadingUserConfig,
+    } = useSWR<UserConfig>(url, fetcher, { revalidateOnFocus: false });
 
-    if (error || !userConfig || userConfig?.detail === 'Forbidden') return {userConfig: null, isLoadingUserConfig};
+    if (error || !userConfig || userConfig?.detail === "Forbidden")
+        return { userConfig: null, isLoadingUserConfig };
 
-    return {userConfig, isLoadingUserConfig};
+    return { userConfig, isLoadingUserConfig };
 }

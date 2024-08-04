@@ -23,25 +23,25 @@ export function convertMessageChunkToJson(chunk: string): MessageChunk {
             if (!jsonChunk.type) {
                 return {
                     type: "message",
-                    data: jsonChunk
+                    data: jsonChunk,
                 };
             }
             return jsonChunk;
         } catch (error) {
             return {
                 type: "message",
-                data: chunk
+                data: chunk,
             };
         }
     } else if (chunk.length > 0) {
         return {
             type: "message",
-            data: chunk
+            data: chunk,
         };
     } else {
         return {
             type: "message",
-            data: ""
+            data: "",
         };
     }
 }
@@ -62,11 +62,11 @@ export function processMessageChunk(
     rawChunk: string,
     currentMessage: StreamMessage,
     context: Context[] = [],
-    onlineContext: OnlineContext = {}): { context: Context[], onlineContext: OnlineContext } {
-
+    onlineContext: OnlineContext = {},
+): { context: Context[]; onlineContext: OnlineContext } {
     const chunk = convertMessageChunkToJson(rawChunk);
 
-    if (!currentMessage || !chunk || !chunk.type) return {context, onlineContext};
+    if (!currentMessage || !chunk || !chunk.type) return { context, onlineContext };
 
     if (chunk.type === "status") {
         console.log(`status: ${chunk.data}`);
@@ -77,12 +77,16 @@ export function processMessageChunk(
 
         if (references.context) context = references.context;
         if (references.onlineContext) onlineContext = references.onlineContext;
-        return {context, onlineContext}
+        return { context, onlineContext };
     } else if (chunk.type === "message") {
         const chunkData = chunk.data;
-        if (chunkData !== null && typeof chunkData === 'object') {
+        if (chunkData !== null && typeof chunkData === "object") {
             currentMessage.rawResponse += handleJsonResponse(chunkData);
-        } else if (typeof chunkData  === 'string' && chunkData.trim()?.startsWith("{") && chunkData.trim()?.endsWith("}")) {
+        } else if (
+            typeof chunkData === "string" &&
+            chunkData.trim()?.startsWith("{") &&
+            chunkData.trim()?.endsWith("}")
+        ) {
             try {
                 const jsonData = JSON.parse(chunkData.trim());
                 currentMessage.rawResponse += handleJsonResponse(jsonData);
@@ -104,11 +108,10 @@ export function processMessageChunk(
         // Mark current message streaming as completed
         currentMessage.completed = true;
     }
-    return {context, onlineContext};
+    return { context, onlineContext };
 }
 
 export function handleImageResponse(imageJson: any, liveStream: boolean): ResponseWithReferences {
-
     let rawResponse = "";
 
     if (imageJson.image) {
@@ -146,39 +149,38 @@ export function handleImageResponse(imageJson: any, liveStream: boolean): Respon
     return reference;
 }
 
-
 export function modifyFileFilterForConversation(
     conversationId: string | null,
     filenames: string[],
     setAddedFiles: (files: string[]) => void,
-    mode: 'add' | 'remove') {
-
+    mode: "add" | "remove",
+) {
     if (!conversationId) {
         console.error("No conversation ID provided");
         return;
     }
 
-    const method = mode === 'add' ? 'POST' : 'DELETE';
+    const method = mode === "add" ? "POST" : "DELETE";
 
     const body = {
         conversation_id: conversationId,
         filenames: filenames,
-    }
+    };
     const addUrl = `/api/chat/conversation/file-filters/bulk`;
 
     fetch(addUrl, {
         method: method,
         headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
     })
-        .then(response => response.json())
-        .then(data => {
+        .then((response) => response.json())
+        .then((data) => {
             console.log("ADDEDFILES DATA: ", data);
             setAddedFiles(data);
         })
-        .catch(err => {
+        .catch((err) => {
             console.error(err);
             return;
         });
@@ -186,8 +188,11 @@ export function modifyFileFilterForConversation(
 
 export async function createNewConversation(slug: string) {
     try {
-        const response = await fetch(`/api/chat/sessions?client=web&agent_slug=${slug}`, { method: "POST" });
-        if (!response.ok) throw new Error(`Failed to fetch chat sessions with status: ${response.status}`);
+        const response = await fetch(`/api/chat/sessions?client=web&agent_slug=${slug}`, {
+            method: "POST",
+        });
+        if (!response.ok)
+            throw new Error(`Failed to fetch chat sessions with status: ${response.status}`);
         const data = await response.json();
         const conversationID = data.conversation_id;
         if (!conversationID) throw new Error("Conversation ID not found in response");
@@ -204,22 +209,32 @@ export function uploadDataForIndexing(
     setUploading: (uploading: boolean) => void,
     setError: (error: string) => void,
     setUploadedFiles?: (files: string[]) => void,
-    conversationId?: string | null) {
-
-    const allowedExtensions = ['text/org', 'text/markdown', 'text/plain', 'text/html', 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    const allowedFileEndings = ['org', 'md', 'txt', 'html', 'pdf', 'docx'];
+    conversationId?: string | null,
+) {
+    const allowedExtensions = [
+        "text/org",
+        "text/markdown",
+        "text/plain",
+        "text/html",
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+    const allowedFileEndings = ["org", "md", "txt", "html", "pdf", "docx"];
     const badFiles: string[] = [];
     const goodFiles: File[] = [];
 
     const uploadedFiles: string[] = [];
 
     for (let file of files) {
-        const fileEnding = file.name.split('.').pop();
+        const fileEnding = file.name.split(".").pop();
         if (!file || !file.name || !fileEnding) {
             if (file) {
                 badFiles.push(file.name);
             }
-        } else if ((!allowedExtensions.includes(file.type) && !allowedFileEndings.includes(fileEnding.toLowerCase()))) {
+        } else if (
+            !allowedExtensions.includes(file.type) &&
+            !allowedFileEndings.includes(fileEnding.toLowerCase())
+        ) {
             badFiles.push(file.name);
         } else {
             goodFiles.push(file);
@@ -232,18 +247,16 @@ export function uploadDataForIndexing(
     }
 
     if (badFiles.length > 0) {
-        setWarning("The following files are not supported yet:\n" + badFiles.join('\n'));
+        setWarning("The following files are not supported yet:\n" + badFiles.join("\n"));
     }
-
 
     const formData = new FormData();
 
     // Create an array of Promises for file reading
-    const fileReadPromises = Array.from(goodFiles).map(file => {
+    const fileReadPromises = Array.from(goodFiles).map((file) => {
         return new Promise<void>((resolve, reject) => {
             let reader = new FileReader();
             reader.onload = function (event) {
-
                 if (event.target === null) {
                     reject();
                     return;
@@ -253,7 +266,7 @@ export function uploadDataForIndexing(
                 let fileType = file.type;
                 let fileName = file.name;
                 if (fileType === "") {
-                    let fileExtension = fileName.split('.').pop();
+                    let fileExtension = fileName.split(".").pop();
                     if (fileExtension === "org") {
                         fileType = "text/org";
                     } else if (fileExtension === "md") {
@@ -299,7 +312,12 @@ export function uploadDataForIndexing(
             for (let file of goodFiles) {
                 uploadedFiles.push(file.name);
                 if (conversationId && setUploadedFiles) {
-                    modifyFileFilterForConversation(conversationId, [file.name], setUploadedFiles, 'add');
+                    modifyFileFilterForConversation(
+                        conversationId,
+                        [file.name],
+                        setUploadedFiles,
+                        "add",
+                    );
                 }
             }
             if (setUploadedFiles) setUploadedFiles(uploadedFiles);

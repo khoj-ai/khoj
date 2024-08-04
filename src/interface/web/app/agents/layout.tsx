@@ -8,18 +8,19 @@ export const metadata: Metadata = {
     title: "Khoj AI - Agents",
     description: "Find a specialized agent that can help you address more specific needs.",
     icons: {
-        icon: '/static/favicon.ico',
+        icon: "/static/favicon.ico",
     },
 };
 
 export default function RootLayout({
-  children,
+    children,
 }: Readonly<{
-  children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
     return (
         <html lang="en">
-            <meta httpEquiv="Content-Security-Policy"
+            <meta
+                httpEquiv="Content-Security-Policy"
                 content="default-src 'self' https://assets.khoj.dev;
                        media-src * blob:;
                        script-src 'self' https://assets.khoj.dev 'unsafe-inline' 'unsafe-eval';
@@ -28,10 +29,9 @@ export default function RootLayout({
                        img-src 'self' data: https://*.khoj.dev https://*.googleusercontent.com https://*.google.com/ https://*.gstatic.com;
                        font-src 'self' https://assets.khoj.dev https://fonts.gstatic.com;
                        child-src 'none';
-                       object-src 'none';"></meta>
-            <body className={inter.className}>
-                {children}
-            </body>
+                       object-src 'none';"
+            ></meta>
+            <body className={inter.className}>{children}</body>
         </html>
     );
 }

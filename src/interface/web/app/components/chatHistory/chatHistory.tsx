@@ -1,20 +1,24 @@
-'use client'
+"use client";
 
-import styles from './chatHistory.module.css';
-import { useRef, useEffect, useState } from 'react';
+import styles from "./chatHistory.module.css";
+import { useRef, useEffect, useState } from "react";
 
-import ChatMessage, { ChatHistoryData, StreamMessage, TrainOfThought } from '../chatMessage/chatMessage';
+import ChatMessage, {
+    ChatHistoryData,
+    StreamMessage,
+    TrainOfThought,
+} from "../chatMessage/chatMessage";
 
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-import { InlineLoading } from '../loading/loading';
+import { InlineLoading } from "../loading/loading";
 
 import { Lightbulb } from "@phosphor-icons/react";
 
-import ProfileCard from '../profileCard/profileCard';
-import { getIconFromIconName } from '@/app/common/iconUtils';
-import { AgentData } from '@/app/agents/page';
-import React from 'react';
+import ProfileCard from "../profileCard/profileCard";
+import { getIconFromIconName } from "@/app/common/iconUtils";
+import { AgentData } from "@/app/agents/page";
+import React from "react";
 
 interface ChatResponse {
     status: string;
@@ -22,7 +26,7 @@ interface ChatResponse {
 }
 
 interface ChatHistory {
-    [key: string]: string
+    [key: string]: string;
 }
 
 interface ChatHistoryProps {
@@ -34,21 +38,28 @@ interface ChatHistoryProps {
     setAgent: (agent: AgentData) => void;
 }
 
-
-function constructTrainOfThought(trainOfThought: string[], lastMessage: boolean, agentColor: string, key: string, completed: boolean = false) {
+function constructTrainOfThought(
+    trainOfThought: string[],
+    lastMessage: boolean,
+    agentColor: string,
+    key: string,
+    completed: boolean = false,
+) {
     const lastIndex = trainOfThought.length - 1;
     return (
         <div className={`${styles.trainOfThought} shadow-sm`} key={key}>
-            {
-                !completed &&
-                <InlineLoading className='float-right' />
-            }
+            {!completed && <InlineLoading className="float-right" />}
 
             {trainOfThought.map((train, index) => (
-                <TrainOfThought key={`train-${index}`} message={train} primary={index === lastIndex && lastMessage && !completed} agentColor={agentColor} />
+                <TrainOfThought
+                    key={`train-${index}`}
+                    message={train}
+                    primary={index === lastIndex && lastMessage && !completed}
+                    agentColor={agentColor}
+                />
             ))}
         </div>
-    )
+    );
 }
 
 export default function ChatHistory(props: ChatHistoryProps) {
@@ -60,18 +71,19 @@ export default function ChatHistory(props: ChatHistoryProps) {
     const chatHistoryRef = useRef<HTMLDivElement | null>(null);
     const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-    const [incompleteIncomingMessageIndex, setIncompleteIncomingMessageIndex] = useState<number | null>(null);
+    const [incompleteIncomingMessageIndex, setIncompleteIncomingMessageIndex] = useState<
+        number | null
+    >(null);
     const [fetchingData, setFetchingData] = useState(false);
     const [isMobileWidth, setIsMobileWidth] = useState(false);
 
     useEffect(() => {
-        window.addEventListener('resize', () => {
+        window.addEventListener("resize", () => {
             setIsMobileWidth(window.innerWidth < 768);
         });
 
         setIsMobileWidth(window.innerWidth < 768);
     }, []);
-
 
     useEffect(() => {
         // This function ensures that scrolling to bottom happens after the data (chat messages) has been updated and rendered the first time.
@@ -88,20 +100,22 @@ export default function ChatHistory(props: ChatHistoryProps) {
             // Call the function defined above.
             scrollToBottomAfterDataLoad();
         }
-
     }, [data, currentPage]);
 
     useEffect(() => {
         if (!hasMoreMessages || fetchingData) return;
 
         // TODO: A future optimization would be to add a time to delay to re-enabling the intersection observer.
-        const observer = new IntersectionObserver(entries => {
-            if (entries[0].isIntersecting && hasMoreMessages) {
-                setFetchingData(true);
-                fetchMoreMessages(currentPage);
-                setCurrentPage((prev) => prev + 1);
-            }
-        }, { threshold: 1.0 });
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMoreMessages) {
+                    setFetchingData(true);
+                    fetchMoreMessages(currentPage);
+                    setCurrentPage((prev) => prev + 1);
+                }
+            },
+            { threshold: 1.0 },
+        );
 
         if (sentinelRef.current) {
             observer.observe(sentinelRef.current);
@@ -128,14 +142,13 @@ export default function ChatHistory(props: ChatHistoryProps) {
         if (isUserAtBottom()) {
             scrollToBottom();
         }
-
     }, [props.incomingMessages]);
 
     function fetchMoreMessages(currentPage: number) {
         if (!hasMoreMessages || fetchingData) return;
         const nextPage = currentPage + 1;
 
-        let conversationFetchURL = '';
+        let conversationFetchURL = "";
 
         if (props.conversationId) {
             conversationFetchURL = `/api/chat/history?client=web&conversation_id=${props.conversationId}&n=${10 * nextPage}`;
@@ -146,11 +159,15 @@ export default function ChatHistory(props: ChatHistoryProps) {
         }
 
         fetch(conversationFetchURL)
-            .then(response => response.json())
+            .then((response) => response.json())
             .then((chatData: ChatResponse) => {
                 props.setTitle(chatData.response.slug);
-                if (chatData && chatData.response && chatData.response.chat && chatData.response.chat.length > 0) {
-
+                if (
+                    chatData &&
+                    chatData.response &&
+                    chatData.response.chat &&
+                    chatData.response.chat.length > 0
+                ) {
                     if (chatData.response.chat.length === data?.chat.length) {
                         setHasMoreMessages(false);
                         setFetchingData(false);
@@ -171,7 +188,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                             agent: chatData.response.agent,
                             conversation_id: chatData.response.conversation_id,
                             slug: chatData.response.slug,
-                        }
+                        };
                         props.setAgent(chatData.response.agent);
                         setData(chatMetadata);
                     }
@@ -180,17 +197,17 @@ export default function ChatHistory(props: ChatHistoryProps) {
                     setFetchingData(false);
                 }
             })
-            .catch(err => {
+            .catch((err) => {
                 console.error(err);
                 window.location.href = "/";
             });
-    };
+    }
 
     const scrollToBottom = () => {
         if (chatHistoryRef.current) {
             chatHistoryRef.current.scrollIntoView(false);
         }
-    }
+    };
 
     const isUserAtBottom = () => {
         if (!chatHistoryRef.current) return false;
@@ -202,11 +219,11 @@ export default function ChatHistory(props: ChatHistoryProps) {
 
         // Considered at the bottom if within threshold pixels from the bottom
         return scrollTop + clientHeight >= scrollHeight - threshold;
-    }
+    };
 
     function constructAgentLink() {
         if (!data || !data.agent || !data.agent.slug) return `/agents`;
-        return `/agents?agent=${data.agent.slug}`
+        return `/agents?agent=${data.agent.slug}`;
     }
 
     function constructAgentName() {
@@ -226,104 +243,103 @@ export default function ChatHistory(props: ChatHistoryProps) {
         <ScrollArea className={`h-[80vh]`}>
             <div ref={ref}>
                 <div className={styles.chatHistory} ref={chatHistoryRef}>
-                    <div ref={sentinelRef} style={{ height: '1px' }}>
-                        {fetchingData && <InlineLoading message="Loading Conversation" className='opacity-50' />}
+                    <div ref={sentinelRef} style={{ height: "1px" }}>
+                        {fetchingData && (
+                            <InlineLoading message="Loading Conversation" className="opacity-50" />
+                        )}
                     </div>
-                    {(data && data.chat) && data.chat.map((chatMessage, index) => (
-                        <ChatMessage
-                            key={`${index}fullHistory`}
-                            isMobileWidth={isMobileWidth}
-                            chatMessage={chatMessage}
-                            customClassName='fullHistory'
-                            borderLeftColor={`${data?.agent.color}-500`}
-                            isLastMessage={index === data.chat.length - 1}
-                        />
-                    ))}
-                    {
-                        props.incomingMessages && props.incomingMessages.map((message, index) => {
+                    {data &&
+                        data.chat &&
+                        data.chat.map((chatMessage, index) => (
+                            <ChatMessage
+                                key={`${index}fullHistory`}
+                                isMobileWidth={isMobileWidth}
+                                chatMessage={chatMessage}
+                                customClassName="fullHistory"
+                                borderLeftColor={`${data?.agent.color}-500`}
+                                isLastMessage={index === data.chat.length - 1}
+                            />
+                        ))}
+                    {props.incomingMessages &&
+                        props.incomingMessages.map((message, index) => {
                             return (
                                 <React.Fragment key={`incomingMessage${index}`}>
-
                                     <ChatMessage
                                         key={`${index}outgoing`}
                                         isMobileWidth={isMobileWidth}
-                                        chatMessage={
-                                            {
-                                                message: message.rawQuery,
-                                                context: [],
-                                                onlineContext: {},
-                                                created: message.timestamp,
-                                                by: "you",
-                                                automationId: '',
-                                            }
-                                        }
-                                        customClassName='fullHistory'
+                                        chatMessage={{
+                                            message: message.rawQuery,
+                                            context: [],
+                                            onlineContext: {},
+                                            created: message.timestamp,
+                                            by: "you",
+                                            automationId: "",
+                                        }}
+                                        customClassName="fullHistory"
                                         borderLeftColor={`${data?.agent.color}-500`}
                                     />
-                                    {
-                                        message.trainOfThought &&
+                                    {message.trainOfThought &&
                                         constructTrainOfThought(
                                             message.trainOfThought,
                                             index === incompleteIncomingMessageIndex,
-                                            data?.agent.color || 'orange',
-                                            `${index}trainOfThought`, message.completed)
-                                    }
+                                            data?.agent.color || "orange",
+                                            `${index}trainOfThought`,
+                                            message.completed,
+                                        )}
                                     <ChatMessage
                                         key={`${index}incoming`}
                                         isMobileWidth={isMobileWidth}
-                                        chatMessage={
-                                            {
-                                                message: message.rawResponse,
-                                                context: message.context,
-                                                onlineContext: message.onlineContext,
-                                                created: message.timestamp,
-                                                by: "khoj",
-                                                automationId: '',
-                                                rawQuery: message.rawQuery,
-                                            }
-                                        }
-                                        customClassName='fullHistory'
+                                        chatMessage={{
+                                            message: message.rawResponse,
+                                            context: message.context,
+                                            onlineContext: message.onlineContext,
+                                            created: message.timestamp,
+                                            by: "khoj",
+                                            automationId: "",
+                                            rawQuery: message.rawQuery,
+                                        }}
+                                        customClassName="fullHistory"
                                         borderLeftColor={`${data?.agent.color}-500`}
                                         isLastMessage={true}
                                     />
                                 </React.Fragment>
-                            )
-                        })
-                    }
-                    {
-                        props.pendingMessage &&
+                            );
+                        })}
+                    {props.pendingMessage && (
                         <ChatMessage
                             key={`pendingMessage-${props.pendingMessage.length}`}
                             isMobileWidth={isMobileWidth}
-                            chatMessage={
-                                {
-                                    message: props.pendingMessage,
-                                    context: [],
-                                    onlineContext: {},
-                                    created: (new Date().getTime()).toString(),
-                                    by: "you",
-                                    automationId: '',
-                                }
-                            }
-                            customClassName='fullHistory'
+                            chatMessage={{
+                                message: props.pendingMessage,
+                                context: [],
+                                onlineContext: {},
+                                created: new Date().getTime().toString(),
+                                by: "you",
+                                automationId: "",
+                            }}
+                            customClassName="fullHistory"
                             borderLeftColor={`${data?.agent.color}-500`}
                             isLastMessage={true}
                         />
-                    }
-                    {data &&
+                    )}
+                    {data && (
                         <div className={`${styles.agentIndicator} pb-4`}>
                             <div className="relative group mx-2 cursor-pointer">
                                 <ProfileCard
                                     name={constructAgentName()}
                                     link={constructAgentLink()}
-                                    avatar={getIconFromIconName(data.agent.icon, data.agent.color) || <Lightbulb />}
+                                    avatar={
+                                        getIconFromIconName(data.agent.icon, data.agent.color) || (
+                                            <Lightbulb />
+                                        )
+                                    }
                                     description={constructAgentPersona()}
                                 />
                             </div>
                         </div>
-                    }
+                    )}
                 </div>
             </div>
         </ScrollArea>
-    )
+    );
 }

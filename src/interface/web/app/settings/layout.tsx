@@ -20,7 +20,8 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en">
-            <meta httpEquiv="Content-Security-Policy"
+            <meta
+                httpEquiv="Content-Security-Policy"
                 content="default-src 'self' https://assets.khoj.dev;
                         script-src 'self' https://assets.khoj.dev 'unsafe-inline' 'unsafe-eval';
                         connect-src 'self' https://ipapi.co/json ws://localhost:42110;
@@ -28,7 +29,8 @@ export default function RootLayout({
                         img-src 'self' data: https://*.khoj.dev https://*.googleusercontent.com;
                         font-src 'self' https://assets.khoj.dev https://fonts.gstatic.com;
                         child-src 'none';
-                        object-src 'none';"></meta>
+                        object-src 'none';"
+            ></meta>
             <body className={inter.className}>
                 {children}
                 <Toaster />

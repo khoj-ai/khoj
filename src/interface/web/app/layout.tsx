@@ -8,20 +8,21 @@ export const metadata: Metadata = {
     title: "Khoj AI - Home",
     description: "Your Second Brain.",
     icons: {
-        icon: '/static/favicon.ico',
+        icon: "/static/favicon.ico",
     },
-    manifest: '/static/khoj.webmanifest',
+    manifest: "/static/khoj.webmanifest",
 };
 
 export default function RootLayout({
-  children,
+    children,
 }: Readonly<{
-  children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
-  return (
-    <html lang="en">
-      <meta httpEquiv="Content-Security-Policy"
-        content="default-src 'self' https://assets.khoj.dev;
+    return (
+        <html lang="en">
+            <meta
+                httpEquiv="Content-Security-Policy"
+                content="default-src 'self' https://assets.khoj.dev;
                        media-src * blob:;
                        script-src 'self' https://assets.khoj.dev 'unsafe-inline' 'unsafe-eval';
                        connect-src 'self' https://ipapi.co/json ws://localhost:42110;
@@ -29,10 +30,9 @@ export default function RootLayout({
                        img-src 'self' data: https://*.khoj.dev https://*.googleusercontent.com https://*.google.com/ https://*.gstatic.com;
                        font-src 'self' https://assets.khoj.dev https://fonts.gstatic.com;
                        child-src 'none';
-                       object-src 'none';"></meta>
-      <body className={inter.className}>
-        {children}
-      </body>
-    </html>
-  );
+                       object-src 'none';"
+            ></meta>
+            <body className={inter.className}>{children}</body>
+        </html>
+    );
 }

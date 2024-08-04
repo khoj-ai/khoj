@@ -149,7 +149,8 @@ export const suggestionsData: Suggestion[] = [
     {
         type: "Learning",
         color: "yellow",
-        description: "Summarize the biography of this figure: https://en.wikipedia.org/wiki/Jean_Baptiste_Point_du_Sable",
+        description:
+            "Summarize the biography of this figure: https://en.wikipedia.org/wiki/Jean_Baptiste_Point_du_Sable",
         link: "",
     },
     {
@@ -179,7 +180,8 @@ export const suggestionsData: Suggestion[] = [
     {
         type: "Paint",
         color: "green",
-        description: "Paint a colorful scene of a traditional Day of the Dead celebration in Mexico.",
+        description:
+            "Paint a colorful scene of a traditional Day of the Dead celebration in Mexico.",
         link: "",
     },
     {
@@ -233,7 +235,8 @@ export const suggestionsData: Suggestion[] = [
     {
         type: "Paint",
         color: "green",
-        description: "Create a digital painting in the style of traditional Chinese ink wash landscape.",
+        description:
+            "Create a digital painting in the style of traditional Chinese ink wash landscape.",
         link: "",
     },
     {
@@ -341,7 +344,8 @@ export const suggestionsData: Suggestion[] = [
     {
         type: "Code",
         color: "purple",
-        description: "Provide a coding challenge to reverse a string without using built-in functions.",
+        description:
+            "Provide a coding challenge to reverse a string without using built-in functions.",
         link: "",
     },
     {
@@ -353,7 +357,8 @@ export const suggestionsData: Suggestion[] = [
     {
         type: "Code",
         color: "purple",
-        description: "Create a coding exercise to implement a basic sorting algorithm (e.g., bubble sort).",
+        description:
+            "Create a coding exercise to implement a basic sorting algorithm (e.g., bubble sort).",
         link: "",
     },
     {
@@ -365,31 +370,36 @@ export const suggestionsData: Suggestion[] = [
     {
         type: "Code",
         color: "purple",
-        description: "Provide a coding challenge to find the longest palindromic substring in a given string.",
+        description:
+            "Provide a coding challenge to find the longest palindromic substring in a given string.",
         link: "",
     },
     {
         type: "Code",
         color: "purple",
-        description: "Explain the concept of asynchronous programming with a JavaScript Promise example.",
+        description:
+            "Explain the concept of asynchronous programming with a JavaScript Promise example.",
         link: "",
     },
     {
         type: "Code",
         color: "purple",
-        description: "Create a coding exercise to implement a basic data structure (e.g., linked list or stack).",
+        description:
+            "Create a coding exercise to implement a basic data structure (e.g., linked list or stack).",
         link: "",
     },
     {
         type: "Code",
         color: "purple",
-        description: "Explain the time and space complexity of common algorithms (e.g., binary search).",
+        description:
+            "Explain the time and space complexity of common algorithms (e.g., binary search).",
         link: "",
     },
     {
         type: "Code",
         color: "purple",
-        description: "Provide a coding challenge to implement a simple REST API using Node.js and Express.",
+        description:
+            "Provide a coding challenge to implement a simple REST API using Node.js and Express.",
         link: "",
     },
 ];

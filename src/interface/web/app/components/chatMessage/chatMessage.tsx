@@ -1,34 +1,47 @@
-"use client"
+"use client";
 
-import styles from './chatMessage.module.css';
+import styles from "./chatMessage.module.css";
 
-import markdownIt from 'markdown-it';
+import markdownIt from "markdown-it";
 import mditHljs from "markdown-it-highlightjs";
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from "react";
 
-import 'katex/dist/katex.min.css';
+import "katex/dist/katex.min.css";
 
-import { TeaserReferencesSection, constructAllReferences } from '../referencePanel/referencePanel';
+import { TeaserReferencesSection, constructAllReferences } from "../referencePanel/referencePanel";
 
-import { ThumbsUp, ThumbsDown, Copy, Brain, Cloud, Folder, Book, Aperture, SpeakerHigh, MagnifyingGlass, Pause, Palette } from '@phosphor-icons/react';
+import {
+    ThumbsUp,
+    ThumbsDown,
+    Copy,
+    Brain,
+    Cloud,
+    Folder,
+    Book,
+    Aperture,
+    SpeakerHigh,
+    MagnifyingGlass,
+    Pause,
+    Palette,
+} from "@phosphor-icons/react";
 
-import DOMPurify from 'dompurify';
-import { InlineLoading } from '../loading/loading';
-import { convertColorToTextClass } from '@/app/common/colorUtils';
-import { AgentData } from '@/app/agents/page';
+import DOMPurify from "dompurify";
+import { InlineLoading } from "../loading/loading";
+import { convertColorToTextClass } from "@/app/common/colorUtils";
+import { AgentData } from "@/app/agents/page";
 
-import renderMathInElement from 'katex/contrib/auto-render';
-import 'katex/dist/katex.min.css';
+import renderMathInElement from "katex/contrib/auto-render";
+import "katex/dist/katex.min.css";
 
 const md = new markdownIt({
     html: true,
     linkify: true,
-    typographer: true
+    typographer: true,
 });
 
 md.use(mditHljs, {
     inline: true,
-    code: true
+    code: true,
 });
 
 export interface Context {
@@ -65,18 +78,18 @@ export interface OnlineContextData {
         answer: string;
         source: string;
         title: string;
-    }
+    };
     knowledgeGraph: {
         attributes: {
             [key: string]: string;
-        }
+        };
         description: string;
         descriptionLink: string;
         descriptionSource: string;
         imageUrl: string;
         title: string;
         type: string;
-    }
+    };
     organic: OrganicContext[];
     peopleAlsoAsk: PeopleAlsoAsk[];
 }
@@ -119,26 +132,34 @@ export interface ChatHistoryData {
 }
 
 function sendFeedback(uquery: string, kquery: string, sentiment: string) {
-    fetch('/api/chat/feedback', {
-        method: 'POST',
+    fetch("/api/chat/feedback", {
+        method: "POST",
         headers: {
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json",
         },
-        body: JSON.stringify({ uquery: uquery, kquery: kquery, sentiment: sentiment })
-    })
+        body: JSON.stringify({ uquery: uquery, kquery: kquery, sentiment: sentiment }),
+    });
 }
 
-function FeedbackButtons({ uquery, kquery }: { uquery: string, kquery: string }) {
+function FeedbackButtons({ uquery, kquery }: { uquery: string; kquery: string }) {
     return (
         <div className={`${styles.feedbackButtons} flex align-middle justify-center items-center`}>
-            <button title="Like" className={styles.thumbsUpButton} onClick={() => sendFeedback(uquery, kquery, 'positive')}>
-                <ThumbsUp alt="Like Message" color='hsl(var(--muted-foreground))' />
+            <button
+                title="Like"
+                className={styles.thumbsUpButton}
+                onClick={() => sendFeedback(uquery, kquery, "positive")}
+            >
+                <ThumbsUp alt="Like Message" color="hsl(var(--muted-foreground))" />
             </button>
-            <button title="Dislike" className={styles.thumbsDownButton} onClick={() => sendFeedback(uquery, kquery, 'negative')}>
-                <ThumbsDown alt="Dislike Message" color='hsl(var(--muted-foreground))' />
+            <button
+                title="Dislike"
+                className={styles.thumbsDownButton}
+                onClick={() => sendFeedback(uquery, kquery, "negative")}
+            >
+                <ThumbsDown alt="Dislike Message" color="hsl(var(--muted-foreground))" />
             </button>
         </div>
-    )
+    );
 }
 
 interface ChatMessageProps {
@@ -160,7 +181,7 @@ function chooseIconFromHeader(header: string, iconColor: string) {
     const compareHeader = header.toLowerCase();
     const classNames = `inline mt-1 mr-2 ${iconColor} h-4 w-4`;
     if (compareHeader.includes("understanding")) {
-        return <Brain className={`${classNames}`} />
+        return <Brain className={`${classNames}`} />;
     }
 
     if (compareHeader.includes("generating")) {
@@ -183,7 +204,11 @@ function chooseIconFromHeader(header: string, iconColor: string) {
         return <MagnifyingGlass className={`${classNames}`} />;
     }
 
-    if (compareHeader.includes("summary") || compareHeader.includes("summarize") || compareHeader.includes("enhanc")) {
+    if (
+        compareHeader.includes("summary") ||
+        compareHeader.includes("summarize") ||
+        compareHeader.includes("enhanc")
+    ) {
         return <Aperture className={`${classNames}`} />;
     }
 
@@ -198,21 +223,23 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
     // The train of thought comes in as a markdown-formatted string. It starts with a heading delimited by two asterisks at the start and end and a colon, followed by the message. Example: **header**: status. This function will parse the message and render it as a div.
     let extractedHeader = props.message.match(/\*\*(.*)\*\*/);
     let header = extractedHeader ? extractedHeader[1] : "";
-    const iconColor = props.primary ? convertColorToTextClass(props.agentColor) : 'text-gray-500';
+    const iconColor = props.primary ? convertColorToTextClass(props.agentColor) : "text-gray-500";
     const icon = chooseIconFromHeader(header, iconColor);
     let markdownRendered = DOMPurify.sanitize(md.render(props.message));
     return (
-        <div className={`${styles.trainOfThoughtElement} items-center ${props.primary ? 'text-gray-400' : 'text-gray-300'} ${styles.trainOfThought} ${props.primary ? styles.primary : ''}`} >
+        <div
+            className={`${styles.trainOfThoughtElement} items-center ${props.primary ? "text-gray-400" : "text-gray-300"} ${styles.trainOfThought} ${props.primary ? styles.primary : ""}`}
+        >
             {icon}
             <div dangerouslySetInnerHTML={{ __html: markdownRendered }} />
         </div>
-    )
+    );
 }
 
 export default function ChatMessage(props: ChatMessageProps) {
     const [copySuccess, setCopySuccess] = useState<boolean>(false);
     const [isHovering, setIsHovering] = useState<boolean>(false);
-    const [markdownRendered, setMarkdownRendered] = useState<string>('');
+    const [markdownRendered, setMarkdownRendered] = useState<string>("");
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const [interrupted, setInterrupted] = useState<boolean>(false);
 
@@ -229,17 +256,17 @@ export default function ChatMessage(props: ChatMessageProps) {
             // If the addedNodes property has one or more nodes
             if (messageRef.current) {
                 for (let mutation of mutationsList) {
-                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
                         // Call your function here
 
                         console.log("render katex in body");
 
                         renderMathInElement(messageRef.current, {
                             delimiters: [
-                                { left: '$$', right: '$$', display: true },
-                                { left: '\\[', right: '\\]', display: true },
-                                { left: '$', right: '$', display: false },
-                                { left: '\\(', right: '\\)', display: false },
+                                { left: "$$", right: "$$", display: true },
+                                { left: "\\[", right: "\\]", display: true },
+                                { left: "$", right: "$", display: false },
+                                { left: "\\(", right: "\\)", display: false },
                             ],
                         });
                     }
@@ -259,25 +286,38 @@ export default function ChatMessage(props: ChatMessageProps) {
         let message = props.chatMessage.message;
 
         // Replace LaTeX delimiters with placeholders
-        message = message.replace(/\\\(/g, 'LEFTPAREN').replace(/\\\)/g, 'RIGHTPAREN')
-            .replace(/\\\[/g, 'LEFTBRACKET').replace(/\\\]/g, 'RIGHTBRACKET');
+        message = message
+            .replace(/\\\(/g, "LEFTPAREN")
+            .replace(/\\\)/g, "RIGHTPAREN")
+            .replace(/\\\[/g, "LEFTBRACKET")
+            .replace(/\\\]/g, "RIGHTBRACKET");
 
         if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image") {
             message = `![generated image](data:image/png;base64,${message})`;
         } else if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image2") {
             message = `![generated image](${message})`;
-        } else if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image-v3") {
+        } else if (
+            props.chatMessage.intent &&
+            props.chatMessage.intent.type == "text-to-image-v3"
+        ) {
             message = `![generated image](data:image/webp;base64,${message})`;
         }
-        if (props.chatMessage.intent && props.chatMessage.intent.type.includes("text-to-image") && props.chatMessage.intent["inferred-queries"]?.length > 0) {
+        if (
+            props.chatMessage.intent &&
+            props.chatMessage.intent.type.includes("text-to-image") &&
+            props.chatMessage.intent["inferred-queries"]?.length > 0
+        ) {
             message += `\n\n**Inferred Query**\n\n${props.chatMessage.intent["inferred-queries"][0]}`;
         }
 
         let markdownRendered = md.render(message);
 
         // Replace placeholders with LaTeX delimiters
-        markdownRendered = markdownRendered.replace(/LEFTPAREN/g, '\\(').replace(/RIGHTPAREN/g, '\\)')
-            .replace(/LEFTBRACKET/g, '\\[').replace(/RIGHTBRACKET/g, '\\]');
+        markdownRendered = markdownRendered
+            .replace(/LEFTPAREN/g, "\\(")
+            .replace(/RIGHTPAREN/g, "\\)")
+            .replace(/LEFTBRACKET/g, "\\[")
+            .replace(/RIGHTBRACKET/g, "\\]");
 
         // Sanitize and set the rendered markdown
         setMarkdownRendered(DOMPurify.sanitize(markdownRendered));
@@ -293,25 +333,25 @@ export default function ChatMessage(props: ChatMessageProps) {
 
     useEffect(() => {
         if (messageRef.current) {
-            const preElements = messageRef.current.querySelectorAll('pre > .hljs');
+            const preElements = messageRef.current.querySelectorAll("pre > .hljs");
             preElements.forEach((preElement) => {
-                const copyButton = document.createElement('button');
-                const copyImage = document.createElement('img');
-                copyImage.src = '/static/copy-button.svg';
-                copyImage.alt = 'Copy';
+                const copyButton = document.createElement("button");
+                const copyImage = document.createElement("img");
+                copyImage.src = "/static/copy-button.svg";
+                copyImage.alt = "Copy";
                 copyImage.width = 24;
                 copyImage.height = 24;
                 copyButton.appendChild(copyImage);
-                copyButton.className = `hljs ${styles.codeCopyButton}`
-                copyButton.addEventListener('click', () => {
-                    let textContent = preElement.textContent || '';
+                copyButton.className = `hljs ${styles.codeCopyButton}`;
+                copyButton.addEventListener("click", () => {
+                    let textContent = preElement.textContent || "";
                     // Strip any leading $ characters
-                    textContent = textContent.replace(/^\$+/, '');
+                    textContent = textContent.replace(/^\$+/, "");
                     // Remove 'Copy' if it's at the start of the string
-                    textContent = textContent.replace(/^Copy/, '');
+                    textContent = textContent.replace(/^Copy/, "");
                     textContent = textContent.trim();
                     navigator.clipboard.writeText(textContent);
-                    copyImage.src = '/static/copy-button-success.svg';
+                    copyImage.src = "/static/copy-button-success.svg";
                 });
                 preElement.prepend(copyButton);
             });
@@ -320,10 +360,10 @@ export default function ChatMessage(props: ChatMessageProps) {
 
             renderMathInElement(messageRef.current, {
                 delimiters: [
-                    { left: '$$', right: '$$', display: true },
-                    { left: '\\[', right: '\\]', display: true },
-                    { left: '$', right: '$', display: false },
-                    { left: '\\(', right: '\\)', display: false },
+                    { left: "$$", right: "$$", display: true },
+                    { left: "\\[", right: "\\]", display: true },
+                    { left: "$", right: "$", display: false },
+                    { left: "\\(", right: "\\)", display: false },
                 ],
             });
         }
@@ -336,14 +376,18 @@ export default function ChatMessage(props: ChatMessageProps) {
     function formatDate(timestamp: string) {
         // Format date in HH:MM, DD MMM YYYY format
         let date = new Date(timestamp + "Z");
-        let time_string = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
-        let date_string = date.toLocaleString('en-US', { year: 'numeric', month: 'short', day: '2-digit' }).replaceAll('-', ' ');
+        let time_string = date
+            .toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+            .toUpperCase();
+        let date_string = date
+            .toLocaleString("en-US", { year: "numeric", month: "short", day: "2-digit" })
+            .replaceAll("-", " ");
         return `${time_string} on ${date_string}`;
     }
 
     function renderTimeStamp(timestamp: string) {
-        if (!timestamp.endsWith('Z')) {
-            timestamp = timestamp + 'Z';
+        if (!timestamp.endsWith("Z")) {
+            timestamp = timestamp + "Z";
         }
         const messageDateTime = new Date(timestamp);
         const currentDateTime = new Date();
@@ -370,19 +414,21 @@ export default function ChatMessage(props: ChatMessageProps) {
         classes.push(styles[chatMessage.by]);
 
         if (props.customClassName) {
-            classes.push(styles[`${chatMessage.by}${props.customClassName}`])
+            classes.push(styles[`${chatMessage.by}${props.customClassName}`]);
         }
 
-        return classes.join(' ');
+        return classes.join(" ");
     }
 
     function chatMessageWrapperClasses(chatMessage: SingleChatMessage) {
         let classes = [styles.chatMessageWrapper];
         classes.push(styles[chatMessage.by]);
         if (chatMessage.by === "khoj") {
-            classes.push(`border-l-4 border-opacity-50 ${"border-l-" + props.borderLeftColor || "border-l-orange-400"}`);
+            classes.push(
+                `border-l-4 border-opacity-50 ${"border-l-" + props.borderLeftColor || "border-l-orange-400"}`,
+            );
         }
-        return classes.join(' ');
+        return classes.join(" ");
     }
 
     async function playTextToSpeech() {
@@ -425,7 +471,7 @@ export default function ChatMessage(props: ChatMessageProps) {
                 const url = URL.createObjectURL(blob);
                 await playAudio(url);
             } catch (error) {
-                console.error('Error:', error);
+                console.error("Error:", error);
                 break; // Exit the loop on error
             }
         }
@@ -436,14 +482,14 @@ export default function ChatMessage(props: ChatMessageProps) {
 
     async function fetchBlob(text: string) {
         const response = await fetch(`/api/chat/speech?text=${encodeURIComponent(text)}`, {
-            method: 'POST',
+            method: "POST",
             headers: {
-                'Content-Type': 'application/json'
+                "Content-Type": "application/json",
             },
         });
 
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            throw new Error("Network response was not ok");
         }
 
         return await response.blob();
@@ -458,75 +504,97 @@ export default function ChatMessage(props: ChatMessageProps) {
         });
     }
 
-    const allReferences = constructAllReferences(props.chatMessage.context, props.chatMessage.onlineContext);
+    const allReferences = constructAllReferences(
+        props.chatMessage.context,
+        props.chatMessage.onlineContext,
+    );
 
     return (
         <div
             className={constructClasses(props.chatMessage)}
             onMouseLeave={(event) => setIsHovering(false)}
             onMouseEnter={(event) => setIsHovering(true)}
-            onClick={props.chatMessage.by === "khoj" ? (event) => undefined : undefined}>
+            onClick={props.chatMessage.by === "khoj" ? (event) => undefined : undefined}
+        >
             <div className={chatMessageWrapperClasses(props.chatMessage)}>
-                <div ref={messageRef} className={styles.chatMessage} dangerouslySetInnerHTML={{ __html: markdownRendered }} />
+                <div
+                    ref={messageRef}
+                    className={styles.chatMessage}
+                    dangerouslySetInnerHTML={{ __html: markdownRendered }}
+                />
             </div>
             <div className={styles.teaserReferencesContainer}>
                 <TeaserReferencesSection
                     isMobileWidth={props.isMobileWidth}
                     notesReferenceCardData={allReferences.notesReferenceCardData}
-                    onlineReferenceCardData={allReferences.onlineReferenceCardData} />
+                    onlineReferenceCardData={allReferences.onlineReferenceCardData}
+                />
             </div>
             <div className={styles.chatFooter}>
-                {
-                    (isHovering || props.isMobileWidth || props.isLastMessage || isPlaying) &&
-                    (
-                        <>
-                            <div title={formatDate(props.chatMessage.created)} className={`text-gray-400 relative top-0 left-4`}>
-                                {renderTimeStamp(props.chatMessage.created)}
-                            </div>
-                            <div className={`${styles.chatButtons} shadow-sm`}>
-                                {
-                                    (props.chatMessage.by === "khoj") &&
-                                    (
-                                        isPlaying ?
-                                            (
-                                                interrupted ?
-                                                    <InlineLoading iconClassName='p-0' className='m-0' />
-                                                    : <button title="Pause Speech" onClick={(event) => setInterrupted(true)}>
-                                                        <Pause alt="Pause Message" color='hsl(var(--muted-foreground))' />
-                                                    </button>
-                                            )
-                                            : <button title="Speak" onClick={(event) => playTextToSpeech()}>
-                                                <SpeakerHigh alt="Speak Message" color='hsl(var(--muted-foreground))' />
-                                            </button>
+                {(isHovering || props.isMobileWidth || props.isLastMessage || isPlaying) && (
+                    <>
+                        <div
+                            title={formatDate(props.chatMessage.created)}
+                            className={`text-gray-400 relative top-0 left-4`}
+                        >
+                            {renderTimeStamp(props.chatMessage.created)}
+                        </div>
+                        <div className={`${styles.chatButtons} shadow-sm`}>
+                            {props.chatMessage.by === "khoj" &&
+                                (isPlaying ? (
+                                    interrupted ? (
+                                        <InlineLoading iconClassName="p-0" className="m-0" />
+                                    ) : (
+                                        <button
+                                            title="Pause Speech"
+                                            onClick={(event) => setInterrupted(true)}
+                                        >
+                                            <Pause
+                                                alt="Pause Message"
+                                                color="hsl(var(--muted-foreground))"
+                                            />
+                                        </button>
                                     )
-                                }
-                                <button title="Copy" className={`${styles.copyButton}`} onClick={() => {
+                                ) : (
+                                    <button title="Speak" onClick={(event) => playTextToSpeech()}>
+                                        <SpeakerHigh
+                                            alt="Speak Message"
+                                            color="hsl(var(--muted-foreground))"
+                                        />
+                                    </button>
+                                ))}
+                            <button
+                                title="Copy"
+                                className={`${styles.copyButton}`}
+                                onClick={() => {
                                     navigator.clipboard.writeText(props.chatMessage.message);
                                     setCopySuccess(true);
-                                }}>
-                                    {
-                                        copySuccess ?
-                                            <Copy alt="Copied Message" weight="fill" color='green' />
-                                            : <Copy alt="Copy Message" color='hsl(var(--muted-foreground))' />
-                                    }
-                                </button>
-                                {
-                                    (props.chatMessage.by === "khoj") &&
-                                    (
-                                        props.chatMessage.intent ?
-                                            <FeedbackButtons
-                                                uquery={props.chatMessage.intent.query}
-                                                kquery={props.chatMessage.message} />
-                                            : <FeedbackButtons
-                                                uquery={props.chatMessage.rawQuery || props.chatMessage.message}
-                                                kquery={props.chatMessage.message} />
-                                    )
-                                }
-                            </div>
-                        </>
-                    )
-                }
+                                }}
+                            >
+                                {copySuccess ? (
+                                    <Copy alt="Copied Message" weight="fill" color="green" />
+                                ) : (
+                                    <Copy alt="Copy Message" color="hsl(var(--muted-foreground))" />
+                                )}
+                            </button>
+                            {props.chatMessage.by === "khoj" &&
+                                (props.chatMessage.intent ? (
+                                    <FeedbackButtons
+                                        uquery={props.chatMessage.intent.query}
+                                        kquery={props.chatMessage.message}
+                                    />
+                                ) : (
+                                    <FeedbackButtons
+                                        uquery={
+                                            props.chatMessage.rawQuery || props.chatMessage.message
+                                        }
+                                        kquery={props.chatMessage.message}
+                                    />
+                                ))}
+                        </div>
+                    </>
+                )}
             </div>
         </div>
-    )
+    );
 }

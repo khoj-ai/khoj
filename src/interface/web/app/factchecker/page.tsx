@@ -1,31 +1,28 @@
-'use client'
+"use client";
 
-import styles from './factChecker.module.css';
-import { useAuthenticatedData } from '@/app/common/auth';
-import { useState, useEffect } from 'react';
+import styles from "./factChecker.module.css";
+import { useAuthenticatedData } from "@/app/common/auth";
+import { useState, useEffect } from "react";
 
-import ChatMessage, { Context, OnlineContext, OnlineContextData, WebPage } from '../components/chatMessage/chatMessage';
-import { ModelPicker, Model } from '../components/modelPicker/modelPicker';
-import ShareLink from '../components/shareLink/shareLink';
+import ChatMessage, {
+    Context,
+    OnlineContext,
+    OnlineContextData,
+    WebPage,
+} from "../components/chatMessage/chatMessage";
+import { ModelPicker, Model } from "../components/modelPicker/modelPicker";
+import ShareLink from "../components/shareLink/shareLink";
 
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
-import {
-    Card,
-    CardContent,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card"
-import Link from 'next/link';
-import SidePanel from '../components/sidePanel/chatHistorySidePanel';
-
-
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
+import SidePanel from "../components/sidePanel/chatHistorySidePanel";
 
 const chatURL = "/api/chat";
-const verificationPrecursor = "Limit your search to reputable sources. Search the internet for relevant supporting or refuting information. Do not reference my notes. Refuse to answer any queries that are not falsifiable by informing me that you will not answer the question. You're not permitted to ask follow-up questions, so do the best with what you have. Respond with **TRUE** or **FALSE** or **INCONCLUSIVE**, then provide your justification. Fact Check:"
-
+const verificationPrecursor =
+    "Limit your search to reputable sources. Search the internet for relevant supporting or refuting information. Do not reference my notes. Refuse to answer any queries that are not falsifiable by informing me that you will not answer the question. You're not permitted to ask follow-up questions, so do the best with what you have. Respond with **TRUE** or **FALSE** or **INCONCLUSIVE**, then provide your justification. Fact Check:";
 
 const LoadingSpinner = () => (
     <div className={styles.loading}>
@@ -44,7 +41,6 @@ interface SupplementReferences {
     response: string;
     linkTitle: string;
 }
-
 
 interface ResponseWithReferences {
     context?: Context[];
@@ -70,13 +66,13 @@ function handleCompiledReferences(chunk: string, currentResponse: string) {
     return references;
 }
 
-
 async function verifyStatement(
     message: string,
     conversationId: string,
     setIsLoading: (loading: boolean) => void,
     setInitialResponse: (response: string) => void,
-    setInitialReferences: (references: ResponseWithReferences) => void) {
+    setInitialReferences: (references: ResponseWithReferences) => void,
+) {
     setIsLoading(true);
     // Send a message to the chat server to verify the fact
     let verificationMessage = `${verificationPrecursor} ${message}`;
@@ -114,9 +110,7 @@ async function verifyStatement(
     }
 }
 
-
 async function spawnNewConversation(setConversationID: (conversationID: string) => void) {
-
     let createURL = `/api/chat/sessions?client=web`;
 
     const response = await fetch(createURL, { method: "POST" });
@@ -125,13 +119,16 @@ async function spawnNewConversation(setConversationID: (conversationID: string) 
     setConversationID(data.conversation_id);
 }
 
-
 interface ReferenceVerificationProps {
     message: string;
     additionalLink: string;
     conversationId: string;
     linkTitle: string;
-    setChildReferencesCallback: (additionalLink: string, response: string, linkTitle: string) => void;
+    setChildReferencesCallback: (
+        additionalLink: string,
+        response: string,
+        linkTitle: string,
+    ) => void;
     prefilledResponse?: string;
 }
 
@@ -146,15 +143,20 @@ function ReferenceVerification(props: ReferenceVerificationProps) {
             setInitialResponse(props.prefilledResponse);
             setIsLoading(false);
         } else {
-            verifyStatement(verificationStatement, props.conversationId, setIsLoading, setInitialResponse, () => { });
+            verifyStatement(
+                verificationStatement,
+                props.conversationId,
+                setIsLoading,
+                setInitialResponse,
+                () => {},
+            );
         }
 
         setIsMobileWidth(window.innerWidth < 768);
 
-        window.addEventListener('resize', () => {
+        window.addEventListener("resize", () => {
             setIsMobileWidth(window.innerWidth < 768);
-        })
-
+        });
     }, [verificationStatement, props.conversationId, props.prefilledResponse]);
 
     useEffect(() => {
@@ -163,27 +165,30 @@ function ReferenceVerification(props: ReferenceVerificationProps) {
 
         if (!isLoading) {
             // Only set the child references when it's done loading and if the initial response is not prefilled (i.e. it was fetched from the server)
-            props.setChildReferencesCallback(props.additionalLink, initialResponse, props.linkTitle);
+            props.setChildReferencesCallback(
+                props.additionalLink,
+                initialResponse,
+                props.linkTitle,
+            );
         }
     }, [initialResponse, isLoading, props]);
 
     return (
         <div>
-            {isLoading &&
-                <LoadingSpinner />
-            }
-            <ChatMessage chatMessage={
-                {
+            {isLoading && <LoadingSpinner />}
+            <ChatMessage
+                chatMessage={{
                     automationId: "",
                     by: "AI",
                     message: initialResponse,
                     context: [],
-                    created: (new Date()).toISOString(),
+                    created: new Date().toISOString(),
                     onlineContext: {},
                 }}
-                isMobileWidth={isMobileWidth} />
+                isMobileWidth={isMobileWidth}
+            />
         </div>
-    )
+    );
 }
 
 interface SupplementalReferenceProps {
@@ -191,7 +196,11 @@ interface SupplementalReferenceProps {
     officialFactToVerify: string;
     conversationId: string;
     additionalLink: string;
-    setChildReferencesCallback: (additionalLink: string, response: string, linkTitle: string) => void;
+    setChildReferencesCallback: (
+        additionalLink: string,
+        response: string,
+        linkTitle: string,
+    ) => void;
     prefilledResponse?: string;
     linkTitle?: string;
 }
@@ -202,7 +211,12 @@ function SupplementalReference(props: SupplementalReferenceProps) {
     return (
         <Card className={`mt-2 mb-4`}>
             <CardHeader>
-                <a className={styles.titleLink} href={props.additionalLink} target="_blank" rel="noreferrer">
+                <a
+                    className={styles.titleLink}
+                    href={props.additionalLink}
+                    target="_blank"
+                    rel="noreferrer"
+                >
                     {linkTitle}
                 </a>
                 <WebPageLink {...linkAsWebpage} />
@@ -214,7 +228,8 @@ function SupplementalReference(props: SupplementalReferenceProps) {
                     linkTitle={linkTitle}
                     conversationId={props.conversationId}
                     setChildReferencesCallback={props.setChildReferencesCallback}
-                    prefilledResponse={props.prefilledResponse} />
+                    prefilledResponse={props.prefilledResponse}
+                />
             </CardContent>
         </Card>
     );
@@ -224,13 +239,17 @@ const WebPageLink = (webpage: WebPage) => {
     const webpageDomain = new URL(webpage.link).hostname;
     return (
         <div className={styles.subLinks}>
-            <a className={`${styles.subLinks} bg-blue-200 px-2`} href={webpage.link} target="_blank" rel="noreferrer">
+            <a
+                className={`${styles.subLinks} bg-blue-200 px-2`}
+                href={webpage.link}
+                target="_blank"
+                rel="noreferrer"
+            >
                 {webpageDomain}
             </a>
         </div>
-    )
-}
-
+    );
+};
 
 export default function FactChecker() {
     const [factToVerify, setFactToVerify] = useState("");
@@ -249,9 +268,15 @@ export default function FactChecker() {
 
     const [initialModel, setInitialModel] = useState<Model>();
 
-    function setChildReferencesCallback(additionalLink: string, response: string, linkTitle: string) {
+    function setChildReferencesCallback(
+        additionalLink: string,
+        response: string,
+        linkTitle: string,
+    ) {
         const newReferences = childReferences || [];
-        const exists = newReferences.find((reference) => reference.additionalLink === additionalLink);
+        const exists = newReferences.find(
+            (reference) => reference.additionalLink === additionalLink,
+        );
         if (exists) return;
         newReferences.push({ additionalLink, response, linkTitle });
         setChildReferences(newReferences);
@@ -260,10 +285,9 @@ export default function FactChecker() {
     useEffect(() => {
         setIsMobileWidth(window.innerWidth < 768);
 
-        window.addEventListener('resize', () => {
+        window.addEventListener("resize", () => {
             setIsMobileWidth(window.innerWidth < 768);
-        })
-
+        });
     }, []);
 
     let userData = useAuthenticatedData();
@@ -279,13 +303,13 @@ export default function FactChecker() {
         };
 
         fetch(`/api/chat/store/factchecker`, {
-            method: 'POST',
+            method: "POST",
             headers: {
-                'Content-Type': 'application/json',
+                "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                "runId": runId,
-                "storeData": data
+                runId: runId,
+                storeData: data,
             }),
         });
     }
@@ -294,25 +318,25 @@ export default function FactChecker() {
         if (factToVerify) {
             document.title = `AI Fact Check: ${factToVerify}`;
         } else {
-            document.title = 'AI Fact Checker';
+            document.title = "AI Fact Checker";
         }
     }, [factToVerify]);
 
     useEffect(() => {
-        const storedFact = localStorage.getItem('factToVerify');
+        const storedFact = localStorage.getItem("factToVerify");
         if (storedFact) {
             setFactToVerify(storedFact);
         }
 
         // Get query params from the URL
         const urlParams = new URLSearchParams(window.location.search);
-        const factToVerifyParam = urlParams.get('factToVerify');
+        const factToVerifyParam = urlParams.get("factToVerify");
 
         if (factToVerifyParam) {
             setFactToVerify(factToVerifyParam);
         }
 
-        const runIdParam = urlParams.get('runId');
+        const runIdParam = urlParams.get("runId");
         if (runIdParam) {
             setRunId(runIdParam);
 
@@ -341,7 +365,6 @@ export default function FactChecker() {
             // Call the async function
             fetchData();
         }
-
     }, []);
 
     function onClickVerify() {
@@ -365,9 +388,13 @@ export default function FactChecker() {
         spawnNewConversation(setConversationID);
 
         // Set the runId to a random 12-digit alphanumeric string
-        const newRunId = [...Array(16)].map(() => Math.random().toString(36)[2]).join('');
+        const newRunId = [...Array(16)].map(() => Math.random().toString(36)[2]).join("");
         setRunId(newRunId);
-        window.history.pushState({}, document.title, window.location.pathname + `?runId=${newRunId}`);
+        window.history.pushState(
+            {},
+            document.title,
+            window.location.pathname + `?runId=${newRunId}`,
+        );
 
         setOfficialFactToVerify(factToVerify);
         setClickedVerify(false);
@@ -375,36 +402,47 @@ export default function FactChecker() {
 
     useEffect(() => {
         if (!conversationID) return;
-        verifyStatement(officialFactToVerify, conversationID, setIsLoading, setInitialResponse, setInitialReferences);
+        verifyStatement(
+            officialFactToVerify,
+            conversationID,
+            setIsLoading,
+            setInitialResponse,
+            setInitialReferences,
+        );
     }, [conversationID, officialFactToVerify]);
 
     // Store factToVerify in localStorage whenever it changes
     useEffect(() => {
-        localStorage.setItem('factToVerify', factToVerify);
+        localStorage.setItem("factToVerify", factToVerify);
     }, [factToVerify]);
 
     // Update the meta tags for the description and og:description
     useEffect(() => {
         let metaTag = document.querySelector('meta[name="description"]');
         if (metaTag) {
-            metaTag.setAttribute('content', initialResponse);
+            metaTag.setAttribute("content", initialResponse);
         }
         let metaOgTag = document.querySelector('meta[property="og:description"]');
         if (!metaOgTag) {
-            metaOgTag = document.createElement('meta');
-            metaOgTag.setAttribute('property', 'og:description');
-            document.getElementsByTagName('head')[0].appendChild(metaOgTag);
+            metaOgTag = document.createElement("meta");
+            metaOgTag.setAttribute("property", "og:description");
+            document.getElementsByTagName("head")[0].appendChild(metaOgTag);
         }
-        metaOgTag.setAttribute('content', initialResponse);
+        metaOgTag.setAttribute("content", initialResponse);
     }, [initialResponse]);
 
-    const renderReferences = (conversationId: string, initialReferences: ResponseWithReferences, officialFactToVerify: string, loadedFromStorage: boolean, childReferences?: SupplementReferences[]) => {
+    const renderReferences = (
+        conversationId: string,
+        initialReferences: ResponseWithReferences,
+        officialFactToVerify: string,
+        loadedFromStorage: boolean,
+        childReferences?: SupplementReferences[],
+    ) => {
         if (loadedFromStorage && childReferences) {
             return renderSupplementalReferences(childReferences);
         }
 
         const seenLinks = new Set();
-
 
         // Any links that are present in webpages should not be searched again
         Object.entries(initialReferences.online || {}).map(([key, onlineData], index) => {
@@ -413,7 +451,7 @@ export default function FactChecker() {
             if (webpages instanceof Array) {
                 for (let i = 0; i < webpages.length; i++) {
                     const webpage = webpages[i];
-                    const additionalLink = webpage.link || '';
+                    const additionalLink = webpage.link || "";
                     if (seenLinks.has(additionalLink)) {
                         return null;
                     }
@@ -421,7 +459,7 @@ export default function FactChecker() {
                 }
             } else {
                 let singleWebpage = webpages as WebPage;
-                const additionalLink = singleWebpage.link || '';
+                const additionalLink = singleWebpage.link || "";
                 if (seenLinks.has(additionalLink)) {
                     return null;
                 }
@@ -429,33 +467,36 @@ export default function FactChecker() {
             }
         });
 
-        return Object.entries(initialReferences.online || {}).map(([key, onlineData], index) => {
-            let additionalLink = '';
+        return Object.entries(initialReferences.online || {})
+            .map(([key, onlineData], index) => {
+                let additionalLink = "";
 
-            // Loop through organic links until we find one that hasn't been searched
-            for (let i = 0; i < onlineData?.organic?.length; i++) {
-                const webpage = onlineData?.organic?.[i];
-                additionalLink = webpage.link || '';
+                // Loop through organic links until we find one that hasn't been searched
+                for (let i = 0; i < onlineData?.organic?.length; i++) {
+                    const webpage = onlineData?.organic?.[i];
+                    additionalLink = webpage.link || "";
 
-                if (!seenLinks.has(additionalLink)) {
-                    break;
+                    if (!seenLinks.has(additionalLink)) {
+                        break;
+                    }
                 }
-            }
 
-            seenLinks.add(additionalLink);
+                seenLinks.add(additionalLink);
 
-            if (additionalLink === '') return null;
+                if (additionalLink === "") return null;
 
-            return (
-                <SupplementalReference
-                    key={index}
-                    onlineData={onlineData}
-                    officialFactToVerify={officialFactToVerify}
-                    conversationId={conversationId}
-                    additionalLink={additionalLink}
-                    setChildReferencesCallback={setChildReferencesCallback} />
-            );
-        }).filter(Boolean);
+                return (
+                    <SupplementalReference
+                        key={index}
+                        onlineData={onlineData}
+                        officialFactToVerify={officialFactToVerify}
+                        conversationId={conversationId}
+                        additionalLink={additionalLink}
+                        setChildReferencesCallback={setChildReferencesCallback}
+                    />
+                );
+            })
+            .filter(Boolean);
     };
 
     const renderSupplementalReferences = (references: SupplementReferences[]) => {
@@ -468,10 +509,11 @@ export default function FactChecker() {
                     conversationId={conversationID}
                     linkTitle={reference.linkTitle}
                     setChildReferencesCallback={setChildReferencesCallback}
-                    prefilledResponse={reference.response} />
-            )
+                    prefilledResponse={reference.response}
+                />
+            );
         });
-    }
+    };
 
     const renderWebpages = (webpages: WebPage[] | WebPage) => {
         if (webpages instanceof Array) {
@@ -485,116 +527,138 @@ export default function FactChecker() {
 
     function constructShareUrl() {
         const url = new URL(window.location.href);
-        url.searchParams.set('runId', runId);
+        url.searchParams.set("runId", runId);
         return url.href;
     }
 
     return (
         <>
-            <div className='relative md:fixed h-full'>
-                <SidePanel
-                    conversationId={null}
-                    uploadedFiles={[]}
-                    isMobileWidth={isMobileWidth}
-                />
+            <div className="relative md:fixed h-full">
+                <SidePanel conversationId={null} uploadedFiles={[]} isMobileWidth={isMobileWidth} />
             </div>
             <div className={styles.factCheckerContainer}>
-                <h1 className={`${styles.response} pt-8 md:pt-4 font-large outline-slate-800 dark:outline-slate-200`}>
+                <h1
+                    className={`${styles.response} pt-8 md:pt-4 font-large outline-slate-800 dark:outline-slate-200`}
+                >
                     AI Fact Checker
                 </h1>
                 <footer className={`${styles.footer} mt-4`}>
                     This is an experimental AI tool. It may make mistakes.
                 </footer>
-                {
-                    initialResponse && initialReferences && childReferences
-                        ?
-                        <div className={styles.reportActions}>
-                            <Button asChild variant='secondary'>
-                                <Link href="/factchecker" target="_blank" rel="noopener noreferrer">
-                                    Try Another
-                                </Link>
+                {initialResponse && initialReferences && childReferences ? (
+                    <div className={styles.reportActions}>
+                        <Button asChild variant="secondary">
+                            <Link href="/factchecker" target="_blank" rel="noopener noreferrer">
+                                Try Another
+                            </Link>
+                        </Button>
+                        <ShareLink
+                            buttonTitle="Share report"
+                            title="AI Fact Checking Report"
+                            description="Share this fact checking report with others. Anyone who has this link will be able to view the report."
+                            url={constructShareUrl()}
+                            onShare={loadedFromStorage ? () => {} : storeData}
+                        />
+                    </div>
+                ) : (
+                    <div className={styles.newReportActions}>
+                        <div className={`${styles.inputFields} mt-4`}>
+                            <Input
+                                type="text"
+                                maxLength={200}
+                                placeholder="Enter a falsifiable statement to verify"
+                                disabled={isLoading}
+                                onChange={(e) => setFactToVerify(e.target.value)}
+                                value={factToVerify}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        onClickVerify();
+                                    }
+                                }}
+                                onFocus={(e) => (e.target.placeholder = "")}
+                                onBlur={(e) =>
+                                    (e.target.placeholder =
+                                        "Enter a falsifiable statement to verify")
+                                }
+                            />
+                            <Button disabled={clickedVerify} onClick={() => onClickVerify()}>
+                                Verify
                             </Button>
-                            <ShareLink
-                                buttonTitle='Share report'
-                                title="AI Fact Checking Report"
-                                description="Share this fact checking report with others. Anyone who has this link will be able to view the report."
-                                url={constructShareUrl()}
-                                onShare={loadedFromStorage ? () => { } : storeData} />
                         </div>
-                        : <div className={styles.newReportActions}>
-                            <div className={`${styles.inputFields} mt-4`}>
-                                <Input
-                                    type="text"
-                                    maxLength={200}
-                                    placeholder="Enter a falsifiable statement to verify"
-                                    disabled={isLoading}
-                                    onChange={(e) => setFactToVerify(e.target.value)}
-                                    value={factToVerify}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter") {
-                                            onClickVerify();
-                                        }
-                                    }}
-                                    onFocus={(e) => e.target.placeholder = ""}
-                                    onBlur={(e) => e.target.placeholder = "Enter a falsifiable statement to verify"} />
-                                <Button disabled={clickedVerify} onClick={() => onClickVerify()}>Verify</Button>
-                            </div>
-                            <h3 className={`mt-4 mb-4`}>
-                                Try with a particular model. You must be <a href="/settings" className="font-medium text-blue-600 dark:text-blue-500 hover:underline">subscribed</a> to configure the model.
-                            </h3>
-                        </div>
-                }
-                <ModelPicker disabled={isLoading || loadedFromStorage} setModelUsed={setModelUsed} initialModel={initialModel} />
-                {isLoading && <div className={styles.loading}>
-                    <LoadingSpinner />
-                </div>}
-                {
-                    initialResponse &&
+                        <h3 className={`mt-4 mb-4`}>
+                            Try with a particular model. You must be{" "}
+                            <a
+                                href="/settings"
+                                className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+                            >
+                                subscribed
+                            </a>{" "}
+                            to configure the model.
+                        </h3>
+                    </div>
+                )}
+                <ModelPicker
+                    disabled={isLoading || loadedFromStorage}
+                    setModelUsed={setModelUsed}
+                    initialModel={initialModel}
+                />
+                {isLoading && (
+                    <div className={styles.loading}>
+                        <LoadingSpinner />
+                    </div>
+                )}
+                {initialResponse && (
                     <Card className={`mt-4`}>
                         <CardHeader>
                             <CardTitle>{officialFactToVerify}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className={styles.responseText}>
-                                <ChatMessage chatMessage={
-                                    {
+                                <ChatMessage
+                                    chatMessage={{
                                         automationId: "",
                                         by: "AI",
                                         message: initialResponse,
                                         context: [],
-                                        created: (new Date()).toISOString(),
-                                        onlineContext: {}
-                                    }
-                                } isMobileWidth={isMobileWidth} />
-
+                                        created: new Date().toISOString(),
+                                        onlineContext: {},
+                                    }}
+                                    isMobileWidth={isMobileWidth}
+                                />
                             </div>
                         </CardContent>
                         <CardFooter>
-                            {
-                                initialReferences && initialReferences.online && Object.keys(initialReferences.online).length > 0 && (
+                            {initialReferences &&
+                                initialReferences.online &&
+                                Object.keys(initialReferences.online).length > 0 && (
                                     <div className={styles.subLinks}>
-                                        {
-                                            Object.entries(initialReferences.online).map(([key, onlineData], index) => {
+                                        {Object.entries(initialReferences.online).map(
+                                            ([key, onlineData], index) => {
                                                 const webpages = onlineData?.webpages || [];
                                                 return renderWebpages(webpages);
-                                            })
-                                        }
+                                            },
+                                        )}
                                     </div>
                                 )}
                         </CardFooter>
                     </Card>
-                }
-                {
-                    initialReferences &&
+                )}
+                {initialReferences && (
                     <div className={styles.referenceContainer}>
                         <h2 className="mt-4 mb-4">Supplements</h2>
                         <div className={styles.references}>
                             {initialReferences.online !== undefined &&
-                                renderReferences(conversationID, initialReferences, officialFactToVerify, loadedFromStorage, childReferences)}
+                                renderReferences(
+                                    conversationID,
+                                    initialReferences,
+                                    officialFactToVerify,
+                                    loadedFromStorage,
+                                    childReferences,
+                                )}
                         </div>
                     </div>
-                }
+                )}
             </div>
         </>
-    )
+    );
 }
