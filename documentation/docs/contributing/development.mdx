@@ -186,7 +186,7 @@ In whichever clients you're using for testing, you'll need to update the server 
 ### Before Making Changes
 1. Install Git Hooks for Validation
    ```shell
-   pre-commit install -t pre-push -t pre-commit
+   ./scripts/dev_setup.sh
    ```
    - This ensures standard code formatting fixes and other checks run automatically on every commit and push
    - Note 1: If [pre-commit](https://pre-commit.com/#intro) didn't already get installed, [install it](https://pre-commit.com/#install) via `pip install pre-commit`
