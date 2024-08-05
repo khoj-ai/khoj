@@ -10,7 +10,7 @@ yarn install
 
 # Install Obsidian App
 # ---
-echo "Installing Obsidiann App..."
+echo "Installing Obsidian App..."
 cd $PROJECT_ROOT/src/interface/obsidian
 yarn install
 
