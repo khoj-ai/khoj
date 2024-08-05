@@ -115,7 +115,7 @@ class Agent(BaseModel):
         CYAN = "cyan"
         LIME = "lime"
         INDIGO = "indigo"
-        FUSCHIA = "fuschia"
+        FUCHSIA = "fuchsia"
         ROSE = "rose"
         SKY = "sky"
         AMBER = "amber"

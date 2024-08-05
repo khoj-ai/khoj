@@ -36,7 +36,7 @@ addSuggestionColorMap(SuggestionType.PopCulture, "red");
 addSuggestionColorMap(SuggestionType.Food, "yellow");
 addSuggestionColorMap(SuggestionType.Interviewing, "purple");
 addSuggestionColorMap(SuggestionType.Home, "green");
-addSuggestionColorMap(SuggestionType.Fun, "fuschia");
+addSuggestionColorMap(SuggestionType.Fun, "fuchsia");
 addSuggestionColorMap(SuggestionType.Code, "purple");
 
 const DEFAULT_COLOR = "orange";
