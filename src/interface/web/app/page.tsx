@@ -32,6 +32,14 @@ interface ChatBodyDataProps {
     isLoadingUserConfig: boolean;
 }
 
+function FisherYatesShuffle(array: any[]) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
 function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState("");
     const [processingMessage, setProcessingMessage] = useState(false);
@@ -54,7 +62,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     });
 
     function shuffleAndSetOptions() {
-        const shuffled = [...suggestionsData].sort(() => 0.5 - Math.random());
+        const shuffled = FisherYatesShuffle(suggestionsData);
         setShuffledOptions(shuffled.slice(0, 3));
     }
 
