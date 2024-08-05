@@ -4,6 +4,8 @@ import styles from "./sidePanel.module.css";
 
 import { useEffect, useState } from "react";
 
+import { mutate } from "swr";
+
 import { UserProfile, useAuthenticatedData } from "@/app/common/auth";
 import Link from "next/link";
 import useSWR from "swr";
@@ -148,7 +150,10 @@ function deleteConversation(conversationId: string) {
             "Content-Type": "application/json",
         },
     })
-        .then((response) => response.json())
+        .then((response) => {
+            response.json();
+            mutate("/api/chat/sessions");
+        })
         .then((data) => {})
         .catch((err) => {
             console.error(err);
@@ -553,19 +558,6 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
                             onClick={() => {
                                 deleteConversation(props.conversationId);
                                 setIsDeleting(false);
-                                var currConversationId = parseInt(
-                                    new URLSearchParams(window.location.search).get(
-                                        "conversationId",
-                                    ) || "0",
-                                );
-                                //edge case for deleting current conversation
-                                if (currConversationId === parseInt(props.conversationId)) {
-                                    window.location.href = "/";
-                                }
-                                //reload side panel
-                                setTimeout(() => {
-                                    window.location.reload();
-                                }, 1000);
                             }}
                             className="bg-rose-500 hover:bg-rose-600"
                         >
