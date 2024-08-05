@@ -135,6 +135,8 @@ class Agent(BaseModel):
         CODE = "Code"
         ATOM = "Atom"
         CLOCK_COUNTER_CLOCKWISE = "ClockCounterClockwise"
+        PENCIL_LINE = "PencilLine"
+        CHALKBOARD = "Chalkboard"
 
     creator = models.ForeignKey(
         KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True

@@ -24,6 +24,8 @@ import {
     BowlFood,
     Lectern,
     Wallet,
+    PencilLine,
+    Chalkboard,
 } from "@phosphor-icons/react";
 import { Markdown, OrgMode, Pdf, Word } from "@/app/components/logo/fileLogo";
 
@@ -94,6 +96,12 @@ const iconMap: IconMap = {
     ),
     Wallet: (color: string, width: string, height: string) => (
         <Wallet className={`${width} ${height} ${color} mr-2`} />
+    ),
+    PencilLine: (color: string, width: string, height: string) => (
+        <PencilLine className={`${width} ${height} ${color} mr-2`} />
+    ),
+    Chalkboard: (color: string, width: string, height: string) => (
+        <Chalkboard className={`${width} ${height} ${color} mr-2`} />
     ),
 };
 
