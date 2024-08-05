@@ -378,8 +378,8 @@ export default function SettingsView() {
             initialUserConfig?.is_phone_number_verified
                 ? PhoneNumberValidationState.Verified
                 : initialUserConfig?.phone_number
-                    ? PhoneNumberValidationState.SendOTP
-                    : PhoneNumberValidationState.Setup,
+                  ? PhoneNumberValidationState.SendOTP
+                  : PhoneNumberValidationState.Setup,
         );
         setName(initialUserConfig?.given_name);
         setNotionToken(initialUserConfig?.notion_token ?? null);
@@ -748,18 +748,18 @@ export default function SettingsView() {
                                                 )) ||
                                                 (userConfig.subscription_state ===
                                                     "unsubscribed" && (
-                                                        <>
-                                                            <p className="text-xl">Futurist</p>
-                                                            <p className="text-gray-400">
-                                                                Subscription <b>ends</b> on{" "}
-                                                                <b>
-                                                                    {
-                                                                        userConfig.subscription_renewal_date
-                                                                    }
-                                                                </b>
-                                                            </p>
-                                                        </>
-                                                    )) ||
+                                                    <>
+                                                        <p className="text-xl">Futurist</p>
+                                                        <p className="text-gray-400">
+                                                            Subscription <b>ends</b> on{" "}
+                                                            <b>
+                                                                {
+                                                                    userConfig.subscription_renewal_date
+                                                                }
+                                                            </b>
+                                                        </p>
+                                                    </>
+                                                )) ||
                                                 (userConfig.subscription_state === "expired" && (
                                                     <>
                                                         <p className="text-xl">Free Plan</p>
@@ -773,17 +773,17 @@ export default function SettingsView() {
                                                                 </b>
                                                             </p>
                                                         )) || (
-                                                                <p className="text-gray-400">
-                                                                    Check{" "}
-                                                                    <a
-                                                                        href="https://khoj.dev/pricing"
-                                                                        target="_blank"
-                                                                    >
-                                                                        pricing page
-                                                                    </a>{" "}
-                                                                    to compare plans.
-                                                                </p>
-                                                            )}
+                                                            <p className="text-gray-400">
+                                                                Check{" "}
+                                                                <a
+                                                                    href="https://khoj.dev/pricing"
+                                                                    target="_blank"
+                                                                >
+                                                                    pricing page
+                                                                </a>{" "}
+                                                                to compare plans.
+                                                            </p>
+                                                        )}
                                                     </>
                                                 ))}
                                         </CardContent>
@@ -800,20 +800,20 @@ export default function SettingsView() {
                                             )) ||
                                                 (userConfig.subscription_state ==
                                                     "unsubscribed" && (
-                                                        <Button
-                                                            variant="outline"
-                                                            className="text-primary/80 hover:text-primary"
-                                                            onClick={() =>
-                                                                setSubscription("resubscribe")
-                                                            }
-                                                        >
-                                                            <ArrowCircleUp
-                                                                weight="bold"
-                                                                className="h-5 w-5 mr-2"
-                                                            />
-                                                            Resubscribe
-                                                        </Button>
-                                                    )) || (
+                                                    <Button
+                                                        variant="outline"
+                                                        className="text-primary/80 hover:text-primary"
+                                                        onClick={() =>
+                                                            setSubscription("resubscribe")
+                                                        }
+                                                    >
+                                                        <ArrowCircleUp
+                                                            weight="bold"
+                                                            className="h-5 w-5 mr-2"
+                                                        />
+                                                        Resubscribe
+                                                    </Button>
+                                                )) || (
                                                     <Button
                                                         variant="outline"
                                                         className="text-primary/80 hover:text-primary"
@@ -848,11 +848,12 @@ export default function SettingsView() {
                                         <CardHeader className="flex flex-row text-2xl">
                                             <Laptop className="h-8 w-8 mr-2" />
                                             Files
-                                            {
-                                                userConfig.enabled_content_source.computer && (
-                                                    <CheckCircle className="h-6 w-6 ml-auto text-green-500" weight="fill" />
-                                                )
-                                            }
+                                            {userConfig.enabled_content_source.computer && (
+                                                <CheckCircle
+                                                    className="h-6 w-6 ml-auto text-green-500"
+                                                    weight="fill"
+                                                />
+                                            )}
                                         </CardHeader>
                                         <CardContent className="overflow-hidden pb-12 text-gray-400">
                                             Manage your synced files
@@ -895,11 +896,11 @@ export default function SettingsView() {
                                                         Manage
                                                     </>
                                                 )) || (
-                                                        <>
-                                                            <Plugs className="h-5 w-5 inline mr-1" />
-                                                            Connect
-                                                        </>
-                                                    )}
+                                                    <>
+                                                        <Plugs className="h-5 w-5 inline mr-1" />
+                                                        Connect
+                                                    </>
+                                                )}
                                             </Button>
                                             <Button
                                                 variant="outline"
@@ -915,11 +916,12 @@ export default function SettingsView() {
                                         <CardHeader className="text-xl flex flex-row">
                                             <NotionLogo className="h-7 w-7 mr-2" />
                                             Notion
-                                            {
-                                                userConfig.enabled_content_source.notion && (
-                                                    <CheckCircle className="h-6 w-6 ml-auto text-green-500" weight="fill" />
-                                                )
-                                            }
+                                            {userConfig.enabled_content_source.notion && (
+                                                <CheckCircle
+                                                    className="h-6 w-6 ml-auto text-green-500"
+                                                    weight="fill"
+                                                />
+                                            )}
                                         </CardHeader>
                                         <CardContent className="grid gap-4">
                                             <p className="text-gray-400">
@@ -938,7 +940,7 @@ export default function SettingsView() {
                                             {
                                                 /* Show connect to notion button if notion oauth url setup and user disconnected*/
                                                 userConfig.notion_oauth_url &&
-                                                    !userConfig.enabled_content_source.notion ? (
+                                                !userConfig.enabled_content_source.notion ? (
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
@@ -952,35 +954,35 @@ export default function SettingsView() {
                                                         Connect
                                                     </Button>
                                                 ) : /* Show sync button if user connected to notion and API key unchanged */
-                                                    userConfig.enabled_content_source.notion &&
-                                                        notionToken === userConfig.notion_token ? (
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => syncContent("notion")}
-                                                        >
-                                                            <ArrowsClockwise className="h-5 w-5 inline mr-1" />
-                                                            Sync
-                                                        </Button>
-                                                    ) : /* Show set API key button notion oauth url not set setup */
-                                                        !userConfig.notion_oauth_url ? (
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={saveNotionToken}
-                                                                disabled={
-                                                                    notionToken === userConfig.notion_token
-                                                                }
-                                                            >
-                                                                <FloppyDisk className="h-5 w-5 inline mr-1" />
-                                                                {(userConfig.enabled_content_source
-                                                                    .notion &&
-                                                                    "Update API Key") ||
-                                                                    "Set API Key"}
-                                                            </Button>
-                                                        ) : (
-                                                            <></>
-                                                        )
+                                                userConfig.enabled_content_source.notion &&
+                                                  notionToken === userConfig.notion_token ? (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => syncContent("notion")}
+                                                    >
+                                                        <ArrowsClockwise className="h-5 w-5 inline mr-1" />
+                                                        Sync
+                                                    </Button>
+                                                ) : /* Show set API key button notion oauth url not set setup */
+                                                !userConfig.notion_oauth_url ? (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={saveNotionToken}
+                                                        disabled={
+                                                            notionToken === userConfig.notion_token
+                                                        }
+                                                    >
+                                                        <FloppyDisk className="h-5 w-5 inline mr-1" />
+                                                        {(userConfig.enabled_content_source
+                                                            .notion &&
+                                                            "Update API Key") ||
+                                                            "Set API Key"}
+                                                    </Button>
+                                                ) : (
+                                                    <></>
+                                                )
                                             }
                                             <Button
                                                 variant="outline"
@@ -1195,18 +1197,18 @@ export default function SettingsView() {
                                             Chat on Whatsapp
                                             {(numberValidationState ===
                                                 PhoneNumberValidationState.Verified && (
-                                                    <CheckCircle
-                                                        weight="bold"
-                                                        className="h-4 w-4 ml-1 text-green-400"
-                                                    />
-                                                )) ||
+                                                <CheckCircle
+                                                    weight="bold"
+                                                    className="h-4 w-4 ml-1 text-green-400"
+                                                />
+                                            )) ||
                                                 (numberValidationState !==
                                                     PhoneNumberValidationState.Setup && (
-                                                        <ExclamationMark
-                                                            weight="bold"
-                                                            className="h-4 w-4 ml-1 text-yellow-400"
-                                                        />
-                                                    ))}
+                                                    <ExclamationMark
+                                                        weight="bold"
+                                                        className="h-4 w-4 ml-1 text-yellow-400"
+                                                    />
+                                                ))}
                                         </CardHeader>
                                         <CardContent className="grid gap-4">
                                             <p className="text-gray-400">
@@ -1235,85 +1237,85 @@ export default function SettingsView() {
                                                 />
                                                 {numberValidationState ===
                                                     PhoneNumberValidationState.VerifyOTP && (
-                                                        <>
-                                                            <p>{`Enter the OTP sent to your number: ${phoneNumber}`}</p>
-                                                            <InputOTP
-                                                                autoFocus={true}
-                                                                maxLength={6}
-                                                                value={otp || ""}
-                                                                onChange={setOTP}
-                                                                onComplete={() =>
-                                                                    setNumberValidationState(
-                                                                        PhoneNumberValidationState.VerifyOTP,
-                                                                    )
-                                                                }
-                                                            >
-                                                                <InputOTPGroup>
-                                                                    <InputOTPSlot index={0} />
-                                                                    <InputOTPSlot index={1} />
-                                                                    <InputOTPSlot index={2} />
-                                                                    <InputOTPSlot index={3} />
-                                                                    <InputOTPSlot index={4} />
-                                                                    <InputOTPSlot index={5} />
-                                                                </InputOTPGroup>
-                                                            </InputOTP>
-                                                        </>
-                                                    )}
+                                                    <>
+                                                        <p>{`Enter the OTP sent to your number: ${phoneNumber}`}</p>
+                                                        <InputOTP
+                                                            autoFocus={true}
+                                                            maxLength={6}
+                                                            value={otp || ""}
+                                                            onChange={setOTP}
+                                                            onComplete={() =>
+                                                                setNumberValidationState(
+                                                                    PhoneNumberValidationState.VerifyOTP,
+                                                                )
+                                                            }
+                                                        >
+                                                            <InputOTPGroup>
+                                                                <InputOTPSlot index={0} />
+                                                                <InputOTPSlot index={1} />
+                                                                <InputOTPSlot index={2} />
+                                                                <InputOTPSlot index={3} />
+                                                                <InputOTPSlot index={4} />
+                                                                <InputOTPSlot index={5} />
+                                                            </InputOTPGroup>
+                                                        </InputOTP>
+                                                    </>
+                                                )}
                                             </div>
                                         </CardContent>
                                         <CardFooter className="flex flex-wrap gap-4">
                                             {(numberValidationState ===
                                                 PhoneNumberValidationState.VerifyOTP && (
-                                                    <Button variant="outline" onClick={verifyOTP}>
-                                                        Verify
-                                                    </Button>
-                                                )) || (
-                                                    <Button
-                                                        variant="outline"
-                                                        disabled={
-                                                            !phoneNumber ||
-                                                            (phoneNumber === userConfig.phone_number &&
-                                                                numberValidationState ===
+                                                <Button variant="outline" onClick={verifyOTP}>
+                                                    Verify
+                                                </Button>
+                                            )) || (
+                                                <Button
+                                                    variant="outline"
+                                                    disabled={
+                                                        !phoneNumber ||
+                                                        (phoneNumber === userConfig.phone_number &&
+                                                            numberValidationState ===
                                                                 PhoneNumberValidationState.Verified) ||
-                                                            !isValidPhoneNumber(phoneNumber)
-                                                        }
-                                                        onClick={sendOTP}
-                                                    >
-                                                        {!userConfig.phone_number ? (
-                                                            <>
-                                                                <Plugs className="inline mr-2" />
-                                                                Setup Whatsapp
-                                                            </>
-                                                        ) : !phoneNumber ||
-                                                            (phoneNumber === userConfig.phone_number &&
-                                                                numberValidationState ===
-                                                                PhoneNumberValidationState.Verified) ||
-                                                            !isValidPhoneNumber(phoneNumber) ? (
-                                                            <>
-                                                                <PlugsConnected className="inline mr-2 text-green-400" />
-                                                                Switch Number
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                Send OTP{" "}
-                                                                <ArrowRight
-                                                                    className="inline ml-2"
-                                                                    weight="bold"
-                                                                />
-                                                            </>
-                                                        )}
-                                                    </Button>
-                                                )}
+                                                        !isValidPhoneNumber(phoneNumber)
+                                                    }
+                                                    onClick={sendOTP}
+                                                >
+                                                    {!userConfig.phone_number ? (
+                                                        <>
+                                                            <Plugs className="inline mr-2" />
+                                                            Setup Whatsapp
+                                                        </>
+                                                    ) : !phoneNumber ||
+                                                      (phoneNumber === userConfig.phone_number &&
+                                                          numberValidationState ===
+                                                              PhoneNumberValidationState.Verified) ||
+                                                      !isValidPhoneNumber(phoneNumber) ? (
+                                                        <>
+                                                            <PlugsConnected className="inline mr-2 text-green-400" />
+                                                            Switch Number
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            Send OTP{" "}
+                                                            <ArrowRight
+                                                                className="inline ml-2"
+                                                                weight="bold"
+                                                            />
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            )}
                                             {numberValidationState ===
                                                 PhoneNumberValidationState.Verified && (
-                                                    <Button
-                                                        variant="outline"
-                                                        onClick={() => disconnectNumber()}
-                                                    >
-                                                        <CloudSlash className="h-5 w-5 mr-2" />
-                                                        Disconnect
-                                                    </Button>
-                                                )}
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={() => disconnectNumber()}
+                                                >
+                                                    <CloudSlash className="h-5 w-5 mr-2" />
+                                                    Disconnect
+                                                </Button>
+                                            )}
                                         </CardFooter>
                                     </Card>
                                 </div>

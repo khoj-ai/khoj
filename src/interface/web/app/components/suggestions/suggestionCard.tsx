@@ -5,7 +5,6 @@ import styles from "./suggestions.module.css";
 import { converColorToBgGradient } from "@/app/common/colorUtils";
 import { convertSuggestionTitleToIconClass } from "./suggestionsData";
 
-
 interface SuggestionCardProps {
     title: string;
     body: string;
@@ -23,10 +22,7 @@ export default function SuggestionCard(data: SuggestionCardProps) {
         <Card className={cardClassName}>
             <CardHeader className="m-0 p-2 pb-1 relative">
                 <div className="flex flex-row md:flex-col">
-                    {convertSuggestionTitleToIconClass(
-                        data.title,
-                        data.color.toLowerCase(),
-                    )}
+                    {convertSuggestionTitleToIconClass(data.title, data.color.toLowerCase())}
                     <CardTitle className={titleClassName}>{data.title}</CardTitle>
                 </div>
             </CardHeader>
