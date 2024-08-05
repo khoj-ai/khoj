@@ -42,7 +42,7 @@ from khoj.database.adapters import (
 )
 from khoj.database.models import ClientApplication, KhojUser, ProcessLock, Subscription
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
-from khoj.routers.indexer import configure_content, configure_search
+from khoj.routers.api_content import configure_content, configure_search
 from khoj.routers.twilio import is_twilio_enabled
 from khoj.utils import constants, state
 from khoj.utils.config import SearchType
@@ -308,16 +308,16 @@ def configure_routes(app):
     from khoj.routers.api import api
     from khoj.routers.api_agents import api_agents
     from khoj.routers.api_chat import api_chat
-    from khoj.routers.api_config import api_config
-    from khoj.routers.indexer import indexer
+    from khoj.routers.api_content import api_content
+    from khoj.routers.api_model import api_model
     from khoj.routers.notion import notion_router
     from khoj.routers.web_client import web_client
 
     app.include_router(api, prefix="/api")
     app.include_router(api_chat, prefix="/api/chat")
     app.include_router(api_agents, prefix="/api/agents")
-    app.include_router(api_config, prefix="/api/config")
-    app.include_router(indexer, prefix="/api/v1/index")
+    app.include_router(api_model, prefix="/api/model")
+    app.include_router(api_content, prefix="/api/content")
     app.include_router(notion_router, prefix="/api/notion")
     app.include_router(web_client)
 
@@ -336,7 +336,7 @@ def configure_routes(app):
     if is_twilio_enabled():
         from khoj.routers.api_phone import api_phone
 
-        app.include_router(api_phone, prefix="/api/config/phone")
+        app.include_router(api_phone, prefix="/api/phone")
         logger.info("📞 Enabled Twilio")
 
 

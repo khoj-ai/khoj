@@ -92,10 +92,11 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
     for (let i = 0; i < fileData.length; i += 1000) {
         const filesGroup = fileData.slice(i, i + 1000);
         const formData = new FormData();
+        const method = regenerate ? "PUT" : "PATCH";
         filesGroup.forEach(fileItem => { formData.append('files', fileItem.blob, fileItem.path) });
         // Call Khoj backend to update index with all markdown, pdf files
-        const response = await fetch(`${setting.khojUrl}/api/v1/index/update?force=${regenerate}&client=obsidian`, {
-            method: 'POST',
+        const response = await fetch(`${setting.khojUrl}/api/content?client=obsidian`, {
+            method: method,
             headers: {
                 'Authorization': `Bearer ${setting.khojApiKey}`,
             },
@@ -204,12 +205,12 @@ export function getBackendStatusMessage(
 ): string {
     // Welcome message with default settings. Khoj cloud always expects an API key.
     if (!khojApiKey && khojUrl === 'https://app.khoj.dev')
-        return `🌈 Welcome to Khoj! Get your API key from ${khojUrl}/config#clients and set it in the Khoj plugin settings on Obsidian`;
+        return `🌈 Welcome to Khoj! Get your API key from ${khojUrl}/settings#clients and set it in the Khoj plugin settings on Obsidian`;
 
     if (!connectedToServer)
         return `❗️Could not connect to Khoj at ${khojUrl}. Ensure your can access it`;
     else if (!userEmail)
-        return `✅ Connected to Khoj. ❗️Get a valid API key from ${khojUrl}/config#clients to log in`;
+        return `✅ Connected to Khoj. ❗️Get a valid API key from ${khojUrl}/settings#clients to log in`;
     else if (userEmail === 'default@example.com')
         // Logged in as default user in anonymous mode
         return `✅ Signed in to Khoj`;

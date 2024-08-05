@@ -1,7 +1,7 @@
 ---
 sidebar_position: 0
 slug: /
-keywords: ["khoj", "khoj ai", "khoj docs", "khoj documentation", "khoj features", "khoj overview", "khoj quickstart", "khoj chat", "khoj search", "khoj cloud", "khoj self-host", "khoj setup", "open source ai", "local llm", "ai copilot", "second brain ai", "ai search engine"]
+keywords: ["khoj", "khoj ai", "khoj docs", "khoj documentation", "khoj features", "khoj overview", "khoj quickstart", "khoj chat", "khoj search", "khoj cloud", "khoj self-host", "khoj setup", "open source ai", "local llm", "ai copilot", "second brain", "personal ai", "ai search engine"]
 ---
 
 # Overview
@@ -9,7 +9,7 @@ keywords: ["khoj", "khoj ai", "khoj docs", "khoj documentation", "khoj features"
 <p align="center"><img src="/img/khoj-logo-sideways-500.png" width="200" alt="Khoj Logo"></img></p>
 
 <div align="center">
-  <b>An AI copilot for your Second Brain</b>
+  <b>Your Second Brain</b>
 </div>
 
 <br />

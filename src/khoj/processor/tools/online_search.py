@@ -68,7 +68,7 @@ async def search_online(
         logger.info(f"🌐 Searching the Internet for {list(subqueries)}")
         if send_status_func:
             subqueries_str = "\n- " + "\n- ".join(list(subqueries))
-            async for event in send_status_func(f"**🌐 Searching the Internet for**: {subqueries_str}"):
+            async for event in send_status_func(f"**Searching the Internet for**: {subqueries_str}"):
                 yield {ChatEvent.STATUS: event}
 
     with timer(f"Internet searches for {list(subqueries)} took", logger):
@@ -92,7 +92,7 @@ async def search_online(
         logger.info(f"🌐👀 Reading web pages at: {list(webpage_links)}")
         if send_status_func:
             webpage_links_str = "\n- " + "\n- ".join(list(webpage_links))
-            async for event in send_status_func(f"**📖 Reading web pages**: {webpage_links_str}"):
+            async for event in send_status_func(f"**Reading web pages**: {webpage_links_str}"):
                 yield {ChatEvent.STATUS: event}
     tasks = [read_webpage_and_extract_content(subquery, link, content) for link, subquery, content in webpages]
     results = await asyncio.gather(*tasks)
@@ -131,14 +131,14 @@ async def read_webpages(
     "Infer web pages to read from the query and extract relevant information from them"
     logger.info(f"Inferring web pages to read")
     if send_status_func:
-        async for event in send_status_func(f"**🧐 Inferring web pages to read**"):
+        async for event in send_status_func(f"**Inferring web pages to read**"):
             yield {ChatEvent.STATUS: event}
     urls = await infer_webpage_urls(query, conversation_history, location)
 
     logger.info(f"Reading web pages at: {urls}")
     if send_status_func:
         webpage_links_str = "\n- " + "\n- ".join(list(urls))
-        async for event in send_status_func(f"**📖 Reading web pages**: {webpage_links_str}"):
+        async for event in send_status_func(f"**Reading web pages**: {webpage_links_str}"):
             yield {ChatEvent.STATUS: event}
     tasks = [read_webpage_and_extract_content(query, url) for url in urls]
     results = await asyncio.gather(*tasks)

@@ -233,11 +233,15 @@ function pushDataToKhoj (regenerate = false) {
 
     // Request indexing files on server. With upto 1000 files in each request
     for (let i = 0; i < filesDataToPush.length; i += 1000) {
+        const syncUrl = `${hostURL}/api/content?client=desktop`;
         const filesDataGroup = filesDataToPush.slice(i, i + 1000);
         const formData = new FormData();
         filesDataGroup.forEach(fileData => { formData.append('files', fileData.blob, fileData.path) });
-        let request = axios.post(`${hostURL}/api/v1/index/update?force=${regenerate}&client=desktop`, formData, { headers });
-        requests.push(request);
+        requests.push(
+            regenerate
+            ? axios.put(syncUrl, formData, { headers })
+            : axios.patch(syncUrl, formData, { headers })
+        );
     }
 
     // Wait for requests batch to finish
@@ -253,7 +257,7 @@ function pushDataToKhoj (regenerate = false) {
         console.error(error);
         state["completed"] = false;
         if (error?.response?.status === 429 && (BrowserWindow.getAllWindows().find(win => win.webContents.getURL().includes('config')))) {
-            state["error"] = `Looks like you're out of space to sync your files. <a href="https://app.khoj.dev/config">Upgrade your plan</a> to unlock more space.`;
+            state["error"] = `Looks like you're out of space to sync your files. <a href="https://app.khoj.dev/settings#subscription">Upgrade your plan</a> to unlock more space.`;
             const win = BrowserWindow.getAllWindows().find(win => win.webContents.getURL().includes('config'));
             if (win) win.webContents.send('needsSubscription', true);
         } else if (error?.code === 'ECONNREFUSED') {

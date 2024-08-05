@@ -29,7 +29,7 @@ def test_index_update_with_user2(client, api_user2: KhojApiUser):
     source_file_symbol = set([f[1][0] for f in files])
 
     headers = {"Authorization": f"Bearer {api_user2.token}"}
-    update_response = client.post("/api/v1/index/update", files=files, headers=headers)
+    update_response = client.patch("/api/content", files=files, headers=headers)
     search_response = client.get("/api/search?q=hardware&t=all", headers=headers)
     results = search_response.json()
 
@@ -47,7 +47,7 @@ def test_index_update_with_user2_inaccessible_user1(client, api_user2: KhojApiUs
     source_file_symbol = set([f[1][0] for f in files])
 
     headers = {"Authorization": f"Bearer {api_user2.token}"}
-    update_response = client.post("/api/v1/index/update", files=files, headers=headers)
+    update_response = client.patch("/api/content", files=files, headers=headers)
 
     # Act
     headers = {"Authorization": f"Bearer {api_user.token}"}

@@ -1,0 +1,36 @@
+div.automationsLayout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+div.automationCard {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+}
+
+div.pageLayout {
+    max-width: 60vw;
+    margin: auto;
+    margin-bottom: 2rem;
+}
+
+div.sidePanel {
+    position: fixed;
+    height: 100%;
+}
+
+@media screen and (max-width: 768px) {
+    div.automationsLayout {
+        grid-template-columns: 1fr;
+    }
+
+    div.pageLayout {
+        max-width: 90vw;
+    }
+
+    div.sidePanel {
+        position: relative;
+        height: 100%;
+    }
+}

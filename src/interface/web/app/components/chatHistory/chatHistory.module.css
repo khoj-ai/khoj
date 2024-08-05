@@ -7,6 +7,19 @@ div.chatHistory {
 div.chatLayout {
     height: 80vh;
     overflow-y: auto;
-    /* width: 80%; */
     margin: 0 auto;
+}
+
+div.agentIndicator a {
+    display: flex;
+    text-align: center;
+    align-content: center;
+    align-items: center;
+}
+
+div.trainOfThought {
+    border: 1px var(--border-color) solid;
+    border-radius: 16px;
+    padding: 8px 16px;
+    margin: 12px;
 }

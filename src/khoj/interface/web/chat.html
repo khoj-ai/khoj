@@ -44,7 +44,7 @@ Hi, I am Khoj, your open, personal AI 👋🏽. I can:
 - 📚 Understand files you drag & drop here
 - 👩🏾‍🚀 Be tuned to your conversation needs via [agents](./agents)
 
-Get the Khoj [Desktop](https://khoj.dev/downloads), [Obsidian](https://docs.khoj.dev/clients/obsidian#setup), [Emacs](https://docs.khoj.dev/clients/emacs#setup) apps to search, chat with your 🖥️ computer docs. You can manage all the files you've shared with me at any time by going to [your settings](/config/content-source/computer/).
+Get the Khoj [Desktop](https://khoj.dev/downloads), [Obsidian](https://docs.khoj.dev/clients/obsidian#setup), [Emacs](https://docs.khoj.dev/clients/emacs#setup) apps to search, chat with your 🖥️ computer docs. You can manage all the files you've shared with me at any time by going to [your settings](/settings/content/computer/).
 
 To get started, just start typing below. You can also type / to see a list of commands.
 `.trim()
@@ -1058,8 +1058,8 @@ To get started, just start typing below. You can also type / to see a list of co
             // Wait for all files to be read before making the fetch request
             Promise.all(fileReadPromises)
                 .then(() => {
-                    return fetch("/api/v1/index/update?force=false&client=web", {
-                        method: "POST",
+                    return fetch("/api/content?client=web", {
+                        method: "PATCH",
                         body: formData,
                     });
                 })
@@ -1223,7 +1223,7 @@ To get started, just start typing below. You can also type / to see a list of co
 - 📚 Understand files you drag & drop here
 - 👩🏾‍🚀 Be tuned to your conversation needs via [agents](./agents)
 
-Get the Khoj [Desktop](https://khoj.dev/downloads), [Obsidian](https://docs.khoj.dev/clients/obsidian#setup), or [Emacs](https://docs.khoj.dev/clients/emacs#setup) app to keep your files in sync. You can manage all the files you've shared with me at any time by going to [your settings](/config/content-source/computer/).
+Get the Khoj [Desktop](https://khoj.dev/downloads), [Obsidian](https://docs.khoj.dev/clients/obsidian#setup), or [Emacs](https://docs.khoj.dev/clients/emacs#setup) app to keep your files in sync. You can manage all the files you've shared with me at any time by going to [your settings](/settings/content/computer/).
 
 To get started, just start typing below. You can also type / to see a list of commands.
 
@@ -1844,7 +1844,7 @@ To get started, just start typing below. You can also type / to see a list of co
         }
         var allFiles;
         function renderAllFiles() {
-            fetch('/api/config/data/computer')
+            fetch('/api/content/computer')
             .then(response => response.json())
             .then(data => {
                 var indexedFiles = document.getElementsByClassName("indexed-files")[0];

@@ -13,6 +13,11 @@ input.factVerification {
     font-size: large;
 }
 
+div.factCheckerContainer {
+    width: 75vw;
+    margin: auto;
+}
+
 input.factVerification:focus {
     outline: none;
     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
@@ -121,6 +126,12 @@ div.dot2 {
     bottom: 0;
     -webkit-animation-delay: -1.0s;
     animation-delay: -1.0s;
+}
+
+@media screen and (max-width: 768px) {
+    div.factCheckerContainer {
+        width: 95vw;
+    }
 }
 
 @-webkit-keyframes sk-rotate {

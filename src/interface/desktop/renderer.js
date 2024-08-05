@@ -182,7 +182,7 @@ window.updateStateAPI.onUpdateState((event, state) => {
 window.needsSubscriptionAPI.onNeedsSubscription((event, needsSubscription) => {
     console.log("needs subscription", needsSubscription);
     if (needsSubscription) {
-        window.alert("Looks like you're out of space to sync your files. Upgrade your plan to unlock more space here: https://app.khoj.dev/config");
+        window.alert("Looks like you're out of space to sync your files. Upgrade your plan to unlock more space here: https://app.khoj.dev/settings#subscription");
         needsSubscriptionElement.style.display = 'block';
     }
 });

@@ -20,15 +20,10 @@ class OrgToEntries(TextToEntries):
         super().__init__()
 
     # Define Functions
-    def process(
-        self, files: dict[str, str] = None, full_corpus: bool = True, user: KhojUser = None, regenerate: bool = False
-    ) -> Tuple[int, int]:
-        if not full_corpus:
-            deletion_file_names = set([file for file in files if files[file] == ""])
-            files_to_process = set(files) - deletion_file_names
-            files = {file: files[file] for file in files_to_process}
-        else:
-            deletion_file_names = None
+    def process(self, files: dict[str, str] = None, user: KhojUser = None, regenerate: bool = False) -> Tuple[int, int]:
+        deletion_file_names = set([file for file in files if files[file] == ""])
+        files_to_process = set(files) - deletion_file_names
+        files = {file: files[file] for file in files_to_process}
 
         # Extract Entries from specified Org files
         max_tokens = 256

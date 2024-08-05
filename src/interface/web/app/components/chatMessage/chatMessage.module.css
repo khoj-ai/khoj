@@ -1,18 +1,48 @@
 div.chatMessageContainer {
     display: flex;
     flex-direction: column;
+    margin: 12px;
+    border-radius: 16px;
+    padding: 8px 16px 0 16px;
+}
+
+div.chatMessageWrapper {
+    padding-left: 1rem;
+    padding-bottom: 1rem;
+    max-width: 80vw;
+}
+div.chatMessageWrapper p:not(:last-child) {
+    margin-bottom: 16px;
+}
+
+div.khojfullHistory {
+    border-width: 1px;
+    padding-left: 4px;
+}
+
+div.youfullHistory {
+    max-width: 100%;
+}
+
+div.chatMessageContainer.youfullHistory {
+    padding-left: 0px;
 }
 
 div.you {
-    color: var(--frosted-background-color);
-    background-color: var(--intense-green);
+    background-color: hsla(var(--secondary));
     align-self: flex-end;
+    border-radius: 16px;
 }
 
 div.khoj {
     background-color: transparent;
-    color: #000000;
+    color: hsl(var(--accent-foreground));
     align-self: flex-start;
+}
+
+div.khojChatMessage {
+    padding-top: 8px;
+    padding-left: 16px;
 }
 
 div.chatMessageContainer img {
@@ -23,8 +53,8 @@ div.chatMessageContainer h3 img {
     width: 24px;
 }
 
-div.you .author {
-    color: var(--frosted-background-color);
+div.you {
+    color: hsla(var(--secondary-foreground));
 }
 
 div.author {
@@ -36,31 +66,32 @@ div.author {
 div.chatFooter {
     display: flex;
     justify-content: space-between;
-    margin-top: 8px;
+    min-height: 28px;
 }
 
 div.chatButtons {
     display: flex;
     justify-content: flex-end;
+    width: min-content;
+    border: var(--border-color) 1px solid;
+    border-radius: 16px;
+    position: relative;
+    bottom: -12px;
+    background-color: hsla(var(--secondary));
 }
 
 div.chatFooter button {
     cursor: pointer;
-    background-color: var(--calm-blue);
-    color: var(--main-text-color);
+    color: hsl(var(--muted-foreground));
     border: none;
-    border-radius: 0.5rem;
-    padding: 0.25rem;
-    margin-left: 0.5rem;
+    border-radius: 16px;
+    padding: 4px;
+    margin-left: 4px;
+    margin-right: 4px;
 }
 
 div.chatFooter button:hover {
-    background-color: var(--frosted-background-color);
-    color: var(--intense-green);
-}
-
-div.chatTimestamp {
-    font-size: small;
+    background-color: hsla(var(--frosted-background-color));
 }
 
 button.codeCopyButton {
@@ -70,11 +101,35 @@ button.codeCopyButton {
 }
 
 button.codeCopyButton:hover {
-    background-color: var(--intense-green);
-    color: var(--frosted-background-color);
+    color: hsla(var(--frosted-background-color));
 }
 
 div.feedbackButtons img,
+button.codeCopyButton img,
 button.copyButton img {
     width: 24px;
+}
+
+div.trainOfThought strong {
+    font-weight: 500;
+}
+
+div.trainOfThought.primary strong {
+    font-weight: 500;
+    color: hsla(var(--secondary-foreground));
+}
+
+div.trainOfThought.primary p {
+    color: inherit;
+}
+
+div.trainOfThoughtElement {
+    display: grid;
+    grid-template-columns: auto 1fr;
+}
+
+@media screen and (max-width: 768px) {
+    div.youfullHistory {
+        max-width: 90%;
+    }
 }

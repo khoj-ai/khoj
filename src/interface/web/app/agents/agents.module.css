@@ -6,7 +6,7 @@ div.titleBar {
 .agentPersonality p {
     white-space: inherit;
     overflow: hidden;
-    height: 78px;
+    height: 77px;
     line-height: 1.5;
 }
 
@@ -16,27 +16,15 @@ div.agentPersonality {
     overflow: hidden;
 }
 
-div.agentInfo {
-    font-size: medium;
+div.pageLayout {
+    max-width: 60vw;
+    margin: auto;
+    margin-bottom: 2rem;
 }
 
-div.agentInfo a,
-div.agentInfo h2 {
-    margin: 0;
-}
-
-div.agent img {
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-div.agent a {
-    text-decoration: none;
-}
-
-div#agentsHeader {
-    display: grid;
-    grid-template-columns: auto;
+div.sidePanel {
+    position: fixed;
+    height: 100%;
 }
 
 button.infoButton {
@@ -47,163 +35,33 @@ button.infoButton {
     font-size: medium;
 }
 
-div#agentsHeader a,
-div.agentInfo button {
-    font-size: 24px;
-    font-weight: bold;
-    padding: 4px;
-    border: none;
-    border-radius: 8px;
-    font: inherit;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-div#agentsHeader a:hover,
-div.agentInfo button:hover {
-    box-shadow: 0 0 10px var(--primary-hover);
-}
-
-div.agent {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 4px;
-    align-items: center;
-    padding: 20px;
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-    border-radius: 8px;
-    background: linear-gradient(18.48deg,rgba(252, 213, 87, 0.25) 2.76%,rgba(197, 0, 0, 0) 17.23%),linear-gradient(200.6deg,rgba(244, 229, 68, 0.25) 4.13%,rgba(230, 26, 26, 0) 20.54%);
-}
-
-div.agentModal {
-    background: linear-gradient(18.48deg,rgba(252, 213, 87, 0.25) 2.76%,rgba(197, 0, 0, 0) 17.23%),linear-gradient(200.6deg,rgba(244, 229, 68, 0.25) 4.13%,rgba(230, 26, 26, 0) 20.54%);
-}
-
-div.agentModalContent button {
-    width: 100%;
-    margin: 10px 0;
-    padding: 8px;
-}
-
-div.agentModalHeader {
-    display: grid;
-    grid-template-columns: 1fr auto;
-}
-
-div.agentAvatar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-div.agentModalContent p {
-    white-space: break-spaces;
-    line-height: 1.5;
-}
-
-div.agentInfo {
-    text-align: left;
-}
 
 div.agentList {
     display: grid;
     gap: 20px;
-    padding: 20px;
+    padding-top: 30px;
     margin-right: auto;
     grid-auto-flow: row;
     grid-template-columns: 1fr 1fr;
     margin-left: auto;
 }
 
-svg.newConvoButton {
-    width: 20px;
-    margin-left: 5px;
-}
 
-div.agentModalContainer {
-    position: fixed; /* Changed from absolute to fixed */
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%; /* This ensures it covers the viewport height */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: rgba(1,1,1,0.5);
-    z-index: 1000; /* Ensure it's above other content */
-    overflow-y: auto; /* Allows scrolling within the modal if needed */
-}
-
-div.agentModal {
-    position: relative;
-    width: 50%;
-    margin: auto;
-    padding: 20px;
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-}
-
-div.agentModalActions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-}
-
-div.agentModalActions button {
-    padding: 8px;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-div.agentModalActions button:hover {
-    box-shadow: 0 0 10px var(hsla(--background));
-}
-
-@media only screen and (max-width: 700px) {
+@media only screen and (max-width: 768px) {
     div.agentList {
-        width: 90%;
+        width: 100%;
         padding: 0;
         margin-right: auto;
         margin-left: auto;
         grid-template-columns: 1fr;
     }
 
-    div.agentModal {
-        width: 90%;
+    div.pageLayout {
+        max-width: 90vw;
     }
 
-}
-.loader {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    display: inline-block;
-    border-top: 4px solid var(--primary-color);
-    border-right: 4px solid transparent;
-    box-sizing: border-box;
-    animation: rotation 1s linear infinite;
-}
-.loader::after {
-    content: '';
-    box-sizing: border-box;
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    border-bottom: 4px solid transparent;
-    animation: rotation 0.5s linear infinite reverse;
-}
-@keyframes rotation {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
+    div.sidePanel {
+        position: relative;
+        height: 100%;
     }
 }

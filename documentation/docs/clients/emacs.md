@@ -30,7 +30,7 @@ sidebar_position: 2
 | ![khoj search on emacs](/img/khoj_search_on_emacs.png) | ![khoj chat on emacs](/img/khoj_chat_on_emacs.png) |
 
 ## Setup
-1. Generate an API key on the [Khoj Web App](https://app.khoj.dev/config#clients)
+1. Generate an API key on the [Khoj Web App](https://app.khoj.dev/settings#clients)
 2. Add below snippet to your Emacs config file, usually at `~/.emacs.d/init.el`
 
 

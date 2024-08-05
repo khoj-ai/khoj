@@ -1,0 +1,128 @@
+div.main {
+    height: 100vh;
+    color: hsla(var(--foreground));
+}
+
+.suggestions {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+    justify-content: center;
+}
+
+div.inputBox {
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    margin-bottom: 20px;
+    gap: 12px;
+    padding-left: 20px;
+    padding-right: 20px;
+    align-content: center;
+}
+
+
+input.inputBox {
+    border: none;
+}
+
+input.inputBox:focus {
+    outline: none;
+    background-color: transparent;
+}
+
+div.inputBox:focus {
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+}
+
+div.chatBodyFull {
+    display: grid;
+    grid-template-columns: 1fr;
+    height: 100%;
+}
+
+button.inputBox {
+    border: none;
+    outline: none;
+    background-color: transparent;
+    cursor: pointer;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    background: linear-gradient(var(--calm-green), var(--calm-blue));
+}
+
+div.chatBody {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 100%;
+}
+
+.inputBox {
+    color: hsla(var(--foreground));
+}
+
+div.chatLayout {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+}
+
+div.chatBox {
+    display: grid;
+    height: 100%;
+}
+
+div.titleBar {
+    display: grid;
+    grid-template-columns: 1fr auto;
+}
+
+div.chatBoxBody {
+    display: grid;
+    height: 100%;
+    width: 70%;
+    margin: auto;
+}
+
+div.agentIndicator a {
+    display: flex;
+    text-align: center;
+    align-content: center;
+    align-items: center;
+}
+
+div.agentIndicator {
+    padding: 10px;
+}
+
+
+@media (max-width: 768px) {
+    div.chatBody {
+        grid-template-columns: 0fr 1fr;
+    }
+
+    div.chatBox {
+        padding: 0;
+        height: min-content;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    div.inputBox {
+        margin-bottom: 0px;
+    }
+
+    div.chatBoxBody {
+        width: 100%;
+    }
+
+    div.chatBox {
+        padding: 0;
+        height: min-content;
+    }
+
+    div.chatLayout {
+        gap: 0;
+        grid-template-columns: 1fr;
+    }
+
+}

@@ -199,17 +199,16 @@ def setup(
     text_to_entries: Type[TextToEntries],
     files: dict[str, str],
     regenerate: bool,
-    full_corpus: bool = True,
     user: KhojUser = None,
     config=None,
-) -> None:
+) -> Tuple[int, int]:
     if config:
         num_new_embeddings, num_deleted_embeddings = text_to_entries(config).process(
-            files=files, full_corpus=full_corpus, user=user, regenerate=regenerate
+            files=files, user=user, regenerate=regenerate
         )
     else:
         num_new_embeddings, num_deleted_embeddings = text_to_entries().process(
-            files=files, full_corpus=full_corpus, user=user, regenerate=regenerate
+            files=files, user=user, regenerate=regenerate
         )
 
     if files:
@@ -218,6 +217,8 @@ def setup(
         logger.info(
             f"Deleted {num_deleted_embeddings} entries. Created {num_new_embeddings} new entries for user {user} from files {file_names[:10]} ..."
         )
+
+    return num_new_embeddings, num_deleted_embeddings
 
 
 def cross_encoder_score(query: str, hits: List[SearchResponse], search_model_name: str) -> List[SearchResponse]:

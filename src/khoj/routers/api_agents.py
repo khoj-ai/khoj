@@ -30,10 +30,12 @@ async def all_agents(
                 "slug": agent.slug,
                 "avatar": agent.avatar,
                 "name": agent.name,
-                "personality": agent.personality,
+                "persona": agent.personality,
                 "public": agent.public,
                 "creator": agent.creator.username if agent.creator else None,
                 "managed_by_admin": agent.managed_by_admin,
+                "color": agent.style_color,
+                "icon": agent.style_icon,
             }
         )
 

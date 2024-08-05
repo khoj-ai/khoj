@@ -19,6 +19,7 @@ from fastapi.responses import Response
 from starlette.authentication import has_required_scope, requires
 
 from khoj.configure import initialize_content
+from khoj.database import adapters
 from khoj.database.adapters import (
     AutomationAdapters,
     ConversationAdapters,
@@ -40,6 +41,7 @@ from khoj.routers.helpers import (
     CommonQueryParams,
     ConversationCommandRateLimiter,
     acreate_title_from_query,
+    get_user_config,
     schedule_automation,
     update_telemetry_state,
 )
@@ -190,7 +192,7 @@ def update(
 ):
     user = request.user.object
     if not state.config:
-        error_msg = f"🚨 Khoj is not configured.\nConfigure it via http://localhost:42110/config, plugins or by editing {state.config_file}."
+        error_msg = f"🚨 Khoj is not configured.\nConfigure it via http://localhost:42110/settings, plugins or by editing {state.config_file}."
         logger.warning(error_msg)
         raise HTTPException(status_code=500, detail=error_msg)
     try:
@@ -223,10 +225,10 @@ async def transcribe(
     common: CommonQueryParams,
     file: UploadFile = File(...),
     rate_limiter_per_minute=Depends(
-        ApiUserRateLimiter(requests=1, subscribed_requests=10, window=60, slug="transcribe_minute")
+        ApiUserRateLimiter(requests=20, subscribed_requests=20, window=60, slug="transcribe_minute")
     ),
     rate_limiter_per_day=Depends(
-        ApiUserRateLimiter(requests=10, subscribed_requests=600, window=60 * 60 * 24, slug="transcribe_day")
+        ApiUserRateLimiter(requests=60, subscribed_requests=600, window=60 * 60 * 24, slug="transcribe_day")
     ),
 ):
     user: KhojUser = request.user.object
@@ -275,6 +277,49 @@ async def transcribe(
     # Return the spoken text
     content = json.dumps({"text": user_message})
     return Response(content=content, media_type="application/json", status_code=200)
+
+
+@api.get("/settings", response_class=Response)
+@requires(["authenticated"])
+def get_settings(request: Request, detailed: Optional[bool] = False) -> Response:
+    user = request.user.object
+    user_config = get_user_config(user, request, is_detailed=detailed)
+    del user_config["request"]
+
+    # Return config data as a JSON response
+    return Response(content=json.dumps(user_config), media_type="application/json", status_code=200)
+
+
+@api.patch("/user/name", status_code=200)
+@requires(["authenticated"])
+def set_user_name(
+    request: Request,
+    name: str,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+
+    split_name = name.split(" ")
+
+    if len(split_name) > 2:
+        raise HTTPException(status_code=400, detail="Name must be in the format: Firstname Lastname")
+
+    if len(split_name) == 1:
+        first_name = split_name[0]
+        last_name = ""
+    else:
+        first_name, last_name = split_name[0], split_name[-1]
+
+    adapters.set_user_name(user, first_name, last_name)
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="set_user_name",
+        client=client,
+    )
+
+    return {"status": "ok"}
 
 
 async def extract_references_and_questions(
@@ -376,7 +421,7 @@ async def extract_references_and_questions(
         logger.info(f"🔍 Searching knowledge base with queries: {inferred_queries}")
         if send_status_func:
             inferred_queries_str = "\n- " + "\n- ".join(inferred_queries)
-            async for event in send_status_func(f"**🔍 Searching Documents for:** {inferred_queries_str}"):
+            async for event in send_status_func(f"**Searching Documents for:** {inferred_queries_str}"):
                 yield {ChatEvent.STATUS: event}
         for query in inferred_queries:
             n_items = min(n, 3) if using_offline_chat else n

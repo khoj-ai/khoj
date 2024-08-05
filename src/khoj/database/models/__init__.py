@@ -103,6 +103,39 @@ class VoiceModelOption(BaseModel):
 
 
 class Agent(BaseModel):
+    class StyleColorTypes(models.TextChoices):
+        BLUE = "blue"
+        GREEN = "green"
+        RED = "red"
+        YELLOW = "yellow"
+        ORANGE = "orange"
+        PURPLE = "purple"
+        PINK = "pink"
+        TEAL = "teal"
+        CYAN = "cyan"
+        LIME = "lime"
+        INDIGO = "indigo"
+        FUSCHIA = "fuschia"
+        ROSE = "rose"
+        SKY = "sky"
+        AMBER = "amber"
+        EMERALD = "emerald"
+
+    class StyleIconTypes(models.TextChoices):
+        LIGHBULB = "Lightbulb"
+        HEALTH = "Health"
+        ROBOT = "Robot"
+        APERTURE = "Aperture"
+        GRADUATION_CAP = "GraduationCap"
+        JEEP = "Jeep"
+        ISLAND = "Island"
+        MATH_OPERATIONS = "MathOperations"
+        ASCLEPIUS = "Asclepius"
+        COUCH = "Couch"
+        CODE = "Code"
+        ATOM = "Atom"
+        CLOCK_COUNTER_CLOCKWISE = "ClockCounterClockwise"
+
     creator = models.ForeignKey(
         KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True
     )  # Creator will only be null when the agents are managed by admin
@@ -114,6 +147,8 @@ class Agent(BaseModel):
     managed_by_admin = models.BooleanField(default=False)
     chat_model = models.ForeignKey(ChatModelOptions, on_delete=models.CASCADE)
     slug = models.CharField(max_length=200)
+    style_color = models.CharField(max_length=200, choices=StyleColorTypes.choices, default=StyleColorTypes.BLUE)
+    style_icon = models.CharField(max_length=200, choices=StyleIconTypes.choices, default=StyleIconTypes.LIGHBULB)
 
 
 class ProcessLock(BaseModel):

@@ -16,7 +16,6 @@ from starlette.authentication import requires
 from khoj.app.settings import ALLOWED_HOSTS
 from khoj.database.adapters import (
     ConversationAdapters,
-    DataStoreAdapters,
     EntryAdapters,
     FileObjectAdapters,
     PublicConversationAdapters,
@@ -54,7 +53,7 @@ from khoj.utils.helpers import (
     get_device,
     is_none_or_empty,
 )
-from khoj.utils.rawconfig import FilterRequest, LocationData
+from khoj.utils.rawconfig import FileFilterRequest, FilesFilterRequest, LocationData
 
 # Initialize Router
 logger = logging.getLogger(__name__)
@@ -88,68 +87,36 @@ def get_file_filter(request: Request, conversation_id: str) -> Response:
     return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
 
 
-class FactCheckerStoreDataFormat(BaseModel):
-    factToVerify: str
-    response: str
-    references: Any
-    childReferences: List[Any]
-    runId: str
-    modelUsed: Dict[str, Any]
-
-
-class FactCheckerStoreData(BaseModel):
-    runId: str
-    storeData: FactCheckerStoreDataFormat
-
-
-@api_chat.post("/store/factchecker", response_class=Response)
+@api_chat.delete("/conversation/file-filters/bulk", response_class=Response)
 @requires(["authenticated"])
-async def store_factchecker(request: Request, common: CommonQueryParams, data: FactCheckerStoreData):
-    user = request.user.object
-
-    update_telemetry_state(
-        request=request,
-        telemetry_type="api",
-        api="store_factchecker",
-        **common.__dict__,
-    )
-    fact_checker_key = f"factchecker_{data.runId}"
-    await DataStoreAdapters.astore_data(data.storeData.model_dump_json(), fact_checker_key, user, private=False)
-    return Response(content=json.dumps({"status": "ok"}), media_type="application/json", status_code=200)
+def remove_files_filter(request: Request, filter: FilesFilterRequest) -> Response:
+    conversation_id = int(filter.conversation_id)
+    files_filter = filter.filenames
+    file_filters = ConversationAdapters.remove_files_from_filter(request.user.object, conversation_id, files_filter)
+    return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
 
 
-@api_chat.get("/store/factchecker", response_class=Response)
-async def get_factchecker(request: Request, common: CommonQueryParams, runId: str):
-    update_telemetry_state(
-        request=request,
-        telemetry_type="api",
-        api="read_factchecker",
-        **common.__dict__,
-    )
-
-    fact_checker_key = f"factchecker_{runId}"
-
-    data = await DataStoreAdapters.aretrieve_public_data(fact_checker_key)
-    if data is None:
-        return Response(status_code=404)
-    return Response(content=json.dumps(data.value), media_type="application/json", status_code=200)
+@api_chat.post("/conversation/file-filters/bulk", response_class=Response)
+@requires(["authenticated"])
+def add_files_filter(request: Request, filter: FilesFilterRequest):
+    try:
+        conversation_id = int(filter.conversation_id)
+        files_filter = filter.filenames
+        file_filters = ConversationAdapters.add_files_to_filter(request.user.object, conversation_id, files_filter)
+        return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
+    except Exception as e:
+        logger.error(f"Error adding file filter {filter.filename}: {e}", exc_info=True)
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 @api_chat.post("/conversation/file-filters", response_class=Response)
 @requires(["authenticated"])
-def add_file_filter(request: Request, filter: FilterRequest):
+def add_file_filter(request: Request, filter: FileFilterRequest):
     try:
-        conversation = ConversationAdapters.get_conversation_by_user(
-            request.user.object, conversation_id=int(filter.conversation_id)
-        )
-        file_list = EntryAdapters.get_all_filenames_by_source(request.user.object, "computer")
-        if filter.filename in file_list and filter.filename not in conversation.file_filters:
-            conversation.file_filters.append(filter.filename)
-            conversation.save()
-        # remove files from conversation.file_filters that are not in file_list
-        conversation.file_filters = [file for file in conversation.file_filters if file in file_list]
-        conversation.save()
-        return Response(content=json.dumps(conversation.file_filters), media_type="application/json", status_code=200)
+        conversation_id = int(filter.conversation_id)
+        files_filter = [filter.filename]
+        file_filters = ConversationAdapters.add_files_to_filter(request.user.object, conversation_id, files_filter)
+        return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
     except Exception as e:
         logger.error(f"Error adding file filter {filter.filename}: {e}", exc_info=True)
         raise HTTPException(status_code=422, detail=str(e))
@@ -157,18 +124,11 @@ def add_file_filter(request: Request, filter: FilterRequest):
 
 @api_chat.delete("/conversation/file-filters", response_class=Response)
 @requires(["authenticated"])
-def remove_file_filter(request: Request, filter: FilterRequest) -> Response:
-    conversation = ConversationAdapters.get_conversation_by_user(
-        request.user.object, conversation_id=int(filter.conversation_id)
-    )
-    if filter.filename in conversation.file_filters:
-        conversation.file_filters.remove(filter.filename)
-    conversation.save()
-    # remove files from conversation.file_filters that are not in file_list
-    file_list = EntryAdapters.get_all_filenames_by_source(request.user.object, "computer")
-    conversation.file_filters = [file for file in conversation.file_filters if file in file_list]
-    conversation.save()
-    return Response(content=json.dumps(conversation.file_filters), media_type="application/json", status_code=200)
+def remove_file_filter(request: Request, filter: FileFilterRequest) -> Response:
+    conversation_id = int(filter.conversation_id)
+    files_filter = [filter.filename]
+    file_filters = ConversationAdapters.remove_files_from_filter(request.user.object, conversation_id, files_filter)
+    return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
 
 
 class FeedbackData(BaseModel):
@@ -191,10 +151,10 @@ async def text_to_speech(
     common: CommonQueryParams,
     text: str,
     rate_limiter_per_minute=Depends(
-        ApiUserRateLimiter(requests=5, subscribed_requests=20, window=60, slug="chat_minute")
+        ApiUserRateLimiter(requests=20, subscribed_requests=20, window=60, slug="chat_minute")
     ),
     rate_limiter_per_day=Depends(
-        ApiUserRateLimiter(requests=5, subscribed_requests=300, window=60 * 60 * 24, slug="chat_day")
+        ApiUserRateLimiter(requests=50, subscribed_requests=300, window=60 * 60 * 24, slug="chat_day")
     ),
 ) -> Response:
     voice_model = await ConversationAdapters.aget_voice_model_config(request.user.object)
@@ -248,6 +208,9 @@ def chat_history(
             "name": conversation.agent.name,
             "avatar": conversation.agent.avatar,
             "isCreator": conversation.agent.creator == user,
+            "color": conversation.agent.style_color,
+            "icon": conversation.agent.style_icon,
+            "persona": conversation.agent.personality,
         }
 
     meta_log = conversation.conversation_log
@@ -302,13 +265,21 @@ def get_shared_chat(
             "name": conversation.agent.name,
             "avatar": conversation.agent.avatar,
             "isCreator": conversation.agent.creator == user,
+            "color": conversation.agent.style_color,
+            "icon": conversation.agent.style_icon,
+            "persona": conversation.agent.personality,
         }
 
     meta_log = conversation.conversation_log
+    scrubbed_title = conversation.title if conversation.title else conversation.slug
+
+    if scrubbed_title:
+        scrubbed_title = scrubbed_title.replace("-", " ")
+
     meta_log.update(
         {
             "conversation_id": conversation.id,
-            "slug": conversation.title if conversation.title else conversation.slug,
+            "slug": scrubbed_title,
             "agent": agent_metadata,
         }
     )
@@ -324,7 +295,7 @@ def get_shared_chat(
     update_telemetry_state(
         request=request,
         telemetry_type="api",
-        api="public_conversation_history",
+        api="chat_history",
         **common.__dict__,
     )
 
@@ -366,7 +337,7 @@ def fork_public_conversation(
     public_conversation = PublicConversationAdapters.get_public_conversation_by_slug(public_conversation_slug)
 
     # Duplicate Public Conversation to User's Private Conversation
-    ConversationAdapters.create_conversation_from_public_conversation(
+    new_conversation = ConversationAdapters.create_conversation_from_public_conversation(
         user, public_conversation, request.user.client_app
     )
 
@@ -382,7 +353,16 @@ def fork_public_conversation(
 
     redirect_uri = str(request.app.url_path_for("chat_page"))
 
-    return Response(status_code=200, content=json.dumps({"status": "ok", "next_url": redirect_uri}))
+    return Response(
+        status_code=200,
+        content=json.dumps(
+            {
+                "status": "ok",
+                "next_url": redirect_uri,
+                "conversation_id": new_conversation.id,
+            }
+        ),
+    )
 
 
 @api_chat.post("/share")
@@ -423,15 +403,30 @@ def duplicate_chat_history_public_conversation(
 def chat_sessions(
     request: Request,
     common: CommonQueryParams,
+    recent: Optional[bool] = False,
 ):
     user = request.user.object
 
     # Load Conversation Sessions
-    sessions = ConversationAdapters.get_conversation_sessions(user, request.user.client_app).values_list(
-        "id", "slug", "title"
+    conversations = ConversationAdapters.get_conversation_sessions(user, request.user.client_app)
+    if recent:
+        conversations = conversations[:8]
+
+    sessions = conversations.values_list(
+        "id", "slug", "title", "agent__slug", "agent__name", "agent__avatar", "created_at", "updated_at"
     )
 
-    session_values = [{"conversation_id": session[0], "slug": session[2] or session[1]} for session in sessions]
+    session_values = [
+        {
+            "conversation_id": session[0],
+            "slug": session[2] or session[1],
+            "agent_name": session[4],
+            "agent_avatar": session[5],
+            "created": session[6].strftime("%Y-%m-%d %H:%M:%S"),
+            "updated": session[7].strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        for session in sessions
+    ]
 
     update_telemetry_state(
         request=request,
@@ -473,7 +468,6 @@ async def create_chat_session(
 
 
 @api_chat.get("/options", response_class=Response)
-@requires(["authenticated"])
 async def chat_options(
     request: Request,
     common: CommonQueryParams,
@@ -610,6 +604,8 @@ async def chat(
                 metadata=chat_metadata,
             )
 
+        conversation_commands = [get_conversation_command(query=q, any_references=True)]
+
         conversation = await ConversationAdapters.aget_conversation_by_user(
             user, client_application=request.user.client_app, conversation_id=conversation_id, title=title
         )
@@ -631,10 +627,6 @@ async def chat(
             return
 
         user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        conversation_commands = [get_conversation_command(query=q, any_references=True)]
-
-        async for result in send_event(ChatEvent.STATUS, f"**👀 Understanding Query**: {q}"):
-            yield result
 
         meta_log = conversation.conversation_log
         is_automated_task = conversation_commands == [ConversationCommand.AutomatedTask]
@@ -643,12 +635,12 @@ async def chat(
             conversation_commands = await aget_relevant_information_sources(q, meta_log, is_automated_task)
             conversation_commands_str = ", ".join([cmd.value for cmd in conversation_commands])
             async for result in send_event(
-                ChatEvent.STATUS, f"**🗃️ Chose Data Sources to Search:** {conversation_commands_str}"
+                ChatEvent.STATUS, f"**Chose Data Sources to Search:** {conversation_commands_str}"
             ):
                 yield result
 
             mode = await aget_relevant_output_modes(q, meta_log, is_automated_task)
-            async for result in send_event(ChatEvent.STATUS, f"**🧑🏾‍💻 Decided Response Mode:** {mode.value}"):
+            async for result in send_event(ChatEvent.STATUS, f"**Decided Response Mode:** {mode.value}"):
                 yield result
             if mode not in conversation_commands:
                 conversation_commands.append(mode)
@@ -691,7 +683,7 @@ async def chat(
                     if not q:
                         q = "Create a general summary of the file"
                     async for result in send_event(
-                        ChatEvent.STATUS, f"**🧑🏾‍💻 Constructing Summary Using:** {file_object[0].file_name}"
+                        ChatEvent.STATUS, f"**Constructing Summary Using:** {file_object[0].file_name}"
                     ):
                         yield result
 
@@ -783,7 +775,7 @@ async def chat(
 
         if not is_none_or_empty(compiled_references):
             headings = "\n- " + "\n- ".join(set([c.get("compiled", c).split("\n")[0] for c in compiled_references]))
-            async for result in send_event(ChatEvent.STATUS, f"**📜 Found Relevant Notes**: {headings}"):
+            async for result in send_event(ChatEvent.STATUS, f"**Found Relevant Notes**: {headings}"):
                 yield result
 
         online_results: Dict = dict()
@@ -832,7 +824,7 @@ async def chat(
 
                     for webpage in direct_web_pages[query]["webpages"]:
                         webpages.append(webpage["link"])
-                async for result in send_event(ChatEvent.STATUS, f"**📚 Read web pages**: {webpages}"):
+                async for result in send_event(ChatEvent.STATUS, f"**Read web pages**: {webpages}"):
                     yield result
             except ValueError as e:
                 logger.warning(
@@ -902,7 +894,7 @@ async def chat(
             return
 
         ## Generate Text Output
-        async for result in send_event(ChatEvent.STATUS, f"**💭 Generating a well-informed response**"):
+        async for result in send_event(ChatEvent.STATUS, f"**Generating a well-informed response**"):
             yield result
         llm_response, chat_metadata = await agenerate_chat_response(
             defiltered_query,

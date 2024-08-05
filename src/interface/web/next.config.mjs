@@ -10,6 +10,14 @@ const nextConfig = {
                 source: '/api/:path*',
                 destination: 'http://localhost:42110/api/:path*',
             },
+            {
+                source: '/auth/:path*',
+                destination: 'http://localhost:42110/auth/:path*',
+            },
+            {
+                source: '/static/:path*',
+                destination: 'http://localhost:42110/static/:path*',
+            },
         ];
     },
     trailingSlash: true,

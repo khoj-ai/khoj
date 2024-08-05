@@ -75,7 +75,7 @@ def test_index_update_with_no_auth_key(client):
     files = get_sample_files_data()
 
     # Act
-    response = client.post("/api/v1/index/update", files=files)
+    response = client.patch("/api/content", files=files)
 
     # Assert
     assert response.status_code == 403
@@ -89,7 +89,7 @@ def test_index_update_with_invalid_auth_key(client):
     headers = {"Authorization": "Bearer kk-invalid-token"}
 
     # Act
-    response = client.post("/api/v1/index/update", files=files, headers=headers)
+    response = client.patch("/api/content", files=files, headers=headers)
 
     # Assert
     assert response.status_code == 403
@@ -132,7 +132,7 @@ def test_index_update_big_files(client):
     headers = {"Authorization": "Bearer kk-secret"}
 
     # Act
-    response = client.post("/api/v1/index/update", files=files, headers=headers)
+    response = client.patch("/api/content", files=files, headers=headers)
 
     # Assert
     assert response.status_code == 429
@@ -148,7 +148,7 @@ def test_index_update_medium_file_unsubscribed(client, api_user4: KhojApiUser):
     headers = {"Authorization": f"Bearer {api_token}"}
 
     # Act
-    response = client.post("/api/v1/index/update", files=files, headers=headers)
+    response = client.patch("/api/content", files=files, headers=headers)
 
     # Assert
     assert response.status_code == 429
@@ -164,7 +164,7 @@ def test_index_update_normal_file_unsubscribed(client, api_user4: KhojApiUser):
     headers = {"Authorization": f"Bearer {api_token}"}
 
     # Act
-    response = client.post("/api/v1/index/update", files=files, headers=headers)
+    response = client.patch("/api/content", files=files, headers=headers)
 
     # Assert
     assert response.status_code == 200
@@ -179,7 +179,7 @@ def test_index_update_big_files_no_billing(client):
     headers = {"Authorization": "Bearer kk-secret"}
 
     # Act
-    response = client.post("/api/v1/index/update", files=files, headers=headers)
+    response = client.patch("/api/content", files=files, headers=headers)
 
     # Assert
     assert response.status_code == 200
@@ -193,7 +193,7 @@ def test_index_update(client):
     headers = {"Authorization": "Bearer kk-secret"}
 
     # Act
-    response = client.post("/api/v1/index/update", files=files, headers=headers)
+    response = client.patch("/api/content", files=files, headers=headers)
 
     # Assert
     assert response.status_code == 200
@@ -210,8 +210,8 @@ def test_index_update_fails_if_more_than_1000_files(client, api_user4: KhojApiUs
     headers = {"Authorization": f"Bearer {api_token}"}
 
     # Act
-    ok_response = client.post("/api/v1/index/update", files=files[:1000], headers=headers)
-    bad_response = client.post("/api/v1/index/update", files=files, headers=headers)
+    ok_response = client.patch("/api/content", files=files[:1000], headers=headers)
+    bad_response = client.patch("/api/content", files=files, headers=headers)
 
     # Assert
     assert ok_response.status_code == 200
@@ -228,7 +228,7 @@ def test_regenerate_with_valid_content_type(client):
         headers = {"Authorization": "Bearer kk-secret"}
 
         # Act
-        response = client.post(f"/api/v1/index/update?t={content_type}", files=files, headers=headers)
+        response = client.patch(f"/api/content?t={content_type}", files=files, headers=headers)
 
         # Assert
         assert response.status_code == 200, f"Returned status: {response.status_code} for content type: {content_type}"
@@ -245,7 +245,7 @@ def test_regenerate_with_github_fails_without_pat(client):
     files = get_sample_files_data()
 
     # Act
-    response = client.post(f"/api/v1/index/update?t=github", files=files, headers=headers)
+    response = client.patch(f"/api/content?t=github", files=files, headers=headers)
 
     # Assert
     assert response.status_code == 200, f"Returned status: {response.status_code} for content type: github"
@@ -271,11 +271,11 @@ def test_get_api_config_types(client, sample_org_data, default_user: KhojUser):
     text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)
 
     # Act
-    response = client.get(f"/api/config/types", headers=headers)
+    response = client.get(f"/api/content/types", headers=headers)
 
     # Assert
     assert response.status_code == 200
-    assert response.json() == ["all", "org", "plaintext"]
+    assert set(response.json()) == {"all", "org", "plaintext"}
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -291,7 +291,7 @@ def test_get_configured_types_with_no_content_config(fastapi_app: FastAPI):
     client = TestClient(fastapi_app)
 
     # Act
-    response = client.get(f"/api/config/types")
+    response = client.get(f"/api/content/types")
 
     # Assert
     assert response.status_code == 200

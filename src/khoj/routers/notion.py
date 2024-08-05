@@ -11,7 +11,7 @@ from starlette.responses import RedirectResponse
 
 from khoj.database.adapters import aget_user_by_uuid
 from khoj.database.models import KhojUser, NotionConfig
-from khoj.routers.indexer import configure_content
+from khoj.routers.helpers import configure_content
 from khoj.utils.state import SearchType
 
 NOTION_OAUTH_CLIENT_ID = os.getenv("NOTION_OAUTH_CLIENT_ID")
@@ -23,12 +23,6 @@ notion_router = APIRouter()
 executor = ThreadPoolExecutor()
 
 logger = logging.getLogger(__name__)
-
-
-def get_notion_auth_url(user: KhojUser):
-    if not NOTION_OAUTH_CLIENT_ID or not NOTION_OAUTH_CLIENT_SECRET or not NOTION_REDIRECT_URI:
-        return None
-    return f"https://api.notion.com/v1/oauth/authorize?client_id={NOTION_OAUTH_CLIENT_ID}&redirect_uri={NOTION_REDIRECT_URI}&response_type=code&state={user.uuid}"
 
 
 async def run_in_executor(func, *args):
@@ -86,6 +80,6 @@ async def notion_auth_callback(request: Request, background_tasks: BackgroundTas
     notion_redirect = str(request.app.url_path_for("notion_config_page"))
 
     # Trigger an async job to configure_content. Let it run without blocking the response.
-    background_tasks.add_task(run_in_executor, configure_content, {}, False, SearchType.Notion, True, user)
+    background_tasks.add_task(run_in_executor, configure_content, {}, False, SearchType.Notion, user)
 
     return RedirectResponse(notion_redirect)

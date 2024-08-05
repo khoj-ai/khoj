@@ -1,0 +1,42 @@
+div.page {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    height: 100vh;
+    color: hsla(var(--foreground));
+}
+div.contentBody {
+    display: grid;
+    margin: auto;
+    margin-left: 20vw;
+    margin-top: 1rem;
+}
+
+div.phoneInput {
+    padding: 0rem;
+}
+
+div.sidePanel {
+    position: fixed;
+    height: 100%;
+}
+
+div.phoneInput input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid hsla(var(--border));
+    border-radius: 0.25rem;
+}
+
+@media screen and (max-width: 768px) {
+
+    div.sidePanel {
+        position: relative;
+        height: 100%;
+    }
+
+    div.contentBody {
+        margin-left: 0;
+        margin-top: 0;
+    }
+}
