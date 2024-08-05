@@ -413,7 +413,7 @@ def chat_sessions(
         conversations = conversations[:8]
 
     sessions = conversations.values_list(
-        "id", "slug", "title", "agent__slug", "agent__name", "agent__avatar", "created_at"
+        "id", "slug", "title", "agent__slug", "agent__name", "agent__avatar", "created_at", "updated_at"
     )
 
     session_values = [
@@ -423,6 +423,7 @@ def chat_sessions(
             "agent_name": session[4],
             "agent_avatar": session[5],
             "created": session[6].strftime("%Y-%m-%d %H:%M:%S"),
+            "updated": session[7].strftime("%Y-%m-%d %H:%M:%S"),
         }
         for session in sessions
     ]
