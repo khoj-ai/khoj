@@ -752,7 +752,7 @@ class ConversationAdapters:
         voice_model_config = await UserVoiceModelConfig.objects.filter(user=user).prefetch_related("setting").afirst()
         if voice_model_config:
             return voice_model_config.setting
-        return None
+        return await VoiceModelOption.objects.afirst()
 
     @staticmethod
     def get_voice_model_options():
@@ -763,7 +763,7 @@ class ConversationAdapters:
         voice_model_config = UserVoiceModelConfig.objects.filter(user=user).prefetch_related("setting").first()
         if voice_model_config:
             return voice_model_config.setting
-        return None
+        return VoiceModelOption.objects.first()
 
     @staticmethod
     def get_default_conversation_config():
