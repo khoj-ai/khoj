@@ -21,6 +21,9 @@ import {
     House,
     Translate,
     Image,
+    BowlFood,
+    Lectern,
+    Wallet,
 } from "@phosphor-icons/react";
 import { Markdown, OrgMode, Pdf, Word } from "@/app/components/logo/fileLogo";
 
@@ -82,6 +85,15 @@ const iconMap: IconMap = {
     ),
     Translate: (color: string, width: string, height: string) => (
         <Translate className={`${width} ${height} ${color} mr-2`} />
+    ),
+    BowlFood: (color: string, width: string, height: string) => (
+        <BowlFood className={`${width} ${height} ${color} mr-2`} />
+    ),
+    Lectern: (color: string, width: string, height: string) => (
+        <Lectern className={`${width} ${height} ${color} mr-2`} />
+    ),
+    Wallet: (color: string, width: string, height: string) => (
+        <Wallet className={`${width} ${height} ${color} mr-2`} />
     ),
 };
 

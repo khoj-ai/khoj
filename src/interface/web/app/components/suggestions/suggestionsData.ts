@@ -1,3 +1,5 @@
+import { getIconFromIconName } from "@/app/common/iconUtils";
+
 export interface Suggestion {
     type: string;
     color: string;
@@ -5,7 +7,7 @@ export interface Suggestion {
     link: string;
 }
 
-enum SuggestionType {
+export enum SuggestionType {
     Automation = "Automation",
     Paint = "Paint",
     Travel = "Travel",
@@ -18,6 +20,7 @@ enum SuggestionType {
     Home = "Home",
     Fun = "Fun",
     Code = "Code",
+    Finance = "Finance",
 }
 
 const suggestionToColorMap: { [key in SuggestionType]?: string } = {};
@@ -27,7 +30,7 @@ function addSuggestionColorMap(type: SuggestionType, color: string) {
 }
 
 addSuggestionColorMap(SuggestionType.Automation, "blue");
-addSuggestionColorMap(SuggestionType.Paint, "green");
+addSuggestionColorMap(SuggestionType.Paint, "indigo");
 addSuggestionColorMap(SuggestionType.Travel, "yellow");
 addSuggestionColorMap(SuggestionType.Health, "orange");
 addSuggestionColorMap(SuggestionType.Learning, "purple");
@@ -38,8 +41,27 @@ addSuggestionColorMap(SuggestionType.Interviewing, "purple");
 addSuggestionColorMap(SuggestionType.Home, "green");
 addSuggestionColorMap(SuggestionType.Fun, "fuchsia");
 addSuggestionColorMap(SuggestionType.Code, "purple");
+addSuggestionColorMap(SuggestionType.Finance, "green")
 
 const DEFAULT_COLOR = "orange";
+
+export function convertSuggestionTitleToIconClass(title: string, color: string) {
+    if (title === SuggestionType.Automation) return getIconFromIconName("Robot", color, "w-8", "h-8");
+    if (title === SuggestionType.Paint) return getIconFromIconName("Palette", color, "w-8", "h-8");
+    if (title === SuggestionType.PopCulture) return getIconFromIconName("Confetti", color, "w-8", "h-8");
+    if (title === SuggestionType.Travel) return getIconFromIconName("Jeep", color, "w-8", "h-8");
+    if (title === SuggestionType.Learning) return getIconFromIconName("Book", color, "w-8", "h-8");
+    if (title === SuggestionType.Health) return getIconFromIconName("Asclepius", color, "w-8", "h-8");
+    if (title === SuggestionType.Fun) return getIconFromIconName("Island", color, "w-8", "h-8");
+    if (title === SuggestionType.Home) return getIconFromIconName("House", color, "w-8", "h-8");
+    if (title === SuggestionType.Language) return getIconFromIconName("Translate", color, "w-8", "h-8");
+    if (title === SuggestionType.Code) return getIconFromIconName("Code", color, "w-8", "h-8");
+    if (title === SuggestionType.Food) return getIconFromIconName("BowlFood", color, "w-8", "h-8");
+    if (title === SuggestionType.Interviewing) return getIconFromIconName("Lectern", color, "w-8", "h-8");
+    if (title === SuggestionType.Finance) return getIconFromIconName("Wallet", color, "w-8", "h-8");
+    else return getIconFromIconName("Lightbulb", color, "w-8", "h-8");
+}
+
 
 
 export const suggestionsData: Suggestion[] = [
@@ -598,5 +620,65 @@ export const suggestionsData: Suggestion[] = [
         color: suggestionToColorMap[SuggestionType.Fun] || DEFAULT_COLOR,
         description: "Create a list of fun activities for a family game night.",
         link: "",
-    }
+    },
+    {
+        type: SuggestionType.Finance,
+        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
+        description: "Explain the concept of compound interest and its importance in long-term savings.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Finance,
+        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
+        description: "Provide an overview of different types of retirement accounts (e.g., 401(k), IRA, Roth IRA).",
+        link: "",
+    },
+    {
+        type: SuggestionType.Finance,
+        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
+        description: "Describe strategies for creating and sticking to a personal budget.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Finance,
+        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
+        description: "Explain the basics of stock market investing for beginners.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Finance,
+        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
+        description: "Outline the pros and cons of renting vs. buying a home.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Finance,
+        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
+        description: "Describe different methods for paying off debt, such as the snowball and avalanche methods.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Finance,
+        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
+        description: "Explain the importance of an emergency fund and how to build one.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Finance,
+        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
+        description: "Provide an overview of different types of insurance and their importance in financial planning.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Finance,
+        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
+        description: "Explain the concept of diversification in investment portfolios.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Finance,
+        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
+        description: "Describe strategies for minimizing tax liability legally.",
+        link: "",
+    },
 ];
