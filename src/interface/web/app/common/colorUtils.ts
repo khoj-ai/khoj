@@ -10,7 +10,7 @@ const tailwindColors = [
     "cyan",
     "lime",
     "indigo",
-    "fuschia",
+    "fuchsia",
     "rose",
     "sky",
     "amber",
