@@ -9,6 +9,10 @@ do
             # Get version type to bump. Options: major, minor, patch
             version_type=$OPTARG
 
+            # Bump Web app to current version
+            cd $project_root/src/interface/web
+            yarn version --$version_type --no-git-tag-version
+
             # Bump Desktop app to current version
             cd $project_root/src/interface/desktop
             yarn version --$version_type --no-git-tag-version
@@ -40,6 +44,7 @@ do
 
             # Commit changes and tag commit for release
             git add \
+                $project_root/src/interface/web/package.json \
                 $project_root/src/interface/desktop/package.json \
                 $project_root/src/interface/obsidian/package.json \
                 $project_root/src/interface/obsidian/yarn.lock \
@@ -54,6 +59,10 @@ do
         c)
             # Get current project version
             current_version=$OPTARG
+
+            # Bump Web app to current version
+            cd $project_root/src/interface/web
+            yarn version --new-version $current_version --no-git-tag-version
 
             # Bump Desktop app to current version
             cd $project_root/src/interface/desktop
@@ -82,6 +91,7 @@ do
 
             # Commit changes and tag commit for release
             git add \
+                $project_root/src/interface/web/package.json \
                 $project_root/src/interface/desktop/package.json \
                 $project_root/src/interface/obsidian/package.json \
                 $project_root/src/interface/obsidian/yarn.lock \
@@ -98,6 +108,10 @@ do
             # remove .dev[commits-since-tag] version suffix from hatch computed version number
             next_version=$(touch bump.txt && git add bump.txt && hatch version | sed 's/\.dev.*//g')
             git rm --cached -- bump.txt && rm bump.txt
+
+            # Bump Web app to next version
+            cd $project_root/src/interface/web
+            yarn version --new-version $next_version --no-git-tag-version
 
             # Bump Desktop app to next version
             cd $project_root/src/interface/desktop
@@ -120,6 +134,7 @@ do
 
             # Commit changes
             git add \
+                $project_root/src/interface/web/package.json \
                 $project_root/src/interface/desktop/package.json \
                 $project_root/src/interface/obsidian/package.json \
                 $project_root/src/interface/obsidian/yarn.lock \
