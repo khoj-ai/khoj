@@ -2,5 +2,8 @@
     "id": "",
     "icon": "./assets/icons/favicon.icns",
     "appPath": ".",
-    "schemaVersion": 1
+    "schemaVersion": 1,
+    "windows": {
+        "icon": "./assets/icons/favicon.ico"
+    }
 }
