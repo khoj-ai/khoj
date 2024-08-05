@@ -11,6 +11,7 @@
         "cicollectstatic": "bash -c 'pushd ../../../ && python3 src/khoj/manage.py collectstatic --noinput && popd'",
         "export": "yarn build && cp -r out/ ../../khoj/interface/built && yarn collectstatic",
         "ciexport": "yarn build && cp -r out/ ../../khoj/interface/built && yarn cicollectstatic",
+        "pypiciexport": "yarn build && cp -r out/ /opt/hostedtoolcache/Python/3.11.9/x64/lib/python3.11/site-packages/khoj/interface/built && yarn cicollectstatic",
         "watch": "nodemon --watch . --ext js,jsx,ts,tsx,css --ignore 'out/**/*' --exec 'yarn export'",
         "windowswatch": "nodemon --watch . --ext js,jsx,ts,tsx,css --ignore 'out/**/*' --exec 'yarn windowsexport'",
         "windowscollectstatic": "cd ..\\..\\.. && .\\.venv\\Scripts\\Activate.bat && py .\\src\\khoj\\manage.py collectstatic --noinput && .\\.venv\\Scripts\\deactivate.bat && cd ..",

@@ -42,7 +42,7 @@ jobs:
       - name: ⬇️ Install Web Client
         run: |
           yarn install
-          yarn ciexport
+          yarn pypiciexport
         working-directory: src/interface/web
 
       - name: ⚙️ Build Python Package
