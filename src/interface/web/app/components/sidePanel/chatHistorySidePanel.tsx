@@ -64,6 +64,7 @@ interface ChatHistory {
     agent_avatar: string;
     compressed: boolean;
     created: string;
+    updated: string;
     showSidePanel: (isEnabled: boolean) => void;
 }
 
@@ -391,6 +392,7 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                                             props.subsetOrganizedData[timeGrouping].map(
                                                 (chatHistory) => (
                                                     <ChatSession
+                                                        updated={chatHistory.updated}
                                                         created={chatHistory.created}
                                                         compressed={true}
                                                         key={chatHistory.conversation_id}
@@ -668,6 +670,7 @@ function ChatSessionsModal({ data, showSidePanel }: ChatSessionsModalProps) {
                                         </div>
                                         {data[timeGrouping].map((chatHistory) => (
                                             <ChatSession
+                                                updated={chatHistory.updated}
                                                 created={chatHistory.created}
                                                 compressed={false}
                                                 key={chatHistory.conversation_id}
@@ -735,8 +738,8 @@ export default function SidePanel(props: SidePanelProps) {
 
             const currentDate = new Date();
 
-            chatSessions.forEach((chatHistory) => {
-                const chatDate = new Date(chatHistory.created);
+            chatSessions.forEach((chatSessionMetadata) => {
+                const chatDate = new Date(chatSessionMetadata.updated);
                 const diffTime = Math.abs(currentDate.getTime() - chatDate.getTime());
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
@@ -745,14 +748,14 @@ export default function SidePanel(props: SidePanelProps) {
                 if (!groupedData[timeGrouping]) {
                     groupedData[timeGrouping] = [];
                 }
-                groupedData[timeGrouping].push(chatHistory);
+                groupedData[timeGrouping].push(chatSessionMetadata);
 
                 // Add to subsetOrganizedData if less than 8
                 if (numAdded < 8) {
                     if (!subsetOrganizedData[timeGrouping]) {
                         subsetOrganizedData[timeGrouping] = [];
                     }
-                    subsetOrganizedData[timeGrouping].push(chatHistory);
+                    subsetOrganizedData[timeGrouping].push(chatSessionMetadata);
                     numAdded++;
                 }
             });
