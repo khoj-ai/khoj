@@ -41,28 +41,31 @@ addSuggestionColorMap(SuggestionType.Interviewing, "purple");
 addSuggestionColorMap(SuggestionType.Home, "green");
 addSuggestionColorMap(SuggestionType.Fun, "fuchsia");
 addSuggestionColorMap(SuggestionType.Code, "purple");
-addSuggestionColorMap(SuggestionType.Finance, "green")
+addSuggestionColorMap(SuggestionType.Finance, "green");
 
 const DEFAULT_COLOR = "orange";
 
 export function convertSuggestionTitleToIconClass(title: string, color: string) {
-    if (title === SuggestionType.Automation) return getIconFromIconName("Robot", color, "w-8", "h-8");
+    if (title === SuggestionType.Automation)
+        return getIconFromIconName("Robot", color, "w-8", "h-8");
     if (title === SuggestionType.Paint) return getIconFromIconName("Palette", color, "w-8", "h-8");
-    if (title === SuggestionType.PopCulture) return getIconFromIconName("Confetti", color, "w-8", "h-8");
+    if (title === SuggestionType.PopCulture)
+        return getIconFromIconName("Confetti", color, "w-8", "h-8");
     if (title === SuggestionType.Travel) return getIconFromIconName("Jeep", color, "w-8", "h-8");
     if (title === SuggestionType.Learning) return getIconFromIconName("Book", color, "w-8", "h-8");
-    if (title === SuggestionType.Health) return getIconFromIconName("Asclepius", color, "w-8", "h-8");
+    if (title === SuggestionType.Health)
+        return getIconFromIconName("Asclepius", color, "w-8", "h-8");
     if (title === SuggestionType.Fun) return getIconFromIconName("Island", color, "w-8", "h-8");
     if (title === SuggestionType.Home) return getIconFromIconName("House", color, "w-8", "h-8");
-    if (title === SuggestionType.Language) return getIconFromIconName("Translate", color, "w-8", "h-8");
+    if (title === SuggestionType.Language)
+        return getIconFromIconName("Translate", color, "w-8", "h-8");
     if (title === SuggestionType.Code) return getIconFromIconName("Code", color, "w-8", "h-8");
     if (title === SuggestionType.Food) return getIconFromIconName("BowlFood", color, "w-8", "h-8");
-    if (title === SuggestionType.Interviewing) return getIconFromIconName("Lectern", color, "w-8", "h-8");
+    if (title === SuggestionType.Interviewing)
+        return getIconFromIconName("Lectern", color, "w-8", "h-8");
     if (title === SuggestionType.Finance) return getIconFromIconName("Wallet", color, "w-8", "h-8");
     else return getIconFromIconName("Lightbulb", color, "w-8", "h-8");
 }
-
-
 
 export const suggestionsData: Suggestion[] = [
     {
@@ -516,19 +519,22 @@ export const suggestionsData: Suggestion[] = [
     {
         type: SuggestionType.Learning,
         color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Guide a high school student through solving a quadratic equation step-by-step.",
+        description:
+            "Guide a high school student through solving a quadratic equation step-by-step.",
         link: "",
     },
     {
         type: SuggestionType.Learning,
         color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Create a series of questions to help a student discover the principles of basic economics.",
+        description:
+            "Create a series of questions to help a student discover the principles of basic economics.",
         link: "",
     },
     {
         type: SuggestionType.Learning,
         color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Develop a hands-on experiment to demonstrate the concept of density to middle schoolers.",
+        description:
+            "Develop a hands-on experiment to demonstrate the concept of density to middle schoolers.",
         link: "",
     },
     {
@@ -540,19 +546,22 @@ export const suggestionsData: Suggestion[] = [
     {
         type: SuggestionType.Learning,
         color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Create a personalized learning plan for a student struggling with grammar concepts.",
+        description:
+            "Create a personalized learning plan for a student struggling with grammar concepts.",
         link: "",
     },
     {
         type: SuggestionType.Learning,
         color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Design a series of questions to encourage critical thinking about climate change.",
+        description:
+            "Design a series of questions to encourage critical thinking about climate change.",
         link: "",
     },
     {
         type: SuggestionType.Learning,
         color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Develop a step-by-step guide for conducting a basic science experiment on plant growth.",
+        description:
+            "Develop a step-by-step guide for conducting a basic science experiment on plant growth.",
         link: "",
     },
     {
@@ -576,7 +585,8 @@ export const suggestionsData: Suggestion[] = [
     {
         type: SuggestionType.Health,
         color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
-        description: "Explain the differences between various types of headaches and their treatments.",
+        description:
+            "Explain the differences between various types of headaches and their treatments.",
         link: "",
     },
     {
@@ -606,7 +616,8 @@ export const suggestionsData: Suggestion[] = [
     {
         type: SuggestionType.Health,
         color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
-        description: "Provide an overview of the different types of cancer screenings and their importance.",
+        description:
+            "Provide an overview of the different types of cancer screenings and their importance.",
         link: "",
     },
     {
@@ -624,13 +635,15 @@ export const suggestionsData: Suggestion[] = [
     {
         type: SuggestionType.Finance,
         color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
-        description: "Explain the concept of compound interest and its importance in long-term savings.",
+        description:
+            "Explain the concept of compound interest and its importance in long-term savings.",
         link: "",
     },
     {
         type: SuggestionType.Finance,
         color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
-        description: "Provide an overview of different types of retirement accounts (e.g., 401(k), IRA, Roth IRA).",
+        description:
+            "Provide an overview of different types of retirement accounts (e.g., 401(k), IRA, Roth IRA).",
         link: "",
     },
     {
@@ -654,7 +667,8 @@ export const suggestionsData: Suggestion[] = [
     {
         type: SuggestionType.Finance,
         color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
-        description: "Describe different methods for paying off debt, such as the snowball and avalanche methods.",
+        description:
+            "Describe different methods for paying off debt, such as the snowball and avalanche methods.",
         link: "",
     },
     {
@@ -666,7 +680,8 @@ export const suggestionsData: Suggestion[] = [
     {
         type: SuggestionType.Finance,
         color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
-        description: "Provide an overview of different types of insurance and their importance in financial planning.",
+        description:
+            "Provide an overview of different types of insurance and their importance in financial planning.",
         link: "",
     },
     {

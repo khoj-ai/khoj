@@ -1,6 +1,9 @@
 {
     "id": "",
-    "icon": "./assets/icons/favicon-128x128.png",
+    "icon": "./assets/icons/favicon.icns",
     "appPath": ".",
-    "schemaVersion": 1
+    "schemaVersion": 1,
+    "windows": {
+        "icon": "./assets/icons/favicon-128x128.png"
+    }
 }

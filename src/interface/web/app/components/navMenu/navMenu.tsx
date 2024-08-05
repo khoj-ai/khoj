@@ -171,7 +171,7 @@ export default function NavMenu() {
                                 </DropdownMenuItem>
                             ) : (
                                 <DropdownMenuItem>
-                                    <Link href="/auth/login" className="no-underline w-full">
+                                    <Link href="/login" className="no-underline w-full">
                                         <div className="flex flex-rows">
                                             <ArrowRight className="w-6 h-6" />
                                             <p className="ml-3 font-semibold">Login</p>
@@ -275,7 +275,7 @@ export default function NavMenu() {
                                     </MenubarItem>
                                 ) : (
                                     <MenubarItem>
-                                        <Link href="/auth/login" className="no-underline w-full">
+                                        <Link href="/login" className="no-underline w-full">
                                             <div className="flex flex-rows">
                                                 <ArrowRight className="w-6 h-6" />
                                                 <p className="ml-3 font-semibold">Login</p>

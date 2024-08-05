@@ -50,10 +50,10 @@
   dependencies:
     defer-to-connect "^2.0.0"
 
-"@todesktop/runtime@^1.3.0":
-  version "1.6.3"
-  resolved "https://registry.yarnpkg.com/@todesktop/runtime/-/runtime-1.6.3.tgz#152dda0ad49e0f0ab0f33493e185b594b8871964"
-  integrity sha512-1PNBSuTSZxlIS5/3lVRRD76/z0i4iqD1H9GItV2arXwWbfwBKwV9h51aLQR0SQ7BgAvzQcHvJTQaiA8WL0ku4g==
+"@todesktop/runtime@^1.6.4":
+  version "1.6.4"
+  resolved "https://registry.yarnpkg.com/@todesktop/runtime/-/runtime-1.6.4.tgz#a9d62a021cf2647c51371c892bfb1d4c5a29ed7e"
+  integrity sha512-n6dOxhrKKsXMM+i2u9iRvoJSR2KCWw0orYK+FT9RbWNPykhuFIYd0yy8dYgYy/OuClKGyGl4SJFi2757FLhWDA==
   dependencies:
     del "^6.0.0"
     electron-updater "^4.6.1"
