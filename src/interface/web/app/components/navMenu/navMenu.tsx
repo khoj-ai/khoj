@@ -34,6 +34,7 @@ import {
     ArrowRight,
     UsersFour,
 } from "@phosphor-icons/react";
+import { KhojAgentLogo, KhojAutomationLogo, KhojSearchLogo } from "../logo/khojLogo";
 
 export default function NavMenu() {
     const userData = useAuthenticatedData();
@@ -99,6 +100,12 @@ export default function NavMenu() {
                         )}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="gap-2">
+                        <DropdownMenuItem className="w-full">
+                            <div className="flex flex-rows">
+                                <p className="font-semibold">{userData?.email}</p>
+                            </div>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem
                             onClick={() => setDarkMode(!darkMode)}
                             className="w-full cursor-pointer"
@@ -117,7 +124,7 @@ export default function NavMenu() {
                         <DropdownMenuItem>
                             <Link href="/agents" className="no-underline w-full">
                                 <div className="flex flex-rows">
-                                    <UsersFour className="w-6 h-6" />
+                                    <KhojAgentLogo className="w-6 h-6" />
                                     <p className="ml-3 font-semibold">Agents</p>
                                 </div>
                             </Link>
@@ -125,7 +132,7 @@ export default function NavMenu() {
                         <DropdownMenuItem>
                             <Link href="/automations" className="no-underline w-full">
                                 <div className="flex flex-rows">
-                                    <Robot className="w-6 h-6" />
+                                    <KhojAutomationLogo className="w-6 h-6" />
                                     <p className="ml-3 font-semibold">Automations</p>
                                 </div>
                             </Link>
@@ -134,7 +141,7 @@ export default function NavMenu() {
                             <DropdownMenuItem>
                                 <Link href="/search" className="no-underline w-full">
                                     <div className="flex flex-rows">
-                                        <MagnifyingGlass className="w-6 h-6" />
+                                        <KhojSearchLogo className="w-6 h-6" />
                                         <p className="ml-3 font-semibold">Search</p>
                                     </div>
                                 </Link>
@@ -200,6 +207,12 @@ export default function NavMenu() {
                             )}
                         </MenubarTrigger>
                         <MenubarContent align="end" className="rounded-xl gap-2">
+                            <MenubarItem className="w-full">
+                                <div className="flex flex-rows">
+                                    <p className="font-semibold">{userData?.email}</p>
+                                </div>
+                            </MenubarItem>
+                            <MenubarSeparator className="dark:bg-white height-[2px] bg-black" />
                             <MenubarItem
                                 onClick={() => setDarkMode(!darkMode)}
                                 className="w-full hover:cursor-pointer"
@@ -218,7 +231,7 @@ export default function NavMenu() {
                             <MenubarItem>
                                 <Link href="/agents" className="no-underline w-full">
                                     <div className="flex flex-rows">
-                                        <UsersFour className="w-6 h-6" />
+                                        <KhojAgentLogo className="w-6 h-6" />
                                         <p className="ml-3 font-semibold">Agents</p>
                                     </div>
                                 </Link>
@@ -226,7 +239,7 @@ export default function NavMenu() {
                             <MenubarItem>
                                 <Link href="/automations" className="no-underline w-full">
                                     <div className="flex flex-rows">
-                                        <Robot className="w-6 h-6" />
+                                        <KhojAutomationLogo className="w-6 h-6" />
                                         <p className="ml-3 font-semibold">Automations</p>
                                     </div>
                                 </Link>
@@ -235,7 +248,7 @@ export default function NavMenu() {
                                 <MenubarItem>
                                     <Link href="/search" className="no-underline w-full">
                                         <div className="flex flex-rows">
-                                            <MagnifyingGlass className="w-6 h-6" />
+                                            <KhojSearchLogo className="w-6 h-6" />
                                             <p className="ml-3 font-semibold">Search</p>
                                         </div>
                                     </Link>

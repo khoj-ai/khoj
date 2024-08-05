@@ -20,8 +20,6 @@ import {
     ArrowRight,
     FileDashed,
     FileMagnifyingGlass,
-    Folder,
-    FolderOpen,
     GithubLogo,
     Lightbulb,
     LinkSimple,
@@ -31,6 +29,7 @@ import {
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { getIconFromFilename } from "../common/iconUtils";
 
 interface AdditionalData {
     file: string;
@@ -87,14 +86,15 @@ function Note(props: NoteResultProps) {
     const fileName = isFileNameURL
         ? note.additional.heading
         : note.additional.file.split("/").pop();
+    const fileIcon = getIconFromFilename(fileName || ".txt", "h-4 w-4 inline mr-2");
 
     return (
         <Card className="bg-secondary h-full shadow-sm rounded-lg bg-gradient-to-b from-background to-slate-50 dark:to-gray-950 border border-muted mb-4">
             <CardHeader>
-                <CardDescription className="p-1 border-muted border w-fit rounded-lg mb-2">
+                <CardTitle className="inline-flex gap-2">
                     {getNoteTypeIcon(note.additional.source)}
-                </CardDescription>
-                <CardTitle>{fileName}</CardTitle>
+                    {fileName}
+                </CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="line-clamp-4 text-muted-foreground">{note.entry}</div>
@@ -118,8 +118,8 @@ function Note(props: NoteResultProps) {
                         {note.additional.file}
                     </a>
                 ) : (
-                    <div className="bg-muted p-1 text-sm rounded-lg text-muted-foreground">
-                        <FolderOpen className="inline m-2" />
+                    <div className="bg-muted p-2 text-sm rounded-lg text-muted-foreground">
+                        {fileIcon}
                         {note.additional.file}
                     </div>
                 )}
@@ -133,6 +133,8 @@ function focusNote(note: SearchResult) {
     const fileName = isFileNameURL
         ? note.additional.heading
         : note.additional.file.split("/").pop();
+    const fileIcon = getIconFromFilename(fileName || ".txt", "h-4 w-4 inline mr-2");
+
     return (
         <Card className="bg-secondary h-full shadow-sm rounded-lg bg-gradient-to-b from-background to-slate-50 dark:to-gray-950 border border-muted mb-4">
             <CardHeader>
@@ -150,7 +152,7 @@ function focusNote(note: SearchResult) {
                     </a>
                 ) : (
                     <div className="bg-muted p-3 text-sm rounded-lg text-muted-foreground flex items-center gap-2">
-                        <FolderOpen className="inline" />
+                        {fileIcon}
                         {note.additional.file}
                     </div>
                 )}
@@ -243,18 +245,21 @@ export default function Search() {
             <div className={`${styles.searchLayout}`}>
                 <div className="md:w-3/4 sm:w-full mx-auto pt-6 md:pt-8">
                     <div className="p-4 md:w-3/4 sm:w-full mx-auto">
-                        <div className="flex justify-between items-center border-2 border-muted p-2 gap-4 rounded-lg">
-                            <MagnifyingGlass className="inline m-2 h-4 w-4" />
+                        <div className="flex justify-between items-center border-2 border-muted p-1 gap-1 rounded-lg">
                             <Input
                                 autoFocus={true}
-                                className="border-none"
+                                className="border-none pl-4"
                                 onChange={(e) => setSearchQuery(e.currentTarget.value)}
                                 onKeyDown={(e) => e.key === "Enter" && search()}
                                 type="search"
                                 placeholder="Search Documents"
                             />
-                            <button className="px-4 rounded" onClick={() => search()}>
-                                Find
+                            <button
+                                className="px-2 gap-2 inline-flex items-center rounded border-l border-gray-300 hover:text-gray-500"
+                                onClick={() => search()}
+                            >
+                                <MagnifyingGlass className="h-4 w-4" />
+                                <span>Find</span>
                             </button>
                         </div>
                         {focusSearchResult && (
