@@ -99,6 +99,12 @@ export default function NavMenu() {
                         )}
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="gap-2">
+                        <DropdownMenuItem className="w-full">
+                            <div className="flex flex-rows">
+                                <p className="font-semibold">{userData?.email}</p>
+                            </div>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem
                             onClick={() => setDarkMode(!darkMode)}
                             className="w-full cursor-pointer"
@@ -200,6 +206,12 @@ export default function NavMenu() {
                             )}
                         </MenubarTrigger>
                         <MenubarContent align="end" className="rounded-xl gap-2">
+                            <MenubarItem className="w-full">
+                                <div className="flex flex-rows">
+                                    <p className="font-semibold">{userData?.email}</p>
+                                </div>
+                            </MenubarItem>
+                            <MenubarSeparator className="dark:bg-white height-[2px] bg-black" />
                             <MenubarItem
                                 onClick={() => setDarkMode(!darkMode)}
                                 className="w-full hover:cursor-pointer"
