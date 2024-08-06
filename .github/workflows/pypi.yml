@@ -45,6 +45,11 @@ jobs:
           yarn pypiciexport
         working-directory: src/interface/web
 
+      - name: 📂 Copy Generated Files
+        run: |
+          mkdir -p src/khoj/interface/
+          cp -r /opt/hostedtoolcache/Python/3.11.9/x64/lib/python3.11/site-packages/khoj/interface/built/* src/khoj/interface/built/
+
       - name: ⚙️ Build Python Package
         run: |
           # Setup Environment for Reproducible Builds
