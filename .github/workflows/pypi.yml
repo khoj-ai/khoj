@@ -19,6 +19,7 @@ on:
       - src/interface/web/**
       - pyproject.toml
       - .github/workflows/pypi.yml
+  workflow_dispatch:
 
 jobs:
   publish:
