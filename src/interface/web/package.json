@@ -1,6 +1,6 @@
 {
     "name": "khoj-ai",
-    "version": "1.20.0",
+    "version": "1.20.1",
     "private": true,
     "scripts": {
         "dev": "next dev",
