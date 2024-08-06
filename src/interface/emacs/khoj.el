@@ -424,7 +424,7 @@ Auto invokes setup steps on calling main entrypoint."
   "Send multi-part form `BODY' of `CONTENT-TYPE' in request to khoj server.
 Append 'TYPE-QUERY' as query parameter in request url.
 Specify `BOUNDARY' used to separate files in request header."
-  (let ((url-request-method ((if force) "PUT" "PATCH"))
+  (let ((url-request-method (if force "PUT" "PATCH"))
         (url-request-data body)
           (url-request-extra-headers `(("content-type" . ,(format "multipart/form-data; boundary=%s" boundary))
                                        ("Authorization" . ,(format "Bearer %s" khoj-api-key)))))
