@@ -14,7 +14,7 @@ from khoj.utils.rawconfig import GithubContentConfig, GithubRepoConfig
 
 # Initialize Router
 web_client = APIRouter()
-templates = Jinja2Templates([constants.web_directory, constants.next_js_directory])
+templates = Jinja2Templates([constants.web_directory, constants.next_js_directory, constants.pypi_static_directory])
 
 
 # Create Routes
