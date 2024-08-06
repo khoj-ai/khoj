@@ -41,6 +41,7 @@ from khoj.routers.helpers import (
     get_conversation_command,
     is_query_empty,
     is_ready_to_chat,
+    read_chat_stream,
     text_to_image,
     update_telemetry_state,
     validate_conversation_config,
@@ -570,8 +571,7 @@ async def chat(
                 logger.error(f"Failed to stream chat API response to {user} on {common.client}: {e}", exc_info=True)
                 return
             finally:
-                if stream:
-                    yield event_delimiter
+                yield event_delimiter
 
         async def send_llm_response(response: str):
             async for result in send_event(ChatEvent.START_LLM_RESPONSE, ""):
@@ -937,17 +937,6 @@ async def chat(
         return StreamingResponse(event_generator(q), media_type="text/plain")
     ## Non-Streaming Text Response
     else:
-        # Get the full response from the generator if the stream is not requested.
-        response_obj = {}
-        actual_response = ""
-        iterator = event_generator(q)
-        async for item in iterator:
-            try:
-                item_json = json.loads(item)
-                if "type" in item_json and item_json["type"] == ChatEvent.REFERENCES.value:
-                    response_obj = item_json["data"]
-            except:
-                actual_response += item
-        response_obj["response"] = actual_response
-
-        return Response(content=json.dumps(response_obj), media_type="application/json", status_code=200)
+        response_iterator = event_generator(q)
+        response_data = await read_chat_stream(response_iterator)
+        return Response(content=json.dumps(response_data), media_type="application/json", status_code=200)

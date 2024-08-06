@@ -15,6 +15,7 @@ from random import random
 from typing import (
     Annotated,
     Any,
+    AsyncGenerator,
     Callable,
     Dict,
     Iterator,
@@ -1223,6 +1224,79 @@ class ChatEvent(Enum):
     MESSAGE = "message"
     REFERENCES = "references"
     STATUS = "status"
+
+
+class MessageProcessor:
+    def __init__(self):
+        self.references = {}
+        self.raw_response = ""
+
+    def convert_message_chunk_to_json(self, raw_chunk: str) -> Dict[str, Any]:
+        if raw_chunk.startswith("{") and raw_chunk.endswith("}"):
+            try:
+                json_chunk = json.loads(raw_chunk)
+                if "type" not in json_chunk:
+                    json_chunk = {"type": "message", "data": json_chunk}
+                return json_chunk
+            except json.JSONDecodeError:
+                return {"type": "message", "data": raw_chunk}
+        elif raw_chunk:
+            return {"type": "message", "data": raw_chunk}
+        return {"type": "", "data": ""}
+
+    def process_message_chunk(self, raw_chunk: str) -> None:
+        chunk = self.convert_message_chunk_to_json(raw_chunk)
+        if not chunk or not chunk["type"]:
+            return
+
+        chunk_type = ChatEvent(chunk["type"])
+        if chunk_type == ChatEvent.REFERENCES:
+            self.references = chunk["data"]
+        elif chunk_type == ChatEvent.MESSAGE:
+            chunk_data = chunk["data"]
+            if isinstance(chunk_data, dict):
+                self.raw_response = self.handle_json_response(chunk_data)
+            elif (
+                isinstance(chunk_data, str) and chunk_data.strip().startswith("{") and chunk_data.strip().endswith("}")
+            ):
+                try:
+                    json_data = json.loads(chunk_data.strip())
+                    self.raw_response = self.handle_json_response(json_data)
+                except json.JSONDecodeError:
+                    self.raw_response += chunk_data
+            else:
+                self.raw_response += chunk_data
+
+    def handle_json_response(self, json_data: Dict[str, str]) -> str | Dict[str, str]:
+        if "image" in json_data or "details" in json_data:
+            return json_data
+        if "response" in json_data:
+            return json_data["response"]
+        return json_data
+
+
+async def read_chat_stream(response_iterator: AsyncGenerator[str, None]) -> Dict[str, Any]:
+    processor = MessageProcessor()
+    event_delimiter = "␃🔚␗"
+    buffer = ""
+
+    async for chunk in response_iterator:
+        # Start buffering chunks until complete event is received
+        buffer += chunk
+
+        # Once the buffer contains a complete event
+        while event_delimiter in buffer:
+            # Extract the event from the buffer
+            event, buffer = buffer.split(event_delimiter, 1)
+            # Process the event
+            if event:
+                processor.process_message_chunk(event)
+
+    # Process any remaining data in the buffer
+    if buffer:
+        processor.process_message_chunk(buffer)
+
+    return {"response": processor.raw_response, "references": processor.references}
 
 
 def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False):
