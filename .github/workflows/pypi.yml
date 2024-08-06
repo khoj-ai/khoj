@@ -48,7 +48,7 @@ jobs:
       - name: 📂 Copy Generated Files
         run: |
           mkdir -p src/khoj/interface/compiled
-          cp -r /opt/hostedtoolcache/Python/3.11.9/x64/lib/python3.11/site-packages/khoj/interface/compiled/* src/khoj/interface/built/
+          cp -r /opt/hostedtoolcache/Python/3.11.9/x64/lib/python3.11/site-packages/khoj/interface/compiled/* src/khoj/interface/compiled/
 
       - name: ⚙️ Build Python Package
         run: |
