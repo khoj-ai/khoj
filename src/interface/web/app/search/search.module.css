@@ -8,6 +8,7 @@ div.searchLayout {
 div.sidePanel {
     position: fixed;
     height: 100%;
+    z-index: 1;
 }
 
 @media screen and (max-width: 768px) {

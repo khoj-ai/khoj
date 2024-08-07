@@ -25,6 +25,7 @@ div.pageLayout {
 div.sidePanel {
     position: fixed;
     height: 100%;
+    z-index: 1;
 }
 
 button.infoButton {
@@ -35,7 +36,6 @@ button.infoButton {
     font-size: medium;
 }
 
-
 div.agentList {
     display: grid;
     gap: 20px;
@@ -45,7 +45,6 @@ div.agentList {
     grid-template-columns: 1fr 1fr;
     margin-left: auto;
 }
-
 
 @media only screen and (max-width: 768px) {
     div.agentList {

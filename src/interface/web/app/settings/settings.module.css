@@ -19,6 +19,7 @@ div.phoneInput {
 div.sidePanel {
     position: fixed;
     height: 100%;
+    z-index: 1;
 }
 
 div.phoneInput input {
@@ -29,7 +30,6 @@ div.phoneInput input {
 }
 
 @media screen and (max-width: 768px) {
-
     div.sidePanel {
         position: relative;
         height: 100%;
