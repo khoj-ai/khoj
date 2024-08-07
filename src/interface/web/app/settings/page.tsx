@@ -3,7 +3,7 @@
 import styles from "./settings.module.css";
 import "intl-tel-input/styles";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 
 import { useUserConfig, ModelOptions, UserConfig } from "../common/auth";
@@ -67,11 +67,47 @@ import SidePanel from "../components/sidePanel/chatHistorySidePanel";
 import Loading from "../components/loading/loading";
 
 import IntlTelInput from "intl-tel-input/react";
+import { uploadDataForIndexing } from "../common/chatFunctions";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Progress } from "@/components/ui/progress";
+import Link from "next/link";
 
 const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const [syncedFiles, setSyncedFiles] = useState<string[]>([]);
     const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
+    const [isDragAndDropping, setIsDragAndDropping] = useState(false);
+
+    const [warning, setWarning] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+    const [progressValue, setProgressValue] = useState(0);
+    const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (!uploading) {
+            setProgressValue(0);
+        }
+
+        if (uploading) {
+            const interval = setInterval(() => {
+                setProgressValue((prev) => {
+                    const increment = Math.floor(Math.random() * 5) + 1; // Generates a random number between 1 and 5
+                    const nextValue = prev + increment;
+                    return nextValue < 100 ? nextValue : 100; // Ensures progress does not exceed 100
+                });
+            }, 800);
+            return () => clearInterval(interval);
+        }
+    }, [uploading]);
 
     useEffect(() => {
         const fetchFiles = async () => {
@@ -94,7 +130,7 @@ const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         };
 
         fetchFiles();
-    }, []);
+    }, [uploadedFiles]);
 
     const filteredFiles = syncedFiles.filter((file) =>
         file.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -161,9 +197,105 @@ const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         }
     };
 
+    function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
+        event.preventDefault();
+        setIsDragAndDropping(true);
+    }
+
+    function handleDragLeave(event: React.DragEvent<HTMLDivElement>) {
+        event.preventDefault();
+        setIsDragAndDropping(false);
+    }
+
+    function handleDragAndDropFiles(event: React.DragEvent<HTMLDivElement>) {
+        event.preventDefault();
+        setIsDragAndDropping(false);
+
+        if (!event.dataTransfer.files) return;
+
+        uploadFiles(event.dataTransfer.files);
+    }
+
+    function openFileInput() {
+        if (fileInputRef && fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    }
+
+    function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+        if (!event.target.files) return;
+
+        uploadFiles(event.target.files);
+    }
+
+    function uploadFiles(files: FileList) {
+        uploadDataForIndexing(files, setWarning, setUploading, setError, setUploadedFiles);
+    }
+
     return (
         <CommandDialog open={true} onOpenChange={onClose}>
+            <AlertDialog open={warning !== null || error != null}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Alert</AlertDialogTitle>
+                    </AlertDialogHeader>
+                    <AlertDialogDescription>{warning || error}</AlertDialogDescription>
+                    <AlertDialogAction
+                        className="bg-slate-400 hover:bg-slate-500"
+                        onClick={() => {
+                            setWarning(null);
+                            setError(null);
+                            setUploading(false);
+                        }}
+                    >
+                        Close
+                    </AlertDialogAction>
+                </AlertDialogContent>
+            </AlertDialog>
+            <div
+                className={`flex flex-col h-full`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDragAndDropFiles}
+                onClick={openFileInput}
+            >
+                <input
+                    type="file"
+                    multiple
+                    ref={fileInputRef}
+                    style={{ display: "none" }}
+                    onChange={handleFileChange}
+                />
+                <div className="flex-none p-4">
+                    Upload files
+                    {uploading && (
+                        <Progress
+                            indicatorColor="bg-slate-500"
+                            className="w-full h-2 rounded-full"
+                            value={progressValue}
+                        />
+                    )}
+                </div>
+                <div
+                    className={`flex-none p-4 bg-secondary border-b ${isDragAndDropping ? "animate-pulse" : ""}`}
+                >
+                    <div className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg">
+                        {isDragAndDropping ? (
+                            <div className="flex items-center justify-center w-full h-full">
+                                <Waveform className="h-6 w-6 mr-2" />
+                                <span>Drop files to upload</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-center w-full h-full">
+                                <Plus className="h-6 w-6 mr-2" />
+                                <span>Drag and drop files here</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
             <div className="flex flex-col h-full">
+                <div className="flex-none p-4">Synced files</div>
                 <div className="flex-none p-4 bg-background border-b">
                     <CommandInput
                         placeholder="Find synced files"
@@ -171,10 +303,23 @@ const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         onValueChange={setSearchQuery}
                     />
                 </div>
-
                 <div className="flex-grow overflow-auto">
                     <CommandList>
-                        <CommandEmpty>No such files synced.</CommandEmpty>
+                        <CommandEmpty>
+                            {syncedFiles.length === 0 ? (
+                                <div className="flex items-center justify-center">
+                                    <ExclamationMark className="h-4 w-4 mr-2" weight="bold" />
+                                    No files synced
+                                </div>
+                            ) : (
+                                <div>
+                                    Couldn't find a good match.
+                                    <Link href="/search" className="block">
+                                        Need advanced search? Click here.
+                                    </Link>
+                                </div>
+                            )}
+                        </CommandEmpty>
                         <CommandGroup heading="Synced files">
                             {filteredFiles.map((filename: string) => (
                                 <CommandItem
@@ -222,7 +367,7 @@ const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         >
                             <Trash className="h-4 w-4 mr-2" />
                             {selectedFiles.length > 0
-                                ? `Delect Selected (${selectedFiles.length})`
+                                ? `Delete Selected (${selectedFiles.length})`
                                 : "Delete All"}
                         </Button>
                     </div>
