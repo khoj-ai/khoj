@@ -13,7 +13,7 @@ import { processMessageChunk } from "../common/chatFunctions";
 import "katex/dist/katex.min.css";
 
 import { Context, OnlineContext, StreamMessage } from "../components/chatMessage/chatMessage";
-import { useIPLocationData, welcomeConsole } from "../common/utils";
+import { useIPLocationData, useIsMobileWidth, welcomeConsole } from "../common/utils";
 import ChatInputArea, { ChatOptions } from "../components/chatInputArea/chatInputArea";
 import { useAuthenticatedData } from "../common/auth";
 import { AgentData } from "../agents/page";
@@ -116,9 +116,9 @@ export default function Chat() {
     const [queryToProcess, setQueryToProcess] = useState<string>("");
     const [processQuerySignal, setProcessQuerySignal] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
-    const [isMobileWidth, setIsMobileWidth] = useState(false);
     const locationData = useIPLocationData();
     const authenticatedData = useAuthenticatedData();
+    const isMobileWidth = useIsMobileWidth();
 
     useEffect(() => {
         fetch("/api/chat/options")
@@ -136,12 +136,6 @@ export default function Chat() {
             });
 
         welcomeConsole();
-
-        setIsMobileWidth(window.innerWidth < 786);
-
-        window.addEventListener("resize", () => {
-            setIsMobileWidth(window.innerWidth < 786);
-        });
     }, []);
 
     useEffect(() => {

@@ -41,7 +41,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { DialogTitle } from "@radix-ui/react-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { LocationData, useIPLocationData } from "../common/utils";
+import { LocationData, useIPLocationData, useIsMobileWidth } from "../common/utils";
 
 import styles from "./automations.module.css";
 import ShareLink from "../components/shareLink/shareLink";
@@ -53,13 +53,10 @@ import {
     CalendarDots,
     Clock,
     ClockAfternoon,
-    ClockCounterClockwise,
     DotsThreeVertical,
     Envelope,
-    Info,
     Lightning,
     MapPinSimple,
-    Pencil,
     Play,
     Plus,
     Trash,
@@ -980,19 +977,9 @@ export default function Automations() {
     const [allNewAutomations, setAllNewAutomations] = useState<AutomationsData[]>([]);
     const [suggestedAutomations, setSuggestedAutomations] = useState<AutomationsData[]>([]);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-    const [isMobileWidth, setIsMobileWidth] = useState(false);
+    const isMobileWidth = useIsMobileWidth();
 
     const ipLocationData = useIPLocationData();
-
-    useEffect(() => {
-        if (window.innerWidth < 786) {
-            setIsMobileWidth(true);
-        }
-
-        window.addEventListener("resize", () => {
-            setIsMobileWidth(window.innerWidth < 786);
-        });
-    }, []);
 
     useEffect(() => {
         if (newAutomationData) {

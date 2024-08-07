@@ -5,7 +5,7 @@ import styles from "./agents.module.css";
 import Image from "next/image";
 import useSWR from "swr";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useAuthenticatedData, UserProfile } from "../common/auth";
 import { Button } from "@/components/ui/button";
@@ -13,14 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 import { PaperPlaneTilt, Lightning, Plus } from "@phosphor-icons/react";
 
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Dialog,
     DialogContent,
@@ -41,10 +34,10 @@ import {
 import LoginPrompt from "../components/loginPrompt/loginPrompt";
 import { InlineLoading } from "../components/loading/loading";
 import SidePanel from "../components/sidePanel/chatHistorySidePanel";
-import NavMenu from "../components/navMenu/navMenu";
 import { getIconFromIconName } from "../common/iconUtils";
 import { convertColorToTextClass } from "../common/colorUtils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useIsMobileWidth } from "../common/utils";
 
 export interface AgentData {
     slug: string;
@@ -265,18 +258,8 @@ export default function Agents() {
         revalidateOnFocus: false,
     });
     const authenticatedData = useAuthenticatedData();
-    const [isMobileWidth, setIsMobileWidth] = useState(false);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            setIsMobileWidth(window.innerWidth < 786);
-        }
-
-        window.addEventListener("resize", () => {
-            setIsMobileWidth(window.innerWidth < 786);
-        });
-    }, []);
+    const isMobileWidth = useIsMobileWidth();
 
     if (error) {
         return (

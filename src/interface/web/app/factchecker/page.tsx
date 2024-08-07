@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import SidePanel from "../components/sidePanel/chatHistorySidePanel";
+import { useIsMobileWidth } from "../common/utils";
 
 const chatURL = "/api/chat";
 const verificationPrecursor =
@@ -136,7 +137,7 @@ function ReferenceVerification(props: ReferenceVerificationProps) {
     const [initialResponse, setInitialResponse] = useState("");
     const [isLoading, setIsLoading] = useState(true);
     const verificationStatement = `${props.message}. Use this link for reference: ${props.additionalLink}`;
-    const [isMobileWidth, setIsMobileWidth] = useState(false);
+    const isMobileWidth = useIsMobileWidth();
 
     useEffect(() => {
         if (props.prefilledResponse) {
@@ -151,12 +152,6 @@ function ReferenceVerification(props: ReferenceVerificationProps) {
                 () => {},
             );
         }
-
-        setIsMobileWidth(window.innerWidth < 786);
-
-        window.addEventListener("resize", () => {
-            setIsMobileWidth(window.innerWidth < 786);
-        });
     }, [verificationStatement, props.conversationId, props.prefilledResponse]);
 
     useEffect(() => {
@@ -260,7 +255,7 @@ export default function FactChecker() {
     const [initialReferences, setInitialReferences] = useState<ResponseWithReferences>();
     const [childReferences, setChildReferences] = useState<SupplementReferences[]>();
     const [modelUsed, setModelUsed] = useState<Model>();
-    const [isMobileWidth, setIsMobileWidth] = useState(false);
+    const isMobileWidth = useIsMobileWidth();
 
     const [conversationID, setConversationID] = useState("");
     const [runId, setRunId] = useState("");
@@ -281,14 +276,6 @@ export default function FactChecker() {
         newReferences.push({ additionalLink, response, linkTitle });
         setChildReferences(newReferences);
     }
-
-    useEffect(() => {
-        setIsMobileWidth(window.innerWidth < 786);
-
-        window.addEventListener("resize", () => {
-            setIsMobileWidth(window.innerWidth < 786);
-        });
-    }, []);
 
     let userData = useAuthenticatedData();
 

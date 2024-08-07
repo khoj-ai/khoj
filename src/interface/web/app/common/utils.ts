@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import useSWR from "swr";
 
 export interface LocationData {
@@ -53,4 +54,24 @@ export function useIPLocationData() {
     if (!locationData) return null;
 
     return locationData;
+}
+
+export function useIsMobileWidth() {
+    const [isMobileWidth, setIsMobileWidth] = useState(false);
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth <= 768) {
+                setIsMobileWidth(true);
+            } else {
+                setIsMobileWidth(false);
+            }
+        };
+
+        handleResize();
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
+
+    return isMobileWidth;
 }

@@ -7,7 +7,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 
 import { useUserConfig, ModelOptions, UserConfig } from "../common/auth";
-import { toTitleCase } from "../common/utils";
+import { toTitleCase, useIsMobileWidth } from "../common/utils";
 
 import { isValidPhoneNumber } from "libphonenumber-js";
 
@@ -37,7 +37,6 @@ import {
     ChatCircleText,
     Key,
     Palette,
-    SpeakerHigh,
     UserCircle,
     FileMagnifyingGlass,
     Trash,
@@ -500,7 +499,6 @@ enum PhoneNumberValidationState {
 
 export default function SettingsView() {
     const [title, setTitle] = useState("Settings");
-    const [isMobileWidth, setIsMobileWidth] = useState(false);
     const { apiKeys, generateAPIKey, copyAPIKey, deleteAPIKey } = useApiKeys();
     const { userConfig: initialUserConfig } = useUserConfig(true);
     const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
@@ -513,6 +511,8 @@ export default function SettingsView() {
     );
     const [isManageFilesModalOpen, setIsManageFilesModalOpen] = useState(false);
     const { toast } = useToast();
+    const isMobileWidth = useIsMobileWidth();
+
     const cardClassName =
         "w-full lg:w-1/3 grid grid-flow-column border border-gray-300 shadow-md rounded-lg bg-gradient-to-b from-background to-gray-50 dark:to-gray-950";
 
@@ -529,13 +529,6 @@ export default function SettingsView() {
         setName(initialUserConfig?.given_name);
         setNotionToken(initialUserConfig?.notion_token ?? null);
     }, [initialUserConfig]);
-
-    useEffect(() => {
-        setIsMobileWidth(window.innerWidth < 786);
-        const handleResize = () => setIsMobileWidth(window.innerWidth < 786);
-        window.addEventListener("resize", handleResize);
-        return () => window.removeEventListener("resize", handleResize);
-    }, []);
 
     const sendOTP = async () => {
         try {

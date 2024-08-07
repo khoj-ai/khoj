@@ -19,6 +19,7 @@ import ProfileCard from "../profileCard/profileCard";
 import { getIconFromIconName } from "@/app/common/iconUtils";
 import { AgentData } from "@/app/agents/page";
 import React from "react";
+import { useIsMobileWidth } from "@/app/common/utils";
 
 interface ChatResponse {
     status: string;
@@ -75,15 +76,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
         number | null
     >(null);
     const [fetchingData, setFetchingData] = useState(false);
-    const [isMobileWidth, setIsMobileWidth] = useState(false);
-
-    useEffect(() => {
-        window.addEventListener("resize", () => {
-            setIsMobileWidth(window.innerWidth < 786);
-        });
-
-        setIsMobileWidth(window.innerWidth < 786);
-    }, []);
+    const isMobileWidth = useIsMobileWidth();
 
     useEffect(() => {
         // This function ensures that scrolling to bottom happens after the data (chat messages) has been updated and rendered the first time.

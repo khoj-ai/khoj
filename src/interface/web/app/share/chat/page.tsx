@@ -10,7 +10,7 @@ import Loading from "../../components/loading/loading";
 
 import "katex/dist/katex.min.css";
 
-import { useIPLocationData, welcomeConsole } from "../../common/utils";
+import { useIPLocationData, useIsMobileWidth, welcomeConsole } from "../../common/utils";
 import { useAuthenticatedData } from "@/app/common/auth";
 
 import ChatInputArea, { ChatOptions } from "@/app/components/chatInputArea/chatInputArea";
@@ -100,11 +100,11 @@ export default function SharedChat() {
     const [queryToProcess, setQueryToProcess] = useState<string>("");
     const [processQuerySignal, setProcessQuerySignal] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
-    const [isMobileWidth, setIsMobileWidth] = useState(false);
     const [paramSlug, setParamSlug] = useState<string | undefined>(undefined);
 
     const locationData = useIPLocationData();
     const authenticatedData = useAuthenticatedData();
+    const isMobileWidth = useIsMobileWidth();
 
     useEffect(() => {
         fetch("/api/chat/options")
@@ -122,12 +122,6 @@ export default function SharedChat() {
             });
 
         welcomeConsole();
-
-        setIsMobileWidth(window.innerWidth < 786);
-
-        window.addEventListener("resize", () => {
-            setIsMobileWidth(window.innerWidth < 786);
-        });
 
         setParamSlug(window.location.pathname.split("/").pop() || "");
     }, []);

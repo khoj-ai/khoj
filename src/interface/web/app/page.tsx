@@ -21,6 +21,7 @@ import { convertColorToBorderClass } from "@/app/common/colorUtils";
 import { getIconFromIconName } from "@/app/common/iconUtils";
 import { AgentData } from "@/app/agents/page";
 import { createNewConversation } from "./common/chatFunctions";
+import { useIsMobileWidth } from "./common/utils";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -325,7 +326,7 @@ export default function Home() {
     const [isLoading, setLoading] = useState(true);
     const [conversationId, setConversationID] = useState<string | null>(null);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
-    const [isMobileWidth, setIsMobileWidth] = useState(false);
+    const isMobileWidth = useIsMobileWidth();
 
     const { userConfig: initialUserConfig, isLoadingUserConfig } = useUserConfig(true);
     const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
@@ -353,12 +354,6 @@ export default function Home() {
                 console.error(err);
                 return;
             });
-
-        setIsMobileWidth(window.innerWidth < 786);
-
-        window.addEventListener("resize", () => {
-            setIsMobileWidth(window.innerWidth < 786);
-        });
     }, []);
 
     if (isLoading) {

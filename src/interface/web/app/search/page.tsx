@@ -30,6 +30,7 @@ import {
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { getIconFromFilename } from "../common/iconUtils";
+import { useIsMobileWidth } from "../common/utils";
 
 interface AdditionalData {
     file: string;
@@ -165,33 +166,22 @@ function focusNote(note: SearchResult) {
 }
 
 export default function Search() {
-    const authenticatedData = useAuthenticatedData();
     const [searchQuery, setSearchQuery] = useState("");
-    const [isMobileWidth, setIsMobileWidth] = useState(false);
-    const [title, setTitle] = useState("Search");
     const [searchResults, setSearchResults] = useState<SearchResult[] | null>(null);
     const [searchResultsLoading, setSearchResultsLoading] = useState(false);
     const [focusSearchResult, setFocusSearchResult] = useState<SearchResult | null>(null);
     const [exampleQuery, setExampleQuery] = useState("");
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+    const isMobileWidth = useIsMobileWidth();
+
     useEffect(() => {
-        setIsMobileWidth(window.innerWidth < 786);
-
-        window.addEventListener("resize", () => {
-            setIsMobileWidth(window.innerWidth < 786);
-        });
-
         setExampleQuery(
             naturalLanguageSearchQueryExamples[
                 Math.floor(Math.random() * naturalLanguageSearchQueryExamples.length)
             ],
         );
     }, []);
-
-    useEffect(() => {
-        setTitle(isMobileWidth ? "" : "Search");
-    }, [isMobileWidth]);
 
     function search() {
         if (searchResultsLoading || !searchQuery.trim()) return;
