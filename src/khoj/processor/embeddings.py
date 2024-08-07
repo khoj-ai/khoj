@@ -95,11 +95,13 @@ class CrossEncoderModel:
         model_name: str = "mixedbread-ai/mxbai-rerank-xsmall-v1",
         cross_encoder_inference_endpoint: str = None,
         cross_encoder_inference_endpoint_api_key: str = None,
+        model_kwargs: dict = {},
     ):
         self.model_name = model_name
-        self.cross_encoder_model = CrossEncoder(model_name=self.model_name, device=get_device())
         self.inference_endpoint = cross_encoder_inference_endpoint
         self.api_key = cross_encoder_inference_endpoint_api_key
+        self.model_kwargs = merge_dicts(model_kwargs, {"device": get_device()})
+        self.cross_encoder_model = CrossEncoder(model_name=self.model_name, **self.model_kwargs)
 
     def inference_server_enabled(self) -> bool:
         return self.api_key is not None and self.inference_endpoint is not None
