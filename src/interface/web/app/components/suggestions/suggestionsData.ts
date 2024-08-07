@@ -32,12 +32,12 @@ function addSuggestionColorMap(type: SuggestionType, color: string) {
 addSuggestionColorMap(SuggestionType.Automation, "blue");
 addSuggestionColorMap(SuggestionType.Paint, "indigo");
 addSuggestionColorMap(SuggestionType.Travel, "yellow");
-addSuggestionColorMap(SuggestionType.Health, "orange");
+addSuggestionColorMap(SuggestionType.Health, "teal");
 addSuggestionColorMap(SuggestionType.Learning, "purple");
 addSuggestionColorMap(SuggestionType.Language, "blue");
 addSuggestionColorMap(SuggestionType.PopCulture, "red");
 addSuggestionColorMap(SuggestionType.Food, "yellow");
-addSuggestionColorMap(SuggestionType.Interviewing, "purple");
+addSuggestionColorMap(SuggestionType.Interviewing, "orange");
 addSuggestionColorMap(SuggestionType.Home, "green");
 addSuggestionColorMap(SuggestionType.Fun, "fuchsia");
 addSuggestionColorMap(SuggestionType.Code, "purple");
