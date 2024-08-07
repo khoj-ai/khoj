@@ -43,10 +43,10 @@ export default function NavMenu() {
     const [initialLoadDone, setInitialLoadDone] = useState(false);
 
     useEffect(() => {
-        setIsMobileWidth(window.innerWidth < 768);
+        setIsMobileWidth(window.innerWidth < 786);
 
         window.addEventListener("resize", () => {
-            setIsMobileWidth(window.innerWidth < 768);
+            setIsMobileWidth(window.innerWidth < 786);
         });
 
         if (localStorage.getItem("theme") === "dark") {

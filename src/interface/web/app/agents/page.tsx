@@ -270,11 +270,11 @@ export default function Agents() {
 
     useEffect(() => {
         if (typeof window !== "undefined") {
-            setIsMobileWidth(window.innerWidth < 768);
+            setIsMobileWidth(window.innerWidth < 786);
         }
 
         window.addEventListener("resize", () => {
-            setIsMobileWidth(window.innerWidth < 768);
+            setIsMobileWidth(window.innerWidth < 786);
         });
     }, []);
 

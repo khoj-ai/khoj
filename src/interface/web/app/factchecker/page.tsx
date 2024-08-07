@@ -152,10 +152,10 @@ function ReferenceVerification(props: ReferenceVerificationProps) {
             );
         }
 
-        setIsMobileWidth(window.innerWidth < 768);
+        setIsMobileWidth(window.innerWidth < 786);
 
         window.addEventListener("resize", () => {
-            setIsMobileWidth(window.innerWidth < 768);
+            setIsMobileWidth(window.innerWidth < 786);
         });
     }, [verificationStatement, props.conversationId, props.prefilledResponse]);
 
@@ -283,10 +283,10 @@ export default function FactChecker() {
     }
 
     useEffect(() => {
-        setIsMobileWidth(window.innerWidth < 768);
+        setIsMobileWidth(window.innerWidth < 786);
 
         window.addEventListener("resize", () => {
-            setIsMobileWidth(window.innerWidth < 768);
+            setIsMobileWidth(window.innerWidth < 786);
         });
     }, []);
 

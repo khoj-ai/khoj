@@ -985,12 +985,12 @@ export default function Automations() {
     const ipLocationData = useIPLocationData();
 
     useEffect(() => {
-        if (window.innerWidth < 768) {
+        if (window.innerWidth < 786) {
             setIsMobileWidth(true);
         }
 
         window.addEventListener("resize", () => {
-            setIsMobileWidth(window.innerWidth < 768);
+            setIsMobileWidth(window.innerWidth < 786);
         });
     }, []);
 

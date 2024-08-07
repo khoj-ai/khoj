@@ -79,10 +79,10 @@ export default function ChatHistory(props: ChatHistoryProps) {
 
     useEffect(() => {
         window.addEventListener("resize", () => {
-            setIsMobileWidth(window.innerWidth < 768);
+            setIsMobileWidth(window.innerWidth < 786);
         });
 
-        setIsMobileWidth(window.innerWidth < 768);
+        setIsMobileWidth(window.innerWidth < 786);
     }, []);
 
     useEffect(() => {
