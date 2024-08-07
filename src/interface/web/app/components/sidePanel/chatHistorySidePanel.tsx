@@ -169,10 +169,7 @@ interface FilesMenuProps {
 
 function FilesMenu(props: FilesMenuProps) {
     // Use SWR to fetch files
-    const { data: files, error } = useSWR<string[]>(
-        props.conversationId ? "/api/content/computer" : null,
-        fetcher,
-    );
+    const { data: files, error } = useSWR<string[]>("/api/content/computer", fetcher);
     const { data: selectedFiles, error: selectedFilesError } = useSWR(
         props.conversationId ? `/api/chat/conversation/file-filters/${props.conversationId}` : null,
         fetcher,
@@ -180,6 +177,7 @@ function FilesMenu(props: FilesMenuProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [unfilteredFiles, setUnfilteredFiles] = useState<string[]>([]);
     const [addedFiles, setAddedFiles] = useState<string[]>([]);
+    const usingConversationContext = props.conversationId !== null;
 
     useEffect(() => {
         if (!files) return;
@@ -189,7 +187,6 @@ function FilesMenu(props: FilesMenuProps) {
         let sortedFiles = files;
 
         if (addedFiles) {
-            console.log("addedFiles in useeffect hook", addedFiles);
             sortedFiles = addedFiles.concat(
                 sortedFiles.filter((filename: string) => !addedFiles.includes(filename)),
             );
@@ -223,12 +220,10 @@ function FilesMenu(props: FilesMenuProps) {
         );
     };
 
-    if (!props.conversationId) return <></>;
-
     if (error) return <div>Failed to load files</div>;
     if (selectedFilesError) return <div>Failed to load selected files</div>;
     if (!files) return <InlineLoading />;
-    if (!selectedFiles) return <InlineLoading />;
+    if (!selectedFiles && props.conversationId) return <InlineLoading />;
 
     const FilesMenuCommandBox = () => {
         return (
@@ -238,25 +233,39 @@ function FilesMenu(props: FilesMenuProps) {
                     <CommandEmpty>
                         No results found. <Link href="/search">Try advanced search</Link>.
                     </CommandEmpty>
-                    <CommandGroup heading="Quick">
-                        <CommandItem
-                            onSelect={() => {
-                                removeAllFiles();
-                            }}
-                        >
-                            <Trash className="h-4 w-4 mr-2" />
-                            <span>Clear all</span>
-                        </CommandItem>
-                        <CommandItem
-                            onSelect={() => {
-                                addAllFiles();
-                            }}
-                        >
-                            <FolderPlus className="h-4 w-4 mr-2" />
-                            <span>Select all</span>
+                    {usingConversationContext && (
+                        <CommandGroup heading="Quick">
+                            <CommandItem
+                                onSelect={() => {
+                                    removeAllFiles();
+                                }}
+                            >
+                                <Trash className="h-4 w-4 mr-2" />
+                                <span>Clear all</span>
+                            </CommandItem>
+                            <CommandItem
+                                onSelect={() => {
+                                    addAllFiles();
+                                }}
+                            >
+                                <FolderPlus className="h-4 w-4 mr-2" />
+                                <span>Select all</span>
+                            </CommandItem>
+                        </CommandGroup>
+                    )}
+                    <CommandGroup heading="Manage files">
+                        <CommandItem>
+                            <Link href="/settings">Settings</Link>
                         </CommandItem>
                     </CommandGroup>
-                    <CommandGroup heading="Configure files">
+                    <CommandGroup
+                        heading={`${usingConversationContext ? "Configure files" : "Synced files"}`}
+                    >
+                        {addedFiles.length == 0 && (
+                            <CommandItem>
+                                <Link href="/settings">Upload documents</Link>
+                            </CommandItem>
+                        )}
                         {unfilteredFiles.map((filename: string) =>
                             addedFiles && addedFiles.includes(filename) ? (
                                 <CommandItem
@@ -264,6 +273,8 @@ function FilesMenu(props: FilesMenuProps) {
                                     value={filename}
                                     className="bg-accent text-accent-foreground mb-1"
                                     onSelect={(value) => {
+                                        if (!usingConversationContext) return;
+
                                         modifyFileFilterForConversation(
                                             props.conversationId,
                                             [value],
@@ -281,6 +292,8 @@ function FilesMenu(props: FilesMenuProps) {
                                     className="mb-1"
                                     value={filename}
                                     onSelect={(value) => {
+                                        if (!usingConversationContext) return;
+
                                         modifyFileFilterForConversation(
                                             props.conversationId,
                                             [value],
@@ -310,7 +323,9 @@ function FilesMenu(props: FilesMenuProps) {
                         <DrawerHeader>
                             <DrawerTitle>Files</DrawerTitle>
                             <DrawerDescription>
-                                Manage files for this conversation
+                                {usingConversationContext
+                                    ? "Manage files for this conversation"
+                                    : "Shared files"}
                             </DrawerDescription>
                         </DrawerHeader>
                         <div className={`${styles.panelWrapper}`}>
@@ -334,13 +349,25 @@ function FilesMenu(props: FilesMenuProps) {
                     <div className="w-auto bg-background border border-muted p-4 drop-shadow-sm rounded-2xl my-8">
                         <div className="flex items-center justify-between space-x-4">
                             <h4 className="text-sm font-semibold">
-                                Manage Context
+                                {usingConversationContext ? "Mange Context" : "Files"}
                                 <p>
-                                    <span className="text-muted-foreground text-xs">
-                                        Using{" "}
-                                        {addedFiles.length == 0 ? files.length : addedFiles.length}{" "}
-                                        files
-                                    </span>
+                                    {usingConversationContext ? (
+                                        <span className="text-muted-foreground text-xs">
+                                            Using{" "}
+                                            {addedFiles.length == 0
+                                                ? files.length
+                                                : addedFiles.length}{" "}
+                                            files
+                                        </span>
+                                    ) : (
+                                        <span className="text-muted-foreground text-xs">
+                                            Shared{" "}
+                                            {addedFiles.length == 0
+                                                ? files.length
+                                                : addedFiles.length}{" "}
+                                            files
+                                        </span>
+                                    )}
                                 </p>
                             </h4>
                             <Button variant="ghost" size="sm" className="w-9 p-0">
