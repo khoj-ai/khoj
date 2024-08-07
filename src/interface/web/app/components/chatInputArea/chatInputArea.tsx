@@ -78,6 +78,7 @@ export default function ChatInputArea(props: ChatInputProps) {
     const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
     const [progressValue, setProgressValue] = useState(0);
+    const [isDragAndDropping, setIsDragAndDropping] = useState(false);
 
     useEffect(() => {
         if (!uploading) {
@@ -123,6 +124,19 @@ export default function ChatInputArea(props: ChatInputProps) {
     function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
         if (!event.target.files) return;
 
+        uploadFiles(event.target.files);
+    }
+
+    function handleDragAndDropFiles(event: React.DragEvent<HTMLDivElement>) {
+        event.preventDefault();
+        setIsDragAndDropping(false);
+
+        if (!event.dataTransfer.files) return;
+
+        uploadFiles(event.dataTransfer.files);
+    }
+
+    function uploadFiles(files: FileList) {
         if (!props.isLoggedIn) {
             setLoginRedirectMessage("Whoa! You need to login to upload files");
             setShowLoginPrompt(true);
@@ -130,7 +144,7 @@ export default function ChatInputArea(props: ChatInputProps) {
         }
 
         uploadDataForIndexing(
-            event.target.files,
+            files,
             setWarning,
             setUploading,
             setError,
@@ -263,6 +277,16 @@ export default function ChatInputArea(props: ChatInputProps) {
             Math.max(chatInputRef.current.scrollHeight - 24, 64) + "px";
     }, [message]);
 
+    function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
+        event.preventDefault();
+        setIsDragAndDropping(true);
+    }
+
+    function handleDragLeave(event: React.DragEvent<HTMLDivElement>) {
+        event.preventDefault();
+        setIsDragAndDropping(false);
+    }
+
     return (
         <>
             {showLoginPrompt && loginRedirectMessage && (
@@ -374,6 +398,9 @@ export default function ChatInputArea(props: ChatInputProps) {
             )}
             <div
                 className={`${styles.actualInputArea} items-center justify-between dark:bg-neutral-700`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDragAndDropFiles}
             >
                 <input
                     type="file"
@@ -460,6 +487,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                     <ArrowUp className="w-6 h-6" weight="bold" />
                 </Button>
             </div>
+            {isDragAndDropping && <div className="text-muted-foreground">Drop file to upload</div>}
         </>
     );
 }
