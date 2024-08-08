@@ -312,7 +312,7 @@ const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                 </div>
                             ) : (
                                 <div>
-                                    Couldn't find a good match.
+                                    Could not find a good match.
                                     <Link href="/search" className="block">
                                         Need advanced search? Click here.
                                     </Link>
