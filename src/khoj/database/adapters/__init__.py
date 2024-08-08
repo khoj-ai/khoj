@@ -449,15 +449,19 @@ class ProcessLockAdapters:
         return ProcessLock.objects.create(name=process_name, max_duration_in_seconds=max_duration_in_seconds)
 
     @staticmethod
-    def is_process_locked(process_name: str):
+    def is_process_locked_by_name(process_name: str):
         process_lock = ProcessLock.objects.filter(name=process_name).first()
         if not process_lock:
             return False
+        return ProcessLockAdapters.is_process_locked(process_lock)
+
+    @staticmethod
+    def is_process_locked(process_lock: ProcessLock):
         if process_lock.started_at + timedelta(seconds=process_lock.max_duration_in_seconds) < datetime.now(
             tz=timezone.utc
         ):
             process_lock.delete()
-            logger.info(f"🔓 Deleted stale {process_name} process lock on timeout")
+            logger.info(f"🔓 Deleted stale {process_lock.name} process lock on timeout")
             return False
         return True
 
@@ -468,7 +472,7 @@ class ProcessLockAdapters:
     @staticmethod
     def run_with_lock(func: Callable, operation: ProcessLock.Operation, max_duration_in_seconds: int = 600, **kwargs):
         # Exit early if process lock is already taken
-        if ProcessLockAdapters.is_process_locked(operation):
+        if ProcessLockAdapters.is_process_locked_by_name(operation):
             logger.debug(f"🔒 Skip executing {func} as {operation} lock is already taken")
             return
 

@@ -417,6 +417,27 @@ def delete_old_user_requests():
 @schedule.repeat(schedule.every(17).minutes)
 def wakeup_scheduler():
     # Wake up the scheduler to ensure it runs the scheduled tasks. This is because the elected leader may not always be aware of tasks scheduled on other workers.
+    TWELVE_HOURS = 43200
+
+    # If the worker currently possesses a process lock, check if it is valid.
+
+    if state.schedule_leader_process_lock:
+        if not ProcessLockAdapters.is_process_locked(state.schedule_leader_process_lock):
+            state.schedule_leader_process_lock = None
+            state.scheduler.pause()
+
+    # Get the current process lock
+    schedule_leader_process_lock = ProcessLockAdapters.get_process_lock(ProcessLock.Operation.SCHEDULE_LEADER)
+
+    # Check if the process lock is still active. If not, create a new process lock. This worker will become the scheduler leader.
+    if not ProcessLockAdapters.is_process_locked(schedule_leader_process_lock):
+        schedule_leader_process_lock = ProcessLockAdapters.set_process_lock(
+            ProcessLock.Operation.SCHEDULE_LEADER, max_duration_in_seconds=TWELVE_HOURS
+        )
+        state.schedule_leader_process_lock = schedule_leader_process_lock
+        state.scheduler.resume()
+        logger.info("🔔 Scheduler leader process lock acquired")
+
     if state.schedule_leader_process_lock:
         state.scheduler.wakeup()
     else:
