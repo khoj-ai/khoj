@@ -11,7 +11,8 @@ logger = logging.getLogger(__name__)
 
 
 class FileFilter(BaseFilter):
-    file_filter_regex = r'file:"(.+?)" ?'
+    file_filter_regex = r'(?<!-)file:"(.+?)" ?'
+    excluded_file_filter_regex = r'-file:"(.+?)" ?'
 
     def __init__(self, entry_key="file"):
         self.entry_key = entry_key
@@ -20,7 +21,9 @@ class FileFilter(BaseFilter):
 
     def get_filter_terms(self, query: str) -> List[str]:
         "Get all filter terms in query"
-        return [f"{self.convert_to_regex(term)}" for term in re.findall(self.file_filter_regex, query)]
+        required_files = [f"{required_file}" for required_file in re.findall(self.file_filter_regex, query)]
+        excluded_files = [f"-{excluded_file}" for excluded_file in re.findall(self.excluded_file_filter_regex, query)]
+        return required_files + excluded_files
 
     def convert_to_regex(self, file_filter: str) -> str:
         "Convert file filter to regex"
