@@ -430,7 +430,7 @@ def wakeup_scheduler():
     schedule_leader_process_lock = ProcessLockAdapters.get_process_lock(ProcessLock.Operation.SCHEDULE_LEADER)
 
     # Check if the process lock is still active. If not, create a new process lock. This worker will become the scheduler leader.
-    if not ProcessLockAdapters.is_process_locked(schedule_leader_process_lock):
+    if not schedule_leader_process_lock or not ProcessLockAdapters.is_process_locked(schedule_leader_process_lock):
         schedule_leader_process_lock = ProcessLockAdapters.set_process_lock(
             ProcessLock.Operation.SCHEDULE_LEADER, max_duration_in_seconds=TWELVE_HOURS
         )
