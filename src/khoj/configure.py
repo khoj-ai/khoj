@@ -263,6 +263,7 @@ def configure_server(
                         model.cross_encoder,
                         model.cross_encoder_inference_endpoint,
                         model.cross_encoder_inference_endpoint_api_key,
+                        model_kwargs=model.cross_encoder_model_config,
                     )
                 }
             )

@@ -259,6 +259,8 @@ class SearchModelConfig(BaseModel):
     bi_encoder_docs_encode_config = models.JSONField(default=dict, blank=True)
     # Cross-encoder model of sentence-transformer type to load from HuggingFace
     cross_encoder = models.CharField(max_length=200, default="mixedbread-ai/mxbai-rerank-xsmall-v1")
+    # Config passed to the cross-encoder model constructor. E.g. device="cuda:0", trust_remote_server=True etc.
+    cross_encoder_model_config = models.JSONField(default=dict, blank=True)
     # Inference server API endpoint to use for embeddings inference. Bi-encoder model should be hosted on this server
     embeddings_inference_endpoint = models.CharField(max_length=200, default=None, null=True, blank=True)
     # Inference server API Key to use for embeddings inference. Bi-encoder model should be hosted on this server
