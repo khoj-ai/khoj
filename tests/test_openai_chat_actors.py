@@ -17,6 +17,7 @@ from khoj.routers.helpers import (
 )
 from khoj.utils.helpers import ConversationCommand
 from khoj.utils.rawconfig import LocationData
+from tests.conftest import default_user2
 
 # Initialize variables for tests
 api_key = os.getenv("OPENAI_API_KEY")
@@ -412,18 +413,23 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content():
 
 
 # ----------------------------------------------------------------------------------------------------
-@pytest.mark.xfail(reason="Chat actor not consistently capable of asking for clarification yet.")
 @pytest.mark.chatquality
 def test_ask_for_clarification_if_not_enough_context_in_question():
     "Chat actor should ask for clarification if question cannot be answered unambiguously with the provided context"
     # Arrange
     context = [
-        f"""# Ramya
-My sister, Ramya, is married to Kali Devi. They have 2 kids, Ravi and Rani.""",
-        f"""# Fang
-My sister, Fang Liu is married to Xi Li. They have 1 kid, Xiao Li.""",
-        f"""# Aiyla
-My sister, Aiyla is married to Tolga. They have 3 kids, Yildiz, Ali and Ahmet.""",
+        {
+            "compiled": f"""# Ramya
+My sister, Ramya, is married to Kali Devi. They have 2 kids, Ravi and Rani."""
+        },
+        {
+            "compiled": f"""# Fang
+My sister, Fang Liu is married to Xi Li. They have 1 kid, Xiao Li."""
+        },
+        {
+            "compiled": f"""# Aiyla
+My sister, Aiyla is married to Tolga. They have 3 kids, Yildiz, Ali and Ahmet."""
+        },
     ]
 
     # Act
@@ -481,12 +487,12 @@ def test_agent_prompt_should_be_used(openai_agent):
 @pytest.mark.anyio
 @pytest.mark.django_db(transaction=True)
 @freeze_time("2024-04-04", ignore=["transformers"])
-async def test_websearch_with_operators(chat_client):
+async def test_websearch_with_operators(chat_client, default_user2):
     # Arrange
     user_query = "Share popular posts on r/worldnews this month"
 
     # Act
-    responses = await generate_online_subqueries(user_query, {}, None)
+    responses = await generate_online_subqueries(user_query, {}, None, default_user2)
 
     # Assert
     assert any(
@@ -501,12 +507,12 @@ async def test_websearch_with_operators(chat_client):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.anyio
 @pytest.mark.django_db(transaction=True)
-async def test_websearch_khoj_website_for_info_about_khoj(chat_client):
+async def test_websearch_khoj_website_for_info_about_khoj(chat_client, default_user2):
     # Arrange
     user_query = "Do you support image search?"
 
     # Act
-    responses = await generate_online_subqueries(user_query, {}, None)
+    responses = await generate_online_subqueries(user_query, {}, None, default_user2)
 
     # Assert
     assert any(
@@ -558,12 +564,12 @@ async def test_select_data_sources_actor_chooses_to_search_notes(
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.anyio
 @pytest.mark.django_db(transaction=True)
-async def test_infer_webpage_urls_actor_extracts_correct_links(chat_client):
+async def test_infer_webpage_urls_actor_extracts_correct_links(chat_client, default_user2):
     # Arrange
     user_query = "Summarize the wikipedia page on the history of the internet"
 
     # Act
-    urls = await infer_webpage_urls(user_query, {}, None)
+    urls = await infer_webpage_urls(user_query, {}, None, default_user2)
 
     # Assert
     assert "https://en.wikipedia.org/wiki/History_of_the_Internet" in urls
@@ -667,6 +673,10 @@ def populate_chat_history(message_list):
         conversation_log["chat"] += message_to_log(
             user_message,
             gpt_message,
-            {"context": context, "intent": {"query": user_message, "inferred-queries": f'["{user_message}"]'}},
+            khoj_message_metadata={
+                "context": context,
+                "intent": {"query": user_message, "inferred-queries": f'["{user_message}"]'},
+            },
+            conversation_log=[],
         )
     return conversation_log

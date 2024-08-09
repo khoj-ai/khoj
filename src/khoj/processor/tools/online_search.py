@@ -10,6 +10,7 @@ import aiohttp
 from bs4 import BeautifulSoup
 from markdownify import markdownify
 
+from khoj.database.models import KhojUser
 from khoj.routers.helpers import (
     ChatEvent,
     extract_relevant_info,
@@ -51,6 +52,7 @@ async def search_online(
     query: str,
     conversation_history: dict,
     location: LocationData,
+    user: KhojUser,
     send_status_func: Optional[Callable] = None,
     custom_filters: List[str] = [],
 ):
@@ -61,7 +63,7 @@ async def search_online(
         return
 
     # Breakdown the query into subqueries to get the correct answer
-    subqueries = await generate_online_subqueries(query, conversation_history, location)
+    subqueries = await generate_online_subqueries(query, conversation_history, location, user)
     response_dict = {}
 
     if subqueries:
@@ -126,14 +128,18 @@ async def search_with_google(query: str) -> Tuple[str, Dict[str, List[Dict]]]:
 
 
 async def read_webpages(
-    query: str, conversation_history: dict, location: LocationData, send_status_func: Optional[Callable] = None
+    query: str,
+    conversation_history: dict,
+    location: LocationData,
+    user: KhojUser,
+    send_status_func: Optional[Callable] = None,
 ):
     "Infer web pages to read from the query and extract relevant information from them"
     logger.info(f"Inferring web pages to read")
     if send_status_func:
         async for event in send_status_func(f"**Inferring web pages to read**"):
             yield {ChatEvent.STATUS: event}
-    urls = await infer_webpage_urls(query, conversation_history, location)
+    urls = await infer_webpage_urls(query, conversation_history, location, user)
 
     logger.info(f"Reading web pages at: {urls}")
     if send_status_func:

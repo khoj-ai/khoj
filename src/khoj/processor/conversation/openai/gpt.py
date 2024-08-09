@@ -5,7 +5,7 @@ from typing import Dict, Optional
 
 from langchain.schema import ChatMessage
 
-from khoj.database.models import Agent
+from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.openai.utils import (
     chat_completion_with_backoff,
@@ -24,14 +24,15 @@ def extract_questions(
     conversation_log={},
     api_key=None,
     api_base_url=None,
-    temperature=0,
-    max_tokens=100,
+    temperature=0.7,
     location_data: LocationData = None,
+    user: KhojUser = None,
 ):
     """
     Infer search queries to retrieve relevant notes to answer user query
     """
     location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
+    username = prompts.user_name.format(name=user.get_full_name()) if user and user.get_full_name() else ""
 
     # Extract Past User Message and Inferred Questions from Conversation Log
     chat_history = "".join(
@@ -50,6 +51,7 @@ def extract_questions(
     prompt = prompts.extract_questions.format(
         current_date=today.strftime("%Y-%m-%d"),
         day_of_week=today.strftime("%A"),
+        current_month=today.strftime("%Y-%m"),
         last_new_year=last_new_year.strftime("%Y"),
         last_new_year_date=last_new_year.strftime("%Y-%m-%d"),
         current_new_year_date=current_new_year.strftime("%Y-%m-%d"),
@@ -59,6 +61,7 @@ def extract_questions(
         text=text,
         yesterday_date=(today - timedelta(days=1)).strftime("%Y-%m-%d"),
         location=location,
+        username=username,
     )
     messages = [ChatMessage(content=prompt, role="user")]
 

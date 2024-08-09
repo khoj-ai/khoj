@@ -212,6 +212,7 @@ Construct search queries to retrieve relevant information to answer the user's q
 
 Current Date: {day_of_week}, {current_date}
 User's Location: {location}
+{username}
 
 Examples:
 Q: How was my trip to Cambodia?
@@ -254,10 +255,12 @@ Construct search queries to retrieve relevant information to answer the user's q
 - Add as much context from the previous questions and answers as required into your search queries.
 - Break messages into multiple search queries when required to retrieve the relevant information.
 - Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
+- When asked a meta, vague or random questions, search for a variety of broad topics to answer the user's question.
 
 What searches will you perform to answer the users question? Respond with search queries as list of strings in a JSON object.
 Current Date: {day_of_week}, {current_date}
 User's Location: {location}
+{username}
 
 Q: How was my trip to Cambodia?
 Khoj: {{"queries": ["How was my trip to Cambodia?"]}}
@@ -278,6 +281,9 @@ A: I can help you live healthier and happier across work and personal life
 Q: How many tennis balls fit in the back of a 2002 Honda Civic?
 Khoj: {{"queries": ["What is the size of a tennis ball?", "What is the trunk size of a 2002 Honda Civic?"]}}
 A: 1085 tennis balls will fit in the trunk of a Honda Civic
+
+Q: Share some random, interesting experiences from this month
+Khoj: {{"queries": ["Exciting travel adventures from {current_month}", "Fun social events dt>='{current_month}-01' dt<'{current_date}'", "Intense emotional experiences in {current_month}"]}}
 
 Q: Is Bob older than Tom?
 Khoj: {{"queries": ["When was Bob born?", "What is Tom's age?"]}}
@@ -310,6 +316,7 @@ What searches will you perform to answer the users question? Respond with a JSON
 
 Current Date: {day_of_week}, {current_date}
 User's Location: {location}
+{username}
 
 Here are some examples of how you can construct search queries to answer the user's question:
 
@@ -525,6 +532,7 @@ Which webpages will you need to read to answer the user's question?
 Provide web page links as a list of strings in a JSON object.
 Current Date: {current_date}
 User's Location: {location}
+{username}
 
 Here are some examples:
 History:
@@ -571,6 +579,7 @@ What Google searches, if any, will you need to perform to answer the user's ques
 Provide search queries as a list of strings in a JSON object. Do not wrap the json in a codeblock.
 Current Date: {current_date}
 User's Location: {location}
+{username}
 
 Here are some examples:
 History:
