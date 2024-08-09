@@ -37,6 +37,8 @@ src/interface/obsidian/main.js
 
 # Exclude sourcemaps
 *.map
+# IntelliJ
+.idea
 
 # obsidian
 data.json
