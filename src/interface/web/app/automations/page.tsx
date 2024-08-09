@@ -325,6 +325,7 @@ function AutomationsCard(props: AutomationsCardProps) {
                                     setNewAutomationData={setUpdatedAutomationData}
                                     authenticatedData={props.authenticatedData}
                                     isCreating={isEditing}
+                                    automation={automation}
                                     ipLocationData={props.locationData}
                                 />
                             )}
