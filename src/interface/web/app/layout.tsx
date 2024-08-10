@@ -8,7 +8,8 @@ export const metadata: Metadata = {
     title: "Khoj AI - Home",
     description: "Your Second Brain.",
     icons: {
-        icon: "/static/favicon.ico",
+        icon: "/static/assets/icons/khoj_lantern.ico",
+        apple: "/static/assets/icons/khoj_lantern_256x256.png",
     },
     manifest: "/static/khoj.webmanifest",
 };

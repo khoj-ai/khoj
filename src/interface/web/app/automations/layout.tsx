@@ -7,7 +7,8 @@ export const metadata: Metadata = {
     title: "Khoj AI - Automations",
     description: "Use Autoomations with Khoj to simplify the process of running repetitive tasks.",
     icons: {
-        icon: "/static/favicon.ico",
+        icon: "/static/assets/icons/khoj_lantern.ico",
+        apple: "/static/assets/icons/khoj_lantern_256x256.png",
     },
 };
 

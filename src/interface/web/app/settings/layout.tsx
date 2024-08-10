@@ -9,7 +9,8 @@ export const metadata: Metadata = {
     title: "Khoj AI - Settings",
     description: "Configure Khoj to get personalized, deeper assistance.",
     icons: {
-        icon: "/static/favicon.ico",
+        icon: "/static/assets/icons/khoj_lantern.ico",
+        apple: "/static/assets/icons/khoj_lantern_256x256.png",
     },
 };
 

@@ -9,7 +9,8 @@ export const metadata: Metadata = {
     description:
         "Ask anything. Khoj will use the internet and your docs to answer, paint and even automate stuff for you.",
     icons: {
-        icon: "/static/favicon.ico",
+        icon: "/static/assets/icons/khoj_lantern.ico",
+        apple: "/static/assets/icons/khoj_lantern_256x256.png",
     },
 };
 

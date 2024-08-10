@@ -8,7 +8,8 @@ export const metadata: Metadata = {
     title: "Khoj AI - Agents",
     description: "Find a specialized agent that can help you address more specific needs.",
     icons: {
-        icon: "/static/favicon.ico",
+        icon: "/static/assets/icons/khoj_lantern.ico",
+        apple: "/static/assets/icons/khoj_lantern_256x256.png",
     },
 };
 
