@@ -89,6 +89,7 @@ class ChatModelOptions(BaseModel):
         ANTHROPIC = "anthropic"
 
     max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
+    subscribed_max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
     tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
     chat_model = models.CharField(max_length=200, default="NousResearch/Hermes-2-Pro-Mistral-7B-GGUF")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
@@ -205,11 +206,11 @@ class GithubRepoConfig(BaseModel):
 
 
 class ServerChatSettings(BaseModel):
-    default_model = models.ForeignKey(
-        ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="default_model"
+    chat_default = models.ForeignKey(
+        ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="chat_default"
     )
-    summarizer_model = models.ForeignKey(
-        ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="summarizer_model"
+    chat_advanced = models.ForeignKey(
+        ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="chat_advanced"
     )
 
 

@@ -32,10 +32,9 @@ from khoj.database.adapters import (
     ClientApplicationAdapters,
     ConversationAdapters,
     ProcessLockAdapters,
-    SubscriptionState,
     aget_or_create_user_by_phone_number,
     aget_user_by_phone_number,
-    aget_user_subscription_state,
+    ais_user_subscribed,
     delete_user_requests,
     get_all_users,
     get_or_create_search_models,
@@ -119,15 +118,7 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 .afirst()
             )
             if user:
-                if not state.billing_enabled:
-                    return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user)
-
-                subscription_state = await aget_user_subscription_state(user)
-                subscribed = (
-                    subscription_state == SubscriptionState.SUBSCRIBED.value
-                    or subscription_state == SubscriptionState.TRIAL.value
-                    or subscription_state == SubscriptionState.UNSUBSCRIBED.value
-                )
+                subscribed = await ais_user_subscribed(user)
                 if subscribed:
                     return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user)
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user)
@@ -144,15 +135,7 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 .afirst()
             )
             if user_with_token:
-                if not state.billing_enabled:
-                    return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user_with_token.user)
-
-                subscription_state = await aget_user_subscription_state(user_with_token.user)
-                subscribed = (
-                    subscription_state == SubscriptionState.SUBSCRIBED.value
-                    or subscription_state == SubscriptionState.TRIAL.value
-                    or subscription_state == SubscriptionState.UNSUBSCRIBED.value
-                )
+                subscribed = await ais_user_subscribed(user_with_token.user)
                 if subscribed:
                     return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user_with_token.user)
                 return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user_with_token.user)
@@ -189,20 +172,10 @@ class UserAuthenticationBackend(AuthenticationBackend):
             if user is None:
                 return AuthCredentials(), UnauthenticatedUser()
 
-            if not state.billing_enabled:
-                return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user, client_application)
+            subscribed = await ais_user_subscribed(user)
 
-            subscription_state = await aget_user_subscription_state(user)
-            subscribed = (
-                subscription_state == SubscriptionState.SUBSCRIBED.value
-                or subscription_state == SubscriptionState.TRIAL.value
-                or subscription_state == SubscriptionState.UNSUBSCRIBED.value
-            )
             if subscribed:
-                return (
-                    AuthCredentials(["authenticated", "premium"]),
-                    AuthenticatedKhojUser(user, client_application),
-                )
+                return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user, client_application)
             return AuthCredentials(["authenticated"]), AuthenticatedKhojUser(user, client_application)
 
         # No auth required if server in anonymous mode
