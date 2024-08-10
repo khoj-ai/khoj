@@ -146,7 +146,7 @@ async def sendfeedback(request: Request, data: FeedbackData):
 
 
 @api_chat.post("/speech")
-@requires(["authenticated", "premium"])
+@requires(["authenticated"])
 async def text_to_speech(
     request: Request,
     common: CommonQueryParams,
