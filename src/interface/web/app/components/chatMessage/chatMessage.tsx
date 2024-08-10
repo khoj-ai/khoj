@@ -142,21 +142,55 @@ function sendFeedback(uquery: string, kquery: string, sentiment: string) {
 }
 
 function FeedbackButtons({ uquery, kquery }: { uquery: string; kquery: string }) {
+    // Tri-state feedback state.
+    // Null = no feedback, true = positive feedback, false = negative feedback.
+    const [feedbackState, setFeedbackState] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        if (feedbackState !== null) {
+            setTimeout(() => {
+                setFeedbackState(null);
+            }, 2000);
+        }
+    }, [feedbackState]);
+
     return (
         <div className={`${styles.feedbackButtons} flex align-middle justify-center items-center`}>
             <button
                 title="Like"
                 className={styles.thumbsUpButton}
-                onClick={() => sendFeedback(uquery, kquery, "positive")}
+                disabled={feedbackState !== null}
+                onClick={() => {
+                    sendFeedback(uquery, kquery, "positive");
+                    setFeedbackState(true);
+                }}
             >
-                <ThumbsUp alt="Like Message" color="hsl(var(--muted-foreground))" />
+                {feedbackState === true ? (
+                    <ThumbsUp alt="Liked Message" className="text-green-500" weight="fill" />
+                ) : (
+                    <ThumbsUp
+                        alt="Like Message"
+                        className="hsl(var(--muted-foreground)) hover:text-green-500"
+                    />
+                )}
             </button>
             <button
                 title="Dislike"
                 className={styles.thumbsDownButton}
-                onClick={() => sendFeedback(uquery, kquery, "negative")}
+                disabled={feedbackState !== null}
+                onClick={() => {
+                    sendFeedback(uquery, kquery, "negative");
+                    setFeedbackState(false);
+                }}
             >
-                <ThumbsDown alt="Dislike Message" color="hsl(var(--muted-foreground))" />
+                {feedbackState === false ? (
+                    <ThumbsDown alt="Disliked Message" className="text-red-500" weight="fill" />
+                ) : (
+                    <ThumbsDown
+                        alt="Dislike Message"
+                        className="hsl(var(--muted-foreground)) hover:text-red-500"
+                    />
+                )}
             </button>
         </div>
     );
@@ -547,7 +581,7 @@ export default function ChatMessage(props: ChatMessageProps) {
                                         >
                                             <Pause
                                                 alt="Pause Message"
-                                                color="hsl(var(--muted-foreground))"
+                                                className="hsl(var(--muted-foreground))"
                                             />
                                         </button>
                                     )
@@ -555,7 +589,7 @@ export default function ChatMessage(props: ChatMessageProps) {
                                     <button title="Speak" onClick={(event) => playTextToSpeech()}>
                                         <SpeakerHigh
                                             alt="Speak Message"
-                                            color="hsl(var(--muted-foreground))"
+                                            className="hsl(var(--muted-foreground)) hover:text-green-500"
                                         />
                                     </button>
                                 ))}
@@ -568,9 +602,16 @@ export default function ChatMessage(props: ChatMessageProps) {
                                 }}
                             >
                                 {copySuccess ? (
-                                    <Copy alt="Copied Message" weight="fill" color="green" />
+                                    <Copy
+                                        alt="Copied Message"
+                                        weight="fill"
+                                        className="text-green-500"
+                                    />
                                 ) : (
-                                    <Copy alt="Copy Message" color="hsl(var(--muted-foreground))" />
+                                    <Copy
+                                        alt="Copy Message"
+                                        className="hsl(var(--muted-foreground)) hover:text-green-500"
+                                    />
                                 )}
                             </button>
                             {props.chatMessage.by === "khoj" &&
