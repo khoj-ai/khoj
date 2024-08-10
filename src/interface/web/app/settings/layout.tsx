@@ -12,6 +12,20 @@ export const metadata: Metadata = {
         icon: "/static/assets/icons/khoj_lantern.ico",
         apple: "/static/assets/icons/khoj_lantern_256x256.png",
     },
+    openGraph: {
+        siteName: "Khoj AI",
+        title: "Khoj AI - Settings",
+        description: "Your Second Brain.",
+        url: "https://app.khoj.dev/settings",
+        type: "website",
+        images: [
+            {
+                url: "https://assets.khoj.dev/khoj_lantern_256x256.png",
+                width: 256,
+                height: 256,
+            },
+        ],
+    },
 };
 
 export default function RootLayout({
