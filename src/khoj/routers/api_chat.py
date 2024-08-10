@@ -4,14 +4,14 @@ import logging
 import time
 from datetime import datetime
 from functools import partial
-from typing import Any, Dict, List, Optional
+from typing import Dict, Optional
 from urllib.parse import unquote
 
 from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.requests import Request
 from fastapi.responses import Response, StreamingResponse
-from starlette.authentication import requires
+from starlette.authentication import has_required_scope, requires
 
 from khoj.app.settings import ALLOWED_HOSTS
 from khoj.database.adapters import (
@@ -544,6 +544,7 @@ async def chat(
         chat_metadata: dict = {}
         connection_alive = True
         user: KhojUser = request.user.object
+        subscribed: bool = has_required_scope(request, ["premium"])
         event_delimiter = "␃🔚␗"
         q = unquote(q)
 
@@ -632,7 +633,9 @@ async def chat(
         is_automated_task = conversation_commands == [ConversationCommand.AutomatedTask]
 
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
-            conversation_commands = await aget_relevant_information_sources(q, meta_log, is_automated_task)
+            conversation_commands = await aget_relevant_information_sources(
+                q, meta_log, is_automated_task, subscribed=subscribed
+            )
             conversation_commands_str = ", ".join([cmd.value for cmd in conversation_commands])
             async for result in send_event(
                 ChatEvent.STATUS, f"**Chose Data Sources to Search:** {conversation_commands_str}"
@@ -687,7 +690,7 @@ async def chat(
                     ):
                         yield result
 
-                    response = await extract_relevant_summary(q, contextual_data)
+                    response = await extract_relevant_summary(q, contextual_data, subscribed=subscribed)
                     response_log = str(response)
                     async for result in send_llm_response(response_log):
                         yield result
@@ -792,7 +795,12 @@ async def chat(
         if ConversationCommand.Online in conversation_commands:
             try:
                 async for result in search_online(
-                    defiltered_query, meta_log, location, partial(send_event, ChatEvent.STATUS), custom_filters
+                    defiltered_query,
+                    meta_log,
+                    location,
+                    subscribed,
+                    partial(send_event, ChatEvent.STATUS),
+                    custom_filters,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -809,7 +817,7 @@ async def chat(
         if ConversationCommand.Webpage in conversation_commands:
             try:
                 async for result in read_webpages(
-                    defiltered_query, meta_log, location, partial(send_event, ChatEvent.STATUS)
+                    defiltered_query, meta_log, location, partial(send_event, ChatEvent.STATUS), subscribed=subscribed
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -853,6 +861,7 @@ async def chat(
                 location_data=location,
                 references=compiled_references,
                 online_results=online_results,
+                subscribed=subscribed,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
