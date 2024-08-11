@@ -1109,7 +1109,7 @@ def scheduled_chat(
 
     # Replace the original conversation_id with the conversation_id
     if conversation_id:
-        query_dict["conversation_id"] = conversation_id
+        query_dict["conversation_id"] = [conversation_id]
 
     # Construct the URL to call the chat API with the scheduled query string
     encoded_query = urlencode(query_dict, doseq=True)
@@ -1154,9 +1154,11 @@ def scheduled_chat(
             return raw_response
 
 
-async def create_automation(q: str, timezone: str, user: KhojUser, calling_url: URL, meta_log: dict = {}):
+async def create_automation(
+    q: str, timezone: str, user: KhojUser, calling_url: URL, meta_log: dict = {}, conversation_id: int = None
+):
     crontime, query_to_run, subject = await schedule_query(q, meta_log)
-    job = await schedule_automation(query_to_run, subject, crontime, timezone, q, user, calling_url)
+    job = await schedule_automation(query_to_run, subject, crontime, timezone, q, user, calling_url, conversation_id)
     return job, crontime, query_to_run, subject
 
 
