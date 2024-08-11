@@ -554,7 +554,8 @@ function EditCard(props: EditCardProps) {
                 ? String(rawHourAsNumber + 12)
                 : rawHourAsNumber;
 
-        const dayOfWeekNumber = dayOfWeek ? dayOfWeek : "*";
+        // Convert Sunday to 0th (from 7th) day of week for server cron format
+        const dayOfWeekNumber = dayOfWeek !== undefined ? (dayOfWeek === 7 ? 0 : dayOfWeek) : "*";
 
         switch (frequency) {
             case "Day":
