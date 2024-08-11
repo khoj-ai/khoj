@@ -674,15 +674,27 @@ class ConversationAdapters:
 
     @staticmethod
     async def acreate_conversation_session(
-        user: KhojUser, client_application: ClientApplication = None, agent_slug: str = None
+        user: KhojUser, client_application: ClientApplication = None, agent_slug: str = None, title: str = None
     ):
         if agent_slug:
             agent = await AgentAdapters.aget_agent_by_slug(agent_slug, user)
             if agent is None:
                 raise HTTPException(status_code=400, detail="No such agent currently exists.")
-            return await Conversation.objects.acreate(user=user, client=client_application, agent=agent)
+            return await Conversation.objects.acreate(user=user, client=client_application, agent=agent, title=title)
         agent = await AgentAdapters.aget_default_agent()
-        return await Conversation.objects.acreate(user=user, client=client_application, agent=agent)
+        return await Conversation.objects.acreate(user=user, client=client_application, agent=agent, title=title)
+
+    @staticmethod
+    def create_conversation_session(
+        user: KhojUser, client_application: ClientApplication = None, agent_slug: str = None, title: str = None
+    ):
+        if agent_slug:
+            agent = AgentAdapters.get_agent_by_slug(agent_slug, user)
+            if agent is None:
+                raise HTTPException(status_code=400, detail="No such agent currently exists.")
+            return Conversation.objects.create(user=user, client=client_application, agent=agent, title=title)
+        agent = AgentAdapters.get_default_agent()
+        return Conversation.objects.create(user=user, client=client_application, agent=agent, title=title)
 
     @staticmethod
     async def aget_conversation_by_user(

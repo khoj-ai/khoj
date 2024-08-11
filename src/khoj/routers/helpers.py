@@ -1074,7 +1074,13 @@ def should_notify(original_query: str, executed_query: str, ai_response: str) ->
 
 
 def scheduled_chat(
-    query_to_run: str, scheduling_request: str, subject: str, user: KhojUser, calling_url: URL, job_id: str = None
+    query_to_run: str,
+    scheduling_request: str,
+    subject: str,
+    user: KhojUser,
+    calling_url: URL,
+    job_id: str = None,
+    conversation_id: int = None,
 ):
     logger.info(f"Processing scheduled_chat: {query_to_run}")
     if job_id:
@@ -1100,6 +1106,10 @@ def scheduled_chat(
 
     # Replace the original scheduling query with the scheduled query
     query_dict["q"] = [query_to_run]
+
+    # Replace the original conversation_id with the conversation_id
+    if conversation_id:
+        query_dict["conversation_id"] = conversation_id
 
     # Construct the URL to call the chat API with the scheduled query string
     encoded_query = urlencode(query_dict, doseq=True)
@@ -1130,7 +1140,9 @@ def scheduled_chat(
     if raw_response.headers.get("Content-Type") == "application/json":
         response_map = raw_response.json()
         ai_response = response_map.get("response") or response_map.get("image")
-        is_image = response_map.get("image") is not None
+        is_image = False
+        if type(ai_response) == dict:
+            is_image = ai_response.get("image") is not None
     else:
         ai_response = raw_response.text
 
@@ -1156,6 +1168,7 @@ async def schedule_automation(
     scheduling_request: str,
     user: KhojUser,
     calling_url: URL,
+    conversation_id: int,
 ):
     # Disable minute level automation recurrence
     minute_value = crontime.split(" ")[0]
@@ -1173,6 +1186,7 @@ async def schedule_automation(
             "scheduling_request": scheduling_request,
             "subject": subject,
             "crontime": crontime,
+            "conversation_id": conversation_id,
         }
     )
     query_id = hashlib.md5(f"{query_to_run}_{crontime}".encode("utf-8")).hexdigest()
@@ -1191,6 +1205,7 @@ async def schedule_automation(
             "user": user,
             "calling_url": calling_url,
             "job_id": job_id,
+            "conversation_id": conversation_id,
         },
         id=job_id,
         name=job_metadata,
