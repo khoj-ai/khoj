@@ -117,7 +117,8 @@ def send_task_email(name, email, query, result, subject, is_image=False):
     template = env.get_template("task.html")
 
     if is_image:
-        result = f"![{subject}]({result})"
+        image = result.get("image")
+        result = f"![{subject}]({image})"
 
     html_result = markdown_it.MarkdownIt().render(result)
     html_content = template.render(name=name, subject=subject, query=query, result=html_result)

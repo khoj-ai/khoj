@@ -6,7 +6,7 @@ import "katex/dist/katex.min.css";
 import React, { useEffect, useState } from "react";
 import useSWR from "swr";
 import Image from "next/image";
-import { ArrowCounterClockwise, ClockCounterClockwise } from "@phosphor-icons/react";
+import { ArrowCounterClockwise } from "@phosphor-icons/react";
 
 import { Card, CardTitle } from "@/components/ui/card";
 import SuggestionCard from "@/app/components/suggestions/suggestionCard";
