@@ -1265,7 +1265,7 @@ Paragraph only starts at first text after blank line."
   (transient-define-suffix khoj--update-command (&optional args)
     "Call khoj API to update index of specified content type."
     (interactive (list (transient-args transient-current-command)))
-    (let* ((force-update (if (member "--force-update" args) "true" "false"))
+    (let* ((force-update (if (member "--force-update" args) t nil))
            ;; set content type to: specified > last used > based on current buffer > default type
            (content-type (or (transient-arg-value "--content-type=" args) (khoj--buffer-name-to-content-type (buffer-name))))
            (url-request-method "GET"))
