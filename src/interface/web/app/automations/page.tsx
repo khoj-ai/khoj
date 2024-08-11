@@ -324,7 +324,7 @@ function AutomationsCard(props: AutomationsCardProps) {
                                     setNewAutomationData={setUpdatedAutomationData}
                                     authenticatedData={props.authenticatedData}
                                     isCreating={isEditing}
-                                    automation={automation}
+                                    automation={updatedAutomationData || automation}
                                     ipLocationData={props.locationData}
                                 />
                             )}
@@ -500,19 +500,14 @@ function EditCard(props: EditCardProps) {
         );
 
         let updateQueryUrl = `/api/automation?`;
-
         updateQueryUrl += `q=${values.queryToRun}`;
-
         if (automation?.id && !props.createNew) {
             updateQueryUrl += `&automation_id=${automation.id}`;
         }
-
         if (values.subject) {
             updateQueryUrl += `&subject=${values.subject}`;
         }
-
         updateQueryUrl += `&crontime=${cronFrequency}`;
-
         if (props.locationData) {
             updateQueryUrl += `&city=${props.locationData.city}`;
             updateQueryUrl += `&region=${props.locationData.region}`;
@@ -978,7 +973,6 @@ export default function Automations() {
     const [suggestedAutomations, setSuggestedAutomations] = useState<AutomationsData[]>([]);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
     const isMobileWidth = useIsMobileWidth();
-
     const ipLocationData = useIPLocationData();
 
     useEffect(() => {
