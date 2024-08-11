@@ -65,7 +65,7 @@ import { useAuthenticatedData, UserProfile } from "../common/auth";
 import LoginPrompt from "../components/loginPrompt/loginPrompt";
 import { useToast } from "@/components/ui/use-toast";
 import { ToastAction } from "@/components/ui/toast";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import SidePanel from "../components/sidePanel/chatHistorySidePanel";
 import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 
@@ -261,7 +261,6 @@ function AutomationsCard(props: AutomationsCardProps) {
     const automation = props.automation;
 
     const [timeRecurrence, setTimeRecurrence] = useState("");
-
     const [intervalString, setIntervalString] = useState("");
 
     useEffect(() => {
@@ -632,10 +631,9 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                     props.onSubmit(values);
                     setIsSaving(true);
                 })}
-                className="space-y-8"
+                className="space-y-6"
             >
-                <FormItem>
-                    <FormLabel>Setup</FormLabel>
+                <FormItem className="space-y-1">
                     <FormDescription>
                         Emails will be sent to this address. Timezone and location data will be used
                         to schedule automations.
@@ -648,7 +646,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                         control={props.form.control}
                         name="subject"
                         render={({ field }) => (
-                            <FormItem>
+                            <FormItem className="space-y-1">
                                 <FormLabel>Subject</FormLabel>
                                 <FormDescription>
                                     This is the subject of the email you will receive.
@@ -672,7 +670,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                     control={props.form.control}
                     name="everyBlah"
                     render={({ field }) => (
-                        <FormItem className="w-full">
+                        <FormItem className="w-full space-y-1">
                             <FormLabel>Frequency</FormLabel>
                             <FormDescription>How often should this automation run?</FormDescription>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -705,7 +703,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                         control={props.form.control}
                         name="dayOfWeek"
                         render={({ field }) => (
-                            <FormItem className="w-full">
+                            <FormItem className="w-full space-y-1">
                                 <FormDescription>
                                     Every week, on which day should this automation run?
                                 </FormDescription>
@@ -743,7 +741,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                         control={props.form.control}
                         name="dayOfMonth"
                         render={({ field }) => (
-                            <FormItem className="w-full">
+                            <FormItem className="w-full space-y-1">
                                 <FormDescription>
                                     Every month, on which day should the automation run?
                                 </FormDescription>
@@ -780,7 +778,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                         control={props.form.control}
                         name="timeRecurrence"
                         render={({ field }) => (
-                            <FormItem className="w-full">
+                            <FormItem className="w-full space-y-1">
                                 <FormLabel>Time</FormLabel>
                                 <FormDescription>
                                     On the days this automation runs, at what time should it run?
@@ -815,7 +813,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
                     control={props.form.control}
                     name="queryToRun"
                     render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="space-y-1">
                             <FormLabel>Instructions</FormLabel>
                             <FormDescription>What do you want Khoj to do?</FormDescription>
                             {props.create && (
@@ -867,7 +865,7 @@ function AutomationModificationForm(props: AutomationModificationFormProps) {
 
 function metadataMap(ipLocationData: LocationData, authenticatedData: UserProfile | null) {
     return (
-        <div className="flex flex-wrap gap-2 items-center justify-start md:justify-end">
+        <div className="flex flex-wrap gap-2 items-center justify-start">
             {authenticatedData ? (
                 <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm">
                     <Envelope className="h-4 w-4 mr-2 inline text-orange-500 shadow-sm" />
@@ -946,7 +944,7 @@ function AutomationComponentWrapper(props: AutomationComponentWrapperProps) {
                     {props.callToAction}
                 </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[98vh] overflow-y-auto">
                 <DialogTitle>Automation</DialogTitle>
                 <EditCard
                     automation={props.automation}
