@@ -120,6 +120,8 @@ def llm_thread(g, messages, model_name, temperature, openai_api_key=None, api_ba
     )
 
     for chunk in chat:
+        if len(chunk.choices) == 0:
+            continue
         delta_chunk = chunk.choices[0].delta
         if isinstance(delta_chunk, str):
             g.send(delta_chunk)
