@@ -26,6 +26,7 @@ from khoj.database.models import (
     SpeechToTextModelOptions,
     Subscription,
     TextToImageModelConfig,
+    UserConversationConfig,
     UserSearchModelConfig,
     UserVoiceModelConfig,
     VoiceModelOption,
@@ -96,6 +97,7 @@ admin.site.register(ProcessLock)
 admin.site.register(SpeechToTextModelOptions)
 admin.site.register(SearchModelConfig)
 admin.site.register(ReflectiveQuestion)
+admin.site.register(UserConversationConfig)
 admin.site.register(UserSearchModelConfig)
 admin.site.register(ClientApplication)
 admin.site.register(GithubConfig)
