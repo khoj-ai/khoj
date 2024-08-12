@@ -3,7 +3,7 @@ from khoj.search_filter.file_filter import FileFilter
 from khoj.utils.rawconfig import Entry
 
 
-def test_no_file_filter():
+def test_can_filter_no_file_filter():
     # Arrange
     file_filter = FileFilter()
     q_with_no_filter = "head tail"
@@ -15,114 +15,114 @@ def test_no_file_filter():
     assert can_filter == False
 
 
-def test_file_filter_with_non_existent_file():
+def test_can_filter_non_existent_file():
     # Arrange
     file_filter = FileFilter()
-    q_with_no_filter = 'head file:"nonexistent.org" tail'
+    q_with_filter = 'head file:"nonexistent.org" tail'
 
     # Act
-    can_filter = file_filter.can_filter(q_with_no_filter)
+    can_filter = file_filter.can_filter(q_with_filter)
 
     # Assert
     assert can_filter == True
 
 
-def test_single_file_filter():
+def test_can_filter_single_file_include():
     # Arrange
     file_filter = FileFilter()
-    q_with_no_filter = 'head file:"file 1.org" tail'
+    q_with_filter = 'head file:"file 1.org" tail'
 
     # Act
-    can_filter = file_filter.can_filter(q_with_no_filter)
+    can_filter = file_filter.can_filter(q_with_filter)
 
     # Assert
     assert can_filter == True
 
 
-def test_file_filter_with_partial_match():
+def test_can_filter_single_file_exclude():
     # Arrange
     file_filter = FileFilter()
-    q_with_no_filter = 'head file:"1.org" tail'
+    q_with_filter = 'head -file:"1.org" tail'
 
     # Act
-    can_filter = file_filter.can_filter(q_with_no_filter)
+    can_filter = file_filter.can_filter(q_with_filter)
 
     # Assert
     assert can_filter == True
 
 
-def test_file_filter_with_regex_match():
+def test_can_filter_file_with_regex_match():
     # Arrange
     file_filter = FileFilter()
-    q_with_no_filter = 'head file:"*.org" tail'
+    q_with_filter = 'head file:"*.org" tail'
 
     # Act
-    can_filter = file_filter.can_filter(q_with_no_filter)
+    can_filter = file_filter.can_filter(q_with_filter)
 
     # Assert
     assert can_filter == True
 
 
-def test_multiple_file_filter():
+def test_can_filter_multiple_file_includes():
     # Arrange
     file_filter = FileFilter()
-    q_with_no_filter = 'head tail file:"file 1.org" file:"file2.org"'
+    q_with_filter = 'head tail file:"file 1.org" file:"file2.org"'
 
     # Act
-    can_filter = file_filter.can_filter(q_with_no_filter)
+    can_filter = file_filter.can_filter(q_with_filter)
 
     # Assert
     assert can_filter == True
 
 
-def test_get_file_filter_terms():
+def test_get_single_include_file_filter_terms():
+    # Arrange
+    file_filter = FileFilter()
+    q_with_filter_terms = 'head tail file:"/path/to/dir/*.org"'
+
+    # Act
+    filter_terms = file_filter.get_filter_terms(q_with_filter_terms)
+
+    # Assert
+    assert filter_terms == ["/path/to/dir/*.org"]
+
+
+def test_get_single_exclude_file_filter_terms():
+    # Arrange
+    file_filter = FileFilter()
+    q_with_filter_terms = 'head tail -file:"file 1.org"'
+
+    # Act
+    filter_terms = file_filter.get_filter_terms(q_with_filter_terms)
+
+    # Assert
+    assert filter_terms == ["-file 1.org"]
+
+
+def test_get_single_include_exclude_file_filter_terms():
+    # Arrange
+    file_filter = FileFilter()
+    q_with_filter_terms = 'head tail -file:"file 1.org" file:"/path/to/dir/*.org"'
+
+    # Act
+    filter_terms = file_filter.get_filter_terms(q_with_filter_terms)
+
+    # Assert
+    assert filter_terms == ["/path/to/dir/*.org", "-file 1.org"]
+
+
+def test_get_multiple_include_exclude_file_filter_terms():
     # Arrange
     file_filter = FileFilter()
     q_with_filter_terms = (
-        'head tail file:"file 1.org" file:"/path/to/dir/.*.org" -file:"file 1.org" -file:"/path/to/dir/.*.org"'
+        'head -file:"file 1.org" file:"file 1.org" file:"/path/to/dir/.*.org" -file:"/path/to/dir/*.org" tail'
     )
 
     # Act
     filter_terms = file_filter.get_filter_terms(q_with_filter_terms)
 
     # Assert
-    assert filter_terms == ["file 1.org", "/path/to/dir/.*.org", "-file 1.org", "-/path/to/dir/.*.org"]
-
-
-def test_include_and_exclude_file_filter_terms():
-    # Arrange
-    file_filter = FileFilter()
-    q_with_filter_terms = 'head tail -file:"file 1.org" file:"/path/to/dir/.*.org"'
-
-    # Act
-    filter_terms = file_filter.get_filter_terms(q_with_filter_terms)
-
-    # Assert
-    assert filter_terms == ["/path/to/dir/.*.org", "-file 1.org"]
-
-
-def test_file_exclude_filter():
-    # Arrange
-    file_filter = FileFilter()
-    q_with_exclude_filter = 'head -file:"/path/to/excluded_file" tail'
-
-    # Act
-    can_filter = file_filter.can_filter(q_with_exclude_filter)
-
-    # Assert
-    assert can_filter == True
-
-
-def test_file_include_and_exclude_filter():
-    # Arrange
-    file_filter = FileFilter()
-    q_with_include_and_exclude_filter = 'head file:"include_file" -file:"exclude_file" tail'
-
-    # Act
-    can_filter = file_filter.can_filter(q_with_include_and_exclude_filter)
-
-    # Assert
-    assert can_filter == True
+    assert filter_terms == ["file 1.org", "/path/to/dir/.*.org", "-file 1.org", "-/path/to/dir/*.org"]
 
 
 def arrange_content():
