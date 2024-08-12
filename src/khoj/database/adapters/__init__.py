@@ -1123,10 +1123,14 @@ class EntryAdapters:
         if len(file_filters) > 0:
             for term in file_filters:
                 if term.startswith("-"):
+                    # Convert the glob term to a regex pattern
                     regex_term = re.escape(term[1:]).replace(r"\*", ".*").replace(r"\?", ".")
-                    q_file_filter_terms |= ~Q(file_path__regex=regex_term)
+                    # Exclude all files that match the regex term
+                    q_file_filter_terms &= ~Q(file_path__regex=regex_term)
                 else:
+                    # Convert the glob term to a regex pattern
                     regex_term = re.escape(term).replace(r"\*", ".*").replace(r"\?", ".")
+                    # Include any files that match the regex term
                     q_file_filter_terms |= Q(file_path__regex=regex_term)
 
             q_filter_terms &= q_file_filter_terms
