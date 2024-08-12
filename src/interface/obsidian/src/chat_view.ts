@@ -104,7 +104,7 @@ export class KhojChatView extends KhojPaneView {
 		if (user_message) {
 			this.userMessages.push(user_message);
 			// Update starting message after sending a new message
-			const modifierKey = Platform.isMacOS ? 'cmd' : 'ctrl';
+			const modifierKey = Platform.isMacOS ? '⌘' : '⌃';
 			this.startingMessage = `(${modifierKey}+↑/↓) for prev messages`;
 			input_el.placeholder = this.startingMessage;
 		}
@@ -890,7 +890,7 @@ export class KhojChatView extends KhojPaneView {
                 });
 
                 // Update starting message after loading history
-                const modifierKey : string = Platform.isMacOS ? 'cmd' : 'ctrl';
+			    const modifierKey: string = Platform.isMacOS ? '⌘' : '⌃';
                 this.startingMessage = this.userMessages.length > 0
                     ? `(${modifierKey}+↑/↓) for prev messages`
                     : "Message";
