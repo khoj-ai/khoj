@@ -45,10 +45,10 @@ export class KhojChatView extends KhojPaneView {
     waitingForLocation: boolean;
     location: Location;
     keyPressTimeout: NodeJS.Timeout | null = null;
-	userMessages: string[] = [];  // New array to store user messages
-	currentMessageIndex: number = -1;  // New property to track current message index
-	private startingMessage : string = "Message";
-	private  currentUserInput: string = ""; //stores the current user input that is being typed in chat
+	userMessages: string[] = [];  // Store user sent messages for input history cycling
+	currentMessageIndex: number = -1;  // Track current message index in userMessages array
+	private currentUserInput: string = ""; // Stores the current user input that is being typed in chat
+	private startingMessage: string = "Message";
     chatMessageState: ChatMessageState;
 
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
@@ -160,7 +160,7 @@ export class KhojChatView extends KhojPaneView {
         })
         chatInput.addEventListener('input', (_) => { this.onChatInput() });
         chatInput.addEventListener('keydown', (event) => {
-			this.incrementalChat(event) ;
+			this.incrementalChat(event);
 			this.handleArrowKeys(event);
 		});
 
@@ -655,8 +655,7 @@ export class KhojChatView extends KhojPaneView {
     }
 
     async toggleChatSessions(forceShow: boolean = false): Promise<boolean> {
-		//clear user history
-		this.userMessages = [];
+		this.userMessages = [];  // clear user previous message history
         let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
         if (!forceShow && this.contentEl.getElementsByClassName("side-panel")?.length > 0) {
             chatBodyEl.innerHTML = "";
@@ -853,13 +852,13 @@ export class KhojChatView extends KhojPaneView {
         }
 
         try {
-			let response = await fetch(chatUrl, {
-				method: "GET",
-				headers: { "Authorization": `Bearer ${this.setting.khojApiKey}` },
-			});
+            let response = await fetch(chatUrl, {
+                method: "GET",
+                headers: { "Authorization": `Bearer ${this.setting.khojApiKey}` },
+            });
 
-			let responseJson: any = await response.json();
-			chatBodyEl.dataset.conversationId = responseJson.conversation_id;
+            let responseJson: any = await response.json();
+            chatBodyEl.dataset.conversationId = responseJson.conversation_id;
 
             if (responseJson.detail) {
                 // If the server returns error details in response, render a setup hint.
@@ -868,40 +867,40 @@ export class KhojChatView extends KhojPaneView {
 
                 return false;
             } else if (responseJson.response) {
-				// Render conversation history, if any
-				chatBodyEl.dataset.conversationId = responseJson.response.conversation_id;
-				chatBodyEl.dataset.conversationTitle = responseJson.response.slug || `New conversation 🌱`;
+                // Render conversation history, if any
+                chatBodyEl.dataset.conversationId = responseJson.response.conversation_id;
+                chatBodyEl.dataset.conversationTitle = responseJson.response.slug || `New conversation 🌱`;
 
-				let chatLogs = responseJson.response?.conversation_id ? responseJson.response.chat ?? [] : responseJson.response;
-				chatLogs.forEach((chatLog: any) => {
-					this.renderMessageWithReferences(
-						chatBodyEl,
-						chatLog.message,
-						chatLog.by,
-						chatLog.context,
-						chatLog.onlineContext,
-						new Date(chatLog.created),
-						chatLog.intent?.type,
-						chatLog.intent?.["inferred-queries"],
-					);
-					//push the user messages to the chat history
-					if(chatLog.by === "you"){
-						this.userMessages.push(chatLog.message);
-					}
-				});
+                let chatLogs = responseJson.response?.conversation_id ? responseJson.response.chat ?? [] : responseJson.response;
+                chatLogs.forEach((chatLog: any) => {
+                    this.renderMessageWithReferences(
+                        chatBodyEl,
+                        chatLog.message,
+                        chatLog.by,
+                        chatLog.context,
+                        chatLog.onlineContext,
+                        new Date(chatLog.created),
+                        chatLog.intent?.type,
+                        chatLog.intent?.["inferred-queries"],
+                    );
+                    // push the user messages to the chat history
+                    if(chatLog.by === "you"){
+                        this.userMessages.push(chatLog.message);
+                    }
+                });
 
-				// Update starting message after loading history
-				const modifierKey : string = Platform.isMacOS ? 'cmd' : 'ctrl';
-				this.startingMessage = this.userMessages.length > 0
-					? `(${modifierKey}+↑/↓) for prev messages`
-					: "Message";
+                // Update starting message after loading history
+                const modifierKey : string = Platform.isMacOS ? 'cmd' : 'ctrl';
+                this.startingMessage = this.userMessages.length > 0
+                    ? `(${modifierKey}+↑/↓) for prev messages`
+                    : "Message";
 
-				// Update the placeholder of the chat input
-				const chatInput = this.contentEl.querySelector('.khoj-chat-input') as HTMLTextAreaElement;
-				if (chatInput) {
-					chatInput.placeholder = this.startingMessage;
-				}
-			}
+                // Update the placeholder of the chat input
+                const chatInput = this.contentEl.querySelector('.khoj-chat-input') as HTMLTextAreaElement;
+                if (chatInput) {
+                    chatInput.placeholder = this.startingMessage;
+                }
+            }
         } catch (err) {
             let errorMsg = "Unable to get response from Khoj server ❤️‍🩹. Ensure server is running or contact developers for help at [team@khoj.dev](mailto:team@khoj.dev) or in [Discord](https://discord.gg/BDgyabRM6e)";
             this.renderMessage(chatBodyEl, errorMsg, "khoj", undefined);
@@ -1269,9 +1268,9 @@ export class KhojChatView extends KhojPaneView {
     onChatInput() {
         const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
         chatInput.value = chatInput.value.trimStart();
-		this.currentMessageIndex = -1;
-		//store the current input
-		this.currentUserInput = chatInput.value;
+        this.currentMessageIndex = -1;
+        // store the current input
+        this.currentUserInput = chatInput.value;
         this.autoResize();
     }
 
@@ -1404,27 +1403,25 @@ export class KhojChatView extends KhojPaneView {
         return referencesDiv;
     }
 
-	//function to loop through the user's past messages
-	handleArrowKeys(event: KeyboardEvent) {
-		const chatInput = event.target as HTMLTextAreaElement;
+    // function to loop through the user's past messages
+    handleArrowKeys(event: KeyboardEvent) {
+        const chatInput = event.target as HTMLTextAreaElement;
 
-		if ((event.ctrlKey || event.metaKey) && event.key === 'ArrowUp') {
-			event.preventDefault();
-			if (this.currentMessageIndex < this.userMessages.length - 1) {
-				this.currentMessageIndex++;
-				chatInput.value = this.userMessages[this.userMessages.length - 1 - this.currentMessageIndex];
-			}
-		} else if ((event.ctrlKey || event.metaKey) && event.key === 'ArrowDown') {
-			event.preventDefault();
-			if (this.currentMessageIndex > 0) {
-				this.currentMessageIndex--;
-				chatInput.value = this.userMessages[this.userMessages.length - 1 - this.currentMessageIndex];
-			} else if (this.currentMessageIndex === 0) {
-				this.currentMessageIndex = -1;
-				chatInput.value = this.currentUserInput;
-			}
-		}
-
-	}
-
+        if ((event.ctrlKey || event.metaKey) && event.key === 'ArrowUp') {
+            event.preventDefault();
+            if (this.currentMessageIndex < this.userMessages.length - 1) {
+                this.currentMessageIndex++;
+                chatInput.value = this.userMessages[this.userMessages.length - 1 - this.currentMessageIndex];
+            }
+        } else if ((event.ctrlKey || event.metaKey) && event.key === 'ArrowDown') {
+            event.preventDefault();
+            if (this.currentMessageIndex > 0) {
+                this.currentMessageIndex--;
+                chatInput.value = this.userMessages[this.userMessages.length - 1 - this.currentMessageIndex];
+            } else if (this.currentMessageIndex === 0) {
+                this.currentMessageIndex = -1;
+                chatInput.value = this.currentUserInput;
+            }
+        }
+    }
 }
