@@ -1013,7 +1013,7 @@ class FileObjectAdapters:
 
 
 class EntryAdapters:
-    word_filer = WordFilter()
+    word_filter = WordFilter()
     file_filter = FileFilter()
     date_filter = DateFilter()
 
@@ -1105,14 +1105,14 @@ class EntryAdapters:
     def apply_filters(user: KhojUser, query: str, file_type_filter: str = None):
         q_filter_terms = Q()
 
-        explicit_word_terms = EntryAdapters.word_filer.get_filter_terms(query)
+        word_filters = EntryAdapters.word_filter.get_filter_terms(query)
         file_filters = EntryAdapters.file_filter.get_filter_terms(query)
         date_filters = EntryAdapters.date_filter.get_query_date_range(query)
 
-        if len(explicit_word_terms) == 0 and len(file_filters) == 0 and len(date_filters) == 0:
+        if len(word_filters) == 0 and len(file_filters) == 0 and len(date_filters) == 0:
             return Entry.objects.filter(user=user)
 
-        for term in explicit_word_terms:
+        for term in word_filters:
             if term.startswith("+"):
                 q_filter_terms &= Q(raw__icontains=term[1:])
             elif term.startswith("-"):
@@ -1146,9 +1146,7 @@ class EntryAdapters:
                 formatted_max_date = date.fromtimestamp(max_date).strftime("%Y-%m-%d")
                 q_filter_terms &= Q(embeddings_dates__date__lte=formatted_max_date)
 
-        relevant_entries = Entry.objects.filter(user=user).filter(
-            q_filter_terms,
-        )
+        relevant_entries = Entry.objects.filter(user=user).filter(q_filter_terms)
         if file_type_filter:
             relevant_entries = relevant_entries.filter(file_type=file_type_filter)
         return relevant_entries
