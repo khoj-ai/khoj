@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 import logging
 import time
@@ -46,6 +47,7 @@ from khoj.routers.helpers import (
     update_telemetry_state,
     validate_conversation_config,
 )
+from khoj.routers.storage import upload_image_bucket
 from khoj.utils import state
 from khoj.utils.helpers import (
     AsyncIteratorWrapper,
@@ -517,7 +519,14 @@ async def set_conversation_title(
     )
 
 
-@api_chat.get("")
+from pydantic import BaseModel
+
+
+class ImageUploadObject(BaseModel):
+    image: str
+
+
+@api_chat.post("")
 async def chat(
     request: Request,
     common: CommonQueryParams,
@@ -531,6 +540,7 @@ async def chat(
     region: Optional[str] = None,
     country: Optional[str] = None,
     timezone: Optional[str] = None,
+    image: Optional[ImageUploadObject] = None,
     rate_limiter_per_minute=Depends(
         ApiUserRateLimiter(requests=5, subscribed_requests=60, window=60, slug="chat_minute")
     ),
@@ -538,6 +548,17 @@ async def chat(
         ApiUserRateLimiter(requests=5, subscribed_requests=600, window=60 * 60 * 24, slug="chat_day")
     ),
 ):
+    # if image.image is a string print true else false
+    if image:
+        # print("🖼️ Vision Upload: ", image.image)
+        bucket = "khoj-generated-images"
+        decoded_string = unquote(image.image)
+        base64_data = decoded_string.split(",")[1]
+        image_bytes = base64.b64decode(base64_data)
+        url = upload_image_bucket(image_bytes, request.user.object.id, bucket)
+        if url:
+            print("🖼️ Vision Upload URL: ", url)
+
     async def event_generator(q: str):
         start_time = time.perf_counter()
         ttft = None

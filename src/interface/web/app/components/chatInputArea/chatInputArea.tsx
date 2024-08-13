@@ -16,6 +16,7 @@ import {
     Microphone,
     Notebook,
     Paperclip,
+    X,
     Question,
     Robot,
     Shapes,
@@ -55,6 +56,7 @@ export interface ChatOptions {
 
 interface ChatInputProps {
     sendMessage: (message: string) => void;
+    sendImage: (image: string) => void;
     sendDisabled: boolean;
     setUploadedFiles?: (files: string[]) => void;
     conversationId?: string | null;
@@ -75,6 +77,9 @@ export default function ChatInputArea(props: ChatInputProps) {
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
     const [recording, setRecording] = useState(false);
+    const [imageUploaded, setImageUploaded] = useState(false);
+    const [imagePath, setImagePath] = useState<string | null>(null);
+    const [imageData, setImageData] = useState<string | null>(null);
     const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
     const [progressValue, setProgressValue] = useState(0);
@@ -97,6 +102,22 @@ export default function ChatInputArea(props: ChatInputProps) {
         }
     }, [uploading]);
 
+    useEffect(() => {
+        async function fetchImageData() {
+            if (imagePath) {
+                const response = await fetch(imagePath);
+                const blob = await response.blob();
+                const reader = new FileReader();
+                reader.onload = function () {
+                    const base64data = reader.result;
+                    setImageData(base64data as string);
+                };
+                reader.readAsDataURL(blob);
+            }
+        }
+        fetchImageData();
+    }, [imagePath]);
+
     function onSendMessage() {
         if (!message.trim()) return;
 
@@ -109,6 +130,9 @@ export default function ChatInputArea(props: ChatInputProps) {
         }
 
         props.sendMessage(message.trim());
+        if (imageUploaded) {
+            props.sendImage(imageData || "");
+        }
         setMessage("");
     }
 
@@ -128,6 +152,7 @@ export default function ChatInputArea(props: ChatInputProps) {
     }
 
     function handleDragAndDropFiles(event: React.DragEvent<HTMLDivElement>) {
+
         event.preventDefault();
         setIsDragAndDropping(false);
 
@@ -142,6 +167,18 @@ export default function ChatInputArea(props: ChatInputProps) {
             setShowLoginPrompt(true);
             return;
         }
+        // check for image file
+        const image_endings = ['jpg', 'jpeg', 'png']
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const file_extension = file.name.split('.').pop();
+            if (image_endings.includes(file_extension || "")) {
+                setImageUploaded(true);
+                setImagePath(URL.createObjectURL(file));
+                return;
+            }
+        }
+
 
         uploadDataForIndexing(
             files,
@@ -287,6 +324,16 @@ export default function ChatInputArea(props: ChatInputProps) {
         setIsDragAndDropping(false);
     }
 
+    function removeImageUpload() {
+        setImageUploaded(false);
+        setImagePath(null);
+    }
+
+    function handleImageAWS() {
+
+        alert("coming soon");
+    }
+
     return (
         <>
             {showLoginPrompt && loginRedirectMessage && (
@@ -397,11 +444,21 @@ export default function ChatInputArea(props: ChatInputProps) {
                 </div>
             )}
             <div
-                className={`${styles.actualInputArea} items-center justify-between dark:bg-neutral-700`}
+                className={`${styles.actualInputArea} items-center justify-between dark:bg-neutral-700 relative`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDragAndDropFiles}
             >
+                {imageUploaded &&
+                <div className="absolute bottom-[80px] left-0 right-0 dark:bg-neutral-700 bg-white pt-5 pb-5 w-full rounded-lg border dark:border-none grid grid-cols-2">
+                    <div className="pl-4 pr-4">
+                        <img src={imagePath || ""} alt="img" className="w-auto max-h-[100px]"/>
+                    </div>
+                    <div className="pl-4 pr-4">
+                        <X className="w-6 h-6 float-right dark:hover:bg-[hsl(var(--background))] hover:bg-neutral-100 rounded-sm" onClick={removeImageUpload} />
+                    </div>
+                </div>
+                }
                 <input
                     type="file"
                     multiple={true}
@@ -427,6 +484,8 @@ export default function ChatInputArea(props: ChatInputProps) {
                         value={message}
                         onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.shiftKey) {
+                                setImageUploaded(false);
+                                setImagePath(null);
                                 e.preventDefault();
                                 onSendMessage();
                             }

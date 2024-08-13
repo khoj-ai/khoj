@@ -29,15 +29,25 @@ interface ChatBodyDataProps {
     isLoggedIn: boolean;
 }
 
+var image64 = "";
+
 function ChatBodyData(props: ChatBodyDataProps) {
     const searchParams = useSearchParams();
     const conversationId = searchParams.get("conversationId");
     const [message, setMessage] = useState("");
+    const [image, setImage] = useState<string | null>(null);
     const [processingMessage, setProcessingMessage] = useState(false);
     const [agentMetadata, setAgentMetadata] = useState<AgentData | null>(null);
 
     const setQueryToProcess = props.setQueryToProcess;
     const onConversationIdChange = props.onConversationIdChange;
+
+    useEffect(() => {
+        if (image) {
+            image64 = encodeURIComponent(image);
+        }
+    }, [image]);
+
 
     useEffect(() => {
         const storedMessage = localStorage.getItem("message");
@@ -95,6 +105,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     agentColor={agentMetadata?.color}
                     isLoggedIn={props.isLoggedIn}
                     sendMessage={(message) => setMessage(message)}
+                    sendImage={(image) => setImage(image)}
                     sendDisabled={processingMessage}
                     chatOptionsData={props.chatOptionsData}
                     conversationId={conversationId}
@@ -217,12 +228,20 @@ export default function Chat() {
         if (locationData) {
             chatAPI += `&region=${locationData.region}&country=${locationData.country}&city=${locationData.city}&timezone=${locationData.timezone}`;
         }
-
-        const response = await fetch(chatAPI);
+        console.log(JSON.stringify({ image: image64 }));
+        const response = await fetch(chatAPI, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            //body is image64 url
+            body: JSON.stringify({ image: image64 }),
+        });
         try {
             await readChatStream(response);
-        } catch (err) {
-            console.log(err);
+        }
+        catch (error) {
+            console.error(error);
         }
     }
 
