@@ -262,7 +262,7 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
     let markdownRendered = DOMPurify.sanitize(md.render(props.message));
     return (
         <div
-            className={`${styles.trainOfThoughtElement} items-center ${props.primary ? "text-gray-400" : "text-gray-300"} ${styles.trainOfThought} ${props.primary ? styles.primary : ""}`}
+            className={`${styles.trainOfThoughtElement} break-all items-center ${props.primary ? "text-gray-400" : "text-gray-300"} ${styles.trainOfThought} ${props.primary ? styles.primary : ""}`}
         >
             {icon}
             <div dangerouslySetInnerHTML={{ __html: markdownRendered }} />
