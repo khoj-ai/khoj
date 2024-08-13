@@ -32,6 +32,7 @@ def extract_questions_offline(
     location_data: LocationData = None,
     user: KhojUser = None,
     max_prompt_size: int = None,
+    temperature: float = 0,
 ) -> List[str]:
     """
     Infer search queries to retrieve relevant notes to answer user query
@@ -80,7 +81,11 @@ def extract_questions_offline(
     state.chat_lock.acquire()
     try:
         response = send_message_to_model_offline(
-            messages, loaded_model=offline_chat_model, model=model, max_prompt_size=max_prompt_size
+            messages,
+            loaded_model=offline_chat_model,
+            model=model,
+            max_prompt_size=max_prompt_size,
+            temperature=temperature,
         )
     finally:
         state.chat_lock.release()
@@ -232,6 +237,7 @@ def send_message_to_model_offline(
     messages: List[ChatMessage],
     loaded_model=None,
     model="NousResearch/Hermes-2-Pro-Mistral-7B-GGUF",
+    temperature: float = 0.2,
     streaming=False,
     stop=[],
     max_prompt_size: int = None,
@@ -239,7 +245,9 @@ def send_message_to_model_offline(
     assert loaded_model is None or isinstance(loaded_model, Llama), "loaded_model must be of type Llama, if configured"
     offline_chat_model = loaded_model or download_model(model, max_tokens=max_prompt_size)
     messages_dict = [{"role": message.role, "content": message.content} for message in messages]
-    response = offline_chat_model.create_chat_completion(messages_dict, stop=stop, stream=streaming)
+    response = offline_chat_model.create_chat_completion(
+        messages_dict, stop=stop, stream=streaming, temperature=temperature
+    )
     if streaming:
         return response
     else:
