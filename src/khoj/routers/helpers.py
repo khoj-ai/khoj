@@ -683,6 +683,7 @@ def generate_chat_response(
     conversation_id: int = None,
     location_data: LocationData = None,
     user_name: Optional[str] = None,
+    image_url: Optional[str] = None,
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
     chat_response = None
@@ -742,6 +743,7 @@ def generate_chat_response(
                 location_data=location_data,
                 user_name=user_name,
                 agent=agent,
+                image_url=image_url,
             )
 
         elif conversation_config.model_type == "anthropic":

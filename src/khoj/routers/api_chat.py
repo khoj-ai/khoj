@@ -548,16 +548,18 @@ async def chat(
         ApiUserRateLimiter(requests=5, subscribed_requests=600, window=60 * 60 * 24, slug="chat_day")
     ),
 ):
-    # if image.image is a string print true else false
+    url = None
     if image:
-        # print("🖼️ Vision Upload: ", image.image)
         bucket = "khoj-generated-images"
         decoded_string = unquote(image.image)
+        # print(decoded_string)
         base64_data = decoded_string.split(",")[1]
         image_bytes = base64.b64decode(base64_data)
         url = upload_image_bucket(image_bytes, request.user.object.id, bucket)
         if url:
             print("🖼️ Vision Upload URL: ", url)
+        # Temp Fix
+        url = decoded_string
 
     async def event_generator(q: str):
         start_time = time.perf_counter()
@@ -930,6 +932,7 @@ async def chat(
             conversation_id,
             location,
             user_name,
+            url,
         )
 
         # Send Response

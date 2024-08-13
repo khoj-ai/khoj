@@ -48,7 +48,7 @@ def upload_image_bucket(image: bytes, user_id: uuid.UUID, bucket_name: str):
     try:
         s3_client.put_object(Bucket=bucket_name, Key=image_key, Body=image, ACL="public-read", ContentType="image/webp")
         # open using default browser
-        os.startfile(f"https://{bucket_name}.s3.amazonaws.com/{image_key}")
+        # os.startfile(f"https://{bucket_name}.s3.amazonaws.com/{image_key}")
         return f"https://{bucket_name}.s3.amazonaws.com/{image_key}"
     except Exception as e:
         logger.error(f"Failed to upload image to S3: {e}")
