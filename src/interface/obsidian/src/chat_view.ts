@@ -1406,14 +1406,15 @@ export class KhojChatView extends KhojPaneView {
     // function to loop through the user's past messages
     handleArrowKeys(event: KeyboardEvent) {
         const chatInput = event.target as HTMLTextAreaElement;
+        const isModKey = Platform.isMacOS ? event.metaKey : event.ctrlKey;
 
-        if ((event.ctrlKey || event.metaKey) && event.key === 'ArrowUp') {
+        if (isModKey && event.key === 'ArrowUp') {
             event.preventDefault();
             if (this.currentMessageIndex < this.userMessages.length - 1) {
                 this.currentMessageIndex++;
                 chatInput.value = this.userMessages[this.userMessages.length - 1 - this.currentMessageIndex];
             }
-        } else if ((event.ctrlKey || event.metaKey) && event.key === 'ArrowDown') {
+        } else if (isModKey && event.key === 'ArrowDown') {
             event.preventDefault();
             if (this.currentMessageIndex > 0) {
                 this.currentMessageIndex--;
