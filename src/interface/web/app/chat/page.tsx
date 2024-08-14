@@ -55,6 +55,11 @@ function ChatBodyData(props: ChatBodyDataProps) {
             setProcessingMessage(true);
             setQueryToProcess(storedMessage);
         }
+        const storedImage = localStorage.getItem("image");
+        if (storedImage) {
+            setImage(storedImage);
+            localStorage.removeItem("image");
+        }
     }, [setQueryToProcess]);
 
     useEffect(() => {
