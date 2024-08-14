@@ -552,14 +552,11 @@ async def chat(
     if image:
         bucket = "khoj-generated-images"
         decoded_string = unquote(image.image)
-        # print(decoded_string)
         base64_data = decoded_string.split(",")[1]
         image_bytes = base64.b64decode(base64_data)
         url = upload_image_bucket(image_bytes, request.user.object.id, bucket)
         if url:
             print("🖼️ Vision Upload URL: ", url)
-        # Temp Fix
-        url = decoded_string
 
     async def event_generator(q: str):
         start_time = time.perf_counter()
