@@ -119,6 +119,10 @@ export default function ChatInputArea(props: ChatInputProps) {
     }, [imagePath]);
 
     function onSendMessage() {
+        if (imageUploaded) {
+            setImageUploaded(false);
+            setImagePath(null);
+        }
         if (!message.trim()) return;
 
         if (!props.isLoggedIn) {
