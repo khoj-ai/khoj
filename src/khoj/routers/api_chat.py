@@ -553,9 +553,10 @@ async def chat(
         decoded_string = unquote(image.image)
         base64_data = decoded_string.split(",")[1]
         image_bytes = base64.b64decode(base64_data)
-        url = upload_image_bucket(image_bytes, request.user.object.id)
-        if url:
-            print("🖼️ Vision Upload URL: ", url)
+        try:
+            url = upload_image_bucket(image_bytes, request.user.object.id)
+        except:
+            url = None
 
     async def event_generator(q: str):
         start_time = time.perf_counter()
