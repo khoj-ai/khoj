@@ -550,11 +550,10 @@ async def chat(
 ):
     url = None
     if image:
-        bucket = "khoj-generated-images"
         decoded_string = unquote(image.image)
         base64_data = decoded_string.split(",")[1]
         image_bytes = base64.b64decode(base64_data)
-        url = upload_image_bucket(image_bytes, request.user.object.id, bucket)
+        url = upload_image_bucket(image_bytes, request.user.object.id)
         if url:
             print("🖼️ Vision Upload URL: ", url)
 
