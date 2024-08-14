@@ -109,7 +109,6 @@ def llm_thread(g, messages, model_name, temperature, openai_api_key=None, api_ba
         client: openai.OpenAI = openai_clients[client_key]
 
     formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
-    print("Model Name: ", model_name)
     chat = client.chat.completions.create(
         stream=True,
         messages=formatted_messages,

@@ -92,6 +92,7 @@ class ChatModelOptions(BaseModel):
     tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
     chat_model = models.CharField(max_length=200, default="NousResearch/Hermes-2-Pro-Mistral-7B-GGUF")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
+    vision_enabled = models.BooleanField(default=False)
     openai_config = models.ForeignKey(
         OpenAIProcessorConversationConfig, on_delete=models.CASCADE, default=None, null=True, blank=True
     )

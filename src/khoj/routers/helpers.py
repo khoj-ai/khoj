@@ -549,6 +549,7 @@ async def send_message_to_model_wrapper(
     chat_model = conversation_config.chat_model
     max_tokens = conversation_config.max_prompt_size
     tokenizer = conversation_config.tokenizer
+    vision_available = conversation_config.vision_enabled
 
     if conversation_config.model_type == "offline":
         if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
@@ -562,6 +563,7 @@ async def send_message_to_model_wrapper(
             loaded_model=loaded_model,
             tokenizer_name=tokenizer,
             max_prompt_size=max_tokens,
+            vision_enabled=vision_available,
         )
 
         return send_message_to_model_offline(
@@ -581,6 +583,7 @@ async def send_message_to_model_wrapper(
             model_name=chat_model,
             max_prompt_size=max_tokens,
             tokenizer_name=tokenizer,
+            vision_enabled=vision_available,
         )
 
         openai_response = send_message_to_model(
@@ -600,6 +603,7 @@ async def send_message_to_model_wrapper(
             model_name=chat_model,
             max_prompt_size=max_tokens,
             tokenizer_name=tokenizer,
+            vision_enabled=vision_available,
         )
 
         return anthropic_send_message_to_model(
@@ -623,6 +627,7 @@ def send_message_to_model_wrapper_sync(
 
     chat_model = conversation_config.chat_model
     max_tokens = conversation_config.max_prompt_size
+    vision_available = conversation_config.vision_enabled
 
     if conversation_config.model_type == "offline":
         if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
@@ -630,7 +635,11 @@ def send_message_to_model_wrapper_sync(
 
         loaded_model = state.offline_chat_processor_config.loaded_model
         truncated_messages = generate_chatml_messages_with_context(
-            user_message=message, system_message=system_message, model_name=chat_model, loaded_model=loaded_model
+            user_message=message,
+            system_message=system_message,
+            model_name=chat_model,
+            loaded_model=loaded_model,
+            vision_enabled=vision_available,
         )
 
         return send_message_to_model_offline(
@@ -643,7 +652,10 @@ def send_message_to_model_wrapper_sync(
     elif conversation_config.model_type == "openai":
         api_key = conversation_config.openai_config.api_key
         truncated_messages = generate_chatml_messages_with_context(
-            user_message=message, system_message=system_message, model_name=chat_model
+            user_message=message,
+            system_message=system_message,
+            model_name=chat_model,
+            vision_enabled=vision_available,
         )
 
         openai_response = send_message_to_model(
@@ -659,6 +671,7 @@ def send_message_to_model_wrapper_sync(
             system_message=system_message,
             model_name=chat_model,
             max_prompt_size=max_tokens,
+            vision_enabled=vision_available,
         )
 
         return anthropic_send_message_to_model(
@@ -691,7 +704,6 @@ def generate_chat_response(
 
     metadata = {}
     agent = AgentAdapters.get_conversation_agent_by_id(conversation.agent.id) if conversation.agent else None
-
     try:
         partial_completion = partial(
             save_to_conversation_log,
@@ -706,6 +718,7 @@ def generate_chat_response(
         )
 
         conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)
+        vision_available = conversation_config.vision_enabled
         if conversation_config.model_type == "offline":
             loaded_model = state.offline_chat_processor_config.loaded_model
             chat_response = converse_offline(
@@ -744,6 +757,7 @@ def generate_chat_response(
                 user_name=user_name,
                 agent=agent,
                 image_url=image_url,
+                vision_available=vision_available,
             )
 
         elif conversation_config.model_type == "anthropic":

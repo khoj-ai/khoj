@@ -140,6 +140,7 @@ def generate_chatml_messages_with_context(
     max_prompt_size=None,
     tokenizer_name=None,
     image_url=None,
+    vision_enabled=False,
 ):
     """Generate messages for ChatGPT with context from previous conversation"""
     # Set max prompt size from user config or based on pre-configured for model and machine specs
@@ -167,10 +168,9 @@ def generate_chatml_messages_with_context(
 
     # Format user and system messages to chatml format
     def return_structured_message(message, image_url):
-        if not image_url:
-            return message
-        else:
+        if image_url and vision_enabled:
             return [{"type": "text", "text": message}, {"type": "image_url", "image_url": {"url": image_url}}]
+        return message
 
     messages = []
     if not is_none_or_empty(user_message):
