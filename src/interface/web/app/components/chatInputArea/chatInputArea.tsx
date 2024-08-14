@@ -333,11 +333,6 @@ export default function ChatInputArea(props: ChatInputProps) {
         setImagePath(null);
     }
 
-    function handleImageAWS() {
-
-        alert("coming soon");
-    }
-
     return (
         <>
             {showLoginPrompt && loginRedirectMessage && (
