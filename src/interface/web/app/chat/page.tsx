@@ -228,35 +228,19 @@ export default function Chat() {
         if (locationData) {
             chatAPI += `&region=${locationData.region}&country=${locationData.country}&city=${locationData.city}&timezone=${locationData.timezone}`;
         }
-        if (image64){
-            console.log(JSON.stringify({ image: image64 }));
-            const response = await fetch(chatAPI, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ image: image64 }),
-            });
-            try {
-                await readChatStream(response);
-            }
-            catch (error) {
-                console.error(error);
-            }
-        }
-        else {
-            const response = await fetch(chatAPI, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            });
-            try {
-                await readChatStream(response);
-            }
-            catch (error) {
-                console.error(error);
-            }
+
+        const response = await fetch(chatAPI, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: image64 ? JSON.stringify({ image: image64 }) : undefined,
+        });
+
+        try {
+            await readChatStream(response);
+        } catch (error) {
+            console.error(error);
         }
     }
 
