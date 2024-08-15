@@ -30,13 +30,21 @@ interface ChatBodyDataProps {
     setQueryToProcess: (query: string) => void;
 }
 
+var image64 = "";
+
 function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState("");
+    const [image, setImage] = useState<string | null>(null);
     const [processingMessage, setProcessingMessage] = useState(false);
     const [agentMetadata, setAgentMetadata] = useState<AgentData | null>(null);
-
     const setQueryToProcess = props.setQueryToProcess;
     const streamedMessages = props.streamedMessages;
+
+    useEffect(() => {
+        if (image) {
+            image64 = encodeURIComponent(image);
+        }
+    }, [image]);
 
     useEffect(() => {
         if (message) {
@@ -79,6 +87,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 <ChatInputArea
                     isLoggedIn={props.isLoggedIn}
                     sendMessage={(message) => setMessage(message)}
+                    sendImage={(image) => setImage(image)}
                     sendDisabled={processingMessage}
                     chatOptionsData={props.chatOptionsData}
                     conversationId={props.conversationId}
@@ -216,11 +225,18 @@ export default function SharedChat() {
             chatAPI += `&region=${locationData.region}&country=${locationData.country}&city=${locationData.city}&timezone=${locationData.timezone}`;
         }
 
-        const response = await fetch(chatAPI);
+        const response = await fetch(chatAPI, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: image64 ? JSON.stringify({ image: image64 }) : undefined,
+        });
+
         try {
             await readChatStream(response);
-        } catch (err) {
-            console.log(err);
+        } catch (error) {
+            console.error(error);
         }
     }
 
