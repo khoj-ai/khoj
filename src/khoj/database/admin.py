@@ -95,7 +95,6 @@ admin.site.register(KhojUser, KhojUserAdmin)
 
 admin.site.register(ProcessLock)
 admin.site.register(SpeechToTextModelOptions)
-admin.site.register(SearchModelConfig)
 admin.site.register(ReflectiveQuestion)
 admin.site.register(UserSearchModelConfig)
 admin.site.register(ClientApplication)
@@ -178,6 +177,17 @@ class OpenAIProcessorConversationConfigAdmin(admin.ModelAdmin):
         "api_base_url",
     )
     search_fields = ("id", "name", "api_key", "api_base_url")
+
+
+@admin.register(SearchModelConfig)
+class SearchModelConfigAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "name",
+        "bi_encoder",
+        "cross_encoder",
+    )
+    search_fields = ("id", "name", "bi_encoder", "cross_encoder")
 
 
 @admin.register(ServerChatSettings)

@@ -10,6 +10,7 @@ import aiohttp
 from bs4 import BeautifulSoup
 from markdownify import markdownify
 
+from khoj.database.models import KhojUser
 from khoj.routers.helpers import (
     ChatEvent,
     extract_relevant_info,
@@ -51,6 +52,7 @@ async def search_online(
     query: str,
     conversation_history: dict,
     location: LocationData,
+    user: KhojUser,
     subscribed: bool = False,
     send_status_func: Optional[Callable] = None,
     custom_filters: List[str] = [],
@@ -62,7 +64,7 @@ async def search_online(
         return
 
     # Breakdown the query into subqueries to get the correct answer
-    subqueries = await generate_online_subqueries(query, conversation_history, location)
+    subqueries = await generate_online_subqueries(query, conversation_history, location, user)
     response_dict = {}
 
     if subqueries:
@@ -133,6 +135,7 @@ async def read_webpages(
     query: str,
     conversation_history: dict,
     location: LocationData,
+    user: KhojUser,
     subscribed: bool = False,
     send_status_func: Optional[Callable] = None,
 ):
@@ -141,7 +144,7 @@ async def read_webpages(
     if send_status_func:
         async for event in send_status_func(f"**Inferring web pages to read**"):
             yield {ChatEvent.STATUS: event}
-    urls = await infer_webpage_urls(query, conversation_history, location)
+    urls = await infer_webpage_urls(query, conversation_history, location, user)
 
     logger.info(f"Reading web pages at: {urls}")
     if send_status_func:

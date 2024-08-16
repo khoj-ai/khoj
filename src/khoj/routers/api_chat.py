@@ -798,6 +798,7 @@ async def chat(
                     defiltered_query,
                     meta_log,
                     location,
+                    user,
                     subscribed,
                     partial(send_event, ChatEvent.STATUS),
                     custom_filters,
@@ -817,7 +818,7 @@ async def chat(
         if ConversationCommand.Webpage in conversation_commands:
             try:
                 async for result in read_webpages(
-                    defiltered_query, meta_log, location, subscribed, partial(send_event, ChatEvent.STATUS)
+                    defiltered_query, meta_log, location, user, subscribed, partial(send_event, ChatEvent.STATUS)
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
