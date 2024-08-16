@@ -7,7 +7,7 @@ from typing import Any, Iterator, List, Union
 from langchain.schema import ChatMessage
 from llama_cpp import Llama
 
-from khoj.database.models import Agent
+from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.utils import download_model
 from khoj.processor.conversation.utils import (
@@ -30,7 +30,9 @@ def extract_questions_offline(
     use_history: bool = True,
     should_extract_questions: bool = True,
     location_data: LocationData = None,
+    user: KhojUser = None,
     max_prompt_size: int = None,
+    temperature: float = 0.7,
 ) -> List[str]:
     """
     Infer search queries to retrieve relevant notes to answer user query
@@ -45,6 +47,7 @@ def extract_questions_offline(
     offline_chat_model = loaded_model or download_model(model, max_tokens=max_prompt_size)
 
     location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
+    username = prompts.user_name.format(name=user.get_full_name()) if user and user.get_full_name() else ""
 
     # Extract Past User Message and Inferred Questions from Conversation Log
     chat_history = ""
@@ -64,10 +67,12 @@ def extract_questions_offline(
         chat_history=chat_history,
         current_date=today.strftime("%Y-%m-%d"),
         day_of_week=today.strftime("%A"),
+        current_month=today.strftime("%Y-%m"),
         yesterday_date=yesterday,
         last_year=last_year,
         this_year=today.year,
         location=location,
+        username=username,
     )
 
     messages = generate_chatml_messages_with_context(
@@ -77,7 +82,11 @@ def extract_questions_offline(
     state.chat_lock.acquire()
     try:
         response = send_message_to_model_offline(
-            messages, loaded_model=offline_chat_model, model=model, max_prompt_size=max_prompt_size
+            messages,
+            loaded_model=offline_chat_model,
+            model=model,
+            max_prompt_size=max_prompt_size,
+            temperature=temperature,
         )
     finally:
         state.chat_lock.release()
@@ -229,6 +238,7 @@ def send_message_to_model_offline(
     messages: List[ChatMessage],
     loaded_model=None,
     model="NousResearch/Hermes-2-Pro-Mistral-7B-GGUF",
+    temperature: float = 0.2,
     streaming=False,
     stop=[],
     max_prompt_size: int = None,
@@ -236,7 +246,9 @@ def send_message_to_model_offline(
     assert loaded_model is None or isinstance(loaded_model, Llama), "loaded_model must be of type Llama, if configured"
     offline_chat_model = loaded_model or download_model(model, max_tokens=max_prompt_size)
     messages_dict = [{"role": message.role, "content": message.content} for message in messages]
-    response = offline_chat_model.create_chat_completion(messages_dict, stop=stop, stream=streaming)
+    response = offline_chat_model.create_chat_completion(
+        messages_dict, stop=stop, stream=streaming, temperature=temperature
+    )
     if streaming:
         return response
     else:

@@ -340,11 +340,14 @@ async def aget_relevant_output_modes(query: str, conversation_history: dict, is_
         return ConversationCommand.Text
 
 
-async def infer_webpage_urls(q: str, conversation_history: dict, location_data: LocationData) -> List[str]:
+async def infer_webpage_urls(
+    q: str, conversation_history: dict, location_data: LocationData, user: KhojUser
+) -> List[str]:
     """
     Infer webpage links from the given query
     """
     location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
+    username = prompts.user_name.format(name=user.get_full_name()) if user.get_full_name() else ""
     chat_history = construct_chat_history(conversation_history)
 
     utc_date = datetime.utcnow().strftime("%Y-%m-%d")
@@ -353,6 +356,7 @@ async def infer_webpage_urls(q: str, conversation_history: dict, location_data: 
         query=q,
         chat_history=chat_history,
         location=location,
+        username=username,
     )
 
     with timer("Chat actor: Infer webpage urls to read", logger):
@@ -370,11 +374,14 @@ async def infer_webpage_urls(q: str, conversation_history: dict, location_data: 
         raise ValueError(f"Invalid list of urls: {response}")
 
 
-async def generate_online_subqueries(q: str, conversation_history: dict, location_data: LocationData) -> List[str]:
+async def generate_online_subqueries(
+    q: str, conversation_history: dict, location_data: LocationData, user: KhojUser
+) -> List[str]:
     """
     Generate subqueries from the given query
     """
     location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
+    username = prompts.user_name.format(name=user.get_full_name()) if user.get_full_name() else ""
     chat_history = construct_chat_history(conversation_history)
 
     utc_date = datetime.utcnow().strftime("%Y-%m-%d")
@@ -383,6 +390,7 @@ async def generate_online_subqueries(q: str, conversation_history: dict, locatio
         query=q,
         chat_history=chat_history,
         location=location,
+        username=username,
     )
 
     with timer("Chat actor: Generate online search subqueries", logger):
