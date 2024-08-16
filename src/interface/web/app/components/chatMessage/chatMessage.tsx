@@ -386,8 +386,6 @@ export default function ChatMessage(props: ChatMessageProps) {
                 preElement.prepend(copyButton);
             });
 
-            console.log("render katex within the chat message");
-
             renderMathInElement(messageRef.current, {
                 delimiters: [
                     { left: "$$", right: "$$", display: true },

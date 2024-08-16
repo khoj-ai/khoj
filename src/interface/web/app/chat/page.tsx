@@ -222,7 +222,20 @@ export default function Chat() {
         try {
             await readChatStream(response);
         } catch (err) {
-            console.log(err);
+            console.error(err);
+            // Retrieve latest message being processed
+            const currentMessage = messages.find((message) => !message.completed);
+            if (!currentMessage) return;
+
+            // Render error message as current message
+            const errorMessage = (err as Error).message;
+            currentMessage.rawResponse = `Encountered Error: ${errorMessage}. Please try again later.`;
+
+            // Complete message streaming teardown properly
+            currentMessage.completed = true;
+            setMessages([...messages]);
+            setQueryToProcess("");
+            setProcessQuerySignal(false);
         }
     }
 

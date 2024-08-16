@@ -252,7 +252,7 @@ async def acreate_title_from_query(query: str) -> str:
     return response.strip()
 
 
-async def aget_relevant_information_sources(query: str, conversation_history: dict, is_task: bool):
+async def aget_relevant_information_sources(query: str, conversation_history: dict, is_task: bool, subscribed: bool):
     """
     Given a query, determine which of the available tools the agent should use in order to answer appropriately.
     """
@@ -273,7 +273,9 @@ async def aget_relevant_information_sources(query: str, conversation_history: di
     )
 
     with timer("Chat actor: Infer information sources to refer", logger):
-        response = await send_message_to_model_wrapper(relevant_tools_prompt, response_type="json_object")
+        response = await send_message_to_model_wrapper(
+            relevant_tools_prompt, response_type="json_object", subscribed=subscribed
+        )
 
     try:
         response = response.strip()
@@ -434,7 +436,7 @@ async def schedule_query(q: str, conversation_history: dict) -> Tuple[str, ...]:
         raise AssertionError(f"Invalid response for scheduling query: {raw_response}")
 
 
-async def extract_relevant_info(q: str, corpus: str) -> Union[str, None]:
+async def extract_relevant_info(q: str, corpus: str, subscribed: bool) -> Union[str, None]:
     """
     Extract relevant information for a given query from the target corpus
     """
@@ -447,18 +449,19 @@ async def extract_relevant_info(q: str, corpus: str) -> Union[str, None]:
         corpus=corpus.strip(),
     )
 
-    summarizer_model: ChatModelOptions = await ConversationAdapters.aget_summarizer_conversation_config()
+    chat_model: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config()
 
     with timer("Chat actor: Extract relevant information from data", logger):
         response = await send_message_to_model_wrapper(
             extract_relevant_information,
             prompts.system_prompt_extract_relevant_information,
-            chat_model_option=summarizer_model,
+            chat_model_option=chat_model,
+            subscribed=subscribed,
         )
     return response.strip()
 
 
-async def extract_relevant_summary(q: str, corpus: str) -> Union[str, None]:
+async def extract_relevant_summary(q: str, corpus: str, subscribed: bool = False) -> Union[str, None]:
     """
     Extract relevant information for a given query from the target corpus
     """
@@ -471,13 +474,14 @@ async def extract_relevant_summary(q: str, corpus: str) -> Union[str, None]:
         corpus=corpus.strip(),
     )
 
-    summarizer_model: ChatModelOptions = await ConversationAdapters.aget_summarizer_conversation_config()
+    chat_model: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config()
 
     with timer("Chat actor: Extract relevant information from data", logger):
         response = await send_message_to_model_wrapper(
             extract_relevant_information,
             prompts.system_prompt_extract_relevant_summary,
-            chat_model_option=summarizer_model,
+            chat_model_option=chat_model,
+            subscribed=subscribed,
         )
     return response.strip()
 
@@ -489,6 +493,7 @@ async def generate_better_image_prompt(
     note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
     model_type: Optional[str] = None,
+    subscribed: bool = False,
 ) -> str:
     """
     Generate a better image prompt from the given query
@@ -533,10 +538,12 @@ async def generate_better_image_prompt(
             online_results=simplified_online_results,
         )
 
-    summarizer_model: ChatModelOptions = await ConversationAdapters.aget_summarizer_conversation_config()
+    chat_model: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config()
 
     with timer("Chat actor: Generate contextual image prompt", logger):
-        response = await send_message_to_model_wrapper(image_prompt, chat_model_option=summarizer_model)
+        response = await send_message_to_model_wrapper(
+            image_prompt, chat_model_option=chat_model, subscribed=subscribed
+        )
         response = response.strip()
         if response.startswith(('"', "'")) and response.endswith(('"', "'")):
             response = response[1:-1]
@@ -549,13 +556,18 @@ async def send_message_to_model_wrapper(
     system_message: str = "",
     response_type: str = "text",
     chat_model_option: ChatModelOptions = None,
+    subscribed: bool = False,
 ):
     conversation_config: ChatModelOptions = (
         chat_model_option or await ConversationAdapters.aget_default_conversation_config()
     )
 
     chat_model = conversation_config.chat_model
-    max_tokens = conversation_config.max_prompt_size
+    max_tokens = (
+        conversation_config.subscribed_max_prompt_size
+        if subscribed and conversation_config.subscribed_max_prompt_size
+        else conversation_config.max_prompt_size
+    )
     tokenizer = conversation_config.tokenizer
 
     if conversation_config.model_type == "offline":
@@ -786,6 +798,7 @@ async def text_to_image(
     location_data: LocationData,
     references: List[Dict[str, Any]],
     online_results: Dict[str, Any],
+    subscribed: bool = False,
     send_status_func: Optional[Callable] = None,
 ):
     status_code = 200
@@ -822,6 +835,7 @@ async def text_to_image(
         note_references=references,
         online_results=online_results,
         model_type=text_to_image_config.model_type,
+        subscribed=subscribed,
     )
 
     if send_status_func:
@@ -1359,7 +1373,9 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
     current_notion_config = get_user_notion_config(user)
     notion_token = current_notion_config.token if current_notion_config else ""
 
-    selected_chat_model_config = ConversationAdapters.get_conversation_config(user)
+    selected_chat_model_config = (
+        ConversationAdapters.get_conversation_config(user) or ConversationAdapters.get_default_conversation_config()
+    )
     chat_models = ConversationAdapters.get_conversation_processor_options().all()
     chat_model_options = list()
     for chat_model in chat_models:

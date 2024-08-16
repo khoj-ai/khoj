@@ -26,6 +26,7 @@ from khoj.database.models import (
     SpeechToTextModelOptions,
     Subscription,
     TextToImageModelConfig,
+    UserConversationConfig,
     UserSearchModelConfig,
     UserVoiceModelConfig,
     VoiceModelOption,
@@ -101,6 +102,7 @@ admin.site.register(GithubConfig)
 admin.site.register(NotionConfig)
 admin.site.register(UserVoiceModelConfig)
 admin.site.register(VoiceModelOption)
+admin.site.register(UserConversationConfig)
 
 
 @admin.register(Agent)
@@ -191,8 +193,8 @@ class SearchModelConfigAdmin(admin.ModelAdmin):
 @admin.register(ServerChatSettings)
 class ServerChatSettingsAdmin(admin.ModelAdmin):
     list_display = (
-        "default_model",
-        "summarizer_model",
+        "chat_default",
+        "chat_advanced",
     )
 
 

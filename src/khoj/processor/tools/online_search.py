@@ -53,6 +53,7 @@ async def search_online(
     conversation_history: dict,
     location: LocationData,
     user: KhojUser,
+    subscribed: bool = False,
     send_status_func: Optional[Callable] = None,
     custom_filters: List[str] = [],
 ):
@@ -91,12 +92,15 @@ async def search_online(
     # Read, extract relevant info from the retrieved web pages
     if webpages:
         webpage_links = [link for link, _, _ in webpages]
-        logger.info(f"🌐👀 Reading web pages at: {list(webpage_links)}")
+        logger.info(f"Reading web pages at: {list(webpage_links)}")
         if send_status_func:
             webpage_links_str = "\n- " + "\n- ".join(list(webpage_links))
             async for event in send_status_func(f"**Reading web pages**: {webpage_links_str}"):
                 yield {ChatEvent.STATUS: event}
-    tasks = [read_webpage_and_extract_content(subquery, link, content) for link, subquery, content in webpages]
+    tasks = [
+        read_webpage_and_extract_content(subquery, link, content, subscribed=subscribed)
+        for link, subquery, content in webpages
+    ]
     results = await asyncio.gather(*tasks)
 
     # Collect extracted info from the retrieved web pages
@@ -132,6 +136,7 @@ async def read_webpages(
     conversation_history: dict,
     location: LocationData,
     user: KhojUser,
+    subscribed: bool = False,
     send_status_func: Optional[Callable] = None,
 ):
     "Infer web pages to read from the query and extract relevant information from them"
@@ -146,7 +151,7 @@ async def read_webpages(
         webpage_links_str = "\n- " + "\n- ".join(list(urls))
         async for event in send_status_func(f"**Reading web pages**: {webpage_links_str}"):
             yield {ChatEvent.STATUS: event}
-    tasks = [read_webpage_and_extract_content(query, url) for url in urls]
+    tasks = [read_webpage_and_extract_content(query, url, subscribed=subscribed) for url in urls]
     results = await asyncio.gather(*tasks)
 
     response: Dict[str, Dict] = defaultdict(dict)
@@ -157,14 +162,14 @@ async def read_webpages(
 
 
 async def read_webpage_and_extract_content(
-    subquery: str, url: str, content: str = None
+    subquery: str, url: str, content: str = None, subscribed: bool = False
 ) -> Tuple[str, Union[None, str], str]:
     try:
         if is_none_or_empty(content):
             with timer(f"Reading web page at '{url}' took", logger):
                 content = await read_webpage_with_olostep(url) if OLOSTEP_API_KEY else await read_webpage_with_jina(url)
         with timer(f"Extracting relevant information from web page at '{url}' took", logger):
-            extracted_info = await extract_relevant_info(subquery, content)
+            extracted_info = await extract_relevant_info(subquery, content, subscribed=subscribed)
         return subquery, extracted_info, url
     except Exception as e:
         logger.error(f"Failed to read web page at '{url}' with {e}")

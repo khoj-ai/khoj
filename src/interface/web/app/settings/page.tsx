@@ -672,7 +672,15 @@ export default function SettingsView() {
     };
 
     const updateModel = (name: string) => async (id: string) => {
-        if (!userConfig?.is_active && name !== "search") return;
+        if (!userConfig?.is_active && name !== "search") {
+            toast({
+                title: `Model Update`,
+                description: `You need to be subscribed to update ${name} models`,
+                variant: "destructive",
+            });
+            return;
+        }
+
         try {
             const response = await fetch(`/api/model/${name}?id=` + id, {
                 method: "POST",
@@ -1144,7 +1152,7 @@ export default function SettingsView() {
                                                 <ChatCircleText className="h-7 w-7 mr-2" />
                                                 Chat
                                             </CardHeader>
-                                            <CardContent className="overflow-hidden pb-12 grid gap-8">
+                                            <CardContent className="overflow-hidden pb-12 grid gap-8 h-fit">
                                                 <p className="text-gray-400">
                                                     Pick the chat model to generate text responses
                                                 </p>
@@ -1169,7 +1177,7 @@ export default function SettingsView() {
                                                 <FileMagnifyingGlass className="h-7 w-7 mr-2" />
                                                 Search
                                             </CardHeader>
-                                            <CardContent className="overflow-hidden pb-12 grid gap-8">
+                                            <CardContent className="overflow-hidden pb-12 grid gap-8 h-fit">
                                                 <p className="text-gray-400">
                                                     Pick the search model to find your documents
                                                 </p>
@@ -1190,7 +1198,7 @@ export default function SettingsView() {
                                                 <Palette className="h-7 w-7 mr-2" />
                                                 Paint
                                             </CardHeader>
-                                            <CardContent className="overflow-hidden pb-12 grid gap-8">
+                                            <CardContent className="overflow-hidden pb-12 grid gap-8 h-fit">
                                                 <p className="text-gray-400">
                                                     Pick the paint model to generate image responses
                                                 </p>
@@ -1217,7 +1225,7 @@ export default function SettingsView() {
                                                 <Waveform className="h-7 w-7 mr-2" />
                                                 Voice
                                             </CardHeader>
-                                            <CardContent className="overflow-hidden pb-12 grid gap-8">
+                                            <CardContent className="overflow-hidden pb-12 grid gap-8 h-fit">
                                                 <p className="text-gray-400">
                                                     Pick the voice model to generate speech
                                                     responses
