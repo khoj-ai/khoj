@@ -122,6 +122,7 @@ export default function ChatInputArea(props: ChatInputProps) {
         if (imageUploaded) {
             setImageUploaded(false);
             setImagePath(null);
+            props.sendImage(imageData || "");
         }
         if (!message.trim()) return;
 
@@ -134,9 +135,6 @@ export default function ChatInputArea(props: ChatInputProps) {
         }
 
         props.sendMessage(message.trim());
-        if (imageUploaded) {
-            props.sendImage(imageData || "");
-        }
         setMessage("");
     }
 

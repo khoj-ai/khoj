@@ -35,7 +35,7 @@ def upload_image(image: bytes, user_id: uuid.UUID):
         return None
 
 
-AWS_USER_UPLOADED_IMAGES = os.getenv("AWS_USER_UPLOADED_IMAGES")
+AWS_USER_UPLOADED_IMAGES_BUCKET_NAME = os.getenv("AWS_USER_UPLOADED_IMAGES_BUCKET_NAME")
 
 
 def upload_image_bucket(image: bytes, user_id: uuid.UUID):
@@ -47,11 +47,13 @@ def upload_image_bucket(image: bytes, user_id: uuid.UUID):
     image_key = f"{user_id}/{uuid.uuid4()}.webp"
     try:
         s3_client.put_object(
-            Bucket=AWS_USER_UPLOADED_IMAGES, Key=image_key, Body=image, ACL="public-read", ContentType="image/webp"
+            Bucket=AWS_USER_UPLOADED_IMAGES_BUCKET_NAME,
+            Key=image_key,
+            Body=image,
+            ACL="public-read",
+            ContentType="image/webp",
         )
-        # open using default browser
-        # os.startfile(f"https://{bucket_name}.s3.amazonaws.com/{image_key}")
-        return f"https://{AWS_USER_UPLOADED_IMAGES}.s3.amazonaws.com/{image_key}"
+        return f"https://{AWS_USER_UPLOADED_IMAGES_BUCKET_NAME}.s3.amazonaws.com/{image_key}"
     except Exception as e:
         logger.error(f"Failed to upload image to S3: {e}")
         return None

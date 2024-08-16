@@ -548,17 +548,7 @@ async def chat(
         ApiUserRateLimiter(requests=5, subscribed_requests=600, window=60 * 60 * 24, slug="chat_day")
     ),
 ):
-    url = None
-    if image:
-        decoded_string = unquote(image.image)
-        base64_data = decoded_string.split(",")[1]
-        image_bytes = base64.b64decode(base64_data)
-        try:
-            url = upload_image_bucket(image_bytes, request.user.object.id)
-        except:
-            url = None
-
-    async def event_generator(q: str):
+    async def event_generator(q: str, image: ImageUploadObject):
         start_time = time.perf_counter()
         ttft = None
         chat_metadata: dict = {}
@@ -566,6 +556,16 @@ async def chat(
         user: KhojUser = request.user.object
         event_delimiter = "␃🔚␗"
         q = unquote(q)
+
+        uploaded_image_url = None
+        if image:
+            decoded_string = unquote(image.image)
+            base64_data = decoded_string.split(",")[1]
+            image_bytes = base64.b64decode(base64_data)
+            try:
+                uploaded_image_url = upload_image_bucket(image_bytes, request.user.object.id)
+            except:
+                uploaded_image_url = None
 
         async def send_event(event_type: ChatEvent, data: str | dict):
             nonlocal connection_alive, ttft
@@ -929,7 +929,7 @@ async def chat(
             conversation_id,
             location,
             user_name,
-            url,
+            uploaded_image_url,
         )
 
         # Send Response
@@ -955,9 +955,9 @@ async def chat(
 
     ## Stream Text Response
     if stream:
-        return StreamingResponse(event_generator(q), media_type="text/plain")
+        return StreamingResponse(event_generator(q, image=image), media_type="text/plain")
     ## Non-Streaming Text Response
     else:
-        response_iterator = event_generator(q)
+        response_iterator = event_generator(q, image=image)
         response_data = await read_chat_stream(response_iterator)
         return Response(content=json.dumps(response_data), media_type="application/json", status_code=200)

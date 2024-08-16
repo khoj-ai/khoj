@@ -28,9 +28,8 @@ interface ChatBodyDataProps {
     isLoggedIn: boolean;
     conversationId?: string;
     setQueryToProcess: (query: string) => void;
+    setImage64: (image64: string) => void;
 }
-
-var image64 = "";
 
 function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState("");
@@ -42,9 +41,9 @@ function ChatBodyData(props: ChatBodyDataProps) {
 
     useEffect(() => {
         if (image) {
-            image64 = encodeURIComponent(image);
+          props.setImage64(encodeURIComponent(image));
         }
-    }, [image]);
+    }, [image, props.setImage64]);
 
     useEffect(() => {
         if (message) {
@@ -110,6 +109,7 @@ export default function SharedChat() {
     const [processQuerySignal, setProcessQuerySignal] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [paramSlug, setParamSlug] = useState<string | undefined>(undefined);
+    const [image64, setImage64] = useState<string>("");
 
     const locationData = useIPLocationData();
     const authenticatedData = useAuthenticatedData();
@@ -291,6 +291,7 @@ export default function SharedChat() {
                             setTitle={setTitle}
                             setUploadedFiles={setUploadedFiles}
                             isMobileWidth={isMobileWidth}
+                            setImage64={setImage64}
                         />
                     </Suspense>
                 </div>

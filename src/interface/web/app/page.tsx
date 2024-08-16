@@ -41,8 +41,6 @@ function FisherYatesShuffle(array: any[]) {
     return array;
 }
 
-var image64 = "";
-
 function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState("");
     const [image, setImage] = useState<string | null>(null);
@@ -55,12 +53,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
     const onConversationIdChange = props.onConversationIdChange;
-
-    useEffect(() => {
-        if (image) {
-            image64 = encodeURIComponent(image);
-        }
-    }, [image]);
 
     const agentsFetcher = () =>
         window

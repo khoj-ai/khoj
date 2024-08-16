@@ -27,9 +27,8 @@ interface ChatBodyDataProps {
     setUploadedFiles: (files: string[]) => void;
     isMobileWidth?: boolean;
     isLoggedIn: boolean;
+    setImage64: (image64: string) => void;
 }
-
-var image64 = "";
 
 function ChatBodyData(props: ChatBodyDataProps) {
     const searchParams = useSearchParams();
@@ -44,9 +43,9 @@ function ChatBodyData(props: ChatBodyDataProps) {
 
     useEffect(() => {
         if (image) {
-            image64 = encodeURIComponent(image);
+            props.setImage64(encodeURIComponent(image));
         }
-    }, [image]);
+    }, [image, props.setImage64]);
 
 
     useEffect(() => {
@@ -132,6 +131,7 @@ export default function Chat() {
     const [queryToProcess, setQueryToProcess] = useState<string>("");
     const [processQuerySignal, setProcessQuerySignal] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+    const [image64, setImage64] = useState<string>("");
     const locationData = useIPLocationData();
     const authenticatedData = useAuthenticatedData();
     const isMobileWidth = useIsMobileWidth();
@@ -292,6 +292,7 @@ export default function Chat() {
                             setUploadedFiles={setUploadedFiles}
                             isMobileWidth={isMobileWidth}
                             onConversationIdChange={handleConversationIdChange}
+                            setImage64={setImage64}
                         />
                     </Suspense>
                 </div>

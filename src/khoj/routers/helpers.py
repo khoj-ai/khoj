@@ -719,6 +719,18 @@ def generate_chat_response(
 
         conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)
         vision_available = conversation_config.vision_enabled
+        if not vision_available and image_url:
+            conversation_configurations = ConversationAdapters.get_all_conversation_configs(user)
+            for config in conversation_configurations:
+                if config.vision_enabled:
+                    conversation_config = config
+                    vision_available = True
+                    break
+            if not vision_available:
+                conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)
+                vision_available = conversation_config.vision_enabled
+                agent = None
+
         if conversation_config.model_type == "offline":
             loaded_model = state.offline_chat_processor_config.loaded_model
             chat_response = converse_offline(

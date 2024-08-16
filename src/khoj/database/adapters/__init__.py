@@ -714,6 +714,10 @@ class ConversationAdapters:
         return ChatModelOptions.objects.filter(user=user).exists()
 
     @staticmethod
+    def get_all_conversation_configs(user: KhojUser):
+        return ChatModelOptions.objects.all()
+
+    @staticmethod
     def get_openai_conversation_config():
         return OpenAIProcessorConversationConfig.objects.filter().first()
 
