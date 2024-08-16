@@ -49,7 +49,7 @@ class ChatModelOptionsFactory(factory.django.DjangoModelFactory):
 
     max_prompt_size = 3500
     tokenizer = None
-    chat_model = "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF"
+    chat_model = "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF"
     model_type = "offline"
     openai_config = factory.LazyAttribute(
         lambda obj: OpenAIProcessorConversationConfigFactory() if os.getenv("OPENAI_API_KEY") else None

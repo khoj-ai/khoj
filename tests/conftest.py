@@ -378,7 +378,7 @@ def client_offline_chat(search_config: SearchConfig, default_user2: KhojUser):
 
     # Initialize Processor from Config
     ChatModelOptionsFactory(
-        chat_model="NousResearch/Hermes-2-Pro-Mistral-7B-GGUF",
+        chat_model="bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
         tokenizer=None,
         max_prompt_size=None,
         model_type="offline",

@@ -25,6 +25,7 @@ model_to_prompt_size = {
     "gpt-4-turbo-preview": 20000,
     "TheBloke/Mistral-7B-Instruct-v0.2-GGUF": 3500,
     "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF": 3500,
+    "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF": 20000,
 }
 model_to_tokenizer: Dict[str, str] = {}
 
