@@ -1,4 +1,4 @@
-;;; khoj.el --- AI copilot for your Second Brain -*- lexical-binding: t -*-
+;;; khoj.el --- Your Second Brain -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2021-2023 Khoj Inc.
 
@@ -6,7 +6,7 @@
 ;;         Saba Imran <saba@khoj.dev>
 ;; Description: Your Second Brain
 ;; Keywords: search, chat, ai, org-mode, outlines, markdown, pdf, image
-;; Version: 1.20.2
+;; Version: 1.20.4
 ;; Package-Requires: ((emacs "27.1") (transient "0.3.0") (dash "2.19.1"))
 ;; URL: https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs
 
@@ -29,19 +29,20 @@
 
 ;;; Commentary:
 
-;; Create an AI copilot to your `org-mode', `markdown' notes,
-;; PDFs and images. The copilot exposes 2 modes, search and chat:
+;; Bootstrap your Second Brain from your `org-mode', `markdown' notes,
+;; PDFs and images. Khoj exposes 2 modes, search and chat:
 ;;
 ;; Chat provides faster answers, iterative discovery and assisted
-;; creativity. It requires your OpenAI API key to access GPT models
+;; creativity.
 ;;
-;; Search allows natural language, incremental and local search.
-;; It relies on AI models that run locally on your machine.
+;; Search allows natural language, incremental search.
 ;;
 ;; Quickstart
 ;; -------------
 ;; 1. Install khoj.el from MELPA Stable
 ;;    (use-package khoj :pin melpa-stable :bind ("C-c s" . 'khoj))
+;; 2. Set API key from https://app.khoj.dev/settings#clients (if not self-hosting)
+;;    (setq khoj-api-key "YOUR_KHOJ_API_KEY")
 ;; 2. Start khoj from Emacs
 ;;    C-c s or M-x khoj
 ;;
@@ -424,7 +425,7 @@ Auto invokes setup steps on calling main entrypoint."
   "Send multi-part form `BODY' of `CONTENT-TYPE' in request to khoj server.
 Append 'TYPE-QUERY' as query parameter in request url.
 Specify `BOUNDARY' used to separate files in request header."
-  (let ((url-request-method ((if force) "PUT" "PATCH"))
+  (let ((url-request-method (if force "PUT" "PATCH"))
         (url-request-data body)
           (url-request-extra-headers `(("content-type" . ,(format "multipart/form-data; boundary=%s" boundary))
                                        ("Authorization" . ,(format "Bearer %s" khoj-api-key)))))
@@ -1265,7 +1266,7 @@ Paragraph only starts at first text after blank line."
   (transient-define-suffix khoj--update-command (&optional args)
     "Call khoj API to update index of specified content type."
     (interactive (list (transient-args transient-current-command)))
-    (let* ((force-update (if (member "--force-update" args) "true" "false"))
+    (let* ((force-update (if (member "--force-update" args) t nil))
            ;; set content type to: specified > last used > based on current buffer > default type
            (content-type (or (transient-arg-value "--content-type=" args) (khoj--buffer-name-to-content-type (buffer-name))))
            (url-request-method "GET"))

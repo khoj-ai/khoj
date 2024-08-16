@@ -6,7 +6,7 @@ import "katex/dist/katex.min.css";
 import React, { useEffect, useState } from "react";
 import useSWR from "swr";
 import Image from "next/image";
-import { ArrowCounterClockwise, ClockCounterClockwise } from "@phosphor-icons/react";
+import { ArrowCounterClockwise } from "@phosphor-icons/react";
 
 import { Card, CardTitle } from "@/components/ui/card";
 import SuggestionCard from "@/app/components/suggestions/suggestionCard";
@@ -112,18 +112,20 @@ function ChatBodyData(props: ChatBodyDataProps) {
         setAgents(agents);
 
         //generate colored icons for the selected agents
-        const agentIcons = agents.map(
-            (agent) =>
-                getIconFromIconName(agent.icon, agent.color) || (
-                    <Image
-                        key={agent.name}
-                        src={agent.avatar}
-                        alt={agent.name}
-                        width={50}
-                        height={50}
-                    />
-                ),
-        );
+        const agentIcons = agents
+            .filter((agent) => agent !== null && agent !== undefined)
+            .map(
+                (agent) =>
+                    getIconFromIconName(agent.icon, agent.color) || (
+                        <Image
+                            key={agent.name}
+                            src={agent.avatar}
+                            alt={agent.name}
+                            width={50}
+                            height={50}
+                        />
+                    ),
+            );
         setAgentIcons(agentIcons);
     }, [agentsData, props.isMobileWidth]);
 

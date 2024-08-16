@@ -340,11 +340,14 @@ async def aget_relevant_output_modes(query: str, conversation_history: dict, is_
         return ConversationCommand.Text
 
 
-async def infer_webpage_urls(q: str, conversation_history: dict, location_data: LocationData) -> List[str]:
+async def infer_webpage_urls(
+    q: str, conversation_history: dict, location_data: LocationData, user: KhojUser
+) -> List[str]:
     """
     Infer webpage links from the given query
     """
     location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
+    username = prompts.user_name.format(name=user.get_full_name()) if user.get_full_name() else ""
     chat_history = construct_chat_history(conversation_history)
 
     utc_date = datetime.utcnow().strftime("%Y-%m-%d")
@@ -353,6 +356,7 @@ async def infer_webpage_urls(q: str, conversation_history: dict, location_data: 
         query=q,
         chat_history=chat_history,
         location=location,
+        username=username,
     )
 
     with timer("Chat actor: Infer webpage urls to read", logger):
@@ -370,11 +374,14 @@ async def infer_webpage_urls(q: str, conversation_history: dict, location_data: 
         raise ValueError(f"Invalid list of urls: {response}")
 
 
-async def generate_online_subqueries(q: str, conversation_history: dict, location_data: LocationData) -> List[str]:
+async def generate_online_subqueries(
+    q: str, conversation_history: dict, location_data: LocationData, user: KhojUser
+) -> List[str]:
     """
     Generate subqueries from the given query
     """
     location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
+    username = prompts.user_name.format(name=user.get_full_name()) if user.get_full_name() else ""
     chat_history = construct_chat_history(conversation_history)
 
     utc_date = datetime.utcnow().strftime("%Y-%m-%d")
@@ -383,6 +390,7 @@ async def generate_online_subqueries(q: str, conversation_history: dict, locatio
         query=q,
         chat_history=chat_history,
         location=location,
+        username=username,
     )
 
     with timer("Chat actor: Generate online search subqueries", logger):
@@ -1102,7 +1110,13 @@ def should_notify(original_query: str, executed_query: str, ai_response: str) ->
 
 
 def scheduled_chat(
-    query_to_run: str, scheduling_request: str, subject: str, user: KhojUser, calling_url: URL, job_id: str = None
+    query_to_run: str,
+    scheduling_request: str,
+    subject: str,
+    user: KhojUser,
+    calling_url: URL,
+    job_id: str = None,
+    conversation_id: int = None,
 ):
     logger.info(f"Processing scheduled_chat: {query_to_run}")
     if job_id:
@@ -1128,6 +1142,10 @@ def scheduled_chat(
 
     # Replace the original scheduling query with the scheduled query
     query_dict["q"] = [query_to_run]
+
+    # Replace the original conversation_id with the conversation_id
+    if conversation_id:
+        query_dict["conversation_id"] = [conversation_id]
 
     # Construct the URL to call the chat API with the scheduled query string
     encoded_query = urlencode(query_dict, doseq=True)
@@ -1158,7 +1176,9 @@ def scheduled_chat(
     if raw_response.headers.get("Content-Type") == "application/json":
         response_map = raw_response.json()
         ai_response = response_map.get("response") or response_map.get("image")
-        is_image = response_map.get("image") is not None
+        is_image = False
+        if type(ai_response) == dict:
+            is_image = ai_response.get("image") is not None
     else:
         ai_response = raw_response.text
 
@@ -1170,9 +1190,11 @@ def scheduled_chat(
             return raw_response
 
 
-async def create_automation(q: str, timezone: str, user: KhojUser, calling_url: URL, meta_log: dict = {}):
+async def create_automation(
+    q: str, timezone: str, user: KhojUser, calling_url: URL, meta_log: dict = {}, conversation_id: int = None
+):
     crontime, query_to_run, subject = await schedule_query(q, meta_log)
-    job = await schedule_automation(query_to_run, subject, crontime, timezone, q, user, calling_url)
+    job = await schedule_automation(query_to_run, subject, crontime, timezone, q, user, calling_url, conversation_id)
     return job, crontime, query_to_run, subject
 
 
@@ -1184,6 +1206,7 @@ async def schedule_automation(
     scheduling_request: str,
     user: KhojUser,
     calling_url: URL,
+    conversation_id: int,
 ):
     # Disable minute level automation recurrence
     minute_value = crontime.split(" ")[0]
@@ -1201,6 +1224,7 @@ async def schedule_automation(
             "scheduling_request": scheduling_request,
             "subject": subject,
             "crontime": crontime,
+            "conversation_id": conversation_id,
         }
     )
     query_id = hashlib.md5(f"{query_to_run}_{crontime}".encode("utf-8")).hexdigest()
@@ -1219,6 +1243,7 @@ async def schedule_automation(
             "user": user,
             "calling_url": calling_url,
             "job_id": job_id,
+            "conversation_id": conversation_id,
         },
         id=job_id,
         name=job_metadata,

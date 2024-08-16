@@ -1,0 +1,51 @@
+{
+    "name": "Khoj",
+    "short_name": "Khoj",
+    "display": "standalone",
+    "start_url": "/",
+    "description": "The open, personal AI for your digital brain. You can ask Khoj to draft a message, paint your imagination, find information on the internet and even answer questions from your documents.",
+    "theme_color": "#ffffff",
+    "background_color": "#ffffff",
+    "icons": [
+        {
+            "src": "/static/assets/icons/khoj_lantern_128x128.png",
+            "sizes": "128x128",
+            "type": "image/png"
+        },
+        {
+            "src": "/static/assets/icons/khoj_lantern_256x256.png",
+            "sizes": "256x256",
+            "type": "image/png"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "/static/assets/samples/phone-remember-plan-sample.png",
+            "sizes": "419x900",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Remember and Plan"
+        },
+        {
+            "src": "/static/assets/samples/phone-browse-draw-sample.png",
+            "sizes": "419x900",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Browse and Draw"
+        },
+        {
+            "src": "/static/assets/samples/desktop-remember-plan-sample.png",
+            "sizes": "1260x742",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Remember and Plan"
+        },
+        {
+            "src": "/static/assets/samples/desktop-browse-draw-sample.png",
+            "sizes": "1260x742",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Browse and Draw"
+        }
+    ]
+}

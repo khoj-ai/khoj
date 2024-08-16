@@ -9,7 +9,22 @@ export const metadata: Metadata = {
     description:
         "Ask anything. Khoj will use the internet and your docs to answer, paint and even automate stuff for you.",
     icons: {
-        icon: "/static/favicon.ico",
+        icon: "/static/assets/icons/khoj_lantern.ico",
+        apple: "/static/assets/icons/khoj_lantern_256x256.png",
+    },
+    openGraph: {
+        siteName: "Khoj AI",
+        title: "Khoj AI - Chat",
+        description: "Your Second Brain.",
+        url: "https://app.khoj.dev/chat",
+        type: "website",
+        images: [
+            {
+                url: "https://assets.khoj.dev/khoj_lantern_256x256.png",
+                width: 256,
+                height: 256,
+            },
+        ],
     },
 };
 

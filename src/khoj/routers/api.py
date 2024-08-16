@@ -388,6 +388,7 @@ async def extract_references_and_questions(
                 conversation_log=meta_log,
                 should_extract_questions=True,
                 location_data=location_data,
+                user=user,
                 max_prompt_size=conversation_config.max_prompt_size,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
@@ -402,7 +403,7 @@ async def extract_references_and_questions(
                 api_base_url=base_url,
                 conversation_log=meta_log,
                 location_data=location_data,
-                max_tokens=conversation_config.max_prompt_size,
+                user=user,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
             api_key = conversation_config.openai_config.api_key
@@ -413,6 +414,7 @@ async def extract_references_and_questions(
                 api_key=api_key,
                 conversation_log=meta_log,
                 location_data=location_data,
+                user=user,
             )
 
     # Collate search results as context for GPT
@@ -545,15 +547,19 @@ async def post_automation(
     if not subject:
         subject = await acreate_title_from_query(q)
 
-    # Create new Conversation Session associated with this new task
-    conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app)
+    title = f"Automation: {subject}"
 
-    calling_url = request.url.replace(query=f"{request.url.query}&conversation_id={conversation.id}")
+    # Create new Conversation Session associated with this new task
+    conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app, title=title)
+
+    calling_url = request.url.replace(query=f"{request.url.query}")
 
     # Schedule automation with query_to_run, timezone, subject directly provided by user
     try:
         # Use the query to run as the scheduling request if the scheduling request is unset
-        automation = await schedule_automation(query_to_run, subject, crontime, timezone, q, user, calling_url)
+        automation = await schedule_automation(
+            query_to_run, subject, crontime, timezone, q, user, calling_url, conversation.id
+        )
     except Exception as e:
         logger.error(f"Error creating automation {q} for {user.email}: {e}", exc_info=True)
         return Response(
@@ -649,6 +655,16 @@ def edit_job(
     automation_metadata["query_to_run"] = query_to_run
     automation_metadata["subject"] = subject.strip()
     automation_metadata["crontime"] = crontime
+    conversation_id = automation_metadata.get("conversation_id")
+
+    if not conversation_id:
+        title = f"Automation: {subject}"
+
+        # Create new Conversation Session associated with this new task
+        conversation = ConversationAdapters.create_conversation_session(user, request.user.client_app, title=title)
+
+        conversation_id = conversation.id
+        automation_metadata["conversation_id"] = conversation_id
 
     # Modify automation with updated query, subject
     automation.modify(
@@ -659,6 +675,7 @@ def edit_job(
             "scheduling_request": q,
             "user": user,
             "calling_url": request.url,
+            "conversation_id": conversation_id,
         },
     )
 

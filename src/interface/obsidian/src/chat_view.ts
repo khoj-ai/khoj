@@ -1,4 +1,4 @@
-import { ItemView, MarkdownRenderer, Scope, WorkspaceLeaf, request, requestUrl, setIcon } from 'obsidian';
+import {ItemView, MarkdownRenderer, Scope, WorkspaceLeaf, request, requestUrl, setIcon, Platform} from 'obsidian';
 import * as DOMPurify from 'dompurify';
 import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
@@ -45,6 +45,10 @@ export class KhojChatView extends KhojPaneView {
     waitingForLocation: boolean;
     location: Location;
     keyPressTimeout: NodeJS.Timeout | null = null;
+	userMessages: string[] = [];  // Store user sent messages for input history cycling
+	currentMessageIndex: number = -1;  // Track current message index in userMessages array
+	private currentUserInput: string = ""; // Stores the current user input that is being typed in chat
+	private startingMessage: string = "Message";
     chatMessageState: ChatMessageState;
 
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
@@ -96,6 +100,14 @@ export class KhojChatView extends KhojPaneView {
 
         // Clear text after extracting message to send
         let user_message = input_el.value.trim();
+		// Store the message in the array if it's not empty
+		if (user_message) {
+			this.userMessages.push(user_message);
+			// Update starting message after sending a new message
+			const modifierKey = Platform.isMacOS ? '⌘' : '^';
+			this.startingMessage = `(${modifierKey}+↑/↓) for prev messages`;
+			input_el.placeholder = this.startingMessage;
+		}
         input_el.value = "";
         this.autoResize();
 
@@ -147,7 +159,10 @@ export class KhojChatView extends KhojPaneView {
             },
         })
         chatInput.addEventListener('input', (_) => { this.onChatInput() });
-        chatInput.addEventListener('keydown', (event) => { this.incrementalChat(event) });
+        chatInput.addEventListener('keydown', (event) => {
+			this.incrementalChat(event);
+			this.handleArrowKeys(event);
+		});
 
         // Add event listeners for long press keybinding
         this.contentEl.addEventListener('keydown', this.handleKeyDown.bind(this));
@@ -181,7 +196,8 @@ export class KhojChatView extends KhojPaneView {
 
         // Get chat history from Khoj backend and set chat input state
         let getChatHistorySucessfully = await this.getChatHistory(chatBodyEl);
-        let placeholderText = getChatHistorySucessfully ? "Message" : "Configure Khoj to enable chat";
+
+        let placeholderText : string = getChatHistorySucessfully ? this.startingMessage : "Configure Khoj to enable chat";
         chatInput.placeholder = placeholderText;
         chatInput.disabled = !getChatHistorySucessfully;
 
@@ -627,10 +643,19 @@ export class KhojChatView extends KhojPaneView {
         chatBodyEl.innerHTML = "";
         chatBodyEl.dataset.conversationId = "";
         chatBodyEl.dataset.conversationTitle = "";
+		this.userMessages = [];
+		this.startingMessage = "Message";
+
+		// Update the placeholder of the chat input
+		const chatInput = this.contentEl.querySelector('.khoj-chat-input') as HTMLTextAreaElement;
+		if (chatInput) {
+			chatInput.placeholder = this.startingMessage;
+		}
         this.renderMessage(chatBodyEl, "Hey 👋🏾, what's up?", "khoj");
     }
 
     async toggleChatSessions(forceShow: boolean = false): Promise<boolean> {
+		this.userMessages = [];  // clear user previous message history
         let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
         if (!forceShow && this.contentEl.getElementsByClassName("side-panel")?.length > 0) {
             chatBodyEl.innerHTML = "";
@@ -846,7 +871,6 @@ export class KhojChatView extends KhojPaneView {
                 chatBodyEl.dataset.conversationId = responseJson.response.conversation_id;
                 chatBodyEl.dataset.conversationTitle = responseJson.response.slug || `New conversation 🌱`;
 
-
                 let chatLogs = responseJson.response?.conversation_id ? responseJson.response.chat ?? [] : responseJson.response;
                 chatLogs.forEach((chatLog: any) => {
                     this.renderMessageWithReferences(
@@ -859,7 +883,23 @@ export class KhojChatView extends KhojPaneView {
                         chatLog.intent?.type,
                         chatLog.intent?.["inferred-queries"],
                     );
+                    // push the user messages to the chat history
+                    if(chatLog.by === "you"){
+                        this.userMessages.push(chatLog.message);
+                    }
                 });
+
+                // Update starting message after loading history
+			    const modifierKey: string = Platform.isMacOS ? '⌘' : '^';
+                this.startingMessage = this.userMessages.length > 0
+                    ? `(${modifierKey}+↑/↓) for prev messages`
+                    : "Message";
+
+                // Update the placeholder of the chat input
+                const chatInput = this.contentEl.querySelector('.khoj-chat-input') as HTMLTextAreaElement;
+                if (chatInput) {
+                    chatInput.placeholder = this.startingMessage;
+                }
             }
         } catch (err) {
             let errorMsg = "Unable to get response from Khoj server ❤️‍🩹. Ensure server is running or contact developers for help at [team@khoj.dev](mailto:team@khoj.dev) or in [Discord](https://discord.gg/BDgyabRM6e)";
@@ -1228,7 +1268,9 @@ export class KhojChatView extends KhojPaneView {
     onChatInput() {
         const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
         chatInput.value = chatInput.value.trimStart();
-
+        this.currentMessageIndex = -1;
+        // store the current input
+        this.currentUserInput = chatInput.value;
         this.autoResize();
     }
 
@@ -1359,5 +1401,28 @@ export class KhojChatView extends KhojPaneView {
         referencesDiv.appendChild(referenceSection);
 
         return referencesDiv;
+    }
+
+    // function to loop through the user's past messages
+    handleArrowKeys(event: KeyboardEvent) {
+        const chatInput = event.target as HTMLTextAreaElement;
+        const isModKey = Platform.isMacOS ? event.metaKey : event.ctrlKey;
+
+        if (isModKey && event.key === 'ArrowUp') {
+            event.preventDefault();
+            if (this.currentMessageIndex < this.userMessages.length - 1) {
+                this.currentMessageIndex++;
+                chatInput.value = this.userMessages[this.userMessages.length - 1 - this.currentMessageIndex];
+            }
+        } else if (isModKey && event.key === 'ArrowDown') {
+            event.preventDefault();
+            if (this.currentMessageIndex > 0) {
+                this.currentMessageIndex--;
+                chatInput.value = this.userMessages[this.userMessages.length - 1 - this.currentMessageIndex];
+            } else if (this.currentMessageIndex === 0) {
+                this.currentMessageIndex = -1;
+                chatInput.value = this.currentUserInput;
+            }
+        }
     }
 }

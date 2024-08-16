@@ -148,7 +148,7 @@ async def sendfeedback(request: Request, data: FeedbackData):
 
 
 @api_chat.post("/speech")
-@requires(["authenticated", "premium"])
+@requires(["authenticated"])
 async def text_to_speech(
     request: Request,
     common: CommonQueryParams,
@@ -809,7 +809,7 @@ async def chat(
         if ConversationCommand.Online in conversation_commands:
             try:
                 async for result in search_online(
-                    defiltered_query, meta_log, location, partial(send_event, ChatEvent.STATUS), custom_filters
+                    defiltered_query, meta_log, location, user, partial(send_event, ChatEvent.STATUS), custom_filters
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -826,7 +826,7 @@ async def chat(
         if ConversationCommand.Webpage in conversation_commands:
             try:
                 async for result in read_webpages(
-                    defiltered_query, meta_log, location, partial(send_event, ChatEvent.STATUS)
+                    defiltered_query, meta_log, location, user, partial(send_event, ChatEvent.STATUS)
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]

@@ -36,7 +36,7 @@ def completion_with_backoff(
     messages, model, temperature=0, openai_api_key=None, api_base_url=None, model_kwargs=None
 ) -> str:
     client_key = f"{openai_api_key}--{api_base_url}"
-    client: openai.OpenAI = openai_clients.get(client_key)
+    client: openai.OpenAI | None = openai_clients.get(client_key)
     if not client:
         client = openai.OpenAI(
             api_key=openai_api_key,
@@ -119,6 +119,8 @@ def llm_thread(g, messages, model_name, temperature, openai_api_key=None, api_ba
     )
 
     for chunk in chat:
+        if len(chunk.choices) == 0:
+            continue
         delta_chunk = chunk.choices[0].delta
         if isinstance(delta_chunk, str):
             g.send(delta_chunk)

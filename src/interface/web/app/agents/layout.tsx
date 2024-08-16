@@ -8,7 +8,22 @@ export const metadata: Metadata = {
     title: "Khoj AI - Agents",
     description: "Find a specialized agent that can help you address more specific needs.",
     icons: {
-        icon: "/static/favicon.ico",
+        icon: "/static/assets/icons/khoj_lantern.ico",
+        apple: "/static/assets/icons/khoj_lantern_256x256.png",
+    },
+    openGraph: {
+        siteName: "Khoj AI",
+        title: "Khoj AI - Agents",
+        description: "Your Second Brain.",
+        url: "https://app.khoj.dev/agents",
+        type: "website",
+        images: [
+            {
+                url: "https://assets.khoj.dev/khoj_lantern_256x256.png",
+                width: 256,
+                height: 256,
+            },
+        ],
     },
 };
 
