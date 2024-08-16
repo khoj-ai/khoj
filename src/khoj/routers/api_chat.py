@@ -519,9 +519,6 @@ async def set_conversation_title(
     )
 
 
-from pydantic import BaseModel
-
-
 class ImageUploadObject(BaseModel):
     image: str
 
