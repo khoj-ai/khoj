@@ -103,6 +103,9 @@ def extract_questions_offline(
             .replace("']", '"]')
             .replace("', '", '", "')
         )
+        # Remove any markdown json codeblock formatting if present (useful for gemma-2)
+        if response.startswith("```json"):
+            response = response[7:-3]
         questions: List[str] = json.loads(questions_str)
         questions = filter_questions(questions)
     except:

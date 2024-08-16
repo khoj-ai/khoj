@@ -279,6 +279,9 @@ async def aget_relevant_information_sources(query: str, conversation_history: di
 
     try:
         response = response.strip()
+        # Remove any markdown json codeblock formatting if present (useful for gemma-2)
+        if response.startswith("```json"):
+            response = response[7:-3]
         response = json.loads(response)
         response = [q.strip() for q in response["source"] if q.strip()]
         if not isinstance(response, list) or not response or len(response) == 0:
@@ -401,6 +404,9 @@ async def generate_online_subqueries(
     # Validate that the response is a non-empty, JSON-serializable list
     try:
         response = response.strip()
+        # Remove any markdown json codeblock formatting if present (useful for gemma-2)
+        if response.startswith("```json") and response.endswith("```"):
+            response = response[7:-3]
         response = json.loads(response)
         response = [q.strip() for q in response["queries"] if q.strip()]
         if not isinstance(response, list) or not response or len(response) == 0:
