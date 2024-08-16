@@ -798,7 +798,7 @@ class ConversationAdapters:
             return await ConversationAdapters.aget_default_conversation_config()
         config = await UserConversationConfig.objects.filter(user=user).prefetch_related("setting").afirst()
         if config:
-            config.setting
+            return config.setting
         return ConversationAdapters.aget_advanced_conversation_config()
 
     @staticmethod
