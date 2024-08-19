@@ -778,6 +778,8 @@ async def chat(
 
         if not is_none_or_empty(compiled_references):
             headings = "\n- " + "\n- ".join(set([c.get("compiled", c).split("\n")[0] for c in compiled_references]))
+            # Strip only leading # from headings
+            headings = headings.replace("#", "")
             async for result in send_event(ChatEvent.STATUS, f"**Found Relevant Notes**: {headings}"):
                 yield result
 
