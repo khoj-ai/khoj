@@ -518,6 +518,7 @@ async def set_conversation_title(
 
 
 @api_chat.get("")
+@requires(["authenticated"])
 async def chat(
     request: Request,
     common: CommonQueryParams,
