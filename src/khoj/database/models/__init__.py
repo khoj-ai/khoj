@@ -91,7 +91,7 @@ class ChatModelOptions(BaseModel):
     max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
     subscribed_max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
     tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
-    chat_model = models.CharField(max_length=200, default="NousResearch/Hermes-2-Pro-Mistral-7B-GGUF")
+    chat_model = models.CharField(max_length=200, default="bartowski/Meta-Llama-3.1-8B-Instruct-GGUF")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
     openai_config = models.ForeignKey(
         OpenAIProcessorConversationConfig, on_delete=models.CASCADE, default=None, null=True, blank=True

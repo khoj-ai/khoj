@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 def extract_questions_offline(
     text: str,
-    model: str = "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF",
+    model: str = "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
     loaded_model: Union[Any, None] = None,
     conversation_log={},
     use_history: bool = True,
@@ -103,6 +103,9 @@ def extract_questions_offline(
             .replace("']", '"]')
             .replace("', '", '", "')
         )
+        # Remove any markdown json codeblock formatting if present (useful for gemma-2)
+        if response.startswith("```json"):
+            response = response[7:-3]
         questions: List[str] = json.loads(questions_str)
         questions = filter_questions(questions)
     except:
@@ -138,7 +141,7 @@ def converse_offline(
     references=[],
     online_results=[],
     conversation_log={},
-    model: str = "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF",
+    model: str = "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
     loaded_model: Union[Any, None] = None,
     completion_func=None,
     conversation_commands=[ConversationCommand.Default],
@@ -237,7 +240,7 @@ def llm_thread(g, messages: List[ChatMessage], model: Any, max_prompt_size: int 
 def send_message_to_model_offline(
     messages: List[ChatMessage],
     loaded_model=None,
-    model="NousResearch/Hermes-2-Pro-Mistral-7B-GGUF",
+    model="bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
     temperature: float = 0.2,
     streaming=False,
     stop=[],
