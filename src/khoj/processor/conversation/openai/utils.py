@@ -56,6 +56,8 @@ def completion_with_backoff(
     )
     aggregated_response = ""
     for chunk in chat:
+        if len(chunk.choices) == 0:
+            continue
         delta_chunk = chunk.choices[0].delta  # type: ignore
         if isinstance(delta_chunk, str):
             aggregated_response += delta_chunk
