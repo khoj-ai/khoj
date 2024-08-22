@@ -87,26 +87,16 @@ def extract_questions_offline(
             model=model,
             max_prompt_size=max_prompt_size,
             temperature=temperature,
+            response_type="json_object",
         )
     finally:
         state.chat_lock.release()
 
-    # Extract, Clean Message from GPT's Response
+    # Extract and clean the chat model's response
     try:
-        # This will expect to be a list with a single string with a list of questions
-        questions_str = (
-            str(response)
-            .strip(empty_escape_sequences)
-            .replace("['", '["')
-            .replace("<s>", "")
-            .replace("</s>", "")
-            .replace("']", '"]')
-            .replace("', '", '", "')
-        )
-        # Remove any markdown json codeblock formatting if present (useful for gemma-2)
-        if response.startswith("```json"):
-            response = response[7:-3]
-        questions: List[str] = json.loads(questions_str)
+        response = response.strip(empty_escape_sequences)
+        response = json.loads(response)
+        questions = [q.strip() for q in response["queries"] if q.strip()]
         questions = filter_questions(questions)
     except:
         logger.warning(f"Llama returned invalid JSON. Falling back to using user message as search query.\n{response}")
@@ -245,12 +235,13 @@ def send_message_to_model_offline(
     streaming=False,
     stop=[],
     max_prompt_size: int = None,
+    response_type: str = "text",
 ):
     assert loaded_model is None or isinstance(loaded_model, Llama), "loaded_model must be of type Llama, if configured"
     offline_chat_model = loaded_model or download_model(model, max_tokens=max_prompt_size)
     messages_dict = [{"role": message.role, "content": message.content} for message in messages]
     response = offline_chat_model.create_chat_completion(
-        messages_dict, stop=stop, stream=streaming, temperature=temperature
+        messages_dict, stop=stop, stream=streaming, temperature=temperature, response_format={"type": response_type}
     )
     if streaming:
         return response

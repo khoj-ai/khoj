@@ -326,22 +326,23 @@ async def aget_relevant_output_modes(query: str, conversation_history: dict, is_
     )
 
     with timer("Chat actor: Infer output mode for chat response", logger):
-        response = await send_message_to_model_wrapper(relevant_mode_prompt)
+        response = await send_message_to_model_wrapper(relevant_mode_prompt, response_type="json_object")
 
     try:
-        response = response.strip().strip('"')
+        response = json.loads(response.strip())
 
         if is_none_or_empty(response):
             return ConversationCommand.Text
 
-        if response in mode_options.keys():
+        output_mode = response["output"]
+        if output_mode in mode_options.keys():
             # Check whether the tool exists as a valid ConversationCommand
-            return ConversationCommand(response)
+            return ConversationCommand(output_mode)
 
-        logger.error(f"Invalid output mode selected: {response}. Defaulting to text.")
+        logger.error(f"Invalid output mode selected: {output_mode}. Defaulting to text.")
         return ConversationCommand.Text
     except Exception:
-        logger.error(f"Invalid response for determining relevant mode: {response}")
+        logger.error(f"Invalid response for determining output mode: {response}")
         return ConversationCommand.Text
 
 
@@ -595,6 +596,7 @@ async def send_message_to_model_wrapper(
             loaded_model=loaded_model,
             model=chat_model,
             streaming=False,
+            response_type=response_type,
         )
 
     elif conversation_config.model_type == "openai":
@@ -664,6 +666,7 @@ def send_message_to_model_wrapper_sync(
             loaded_model=loaded_model,
             model=chat_model,
             streaming=False,
+            response_type=response_type,
         )
 
     elif conversation_config.model_type == "openai":

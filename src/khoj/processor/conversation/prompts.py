@@ -217,31 +217,31 @@ User's Location: {location}
 
 Examples:
 Q: How was my trip to Cambodia?
-Khoj: ["How was my trip to Cambodia?"]
+Khoj: {{"queries": ["How was my trip to Cambodia?"]}}
 
 Q: Who did I visit the temple with on that trip?
-Khoj: ["Who did I visit the temple with in Cambodia?"]
+Khoj: {{"queries": ["Who did I visit the temple with in Cambodia?"]}}
 
 Q: Which of them is older?
-Khoj: ["When was Alice born?", "What is Bob's age?"]
+Khoj: {{"queries": ["When was Alice born?", "What is Bob's age?"]}}
 
 Q: Where did John say he was? He mentioned it in our call last week.
-Khoj: ["Where is John? dt>='{last_year}-12-25' dt<'{last_year}-12-26'", "John's location in call notes"]
+Khoj: {{"queries": ["Where is John? dt>='{last_year}-12-25' dt<'{last_year}-12-26'", "John's location in call notes"]}}
 
 Q: How can you help me?
-Khoj: ["Social relationships", "Physical and mental health", "Education and career", "Personal life goals and habits"]
+Khoj: {{"queries": ["Social relationships", "Physical and mental health", "Education and career", "Personal life goals and habits"]}}
 
 Q: What did I do for Christmas last year?
-Khoj: ["What did I do for Christmas {last_year} dt>='{last_year}-12-25' dt<'{last_year}-12-26'"]
+Khoj: {{"queries": ["What did I do for Christmas {last_year} dt>='{last_year}-12-25' dt<'{last_year}-12-26'"]}}
 
 Q: How should I take care of my plants?
-Khoj: ["What kind of plants do I have?", "What issues do my plants have?"]
+Khoj: {{"queries": ["What kind of plants do I have?", "What issues do my plants have?"]}}
 
 Q: Who all did I meet here yesterday?
-Khoj: ["Met in {location} on {yesterday_date} dt>='{yesterday_date}' dt<'{current_date}'"]
+Khoj: {{"queries": ["Met in {location} on {yesterday_date} dt>='{yesterday_date}' dt<'{current_date}'"]}}
 
 Q: Share some random, interesting experiences from this month
-Khoj: ["Exciting travel adventures from {current_month}", "Fun social events dt>='{current_month}-01' dt<'{current_date}'", "Intense emotional experiences in {current_month}"]
+Khoj: {{"queries": ["Exciting travel adventures from {current_month}", "Fun social events dt>='{current_month}-01' dt<'{current_date}'", "Intense emotional experiences in {current_month}"]}}
 
 Chat History:
 {chat_history}
@@ -425,7 +425,7 @@ User: I just visited Jerusalem for the first time. Pull up my notes from the tri
 AI: You mention visiting Masjid Al-Aqsa and the Western Wall. You also mention trying the local cuisine and visiting the Dead Sea.
 
 Q: Draw a picture of my trip to Jerusalem.
-Khoj: image
+Khoj: {{"output": "image"}}
 
 Example:
 Chat History:
@@ -433,7 +433,7 @@ User: I'm having trouble deciding which laptop to get. I want something with at 
 AI: I can help with that. I see online that there is a new model of the Dell XPS 15 that meets your requirements.
 
 Q: What are the specs of the new Dell XPS 15?
-Khoj: text
+Khoj: {{"output": "text"}}
 
 Example:
 Chat History:
@@ -441,7 +441,7 @@ User: Where did I go on my last vacation?
 AI: You went to Jordan and visited Petra, the Dead Sea, and Wadi Rum.
 
 Q: Remind me who did I go with on that trip?
-Khoj: text
+Khoj: {{"output": "text"}}
 
 Example:
 Chat History:
@@ -449,9 +449,9 @@ User: How's the weather outside? Current Location: Bali, Indonesia
 AI: It's currently 28°C and partly cloudy in Bali.
 
 Q: Share a painting using the weather for Bali every morning.
-Khoj: automation
+Khoj: {{"output": "automation"}}
 
-Now it's your turn to pick the mode you would like to use to answer the user's question. Provide your response as a string.
+Now it's your turn to pick the mode you would like to use to answer the user's question. Provide your response as a JSON.
 
 Chat History:
 {chat_history}
