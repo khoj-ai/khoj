@@ -224,7 +224,7 @@ def llm_thread(g, messages: List[ChatMessage], model: Any, max_prompt_size: int 
             g.send(response["choices"][0]["delta"].get("content", ""))
     finally:
         state.chat_lock.release()
-    g.close()
+        g.close()
 
 
 def send_message_to_model_offline(
