@@ -17,17 +17,17 @@ Ollama exposes a local [OpenAI API compatible server](https://github.com/ollama/
 1. Setup Ollama: https://ollama.com/
 2. Start your preferred model with Ollama. For example,
     ```bash
-    ollama run llama3
+    ollama run llama3.1
     ```
 3. Create a new [OpenAI Processor Conversation Config](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/add) on your Khoj admin panel
    - Name: `ollama`
    - Api Key: `any string`
    - Api Base Url: `http://localhost:11434/v1/` (default for Ollama)
 4. Create a new [Chat Model Option](http://localhost:42110/server/admin/database/chatmodeloptions/add) on your Khoj admin panel.
-   - Name: `llama3` (replace with the name of your local model)
+   - Name: `llama3.1` (replace with the name of your local model)
    - Model Type: `Openai`
    - Openai Config: `<the ollama config you created in step 3>`
-   - Max prompt size: `1000` (replace with the max prompt size of your model)
+   - Max prompt size: `20000` (replace with the max prompt size of your model)
 5. Create a new [Server Chat Setting](http://localhost:42110/server/admin/database/serverchatsettings/add/) on your Khoj admin panel
    - Default model: `<name of chat model option you created in step 4>`
    - Summarizer model: `<name of chat model option you created in step 4>`
