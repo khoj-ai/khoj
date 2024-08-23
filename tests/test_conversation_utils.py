@@ -6,7 +6,7 @@ from khoj.processor.conversation import utils
 
 class TestTruncateMessage:
     max_prompt_size = 10
-    model_name = "gpt-3.5-turbo"
+    model_name = "gpt-4o-mini"
     encoder = tiktoken.encoding_for_model(model_name)
 
     def test_truncate_message_all_small(self):

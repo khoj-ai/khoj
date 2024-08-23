@@ -192,7 +192,7 @@ def offline_agent():
 @pytest.mark.django_db
 @pytest.fixture
 def openai_agent():
-    chat_model = ChatModelOptionsFactory(chat_model="gpt-3.5-turbo", model_type="openai")
+    chat_model = ChatModelOptionsFactory(chat_model="gpt-4o-mini", model_type="openai")
     return Agent.objects.create(
         name="Accountant",
         chat_model=chat_model,
@@ -301,7 +301,7 @@ def chat_client_builder(search_config, user, index_content=True, require_auth=Fa
 
     # Initialize Processor from Config
     if os.getenv("OPENAI_API_KEY"):
-        chat_model = ChatModelOptionsFactory(chat_model="gpt-3.5-turbo", model_type="openai")
+        chat_model = ChatModelOptionsFactory(chat_model="gpt-4o-mini", model_type="openai")
         chat_model.openai_config = OpenAIProcessorConversationConfigFactory()
         UserConversationProcessorConfigFactory(user=user, setting=chat_model)
 
