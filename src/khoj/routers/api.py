@@ -117,7 +117,6 @@ async def execute_search(
     # initialize variables
     user_query = q.strip()
     results_count = n or 5
-    max_distance = max_distance or math.inf
     search_futures: List[concurrent.futures.Future] = []
 
     # return cached results, if available

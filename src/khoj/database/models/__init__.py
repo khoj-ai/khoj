@@ -270,6 +270,8 @@ class SearchModelConfig(BaseModel):
     cross_encoder_inference_endpoint = models.CharField(max_length=200, default=None, null=True, blank=True)
     # Inference server API Key to use for embeddings inference. Cross-encoder model should be hosted on this server
     cross_encoder_inference_endpoint_api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
+    # The confidence threshold of the bi_encoder model to consider the embeddings as relevant
+    bi_encoder_confidence_threshold = models.FloatField(default=0.18)
 
 
 class TextToImageModelConfig(BaseModel):
