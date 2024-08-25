@@ -500,7 +500,7 @@ def get_sample_files_data():
 
 def get_big_size_sample_files_data():
     # a string of approximately 100 MB
-    big_text = "a" * (100 * 1024 * 1024)
+    big_text = "a" * (400 * 1024 * 1024)
     return [
         (
             "files",
