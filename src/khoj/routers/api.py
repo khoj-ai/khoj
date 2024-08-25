@@ -83,7 +83,7 @@ async def search(
         n=n,
         t=t,
         r=r,
-        max_distance=max_distance,
+        max_distance=max_distance or math.inf,
         dedupe=dedupe,
     )
 
