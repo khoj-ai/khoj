@@ -100,18 +100,23 @@ async def query(
     raw_query: str,
     type: SearchType = SearchType.All,
     question_embedding: Union[torch.Tensor, None] = None,
-    max_distance: float = math.inf,
+    max_distance: float = None,
 ) -> Tuple[List[dict], List[Entry]]:
     "Search for entries that answer the query"
 
     file_type = search_type_to_embeddings_type[type.value]
 
     query = raw_query
+    search_model = await sync_to_async(get_user_search_model_or_default)(user)
+    if not max_distance:
+        if search_model.bi_encoder_confidence_threshold:
+            max_distance = search_model.bi_encoder_confidence_threshold
+        else:
+            max_distance = math.inf
 
     # Encode the query using the bi-encoder
     if question_embedding is None:
         with timer("Query Encode Time", logger, state.device):
-            search_model = await sync_to_async(get_user_search_model_or_default)(user)
             question_embedding = state.embeddings_model[search_model.name].embed_query(query)
 
     # Find relevant entries for the query
