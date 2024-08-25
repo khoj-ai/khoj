@@ -500,19 +500,19 @@ function EditCard(props: EditCardProps) {
         );
 
         let updateQueryUrl = `/api/automation?`;
-        updateQueryUrl += `q=${values.queryToRun}`;
+        updateQueryUrl += `q=${encodeURIComponent(values.queryToRun)}`;
         if (automation?.id && !props.createNew) {
-            updateQueryUrl += `&automation_id=${automation.id}`;
+            updateQueryUrl += `&automation_id=${encodeURIComponent(automation.id)}`;
         }
         if (values.subject) {
-            updateQueryUrl += `&subject=${values.subject}`;
+            updateQueryUrl += `&subject=${encodeURIComponent(values.subject)}`;
         }
-        updateQueryUrl += `&crontime=${cronFrequency}`;
+        updateQueryUrl += `&crontime=${encodeURIComponent(cronFrequency)}`;
         if (props.locationData) {
-            updateQueryUrl += `&city=${props.locationData.city}`;
-            updateQueryUrl += `&region=${props.locationData.region}`;
-            updateQueryUrl += `&country=${props.locationData.country}`;
-            updateQueryUrl += `&timezone=${props.locationData.timezone}`;
+            updateQueryUrl += `&city=${encodeURIComponent(props.locationData.city)}`;
+            updateQueryUrl += `&region=${encodeURIComponent(props.locationData.region)}`;
+            updateQueryUrl += `&country=${encodeURIComponent(props.locationData.country)}`;
+            updateQueryUrl += `&timezone=${encodeURIComponent(props.locationData.timezone)}`;
         }
 
         let method = props.createNew ? "POST" : "PUT";
