@@ -131,6 +131,6 @@ def llm_thread(g, messages, model_name, temperature, openai_api_key=None, api_ba
             elif delta_chunk.content:
                 g.send(delta_chunk.content)
     except Exception as e:
-        logger.error(f"Error in llm_thread: {e}")
+        logger.error(f"Error in llm_thread: {e}", exc_info=True)
     finally:
         g.close()
