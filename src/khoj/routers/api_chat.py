@@ -548,6 +548,7 @@ async def chat(
         subscribed: bool = has_required_scope(request, ["premium"])
         event_delimiter = "␃🔚␗"
         q = unquote(q)
+        nonlocal conversation_id
 
         async def send_event(event_type: ChatEvent, data: str | dict):
             nonlocal connection_alive, ttft
@@ -615,6 +616,7 @@ async def chat(
             async for result in send_llm_response(f"Conversation {conversation_id} not found"):
                 yield result
             return
+        conversation_id = conversation.id
 
         await is_ready_to_chat(user)
 

@@ -358,7 +358,7 @@ async def extract_references_and_questions(
     conversation = await sync_to_async(ConversationAdapters.get_conversation_by_id)(conversation_id)
 
     if not conversation:
-        logger.error(f"Conversation with id {conversation_id} not found.")
+        logger.error(f"Conversation with id {conversation_id} not found when extracting references.")
         yield compiled_references, inferred_queries, defiltered_query
         return
 
