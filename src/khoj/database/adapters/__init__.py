@@ -14,7 +14,7 @@ from apscheduler.job import Job
 from asgiref.sync import sync_to_async
 from django.contrib.sessions.backends.db import SessionStore
 from django.db import models
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.db.models.manager import BaseManager
 from django.db.utils import IntegrityError
 from django_apscheduler.models import DjangoJob, DjangoJobExecution
@@ -989,7 +989,12 @@ class ConversationAdapters:
 
     @staticmethod
     async def aget_user_text_to_image_model(user: KhojUser) -> Optional[TextToImageModelConfig]:
-        config = await UserTextToImageModelConfig.objects.filter(user=user).prefetch_related("setting").afirst()
+        # Create a custom queryset for prefetching settings__openai_config, handling null cases
+        settings_prefetch = Prefetch(
+            "setting", queryset=TextToImageModelConfig.objects.prefetch_related("openai_config")
+        )
+
+        config = await UserTextToImageModelConfig.objects.filter(user=user).prefetch_related(settings_prefetch).afirst()
         if not config:
             default_config = await ConversationAdapters.aget_text_to_image_model_config()
             if not default_config:
