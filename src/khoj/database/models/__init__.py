@@ -87,6 +87,7 @@ class ChatModelOptions(BaseModel):
         OPENAI = "openai"
         OFFLINE = "offline"
         ANTHROPIC = "anthropic"
+        GEMINI = "gemini"
 
     max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
     subscribed_max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
