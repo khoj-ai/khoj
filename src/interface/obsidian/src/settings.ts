@@ -10,6 +10,11 @@ export interface UserInfo {
     email?: string;
 }
 
+interface SyncFileTypes {
+    markdown: boolean;
+    images: boolean;
+    pdf: boolean;
+}
 export interface KhojSetting {
     resultsCount: number;
     khojUrl: string;
@@ -17,6 +22,7 @@ export interface KhojSetting {
     connectedToBackend: boolean;
     autoConfigure: boolean;
     lastSync: Map<TFile, number>;
+    syncFileType: SyncFileTypes;
     userInfo: UserInfo | null;
 }
 
@@ -27,6 +33,11 @@ export const DEFAULT_SETTINGS: KhojSetting = {
     connectedToBackend: false,
     autoConfigure: true,
     lastSync: new Map(),
+    syncFileType: {
+        markdown: true,
+        images: true,
+        pdf: true,
+    },
     userInfo: null,
 }
 
@@ -96,6 +107,43 @@ export class KhojSettingTab extends PluginSettingTab {
                     this.plugin.settings.resultsCount = value;
                     await this.plugin.saveSettings();
                 }));
+
+        // Add new "Sync" heading
+        containerEl.createEl('h3', {text: 'Sync'});
+
+        // Add setting to sync markdown notes
+        new Setting(containerEl)
+            .setName('Sync Notes')
+            .setDesc('Index Markdown files in your vault with Khoj.')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.syncFileType.markdown)
+                .onChange(async (value) => {
+                    this.plugin.settings.syncFileType.markdown = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        // Add setting to sync images
+        new Setting(containerEl)
+            .setName('Sync Images')
+            .setDesc('Index images in your vault with Khoj.')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.syncFileType.images)
+                .onChange(async (value) => {
+                    this.plugin.settings.syncFileType.images = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        // Add setting to sync PDFs
+        new Setting(containerEl)
+            .setName('Sync PDFs')
+            .setDesc('Index PDF files in your vault with Khoj.')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.syncFileType.pdf)
+                .onChange(async (value) => {
+                    this.plugin.settings.syncFileType.pdf = value;
+                    await this.plugin.saveSettings();
+                }));
+
         new Setting(containerEl)
             .setName('Auto Sync')
             .setDesc('Automatically index your vault with Khoj.')

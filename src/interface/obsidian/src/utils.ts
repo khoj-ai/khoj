@@ -48,14 +48,29 @@ function filenameToMimeType (filename: TFile): string {
     }
 }
 
-export const supportedImageFilesTypes = ['png', 'jpg', 'jpeg'];
-export const supportedBinaryFileTypes = ['pdf'].concat(supportedImageFilesTypes);
-export const supportedFileTypes = ['md', 'markdown'].concat(supportedBinaryFileTypes);
+export const fileTypeToExtension = {
+    'pdf': ['pdf'],
+    'image': ['png', 'jpg', 'jpeg'],
+    'markdown': ['md', 'markdown'],
+};
+export const supportedImageFilesTypes = fileTypeToExtension.image;
+export const supportedBinaryFileTypes = fileTypeToExtension.pdf.concat(supportedImageFilesTypes);
+export const supportedFileTypes = fileTypeToExtension.markdown.concat(supportedBinaryFileTypes);
 
 export async function updateContentIndex(vault: Vault, setting: KhojSetting, lastSync: Map<TFile, number>, regenerate: boolean = false): Promise<Map<TFile, number>> {
     // Get all markdown, pdf files in the vault
     console.log(`Khoj: Updating Khoj content index...`)
-    const files = vault.getFiles().filter(file => supportedFileTypes.includes(file.extension));
+    const files = vault.getFiles()
+                        // Filter supported file types for syncing
+                        .filter(file => supportedFileTypes.includes(file.extension))
+                        // Filter user configured file types for syncing
+                        .filter(file => {
+                            if (fileTypeToExtension.markdown.includes(file.extension)) return setting.syncFileType.markdown;
+                            if (fileTypeToExtension.pdf.includes(file.extension)) return setting.syncFileType.pdf;
+                            if (fileTypeToExtension.image.includes(file.extension)) return setting.syncFileType.images;
+                            return false;
+                        });
+
     let countOfFilesToIndex = 0;
     let countOfFilesToDelete = 0;
     lastSync = lastSync.size > 0 ? lastSync : new Map<TFile, number>();
