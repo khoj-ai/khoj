@@ -957,9 +957,7 @@ class ConversationAdapters:
 
             return conversation_config
 
-        if (
-            conversation_config.model_type == "openai" or conversation_config.model_type == "anthropic"
-        ) and conversation_config.openai_config:
+        if (conversation_config.model_type in ["openai", "anthropic", "gemini"]) and conversation_config.openai_config:
             return conversation_config
 
         else:
