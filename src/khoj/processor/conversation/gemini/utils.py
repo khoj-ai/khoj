@@ -73,17 +73,22 @@ def gemini_chat_completion_with_backoff(
 def gemini_llm_thread(
     g, messages, system_prompt, model_name, temperature, api_key, max_prompt_size=None, model_kwargs=None
 ):
-    genai.configure(api_key=api_key)
-    max_tokens = max_prompt_size or DEFAULT_MAX_TOKENS_GEMINI
-    model_kwargs = model_kwargs or dict()
-    model_kwargs["temperature"] = temperature
-    model_kwargs["max_output_tokens"] = max_tokens
-    model = genai.GenerativeModel(model_name, generation_config=model_kwargs, system_instruction=system_prompt)
+    try:
+        genai.configure(api_key=api_key)
+        max_tokens = max_prompt_size or DEFAULT_MAX_TOKENS_GEMINI
+        model_kwargs = model_kwargs or dict()
+        model_kwargs["temperature"] = temperature
+        model_kwargs["max_output_tokens"] = max_tokens
+        model = genai.GenerativeModel(model_name, generation_config=model_kwargs, system_instruction=system_prompt)
 
-    formatted_messages = [{"role": message.role, "parts": [message.content]} for message in messages]
-    # all messages up to the last are considered to be part of the chat history
-    chat_session = model.start_chat(history=formatted_messages[0:-1])
-    # the last message is considered to be the current prompt
-    for chunk in chat_session.send_message(formatted_messages[-1]["parts"][0], stream=True):
-        g.send(chunk.text)
-    g.close()
+        formatted_messages = [{"role": message.role, "parts": [message.content]} for message in messages]
+        # all messages up to the last are considered to be part of the chat history
+        chat_session = model.start_chat(history=formatted_messages[0:-1])
+        # the last message is considered to be the current prompt
+        for chunk in chat_session.send_message(formatted_messages[-1]["parts"][0], stream=True):
+            g.send(chunk.text)
+        g.close()
+    except Exception as e:
+        logger.error(f"Error in gemini_llm_thread: {e}", exc_info=True)
+    finally:
+        g.close()
