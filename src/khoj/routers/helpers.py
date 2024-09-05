@@ -725,7 +725,7 @@ def generate_chat_response(
     conversation_id: int = None,
     location_data: LocationData = None,
     user_name: Optional[str] = None,
-    image_url: Optional[str] = None,
+    uploaded_image_url: Optional[str] = None,
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
     chat_response = None
@@ -744,11 +744,12 @@ def generate_chat_response(
             inferred_queries=inferred_queries,
             client_application=client_application,
             conversation_id=conversation_id,
+            uploaded_image_url=uploaded_image_url,
         )
 
         conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)
         vision_available = conversation_config.vision_enabled
-        if not vision_available and image_url:
+        if not vision_available and uploaded_image_url:
             conversation_configurations = ConversationAdapters.get_all_conversation_configs(user)
             for config in conversation_configurations:
                 if config.vision_enabled:
@@ -797,7 +798,7 @@ def generate_chat_response(
                 location_data=location_data,
                 user_name=user_name,
                 agent=agent,
-                image_url=image_url,
+                image_url=uploaded_image_url,
                 vision_available=vision_available,
             )
 

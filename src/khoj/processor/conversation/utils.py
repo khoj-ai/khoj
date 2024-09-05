@@ -101,12 +101,16 @@ def save_to_conversation_log(
     client_application: ClientApplication = None,
     conversation_id: int = None,
     automation_id: str = None,
+    uploaded_image_url: str = None,
 ):
     user_message_time = user_message_time or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     updated_conversation = message_to_log(
         user_message=q,
         chat_response=chat_response,
-        user_message_metadata={"created": user_message_time},
+        user_message_metadata={
+            "created": user_message_time,
+            "uploadedImageData": uploaded_image_url,
+        },
         khoj_message_metadata={
             "context": compiled_references,
             "intent": {"inferred-queries": inferred_queries, "type": intent_type},
@@ -152,33 +156,38 @@ def generate_chatml_messages_with_context(
         else:
             max_prompt_size = model_to_prompt_size.get(model_name, 2000)
 
-    # Scale lookback turns proportional to max prompt size supported by model
-    lookback_turns = max_prompt_size // 750
-
-    # Extract Chat History for Context
-    chat_logs = []
-    for chat in conversation_log.get("chat", []):
-        chat_notes = f'\n\n Notes:\n{chat.get("context")}' if chat.get("context") else "\n"
-        chat_logs += [chat["message"] + chat_notes]
-
-    rest_backnforths: List[ChatMessage] = []
-    # Extract in reverse chronological order
-    for user_msg, assistant_msg in zip(chat_logs[-2::-2], chat_logs[::-2]):
-        if len(rest_backnforths) >= 2 * lookback_turns:
-            break
-        rest_backnforths += reciprocal_conversation_to_chatml([user_msg, assistant_msg])[::-1]
-
     # Format user and system messages to chatml format
     def construct_structured_message(message, image_url):
         if image_url and vision_enabled:
             return [{"type": "text", "text": message}, {"type": "image_url", "image_url": {"url": image_url}}]
         return message
 
+    # Scale lookback turns proportional to max prompt size supported by model
+    lookback_turns = max_prompt_size // 750
+
+    # Extract Chat History for Context
+    chatml_messages: List[ChatMessage] = []
+    for chat in conversation_log.get("chat", []):
+        message_notes = f'\n\n Notes:\n{chat.get("context")}' if chat.get("context") else "\n"
+        role = "user" if chat["by"] == "you" else "assistant"
+
+        message_content = chat["message"] + message_notes
+
+        if chat.get("uploadedImageData") and vision_enabled:
+            message_content = construct_structured_message(message_content, chat.get("uploadedImageData"))
+
+        reconstructed_message = ChatMessage(content=message_content, role=role)
+
+        chatml_messages.insert(0, reconstructed_message)
+
+        if len(chatml_messages) >= 2 * lookback_turns:
+            break
+
     messages = []
     if not is_none_or_empty(user_message):
         messages.append(ChatMessage(content=construct_structured_message(user_message, image_url), role="user"))
-    if len(rest_backnforths) > 0:
-        messages += rest_backnforths
+    if len(chatml_messages) > 0:
+        messages += chatml_messages
     if not is_none_or_empty(system_message):
         messages.append(ChatMessage(content=system_message, role="system"))
 

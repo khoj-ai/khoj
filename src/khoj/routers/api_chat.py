@@ -563,7 +563,7 @@ async def chat(
             base64_data = decoded_string.split(",")[1]
             image_bytes = base64.b64decode(base64_data)
             try:
-                uploaded_image_url = upload_image_bucket(image_bytes, request.user.object.id)
+                uploaded_image_url = upload_image_to_bucket(image_bytes, request.user.object.id)
             except:
                 uploaded_image_url = None
 
@@ -728,6 +728,7 @@ async def chat(
                 intent_type="summarize",
                 client_application=request.user.client_app,
                 conversation_id=conversation_id,
+                uploaded_image_url=uploaded_image_url,
             )
             return
 
@@ -770,6 +771,7 @@ async def chat(
                 conversation_id=conversation_id,
                 inferred_queries=[query_to_run],
                 automation_id=automation.id,
+                uploaded_image_url=uploaded_image_url,
             )
             async for result in send_llm_response(llm_response):
                 yield result
@@ -915,6 +917,7 @@ async def chat(
                 conversation_id=conversation_id,
                 compiled_references=compiled_references,
                 online_results=online_results,
+                uploaded_image_url=uploaded_image_url,
             )
             content_obj = {
                 "intentType": intent_type,
