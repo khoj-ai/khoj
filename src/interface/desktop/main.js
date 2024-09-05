@@ -256,7 +256,7 @@ function pushDataToKhoj (regenerate = false) {
     .catch(error => {
         console.error(error);
         state["completed"] = false;
-        if (error?.response?.status === 429 && (BrowserWindow.getAllWindows().find(win => win.webContents.getURL().includes('config')))) {
+        if (error?.response?.status === 429 && (BrowserWindow.getAllWindows().find(win => win.webContents.getURL().includes('settings')))) {
             state["error"] = `Looks like you're out of space to sync your files. <a href="https://app.khoj.dev/settings#subscription">Upgrade your plan</a> to unlock more space.`;
             const win = BrowserWindow.getAllWindows().find(win => win.webContents.getURL().includes('config'));
             if (win) win.webContents.send('needsSubscription', true);
@@ -727,7 +727,7 @@ app.whenReady().then(() => {
     const contextMenu = Menu.buildFromTemplate([
         { label: 'Chat', type: 'normal', click: () => { openWindow('chat.html'); }},
         { label: 'Search', type: 'normal', click: () => { openWindow('search.html') }},
-        { label: 'Configure', type: 'normal', click: () => { openWindow('config.html') }},
+        { label: 'Configure', type: 'normal', click: () => { openWindow('settings.html') }},
         { type: 'separator' },
         { label: 'About Khoj', type: 'normal', click: () => { openAboutWindow(); } },
         { label: 'Quit', type: 'normal', click: () => { app.quit() } }
