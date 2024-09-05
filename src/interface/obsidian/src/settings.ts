@@ -189,9 +189,8 @@ export class KhojSettingTab extends PluginSettingTab {
                     this.plugin.registerInterval(progress_indicator);
 
                     this.plugin.settings.lastSync = await updateContentIndex(
-                        this.app.vault, this.plugin.settings, this.plugin.settings.lastSync, true
+                        this.app.vault, this.plugin.settings, this.plugin.settings.lastSync, true, true
                     );
-                    new Notice('✅ Updated Khoj index.');
 
                     // Reset button once index is updated
                     window.clearInterval(progress_indicator);
