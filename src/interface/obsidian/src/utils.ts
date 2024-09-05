@@ -120,7 +120,37 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
 
         if (!response.ok) {
             if (response.status === 429) {
-                error_message = `❗️Failed to sync your content with Khoj server. Requests were throttled. Upgrade your subscription or try again later.`;
+                let response_text = await response.text();
+                if (response_text.includes("Too much data")) {
+                    const errorFragment = document.createDocumentFragment();
+                    errorFragment.appendChild(document.createTextNode("❗️Exceeded data sync limits. To resolve this either:"));
+                    const bulletList = document.createElement('ul');
+
+                    const limitFilesItem = document.createElement('li');
+                    const settingsPrefixText = document.createTextNode("Limit files to sync from ");
+                    const settingsLink = document.createElement('a');
+                    settingsLink.textContent = "Khoj settings";
+                    settingsLink.href = "#";
+                    settingsLink.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        openKhojPluginSettings();
+                    });
+                    limitFilesItem.appendChild(settingsPrefixText);
+                    limitFilesItem.appendChild(settingsLink);
+                    bulletList.appendChild(limitFilesItem);
+
+                    const upgradeItem = document.createElement('li');
+                    const upgradeLink = document.createElement('a');
+                    upgradeLink.href = `${setting.khojUrl}/settings#subscription`;
+                    upgradeLink.textContent = 'Upgrade your subscription';
+                    upgradeLink.target = '_blank';
+                    upgradeItem.appendChild(upgradeLink);
+                    bulletList.appendChild(upgradeItem);
+                    errorFragment.appendChild(bulletList);
+                    error_message = errorFragment;
+                } else {
+                    error_message = `❗️Failed to sync your content with Khoj server. Requests were throttled. Upgrade your subscription or try again later.`;
+                }
                 break;
             } else if (response.status === 404) {
                 error_message = `❗️Could not connect to Khoj server. Ensure you can connect to it.`;
@@ -153,6 +183,13 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
     }
 
     return lastSync;
+}
+
+export async function openKhojPluginSettings(): Promise<void>
+ {
+     const setting = this.app.setting;
+     await setting.open();
+     setting.openTabById('khoj');
 }
 
 export async function createNote(name: string, newLeaf = false): Promise<void> {
