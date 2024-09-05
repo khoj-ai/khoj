@@ -258,7 +258,7 @@ function pushDataToKhoj (regenerate = false) {
         state["completed"] = false;
         if (error?.response?.status === 429 && (BrowserWindow.getAllWindows().find(win => win.webContents.getURL().includes('settings')))) {
             state["error"] = `Looks like you're out of space to sync your files. <a href="https://app.khoj.dev/settings#subscription">Upgrade your plan</a> to unlock more space.`;
-            const win = BrowserWindow.getAllWindows().find(win => win.webContents.getURL().includes('config'));
+            const win = BrowserWindow.getAllWindows().find(win => win.webContents.getURL().includes('settings'));
             if (win) win.webContents.send('needsSubscription', true);
         } else if (error?.code === 'ECONNREFUSED') {
             state["error"] = `Could not connect to Khoj server. Ensure you can connect to it at ${error.address}:${error.port}.`;
@@ -270,7 +270,7 @@ function pushDataToKhoj (regenerate = false) {
     .finally(() => {
         // Syncing complete
         syncing = false;
-        const win = BrowserWindow.getAllWindows().find(win => win.webContents.getURL().includes('config'));
+        const win = BrowserWindow.getAllWindows().find(win => win.webContents.getURL().includes('settings'));
         if (win) {
             win.webContents.send('update-state', state);
         }
