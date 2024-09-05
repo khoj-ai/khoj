@@ -111,6 +111,7 @@ export interface SingleChatMessage {
     rawQuery?: string;
     intent?: Intent;
     agent?: AgentData;
+    uploadedImageData?: string;
 }
 
 export interface StreamMessage {
@@ -122,6 +123,7 @@ export interface StreamMessage {
     rawQuery: string;
     timestamp: string;
     agent?: AgentData;
+    uploadedImageData?: string;
 }
 
 export interface ChatHistoryData {
@@ -203,6 +205,7 @@ interface ChatMessageProps {
     borderLeftColor?: string;
     isLastMessage?: boolean;
     agent?: AgentData;
+    uploadedImageData?: string;
 }
 
 interface TrainOfThoughtProps {
@@ -542,9 +545,15 @@ export default function ChatMessage(props: ChatMessageProps) {
             className={constructClasses(props.chatMessage)}
             onMouseLeave={(event) => setIsHovering(false)}
             onMouseEnter={(event) => setIsHovering(true)}
-            onClick={props.chatMessage.by === "khoj" ? (event) => undefined : undefined}
         >
             <div className={chatMessageWrapperClasses(props.chatMessage)}>
+                {props.chatMessage.uploadedImageData && (
+                    <img
+                        src={props.chatMessage.uploadedImageData}
+                        alt="Uploaded Image"
+                        className="h-64 !w-auto"
+                    />
+                )}
                 <div
                     ref={messageRef}
                     className={styles.chatMessage}

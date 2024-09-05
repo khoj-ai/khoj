@@ -163,6 +163,7 @@ export default function Chat() {
                 completed: false,
                 timestamp: new Date().toISOString(),
                 rawQuery: queryToProcess || "",
+                uploadedImageData: decodeURIComponent(image64),
             };
             setMessages((prevMessages) => [...prevMessages, newStreamMessage]);
             setProcessQuerySignal(true);
@@ -193,6 +194,7 @@ export default function Chat() {
             if (done) {
                 setQueryToProcess("");
                 setProcessQuerySignal(false);
+                setImage64("");
                 break;
             }
 

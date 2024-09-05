@@ -114,7 +114,9 @@ export default function ChatInputArea(props: ChatInputProps) {
                 };
                 reader.readAsDataURL(blob);
             }
+            setUploading(false);
         }
+        setUploading(true);
         fetchImageData();
     }, [imagePath]);
 
@@ -154,7 +156,6 @@ export default function ChatInputArea(props: ChatInputProps) {
     }
 
     function handleDragAndDropFiles(event: React.DragEvent<HTMLDivElement>) {
-
         event.preventDefault();
         setIsDragAndDropping(false);
 
@@ -170,17 +171,16 @@ export default function ChatInputArea(props: ChatInputProps) {
             return;
         }
         // check for image file
-        const image_endings = ['jpg', 'jpeg', 'png']
+        const image_endings = ["jpg", "jpeg", "png"];
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
-            const file_extension = file.name.split('.').pop();
+            const file_extension = file.name.split(".").pop();
             if (image_endings.includes(file_extension || "")) {
                 setImageUploaded(true);
                 setImagePath(URL.createObjectURL(file));
                 return;
             }
         }
-
 
         uploadDataForIndexing(
             files,
@@ -446,16 +446,19 @@ export default function ChatInputArea(props: ChatInputProps) {
                 onDragLeave={handleDragLeave}
                 onDrop={handleDragAndDropFiles}
             >
-                {imageUploaded &&
-                <div className="absolute bottom-[80px] left-0 right-0 dark:bg-neutral-700 bg-white pt-5 pb-5 w-full rounded-lg border dark:border-none grid grid-cols-2">
-                    <div className="pl-4 pr-4">
-                        <img src={imagePath || ""} alt="img" className="w-auto max-h-[100px]"/>
+                {imageUploaded && (
+                    <div className="absolute bottom-[80px] left-0 right-0 dark:bg-neutral-700 bg-white pt-5 pb-5 w-full rounded-lg border dark:border-none grid grid-cols-2">
+                        <div className="pl-4 pr-4">
+                            <img src={imagePath || ""} alt="img" className="w-auto max-h-[100px]" />
+                        </div>
+                        <div className="pl-4 pr-4">
+                            <X
+                                className="w-6 h-6 float-right dark:hover:bg-[hsl(var(--background))] hover:bg-neutral-100 rounded-sm"
+                                onClick={removeImageUpload}
+                            />
+                        </div>
                     </div>
-                    <div className="pl-4 pr-4">
-                        <X className="w-6 h-6 float-right dark:hover:bg-[hsl(var(--background))] hover:bg-neutral-100 rounded-sm" onClick={removeImageUpload} />
-                    </div>
-                </div>
-                }
+                )}
                 <input
                     type="file"
                     multiple={true}
