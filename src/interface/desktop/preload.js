@@ -81,6 +81,6 @@ contextBridge.exposeInMainWorld('appInfoAPI', {
 })
 
 contextBridge.exposeInMainWorld('navigateAPI', {
-  navigateToSettings: () => ipcRenderer.send('navigate', 'config.html'),
-  navigateToWebSettings: () => ipcRenderer.send('navigateToWebApp', 'config'),
+  navigateToSettings: () => ipcRenderer.send('navigate', 'settings.html'),
+  navigateToWebSettings: () => ipcRenderer.send('navigateToWebApp', 'settings'),
 })

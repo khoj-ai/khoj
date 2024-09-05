@@ -475,8 +475,8 @@
             renderMessage(first_run_message, "khoj", null, null, true);
 
             // Open relevant setup links
-            document.getElementById("first-run-web-config").addEventListener('click', (event) => window.navigateAPI.navigateToWebSettings('config'));
-            document.getElementById("first-run-desktop-config").addEventListener('click', (event) => window.navigateAPI.navigateToSettings('config.html'));
+            document.getElementById("first-run-web-config").addEventListener('click', (event) => window.navigateAPI.navigateToWebSettings('settings'));
+            document.getElementById("first-run-desktop-config").addEventListener('click', (event) => window.navigateAPI.navigateToSettings('settings.html'));
 
             // Disable chat input field and update placeholder text
             document.getElementById("chat-input").setAttribute("disabled", "disabled");
