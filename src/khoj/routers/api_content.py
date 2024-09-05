@@ -92,7 +92,7 @@ async def put_content(
             incoming_entries_size_limit=10,
             subscribed_incoming_entries_size_limit=75,
             total_entries_size_limit=10,
-            subscribed_total_entries_size_limit=100,
+            subscribed_total_entries_size_limit=200,
         )
     ),
 ):
@@ -114,7 +114,7 @@ async def patch_content(
             incoming_entries_size_limit=10,
             subscribed_incoming_entries_size_limit=75,
             total_entries_size_limit=10,
-            subscribed_total_entries_size_limit=100,
+            subscribed_total_entries_size_limit=200,
         )
     ),
 ):

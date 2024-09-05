@@ -19,10 +19,10 @@ LM Studio can expose an [OpenAI API compatible server](https://lmstudio.ai/docs/
    - Api Key: `any string`
    - Api Base Url: `http://localhost:1234/v1/` (default for LMStudio)
 4. Create a new [Chat Model Option](http://localhost:42110/server/admin/database/chatmodeloptions/add) on your Khoj admin panel.
-   - Name: `llama3` (replace with the name of your local model)
+   - Name: `llama3.1` (replace with the name of your local model)
    - Model Type: `Openai`
    - Openai Config: `<the proxy config you created in step 3>`
-   - Max prompt size: `2000` (replace with the max prompt size of your model)
+   - Max prompt size: `20000` (replace with the max prompt size of your model)
    - Tokenizer: *Do not set for OpenAI, mistral, llama3 based models*
 5. Create a new [Server Chat Setting](http://localhost:42110/server/admin/database/serverchatsettings/add/) on your Khoj admin panel
    - Default model: `<name of chat model option you created in step 4>`

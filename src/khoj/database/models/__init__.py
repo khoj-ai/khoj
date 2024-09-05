@@ -89,8 +89,9 @@ class ChatModelOptions(BaseModel):
         ANTHROPIC = "anthropic"
 
     max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
+    subscribed_max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
     tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
-    chat_model = models.CharField(max_length=200, default="NousResearch/Hermes-2-Pro-Mistral-7B-GGUF")
+    chat_model = models.CharField(max_length=200, default="bartowski/Meta-Llama-3.1-8B-Instruct-GGUF")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
     vision_enabled = models.BooleanField(default=False)
     openai_config = models.ForeignKey(
@@ -206,11 +207,11 @@ class GithubRepoConfig(BaseModel):
 
 
 class ServerChatSettings(BaseModel):
-    default_model = models.ForeignKey(
-        ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="default_model"
+    chat_default = models.ForeignKey(
+        ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="chat_default"
     )
-    summarizer_model = models.ForeignKey(
-        ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="summarizer_model"
+    chat_advanced = models.ForeignKey(
+        ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="chat_advanced"
     )
 
 
@@ -270,6 +271,8 @@ class SearchModelConfig(BaseModel):
     cross_encoder_inference_endpoint = models.CharField(max_length=200, default=None, null=True, blank=True)
     # Inference server API Key to use for embeddings inference. Cross-encoder model should be hosted on this server
     cross_encoder_inference_endpoint_api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
+    # The confidence threshold of the bi_encoder model to consider the embeddings as relevant
+    bi_encoder_confidence_threshold = models.FloatField(default=0.18)
 
 
 class TextToImageModelConfig(BaseModel):

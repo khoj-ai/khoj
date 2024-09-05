@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 def extract_questions_offline(
     text: str,
-    model: str = "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF",
+    model: str = "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
     loaded_model: Union[Any, None] = None,
     conversation_log={},
     use_history: bool = True,
@@ -87,23 +87,16 @@ def extract_questions_offline(
             model=model,
             max_prompt_size=max_prompt_size,
             temperature=temperature,
+            response_type="json_object",
         )
     finally:
         state.chat_lock.release()
 
-    # Extract, Clean Message from GPT's Response
+    # Extract and clean the chat model's response
     try:
-        # This will expect to be a list with a single string with a list of questions
-        questions_str = (
-            str(response)
-            .strip(empty_escape_sequences)
-            .replace("['", '["')
-            .replace("<s>", "")
-            .replace("</s>", "")
-            .replace("']", '"]')
-            .replace("', '", '", "')
-        )
-        questions: List[str] = json.loads(questions_str)
+        response = response.strip(empty_escape_sequences)
+        response = json.loads(response)
+        questions = [q.strip() for q in response["queries"] if q.strip()]
         questions = filter_questions(questions)
     except:
         logger.warning(f"Llama returned invalid JSON. Falling back to using user message as search query.\n{response}")
@@ -138,7 +131,7 @@ def converse_offline(
     references=[],
     online_results=[],
     conversation_log={},
-    model: str = "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF",
+    model: str = "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
     loaded_model: Union[Any, None] = None,
     completion_func=None,
     conversation_commands=[ConversationCommand.Default],
@@ -231,23 +224,24 @@ def llm_thread(g, messages: List[ChatMessage], model: Any, max_prompt_size: int 
             g.send(response["choices"][0]["delta"].get("content", ""))
     finally:
         state.chat_lock.release()
-    g.close()
+        g.close()
 
 
 def send_message_to_model_offline(
     messages: List[ChatMessage],
     loaded_model=None,
-    model="NousResearch/Hermes-2-Pro-Mistral-7B-GGUF",
+    model="bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
     temperature: float = 0.2,
     streaming=False,
     stop=[],
     max_prompt_size: int = None,
+    response_type: str = "text",
 ):
     assert loaded_model is None or isinstance(loaded_model, Llama), "loaded_model must be of type Llama, if configured"
     offline_chat_model = loaded_model or download_model(model, max_tokens=max_prompt_size)
     messages_dict = [{"role": message.role, "content": message.content} for message in messages]
     response = offline_chat_model.create_chat_completion(
-        messages_dict, stop=stop, stream=streaming, temperature=temperature
+        messages_dict, stop=stop, stream=streaming, temperature=temperature, response_format={"type": response_type}
     )
     if streaming:
         return response

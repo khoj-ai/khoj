@@ -25,7 +25,7 @@ Offline chat stays completely private and can work without internet using open-s
 >  - An Nvidia, AMD GPU or a Mac M1+ machine would significantly speed up chat response times
 
 1. Open your [Khoj offline settings](http://localhost:42110/server/admin/database/offlinechatprocessorconversationconfig/) and click *Enable* on the Offline Chat configuration.
-2. Open your [Chat model options settings](http://localhost:42110/server/admin/database/chatmodeloptions/) and add any [GGUF chat model](https://huggingface.co/models?library=gguf) to use for offline chat. Make sure to use `Offline` as its type. For a balanced chat model that runs well on standard consumer hardware we recommend using [Hermes-2-Pro-Mistral-7B by NousResearch](https://huggingface.co/NousResearch/Hermes-2-Pro-Mistral-7B-GGUF) by default.
+2. Open your [Chat model options settings](http://localhost:42110/server/admin/database/chatmodeloptions/) and add any [GGUF chat model](https://huggingface.co/models?library=gguf) to use for offline chat. Make sure to use `Offline` as its type. For a balanced chat model that runs well on standard consumer hardware we recommend using [Llama 3.1 by Meta](https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF) by default. For machines with no or small GPU we recommend using [Gemma 2 2B](https://huggingface.co/bartowski/gemma-2-2b-it-GGUF) or [Phi 3.5 mini](https://huggingface.co/bartowski/Phi-3.5-mini-instruct-GGUF)
 
 
 :::tip[Note]

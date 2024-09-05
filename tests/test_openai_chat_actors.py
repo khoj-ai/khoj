@@ -405,10 +405,10 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content():
     response = "".join([response_chunk for response_chunk in response_gen])
 
     # Assert
-    expected_responses = ["test", "Test"]
+    expected_responses = ["test", "bug", "code"]
     assert len(response.splitlines()) == 3  # haikus are 3 lines long
-    assert any([expected_response in response for expected_response in expected_responses]), (
-        "Expected [T|t]est in response, but got: " + response
+    assert any([expected_response in response.lower() for expected_response in expected_responses]), (
+        "Expected haiku about unit test, but got: " + response
     )
 
 
@@ -441,7 +441,13 @@ My sister, Aiyla is married to Tolga. They have 3 kids, Yildiz, Ali and Ahmet.""
     response = "".join([response_chunk for response_chunk in response_gen])
 
     # Assert
-    expected_responses = ["which sister", "Which sister", "which of your sister", "Which of your sister"]
+    expected_responses = [
+        "which sister",
+        "Which sister",
+        "which of your sister",
+        "Which of your sister",
+        "Could you provide",
+    ]
     assert any([expected_response in response for expected_response in expected_responses]), (
         "Expected chat actor to ask for clarification in response, but got: " + response
     )
@@ -555,7 +561,7 @@ async def test_select_data_sources_actor_chooses_to_search_notes(
     chat_client, user_query, expected_conversation_commands
 ):
     # Act
-    conversation_commands = await aget_relevant_information_sources(user_query, {}, False)
+    conversation_commands = await aget_relevant_information_sources(user_query, {}, False, False)
 
     # Assert
     assert set(expected_conversation_commands) == set(conversation_commands)

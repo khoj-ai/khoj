@@ -70,7 +70,7 @@ class OfflineChatProcessorConfig:
 
 
 class OfflineChatProcessorModel:
-    def __init__(self, chat_model: str = "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF", max_tokens: int = None):
+    def __init__(self, chat_model: str = "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF", max_tokens: int = None):
         self.chat_model = chat_model
         self.loaded_model = None
         try:

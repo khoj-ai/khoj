@@ -192,11 +192,11 @@ def offline_agent():
 @pytest.mark.django_db
 @pytest.fixture
 def openai_agent():
-    chat_model = ChatModelOptionsFactory(chat_model="gpt-3.5-turbo", model_type="openai")
+    chat_model = ChatModelOptionsFactory(chat_model="gpt-4o-mini", model_type="openai")
     return Agent.objects.create(
         name="Accountant",
         chat_model=chat_model,
-        personality="You are a certified CPA. You are able to tell me how much I've spent based on my notes. Regardless of what I ask, you should always respond with the total amount I've spent.",
+        personality="You are a certified CPA. You are able to tell me how much I've spent based on my notes. Regardless of what I ask, you should always respond with the total amount I've spent. ALWAYS RESPOND WITH A SUMMARY TOTAL OF HOW MUCH MONEY I HAVE SPENT.",
     )
 
 
@@ -301,7 +301,7 @@ def chat_client_builder(search_config, user, index_content=True, require_auth=Fa
 
     # Initialize Processor from Config
     if os.getenv("OPENAI_API_KEY"):
-        chat_model = ChatModelOptionsFactory(chat_model="gpt-3.5-turbo", model_type="openai")
+        chat_model = ChatModelOptionsFactory(chat_model="gpt-4o-mini", model_type="openai")
         chat_model.openai_config = OpenAIProcessorConversationConfigFactory()
         UserConversationProcessorConfigFactory(user=user, setting=chat_model)
 
@@ -378,7 +378,7 @@ def client_offline_chat(search_config: SearchConfig, default_user2: KhojUser):
 
     # Initialize Processor from Config
     ChatModelOptionsFactory(
-        chat_model="NousResearch/Hermes-2-Pro-Mistral-7B-GGUF",
+        chat_model="bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
         tokenizer=None,
         max_prompt_size=None,
         model_type="offline",

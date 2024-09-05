@@ -83,7 +83,7 @@ async def search(
         n=n,
         t=t,
         r=r,
-        max_distance=max_distance,
+        max_distance=max_distance or math.inf,
         dedupe=dedupe,
     )
 
@@ -117,7 +117,6 @@ async def execute_search(
     # initialize variables
     user_query = q.strip()
     results_count = n or 5
-    max_distance = max_distance or math.inf
     search_futures: List[concurrent.futures.Future] = []
 
     # return cached results, if available
@@ -359,7 +358,7 @@ async def extract_references_and_questions(
     conversation = await sync_to_async(ConversationAdapters.get_conversation_by_id)(conversation_id)
 
     if not conversation:
-        logger.error(f"Conversation with id {conversation_id} not found.")
+        logger.error(f"Conversation with id {conversation_id} not found when extracting references.")
         yield compiled_references, inferred_queries, defiltered_query
         return
 

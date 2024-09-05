@@ -89,11 +89,11 @@ class SearchConfig(ConfigBase):
 
 class OpenAIProcessorConfig(ConfigBase):
     api_key: str
-    chat_model: Optional[str] = "gpt-3.5-turbo"
+    chat_model: Optional[str] = "gpt-4o-mini"
 
 
 class OfflineChatProcessorConfig(ConfigBase):
-    chat_model: Optional[str] = "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF"
+    chat_model: Optional[str] = "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF"
 
 
 class ConversationProcessorConfig(ConfigBase):

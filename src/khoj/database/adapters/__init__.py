@@ -14,7 +14,7 @@ from apscheduler.job import Job
 from asgiref.sync import sync_to_async
 from django.contrib.sessions.backends.db import SessionStore
 from django.db import models
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.db.models.manager import BaseManager
 from django.db.utils import IntegrityError
 from django_apscheduler.models import DjangoJob, DjangoJobExecution
@@ -298,6 +298,38 @@ async def aget_user_subscription_state(user: KhojUser) -> str:
     """
     user_subscription = await Subscription.objects.filter(user=user).afirst()
     return subscription_to_state(user_subscription)
+
+
+async def ais_user_subscribed(user: KhojUser) -> bool:
+    """
+    Get whether the user is subscribed
+    """
+    if not state.billing_enabled or state.anonymous_mode:
+        return True
+
+    subscription_state = await aget_user_subscription_state(user)
+    subscribed = (
+        subscription_state == SubscriptionState.SUBSCRIBED.value
+        or subscription_state == SubscriptionState.TRIAL.value
+        or subscription_state == SubscriptionState.UNSUBSCRIBED.value
+    )
+    return subscribed
+
+
+def is_user_subscribed(user: KhojUser) -> bool:
+    """
+    Get whether the user is subscribed
+    """
+    if not state.billing_enabled or state.anonymous_mode:
+        return True
+
+    subscription_state = get_user_subscription_state(user.email)
+    subscribed = (
+        subscription_state == SubscriptionState.SUBSCRIBED.value
+        or subscription_state == SubscriptionState.TRIAL.value
+        or subscription_state == SubscriptionState.UNSUBSCRIBED.value
+    )
+    return subscribed
 
 
 async def get_user_by_email(email: str) -> KhojUser:
@@ -755,17 +787,23 @@ class ConversationAdapters:
 
     @staticmethod
     def get_conversation_config(user: KhojUser):
+        subscribed = is_user_subscribed(user)
+        if not subscribed:
+            return ConversationAdapters.get_default_conversation_config()
         config = UserConversationConfig.objects.filter(user=user).first()
-        if not config:
-            return None
-        return config.setting
+        if config:
+            return config.setting
+        return ConversationAdapters.get_advanced_conversation_config()
 
     @staticmethod
     async def aget_conversation_config(user: KhojUser):
+        subscribed = await ais_user_subscribed(user)
+        if not subscribed:
+            return await ConversationAdapters.aget_default_conversation_config()
         config = await UserConversationConfig.objects.filter(user=user).prefetch_related("setting").afirst()
-        if not config:
-            return None
-        return config.setting
+        if config:
+            return config.setting
+        return ConversationAdapters.aget_advanced_conversation_config()
 
     @staticmethod
     async def aget_voice_model_config(user: KhojUser) -> Optional[VoiceModelOption]:
@@ -788,35 +826,38 @@ class ConversationAdapters:
     @staticmethod
     def get_default_conversation_config():
         server_chat_settings = ServerChatSettings.objects.first()
-        if server_chat_settings is None or server_chat_settings.default_model is None:
+        if server_chat_settings is None or server_chat_settings.chat_default is None:
             return ChatModelOptions.objects.filter().first()
-        return server_chat_settings.default_model
+        return server_chat_settings.chat_default
 
     @staticmethod
     async def aget_default_conversation_config():
         server_chat_settings: ServerChatSettings = (
             await ServerChatSettings.objects.filter()
-            .prefetch_related("default_model", "default_model__openai_config")
+            .prefetch_related("chat_default", "chat_default__openai_config")
             .afirst()
         )
-        if server_chat_settings is None or server_chat_settings.default_model is None:
+        if server_chat_settings is None or server_chat_settings.chat_default is None:
             return await ChatModelOptions.objects.filter().prefetch_related("openai_config").afirst()
-        return server_chat_settings.default_model
+        return server_chat_settings.chat_default
 
     @staticmethod
-    async def aget_summarizer_conversation_config():
+    def get_advanced_conversation_config():
+        server_chat_settings = ServerChatSettings.objects.first()
+        if server_chat_settings is None or server_chat_settings.chat_advanced is None:
+            return ConversationAdapters.get_default_conversation_config()
+        return server_chat_settings.chat_advanced
+
+    @staticmethod
+    async def aget_advanced_conversation_config():
         server_chat_settings: ServerChatSettings = (
             await ServerChatSettings.objects.filter()
-            .prefetch_related(
-                "summarizer_model", "default_model", "default_model__openai_config", "summarizer_model__openai_config"
-            )
+            .prefetch_related("chat_advanced", "chat_advanced__openai_config")
             .afirst()
         )
-        if server_chat_settings is None or (
-            server_chat_settings.summarizer_model is None and server_chat_settings.default_model is None
-        ):
-            return await ChatModelOptions.objects.filter().prefetch_related("openai_config").afirst()
-        return server_chat_settings.summarizer_model or server_chat_settings.default_model
+        if server_chat_settings is None or server_chat_settings.chat_advanced is None:
+            return await ConversationAdapters.aget_default_conversation_config()
+        return server_chat_settings.chat_advanced
 
     @staticmethod
     def create_conversation_from_public_conversation(
@@ -952,7 +993,12 @@ class ConversationAdapters:
 
     @staticmethod
     async def aget_user_text_to_image_model(user: KhojUser) -> Optional[TextToImageModelConfig]:
-        config = await UserTextToImageModelConfig.objects.filter(user=user).prefetch_related("setting").afirst()
+        # Create a custom queryset for prefetching settings__openai_config, handling null cases
+        settings_prefetch = Prefetch(
+            "setting", queryset=TextToImageModelConfig.objects.prefetch_related("openai_config")
+        )
+
+        config = await UserTextToImageModelConfig.objects.filter(user=user).prefetch_related(settings_prefetch).afirst()
         if not config:
             default_config = await ConversationAdapters.aget_text_to_image_model_config()
             if not default_config:

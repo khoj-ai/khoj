@@ -58,12 +58,7 @@ jobs:
           export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
           rm -rf dist
 
-          # Build PyPI Package: khoj
-          pipx run build
-
-          # Build legacy PyPI Package: khoj-assistant
-          sed -i.bak '/^name = "khoj"$/s//name = "khoj-assistant"/' pyproject.toml
-          rm pyproject.toml.bak
+          # Build PyPI Package
           pipx run build
 
       - name: 🌡️ Validate Python Package
@@ -78,6 +73,8 @@ jobs:
           name: khoj
           path: dist/khoj-*.whl
 
-      - name: 📦 Publish Python Packages to PyPI
+      - name: 📦 Publish Python Package to PyPI
         if: startsWith(github.ref, 'refs/tags') || github.ref == 'refs/heads/master'
         uses: pypa/gh-action-pypi-publish@v1.8.14
+        with:
+          skip-existing: true

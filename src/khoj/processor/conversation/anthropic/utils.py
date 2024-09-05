@@ -89,26 +89,29 @@ def anthropic_chat_completion_with_backoff(
 def anthropic_llm_thread(
     g, messages, system_prompt, model_name, temperature, api_key, max_prompt_size=None, model_kwargs=None
 ):
-    if api_key not in anthropic_clients:
-        client: anthropic.Anthropic = anthropic.Anthropic(api_key=api_key)
-        anthropic_clients[api_key] = client
-    else:
-        client: anthropic.Anthropic = anthropic_clients[api_key]
+    try:
+        if api_key not in anthropic_clients:
+            client: anthropic.Anthropic = anthropic.Anthropic(api_key=api_key)
+            anthropic_clients[api_key] = client
+        else:
+            client: anthropic.Anthropic = anthropic_clients[api_key]
 
-    formatted_messages: List[anthropic.types.MessageParam] = [
-        anthropic.types.MessageParam(role=message.role, content=message.content) for message in messages
-    ]
+        formatted_messages: List[anthropic.types.MessageParam] = [
+            anthropic.types.MessageParam(role=message.role, content=message.content) for message in messages
+        ]
 
-    with client.messages.stream(
-        messages=formatted_messages,
-        model=model_name,  # type: ignore
-        temperature=temperature,
-        system=system_prompt,
-        timeout=20,
-        max_tokens=DEFAULT_MAX_TOKENS_ANTHROPIC,
-        **(model_kwargs or dict()),
-    ) as stream:
-        for text in stream.text_stream:
-            g.send(text)
-
-    g.close()
+        with client.messages.stream(
+            messages=formatted_messages,
+            model=model_name,  # type: ignore
+            temperature=temperature,
+            system=system_prompt,
+            timeout=20,
+            max_tokens=DEFAULT_MAX_TOKENS_ANTHROPIC,
+            **(model_kwargs or dict()),
+        ) as stream:
+            for text in stream.text_stream:
+                g.send(text)
+    except Exception as e:
+        logger.error(f"Error in anthropic_llm_thread: {e}", exc_info=True)
+    finally:
+        g.close()
