@@ -47,7 +47,7 @@ from khoj.routers.helpers import (
     update_telemetry_state,
     validate_conversation_config,
 )
-from khoj.routers.storage import upload_image_bucket
+from khoj.routers.storage import upload_image_to_bucket
 from khoj.utils import state
 from khoj.utils.helpers import (
     AsyncIteratorWrapper,

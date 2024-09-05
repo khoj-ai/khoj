@@ -38,13 +38,17 @@ def upload_image(image: bytes, user_id: uuid.UUID):
 AWS_USER_UPLOADED_IMAGES_BUCKET_NAME = os.getenv("AWS_USER_UPLOADED_IMAGES_BUCKET_NAME")
 
 
-def upload_image_bucket(image: bytes, user_id: uuid.UUID):
+def upload_image_to_bucket(image: bytes, user_id: uuid.UUID):
     """Upload the image to the S3 bucket"""
     if not aws_enabled:
         logger.info("AWS is not enabled. Skipping image upload")
         return None
 
     image_key = f"{user_id}/{uuid.uuid4()}.webp"
+    if not AWS_USER_UPLOADED_IMAGES_BUCKET_NAME:
+        logger.error("AWS_USER_UPLOADED_IMAGES_BUCKET_NAME is not set")
+        return None
+
     try:
         s3_client.put_object(
             Bucket=AWS_USER_UPLOADED_IMAGES_BUCKET_NAME,
@@ -53,7 +57,7 @@ def upload_image_bucket(image: bytes, user_id: uuid.UUID):
             ACL="public-read",
             ContentType="image/webp",
         )
-        return f"https://{AWS_USER_UPLOADED_IMAGES_BUCKET_NAME}.s3.amazonaws.com/{image_key}"
+        return f"https://{AWS_USER_UPLOADED_IMAGES_BUCKET_NAME}/{image_key}"
     except Exception as e:
         logger.error(f"Failed to upload image to S3: {e}")
         return None
