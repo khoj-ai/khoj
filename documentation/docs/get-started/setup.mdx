@@ -48,7 +48,6 @@ Khoj should now be running at http://localhost:42110! You can see the web UI in 
 
 Khoj uses Postgres DB for all server configuration and to scale to multi-user setups. It uses the pgvector package in Postgres to manage your document embeddings. Both Postgres and pgvector need to be installed for Khoj to work.
 
-```mdx-code-block
   <Tabs groupId="operating-systems">
     <TabItem value="macos" label="MacOS">
 Install [Postgres.app](https://postgresapp.com/). This comes pre-installed with `pgvector` and relevant dependencies.
@@ -66,13 +65,11 @@ Install [Postgres.app](https://postgresapp.com/). This comes pre-installed with 
     2. Follow instructions to [Install PgVector](https://github.com/pgvector/pgvector#installation) in case you need to manually install it.
     </TabItem>
   </Tabs>
-```
 
 ##### Create the Khoj database
 
 Make sure to update your environment variables to match your Postgres configuration if you're using a different name. The default values should work for most people. When prompted for a password, you can use the default password `postgres`, or configure it to your preference. Make sure to set the environment variable `POSTGRES_PASSWORD` to the same value as the password you set here.
 
-```mdx-code-block
   <Tabs groupId="operating-systems">
     <TabItem value="macos" label="MacOS">
     ```shell
@@ -90,7 +87,6 @@ sudo -u postgres createdb khoj --password
       ```
     </TabItem>
   </Tabs>
-```
 
 #### Install Khoj server
 
@@ -100,7 +96,6 @@ sudo -u postgres createdb khoj --password
 
 Run the following command in your terminal to install the Khoj server.
 
-```mdx-code-block
   <Tabs groupId="operating-systems">
     <TabItem value="macos" label="MacOS">
     ```shell
@@ -138,13 +133,11 @@ python -m pip install khoj
       ```
     </TabItem>
   </Tabs>
-```
 
 ##### Start Khoj Server
 
 Before getting started, configure the following environment variables in your terminal for the first run
 
-```mdx-code-block
   <Tabs groupId="operating-systems">
     <TabItem value="macos" label="MacOS">
       ```shell
@@ -166,7 +159,6 @@ Before getting started, configure the following environment variables in your te
       ```
     </TabItem>
   </Tabs>
-```
 
 
 Run the following command from your terminal to start the Khoj backend and open Khoj in your browser.
@@ -253,7 +245,6 @@ Set the host URL on your clients settings page to your Khoj server URL. By defau
 
 ## Upgrade
 
-```mdx-code-block
   <Tabs groupId="environment">
     <TabItem value="localsetup" label="Local Setup">
       ```shell
@@ -276,11 +267,9 @@ Set the host URL on your clients settings page to your Khoj server URL. By defau
       - See the [khoj plugin setup](/clients/obsidian#setup) for details
     </TabItem>
   </Tabs>
-```
 
 ## Uninstall
 
-```mdx-code-block
   <Tabs groupId="environment">
     <TabItem value="localsetup" label="Local Setup">
     ```shell
@@ -307,7 +296,6 @@ Set the host URL on your clients settings page to your Khoj server URL. By defau
     You can also `rm -rf ~/.khoj` to remove the Khoj data directory if did a local install.
     </TabItem>
   </Tabs>
-```
 
 ## Troubleshoot
 
