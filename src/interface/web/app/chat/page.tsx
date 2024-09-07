@@ -48,15 +48,17 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }, [image, props.setImage64]);
 
     useEffect(() => {
+        const storedImage = localStorage.getItem("image");
+        if (storedImage) {
+            setImage(storedImage);
+            props.setImage64(encodeURIComponent(storedImage));
+            localStorage.removeItem("image");
+        }
+
         const storedMessage = localStorage.getItem("message");
         if (storedMessage) {
             setProcessingMessage(true);
             setQueryToProcess(storedMessage);
-        }
-        const storedImage = localStorage.getItem("image");
-        if (storedImage) {
-            setImage(storedImage);
-            localStorage.removeItem("image");
         }
     }, [setQueryToProcess]);
 
