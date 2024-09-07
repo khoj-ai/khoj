@@ -758,8 +758,16 @@ class ConversationAdapters:
         return ChatModelOptions.objects.filter(user=user).exists()
 
     @staticmethod
-    def get_all_conversation_configs(user: KhojUser):
+    def get_all_conversation_configs():
         return ChatModelOptions.objects.all()
+
+    @staticmethod
+    def get_vision_enabled_config():
+        conversation_configurations = ConversationAdapters.get_all_conversation_configs()
+        for config in conversation_configurations:
+            if config.vision_enabled:
+                return config
+        return None
 
     @staticmethod
     def get_openai_conversation_config():

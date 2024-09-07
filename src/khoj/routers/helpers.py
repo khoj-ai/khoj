@@ -252,7 +252,9 @@ async def acreate_title_from_query(query: str) -> str:
     return response.strip()
 
 
-async def aget_relevant_information_sources(query: str, conversation_history: dict, is_task: bool, subscribed: bool):
+async def aget_relevant_information_sources(
+    query: str, conversation_history: dict, is_task: bool, subscribed: bool, uploaded_image_url: str = None
+):
     """
     Given a query, determine which of the available tools the agent should use in order to answer appropriately.
     """
@@ -274,7 +276,10 @@ async def aget_relevant_information_sources(query: str, conversation_history: di
 
     with timer("Chat actor: Infer information sources to refer", logger):
         response = await send_message_to_model_wrapper(
-            relevant_tools_prompt, response_type="json_object", subscribed=subscribed
+            relevant_tools_prompt,
+            response_type="json_object",
+            subscribed=subscribed,
+            uploaded_image_url=uploaded_image_url,
         )
 
     try:
@@ -347,7 +352,7 @@ async def aget_relevant_output_modes(query: str, conversation_history: dict, is_
 
 
 async def infer_webpage_urls(
-    q: str, conversation_history: dict, location_data: LocationData, user: KhojUser
+    q: str, conversation_history: dict, location_data: LocationData, user: KhojUser, uploaded_image_url: str = None
 ) -> List[str]:
     """
     Infer webpage links from the given query
@@ -366,7 +371,9 @@ async def infer_webpage_urls(
     )
 
     with timer("Chat actor: Infer webpage urls to read", logger):
-        response = await send_message_to_model_wrapper(online_queries_prompt, response_type="json_object")
+        response = await send_message_to_model_wrapper(
+            online_queries_prompt, response_type="json_object", uploaded_image_url=uploaded_image_url
+        )
 
     # Validate that the response is a non-empty, JSON-serializable list of URLs
     try:
@@ -381,7 +388,7 @@ async def infer_webpage_urls(
 
 
 async def generate_online_subqueries(
-    q: str, conversation_history: dict, location_data: LocationData, user: KhojUser
+    q: str, conversation_history: dict, location_data: LocationData, user: KhojUser, uploaded_image_url: str = None
 ) -> List[str]:
     """
     Generate subqueries from the given query
@@ -400,7 +407,9 @@ async def generate_online_subqueries(
     )
 
     with timer("Chat actor: Generate online search subqueries", logger):
-        response = await send_message_to_model_wrapper(online_queries_prompt, response_type="json_object")
+        response = await send_message_to_model_wrapper(
+            online_queries_prompt, response_type="json_object", uploaded_image_url=uploaded_image_url
+        )
 
     # Validate that the response is a non-empty, JSON-serializable list
     try:
@@ -468,7 +477,9 @@ async def extract_relevant_info(q: str, corpus: str, subscribed: bool) -> Union[
     return response.strip()
 
 
-async def extract_relevant_summary(q: str, corpus: str, subscribed: bool = False) -> Union[str, None]:
+async def extract_relevant_summary(
+    q: str, corpus: str, subscribed: bool = False, uploaded_image_url: str = None
+) -> Union[str, None]:
     """
     Extract relevant information for a given query from the target corpus
     """
@@ -489,6 +500,7 @@ async def extract_relevant_summary(q: str, corpus: str, subscribed: bool = False
             prompts.system_prompt_extract_relevant_summary,
             chat_model_option=chat_model,
             subscribed=subscribed,
+            uploaded_image_url=uploaded_image_url,
         )
     return response.strip()
 
@@ -501,6 +513,7 @@ async def generate_better_image_prompt(
     online_results: Optional[dict] = None,
     model_type: Optional[str] = None,
     subscribed: bool = False,
+    uploaded_image_url: Optional[str] = None,
 ) -> str:
     """
     Generate a better image prompt from the given query
@@ -549,7 +562,7 @@ async def generate_better_image_prompt(
 
     with timer("Chat actor: Generate contextual image prompt", logger):
         response = await send_message_to_model_wrapper(
-            image_prompt, chat_model_option=chat_model, subscribed=subscribed
+            image_prompt, chat_model_option=chat_model, subscribed=subscribed, uploaded_image_url=uploaded_image_url
         )
         response = response.strip()
         if response.startswith(('"', "'")) and response.endswith(('"', "'")):
@@ -564,10 +577,18 @@ async def send_message_to_model_wrapper(
     response_type: str = "text",
     chat_model_option: ChatModelOptions = None,
     subscribed: bool = False,
+    uploaded_image_url: str = None,
 ):
     conversation_config: ChatModelOptions = (
         chat_model_option or await ConversationAdapters.aget_default_conversation_config()
     )
+
+    vision_available = conversation_config.vision_enabled
+    if not vision_available and uploaded_image_url:
+        vision_enabled_config = ConversationAdapters.get_vision_enabled_config()
+        if vision_enabled_config:
+            conversation_config = vision_enabled_config
+            vision_available = True
 
     chat_model = conversation_config.chat_model
     max_tokens = (
@@ -612,6 +633,7 @@ async def send_message_to_model_wrapper(
             max_prompt_size=max_tokens,
             tokenizer_name=tokenizer,
             vision_enabled=vision_available,
+            uploaded_image_url=uploaded_image_url,
         )
 
         openai_response = send_message_to_model(
@@ -750,16 +772,10 @@ def generate_chat_response(
         conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)
         vision_available = conversation_config.vision_enabled
         if not vision_available and uploaded_image_url:
-            conversation_configurations = ConversationAdapters.get_all_conversation_configs(user)
-            for config in conversation_configurations:
-                if config.vision_enabled:
-                    conversation_config = config
-                    vision_available = True
-                    break
-            if not vision_available:
-                conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)
-                vision_available = conversation_config.vision_enabled
-                agent = None
+            vision_enabled_config = ConversationAdapters.get_vision_enabled_config()
+            if vision_enabled_config:
+                conversation_config = vision_enabled_config
+                vision_available = True
 
         if conversation_config.model_type == "offline":
             loaded_model = state.offline_chat_processor_config.loaded_model
@@ -838,6 +854,7 @@ async def text_to_image(
     online_results: Dict[str, Any],
     subscribed: bool = False,
     send_status_func: Optional[Callable] = None,
+    uploaded_image_url: Optional[str] = None,
 ):
     status_code = 200
     image = None
@@ -874,6 +891,7 @@ async def text_to_image(
         online_results=online_results,
         model_type=text_to_image_config.model_type,
         subscribed=subscribed,
+        uploaded_image_url=uploaded_image_url,
     )
 
     if send_status_func:
@@ -1124,6 +1142,7 @@ def should_notify(original_query: str, executed_query: str, ai_response: str) ->
 
     with timer("Chat actor: Decide to notify user of automation response", logger):
         try:
+            # TODO Replace with async call so we don't have to maintain a sync version
             response = send_message_to_model_wrapper_sync(to_notify_or_not)
             should_notify_result = "no" not in response.lower()
             logger.info(f'Decided to {"not " if not should_notify_result else ""}notify user of automation response.')

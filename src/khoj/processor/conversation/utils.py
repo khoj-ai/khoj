@@ -145,7 +145,7 @@ def generate_chatml_messages_with_context(
     loaded_model: Optional[Llama] = None,
     max_prompt_size=None,
     tokenizer_name=None,
-    image_url=None,
+    uploaded_image_url=None,
     vision_enabled=False,
 ):
     """Generate messages for ChatGPT with context from previous conversation"""
@@ -185,7 +185,9 @@ def generate_chatml_messages_with_context(
 
     messages = []
     if not is_none_or_empty(user_message):
-        messages.append(ChatMessage(content=construct_structured_message(user_message, image_url), role="user"))
+        messages.append(
+            ChatMessage(content=construct_structured_message(user_message, uploaded_image_url), role="user")
+        )
     if len(chatml_messages) > 0:
         messages += chatml_messages
     if not is_none_or_empty(system_message):

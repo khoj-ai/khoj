@@ -180,7 +180,7 @@ def converse(
         model_name=model,
         max_prompt_size=max_prompt_size,
         tokenizer_name=tokenizer_name,
-        image_url=image_url,
+        uploaded_image_url=image_url,
         vision_enabled=vision_available,
     )
     truncated_messages = "\n".join({f"{message.content[:70]}..." for message in messages})
