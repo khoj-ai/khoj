@@ -3467,11 +3467,6 @@ locate-path@^6.0.0:
   dependencies:
     p-locate "^5.0.0"
 
-lodash-es@latest:
-  version "4.17.21"
-  resolved "https://registry.yarnpkg.com/lodash-es/-/lodash-es-4.17.21.tgz#43e626c46e6591b7750beb2b50117390c609e3ee"
-  integrity sha512-mKnC+QJ9pWVzv+C4/U3rRsHapFfHvQFoFB92e52xeyGMcX6/OlIl78je1u8vePzYZSkkogMPJ2yjxxsb89cxyw==
-
 lodash._reinterpolate@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/lodash._reinterpolate/-/lodash._reinterpolate-3.0.0.tgz#0ccf2d89166af03b3663c796538b75ac6e114d9d"
@@ -4106,13 +4101,6 @@ react-hook-form@^7.52.1:
   version "7.53.0"
   resolved "https://registry.yarnpkg.com/react-hook-form/-/react-hook-form-7.53.0.tgz#3cf70951bf41fa95207b34486203ebefbd3a05ab"
   integrity sha512-M1n3HhqCww6S2hxLxciEXy2oISPnAzxY7gvwVPrtlczTM/1dDadXgUxDpHMrMTblDOcm/AXtXxHwZ3jpg1mqKQ==
-
-react-intl-tel-input-v2@^1.0.8:
-  version "1.0.8"
-  resolved "https://registry.yarnpkg.com/react-intl-tel-input-v2/-/react-intl-tel-input-v2-1.0.8.tgz#b85f1050c22fe95e3e28ad69a32b7266309a9713"
-  integrity sha512-f7Hf/XGud3/h1NZzprMexboJghTTcgAQ7nZXl/OO/Q98QGu3vxYnqfTOZneUgUzj7zdMG/B5YM+TezpB8rk0xw==
-  dependencies:
-    lodash-es latest
 
 react-is@^16.13.1:
   version "16.13.1"
@@ -4928,11 +4916,6 @@ util-deprecate@^1.0.1, util-deprecate@^1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/util-deprecate/-/util-deprecate-1.0.2.tgz#450d4dc9fa70de732762fbd2d4a28981419a0ccf"
   integrity sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==
-
-uuid@^10.0.0:
-  version "10.0.0"
-  resolved "https://registry.yarnpkg.com/uuid/-/uuid-10.0.0.tgz#5a95aa454e6e002725c79055fd42aaba30ca6294"
-  integrity sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==
 
 vaul@^0.9.1:
   version "0.9.2"
