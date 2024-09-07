@@ -41,7 +41,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
 
     useEffect(() => {
         if (image) {
-          props.setImage64(encodeURIComponent(image));
+            props.setImage64(encodeURIComponent(image));
         }
     }, [image, props.setImage64]);
 
@@ -165,6 +165,7 @@ export default function SharedChat() {
                 completed: false,
                 timestamp: new Date().toISOString(),
                 rawQuery: queryToProcess || "",
+                uploadedImageData: decodeURIComponent(image64),
             };
             setMessages((prevMessages) => [...prevMessages, newStreamMessage]);
             setProcessQuerySignal(true);
@@ -191,6 +192,7 @@ export default function SharedChat() {
             if (done) {
                 setQueryToProcess("");
                 setProcessQuerySignal(false);
+                setImage64("");
                 break;
             }
 
