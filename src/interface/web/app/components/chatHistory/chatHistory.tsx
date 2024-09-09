@@ -267,6 +267,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                             created: message.timestamp,
                                             by: "you",
                                             automationId: "",
+                                            uploadedImageData: message.uploadedImageData,
                                         }}
                                         customClassName="fullHistory"
                                         borderLeftColor={`${data?.agent.color}-500`}
@@ -309,6 +310,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                 created: new Date().getTime().toString(),
                                 by: "you",
                                 automationId: "",
+                                uploadedImageData: props.pendingMessage,
                             }}
                             customClassName="fullHistory"
                             borderLeftColor={`${data?.agent.color}-500`}

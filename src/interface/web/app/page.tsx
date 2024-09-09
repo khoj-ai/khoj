@@ -43,6 +43,7 @@ function FisherYatesShuffle(array: any[]) {
 
 function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState("");
+    const [image, setImage] = useState<string | null>(null);
     const [processingMessage, setProcessingMessage] = useState(false);
     const [greeting, setGreeting] = useState("");
     const [shuffledOptions, setShuffledOptions] = useState<Suggestion[]>([]);
@@ -141,6 +142,9 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     onConversationIdChange?.(newConversationId);
                     window.location.href = `/chat?conversationId=${newConversationId}`;
                     localStorage.setItem("message", message);
+                    if (image) {
+                        localStorage.setItem("image", image);
+                    }
                 } catch (error) {
                     console.error("Error creating new conversation:", error);
                     setProcessingMessage(false);
@@ -230,6 +234,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         <ChatInputArea
                             isLoggedIn={props.isLoggedIn}
                             sendMessage={(message) => setMessage(message)}
+                            sendImage={(image) => setImage(image)}
                             sendDisabled={processingMessage}
                             chatOptionsData={props.chatOptionsData}
                             conversationId={null}
@@ -310,6 +315,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         <ChatInputArea
                             isLoggedIn={props.isLoggedIn}
                             sendMessage={(message) => setMessage(message)}
+                            sendImage={(image) => setImage(image)}
                             sendDisabled={processingMessage}
                             chatOptionsData={props.chatOptionsData}
                             conversationId={null}

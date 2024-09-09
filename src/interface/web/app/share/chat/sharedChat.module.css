@@ -12,14 +12,10 @@ div.main {
 
 div.inputBox {
     border: 1px solid var(--border-color);
-    border-radius: 16px;
     margin-bottom: 20px;
     gap: 12px;
-    padding-left: 20px;
-    padding-right: 20px;
     align-content: center;
 }
-
 
 input.inputBox {
     border: none;
@@ -31,7 +27,7 @@ input.inputBox:focus {
 }
 
 div.inputBox:focus {
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
 }
 
 div.chatBodyFull {
@@ -94,7 +90,6 @@ div.agentIndicator {
     padding: 10px;
 }
 
-
 @media (max-width: 768px) {
     div.chatBody {
         grid-template-columns: 0fr 1fr;
@@ -124,5 +119,4 @@ div.agentIndicator {
         gap: 0;
         grid-template-columns: 1fr;
     }
-
 }

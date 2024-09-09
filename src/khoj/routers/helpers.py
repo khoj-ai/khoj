@@ -97,6 +97,7 @@ from khoj.utils.helpers import (
     LRU,
     ConversationCommand,
     ImageIntentType,
+    convert_image_to_webp,
     is_none_or_empty,
     is_valid_url,
     log_telemetry,
@@ -252,7 +253,9 @@ async def acreate_title_from_query(query: str) -> str:
     return response.strip()
 
 
-async def aget_relevant_information_sources(query: str, conversation_history: dict, is_task: bool, subscribed: bool):
+async def aget_relevant_information_sources(
+    query: str, conversation_history: dict, is_task: bool, subscribed: bool, uploaded_image_url: str = None
+):
     """
     Given a query, determine which of the available tools the agent should use in order to answer appropriately.
     """
@@ -266,6 +269,9 @@ async def aget_relevant_information_sources(query: str, conversation_history: di
 
     chat_history = construct_chat_history(conversation_history)
 
+    if uploaded_image_url:
+        query = f"[placeholder for image attached to this message]\n{query}"
+
     relevant_tools_prompt = prompts.pick_relevant_information_collection_tools.format(
         query=query,
         tools=tool_options_str,
@@ -274,7 +280,9 @@ async def aget_relevant_information_sources(query: str, conversation_history: di
 
     with timer("Chat actor: Infer information sources to refer", logger):
         response = await send_message_to_model_wrapper(
-            relevant_tools_prompt, response_type="json_object", subscribed=subscribed
+            relevant_tools_prompt,
+            response_type="json_object",
+            subscribed=subscribed,
         )
 
     try:
@@ -302,7 +310,9 @@ async def aget_relevant_information_sources(query: str, conversation_history: di
         return [ConversationCommand.Default]
 
 
-async def aget_relevant_output_modes(query: str, conversation_history: dict, is_task: bool = False):
+async def aget_relevant_output_modes(
+    query: str, conversation_history: dict, is_task: bool = False, uploaded_image_url: str = None
+):
     """
     Given a query, determine which of the available tools the agent should use in order to answer appropriately.
     """
@@ -318,6 +328,9 @@ async def aget_relevant_output_modes(query: str, conversation_history: dict, is_
         mode_options_str += f'- "{mode.value}": "{description}"\n'
 
     chat_history = construct_chat_history(conversation_history)
+
+    if uploaded_image_url:
+        query = f"[placeholder for image attached to this message]\n{query}"
 
     relevant_mode_prompt = prompts.pick_relevant_output_mode.format(
         query=query,
@@ -347,7 +360,7 @@ async def aget_relevant_output_modes(query: str, conversation_history: dict, is_
 
 
 async def infer_webpage_urls(
-    q: str, conversation_history: dict, location_data: LocationData, user: KhojUser
+    q: str, conversation_history: dict, location_data: LocationData, user: KhojUser, uploaded_image_url: str = None
 ) -> List[str]:
     """
     Infer webpage links from the given query
@@ -366,7 +379,9 @@ async def infer_webpage_urls(
     )
 
     with timer("Chat actor: Infer webpage urls to read", logger):
-        response = await send_message_to_model_wrapper(online_queries_prompt, response_type="json_object")
+        response = await send_message_to_model_wrapper(
+            online_queries_prompt, uploaded_image_url=uploaded_image_url, response_type="json_object"
+        )
 
     # Validate that the response is a non-empty, JSON-serializable list of URLs
     try:
@@ -381,7 +396,7 @@ async def infer_webpage_urls(
 
 
 async def generate_online_subqueries(
-    q: str, conversation_history: dict, location_data: LocationData, user: KhojUser
+    q: str, conversation_history: dict, location_data: LocationData, user: KhojUser, uploaded_image_url: str = None
 ) -> List[str]:
     """
     Generate subqueries from the given query
@@ -400,7 +415,9 @@ async def generate_online_subqueries(
     )
 
     with timer("Chat actor: Generate online search subqueries", logger):
-        response = await send_message_to_model_wrapper(online_queries_prompt, response_type="json_object")
+        response = await send_message_to_model_wrapper(
+            online_queries_prompt, uploaded_image_url=uploaded_image_url, response_type="json_object"
+        )
 
     # Validate that the response is a non-empty, JSON-serializable list
     try:
@@ -419,7 +436,7 @@ async def generate_online_subqueries(
         return [q]
 
 
-async def schedule_query(q: str, conversation_history: dict) -> Tuple[str, ...]:
+async def schedule_query(q: str, conversation_history: dict, uploaded_image_url: str = None) -> Tuple[str, ...]:
     """
     Schedule the date, time to run the query. Assume the server timezone is UTC.
     """
@@ -430,7 +447,9 @@ async def schedule_query(q: str, conversation_history: dict) -> Tuple[str, ...]:
         chat_history=chat_history,
     )
 
-    raw_response = await send_message_to_model_wrapper(crontime_prompt, response_type="json_object")
+    raw_response = await send_message_to_model_wrapper(
+        crontime_prompt, uploaded_image_url=uploaded_image_url, response_type="json_object"
+    )
 
     # Validate that the response is a non-empty, JSON-serializable list
     try:
@@ -468,7 +487,9 @@ async def extract_relevant_info(q: str, corpus: str, subscribed: bool) -> Union[
     return response.strip()
 
 
-async def extract_relevant_summary(q: str, corpus: str, subscribed: bool = False) -> Union[str, None]:
+async def extract_relevant_summary(
+    q: str, corpus: str, subscribed: bool = False, uploaded_image_url: str = None
+) -> Union[str, None]:
     """
     Extract relevant information for a given query from the target corpus
     """
@@ -489,6 +510,7 @@ async def extract_relevant_summary(q: str, corpus: str, subscribed: bool = False
             prompts.system_prompt_extract_relevant_summary,
             chat_model_option=chat_model,
             subscribed=subscribed,
+            uploaded_image_url=uploaded_image_url,
         )
     return response.strip()
 
@@ -501,6 +523,7 @@ async def generate_better_image_prompt(
     online_results: Optional[dict] = None,
     model_type: Optional[str] = None,
     subscribed: bool = False,
+    uploaded_image_url: Optional[str] = None,
 ) -> str:
     """
     Generate a better image prompt from the given query
@@ -549,7 +572,7 @@ async def generate_better_image_prompt(
 
     with timer("Chat actor: Generate contextual image prompt", logger):
         response = await send_message_to_model_wrapper(
-            image_prompt, chat_model_option=chat_model, subscribed=subscribed
+            image_prompt, chat_model_option=chat_model, subscribed=subscribed, uploaded_image_url=uploaded_image_url
         )
         response = response.strip()
         if response.startswith(('"', "'")) and response.endswith(('"', "'")):
@@ -564,10 +587,18 @@ async def send_message_to_model_wrapper(
     response_type: str = "text",
     chat_model_option: ChatModelOptions = None,
     subscribed: bool = False,
+    uploaded_image_url: str = None,
 ):
     conversation_config: ChatModelOptions = (
         chat_model_option or await ConversationAdapters.aget_default_conversation_config()
     )
+
+    vision_available = conversation_config.vision_enabled
+    if not vision_available and uploaded_image_url:
+        vision_enabled_config = ConversationAdapters.get_vision_enabled_config()
+        if vision_enabled_config:
+            conversation_config = vision_enabled_config
+            vision_available = True
 
     chat_model = conversation_config.chat_model
     max_tokens = (
@@ -576,6 +607,7 @@ async def send_message_to_model_wrapper(
         else conversation_config.max_prompt_size
     )
     tokenizer = conversation_config.tokenizer
+    vision_available = conversation_config.vision_enabled
 
     if conversation_config.model_type == "offline":
         if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
@@ -589,6 +621,7 @@ async def send_message_to_model_wrapper(
             loaded_model=loaded_model,
             tokenizer_name=tokenizer,
             max_prompt_size=max_tokens,
+            vision_enabled=vision_available,
         )
 
         return send_message_to_model_offline(
@@ -609,6 +642,8 @@ async def send_message_to_model_wrapper(
             model_name=chat_model,
             max_prompt_size=max_tokens,
             tokenizer_name=tokenizer,
+            vision_enabled=vision_available,
+            uploaded_image_url=uploaded_image_url,
         )
 
         openai_response = send_message_to_model(
@@ -628,6 +663,7 @@ async def send_message_to_model_wrapper(
             model_name=chat_model,
             max_prompt_size=max_tokens,
             tokenizer_name=tokenizer,
+            vision_enabled=vision_available,
         )
 
         return anthropic_send_message_to_model(
@@ -651,6 +687,7 @@ def send_message_to_model_wrapper_sync(
 
     chat_model = conversation_config.chat_model
     max_tokens = conversation_config.max_prompt_size
+    vision_available = conversation_config.vision_enabled
 
     if conversation_config.model_type == "offline":
         if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
@@ -658,7 +695,11 @@ def send_message_to_model_wrapper_sync(
 
         loaded_model = state.offline_chat_processor_config.loaded_model
         truncated_messages = generate_chatml_messages_with_context(
-            user_message=message, system_message=system_message, model_name=chat_model, loaded_model=loaded_model
+            user_message=message,
+            system_message=system_message,
+            model_name=chat_model,
+            loaded_model=loaded_model,
+            vision_enabled=vision_available,
         )
 
         return send_message_to_model_offline(
@@ -672,7 +713,10 @@ def send_message_to_model_wrapper_sync(
     elif conversation_config.model_type == "openai":
         api_key = conversation_config.openai_config.api_key
         truncated_messages = generate_chatml_messages_with_context(
-            user_message=message, system_message=system_message, model_name=chat_model
+            user_message=message,
+            system_message=system_message,
+            model_name=chat_model,
+            vision_enabled=vision_available,
         )
 
         openai_response = send_message_to_model(
@@ -688,6 +732,7 @@ def send_message_to_model_wrapper_sync(
             system_message=system_message,
             model_name=chat_model,
             max_prompt_size=max_tokens,
+            vision_enabled=vision_available,
         )
 
         return anthropic_send_message_to_model(
@@ -712,6 +757,7 @@ def generate_chat_response(
     conversation_id: int = None,
     location_data: LocationData = None,
     user_name: Optional[str] = None,
+    uploaded_image_url: Optional[str] = None,
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
     chat_response = None
@@ -719,7 +765,6 @@ def generate_chat_response(
 
     metadata = {}
     agent = AgentAdapters.get_conversation_agent_by_id(conversation.agent.id) if conversation.agent else None
-
     try:
         partial_completion = partial(
             save_to_conversation_log,
@@ -731,9 +776,17 @@ def generate_chat_response(
             inferred_queries=inferred_queries,
             client_application=client_application,
             conversation_id=conversation_id,
+            uploaded_image_url=uploaded_image_url,
         )
 
         conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)
+        vision_available = conversation_config.vision_enabled
+        if not vision_available and uploaded_image_url:
+            vision_enabled_config = ConversationAdapters.get_vision_enabled_config()
+            if vision_enabled_config:
+                conversation_config = vision_enabled_config
+                vision_available = True
+
         if conversation_config.model_type == "offline":
             loaded_model = state.offline_chat_processor_config.loaded_model
             chat_response = converse_offline(
@@ -759,6 +812,7 @@ def generate_chat_response(
             chat_response = converse(
                 compiled_references,
                 q,
+                image_url=uploaded_image_url,
                 online_results=online_results,
                 conversation_log=meta_log,
                 model=chat_model,
@@ -771,6 +825,7 @@ def generate_chat_response(
                 location_data=location_data,
                 user_name=user_name,
                 agent=agent,
+                vision_available=vision_available,
             )
 
         elif conversation_config.model_type == "anthropic":
@@ -809,6 +864,7 @@ async def text_to_image(
     online_results: Dict[str, Any],
     subscribed: bool = False,
     send_status_func: Optional[Callable] = None,
+    uploaded_image_url: Optional[str] = None,
 ):
     status_code = 200
     image = None
@@ -845,6 +901,7 @@ async def text_to_image(
         online_results=online_results,
         model_type=text_to_image_config.model_type,
         subscribed=subscribed,
+        uploaded_image_url=uploaded_image_url,
     )
 
     if send_status_func:
@@ -908,13 +965,7 @@ async def text_to_image(
 
     with timer("Convert image to webp", logger):
         # Convert png to webp for faster loading
-        image_io = io.BytesIO(decoded_image)
-        png_image = Image.open(image_io)
-        webp_image_io = io.BytesIO()
-        png_image.save(webp_image_io, "WEBP")
-        webp_image_bytes = webp_image_io.getvalue()
-        webp_image_io.close()
-        image_io.close()
+        webp_image_bytes = convert_image_to_webp(decoded_image)
 
     with timer("Upload image to S3", logger):
         image_url = upload_image(webp_image_bytes, user.uuid)
@@ -1095,6 +1146,7 @@ def should_notify(original_query: str, executed_query: str, ai_response: str) ->
 
     with timer("Chat actor: Decide to notify user of automation response", logger):
         try:
+            # TODO Replace with async call so we don't have to maintain a sync version
             response = send_message_to_model_wrapper_sync(to_notify_or_not)
             should_notify_result = "no" not in response.lower()
             logger.info(f'Decided to {"not " if not should_notify_result else ""}notify user of automation response.')

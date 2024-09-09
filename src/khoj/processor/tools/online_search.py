@@ -56,6 +56,7 @@ async def search_online(
     subscribed: bool = False,
     send_status_func: Optional[Callable] = None,
     custom_filters: List[str] = [],
+    uploaded_image_url: str = None,
 ):
     query += " ".join(custom_filters)
     if not is_internet_connected():
@@ -64,7 +65,9 @@ async def search_online(
         return
 
     # Breakdown the query into subqueries to get the correct answer
-    subqueries = await generate_online_subqueries(query, conversation_history, location, user)
+    subqueries = await generate_online_subqueries(
+        query, conversation_history, location, user, uploaded_image_url=uploaded_image_url
+    )
     response_dict = {}
 
     if subqueries:
@@ -138,13 +141,14 @@ async def read_webpages(
     user: KhojUser,
     subscribed: bool = False,
     send_status_func: Optional[Callable] = None,
+    uploaded_image_url: str = None,
 ):
     "Infer web pages to read from the query and extract relevant information from them"
     logger.info(f"Inferring web pages to read")
     if send_status_func:
         async for event in send_status_func(f"**Inferring web pages to read**"):
             yield {ChatEvent.STATUS: event}
-    urls = await infer_webpage_urls(query, conversation_history, location, user)
+    urls = await infer_webpage_urls(query, conversation_history, location, user, uploaded_image_url)
 
     logger.info(f"Reading web pages at: {urls}")
     if send_status_func:

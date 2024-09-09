@@ -47,7 +47,7 @@
         "eslint": "^8",
         "eslint-config-next": "14.2.3",
         "input-otp": "^1.2.4",
-        "intl-tel-input": "^23.8.0",
+        "intl-tel-input": "^23.8.1",
         "katex": "^0.16.10",
         "libphonenumber-js": "^1.11.4",
         "lucide-react": "^0.397.0",
