@@ -53,6 +53,7 @@ from khoj.utils.helpers import (
     AsyncIteratorWrapper,
     ConversationCommand,
     command_descriptions,
+    convert_image_to_webp,
     get_device,
     is_none_or_empty,
 )
@@ -560,10 +561,11 @@ async def chat(
         uploaded_image_url = None
         if image:
             decoded_string = unquote(image.image)
-            base64_data = decoded_string.split(",")[1]
+            base64_data = decoded_string.split(",", 1)[1]
             image_bytes = base64.b64decode(base64_data)
+            webp_image_bytes = convert_image_to_webp(image_bytes)
             try:
-                uploaded_image_url = upload_image_to_bucket(image_bytes, request.user.object.id)
+                uploaded_image_url = upload_image_to_bucket(webp_image_bytes, request.user.object.id)
             except:
                 uploaded_image_url = None
 

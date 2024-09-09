@@ -97,6 +97,7 @@ from khoj.utils.helpers import (
     LRU,
     ConversationCommand,
     ImageIntentType,
+    convert_image_to_webp,
     is_none_or_empty,
     is_valid_url,
     log_telemetry,
@@ -955,13 +956,7 @@ async def text_to_image(
 
     with timer("Convert image to webp", logger):
         # Convert png to webp for faster loading
-        image_io = io.BytesIO(decoded_image)
-        png_image = Image.open(image_io)
-        webp_image_io = io.BytesIO()
-        png_image.save(webp_image_io, "WEBP")
-        webp_image_bytes = webp_image_io.getvalue()
-        webp_image_io.close()
-        image_io.close()
+        webp_image_bytes = convert_image_to_webp(decoded_image)
 
     with timer("Upload image to S3", logger):
         image_url = upload_image(webp_image_bytes, user.uuid)
