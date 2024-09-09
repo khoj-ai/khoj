@@ -269,6 +269,9 @@ async def aget_relevant_information_sources(
 
     chat_history = construct_chat_history(conversation_history)
 
+    if uploaded_image_url:
+        query = f"[placeholder for image attached to this message]\n{query}"
+
     relevant_tools_prompt = prompts.pick_relevant_information_collection_tools.format(
         query=query,
         tools=tool_options_str,
@@ -280,7 +283,6 @@ async def aget_relevant_information_sources(
             relevant_tools_prompt,
             response_type="json_object",
             subscribed=subscribed,
-            uploaded_image_url=uploaded_image_url,
         )
 
     try:
@@ -308,7 +310,9 @@ async def aget_relevant_information_sources(
         return [ConversationCommand.Default]
 
 
-async def aget_relevant_output_modes(query: str, conversation_history: dict, is_task: bool = False):
+async def aget_relevant_output_modes(
+    query: str, conversation_history: dict, is_task: bool = False, uploaded_image_url: str = None
+):
     """
     Given a query, determine which of the available tools the agent should use in order to answer appropriately.
     """
@@ -324,6 +328,9 @@ async def aget_relevant_output_modes(query: str, conversation_history: dict, is_
         mode_options_str += f'- "{mode.value}": "{description}"\n'
 
     chat_history = construct_chat_history(conversation_history)
+
+    if uploaded_image_url:
+        query = f"[placeholder for image attached to this message]\n{query}"
 
     relevant_mode_prompt = prompts.pick_relevant_output_mode.format(
         query=query,
@@ -373,7 +380,7 @@ async def infer_webpage_urls(
 
     with timer("Chat actor: Infer webpage urls to read", logger):
         response = await send_message_to_model_wrapper(
-            online_queries_prompt, response_type="json_object", uploaded_image_url=uploaded_image_url
+            online_queries_prompt, uploaded_image_url=uploaded_image_url, response_type="json_object"
         )
 
     # Validate that the response is a non-empty, JSON-serializable list of URLs
@@ -409,7 +416,7 @@ async def generate_online_subqueries(
 
     with timer("Chat actor: Generate online search subqueries", logger):
         response = await send_message_to_model_wrapper(
-            online_queries_prompt, response_type="json_object", uploaded_image_url=uploaded_image_url
+            online_queries_prompt, uploaded_image_url=uploaded_image_url, response_type="json_object"
         )
 
     # Validate that the response is a non-empty, JSON-serializable list
@@ -429,7 +436,7 @@ async def generate_online_subqueries(
         return [q]
 
 
-async def schedule_query(q: str, conversation_history: dict) -> Tuple[str, ...]:
+async def schedule_query(q: str, conversation_history: dict, uploaded_image_url: str = None) -> Tuple[str, ...]:
     """
     Schedule the date, time to run the query. Assume the server timezone is UTC.
     """
@@ -440,7 +447,9 @@ async def schedule_query(q: str, conversation_history: dict) -> Tuple[str, ...]:
         chat_history=chat_history,
     )
 
-    raw_response = await send_message_to_model_wrapper(crontime_prompt, response_type="json_object")
+    raw_response = await send_message_to_model_wrapper(
+        crontime_prompt, uploaded_image_url=uploaded_image_url, response_type="json_object"
+    )
 
     # Validate that the response is a non-empty, JSON-serializable list
     try:
@@ -803,6 +812,7 @@ def generate_chat_response(
             chat_response = converse(
                 compiled_references,
                 q,
+                image_url=uploaded_image_url,
                 online_results=online_results,
                 conversation_log=meta_log,
                 model=chat_model,
@@ -815,7 +825,6 @@ def generate_chat_response(
                 location_data=location_data,
                 user_name=user_name,
                 agent=agent,
-                image_url=uploaded_image_url,
                 vision_available=vision_available,
             )
 

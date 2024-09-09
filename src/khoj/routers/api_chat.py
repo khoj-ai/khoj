@@ -664,7 +664,7 @@ async def chat(
             ):
                 yield result
 
-            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task)
+            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task, uploaded_image_url)
             async for result in send_event(ChatEvent.STATUS, f"**Decided Response Mode:** {mode.value}"):
                 yield result
             if mode not in conversation_commands:
