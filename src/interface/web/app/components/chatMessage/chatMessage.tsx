@@ -276,6 +276,7 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
 export default function ChatMessage(props: ChatMessageProps) {
     const [copySuccess, setCopySuccess] = useState<boolean>(false);
     const [isHovering, setIsHovering] = useState<boolean>(false);
+    const [textRendered, setTextRendered] = useState<string>("");
     const [markdownRendered, setMarkdownRendered] = useState<string>("");
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const [interrupted, setInterrupted] = useState<boolean>(false);
@@ -325,6 +326,10 @@ export default function ChatMessage(props: ChatMessageProps) {
             .replace(/\\\[/g, "LEFTBRACKET")
             .replace(/\\\]/g, "RIGHTBRACKET");
 
+        if (props.chatMessage.uploadedImageData) {
+            message = `![uploaded image](${props.chatMessage.uploadedImageData})\n\n${message}`;
+        }
+
         if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image") {
             message = `![generated image](data:image/png;base64,${message})`;
         } else if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image2") {
@@ -343,6 +348,9 @@ export default function ChatMessage(props: ChatMessageProps) {
             message += `\n\n**Inferred Query**\n\n${props.chatMessage.intent["inferred-queries"][0]}`;
         }
 
+        setTextRendered(message);
+
+        // Render the markdown
         let markdownRendered = md.render(message);
 
         // Replace placeholders with LaTeX delimiters
@@ -547,13 +555,6 @@ export default function ChatMessage(props: ChatMessageProps) {
             onMouseEnter={(event) => setIsHovering(true)}
         >
             <div className={chatMessageWrapperClasses(props.chatMessage)}>
-                {props.chatMessage.uploadedImageData && (
-                    <img
-                        src={props.chatMessage.uploadedImageData}
-                        alt="Uploaded Image"
-                        className="h-64 !w-auto"
-                    />
-                )}
                 <div
                     ref={messageRef}
                     className={styles.chatMessage}
@@ -604,7 +605,7 @@ export default function ChatMessage(props: ChatMessageProps) {
                                 title="Copy"
                                 className={`${styles.copyButton}`}
                                 onClick={() => {
-                                    navigator.clipboard.writeText(props.chatMessage.message);
+                                    navigator.clipboard.writeText(textRendered);
                                     setCopySuccess(true);
                                 }}
                             >
