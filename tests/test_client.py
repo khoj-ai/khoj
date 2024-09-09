@@ -462,8 +462,8 @@ async def test_chat_with_unauthenticated_user(chat_client_with_auth, api_user2: 
     headers = {"Authorization": f"Bearer {api_user2.token}"}
 
     # Act
-    auth_response = chat_client_with_auth.get(f'/api/chat?q="Hello!"', headers=headers)
-    no_auth_response = chat_client_with_auth.get(f'/api/chat?q="Hello!"')
+    auth_response = chat_client_with_auth.post(f'/api/chat?q="Hello!"', headers=headers)
+    no_auth_response = chat_client_with_auth.post(f'/api/chat?q="Hello!"')
 
     # Assert
     assert auth_response.status_code == 200
