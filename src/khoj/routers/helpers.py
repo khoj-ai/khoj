@@ -731,7 +731,7 @@ def send_message_to_model_wrapper_sync(
             response_type=response_type,
         )
 
-    elif conversation_config.model_type == "openai":
+    elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
         api_key = conversation_config.openai_config.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
@@ -746,7 +746,7 @@ def send_message_to_model_wrapper_sync(
 
         return openai_response
 
-    elif conversation_config.model_type == "anthropic":
+    elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
         api_key = conversation_config.openai_config.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
@@ -757,6 +757,22 @@ def send_message_to_model_wrapper_sync(
         )
 
         return anthropic_send_message_to_model(
+            messages=truncated_messages,
+            api_key=api_key,
+            model=chat_model,
+        )
+
+    elif conversation_config.model_type == ChatModelOptions.ModelType.GEMINI:
+        api_key = conversation_config.openai_config.api_key
+        truncated_messages = generate_chatml_messages_with_context(
+            user_message=message,
+            system_message=system_message,
+            model_name=chat_model,
+            max_prompt_size=max_tokens,
+            vision_enabled=vision_available,
+        )
+
+        return gemini_send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
             model=chat_model,
@@ -826,7 +842,7 @@ def generate_chat_response(
                 agent=agent,
             )
 
-        elif conversation_config.model_type == "openai":
+        elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
             openai_chat_config = conversation_config.openai_config
             api_key = openai_chat_config.api_key
             chat_model = conversation_config.chat_model
@@ -849,7 +865,7 @@ def generate_chat_response(
                 vision_available=vision_available,
             )
 
-        elif conversation_config.model_type == "anthropic":
+        elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
             api_key = conversation_config.openai_config.api_key
             chat_response = converse_anthropic(
                 compiled_references,
@@ -866,7 +882,7 @@ def generate_chat_response(
                 user_name=user_name,
                 agent=agent,
             )
-        elif conversation_config.model_type == "gemini":
+        elif conversation_config.model_type == ChatModelOptions.ModelType.GEMINI:
             api_key = conversation_config.openai_config.api_key
             chat_response = converse_gemini(
                 compiled_references,
