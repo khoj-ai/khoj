@@ -140,7 +140,7 @@ async def is_ready_to_chat(user: KhojUser):
         await ConversationAdapters.aget_default_conversation_config()
     )
 
-    if user_conversation_config and user_conversation_config.model_type == "offline":
+    if user_conversation_config and user_conversation_config.model_type == ChatModelOptions.ModelType.OFFLINE:
         chat_model = user_conversation_config.chat_model
         max_tokens = user_conversation_config.max_prompt_size
         if state.offline_chat_processor_config is None:
@@ -614,7 +614,7 @@ async def send_message_to_model_wrapper(
     model_type = conversation_config.model_type
     vision_available = conversation_config.vision_enabled
 
-    if model_type == "offline":
+    if model_type == ChatModelOptions.ModelType.OFFLINE:
         if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
             state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
 
