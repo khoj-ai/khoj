@@ -222,17 +222,26 @@ export default function SharedChat() {
 
     async function chat() {
         if (!queryToProcess || !conversationId) return;
-        let chatAPI = `/api/chat?q=${encodeURIComponent(queryToProcess)}&conversation_id=${conversationId}&stream=true&client=web`;
-        if (locationData) {
-            chatAPI += `&region=${locationData.region}&country=${locationData.country}&city=${locationData.city}&timezone=${locationData.timezone}`;
-        }
+        const chatAPI = "/api/chat?client=web";
+        const chatAPIBody = {
+            q: queryToProcess,
+            conversation_id: parseInt(conversationId),
+            stream: true,
+            ...(locationData && {
+                region: locationData.region,
+                country: locationData.country,
+                city: locationData.city,
+                timezone: locationData.timezone,
+            }),
+            ...(image64 && { image: image64 }),
+        };
 
         const response = await fetch(chatAPI, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: image64 ? JSON.stringify({ image: image64 }) : undefined,
+            body: JSON.stringify(chatAPIBody),
         });
 
         try {

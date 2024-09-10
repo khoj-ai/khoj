@@ -520,8 +520,18 @@ async def set_conversation_title(
     )
 
 
-class ImageUploadObject(BaseModel):
-    image: str
+class ChatRequestBody(BaseModel):
+    q: str
+    n: Optional[int] = 7
+    d: Optional[float] = None
+    stream: Optional[bool] = False
+    title: Optional[str] = None
+    conversation_id: Optional[int] = None
+    city: Optional[str] = None
+    region: Optional[str] = None
+    country: Optional[str] = None
+    timezone: Optional[str] = None
+    image: Optional[str] = None
 
 
 @api_chat.post("")
@@ -529,17 +539,7 @@ class ImageUploadObject(BaseModel):
 async def chat(
     request: Request,
     common: CommonQueryParams,
-    q: str,
-    n: int = 7,
-    d: float = None,
-    stream: Optional[bool] = False,
-    title: Optional[str] = None,
-    conversation_id: Optional[int] = None,
-    city: Optional[str] = None,
-    region: Optional[str] = None,
-    country: Optional[str] = None,
-    timezone: Optional[str] = None,
-    image: Optional[ImageUploadObject] = None,
+    body: ChatRequestBody,
     rate_limiter_per_minute=Depends(
         ApiUserRateLimiter(requests=60, subscribed_requests=60, window=60, slug="chat_minute")
     ),
@@ -547,7 +547,20 @@ async def chat(
         ApiUserRateLimiter(requests=600, subscribed_requests=600, window=60 * 60 * 24, slug="chat_day")
     ),
 ):
-    async def event_generator(q: str, image: ImageUploadObject):
+    # Access the parameters from the body
+    q = body.q
+    n = body.n
+    d = body.d
+    stream = body.stream
+    title = body.title
+    conversation_id = body.conversation_id
+    city = body.city
+    region = body.region
+    country = body.country
+    timezone = body.timezone
+    image = body.image
+
+    async def event_generator(q: str, image: str):
         start_time = time.perf_counter()
         ttft = None
         chat_metadata: dict = {}
@@ -560,7 +573,7 @@ async def chat(
 
         uploaded_image_url = None
         if image:
-            decoded_string = unquote(image.image)
+            decoded_string = unquote(image)
             base64_data = decoded_string.split(",", 1)[1]
             image_bytes = base64.b64decode(base64_data)
             webp_image_bytes = convert_image_to_webp(image_bytes)
