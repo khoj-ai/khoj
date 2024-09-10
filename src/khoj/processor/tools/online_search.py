@@ -7,6 +7,7 @@ from collections import defaultdict
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import aiohttp
+import requests
 from bs4 import BeautifulSoup
 from markdownify import markdownify
 
@@ -78,7 +79,7 @@ async def search_online(
                 yield {ChatEvent.STATUS: event}
 
     with timer(f"Internet searches for {list(subqueries)} took", logger):
-        search_func = search_with_google if SERPER_DEV_API_KEY else search_with_jina
+        search_func = perform_search_with_google if SERPER_DEV_API_KEY else search_with_jina
         search_tasks = [search_func(subquery) for subquery in subqueries]
         search_results = await asyncio.gather(*search_tasks)
         response_dict = {subquery: search_result for subquery, search_result in search_results}
@@ -114,24 +115,27 @@ async def search_online(
     yield response_dict
 
 
-async def search_with_google(query: str) -> Tuple[str, Dict[str, List[Dict]]]:
+# Adjust the calling context to run the synchronous function in a thread
+async def perform_search_with_google(query: str) -> Tuple[str, Dict[str, List[Dict]]]:
+    return await asyncio.to_thread(search_with_google, query)
+
+
+def search_with_google(query: str) -> Tuple[str, Dict[str, List[Dict]]]:
     payload = json.dumps({"q": query})
     headers = {"X-API-KEY": SERPER_DEV_API_KEY, "Content-Type": "application/json"}
 
-    async with aiohttp.ClientSession() as session:
-        async with session.post(SERPER_DEV_URL, headers=headers, data=payload) as response:
-            if response.status != 200:
-                logger.error(await response.text())
-                return query, {}
-            json_response = await response.json()
-            extraction_fields = ["organic", "answerBox", "peopleAlsoAsk", "knowledgeGraph"]
-            extracted_search_result = {
-                field: json_response[field]
-                for field in extraction_fields
-                if not is_none_or_empty(json_response.get(field))
-            }
-
-            return query, extracted_search_result
+    try:
+        response = requests.post(SERPER_DEV_URL, headers=headers, data=payload)
+        response.raise_for_status()  # Raise an exception for HTTP errors
+        json_response = response.json()
+        extraction_fields = ["organic", "answerBox", "peopleAlsoAsk", "knowledgeGraph"]
+        extracted_search_result = {
+            field: json_response[field] for field in extraction_fields if not is_none_or_empty(json_response.get(field))
+        }
+        return query, extracted_search_result
+    except requests.RequestException as e:
+        logger.error(f"Error searching online: {e}")
+        return query, {}
 
 
 async def read_webpages(
