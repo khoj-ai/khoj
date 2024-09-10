@@ -53,6 +53,11 @@ div.chatMessageContainer h3 img {
     width: 24px;
 }
 
+div.you img {
+    height: 16rem;
+    width: auto;
+}
+
 div.you {
     color: hsla(var(--secondary-foreground));
 }

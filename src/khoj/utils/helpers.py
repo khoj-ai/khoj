@@ -1,6 +1,7 @@
 from __future__ import annotations  # to avoid quoting type hints
 
 import datetime
+import io
 import logging
 import os
 import platform
@@ -22,6 +23,7 @@ import requests
 import torch
 from asgiref.sync import sync_to_async
 from magika import Magika
+from PIL import Image
 
 from khoj.utils import constants
 
@@ -416,3 +418,16 @@ def is_internet_connected():
         return response.status_code == 200
     except:
         return False
+
+
+def convert_image_to_webp(image_bytes):
+    """Convert image bytes to webp format for faster loading"""
+    image_io = io.BytesIO(image_bytes)
+    with Image.open(image_io) as original_image:
+        webp_image_io = io.BytesIO()
+        original_image.save(webp_image_io, "WEBP")
+
+        # Encode the WebP image back to base64
+        webp_image_bytes = webp_image_io.getvalue()
+        webp_image_io.close()
+        return webp_image_bytes

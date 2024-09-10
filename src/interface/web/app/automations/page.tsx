@@ -202,6 +202,16 @@ const suggestedAutomationsMetadata: AutomationsData[] = [
         id: timestamp + 3,
         scheduling_request: "",
     },
+    {
+        subject: "Round-up of research papers about AI in healthcare",
+        query_to_run:
+            "Summarize the top 3 research papers about AI in healthcare that were published in the last week. Include links to the full papers.",
+        schedule: "9AM every Friday",
+        next: "Next run at 9AM on Friday",
+        crontime: "0 9 * * 5",
+        id: timestamp + 4,
+        scheduling_request: "",
+    },
 ];
 
 function createShareLink(automation: AutomationsData) {

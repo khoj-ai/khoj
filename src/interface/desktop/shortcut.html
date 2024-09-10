@@ -407,7 +407,7 @@
                 ? `&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}`
                 : '';
 
-            const response = await fetch(chatApi, { headers });
+            const response = await fetch(chatApi, { method: 'POST', headers });
 
             try {
                 if (!response.ok) throw new Error(response.statusText);

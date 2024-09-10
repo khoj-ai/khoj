@@ -49,7 +49,7 @@ def create_conversation(message_list, user, agent=None):
 @pytest.mark.django_db(transaction=True)
 def test_chat_with_no_chat_history_or_retrieved_content(chat_client):
     # Act
-    response = chat_client.get(f'/api/chat?q="Hello, my name is Testatron. Who are you?"')
+    response = chat_client.post(f'/api/chat?q="Hello, my name is Testatron. Who are you?"')
     response_message = response.json()["response"]
 
     # Assert
@@ -67,7 +67,7 @@ def test_chat_with_online_content(chat_client):
     # Act
     q = "/online give me the link to paul graham's essay how to do great work"
     encoded_q = quote(q, safe="")
-    response = chat_client.get(f"/api/chat?q={encoded_q}")
+    response = chat_client.post(f"/api/chat?q={encoded_q}")
     response_message = response.json()["response"]
 
     # Assert
@@ -88,7 +88,7 @@ def test_chat_with_online_webpage_content(chat_client):
     # Act
     q = "/online how many firefighters were involved in the great chicago fire and which year did it take place?"
     encoded_q = quote(q, safe="")
-    response = chat_client.get(f"/api/chat?q={encoded_q}")
+    response = chat_client.post(f"/api/chat?q={encoded_q}")
     response_message = response.json()["response"]
 
     # Assert
@@ -111,7 +111,7 @@ def test_answer_from_chat_history(chat_client, default_user2: KhojUser):
     create_conversation(message_list, default_user2)
 
     # Act
-    response = chat_client.get(f'/api/chat?q="What is my name?"')
+    response = chat_client.post(f'/api/chat?q="What is my name?"')
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -138,7 +138,7 @@ def test_answer_from_currently_retrieved_content(chat_client, default_user2: Kho
     create_conversation(message_list, default_user2)
 
     # Act
-    response = chat_client.get(f'/api/chat?q="Where was Xi Li born?"')
+    response = chat_client.post(f'/api/chat?q="Where was Xi Li born?"')
     response_message = response.json()["response"]
 
     # Assert
@@ -162,7 +162,7 @@ def test_answer_from_chat_history_and_previously_retrieved_content(chat_client_n
     create_conversation(message_list, default_user2)
 
     # Act
-    response = chat_client_no_background.get(f'/api/chat?q="Where was I born?"')
+    response = chat_client_no_background.post(f'/api/chat?q="Where was I born?"')
     response_message = response.json()["response"]
 
     # Assert
@@ -185,7 +185,7 @@ def test_answer_from_chat_history_and_currently_retrieved_content(chat_client, d
     create_conversation(message_list, default_user2)
 
     # Act
-    response = chat_client.get(f'/api/chat?q="Where was I born?"')
+    response = chat_client.post(f'/api/chat?q="Where was I born?"')
     response_message = response.json()["response"]
 
     # Assert
@@ -210,7 +210,7 @@ def test_no_answer_in_chat_history_or_retrieved_content(chat_client, default_use
     create_conversation(message_list, default_user2)
 
     # Act
-    response = chat_client.get(f'/api/chat?q="Where was I born?"')
+    response = chat_client.post(f'/api/chat?q="Where was I born?"')
     response_message = response.json()["response"]
 
     # Assert
@@ -240,7 +240,7 @@ def test_answer_using_general_command(chat_client, default_user2: KhojUser):
     create_conversation(message_list, default_user2)
 
     # Act
-    response = chat_client.get(f"/api/chat?q={query}&stream=true")
+    response = chat_client.post(f"/api/chat?q={query}&stream=true")
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -258,7 +258,7 @@ def test_answer_from_retrieved_content_using_notes_command(chat_client, default_
     create_conversation(message_list, default_user2)
 
     # Act
-    response = chat_client.get(f"/api/chat?q={query}")
+    response = chat_client.post(f"/api/chat?q={query}")
     response_message = response.json()["response"]
 
     # Assert
@@ -276,7 +276,7 @@ def test_answer_not_known_using_notes_command(chat_client_no_background, default
     create_conversation(message_list, default_user2)
 
     # Act
-    response = chat_client_no_background.get(f"/api/chat?q={query}")
+    response = chat_client_no_background.post(f"/api/chat?q={query}")
     response_message = response.json()["response"]
 
     # Assert
@@ -309,7 +309,7 @@ def test_summarize_one_file(chat_client, default_user2: KhojUser):
         json={"filename": summarization_file, "conversation_id": str(conversation.id)},
     )
     query = urllib.parse.quote("/summarize")
-    response = chat_client.get(f"/api/chat?q={query}&conversation_id={conversation.id}")
+    response = chat_client.post(f"/api/chat?q={query}&conversation_id={conversation.id}")
     response_message = response.json()["response"]
     # Assert
     assert response_message != ""
@@ -341,7 +341,7 @@ def test_summarize_extra_text(chat_client, default_user2: KhojUser):
         json={"filename": summarization_file, "conversation_id": str(conversation.id)},
     )
     query = urllib.parse.quote("/summarize tell me about Xiu")
-    response = chat_client.get(f"/api/chat?q={query}&conversation_id={conversation.id}")
+    response = chat_client.post(f"/api/chat?q={query}&conversation_id={conversation.id}")
     response_message = response.json()["response"]
     # Assert
     assert response_message != ""
@@ -369,7 +369,7 @@ def test_summarize_multiple_files(chat_client, default_user2: KhojUser):
     )
 
     query = urllib.parse.quote("/summarize")
-    response = chat_client.get(f"/api/chat?q={query}&conversation_id={conversation.id}")
+    response = chat_client.post(f"/api/chat?q={query}&conversation_id={conversation.id}")
     response_message = response.json()["response"]
 
     # Assert
@@ -382,7 +382,7 @@ def test_summarize_no_files(chat_client, default_user2: KhojUser):
     message_list = []
     conversation = create_conversation(message_list, default_user2)
     query = urllib.parse.quote("/summarize")
-    response = chat_client.get(f"/api/chat?q={query}&conversation_id={conversation.id}")
+    response = chat_client.post(f"/api/chat?q={query}&conversation_id={conversation.id}")
     response_message = response.json()["response"]
     # Assert
     assert response_message == "No files selected for summarization. Please add files using the section on the left."
@@ -414,14 +414,14 @@ def test_summarize_different_conversation(chat_client, default_user2: KhojUser):
     )
 
     query = urllib.parse.quote("/summarize")
-    response = chat_client.get(f"/api/chat?q={query}&conversation_id={conversation2.id}")
+    response = chat_client.post(f"/api/chat?q={query}&conversation_id={conversation2.id}")
     response_message = response.json()["response"]
 
     # Assert
     assert response_message == "No files selected for summarization. Please add files using the section on the left."
 
     # now make sure that the file filter is still in conversation 1
-    response = chat_client.get(f"/api/chat?q={query}&conversation_id={conversation1.id}")
+    response = chat_client.post(f"/api/chat?q={query}&conversation_id={conversation1.id}")
     response_message = response.json()["response"]
 
     # Assert
@@ -441,7 +441,7 @@ def test_summarize_nonexistant_file(chat_client, default_user2: KhojUser):
         json={"filename": "imaginary.markdown", "conversation_id": str(conversation.id)},
     )
     query = urllib.parse.quote("/summarize")
-    response = chat_client.get(f"/api/chat?q={query}&conversation_id={conversation.id}")
+    response = chat_client.post(f"/api/chat?q={query}&conversation_id={conversation.id}")
     response_message = response.json()["response"]
     # Assert
     assert response_message == "No files selected for summarization. Please add files using the section on the left."
@@ -470,7 +470,7 @@ def test_summarize_diff_user_file(chat_client, default_user: KhojUser, pdf_confi
         json={"filename": summarization_file, "conversation_id": str(conversation.id)},
     )
     query = urllib.parse.quote("/summarize")
-    response = chat_client.get(f"/api/chat?q={query}&conversation_id={conversation.id}")
+    response = chat_client.post(f"/api/chat?q={query}&conversation_id={conversation.id}")
     response_message = response.json()["response"]
     # Assert
     assert response_message == "No files selected for summarization. Please add files using the section on the left."
@@ -484,7 +484,7 @@ def test_summarize_diff_user_file(chat_client, default_user: KhojUser, pdf_confi
 def test_answer_requires_current_date_awareness(chat_client):
     "Chat actor should be able to answer questions relative to current date using provided notes"
     # Act
-    response = chat_client.get(f'/api/chat?q="Where did I have lunch today?"&stream=true')
+    response = chat_client.post(f'/api/chat?q="Where did I have lunch today?"&stream=true')
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -502,7 +502,7 @@ def test_answer_requires_current_date_awareness(chat_client):
 def test_answer_requires_date_aware_aggregation_across_provided_notes(chat_client):
     "Chat director should be able to answer questions that require date aware aggregation across multiple notes"
     # Act
-    response = chat_client.get(f'/api/chat?q="How much did I spend on dining this year?"')
+    response = chat_client.post(f'/api/chat?q="How much did I spend on dining this year?"')
     response_message = response.json()["response"]
 
     # Assert
@@ -523,7 +523,7 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content(chat_c
     create_conversation(message_list, default_user2)
 
     # Act
-    response = chat_client.get(f'/api/chat?q="Write a haiku about unit testing. Do not say anything else.')
+    response = chat_client.post(f'/api/chat?q="Write a haiku about unit testing. Do not say anything else.')
     response_message = response.json()["response"]
 
     # Assert
@@ -540,7 +540,7 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content(chat_c
 @pytest.mark.chatquality
 def test_ask_for_clarification_if_not_enough_context_in_question(chat_client_no_background):
     # Act
-    response = chat_client_no_background.get(f'/api/chat?q="What is the name of Namitas older son?"')
+    response = chat_client_no_background.post(f'/api/chat?q="What is the name of Namitas older son?"')
     response_message = response.json()["response"].lower()
 
     # Assert
@@ -574,7 +574,7 @@ def test_answer_in_chat_history_beyond_lookback_window(chat_client, default_user
     create_conversation(message_list, default_user2)
 
     # Act
-    response = chat_client.get(f'/api/chat?q="What is my name?"')
+    response = chat_client.post(f'/api/chat?q="What is my name?"')
     response_message = response.json()["response"]
 
     # Assert
@@ -607,7 +607,7 @@ def test_answer_in_chat_history_by_conversation_id(chat_client, default_user2: K
 
     # Act
     query = urllib.parse.quote("/general What is my favorite color?")
-    response = chat_client.get(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
+    response = chat_client.post(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -640,7 +640,7 @@ def test_answer_in_chat_history_by_conversation_id_with_agent(
 
     # Act
     query = urllib.parse.quote("/general What did I buy for breakfast?")
-    response = chat_client.get(f"/api/chat?q={query}&conversation_id={conversation.id}")
+    response = chat_client.post(f"/api/chat?q={query}&conversation_id={conversation.id}")
     response_message = response.json()["response"]
 
     # Assert that agent only responds with the summary of spending
@@ -657,7 +657,7 @@ def test_answer_in_chat_history_by_conversation_id_with_agent(
 def test_answer_requires_multiple_independent_searches(chat_client):
     "Chat director should be able to answer by doing multiple independent searches for required information"
     # Act
-    response = chat_client.get(f'/api/chat?q="Is Xi Li older than Namita? Just say the older persons full name"')
+    response = chat_client.post(f'/api/chat?q="Is Xi Li older than Namita? Just say the older persons full name"')
     response_message = response.json()["response"].lower()
 
     # Assert
@@ -682,7 +682,7 @@ def test_answer_using_file_filter(chat_client):
         'Is Xi Li older than Namita? Just say the older persons full name. file:"Namita.markdown" file:"Xi Li.markdown"'
     )
 
-    response = chat_client.get(f"/api/chat?q={query}")
+    response = chat_client.post(f"/api/chat?q={query}")
     response_message = response.json()["response"].lower()
 
     # Assert

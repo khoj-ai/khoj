@@ -79,7 +79,7 @@ async function verifyStatement(
     let verificationMessage = `${verificationPrecursor} ${message}`;
     const apiURL = `${chatURL}?q=${encodeURIComponent(verificationMessage)}&client=web&stream=true&conversation_id=${conversationId}`;
     try {
-        const response = await fetch(apiURL);
+        const response = await fetch(apiURL, { method: "POST" });
         if (!response.body) throw new Error("No response body found");
 
         const reader = response.body?.getReader();

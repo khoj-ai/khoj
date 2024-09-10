@@ -111,6 +111,7 @@ export interface SingleChatMessage {
     rawQuery?: string;
     intent?: Intent;
     agent?: AgentData;
+    uploadedImageData?: string;
 }
 
 export interface StreamMessage {
@@ -122,6 +123,7 @@ export interface StreamMessage {
     rawQuery: string;
     timestamp: string;
     agent?: AgentData;
+    uploadedImageData?: string;
 }
 
 export interface ChatHistoryData {
@@ -203,6 +205,7 @@ interface ChatMessageProps {
     borderLeftColor?: string;
     isLastMessage?: boolean;
     agent?: AgentData;
+    uploadedImageData?: string;
 }
 
 interface TrainOfThoughtProps {
@@ -273,6 +276,7 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
 export default function ChatMessage(props: ChatMessageProps) {
     const [copySuccess, setCopySuccess] = useState<boolean>(false);
     const [isHovering, setIsHovering] = useState<boolean>(false);
+    const [textRendered, setTextRendered] = useState<string>("");
     const [markdownRendered, setMarkdownRendered] = useState<string>("");
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const [interrupted, setInterrupted] = useState<boolean>(false);
@@ -322,6 +326,10 @@ export default function ChatMessage(props: ChatMessageProps) {
             .replace(/\\\[/g, "LEFTBRACKET")
             .replace(/\\\]/g, "RIGHTBRACKET");
 
+        if (props.chatMessage.uploadedImageData) {
+            message = `![uploaded image](${props.chatMessage.uploadedImageData})\n\n${message}`;
+        }
+
         if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image") {
             message = `![generated image](data:image/png;base64,${message})`;
         } else if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image2") {
@@ -340,6 +348,9 @@ export default function ChatMessage(props: ChatMessageProps) {
             message += `\n\n**Inferred Query**\n\n${props.chatMessage.intent["inferred-queries"][0]}`;
         }
 
+        setTextRendered(message);
+
+        // Render the markdown
         let markdownRendered = md.render(message);
 
         // Replace placeholders with LaTeX delimiters
@@ -542,7 +553,6 @@ export default function ChatMessage(props: ChatMessageProps) {
             className={constructClasses(props.chatMessage)}
             onMouseLeave={(event) => setIsHovering(false)}
             onMouseEnter={(event) => setIsHovering(true)}
-            onClick={props.chatMessage.by === "khoj" ? (event) => undefined : undefined}
         >
             <div className={chatMessageWrapperClasses(props.chatMessage)}>
                 <div
@@ -595,7 +605,7 @@ export default function ChatMessage(props: ChatMessageProps) {
                                 title="Copy"
                                 className={`${styles.copyButton}`}
                                 onClick={() => {
-                                    navigator.clipboard.writeText(props.chatMessage.message);
+                                    navigator.clipboard.writeText(textRendered);
                                     setCopySuccess(true);
                                 }}
                             >

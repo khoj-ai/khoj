@@ -98,9 +98,9 @@
             autoResize();
             document.getElementById("chat-input").setAttribute("disabled", "disabled");
 
-            let chat_body = document.getElementById("chat-body");
+            let chatBody = document.getElementById("chat-body");
 
-            let conversationID = chat_body.dataset.conversationId;
+            let conversationID = chatBody.dataset.conversationId;
             let hostURL = await window.hostURLAPI.getURL();
             const khojToken = await window.tokenAPI.getToken();
             const headers = { 'Authorization': `Bearer ${khojToken}` };
@@ -109,14 +109,14 @@
                 let response = await fetch(`${hostURL}/api/chat/sessions`, { method: "POST", headers });
                 let data = await response.json();
                 conversationID = data.conversation_id;
-                chat_body.dataset.conversationId = conversationID;
+                chatBody.dataset.conversationId = conversationID;
                 await refreshChatSessionsPanel();
             }
 
             let newResponseEl = document.createElement("div");
             newResponseEl.classList.add("chat-message", "khoj");
             newResponseEl.attributes["data-meta"] = "🏮 Khoj at " + formatDate(new Date());
-            chat_body.appendChild(newResponseEl);
+            chatBody.appendChild(newResponseEl);
 
             let newResponseTextEl = document.createElement("div");
             newResponseTextEl.classList.add("chat-message-text", "khoj");
@@ -144,6 +144,9 @@
                 rawQuery: query,
                 isVoice: isVoice,
             }
+            // Reset toggle to show speak and hide send button
+            document.getElementById("speak-button").style.display = "block";
+            document.getElementById("send-button").style.display = "none";
 
             // Call Khoj chat API
             let chatApi = `${hostURL}/api/chat?q=${encodeURIComponent(query)}&conversation_id=${conversationID}&stream=true&client=desktop`;
@@ -151,7 +154,7 @@
                 ? `&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}`
                 : '';
 
-            const response = await fetch(chatApi, { headers });
+            const response = await fetch(chatApi, { method: 'POST', headers });
 
             try {
                 if (!response.ok) throw new Error(response.statusText);
@@ -216,6 +219,18 @@
                 let chatTooltip = document.getElementById("chat-tooltip");
                 chatTooltip.style.display = "none";
                 chatInput.classList.remove("option-enabled");
+            }
+
+            // Toggle visibility of speak and send buttons
+            let speakButton = document.getElementById("speak-button");
+            let sendButton = document.getElementById("send-button");
+
+            if (chatInput.value.trim().length > 0) {
+                speakButton.style.display = "none";
+                sendButton.style.display = "block";
+            } else {
+                speakButton.style.display = "block";
+                sendButton.style.display = "none";
             }
 
             autoResize();
@@ -475,8 +490,8 @@
             renderMessage(first_run_message, "khoj", null, null, true);
 
             // Open relevant setup links
-            document.getElementById("first-run-web-config").addEventListener('click', (event) => window.navigateAPI.navigateToWebSettings('config'));
-            document.getElementById("first-run-desktop-config").addEventListener('click', (event) => window.navigateAPI.navigateToSettings('config.html'));
+            document.getElementById("first-run-web-config").addEventListener('click', (event) => window.navigateAPI.navigateToWebSettings('settings'));
+            document.getElementById("first-run-desktop-config").addEventListener('click', (event) => window.navigateAPI.navigateToSettings('settings.html'));
 
             // Disable chat input field and update placeholder text
             document.getElementById("chat-input").setAttribute("disabled", "disabled");
@@ -853,7 +868,7 @@
                                 <path d="M5 6.5A1.5 1.5 0 0 1 6.5 5h3A1.5 1.5 0 0 1 11 6.5v3A1.5 1.5 0 0 1 9.5 11h-3A1.5 1.5 0 0 1 5 9.5v-3z"/>
                             </svg>
                         </button>
-                        <button id="send-button" class="input-row-button" alt="Send message">
+                        <button id="send-button" class="input-row-button" alt="Send message" style="display: none;">
                             <svg id="send-button-img" onclick="chat()" class="input-row-button-img" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                 <path fill-rule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8zm15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11.5z"/>
                             </svg>
@@ -1069,7 +1084,7 @@
         }
         #input-row {
             display: grid;
-            grid-template-columns: auto 32px 40px;
+            grid-template-columns: auto 40px;
             grid-column-gap: 10px;
             grid-row-gap: 10px;
             background: #f9fafc;

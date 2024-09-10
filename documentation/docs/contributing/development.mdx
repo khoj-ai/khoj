@@ -20,8 +20,7 @@ import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 ```
 
-```mdx-code-block
-  <Tabs>
+  <Tabs groupId="operating-systems" queryString="os">
     <TabItem value="macos" label="MacOS">
     ```shell
 # Get Khoj Code
@@ -34,7 +33,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -e '.[dev]'
     ```
     </TabItem>
-    <TabItem value="win" label="Windows">
+    <TabItem value="windows" label="Windows">
     ```shell
 # Get Khoj Code
 git clone https://github.com/khoj-ai/khoj && cd khoj
@@ -46,7 +45,7 @@ python3 -m venv .venv && .venv\Scripts\activate
 pip install -e '.[dev]'
       ```
     </TabItem>
-    <TabItem value="unix" label="Linux">
+    <TabItem value="linux" label="Linux">
       ```shell
     # Get Khoj Code
 git clone https://github.com/khoj-ai/khoj && cd khoj
@@ -59,21 +58,20 @@ pip install -e '.[dev]'
       ```
     </TabItem>
   </Tabs>
-```
+
 #### 2. Postgres Installation & Setup
 
 Khoj uses the `pgvector` package to store embeddings of your index in a Postgres database. To use this, you need to have Postgres installed.
 
-```mdx-code-block
-  <Tabs groupId="operating-systems">
+  <Tabs groupId="operating-systems" queryString="os">
     <TabItem value="macos" label="MacOS">
 Install [Postgres.app](https://postgresapp.com/). This comes pre-installed with `pgvector` and relevant dependencies.
     </TabItem>
-    <TabItem value="win" label="Windows">
+    <TabItem value="windows" label="Windows">
     1. Use the [recommended installer](https://www.postgresql.org/download/windows/).
     2. Follow instructions to [Install PgVector](https://github.com/pgvector/pgvector#windows) in case you need to manually install it. Windows support is experimental for pgvector currently, so we recommend using Docker. Refer to Windows Installation Notes below if there are errors.
     </TabItem>
-    <TabItem value="unix" label="Linux">
+    <TabItem value="linux" label="Linux">
     From [official instructions](https://wiki.postgresql.org/wiki/Apt)
     </TabItem>
     <TabItem value="source" label="From Source">
@@ -81,31 +79,28 @@ Install [Postgres.app](https://postgresapp.com/). This comes pre-installed with 
     2. Follow instructions to [Install PgVector](https://github.com/pgvector/pgvector#installation) in case you need to manually install it.
     </TabItem>
   </Tabs>
-```
 
 ##### Create the Khoj database
 
 Make sure to update your environment variables to match your Postgres configuration if you're using a different name. The default values should work for most people. When prompted for a password, you can use the default password `postgres`, or configure it to your preference. Make sure to set the environment variable `POSTGRES_PASSWORD` to the same value as the password you set here.
 
-```mdx-code-block
-  <Tabs groupId="operating-systems">
+  <Tabs groupId="operating-systems" queryString="os">
     <TabItem value="macos" label="MacOS">
     ```shell
 createdb khoj -U postgres --password
     ```
     </TabItem>
-    <TabItem value="win" label="Windows">
+    <TabItem value="windows" label="Windows">
     ```shell
 createdb -U postgres khoj --password
       ```
     </TabItem>
-    <TabItem value="unix" label="Linux">
+    <TabItem value="linux" label="Linux">
       ```shell
 sudo -u postgres createdb khoj --password
       ```
     </TabItem>
   </Tabs>
-```
 
 #### 3. Run
 1. Start Khoj

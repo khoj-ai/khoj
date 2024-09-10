@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 import logging
 import time
@@ -46,11 +47,13 @@ from khoj.routers.helpers import (
     update_telemetry_state,
     validate_conversation_config,
 )
+from khoj.routers.storage import upload_image_to_bucket
 from khoj.utils import state
 from khoj.utils.helpers import (
     AsyncIteratorWrapper,
     ConversationCommand,
     command_descriptions,
+    convert_image_to_webp,
     get_device,
     is_none_or_empty,
 )
@@ -517,7 +520,11 @@ async def set_conversation_title(
     )
 
 
-@api_chat.get("")
+class ImageUploadObject(BaseModel):
+    image: str
+
+
+@api_chat.post("")
 @requires(["authenticated"])
 async def chat(
     request: Request,
@@ -532,6 +539,7 @@ async def chat(
     region: Optional[str] = None,
     country: Optional[str] = None,
     timezone: Optional[str] = None,
+    image: Optional[ImageUploadObject] = None,
     rate_limiter_per_minute=Depends(
         ApiUserRateLimiter(requests=60, subscribed_requests=60, window=60, slug="chat_minute")
     ),
@@ -539,7 +547,7 @@ async def chat(
         ApiUserRateLimiter(requests=600, subscribed_requests=600, window=60 * 60 * 24, slug="chat_day")
     ),
 ):
-    async def event_generator(q: str):
+    async def event_generator(q: str, image: ImageUploadObject):
         start_time = time.perf_counter()
         ttft = None
         chat_metadata: dict = {}
@@ -549,6 +557,17 @@ async def chat(
         event_delimiter = "␃🔚␗"
         q = unquote(q)
         nonlocal conversation_id
+
+        uploaded_image_url = None
+        if image:
+            decoded_string = unquote(image.image)
+            base64_data = decoded_string.split(",", 1)[1]
+            image_bytes = base64.b64decode(base64_data)
+            webp_image_bytes = convert_image_to_webp(image_bytes)
+            try:
+                uploaded_image_url = upload_image_to_bucket(webp_image_bytes, request.user.object.id)
+            except:
+                uploaded_image_url = None
 
         async def send_event(event_type: ChatEvent, data: str | dict):
             nonlocal connection_alive, ttft
@@ -637,7 +656,7 @@ async def chat(
 
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
             conversation_commands = await aget_relevant_information_sources(
-                q, meta_log, is_automated_task, subscribed=subscribed
+                q, meta_log, is_automated_task, subscribed=subscribed, uploaded_image_url=uploaded_image_url
             )
             conversation_commands_str = ", ".join([cmd.value for cmd in conversation_commands])
             async for result in send_event(
@@ -645,7 +664,7 @@ async def chat(
             ):
                 yield result
 
-            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task)
+            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task, uploaded_image_url)
             async for result in send_event(ChatEvent.STATUS, f"**Decided Response Mode:** {mode.value}"):
                 yield result
             if mode not in conversation_commands:
@@ -693,7 +712,9 @@ async def chat(
                     ):
                         yield result
 
-                    response = await extract_relevant_summary(q, contextual_data, subscribed=subscribed)
+                    response = await extract_relevant_summary(
+                        q, contextual_data, subscribed=subscribed, uploaded_image_url=uploaded_image_url
+                    )
                     response_log = str(response)
                     async for result in send_llm_response(response_log):
                         yield result
@@ -711,6 +732,7 @@ async def chat(
                 intent_type="summarize",
                 client_application=request.user.client_app,
                 conversation_id=conversation_id,
+                uploaded_image_url=uploaded_image_url,
             )
             return
 
@@ -753,6 +775,7 @@ async def chat(
                 conversation_id=conversation_id,
                 inferred_queries=[query_to_run],
                 automation_id=automation.id,
+                uploaded_image_url=uploaded_image_url,
             )
             async for result in send_llm_response(llm_response):
                 yield result
@@ -807,6 +830,7 @@ async def chat(
                     subscribed,
                     partial(send_event, ChatEvent.STATUS),
                     custom_filters,
+                    uploaded_image_url=uploaded_image_url,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -823,7 +847,13 @@ async def chat(
         if ConversationCommand.Webpage in conversation_commands:
             try:
                 async for result in read_webpages(
-                    defiltered_query, meta_log, location, user, subscribed, partial(send_event, ChatEvent.STATUS)
+                    defiltered_query,
+                    meta_log,
+                    location,
+                    user,
+                    subscribed,
+                    partial(send_event, ChatEvent.STATUS),
+                    uploaded_image_url=uploaded_image_url,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -869,6 +899,7 @@ async def chat(
                 online_results=online_results,
                 subscribed=subscribed,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
+                uploaded_image_url=uploaded_image_url,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
@@ -898,6 +929,7 @@ async def chat(
                 conversation_id=conversation_id,
                 compiled_references=compiled_references,
                 online_results=online_results,
+                uploaded_image_url=uploaded_image_url,
             )
             content_obj = {
                 "intentType": intent_type,
@@ -924,6 +956,7 @@ async def chat(
             conversation_id,
             location,
             user_name,
+            uploaded_image_url,
         )
 
         # Send Response
@@ -949,9 +982,9 @@ async def chat(
 
     ## Stream Text Response
     if stream:
-        return StreamingResponse(event_generator(q), media_type="text/plain")
+        return StreamingResponse(event_generator(q, image=image), media_type="text/plain")
     ## Non-Streaming Text Response
     else:
-        response_iterator = event_generator(q)
+        response_iterator = event_generator(q, image=image)
         response_data = await read_chat_stream(response_iterator)
         return Response(content=json.dumps(response_data), media_type="application/json", status_code=200)

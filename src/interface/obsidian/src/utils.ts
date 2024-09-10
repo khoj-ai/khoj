@@ -48,14 +48,29 @@ function filenameToMimeType (filename: TFile): string {
     }
 }
 
-export const supportedImageFilesTypes = ['png', 'jpg', 'jpeg'];
-export const supportedBinaryFileTypes = ['pdf'].concat(supportedImageFilesTypes);
-export const supportedFileTypes = ['md', 'markdown'].concat(supportedBinaryFileTypes);
+export const fileTypeToExtension = {
+    'pdf': ['pdf'],
+    'image': ['png', 'jpg', 'jpeg'],
+    'markdown': ['md', 'markdown'],
+};
+export const supportedImageFilesTypes = fileTypeToExtension.image;
+export const supportedBinaryFileTypes = fileTypeToExtension.pdf.concat(supportedImageFilesTypes);
+export const supportedFileTypes = fileTypeToExtension.markdown.concat(supportedBinaryFileTypes);
 
-export async function updateContentIndex(vault: Vault, setting: KhojSetting, lastSync: Map<TFile, number>, regenerate: boolean = false): Promise<Map<TFile, number>> {
+export async function updateContentIndex(vault: Vault, setting: KhojSetting, lastSync: Map<TFile, number>, regenerate: boolean = false, userTriggered: boolean = false): Promise<Map<TFile, number>> {
     // Get all markdown, pdf files in the vault
     console.log(`Khoj: Updating Khoj content index...`)
-    const files = vault.getFiles().filter(file => supportedFileTypes.includes(file.extension));
+    const files = vault.getFiles()
+                        // Filter supported file types for syncing
+                        .filter(file => supportedFileTypes.includes(file.extension))
+                        // Filter user configured file types for syncing
+                        .filter(file => {
+                            if (fileTypeToExtension.markdown.includes(file.extension)) return setting.syncFileType.markdown;
+                            if (fileTypeToExtension.pdf.includes(file.extension)) return setting.syncFileType.pdf;
+                            if (fileTypeToExtension.image.includes(file.extension)) return setting.syncFileType.images;
+                            return false;
+                        });
+
     let countOfFilesToIndex = 0;
     let countOfFilesToDelete = 0;
     lastSync = lastSync.size > 0 ? lastSync : new Map<TFile, number>();
@@ -105,7 +120,37 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
 
         if (!response.ok) {
             if (response.status === 429) {
-                error_message = `❗️Failed to sync your content with Khoj server. Requests were throttled. Upgrade your subscription or try again later.`;
+                let response_text = await response.text();
+                if (response_text.includes("Too much data")) {
+                    const errorFragment = document.createDocumentFragment();
+                    errorFragment.appendChild(document.createTextNode("❗️Exceeded data sync limits. To resolve this either:"));
+                    const bulletList = document.createElement('ul');
+
+                    const limitFilesItem = document.createElement('li');
+                    const settingsPrefixText = document.createTextNode("Limit files to sync from ");
+                    const settingsLink = document.createElement('a');
+                    settingsLink.textContent = "Khoj settings";
+                    settingsLink.href = "#";
+                    settingsLink.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        openKhojPluginSettings();
+                    });
+                    limitFilesItem.appendChild(settingsPrefixText);
+                    limitFilesItem.appendChild(settingsLink);
+                    bulletList.appendChild(limitFilesItem);
+
+                    const upgradeItem = document.createElement('li');
+                    const upgradeLink = document.createElement('a');
+                    upgradeLink.href = `${setting.khojUrl}/settings#subscription`;
+                    upgradeLink.textContent = 'Upgrade your subscription';
+                    upgradeLink.target = '_blank';
+                    upgradeItem.appendChild(upgradeLink);
+                    bulletList.appendChild(upgradeItem);
+                    errorFragment.appendChild(bulletList);
+                    error_message = errorFragment;
+                } else {
+                    error_message = `❗️Failed to sync your content with Khoj server. Requests were throttled. Upgrade your subscription or try again later.`;
+                }
                 break;
             } else if (response.status === 404) {
                 error_message = `❗️Could not connect to Khoj server. Ensure you can connect to it.`;
@@ -134,10 +179,18 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
     if (error_message) {
         new Notice(error_message);
     } else {
+        if (userTriggered) new Notice('✅ Updated Khoj index.');
         console.log(`✅ Refreshed Khoj content index. Updated: ${countOfFilesToIndex} files, Deleted: ${countOfFilesToDelete} files.`);
     }
 
     return lastSync;
+}
+
+export async function openKhojPluginSettings(): Promise<void>
+ {
+     const setting = this.app.setting;
+     await setting.open();
+     setting.openTabById('khoj');
 }
 
 export async function createNote(name: string, newLeaf = false): Promise<void> {

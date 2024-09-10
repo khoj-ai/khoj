@@ -28,15 +28,22 @@ interface ChatBodyDataProps {
     isLoggedIn: boolean;
     conversationId?: string;
     setQueryToProcess: (query: string) => void;
+    setImage64: (image64: string) => void;
 }
 
 function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState("");
+    const [image, setImage] = useState<string | null>(null);
     const [processingMessage, setProcessingMessage] = useState(false);
     const [agentMetadata, setAgentMetadata] = useState<AgentData | null>(null);
-
     const setQueryToProcess = props.setQueryToProcess;
     const streamedMessages = props.streamedMessages;
+
+    useEffect(() => {
+        if (image) {
+            props.setImage64(encodeURIComponent(image));
+        }
+    }, [image, props.setImage64]);
 
     useEffect(() => {
         if (message) {
@@ -74,11 +81,12 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 />
             </div>
             <div
-                className={`${styles.inputBox} shadow-md bg-background align-middle items-center justify-center px-3`}
+                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-t-2xl rounded-b-none md:rounded-xl`}
             >
                 <ChatInputArea
                     isLoggedIn={props.isLoggedIn}
                     sendMessage={(message) => setMessage(message)}
+                    sendImage={(image) => setImage(image)}
                     sendDisabled={processingMessage}
                     chatOptionsData={props.chatOptionsData}
                     conversationId={props.conversationId}
@@ -101,6 +109,7 @@ export default function SharedChat() {
     const [processQuerySignal, setProcessQuerySignal] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [paramSlug, setParamSlug] = useState<string | undefined>(undefined);
+    const [image64, setImage64] = useState<string>("");
 
     const locationData = useIPLocationData();
     const authenticatedData = useAuthenticatedData();
@@ -156,6 +165,7 @@ export default function SharedChat() {
                 completed: false,
                 timestamp: new Date().toISOString(),
                 rawQuery: queryToProcess || "",
+                uploadedImageData: decodeURIComponent(image64),
             };
             setMessages((prevMessages) => [...prevMessages, newStreamMessage]);
             setProcessQuerySignal(true);
@@ -182,6 +192,7 @@ export default function SharedChat() {
             if (done) {
                 setQueryToProcess("");
                 setProcessQuerySignal(false);
+                setImage64("");
                 break;
             }
 
@@ -216,32 +227,20 @@ export default function SharedChat() {
             chatAPI += `&region=${locationData.region}&country=${locationData.country}&city=${locationData.city}&timezone=${locationData.timezone}`;
         }
 
-        const response = await fetch(chatAPI);
+        const response = await fetch(chatAPI, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: image64 ? JSON.stringify({ image: image64 }) : undefined,
+        });
+
         try {
             await readChatStream(response);
-        } catch (err) {
-            console.log(err);
+        } catch (error) {
+            console.error(error);
         }
     }
-
-    useEffect(() => {
-        (async () => {
-            if (conversationId) {
-                // Add a new object to the state
-                const newStreamMessage: StreamMessage = {
-                    rawResponse: "",
-                    trainOfThought: [],
-                    context: [],
-                    onlineContext: {},
-                    completed: false,
-                    timestamp: new Date().toISOString(),
-                    rawQuery: queryToProcess || "",
-                };
-                setProcessQuerySignal(true);
-                setMessages((prevMessages) => [...prevMessages, newStreamMessage]);
-            }
-        })();
-    }, [conversationId, queryToProcess]);
 
     if (isLoading) {
         return <Loading />;
@@ -275,6 +274,7 @@ export default function SharedChat() {
                             setTitle={setTitle}
                             setUploadedFiles={setUploadedFiles}
                             isMobileWidth={isMobileWidth}
+                            setImage64={setImage64}
                         />
                     </Suspense>
                 </div>
