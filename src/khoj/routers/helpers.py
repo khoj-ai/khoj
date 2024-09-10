@@ -637,7 +637,7 @@ async def send_message_to_model_wrapper(
             response_type=response_type,
         )
 
-    elif model_type == "openai":
+    elif model_type == ChatModelOptions.ModelType.OPENAI:
         openai_chat_config = conversation_config.openai_config
         api_key = openai_chat_config.api_key
         api_base_url = openai_chat_config.api_base_url
@@ -660,7 +660,7 @@ async def send_message_to_model_wrapper(
         )
 
         return openai_response
-    elif model_type == "anthropic":
+    elif model_type == ChatModelOptions.ModelType.ANTHROPIC:
         api_key = conversation_config.openai_config.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
@@ -669,6 +669,7 @@ async def send_message_to_model_wrapper(
             max_prompt_size=max_tokens,
             tokenizer_name=tokenizer,
             vision_enabled=vision_available,
+            uploaded_image_url=uploaded_image_url,
         )
 
         return anthropic_send_message_to_model(
@@ -676,7 +677,7 @@ async def send_message_to_model_wrapper(
             api_key=api_key,
             model=chat_model,
         )
-    elif model_type == "gemini":
+    elif model_type == ChatModelOptions.ModelType.GEMINI:
         api_key = conversation_config.openai_config.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
@@ -684,6 +685,8 @@ async def send_message_to_model_wrapper(
             model_name=chat_model,
             max_prompt_size=max_tokens,
             tokenizer_name=tokenizer,
+            vision_enabled=vision_available,
+            uploaded_image_url=uploaded_image_url,
         )
 
         return gemini_send_message_to_model(
