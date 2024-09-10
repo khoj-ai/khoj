@@ -78,7 +78,7 @@ export default function ChatInputArea(props: ChatInputProps) {
 
     const [recording, setRecording] = useState(false);
     const [imageUploaded, setImageUploaded] = useState(false);
-    const [imagePath, setImagePath] = useState<string | null>(null);
+    const [imagePath, setImagePath] = useState<string>("");
     const [imageData, setImageData] = useState<string | null>(null);
     const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
@@ -123,7 +123,7 @@ export default function ChatInputArea(props: ChatInputProps) {
     function onSendMessage() {
         if (imageUploaded) {
             setImageUploaded(false);
-            setImagePath(null);
+            setImagePath("");
             props.sendImage(imageData || "");
         }
         if (!message.trim()) return;
@@ -328,7 +328,7 @@ export default function ChatInputArea(props: ChatInputProps) {
 
     function removeImageUpload() {
         setImageUploaded(false);
-        setImagePath(null);
+        setImagePath("");
     }
 
     return (
@@ -449,7 +449,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                 {imageUploaded && (
                     <div className="absolute bottom-[80px] left-0 right-0 dark:bg-neutral-700 bg-white pt-5 pb-5 w-full rounded-lg border dark:border-none grid grid-cols-2">
                         <div className="pl-4 pr-4">
-                            <img src={imagePath || ""} alt="img" className="w-auto max-h-[100px]" />
+                            <img src={imagePath} alt="img" className="w-auto max-h-[100px]" />
                         </div>
                         <div className="pl-4 pr-4">
                             <X
@@ -485,7 +485,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                         onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.shiftKey) {
                                 setImageUploaded(false);
-                                setImagePath(null);
+                                setImagePath("");
                                 e.preventDefault();
                                 onSendMessage();
                             }
