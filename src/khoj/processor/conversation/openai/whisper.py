@@ -9,5 +9,5 @@ async def transcribe_audio(audio_file: BufferedReader, model, client: OpenAI) ->
     Transcribe audio file using Whisper model via OpenAI's API
     """
     # Send the audio data to the Whisper API
-    response = await sync_to_async(client.audio.translations.create)(model=model, file=audio_file)
+    response = await sync_to_async(client.audio.translations.create)(model=model, file=audio_file, prompt="Khoj")
     return response.text
