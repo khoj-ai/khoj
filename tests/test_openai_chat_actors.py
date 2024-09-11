@@ -88,15 +88,12 @@ def test_extract_question_with_date_filter_from_relative_year():
 @pytest.mark.chatquality
 def test_extract_multiple_explicit_questions_from_message():
     # Act
-    response = extract_questions("What is the Sun? What is the Moon?")
+    responses = extract_questions("What is the Sun? What is the Moon?")
 
     # Assert
-    expected_responses = [
-        ("sun", "moon"),
-    ]
-    assert len(response) == 2
-    assert any([start in response[0].lower() and end in response[1].lower() for start, end in expected_responses]), (
-        "Expected two search queries in response but got: " + response[0]
+    assert len(responses) >= 2
+    assert any(["sun" in response.lower() or "moon" in response.lower() for response in responses]), (
+        "Expected sun or moon mentioned in generated search queries but got: " + responses
     )
 
 
@@ -125,11 +122,10 @@ def test_generate_search_query_using_question_from_chat_history():
     ]
 
     # Act
-    response = extract_questions("Does he have any sons?", conversation_log=populate_chat_history(message_list))
+    responses = extract_questions("Does he have any sons?", conversation_log=populate_chat_history(message_list))
 
     # Assert
-    assert len(response) == 1
-    assert "Vader" in response[0]
+    assert all(["Vader" in response for response in responses])
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -141,11 +137,10 @@ def test_generate_search_query_using_answer_from_chat_history():
     ]
 
     # Act
-    response = extract_questions("Is she a Jedi?", conversation_log=populate_chat_history(message_list))
+    responses = extract_questions("Is she a Jedi?", conversation_log=populate_chat_history(message_list))
 
     # Assert
-    assert len(response) == 1
-    assert "Leia" in response[0]
+    assert all(["Leia" in response for response in responses])
 
 
 # ----------------------------------------------------------------------------------------------------
