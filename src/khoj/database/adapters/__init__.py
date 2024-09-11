@@ -974,7 +974,7 @@ class ConversationAdapters:
             in [
                 ChatModelOptions.ModelType.ANTHROPIC,
                 ChatModelOptions.ModelType.OPENAI,
-                ChatModelOptions.ModelType.ANTHROPIC,
+                ChatModelOptions.ModelType.GEMINI,
             ]
         ) and conversation_config.openai_config:
             return conversation_config
