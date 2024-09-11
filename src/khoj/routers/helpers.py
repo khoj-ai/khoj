@@ -270,7 +270,7 @@ async def aget_relevant_information_sources(
     chat_history = construct_chat_history(conversation_history)
 
     if uploaded_image_url:
-        query = f"[placeholder for image attached to this message]\n{query}"
+        query = f"[placeholder for user attached image]\n{query}"
 
     relevant_tools_prompt = prompts.pick_relevant_information_collection_tools.format(
         query=query,
@@ -330,7 +330,7 @@ async def aget_relevant_output_modes(
     chat_history = construct_chat_history(conversation_history)
 
     if uploaded_image_url:
-        query = f"<user uploaded content redacted> \n{query}"
+        query = f"[placeholder for user attached image]\n{query}"
 
     relevant_mode_prompt = prompts.pick_relevant_output_mode.format(
         query=query,
