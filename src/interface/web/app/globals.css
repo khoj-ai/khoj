@@ -333,6 +333,15 @@
         @apply border-border;
     }
 
+    /* Style lists by default. Overrides no list styling being applied previously. */
+    ul,
+    ol,
+    menu {
+        list-style: revert;
+        padding: revert;
+        margin: revert;
+    }
+
     body {
         @apply bg-background text-foreground;
     }
