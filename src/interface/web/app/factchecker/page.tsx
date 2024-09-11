@@ -75,11 +75,24 @@ async function verifyStatement(
     setInitialReferences: (references: ResponseWithReferences) => void,
 ) {
     setIsLoading(true);
-    // Send a message to the chat server to verify the fact
+    // Construct the verification payload
     let verificationMessage = `${verificationPrecursor} ${message}`;
-    const apiURL = `${chatURL}?q=${encodeURIComponent(verificationMessage)}&client=web&stream=true&conversation_id=${conversationId}`;
+    const apiURL = `${chatURL}?client=web`;
+    const requestBody = {
+        q: verificationMessage,
+        conversation_id: conversationId,
+        stream: true,
+    };
+
     try {
-        const response = await fetch(apiURL, { method: "POST" });
+        // Send a message to the chat server to verify the fact
+        const response = await fetch(apiURL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestBody),
+        });
         if (!response.body) throw new Error("No response body found");
 
         const reader = response.body?.getReader();

@@ -366,7 +366,7 @@
             let conversationID = chat_body.dataset.conversationId;
             let hostURL = await window.hostURLAPI.getURL();
             const khojToken = await window.tokenAPI.getToken();
-            const headers = { 'Authorization': `Bearer ${khojToken}` };
+            const headers = { 'Authorization': `Bearer ${khojToken}`, 'Content-Type': 'application/json' };
 
             if (!conversationID) {
                 let response = await fetch(`${hostURL}/api/chat/sessions`, { method: "POST", headers });
@@ -402,12 +402,22 @@
             }
 
             // Construct API URL to execute chat query
-            let chatApi = `${hostURL}/api/chat?q=${encodeURIComponent(query)}&conversation_id=${conversationID}&stream=true&client=desktop`;
-            chatApi += (!!region && !!city && !!countryName && !!timezone)
-                ? `&region=${region}&city=${city}&country=${countryName}&timezone=${timezone}`
-                : '';
+            const chatApi = `${hostURL}/api/chat?client=desktop`;
+            const chatApiBody = {
+                q: query,
+                conversation_id: parseInt(conversationID),
+                stream: true,
+                ...(!!city && { city: city }),
+                ...(!!region && { region: region }),
+                ...(!!countryName && { country: countryName }),
+                ...(!!timezone && { timezone: timezone }),
+            };
 
-            const response = await fetch(chatApi, { method: 'POST', headers });
+            const response = await fetch(chatApi, {
+                method: "POST",
+                headers: headers,
+                body: JSON.stringify(chatApiBody),
+            });
 
             try {
                 if (!response.ok) throw new Error(response.statusText);
