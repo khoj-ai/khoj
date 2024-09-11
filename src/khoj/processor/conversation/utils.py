@@ -175,10 +175,9 @@ def generate_chatml_messages_with_context(
 
         message_content = chat["message"] + message_notes
 
-        if chat.get("uploadedImageData") and vision_enabled:
-            message_content = construct_structured_message(
-                message_content, chat.get("uploadedImageData"), model_type, vision_enabled
-            )
+        message_content = construct_structured_message(
+            message_content, chat.get("uploadedImageData"), model_type, vision_enabled
+        )
 
         reconstructed_message = ChatMessage(content=message_content, role=role)
 
