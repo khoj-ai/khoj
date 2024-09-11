@@ -595,7 +595,7 @@ async def send_message_to_model_wrapper(
 
     vision_available = conversation_config.vision_enabled
     if not vision_available and uploaded_image_url:
-        vision_enabled_config = ConversationAdapters.get_vision_enabled_config()
+        vision_enabled_config = await ConversationAdapters.aget_vision_enabled_config()
         if vision_enabled_config:
             conversation_config = vision_enabled_config
             vision_available = True

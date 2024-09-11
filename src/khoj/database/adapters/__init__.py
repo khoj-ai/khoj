@@ -762,8 +762,20 @@ class ConversationAdapters:
         return ChatModelOptions.objects.all()
 
     @staticmethod
+    async def aget_all_conversation_configs():
+        return await sync_to_async(list)(ChatModelOptions.objects.all())
+
+    @staticmethod
     def get_vision_enabled_config():
         conversation_configurations = ConversationAdapters.get_all_conversation_configs()
+        for config in conversation_configurations:
+            if config.vision_enabled:
+                return config
+        return None
+
+    @staticmethod
+    async def aget_vision_enabled_config():
+        conversation_configurations = await ConversationAdapters.aget_all_conversation_configs()
         for config in conversation_configurations:
             if config.vision_enabled:
                 return config
