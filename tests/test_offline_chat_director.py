@@ -1,6 +1,4 @@
-import os
 import urllib.parse
-from urllib.parse import quote
 
 import pytest
 from faker import Faker
@@ -49,7 +47,8 @@ def create_conversation(message_list, user, agent=None):
 @pytest.mark.django_db(transaction=True)
 def test_offline_chat_with_no_chat_history_or_retrieved_content(client_offline_chat):
     # Act
-    response = client_offline_chat.post(f'/api/chat?q="Hello, my name is Testatron. Who are you?"&stream=true')
+    query = "Hello, my name is Testatron. Who are you?"
+    response = client_offline_chat.post(f"/api/chat", json={"q": query, "stream": True})
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -66,8 +65,7 @@ def test_offline_chat_with_no_chat_history_or_retrieved_content(client_offline_c
 def test_chat_with_online_content(client_offline_chat):
     # Act
     q = "/online give me the link to paul graham's essay how to do great work"
-    encoded_q = quote(q, safe="")
-    response = client_offline_chat.post(f"/api/chat?q={encoded_q}")
+    response = client_offline_chat.post(f"/api/chat", json={"q": q})
     response_message = response.json()["response"]
 
     # Assert
@@ -88,8 +86,7 @@ def test_chat_with_online_content(client_offline_chat):
 def test_chat_with_online_webpage_content(client_offline_chat):
     # Act
     q = "/online how many firefighters were involved in the great chicago fire and which year did it take place?"
-    encoded_q = quote(q, safe="")
-    response = client_offline_chat.post(f"/api/chat?q={encoded_q}")
+    response = client_offline_chat.post(f"/api/chat", json={"q": q})
     response_message = response.json()["response"]
 
     # Assert
@@ -112,7 +109,8 @@ def test_answer_from_chat_history(client_offline_chat, default_user2):
     create_conversation(message_list, default_user2)
 
     # Act
-    response = client_offline_chat.post(f'/api/chat?q="What is my name?"&stream=true')
+    q = "What is my name?"
+    response = client_offline_chat.post(f"/api/chat", json={"q": q, "stream": True})
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -139,7 +137,8 @@ def test_answer_from_currently_retrieved_content(client_offline_chat, default_us
     create_conversation(message_list, default_user2)
 
     # Act
-    response = client_offline_chat.post(f'/api/chat?q="Where was Xi Li born?"')
+    q = "Where was Xi Li born?"
+    response = client_offline_chat.post(f"/api/chat", json={"q": q})
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -163,7 +162,8 @@ def test_answer_from_chat_history_and_previously_retrieved_content(client_offlin
     create_conversation(message_list, default_user2)
 
     # Act
-    response = client_offline_chat.post(f'/api/chat?q="Where was I born?"')
+    q = "Where was I born?"
+    response = client_offline_chat.post(f"/api/chat", json={"q": q})
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -185,7 +185,8 @@ def test_answer_from_chat_history_and_currently_retrieved_content(client_offline
     create_conversation(message_list, default_user2)
 
     # Act
-    response = client_offline_chat.post(f'/api/chat?q="Where was I born?"')
+    q = "Where was I born?"
+    response = client_offline_chat.post(f"/api/chat", json={"q": q})
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -211,7 +212,8 @@ def test_no_answer_in_chat_history_or_retrieved_content(client_offline_chat, def
     create_conversation(message_list, default_user2)
 
     # Act
-    response = client_offline_chat.post(f'/api/chat?q="Where was I born?"&stream=true')
+    q = "Where was I born?"
+    response = client_offline_chat.post(f"/api/chat", json={"q": q, "stream": True})
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -227,12 +229,12 @@ def test_no_answer_in_chat_history_or_retrieved_content(client_offline_chat, def
 @pytest.mark.django_db(transaction=True)
 def test_answer_using_general_command(client_offline_chat, default_user2):
     # Arrange
-    query = urllib.parse.quote("/general Where was Xi Li born?")
     message_list = []
     create_conversation(message_list, default_user2)
 
     # Act
-    response = client_offline_chat.post(f"/api/chat?q={query}&stream=true")
+    query = "/general Where was Xi Li born?"
+    response = client_offline_chat.post(f"/api/chat", json={"q": query, "stream": True})
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -245,12 +247,12 @@ def test_answer_using_general_command(client_offline_chat, default_user2):
 @pytest.mark.django_db(transaction=True)
 def test_answer_from_retrieved_content_using_notes_command(client_offline_chat, default_user2):
     # Arrange
-    query = urllib.parse.quote("/notes Where was Xi Li born?")
     message_list = []
     create_conversation(message_list, default_user2)
 
     # Act
-    response = client_offline_chat.post(f"/api/chat?q={query}&stream=true")
+    query = "/notes Where was Xi Li born?"
+    response = client_offline_chat.post(f"/api/chat", json={"q": query, "stream": True})
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -269,8 +271,12 @@ def test_answer_using_file_filter(client_offline_chat, default_user2):
     create_conversation(message_list, default_user2)
 
     # Act
-    no_answer_response = client_offline_chat.post(f"/api/chat?q={no_answer_query}&stream=true").content.decode("utf-8")
-    answer_response = client_offline_chat.post(f"/api/chat?q={answer_query}&stream=true").content.decode("utf-8")
+    no_answer_response = client_offline_chat.post(
+        f"/api/chat", json={"q": no_answer_query, "stream": True}
+    ).content.decode("utf-8")
+    answer_response = client_offline_chat.post(f"/api/chat", json={"q": answer_query, "stream": True}).content.decode(
+        "utf-8"
+    )
 
     # Assert
     assert "Fujiang" not in no_answer_response
@@ -282,12 +288,12 @@ def test_answer_using_file_filter(client_offline_chat, default_user2):
 @pytest.mark.django_db(transaction=True)
 def test_answer_not_known_using_notes_command(client_offline_chat, default_user2):
     # Arrange
-    query = urllib.parse.quote("/notes Where was Testatron born?")
     message_list = []
     create_conversation(message_list, default_user2)
 
     # Act
-    response = client_offline_chat.post(f"/api/chat?q={query}&stream=true")
+    query = urllib.parse.quote("/notes Where was Testatron born?")
+    response = client_offline_chat.post(f"/api/chat", json={"q": query, "stream": True})
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -299,6 +305,7 @@ def test_answer_not_known_using_notes_command(client_offline_chat, default_user2
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
 def test_summarize_one_file(client_offline_chat, default_user2: KhojUser):
+    # Arrange
     message_list = []
     conversation = create_conversation(message_list, default_user2)
     # post "Xi Li.markdown" file to the file filters
@@ -319,9 +326,14 @@ def test_summarize_one_file(client_offline_chat, default_user2: KhojUser):
         "api/chat/conversation/file-filters",
         json={"filename": summarization_file, "conversation_id": str(conversation.id)},
     )
-    query = urllib.parse.quote("/summarize")
-    response = client_offline_chat.post(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
+
+    # Act
+    query = "/summarize"
+    response = client_offline_chat.post(
+        f"/api/chat", json={"q": query, "conversation_id": conversation.id, "stream": True}
+    )
     response_message = response.content.decode("utf-8")
+
     # Assert
     assert response_message != ""
     assert response_message != "No files selected for summarization. Please add files using the section on the left."
@@ -331,6 +343,7 @@ def test_summarize_one_file(client_offline_chat, default_user2: KhojUser):
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
 def test_summarize_extra_text(client_offline_chat, default_user2: KhojUser):
+    # Arrange
     message_list = []
     conversation = create_conversation(message_list, default_user2)
     # post "Xi Li.markdown" file to the file filters
@@ -351,9 +364,14 @@ def test_summarize_extra_text(client_offline_chat, default_user2: KhojUser):
         "api/chat/conversation/file-filters",
         json={"filename": summarization_file, "conversation_id": str(conversation.id)},
     )
-    query = urllib.parse.quote("/summarize tell me about Xiu")
-    response = client_offline_chat.post(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
+
+    # Act
+    query = "/summarize tell me about Xiu"
+    response = client_offline_chat.post(
+        f"/api/chat", json={"q": query, "conversation_id": conversation.id, "stream": True}
+    )
     response_message = response.content.decode("utf-8")
+
     # Assert
     assert response_message != ""
     assert response_message != "No files selected for summarization. Please add files using the section on the left."
@@ -363,6 +381,7 @@ def test_summarize_extra_text(client_offline_chat, default_user2: KhojUser):
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
 def test_summarize_multiple_files(client_offline_chat, default_user2: KhojUser):
+    # Arrange
     message_list = []
     conversation = create_conversation(message_list, default_user2)
     # post "Xi Li.markdown" file to the file filters
@@ -379,9 +398,10 @@ def test_summarize_multiple_files(client_offline_chat, default_user2: KhojUser):
         "api/chat/conversation/file-filters", json={"filename": file_list[1], "conversation_id": str(conversation.id)}
     )
 
-    query = urllib.parse.quote("/summarize")
-    response = client_offline_chat.post(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
-    response_message = response.content.decode("utf-8")
+    # Act
+    query = "/summarize"
+    response = client_offline_chat.post(f"/api/chat", json={"q": query, "conversation_id": conversation.id})
+    response_message = response.json()["response"]
 
     # Assert
     assert response_message == "Only one file can be selected for summarization."
@@ -390,11 +410,13 @@ def test_summarize_multiple_files(client_offline_chat, default_user2: KhojUser):
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
 def test_summarize_no_files(client_offline_chat, default_user2: KhojUser):
+    # Arrange
     message_list = []
     conversation = create_conversation(message_list, default_user2)
-    query = urllib.parse.quote("/summarize")
-    response = client_offline_chat.post(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
-    response_message = response.content.decode("utf-8")
+    # Act
+    query = "/summarize"
+    response = client_offline_chat.post(f"/api/chat", json={"q": query, "conversation_id": conversation.id})
+    response_message = response.json()["response"]
     # Assert
     assert response_message == "No files selected for summarization. Please add files using the section on the left."
 
@@ -424,16 +446,16 @@ def test_summarize_different_conversation(client_offline_chat, default_user2: Kh
         json={"filename": summarization_file, "conversation_id": str(conversation1.id)},
     )
 
-    query = urllib.parse.quote("/summarize")
-    response = client_offline_chat.post(f"/api/chat?q={query}&conversation_id={conversation2.id}&stream=true")
-    response_message = response.content.decode("utf-8")
+    query = "/summarize"
+    response = client_offline_chat.post(f"/api/chat", json={"q": query, "conversation_id": conversation2.id})
+    response_message = response.json()["response"]
 
     # Assert
     assert response_message == "No files selected for summarization. Please add files using the section on the left."
 
     # now make sure that the file filter is still in conversation 1
-    response = client_offline_chat.post(f"/api/chat?q={query}&conversation_id={conversation1.id}&stream=true")
-    response_message = response.content.decode("utf-8")
+    response = client_offline_chat.post(f"/api/chat", json={"q": query, "conversation_id": conversation1.id})
+    response_message = response.json()["response"]
 
     # Assert
     assert response_message != ""
@@ -444,6 +466,7 @@ def test_summarize_different_conversation(client_offline_chat, default_user2: Kh
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.chatquality
 def test_summarize_nonexistant_file(client_offline_chat, default_user2: KhojUser):
+    # Arrange
     message_list = []
     conversation = create_conversation(message_list, default_user2)
     # post "imaginary.markdown" file to the file filters
@@ -451,9 +474,10 @@ def test_summarize_nonexistant_file(client_offline_chat, default_user2: KhojUser
         "api/chat/conversation/file-filters",
         json={"filename": "imaginary.markdown", "conversation_id": str(conversation.id)},
     )
-    query = urllib.parse.quote("/summarize")
-    response = client_offline_chat.post(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
-    response_message = response.content.decode("utf-8")
+    # Act
+    query = "/summarize"
+    response = client_offline_chat.post(f"/api/chat", json={"q": query, "conversation_id": conversation.id})
+    response_message = response.json()["response"]
     # Assert
     assert response_message == "No files selected for summarization. Please add files using the section on the left."
 
@@ -463,6 +487,7 @@ def test_summarize_nonexistant_file(client_offline_chat, default_user2: KhojUser
 def test_summarize_diff_user_file(
     client_offline_chat, default_user: KhojUser, pdf_configured_user1, default_user2: KhojUser
 ):
+    # Arrange
     message_list = []
     conversation = create_conversation(message_list, default_user2)
     # Get the pdf file called singlepage.pdf
@@ -482,9 +507,12 @@ def test_summarize_diff_user_file(
         "api/chat/conversation/file-filters",
         json={"filename": summarization_file, "conversation_id": str(conversation.id)},
     )
-    query = urllib.parse.quote("/summarize")
-    response = client_offline_chat.post(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
-    response_message = response.content.decode("utf-8")
+
+    # Act
+    query = "/summarize"
+    response = client_offline_chat.post(f"/api/chat", json={"q": query, "conversation_id": conversation.id})
+    response_message = response.json()["response"]
+
     # Assert
     assert response_message == "No files selected for summarization. Please add files using the section on the left."
 
@@ -495,11 +523,9 @@ def test_summarize_diff_user_file(
 @freeze_time("2023-04-01", ignore=["transformers"])
 def test_answer_requires_current_date_awareness(client_offline_chat):
     "Chat actor should be able to answer questions relative to current date using provided notes"
-    # Arrange
-    query = urllib.parse.quote("Where did I have lunch today?")
-
     # Act
-    response = client_offline_chat.post(f"/api/chat?q={query}&stream=true")
+    query = "Where did I have lunch today?"
+    response = client_offline_chat.post(f"/api/chat", json={"q": query, "stream": True})
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -518,7 +544,8 @@ def test_answer_requires_current_date_awareness(client_offline_chat):
 def test_answer_requires_date_aware_aggregation_across_provided_notes(client_offline_chat):
     "Chat director should be able to answer questions that require date aware aggregation across multiple notes"
     # Act
-    response = client_offline_chat.post(f'/api/chat?q="How much did I spend on dining this year?"&stream=true')
+    query = "How much did I spend on dining this year?"
+    response = client_offline_chat.post(f"/api/chat", json={"q": query, "stream": True})
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -539,9 +566,8 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content(client
     create_conversation(message_list, default_user2)
 
     # Act
-    response = client_offline_chat.get(
-        f'/api/chat?q=""Write a haiku about unit testing. Do not say anything else."&stream=true'
-    )
+    query = "Write a haiku about unit testing. Do not say anything else."
+    response = client_offline_chat.post(f"/api/chat", json={"q": query, "stream": True})
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -559,7 +585,8 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content(client
 @pytest.mark.django_db(transaction=True)
 def test_ask_for_clarification_if_not_enough_context_in_question(client_offline_chat, default_user2):
     # Act
-    response = client_offline_chat.post(f'/api/chat?q="What is the name of Namitas older son"&stream=true')
+    query = "What is the name of Namitas older son"
+    response = client_offline_chat.post(f"/api/chat", json={"q": query, "stream": True})
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -589,7 +616,8 @@ def test_answer_in_chat_history_beyond_lookback_window(client_offline_chat, defa
     create_conversation(message_list, default_user2)
 
     # Act
-    response = client_offline_chat.post(f'/api/chat?q="What is my name?"&stream=true')
+    query = "What is my name?"
+    response = client_offline_chat.post(f"/api/chat", json={"q": query, "stream": True})
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -621,8 +649,9 @@ def test_answer_in_chat_history_by_conversation_id(client_offline_chat, default_
     create_conversation(message_list2, default_user2)
 
     # Act
-    response = client_offline_chat.get(
-        f'/api/chat?q="What is my favorite color?"&conversation_id={conversation.id}&stream=true'
+    query = "What is my favorite color?"
+    response = client_offline_chat.post(
+        f"/api/chat", json={"q": query, "conversation_id": conversation.id, "stream": True}
     )
     response_message = response.content.decode("utf-8")
 
@@ -652,8 +681,10 @@ def test_answer_in_chat_history_by_conversation_id_with_agent(
     conversation = create_conversation(message_list, default_user2, offline_agent)
 
     # Act
-    query = urllib.parse.quote("/general What did I eat for breakfast?")
-    response = client_offline_chat.post(f"/api/chat?q={query}&conversation_id={conversation.id}&stream=true")
+    query = "/general What did I eat for breakfast?"
+    response = client_offline_chat.post(
+        f"/api/chat", json={"q": query, "conversation_id": conversation.id, "stream": True}
+    )
     response_message = response.content.decode("utf-8")
 
     # Assert that agent only responds with the summary of spending
@@ -669,11 +700,11 @@ def test_answer_in_chat_history_by_conversation_id_with_agent(
 def test_answer_chat_history_very_long(client_offline_chat, default_user2):
     # Arrange
     message_list = [(" ".join([fake.paragraph() for _ in range(50)]), fake.sentence(), []) for _ in range(10)]
-
     create_conversation(message_list, default_user2)
 
     # Act
-    response = client_offline_chat.post(f'/api/chat?q="What is my name?"&stream=true')
+    query = "What is my name?"
+    response = client_offline_chat.post(f"/api/chat", json={"q": query, "stream": True})
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -687,7 +718,8 @@ def test_answer_chat_history_very_long(client_offline_chat, default_user2):
 def test_answer_requires_multiple_independent_searches(client_offline_chat):
     "Chat director should be able to answer by doing multiple independent searches for required information"
     # Act
-    response = client_offline_chat.post(f'/api/chat?q="Is Xi older than Namita?"&stream=true')
+    query = "Is Xi older than Namita?"
+    response = client_offline_chat.post(f"/api/chat", json={"q": query, "stream": True})
     response_message = response.content.decode("utf-8")
 
     # Assert

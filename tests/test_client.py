@@ -459,11 +459,12 @@ def test_user_no_data_returns_empty(client, sample_org_data, api_user3: KhojApiU
 @pytest.mark.django_db(transaction=True)
 async def test_chat_with_unauthenticated_user(chat_client_with_auth, api_user2: KhojApiUser):
     # Arrange
+    query = "Hello!"
     headers = {"Authorization": f"Bearer {api_user2.token}"}
 
     # Act
-    auth_response = chat_client_with_auth.post(f'/api/chat?q="Hello!"', headers=headers)
-    no_auth_response = chat_client_with_auth.post(f'/api/chat?q="Hello!"')
+    auth_response = chat_client_with_auth.post(f"/api/chat", json={"q": query}, headers=headers)
+    no_auth_response = chat_client_with_auth.post(f"/api/chat", json={"q": query})
 
     # Assert
     assert auth_response.status_code == 200
