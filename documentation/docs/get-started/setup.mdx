@@ -206,7 +206,7 @@ Using Ollama? See the [Ollama Integration](/advanced/ollama) section for more cu
 :::
 
 1. Go to the [OpenAI settings](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/) in the server admin settings to add an OpenAI processor conversation config. This is where you set your API key and server API base URL. The API base URL is optional - it's only relevant if you're using another OpenAI-compatible proxy server.
-2. Go over to configure your [chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/). Set the `chat-model` field to a supported chat model[^1] of your choice. For example, you can specify `gpt-4-turbo-preview` if you're using OpenAI.
+2. Go over to configure your [chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/). Set the `chat-model` field to a supported chat model[^1] of your choice. For example, you can specify `gpt-4o` if you're using OpenAI.
     - Make sure to set the `model-type` field to `OpenAI`.
     - The `tokenizer` and `max-prompt-size` fields are optional. Set them only if you're sure of the tokenizer or token limit for the model you're using. Contact us if you're unsure what to do here.
 

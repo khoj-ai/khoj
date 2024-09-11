@@ -9,7 +9,7 @@ app_env_filepath = "~/.khoj/env"
 telemetry_server = "https://khoj.beta.haletic.com/v1/telemetry"
 content_directory = "~/.khoj/content/"
 default_offline_chat_model = "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF"
-default_online_chat_model = "gpt-4-turbo-preview"
+default_online_chat_model = "gpt-4o-mini"
 
 empty_config = {
     "search-type": {

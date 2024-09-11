@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 def extract_questions(
     text,
-    model: Optional[str] = "gpt-4-turbo-preview",
+    model: Optional[str] = "gpt-4o-mini",
     conversation_log={},
     api_key=None,
     api_base_url=None,
@@ -43,7 +43,7 @@ def extract_questions(
         [
             f'Q: {chat["intent"]["query"]}\nKhoj: {{"queries": {chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}}}\nA: {chat["message"]}\n\n'
             for chat in conversation_log.get("chat", [])[-4:]
-            if chat["by"] == "khoj" and "text-to-image" not in chat["intent"].get("type")
+            if chat["by"] == "khoj" and "to-image" not in chat["intent"].get("type")
         ]
     )
 
