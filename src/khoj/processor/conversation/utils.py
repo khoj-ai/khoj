@@ -12,7 +12,7 @@ from llama_cpp.llama import Llama
 from transformers import AutoTokenizer
 
 from khoj.database.adapters import ConversationAdapters
-from khoj.database.models import ClientApplication, KhojUser
+from khoj.database.models import ChatModelOptions, ClientApplication, KhojUser
 from khoj.processor.conversation.offline.utils import download_model, infer_max_tokens
 from khoj.utils import state
 from khoj.utils.helpers import is_none_or_empty, merge_dicts
@@ -137,6 +137,13 @@ Khoj: "{inferred_queries if ("text-to-image" in intent_type) else chat_response}
     )
 
 
+# Format user and system messages to chatml format
+def construct_structured_message(message, image_url, model_type, vision_enabled):
+    if image_url and vision_enabled and model_type == ChatModelOptions.ModelType.OPENAI:
+        return [{"type": "text", "text": message}, {"type": "image_url", "image_url": {"url": image_url}}]
+    return message
+
+
 def generate_chatml_messages_with_context(
     user_message,
     system_message=None,
@@ -147,6 +154,7 @@ def generate_chatml_messages_with_context(
     tokenizer_name=None,
     uploaded_image_url=None,
     vision_enabled=False,
+    model_type="",
 ):
     """Generate messages for ChatGPT with context from previous conversation"""
     # Set max prompt size from user config or based on pre-configured for model and machine specs
@@ -155,12 +163,6 @@ def generate_chatml_messages_with_context(
             max_prompt_size = infer_max_tokens(loaded_model.n_ctx(), model_to_prompt_size.get(model_name, math.inf))
         else:
             max_prompt_size = model_to_prompt_size.get(model_name, 2000)
-
-    # Format user and system messages to chatml format
-    def construct_structured_message(message, image_url):
-        if image_url and vision_enabled:
-            return [{"type": "text", "text": message}, {"type": "image_url", "image_url": {"url": image_url}}]
-        return message
 
     # Scale lookback turns proportional to max prompt size supported by model
     lookback_turns = max_prompt_size // 750
@@ -174,7 +176,9 @@ def generate_chatml_messages_with_context(
         message_content = chat["message"] + message_notes
 
         if chat.get("uploadedImageData") and vision_enabled:
-            message_content = construct_structured_message(message_content, chat.get("uploadedImageData"))
+            message_content = construct_structured_message(
+                message_content, chat.get("uploadedImageData"), model_type, vision_enabled
+            )
 
         reconstructed_message = ChatMessage(content=message_content, role=role)
 
@@ -186,7 +190,10 @@ def generate_chatml_messages_with_context(
     messages = []
     if not is_none_or_empty(user_message):
         messages.append(
-            ChatMessage(content=construct_structured_message(user_message, uploaded_image_url), role="user")
+            ChatMessage(
+                content=construct_structured_message(user_message, uploaded_image_url, model_type, vision_enabled),
+                role="user",
+            )
         )
     if len(chatml_messages) > 0:
         messages += chatml_messages

@@ -6,7 +6,7 @@ from typing import Dict, Optional
 
 from langchain.schema import ChatMessage
 
-from khoj.database.models import Agent, KhojUser
+from khoj.database.models import Agent, ChatModelOptions, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.anthropic.utils import (
     anthropic_chat_completion_with_backoff,
@@ -188,6 +188,7 @@ def converse_anthropic(
         model_name=model,
         max_prompt_size=max_prompt_size,
         tokenizer_name=tokenizer_name,
+        model_type=ChatModelOptions.ModelType.ANTHROPIC,
     )
 
     if len(messages) > 1:

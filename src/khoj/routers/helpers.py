@@ -330,7 +330,7 @@ async def aget_relevant_output_modes(
     chat_history = construct_chat_history(conversation_history)
 
     if uploaded_image_url:
-        query = f"[placeholder for image attached to this message]\n{query}"
+        query = f"<user uploaded content redacted> \n{query}"
 
     relevant_mode_prompt = prompts.pick_relevant_output_mode.format(
         query=query,
@@ -622,6 +622,7 @@ async def send_message_to_model_wrapper(
             tokenizer_name=tokenizer,
             max_prompt_size=max_tokens,
             vision_enabled=vision_available,
+            model_type=conversation_config.model_type,
         )
 
         return send_message_to_model_offline(
@@ -644,6 +645,7 @@ async def send_message_to_model_wrapper(
             tokenizer_name=tokenizer,
             vision_enabled=vision_available,
             uploaded_image_url=uploaded_image_url,
+            model_type=conversation_config.model_type,
         )
 
         openai_response = send_message_to_model(
@@ -664,6 +666,7 @@ async def send_message_to_model_wrapper(
             max_prompt_size=max_tokens,
             tokenizer_name=tokenizer,
             vision_enabled=vision_available,
+            model_type=conversation_config.model_type,
         )
 
         return anthropic_send_message_to_model(
@@ -700,6 +703,7 @@ def send_message_to_model_wrapper_sync(
             model_name=chat_model,
             loaded_model=loaded_model,
             vision_enabled=vision_available,
+            model_type=conversation_config.model_type,
         )
 
         return send_message_to_model_offline(
@@ -717,6 +721,7 @@ def send_message_to_model_wrapper_sync(
             system_message=system_message,
             model_name=chat_model,
             vision_enabled=vision_available,
+            model_type=conversation_config.model_type,
         )
 
         openai_response = send_message_to_model(
@@ -733,6 +738,7 @@ def send_message_to_model_wrapper_sync(
             model_name=chat_model,
             max_prompt_size=max_tokens,
             vision_enabled=vision_available,
+            model_type=conversation_config.model_type,
         )
 
         return anthropic_send_message_to_model(

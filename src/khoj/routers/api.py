@@ -331,6 +331,7 @@ async def extract_references_and_questions(
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     location_data: LocationData = None,
     send_status_func: Optional[Callable] = None,
+    uploaded_image_url: Optional[str] = None,
 ):
     user = request.user.object if request.user.is_authenticated else None
 
@@ -370,6 +371,7 @@ async def extract_references_and_questions(
     with timer("Extracting search queries took", logger):
         # If we've reached here, either the user has enabled offline chat or the openai model is enabled.
         conversation_config = await ConversationAdapters.aget_default_conversation_config()
+        vision_enabled = conversation_config.vision_enabled
 
         if conversation_config.model_type == ChatModelOptions.ModelType.OFFLINE:
             using_offline_chat = True
@@ -403,6 +405,8 @@ async def extract_references_and_questions(
                 conversation_log=meta_log,
                 location_data=location_data,
                 user=user,
+                uploaded_image_url=uploaded_image_url,
+                vision_enabled=vision_enabled,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
             api_key = conversation_config.openai_config.api_key

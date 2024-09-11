@@ -807,6 +807,7 @@ async def chat(
             conversation_commands,
             location,
             partial(send_event, ChatEvent.STATUS),
+            uploaded_image_url=uploaded_image_url,
         ):
             if isinstance(result, dict) and ChatEvent.STATUS in result:
                 yield result[ChatEvent.STATUS]
