@@ -1223,7 +1223,13 @@ def scheduled_chat(
     logger.info(f"Payload: {json_payload}")
 
     # Call the chat API endpoint with authenticated user token and query
-    raw_response = requests.post(url, headers=headers, json=json_payload)
+    raw_response = requests.post(url, headers=headers, json=json_payload, allow_redirects=False)
+
+    # Handle redirect manually if necessary
+    if raw_response.status_code in [301, 302]:
+        redirect_url = raw_response.headers["Location"]
+        logger.info(f"Redirecting to {redirect_url}")
+        raw_response = requests.post(redirect_url, headers=headers, json=json_payload)
 
     # Log response details
     logger.info(f"Response status code: {raw_response.status_code}")
