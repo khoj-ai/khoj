@@ -1,4 +1,3 @@
-import json
 import logging
 import math
 import queue
@@ -24,6 +23,8 @@ model_to_prompt_size = {
     "gpt-4-0125-preview": 20000,
     "gpt-4-turbo-preview": 20000,
     "gpt-4o-mini": 20000,
+    "o1-preview": 20000,
+    "o1-mini": 20000,
     "TheBloke/Mistral-7B-Instruct-v0.2-GGUF": 3500,
     "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF": 3500,
     "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF": 20000,
@@ -220,8 +221,9 @@ def truncate_messages(
     try:
         if loaded_model:
             encoder = loaded_model.tokenizer()
-        elif model_name.startswith("gpt-"):
-            encoder = tiktoken.encoding_for_model(model_name)
+        elif model_name.startswith("gpt-") or model_name.startswith("o1"):
+            # as tiktoken doesn't recognize o1 model series yet
+            encoder = tiktoken.encoding_for_model("gpt-4o" if model_name.startswith("o1") else model_name)
         elif tokenizer_name:
             if tokenizer_name in state.pretrained_tokenizers:
                 encoder = state.pretrained_tokenizers[tokenizer_name]
@@ -278,7 +280,9 @@ def truncate_messages(
         )
 
     if system_message:
-        system_message.role = "user" if "gemma-2" in model_name else "system"
+        # Default system message role is system.
+        # Fallback to system message role of user for models that do not support this role like gemma-2 and openai's o1 model series.
+        system_message.role = "user" if "gemma-2" in model_name or model_name.startswith("o1") else "system"
     return messages + [system_message] if system_message else messages
 
 
