@@ -6,7 +6,7 @@ sidebar_position: 2
 
 You can configure Khoj to chat with you about anything. When relevant, it'll use any notes or documents you shared with it to respond. It acts as an excellent research assistant, search engine, or personal tutor.
 
-<img src="/img/khoj_chat_on_web.png" alt="Chat on Web" style={{width: '400px'}}/>
+<img src="https://assets.khoj.dev/vision_chat_example.png" alt="Chat on Web" style={{width: '400px'}}/>
 
 ### Overview
 - Creates a personal assistant for you to inquire and engage with your notes or online information as needed
@@ -15,33 +15,7 @@ You can configure Khoj to chat with you about anything. When relevant, it'll use
 - Shows reference notes used to generate a response
 
 ### Setup (Self-Hosting)
-#### Offline Chat
-Offline chat stays completely private and can work without internet using open-source models.
-
-> **System Requirements**:
->  - Minimum 8 GB RAM. Recommend **16Gb VRAM**
->  - Minimum **5 GB of Disk** available
->  - A CPU supporting [AVX or AVX2 instructions](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions) is required
->  - An Nvidia, AMD GPU or a Mac M1+ machine would significantly speed up chat response times
-
-1. Open your [Khoj offline settings](http://localhost:42110/server/admin/database/offlinechatprocessorconversationconfig/) and click *Enable* on the Offline Chat configuration.
-2. Open your [Chat model options settings](http://localhost:42110/server/admin/database/chatmodeloptions/) and add any [GGUF chat model](https://huggingface.co/models?library=gguf) to use for offline chat. Make sure to use `Offline` as its type. For a balanced chat model that runs well on standard consumer hardware we recommend using [Llama 3.1 by Meta](https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF) by default. For machines with no or small GPU we recommend using [Gemma 2 2B](https://huggingface.co/bartowski/gemma-2-2b-it-GGUF) or [Phi 3.5 mini](https://huggingface.co/bartowski/Phi-3.5-mini-instruct-GGUF)
-
-
-:::tip[Note]
-Offline chat is not supported for a multi-user scenario. The host machine will encounter segmentation faults if multiple users try to use offline chat at the same time.
-:::
-
-#### Online Chat
-Online chat requires internet to use ChatGPT but is faster, higher quality and less compute intensive.
-
-:::danger[Warning]
-This will enable Khoj to send your chat queries and query relevant notes to OpenAI for processing.
-:::
-
-1. Get your [OpenAI API Key](https://platform.openai.com/account/api-keys)
-2. Open your [Khoj Online Chat settings](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/). Add a new setting with your OpenAI API key, and click *Save*. Only one configuration will be used, so make sure that's the only one you have.
-3. Open your [Chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/) and add a new option for the OpenAI chat model you want to use. Make sure to use `OpenAI` as its type.
+See [the setup guide](/get-started/setup.mdx) to configure your chat models.
 
 ### Use
 1. Open Khoj Chat
@@ -52,13 +26,13 @@ This will enable Khoj to send your chat queries and query relevant notes to Open
 
 
 #### Details
-1. Your query is used to retrieve the most relevant notes, if any, using Khoj search
+1. Your query is used to retrieve the most relevant notes, if any, using Khoj search using RAG.
 2. These notes, the last few messages and associated metadata is passed to the enabled chat model along with your query to generate a response
 
 #### Conversation File Filters
 You can use conversation file filters to limit the notes used in the chat response. To do so, use the left panel in the web UI. Alternatively, you can also use [query filters](/miscellaneous/advanced#query-filters) to limit the notes used in the chat response.
 
-<img src="/img/select_file_filter.png" alt="Conversation File Filter" style={{width: '400px'}}/>
+<img src="/img/file_filters_conversation.png" alt="Conversation File Filter" style={{width: '400px'}}/>
 
 #### Commands
 Slash commands allows you to change what Khoj uses to respond to your query

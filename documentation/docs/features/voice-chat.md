@@ -2,16 +2,16 @@
 
 You can talk to Khoj using your voice. Khoj will respond to your queries using the same models as the chat feature. You can use voice chat on the web, Desktop, and Obsidian apps.
 
-![Voice Chat](/img/mic_chat_icon.png)
+![Voice Chat](https://assets.khoj.dev/speech_to_text_demo.gif)
 
-Click on the little mic icon to send your voice message to Khoj. It will send back what it heard via text. You'll have some time to edit it before sending it, if required. Try it at https://app.khoj.dev/.
+Click on the little mic icon to send your voice message to Khoj. It will send back what it heard via text. You can edit the message before sending it, if required. Try it at https://app.khoj.dev/.
 
 ## Voice Response
 
 If you send a voice message, Khoj will automatically respond back with a voice message.
 You can also click on the speaker icon next to any message to hear it out loud. The voice response feature is available only on the web view right now.
 
-![Speaker Icon](/img/speaker_icon.png)
+![Speaker Icon](/img/text_to_speech.png)
 
 ## Setup (Self-Hosting)
 

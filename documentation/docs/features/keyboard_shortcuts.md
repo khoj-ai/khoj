@@ -2,7 +2,7 @@
 
 Oftentimes, having to leave your keyboard to move the mouse can break your flow. We want to make it as easy as possible for AI to flow with you as you are, so we've added some keyboard shortcuts to facilitate that.
 
-## Web App
+## Obsidian
 
 ### Up/Down Arrow Keys (Chat Input)
 
