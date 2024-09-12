@@ -8,7 +8,7 @@ from langchain.schema import ChatMessage
 
 from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
-from khoj.processor.conversation.gemini.utils import (
+from khoj.processor.conversation.google.utils import (
     gemini_chat_completion_with_backoff,
     gemini_completion_with_backoff,
 )

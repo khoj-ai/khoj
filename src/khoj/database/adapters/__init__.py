@@ -986,7 +986,7 @@ class ConversationAdapters:
             in [
                 ChatModelOptions.ModelType.ANTHROPIC,
                 ChatModelOptions.ModelType.OPENAI,
-                ChatModelOptions.ModelType.GEMINI,
+                ChatModelOptions.ModelType.GOOGLE,
             ]
         ) and conversation_config.openai_config:
             return conversation_config

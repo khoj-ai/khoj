@@ -76,7 +76,7 @@ from khoj.processor.conversation.anthropic.anthropic_chat import (
     anthropic_send_message_to_model,
     converse_anthropic,
 )
-from khoj.processor.conversation.gemini.gemini_chat import (
+from khoj.processor.conversation.google.gemini_chat import (
     converse_gemini,
     gemini_send_message_to_model,
 )
@@ -150,7 +150,14 @@ async def is_ready_to_chat(user: KhojUser):
 
     if (
         user_conversation_config
-        and (user_conversation_config.model_type in ["openai", "anthropic", "gemini"])
+        and (
+            user_conversation_config.model_type
+            in [
+                ChatModelOptions.ModelType.OPENAI,
+                ChatModelOptions.ModelType.ANTHROPIC,
+                ChatModelOptions.ModelType.GOOGLE,
+            ]
+        )
         and user_conversation_config.openai_config
     ):
         return True
@@ -680,7 +687,7 @@ async def send_message_to_model_wrapper(
             api_key=api_key,
             model=chat_model,
         )
-    elif model_type == ChatModelOptions.ModelType.GEMINI:
+    elif model_type == ChatModelOptions.ModelType.GOOGLE:
         api_key = conversation_config.openai_config.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
@@ -768,7 +775,7 @@ def send_message_to_model_wrapper_sync(
             model=chat_model,
         )
 
-    elif conversation_config.model_type == ChatModelOptions.ModelType.GEMINI:
+    elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
         api_key = conversation_config.openai_config.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
@@ -888,7 +895,7 @@ def generate_chat_response(
                 user_name=user_name,
                 agent=agent,
             )
-        elif conversation_config.model_type == ChatModelOptions.ModelType.GEMINI:
+        elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
             api_key = conversation_config.openai_config.api_key
             chat_response = converse_gemini(
                 compiled_references,
