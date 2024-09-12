@@ -1201,11 +1201,10 @@ def scheduled_chat(
         query_dict["conversation_id"] = [conversation_id]
 
     # Construct the URL to call the chat API with the scheduled query string
-    encoded_query = urlencode(query_dict, doseq=True)
-    url = f"{scheme}://{calling_url.netloc}/api/chat?{encoded_query}"
+    url = f"{scheme}://{calling_url.netloc}/api/chat?client=khoj"
 
     # Construct the Headers for the chat API
-    headers = {"User-Agent": "Khoj"}
+    headers = {"User-Agent": "Khoj", "Content-Type": "application/json"}
     if not state.anonymous_mode:
         # Add authorization request header in non-anonymous mode
         token = get_khoj_tokens(user)
@@ -1216,7 +1215,7 @@ def scheduled_chat(
         headers["Authorization"] = f"Bearer {token}"
 
     # Call the chat API endpoint with authenticated user token and query
-    raw_response = requests.get(url, headers=headers)
+    raw_response = requests.post(url, headers=headers, json=query_dict)
 
     # Stop if the chat API call was not successful
     if raw_response.status_code != 200:
