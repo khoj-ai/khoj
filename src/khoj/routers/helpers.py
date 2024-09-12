@@ -1200,6 +1200,9 @@ def scheduled_chat(
     if conversation_id:
         query_dict["conversation_id"] = [conversation_id]
 
+    # Restructure the original query_dict into a valid JSON payload for the chat API
+    json_payload = {key: values[0] for key, values in query_dict.items()}
+
     # Construct the URL to call the chat API with the scheduled query string
     url = f"{scheme}://{calling_url.netloc}/api/chat?client=khoj"
 
@@ -1215,7 +1218,7 @@ def scheduled_chat(
         headers["Authorization"] = f"Bearer {token}"
 
     # Call the chat API endpoint with authenticated user token and query
-    raw_response = requests.post(url, headers=headers, json=query_dict)
+    raw_response = requests.post(url, headers=headers, json=json_payload)
 
     # Stop if the chat API call was not successful
     if raw_response.status_code != 200:
