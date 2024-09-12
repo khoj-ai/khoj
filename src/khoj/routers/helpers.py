@@ -7,6 +7,7 @@ import logging
 import math
 import os
 import re
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from enum import Enum
@@ -568,7 +569,7 @@ async def generate_better_image_prompt(
             references=user_references,
             online_results=simplified_online_results,
         )
-    elif model_type == TextToImageModelConfig.ModelType.STABILITYAI:
+    elif model_type in [TextToImageModelConfig.ModelType.STABILITYAI, TextToImageModelConfig.ModelType.REPLICATE]:
         image_prompt = prompts.image_generation_improve_prompt_sd.format(
             query=q,
             chat_history=conversation_history,
@@ -991,7 +992,8 @@ async def text_to_image(
                     extra_headers=auth_header,
                 )
                 image = response.data[0].b64_json
-                decoded_image = base64.b64decode(image)
+                # Decode base64 png and convert it to webp for faster loading
+                webp_image_bytes = convert_image_to_webp(base64.b64decode(image))
             except openai.OpenAIError or openai.BadRequestError or openai.APIConnectionError as e:
                 if "content_policy_violation" in e.message:
                     logger.error(f"Image Generation blocked by OpenAI: {e}")
@@ -1021,7 +1023,8 @@ async def text_to_image(
                         "aspect_ratio": "1:1",
                     },
                 )
-                decoded_image = response.content
+                # Convert png to webp for faster loading
+                webp_image_bytes = convert_image_to_webp(response.content)
             except requests.RequestException as e:
                 logger.error(f"Image Generation failed with {e}", exc_info=True)
                 message = f"Image generation failed with Stability AI error: {e}"
@@ -1029,9 +1032,58 @@ async def text_to_image(
                 yield image_url or image, status_code, message, intent_type.value
                 return
 
-    with timer("Convert image to webp", logger):
-        # Convert png to webp for faster loading
-        webp_image_bytes = convert_image_to_webp(decoded_image)
+    elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.REPLICATE:
+        with timer("Generate image using Replicate", logger):
+            try:
+                # Create image generation task on Replicate
+                create_prediction_url = f"https://api.replicate.com/v1/models/{text2image_model}/predictions"
+                headers = {
+                    "Authorization": f"Bearer {text_to_image_config.api_key}",
+                    "Content-Type": "application/json",
+                }
+                json = {
+                    "input": {
+                        "prompt": improved_image_prompt,
+                        "num_outputs": 1,
+                        "aspect_ratio": "1:1",
+                        "output_format": "webp",
+                        "output_quality": 100,
+                    }
+                }
+                create_prediction = requests.post(create_prediction_url, headers=headers, json=json).json()
+
+                # Get status of image generation task
+                get_prediction_url = create_prediction["urls"]["get"]
+                get_prediction = requests.get(get_prediction_url, headers=headers).json()
+                status = get_prediction["status"]
+                retry_count = 1
+
+                # Poll the image generation task for completion status
+                while status not in ["succeeded", "failed", "canceled"] and retry_count < 20:
+                    time.sleep(2)
+                    get_prediction = requests.get(get_prediction_url, headers=headers).json()
+                    status = get_prediction["status"]
+                    retry_count += 1
+
+                # Raise exception if the image generation task fails
+                if status != "succeeded":
+                    if retry_count >= 10:
+                        raise requests.RequestException("Image generation timed out")
+                    raise requests.RequestException(f"Image generation failed with status: {status}")
+
+                # Get the generated image
+                image_url = (
+                    get_prediction["output"][0]
+                    if isinstance(get_prediction["output"], list)
+                    else get_prediction["output"]
+                )
+                webp_image_bytes = io.BytesIO(requests.get(image_url).content).getvalue()
+            except requests.RequestException as e:
+                logger.error(f"Image Generation failed with {e}", exc_info=True)
+                message = f"Image generation for {text2image_model} failed with Replicate API error: {e}"
+                status_code = 500
+                yield image_url or image, status_code, message, intent_type.value
+                return
 
     with timer("Upload image to S3", logger):
         image_url = upload_image(webp_image_bytes, user.uuid)
