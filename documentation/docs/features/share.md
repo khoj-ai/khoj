@@ -4,4 +4,4 @@ You can share any of your conversations by going to the three dot menu on the co
 
 This means you can easily share a conversation with someone to show them how you solved a problem, or to get help with something you're working on.
 
-![demo of sharing a conversation](https://assets.khoj.dev/shareable_conversations.gif)
+![demo of sharing a conversation](https://assets.khoj.dev/share_side_panel_conversation.gif)

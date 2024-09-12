@@ -90,7 +90,7 @@ jobs:
         with:
           context: .
           file: prod.Dockerfile
-          platforms: linux/amd64
+          platforms: linux/amd64, linux/arm64
           push: true
           tags: |
             ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}

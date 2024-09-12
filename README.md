@@ -17,13 +17,13 @@
 
 <div align="center">
 
-[🤖 Read Docs](https://docs.khoj.dev)
+[📑 Docs](https://docs.khoj.dev)
 <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-[🏮 Khoj Cloud](https://khoj.dev)
+[🏮 App](https://khoj.dev)
 <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-[💬 Get Involved](https://discord.gg/BDgyabRM6e)
+[💬 Discord](https://discord.gg/BDgyabRM6e)
 <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-[📚 Read Blog](https://blog.khoj.dev)
+[📚 Blog](https://blog.khoj.dev)
 
 </div>
 
@@ -31,13 +31,13 @@
 
 ***
 
-Khoj is an application that creates always-available, personal AI agents for you to extend your capabilities.
-- You can share your notes and documents to extend your digital brain.
-- Your AI agents have access to the internet, allowing you to incorporate realtime information.
-- Khoj is accessible on Desktop, Emacs, Obsidian, Web and Whatsapp.
+[Khoj](https://khoj.dev) is a personal, open-source AI application for you to extend your capabilities.
+- Share your documents to extend your digital brain.
+- Access the internet, getting fresh information.
 - You can share pdf, markdown, org-mode, notion files and github repositories.
-- You'll get fast, accurate semantic search on top of your docs.
-- Your agents can create deeply personal images and understand your speech.
+- Fast, accurate semantic search on top of your docs.
+- Create images, talk out loud, play your messages.
+- Available Desktop, Emacs, Obsidian, Web and Whatsapp.
 - Khoj is open-source, self-hostable. Always.
 
 ***
@@ -46,7 +46,7 @@ Khoj is an application that creates always-available, personal AI agents for you
 
 ## See it in action
 
-<img src="https://github.com/khoj-ai/khoj/blob/master/documentation/assets/img/using_khoj_for_studying.gif?raw=true" alt="Khoj Demo">
+![demo_chat](https://github.com/khoj-ai/khoj/blob/master/documentation/assets/img/quadratic_equation_khoj_web.gif?raw=true)
 
 Go to https://app.khoj.dev to see Khoj live.
 

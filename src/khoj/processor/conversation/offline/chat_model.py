@@ -7,7 +7,7 @@ from typing import Any, Iterator, List, Union
 from langchain.schema import ChatMessage
 from llama_cpp import Llama
 
-from khoj.database.models import Agent, KhojUser
+from khoj.database.models import Agent, ChatModelOptions, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.utils import download_model
 from khoj.processor.conversation.utils import (
@@ -76,7 +76,11 @@ def extract_questions_offline(
     )
 
     messages = generate_chatml_messages_with_context(
-        example_questions, model_name=model, loaded_model=offline_chat_model, max_prompt_size=max_prompt_size
+        example_questions,
+        model_name=model,
+        loaded_model=offline_chat_model,
+        max_prompt_size=max_prompt_size,
+        model_type=ChatModelOptions.ModelType.OFFLINE,
     )
 
     state.chat_lock.acquire()
@@ -201,6 +205,7 @@ def converse_offline(
         loaded_model=offline_chat_model,
         max_prompt_size=max_prompt_size,
         tokenizer_name=tokenizer_name,
+        model_type=ChatModelOptions.ModelType.OFFLINE,
     )
 
     truncated_messages = "\n".join({f"{message.content[:70]}..." for message in messages})

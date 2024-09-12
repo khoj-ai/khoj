@@ -6,7 +6,7 @@
 ;;         Saba Imran <saba@khoj.dev>
 ;; Description: Your Second Brain
 ;; Keywords: search, chat, ai, org-mode, outlines, markdown, pdf, image
-;; Version: 1.21.6
+;; Version: 1.22.3
 ;; Package-Requires: ((emacs "27.1") (transient "0.3.0") (dash "2.19.1"))
 ;; URL: https://github.com/khoj-ai/khoj/tree/master/src/interface/emacs
 
@@ -675,14 +675,15 @@ Optionally apply CALLBACK with JSON parsed response and CBARGS."
             (json-parse-buffer :object-type 'alist))))
         ('file-error (message "Chat exception: [%s]" ex))))))
 
-(defun khoj--call-api-async (path &optional method params callback &rest cbargs)
-  "Async call to API at PATH with METHOD and query PARAMS as kv assoc list.
+(defun khoj--call-api-async (path &optional method params body callback &rest cbargs)
+  "Async call to API at PATH with specified METHOD, query PARAMS and request BODY.
 Optionally apply CALLBACK with JSON parsed response and CBARGS."
   (let* ((url-request-method (or method "GET"))
-         (url-request-extra-headers `(("Authorization" . ,(format "Bearer %s" khoj-api-key))))
-         (param-string (if params (url-build-query-string params) ""))
+         (url-request-extra-headers `(("Authorization" . ,(format "Bearer %s" khoj-api-key)) ("Content-Type" . "application/json")))
+         (url-request-data (if body (json-encode body) nil))
+         (param-string (url-build-query-string (append params '((client "emacs")))))
          (cbargs (if (and (listp cbargs) (listp (car cbargs))) (car cbargs) cbargs)) ; normalize cbargs to (a b) from ((a b)) if required
-         (query-url (format "%s%s?%s&client=emacs" khoj-server-url path param-string)))
+         (query-url (format "%s%s?%s" khoj-server-url path param-string)))
     (url-retrieve query-url
                   (lambda (status)
                     (if (plist-get status :error)
@@ -710,6 +711,7 @@ Filter out first similar result if IS-FIND-SIMILAR set."
     (khoj--call-api-async path
                     "GET"
                     params
+                    nil
                     'khoj--render-search-results
                     content-type query buffer-name is-find-similar)))
 
@@ -875,10 +877,11 @@ Filter out first similar result if IS-FIND-SIMILAR set."
 (defun khoj--query-chat-api (query session-id callback &rest cbargs)
   "Send QUERY for SESSION-ID to Khoj Chat API.
 Call CALLBACK func with response and CBARGS."
-  (let ((params `(("q" ,query) ("n" ,khoj-results-count))))
-    (when session-id (push `("conversation_id" ,session-id) params))
+  (let ((params `(("q" . ,query) ("n" . ,khoj-results-count))))
+    (when session-id (push `("conversation_id" . ,session-id) params))
     (khoj--call-api-async "/api/chat"
                           "POST"
+                          nil
                           params
                           callback cbargs)))
 

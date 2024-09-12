@@ -274,7 +274,7 @@ async def aget_relevant_information_sources(
     chat_history = construct_chat_history(conversation_history)
 
     if uploaded_image_url:
-        query = f"[placeholder for image attached to this message]\n{query}"
+        query = f"[placeholder for user attached image]\n{query}"
 
     relevant_tools_prompt = prompts.pick_relevant_information_collection_tools.format(
         query=query,
@@ -334,7 +334,7 @@ async def aget_relevant_output_modes(
     chat_history = construct_chat_history(conversation_history)
 
     if uploaded_image_url:
-        query = f"[placeholder for image attached to this message]\n{query}"
+        query = f"[placeholder for user attached image]\n{query}"
 
     relevant_mode_prompt = prompts.pick_relevant_output_mode.format(
         query=query,
@@ -599,7 +599,7 @@ async def send_message_to_model_wrapper(
 
     vision_available = conversation_config.vision_enabled
     if not vision_available and uploaded_image_url:
-        vision_enabled_config = ConversationAdapters.get_vision_enabled_config()
+        vision_enabled_config = await ConversationAdapters.aget_vision_enabled_config()
         if vision_enabled_config:
             conversation_config = vision_enabled_config
             vision_available = True
@@ -627,6 +627,7 @@ async def send_message_to_model_wrapper(
             tokenizer_name=tokenizer,
             max_prompt_size=max_tokens,
             vision_enabled=vision_available,
+            model_type=conversation_config.model_type,
         )
 
         return send_message_to_model_offline(
@@ -649,6 +650,7 @@ async def send_message_to_model_wrapper(
             tokenizer_name=tokenizer,
             vision_enabled=vision_available,
             uploaded_image_url=uploaded_image_url,
+            model_type=conversation_config.model_type,
         )
 
         openai_response = send_message_to_model(
@@ -670,6 +672,7 @@ async def send_message_to_model_wrapper(
             tokenizer_name=tokenizer,
             vision_enabled=vision_available,
             uploaded_image_url=uploaded_image_url,
+            model_type=conversation_config.model_type,
         )
 
         return anthropic_send_message_to_model(
@@ -721,6 +724,7 @@ def send_message_to_model_wrapper_sync(
             model_name=chat_model,
             loaded_model=loaded_model,
             vision_enabled=vision_available,
+            model_type=conversation_config.model_type,
         )
 
         return send_message_to_model_offline(
@@ -738,6 +742,7 @@ def send_message_to_model_wrapper_sync(
             system_message=system_message,
             model_name=chat_model,
             vision_enabled=vision_available,
+            model_type=conversation_config.model_type,
         )
 
         openai_response = send_message_to_model(
@@ -754,6 +759,7 @@ def send_message_to_model_wrapper_sync(
             model_name=chat_model,
             max_prompt_size=max_tokens,
             vision_enabled=vision_available,
+            model_type=conversation_config.model_type,
         )
 
         return anthropic_send_message_to_model(
@@ -1248,12 +1254,14 @@ def scheduled_chat(
     if conversation_id:
         query_dict["conversation_id"] = [conversation_id]
 
+    # Restructure the original query_dict into a valid JSON payload for the chat API
+    json_payload = {key: values[0] for key, values in query_dict.items()}
+
     # Construct the URL to call the chat API with the scheduled query string
-    encoded_query = urlencode(query_dict, doseq=True)
-    url = f"{scheme}://{calling_url.netloc}/api/chat?{encoded_query}"
+    url = f"{scheme}://{calling_url.netloc}/api/chat?client=khoj"
 
     # Construct the Headers for the chat API
-    headers = {"User-Agent": "Khoj"}
+    headers = {"User-Agent": "Khoj", "Content-Type": "application/json"}
     if not state.anonymous_mode:
         # Add authorization request header in non-anonymous mode
         token = get_khoj_tokens(user)
@@ -1263,8 +1271,27 @@ def scheduled_chat(
             token = token[0].token
         headers["Authorization"] = f"Bearer {token}"
 
+    # Log request details
+    logger.info(f"POST URL: {url}")
+    logger.info(f"Headers: {headers}")
+    logger.info(f"Payload: {json_payload}")
+
     # Call the chat API endpoint with authenticated user token and query
-    raw_response = requests.get(url, headers=headers)
+    raw_response = requests.post(url, headers=headers, json=json_payload, allow_redirects=False)
+
+    # Handle redirect manually if necessary
+    if raw_response.status_code in [301, 302]:
+        redirect_url = raw_response.headers["Location"]
+        logger.info(f"Redirecting to {redirect_url}")
+        raw_response = requests.post(redirect_url, headers=headers, json=json_payload)
+
+    # Log response details
+    logger.info(f"Response status code: {raw_response.status_code}")
+    logger.info(f"Response headers: {raw_response.headers}")
+    logger.info(f"Response text: {raw_response.text}")
+    if raw_response.history:
+        for resp in raw_response.history:
+            logger.info(f"Redirected from {resp.url} with status code {resp.status_code}")
 
     # Stop if the chat API call was not successful
     if raw_response.status_code != 200:

@@ -11,6 +11,9 @@ div.chatMessageWrapper {
     padding-bottom: 1rem;
     max-width: 80vw;
 }
+
+div.chatMessageWrapper ol,
+div.chatMessageWrapper ul,
 div.chatMessageWrapper p:not(:last-child) {
     margin-bottom: 16px;
 }
@@ -131,6 +134,12 @@ div.trainOfThought.primary p {
 div.trainOfThoughtElement {
     display: grid;
     grid-template-columns: auto 1fr;
+    align-items: start;
+}
+
+div.trainOfThoughtElement ol,
+div.trainOfThoughtElement ul {
+    margin: auto;
 }
 
 @media screen and (max-width: 768px) {
