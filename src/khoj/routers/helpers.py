@@ -988,6 +988,7 @@ async def text_to_image(
                 response = state.openai_client.images.generate(
                     prompt=improved_image_prompt,
                     model=text2image_model,
+                    style="vivid",
                     response_format="b64_json",
                     extra_headers=auth_header,
                 )
