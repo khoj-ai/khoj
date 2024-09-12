@@ -46,7 +46,7 @@
 
 ## See it in action
 
-![demo_chat](https://assets.khoj.dev/quadratic_equation_khoj_web.gif)
+![demo_chat](https://github.com/khoj-ai/khoj/blob/master/documentation/assets/img/quadratic_equation_khoj_web.gif?raw=true)
 
 Go to https://app.khoj.dev to see Khoj live.
 
