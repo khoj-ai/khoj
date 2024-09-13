@@ -128,8 +128,8 @@ User's Notes:
 ## --
 
 image_generation_improve_prompt_base = """
-You are a talented creator with the ability to describe images to compose in vivid, fine detail.
-Use the provided context and user prompt to generate a more detailed prompt to create an image:
+You are a talented media artist with the ability to describe images to compose in professional, fine detail.
+Generate a vivid description of the image to be rendered using the provided context and user prompt below:
 
 Today's Date: {current_date}
 User's Location: {location}
@@ -145,10 +145,10 @@ Conversation Log:
 
 User Prompt: "{query}"
 
-Now generate an improved prompt describing the image to generate in vivid, fine detail.
+Now generate an professional description of the image to generate in vivid, fine detail.
 - Use today's date, user's location, user's notes and online references to weave in any context that will improve the image generation.
 - Retain any important information and follow any instructions in the conversation log or user prompt.
-- Add specific, fine position details to compose the image.
+- Add specific, fine position details. Mention painting style, camera parameters to compose the image.
 - Ensure your improved prompt is in prose format."""
 
 image_generation_improve_prompt_dalle = PromptTemplate.from_template(
