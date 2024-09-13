@@ -763,7 +763,7 @@ class ConversationAdapters:
 
     @staticmethod
     async def aget_all_conversation_configs():
-        return await sync_to_async(list)(ChatModelOptions.objects.all())
+        return await sync_to_async(list)(ChatModelOptions.objects.prefetch_related("openai_config").all())
 
     @staticmethod
     def get_vision_enabled_config():
