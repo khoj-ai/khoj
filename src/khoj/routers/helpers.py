@@ -1,13 +1,10 @@
 import asyncio
-import base64
 import hashlib
-import io
 import json
 import logging
 import math
 import os
 import re
-import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from enum import Enum
@@ -17,7 +14,6 @@ from typing import (
     Annotated,
     Any,
     AsyncGenerator,
-    Callable,
     Dict,
     Iterator,
     List,
@@ -25,17 +21,15 @@ from typing import (
     Tuple,
     Union,
 )
-from urllib.parse import parse_qs, urlencode, urljoin, urlparse
+from urllib.parse import parse_qs, urljoin, urlparse
 
 import cron_descriptor
-import openai
 import pytz
 import requests
 from apscheduler.job import Job
 from apscheduler.triggers.cron import CronTrigger
 from asgiref.sync import sync_to_async
 from fastapi import Depends, Header, HTTPException, Request, UploadFile
-from PIL import Image
 from starlette.authentication import has_required_scope
 from starlette.requests import URL
 
@@ -94,7 +88,6 @@ from khoj.processor.conversation.utils import (
 )
 from khoj.processor.speech.text_to_speech import is_eleven_labs_enabled
 from khoj.routers.email import is_resend_enabled, send_task_email
-from khoj.routers.storage import upload_image
 from khoj.routers.twilio import is_twilio_enabled
 from khoj.search_type import text_search
 from khoj.utils import state
@@ -102,8 +95,6 @@ from khoj.utils.config import OfflineChatProcessorModel
 from khoj.utils.helpers import (
     LRU,
     ConversationCommand,
-    ImageIntentType,
-    convert_image_to_webp,
     is_none_or_empty,
     is_valid_url,
     log_telemetry,
@@ -920,181 +911,6 @@ def generate_chat_response(
         raise HTTPException(status_code=500, detail=str(e))
 
     return chat_response, metadata
-
-
-async def text_to_image(
-    message: str,
-    user: KhojUser,
-    conversation_log: dict,
-    location_data: LocationData,
-    references: List[Dict[str, Any]],
-    online_results: Dict[str, Any],
-    subscribed: bool = False,
-    send_status_func: Optional[Callable] = None,
-    uploaded_image_url: Optional[str] = None,
-):
-    status_code = 200
-    image = None
-    response = None
-    image_url = None
-    intent_type = ImageIntentType.TEXT_TO_IMAGE_V3
-
-    text_to_image_config = await ConversationAdapters.aget_user_text_to_image_model(user)
-    if not text_to_image_config:
-        # If the user has not configured a text to image model, return an unsupported on server error
-        status_code = 501
-        message = "Failed to generate image. Setup image generation on the server."
-        yield image_url or image, status_code, message, intent_type.value
-        return
-
-    text2image_model = text_to_image_config.model_name
-    chat_history = ""
-    for chat in conversation_log.get("chat", [])[-4:]:
-        if chat["by"] == "khoj" and chat["intent"].get("type") in ["remember", "reminder"]:
-            chat_history += f"Q: {chat['intent']['query']}\n"
-            chat_history += f"A: {chat['message']}\n"
-        elif chat["by"] == "khoj" and "text-to-image" in chat["intent"].get("type"):
-            chat_history += f"Q: Prompt: {chat['intent']['query']}\n"
-            chat_history += f"A: Improved Prompt: {chat['intent']['inferred-queries'][0]}\n"
-
-    if send_status_func:
-        async for event in send_status_func("**Enhancing the Painting Prompt**"):
-            yield {ChatEvent.STATUS: event}
-    improved_image_prompt = await generate_better_image_prompt(
-        message,
-        chat_history,
-        location_data=location_data,
-        note_references=references,
-        online_results=online_results,
-        model_type=text_to_image_config.model_type,
-        subscribed=subscribed,
-        uploaded_image_url=uploaded_image_url,
-    )
-
-    if send_status_func:
-        async for event in send_status_func(f"**Painting to Imagine**:\n{improved_image_prompt}"):
-            yield {ChatEvent.STATUS: event}
-
-    if text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
-        with timer("Generate image with OpenAI", logger):
-            if text_to_image_config.api_key:
-                api_key = text_to_image_config.api_key
-            elif text_to_image_config.openai_config:
-                api_key = text_to_image_config.openai_config.api_key
-            elif state.openai_client:
-                api_key = state.openai_client.api_key
-            auth_header = {"Authorization": f"Bearer {api_key}"} if api_key else {}
-            try:
-                response = state.openai_client.images.generate(
-                    prompt=improved_image_prompt,
-                    model=text2image_model,
-                    style="vivid",
-                    response_format="b64_json",
-                    extra_headers=auth_header,
-                )
-                image = response.data[0].b64_json
-                # Decode base64 png and convert it to webp for faster loading
-                webp_image_bytes = convert_image_to_webp(base64.b64decode(image))
-            except openai.OpenAIError or openai.BadRequestError or openai.APIConnectionError as e:
-                if "content_policy_violation" in e.message:
-                    logger.error(f"Image Generation blocked by OpenAI: {e}")
-                    status_code = e.status_code  # type: ignore
-                    message = f"Image generation blocked by OpenAI: {e.message}"  # type: ignore
-                    yield image_url or image, status_code, message, intent_type.value
-                    return
-                else:
-                    logger.error(f"Image Generation failed with {e}", exc_info=True)
-                    message = f"Image generation failed with OpenAI error: {e.message}"  # type: ignore
-                    status_code = e.status_code  # type: ignore
-                    yield image_url or image, status_code, message, intent_type.value
-                    return
-
-    elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.STABILITYAI:
-        with timer("Generate image with Stability AI", logger):
-            try:
-                response = requests.post(
-                    f"https://api.stability.ai/v2beta/stable-image/generate/sd3",
-                    headers={"authorization": f"Bearer {text_to_image_config.api_key}", "accept": "image/*"},
-                    files={"none": ""},
-                    data={
-                        "prompt": improved_image_prompt,
-                        "model": text2image_model,
-                        "mode": "text-to-image",
-                        "output_format": "png",
-                        "aspect_ratio": "1:1",
-                    },
-                )
-                # Convert png to webp for faster loading
-                webp_image_bytes = convert_image_to_webp(response.content)
-            except requests.RequestException as e:
-                logger.error(f"Image Generation failed with {e}", exc_info=True)
-                message = f"Image generation failed with Stability AI error: {e}"
-                status_code = e.status_code  # type: ignore
-                yield image_url or image, status_code, message, intent_type.value
-                return
-
-    elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.REPLICATE:
-        with timer("Generate image using Replicate", logger):
-            try:
-                # Create image generation task on Replicate
-                create_prediction_url = f"https://api.replicate.com/v1/models/{text2image_model}/predictions"
-                headers = {
-                    "Authorization": f"Bearer {text_to_image_config.api_key}",
-                    "Content-Type": "application/json",
-                }
-                json = {
-                    "input": {
-                        "prompt": improved_image_prompt,
-                        "num_outputs": 1,
-                        "aspect_ratio": "1:1",
-                        "output_format": "webp",
-                        "output_quality": 100,
-                    }
-                }
-                create_prediction = requests.post(create_prediction_url, headers=headers, json=json).json()
-
-                # Get status of image generation task
-                get_prediction_url = create_prediction["urls"]["get"]
-                get_prediction = requests.get(get_prediction_url, headers=headers).json()
-                status = get_prediction["status"]
-                retry_count = 1
-
-                # Poll the image generation task for completion status
-                while status not in ["succeeded", "failed", "canceled"] and retry_count < 20:
-                    time.sleep(2)
-                    get_prediction = requests.get(get_prediction_url, headers=headers).json()
-                    status = get_prediction["status"]
-                    retry_count += 1
-
-                # Raise exception if the image generation task fails
-                if status != "succeeded":
-                    if retry_count >= 10:
-                        raise requests.RequestException("Image generation timed out")
-                    raise requests.RequestException(f"Image generation failed with status: {status}")
-
-                # Get the generated image
-                image_url = (
-                    get_prediction["output"][0]
-                    if isinstance(get_prediction["output"], list)
-                    else get_prediction["output"]
-                )
-                webp_image_bytes = io.BytesIO(requests.get(image_url).content).getvalue()
-            except requests.RequestException as e:
-                logger.error(f"Image Generation failed with {e}", exc_info=True)
-                message = f"Image generation for {text2image_model} failed with Replicate API error: {e}"
-                status_code = 500
-                yield image_url or image, status_code, message, intent_type.value
-                return
-
-    with timer("Upload image to S3", logger):
-        image_url = upload_image(webp_image_bytes, user.uuid)
-    if image_url:
-        intent_type = ImageIntentType.TEXT_TO_IMAGE2
-    else:
-        intent_type = ImageIntentType.TEXT_TO_IMAGE_V3
-        image = base64.b64encode(webp_image_bytes).decode("utf-8")
-
-    yield image_url or image, status_code, improved_image_prompt, intent_type.value
 
 
 class ApiUserRateLimiter:
