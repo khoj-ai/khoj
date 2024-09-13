@@ -31,6 +31,7 @@ from khoj.database.models import ChatModelOptions, KhojUser, SpeechToTextModelOp
 from khoj.processor.conversation.anthropic.anthropic_chat import (
     extract_questions_anthropic,
 )
+from khoj.processor.conversation.google.gemini_chat import extract_questions_gemini
 from khoj.processor.conversation.offline.chat_model import extract_questions_offline
 from khoj.processor.conversation.offline.whisper import transcribe_audio_offline
 from khoj.processor.conversation.openai.gpt import extract_questions
@@ -417,6 +418,18 @@ async def extract_references_and_questions(
                 api_key=api_key,
                 conversation_log=meta_log,
                 location_data=location_data,
+                user=user,
+            )
+        elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
+            api_key = conversation_config.openai_config.api_key
+            chat_model = conversation_config.chat_model
+            inferred_queries = extract_questions_gemini(
+                defiltered_query,
+                model=chat_model,
+                api_key=api_key,
+                conversation_log=meta_log,
+                location_data=location_data,
+                max_tokens=conversation_config.max_prompt_size,
                 user=user,
             )
 

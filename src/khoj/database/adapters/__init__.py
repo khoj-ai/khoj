@@ -973,7 +973,7 @@ class ConversationAdapters:
         if conversation_config is None:
             conversation_config = ConversationAdapters.get_default_conversation_config()
 
-        if conversation_config.model_type == "offline":
+        if conversation_config.model_type == ChatModelOptions.ModelType.OFFLINE:
             if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
                 chat_model = conversation_config.chat_model
                 max_tokens = conversation_config.max_prompt_size
@@ -982,7 +982,12 @@ class ConversationAdapters:
             return conversation_config
 
         if (
-            conversation_config.model_type == "openai" or conversation_config.model_type == "anthropic"
+            conversation_config.model_type
+            in [
+                ChatModelOptions.ModelType.ANTHROPIC,
+                ChatModelOptions.ModelType.OPENAI,
+                ChatModelOptions.ModelType.GOOGLE,
+            ]
         ) and conversation_config.openai_config:
             return conversation_config
 
