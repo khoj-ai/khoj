@@ -1,6 +1,5 @@
 import logging
 from threading import Thread
-from typing import Dict, List
 
 import google.generativeai as genai
 from tenacity import (
@@ -79,6 +78,7 @@ def gemini_llm_thread(
         model_kwargs = model_kwargs or dict()
         model_kwargs["temperature"] = temperature
         model_kwargs["max_output_tokens"] = max_tokens
+        model_kwargs["stop_sequences"] = ["Notes:\n["]
         model = genai.GenerativeModel(model_name, generation_config=model_kwargs, system_instruction=system_prompt)
 
         formatted_messages = [{"role": message.role, "parts": [message.content]} for message in messages]
@@ -87,7 +87,6 @@ def gemini_llm_thread(
         # the last message is considered to be the current prompt
         for chunk in chat_session.send_message(formatted_messages[-1]["parts"][0], stream=True):
             g.send(chunk.text)
-        g.close()
     except Exception as e:
         logger.error(f"Error in gemini_llm_thread: {e}", exc_info=True)
     finally:

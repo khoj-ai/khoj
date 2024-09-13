@@ -720,7 +720,7 @@ def send_message_to_model_wrapper_sync(
     max_tokens = conversation_config.max_prompt_size
     vision_available = conversation_config.vision_enabled
 
-    if conversation_config.model_type == "offline":
+    if conversation_config.model_type == ChatModelOptions.ModelType.OFFLINE:
         if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
             state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
 
