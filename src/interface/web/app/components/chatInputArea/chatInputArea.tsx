@@ -1,9 +1,7 @@
 import styles from "./chatInputArea.module.css";
 import React, { useEffect, useRef, useState } from "react";
 
-import { uploadDataForIndexing } from "../../common/chatFunctions";
-import { Progress } from "@/components/ui/progress";
-
+import DOMPurify from "dompurify";
 import "katex/dist/katex.min.css";
 import {
     ArrowRight,
@@ -33,8 +31,6 @@ import {
     CommandSeparator,
 } from "@/components/ui/command";
 
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -43,12 +39,17 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent } from "@/components/ui/popover";
 import { PopoverTrigger } from "@radix-ui/react-popover";
-import LoginPrompt from "../loginPrompt/loginPrompt";
+import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { InlineLoading } from "../loading/loading";
 import { convertToBGClass } from "@/app/common/colorUtils";
+
+import LoginPrompt from "../loginPrompt/loginPrompt";
+import { uploadDataForIndexing } from "../../common/chatFunctions";
+import { InlineLoading } from "../loading/loading";
 
 export interface ChatOptions {
     [key: string]: string;
@@ -177,7 +178,7 @@ export default function ChatInputArea(props: ChatInputProps) {
             const file_extension = file.name.split(".").pop();
             if (image_endings.includes(file_extension || "")) {
                 setImageUploaded(true);
-                setImagePath(URL.createObjectURL(file));
+                setImagePath(DOMPurify.sanitize(URL.createObjectURL(file)));
                 return;
             }
         }

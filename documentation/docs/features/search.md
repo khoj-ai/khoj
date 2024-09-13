@@ -14,4 +14,4 @@ Take advantage of super fast search to find relevant notes and documents from yo
 2. Query using natural language to find relevant entries from your knowledge base. Use [query filters](/miscellaneous/advanced#query-filters) to limit entries to search
 
 ### Demo
-![](/img/khoj_search_on_web.png ':size=400px')
+![](/img/search_agents_markdown.png ':size=400px')

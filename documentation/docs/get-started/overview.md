@@ -31,11 +31,10 @@ Welcome to the Khoj Docs! This is the best place to get setup and explore Khoj's
 - Quickly [find](/features/search) relevant notes and documents using natural language
 - It understands pdf, plaintext, markdown, org-mode files, [notion pages](/data-sources/notion_integration) and [github repositories](/data-sources/github_integration)
 - Access it from your [Emacs](/clients/emacs), [Obsidian](/clients/obsidian), the [Khoj desktop app](/clients/desktop), or [any web browser](/clients/web)
-- Use [cloud](https://app.khoj.dev/login) to access your Khoj anytime from anywhere, [self-host](/get-started/setup) on consumer hardware for privacy
+- Use our [cloud](https://app.khoj.dev/login) instance to access your Khoj anytime from anywhere, [self-host](/get-started/setup) on consumer hardware for privacy
+
+![demo_chat](https://assets.khoj.dev/quadratic_equation_khoj_web.gif)
 
 ## Quickstart
 - [Try Khoj Cloud](https://app.khoj.dev) to get started quickly
 - [Read these instructions](/get-started/setup) to self-host a private instance of Khoj
-
-## At a Glance
-![demo_chat](https://assets.khoj.dev/using_khoj_for_studying.gif)

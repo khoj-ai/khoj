@@ -206,11 +206,32 @@ Using Ollama? See the [Ollama Integration](/advanced/ollama) section for more cu
 :::
 
 1. Go to the [OpenAI settings](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/) in the server admin settings to add an OpenAI processor conversation config. This is where you set your API key and server API base URL. The API base URL is optional - it's only relevant if you're using another OpenAI-compatible proxy server.
+
+![example configuration for openai processor](/img/example_openai_processor_config.png)
+
 2. Go over to configure your [chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/). Set the `chat-model` field to a supported chat model[^1] of your choice. For example, you can specify `gpt-4o` if you're using OpenAI.
     - Make sure to set the `model-type` field to `OpenAI`.
     - The `tokenizer` and `max-prompt-size` fields are optional. Set them only if you're sure of the tokenizer or token limit for the model you're using. Contact us if you're unsure what to do here.
+    - If your model supports vision, set the `vision enabled` field to `true`. This is currently only supported for OpenAI models with vision capabilities.
+
+![example configuration for chat model options](/img/example_chatmodel_option.png)
+
+##### Configure Anthropic Chat
+1. Go to the [OpenAI settings](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/) in the server admin settings to add an OpenAI processor conversation config. This is kind of a misnomer, we know. Do not configure the API base url. Just add your API key and give the configuration a friendly name.
+2. Go over to configure your [chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/). Set the `chat-model` field to a supported chat model by Anthropic of your choice. For example, you can specify `claude-3-5-sonnet-20240620`.
+    - Make sure to set the `model-type` field to `Anthropic`.
+    - The `tokenizer` and `max-prompt-size` fields are optional. Set them only if you're sure of the tokenizer or token limit for the model you're using. Contact us if you're unsure what to do here.
 
 ##### Configure Offline Chat
+
+Offline chat stays completely private and can work without internet using open-source models.
+
+**System Requirements**:
+- Minimum 8 GB RAM. Recommend **16Gb VRAM**
+- Minimum **5 GB of Disk** available
+- A CPU supporting [AVX or AVX2 instructions](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions) is required
+- An Nvidia, AMD GPU or a Mac M1+ machine would significantly speed up chat response times
+
 Any chat model on Huggingface in GGUF format can be used for local chat. Here's how you can set it up:
 
 1. No need to setup a conversation processor config!
