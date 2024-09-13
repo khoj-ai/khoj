@@ -1,8 +1,0 @@
-{
-  "label": "Data Sources",
-  "position": 5,
-  "link": {
-    "type": "generated-index",
-    "description": "Online data sources for indexing via Khoj"
-  }
-}

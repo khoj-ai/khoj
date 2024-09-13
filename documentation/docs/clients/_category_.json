@@ -1,8 +1,0 @@
-{
-  "label": "Clients",
-  "position": 4,
-  "link": {
-    "type": "generated-index",
-    "description": "Different ways for indexing data with the Khoj backend. To see online data sources, go to https://docs.khoj.dev/category/data-sources"
-  }
-}
