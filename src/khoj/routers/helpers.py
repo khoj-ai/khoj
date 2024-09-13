@@ -1217,11 +1217,6 @@ def scheduled_chat(
             token = token[0].token
         headers["Authorization"] = f"Bearer {token}"
 
-    # Log request details
-    logger.info(f"POST URL: {url}")
-    logger.info(f"Headers: {headers}")
-    logger.info(f"Payload: {json_payload}")
-
     # Call the chat API endpoint with authenticated user token and query
     raw_response = requests.post(url, headers=headers, json=json_payload, allow_redirects=False)
 
@@ -1230,14 +1225,6 @@ def scheduled_chat(
         redirect_url = raw_response.headers["Location"]
         logger.info(f"Redirecting to {redirect_url}")
         raw_response = requests.post(redirect_url, headers=headers, json=json_payload)
-
-    # Log response details
-    logger.info(f"Response status code: {raw_response.status_code}")
-    logger.info(f"Response headers: {raw_response.headers}")
-    logger.info(f"Response text: {raw_response.text}")
-    if raw_response.history:
-        for resp in raw_response.history:
-            logger.info(f"Redirected from {resp.url} with status code {resp.status_code}")
 
     # Stop if the chat API call was not successful
     if raw_response.status_code != 200:
