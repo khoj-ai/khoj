@@ -18,6 +18,11 @@ div.chatMessageWrapper p:not(:last-child) {
     margin-bottom: 16px;
 }
 
+/* Override some link styling by Katex to improve rendering */
+div.chatMessageWrapper a span {
+    display: revert !important;
+}
+
 div.khojfullHistory {
     border-width: 1px;
     padding-left: 4px;

@@ -7,6 +7,7 @@ from collections import defaultdict
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import aiohttp
+import requests
 from bs4 import BeautifulSoup
 from markdownify import markdownify
 
@@ -94,7 +95,7 @@ async def search_online(
 
     # Read, extract relevant info from the retrieved web pages
     if webpages:
-        webpage_links = [link for link, _, _ in webpages]
+        webpage_links = set([link for link, _, _ in webpages])
         logger.info(f"Reading web pages at: {list(webpage_links)}")
         if send_status_func:
             webpage_links_str = "\n- " + "\n- ".join(list(webpage_links))

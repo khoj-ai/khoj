@@ -45,15 +45,28 @@ def completion_with_backoff(
         openai_clients[client_key] = client
 
     formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
+    stream = True
+
+    # Update request parameters for compatability with o1 model series
+    # Refer: https://platform.openai.com/docs/guides/reasoning/beta-limitations
+    if model.startswith("o1"):
+        stream = False
+        temperature = 1
+        model_kwargs.pop("stop", None)
+        model_kwargs.pop("response_format", None)
 
     chat = client.chat.completions.create(
-        stream=True,
+        stream=stream,
         messages=formatted_messages,  # type: ignore
         model=model,  # type: ignore
         temperature=temperature,
         timeout=20,
         **(model_kwargs or dict()),
     )
+
+    if not stream:
+        return chat.choices[0].message.content
+
     aggregated_response = ""
     for chunk in chat:
         if len(chunk.choices) == 0:
@@ -112,9 +125,18 @@ def llm_thread(g, messages, model_name, temperature, openai_api_key=None, api_ba
             client: openai.OpenAI = openai_clients[client_key]
 
         formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
+        stream = True
+
+        # Update request parameters for compatability with o1 model series
+        # Refer: https://platform.openai.com/docs/guides/reasoning/beta-limitations
+        if model_name.startswith("o1"):
+            stream = False
+            temperature = 1
+            model_kwargs.pop("stop", None)
+            model_kwargs.pop("response_format", None)
 
         chat = client.chat.completions.create(
-            stream=True,
+            stream=stream,
             messages=formatted_messages,
             model=model_name,  # type: ignore
             temperature=temperature,
@@ -122,14 +144,17 @@ def llm_thread(g, messages, model_name, temperature, openai_api_key=None, api_ba
             **(model_kwargs or dict()),
         )
 
-        for chunk in chat:
-            if len(chunk.choices) == 0:
-                continue
-            delta_chunk = chunk.choices[0].delta
-            if isinstance(delta_chunk, str):
-                g.send(delta_chunk)
-            elif delta_chunk.content:
-                g.send(delta_chunk.content)
+        if not stream:
+            g.send(chat.choices[0].message.content)
+        else:
+            for chunk in chat:
+                if len(chunk.choices) == 0:
+                    continue
+                delta_chunk = chunk.choices[0].delta
+                if isinstance(delta_chunk, str):
+                    g.send(delta_chunk)
+                elif delta_chunk.content:
+                    g.send(delta_chunk.content)
     except Exception as e:
         logger.error(f"Error in llm_thread: {e}", exc_info=True)
     finally:

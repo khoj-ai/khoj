@@ -87,6 +87,7 @@ class ChatModelOptions(BaseModel):
         OPENAI = "openai"
         OFFLINE = "offline"
         ANTHROPIC = "anthropic"
+        GOOGLE = "google"
 
     max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
     subscribed_max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
@@ -279,6 +280,7 @@ class TextToImageModelConfig(BaseModel):
     class ModelType(models.TextChoices):
         OPENAI = "openai"
         STABILITYAI = "stability-ai"
+        REPLICATE = "replicate"
 
     model_name = models.CharField(max_length=200, default="dall-e-3")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OPENAI)

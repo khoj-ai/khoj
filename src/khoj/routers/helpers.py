@@ -1,7 +1,5 @@
 import asyncio
-import base64
 import hashlib
-import io
 import json
 import logging
 import math
@@ -16,7 +14,6 @@ from typing import (
     Annotated,
     Any,
     AsyncGenerator,
-    Callable,
     Dict,
     Iterator,
     List,
@@ -24,17 +21,15 @@ from typing import (
     Tuple,
     Union,
 )
-from urllib.parse import parse_qs, urlencode, urljoin, urlparse
+from urllib.parse import parse_qs, urljoin, urlparse
 
 import cron_descriptor
-import openai
 import pytz
 import requests
 from apscheduler.job import Job
 from apscheduler.triggers.cron import CronTrigger
 from asgiref.sync import sync_to_async
 from fastapi import Depends, Header, HTTPException, Request, UploadFile
-from PIL import Image
 from starlette.authentication import has_required_scope
 from starlette.requests import URL
 
@@ -76,6 +71,10 @@ from khoj.processor.conversation.anthropic.anthropic_chat import (
     anthropic_send_message_to_model,
     converse_anthropic,
 )
+from khoj.processor.conversation.google.gemini_chat import (
+    converse_gemini,
+    gemini_send_message_to_model,
+)
 from khoj.processor.conversation.offline.chat_model import (
     converse_offline,
     send_message_to_model_offline,
@@ -84,11 +83,11 @@ from khoj.processor.conversation.openai.gpt import converse, send_message_to_mod
 from khoj.processor.conversation.utils import (
     ThreadedGenerator,
     generate_chatml_messages_with_context,
+    remove_json_codeblock,
     save_to_conversation_log,
 )
 from khoj.processor.speech.text_to_speech import is_eleven_labs_enabled
 from khoj.routers.email import is_resend_enabled, send_task_email
-from khoj.routers.storage import upload_image
 from khoj.routers.twilio import is_twilio_enabled
 from khoj.search_type import text_search
 from khoj.utils import state
@@ -96,8 +95,6 @@ from khoj.utils.config import OfflineChatProcessorModel
 from khoj.utils.helpers import (
     LRU,
     ConversationCommand,
-    ImageIntentType,
-    convert_image_to_webp,
     is_none_or_empty,
     is_valid_url,
     log_telemetry,
@@ -136,7 +133,7 @@ async def is_ready_to_chat(user: KhojUser):
         await ConversationAdapters.aget_default_conversation_config()
     )
 
-    if user_conversation_config and user_conversation_config.model_type == "offline":
+    if user_conversation_config and user_conversation_config.model_type == ChatModelOptions.ModelType.OFFLINE:
         chat_model = user_conversation_config.chat_model
         max_tokens = user_conversation_config.max_prompt_size
         if state.offline_chat_processor_config is None:
@@ -146,7 +143,14 @@ async def is_ready_to_chat(user: KhojUser):
 
     if (
         user_conversation_config
-        and (user_conversation_config.model_type == "openai" or user_conversation_config.model_type == "anthropic")
+        and (
+            user_conversation_config.model_type
+            in [
+                ChatModelOptions.ModelType.OPENAI,
+                ChatModelOptions.ModelType.ANTHROPIC,
+                ChatModelOptions.ModelType.GOOGLE,
+            ]
+        )
         and user_conversation_config.openai_config
     ):
         return True
@@ -287,9 +291,7 @@ async def aget_relevant_information_sources(
 
     try:
         response = response.strip()
-        # Remove any markdown json codeblock formatting if present (useful for gemma-2)
-        if response.startswith("```json"):
-            response = response[7:-3]
+        response = remove_json_codeblock(response)
         response = json.loads(response)
         response = [q.strip() for q in response["source"] if q.strip()]
         if not isinstance(response, list) or not response or len(response) == 0:
@@ -342,7 +344,9 @@ async def aget_relevant_output_modes(
         response = await send_message_to_model_wrapper(relevant_mode_prompt, response_type="json_object")
 
     try:
-        response = json.loads(response.strip())
+        response = response.strip()
+        response = remove_json_codeblock(response)
+        response = json.loads(response)
 
         if is_none_or_empty(response):
             return ConversationCommand.Text
@@ -422,9 +426,7 @@ async def generate_online_subqueries(
     # Validate that the response is a non-empty, JSON-serializable list
     try:
         response = response.strip()
-        # Remove any markdown json codeblock formatting if present (useful for gemma-2)
-        if response.startswith("```json") and response.endswith("```"):
-            response = response[7:-3]
+        response = remove_json_codeblock(response)
         response = json.loads(response)
         response = [q.strip() for q in response["queries"] if q.strip()]
         if not isinstance(response, list) or not response or len(response) == 0:
@@ -558,7 +560,7 @@ async def generate_better_image_prompt(
             references=user_references,
             online_results=simplified_online_results,
         )
-    elif model_type == TextToImageModelConfig.ModelType.STABILITYAI:
+    elif model_type in [TextToImageModelConfig.ModelType.STABILITYAI, TextToImageModelConfig.ModelType.REPLICATE]:
         image_prompt = prompts.image_generation_improve_prompt_sd.format(
             query=q,
             chat_history=conversation_history,
@@ -607,9 +609,10 @@ async def send_message_to_model_wrapper(
         else conversation_config.max_prompt_size
     )
     tokenizer = conversation_config.tokenizer
+    model_type = conversation_config.model_type
     vision_available = conversation_config.vision_enabled
 
-    if conversation_config.model_type == "offline":
+    if model_type == ChatModelOptions.ModelType.OFFLINE:
         if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
             state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
 
@@ -633,7 +636,7 @@ async def send_message_to_model_wrapper(
             response_type=response_type,
         )
 
-    elif conversation_config.model_type == "openai":
+    elif model_type == ChatModelOptions.ModelType.OPENAI:
         openai_chat_config = conversation_config.openai_config
         api_key = openai_chat_config.api_key
         api_base_url = openai_chat_config.api_base_url
@@ -657,7 +660,7 @@ async def send_message_to_model_wrapper(
         )
 
         return openai_response
-    elif conversation_config.model_type == "anthropic":
+    elif model_type == ChatModelOptions.ModelType.ANTHROPIC:
         api_key = conversation_config.openai_config.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
@@ -666,6 +669,7 @@ async def send_message_to_model_wrapper(
             max_prompt_size=max_tokens,
             tokenizer_name=tokenizer,
             vision_enabled=vision_available,
+            uploaded_image_url=uploaded_image_url,
             model_type=conversation_config.model_type,
         )
 
@@ -673,6 +677,21 @@ async def send_message_to_model_wrapper(
             messages=truncated_messages,
             api_key=api_key,
             model=chat_model,
+        )
+    elif model_type == ChatModelOptions.ModelType.GOOGLE:
+        api_key = conversation_config.openai_config.api_key
+        truncated_messages = generate_chatml_messages_with_context(
+            user_message=message,
+            system_message=system_message,
+            model_name=chat_model,
+            max_prompt_size=max_tokens,
+            tokenizer_name=tokenizer,
+            vision_enabled=vision_available,
+            uploaded_image_url=uploaded_image_url,
+        )
+
+        return gemini_send_message_to_model(
+            messages=truncated_messages, api_key=api_key, model=chat_model, response_type=response_type
         )
     else:
         raise HTTPException(status_code=500, detail="Invalid conversation config")
@@ -692,7 +711,7 @@ def send_message_to_model_wrapper_sync(
     max_tokens = conversation_config.max_prompt_size
     vision_available = conversation_config.vision_enabled
 
-    if conversation_config.model_type == "offline":
+    if conversation_config.model_type == ChatModelOptions.ModelType.OFFLINE:
         if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
             state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
 
@@ -714,7 +733,7 @@ def send_message_to_model_wrapper_sync(
             response_type=response_type,
         )
 
-    elif conversation_config.model_type == "openai":
+    elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
         api_key = conversation_config.openai_config.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
@@ -730,7 +749,7 @@ def send_message_to_model_wrapper_sync(
 
         return openai_response
 
-    elif conversation_config.model_type == "anthropic":
+    elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
         api_key = conversation_config.openai_config.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
@@ -742,6 +761,22 @@ def send_message_to_model_wrapper_sync(
         )
 
         return anthropic_send_message_to_model(
+            messages=truncated_messages,
+            api_key=api_key,
+            model=chat_model,
+        )
+
+    elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
+        api_key = conversation_config.openai_config.api_key
+        truncated_messages = generate_chatml_messages_with_context(
+            user_message=message,
+            system_message=system_message,
+            model_name=chat_model,
+            max_prompt_size=max_tokens,
+            vision_enabled=vision_available,
+        )
+
+        return gemini_send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
             model=chat_model,
@@ -811,7 +846,7 @@ def generate_chat_response(
                 agent=agent,
             )
 
-        elif conversation_config.model_type == "openai":
+        elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
             openai_chat_config = conversation_config.openai_config
             api_key = openai_chat_config.api_key
             chat_model = conversation_config.chat_model
@@ -834,9 +869,26 @@ def generate_chat_response(
                 vision_available=vision_available,
             )
 
-        elif conversation_config.model_type == "anthropic":
+        elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
             api_key = conversation_config.openai_config.api_key
             chat_response = converse_anthropic(
+                compiled_references,
+                q,
+                online_results,
+                meta_log,
+                model=conversation_config.chat_model,
+                api_key=api_key,
+                completion_func=partial_completion,
+                conversation_commands=conversation_commands,
+                max_prompt_size=conversation_config.max_prompt_size,
+                tokenizer_name=conversation_config.tokenizer,
+                location_data=location_data,
+                user_name=user_name,
+                agent=agent,
+            )
+        elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
+            api_key = conversation_config.openai_config.api_key
+            chat_response = converse_gemini(
                 compiled_references,
                 q,
                 online_results,
@@ -859,129 +911,6 @@ def generate_chat_response(
         raise HTTPException(status_code=500, detail=str(e))
 
     return chat_response, metadata
-
-
-async def text_to_image(
-    message: str,
-    user: KhojUser,
-    conversation_log: dict,
-    location_data: LocationData,
-    references: List[Dict[str, Any]],
-    online_results: Dict[str, Any],
-    subscribed: bool = False,
-    send_status_func: Optional[Callable] = None,
-    uploaded_image_url: Optional[str] = None,
-):
-    status_code = 200
-    image = None
-    response = None
-    image_url = None
-    intent_type = ImageIntentType.TEXT_TO_IMAGE_V3
-
-    text_to_image_config = await ConversationAdapters.aget_user_text_to_image_model(user)
-    if not text_to_image_config:
-        # If the user has not configured a text to image model, return an unsupported on server error
-        status_code = 501
-        message = "Failed to generate image. Setup image generation on the server."
-        yield image_url or image, status_code, message, intent_type.value
-        return
-
-    text2image_model = text_to_image_config.model_name
-    chat_history = ""
-    for chat in conversation_log.get("chat", [])[-4:]:
-        if chat["by"] == "khoj" and chat["intent"].get("type") in ["remember", "reminder"]:
-            chat_history += f"Q: {chat['intent']['query']}\n"
-            chat_history += f"A: {chat['message']}\n"
-        elif chat["by"] == "khoj" and "text-to-image" in chat["intent"].get("type"):
-            chat_history += f"Q: Prompt: {chat['intent']['query']}\n"
-            chat_history += f"A: Improved Prompt: {chat['intent']['inferred-queries'][0]}\n"
-
-    if send_status_func:
-        async for event in send_status_func("**Enhancing the Painting Prompt**"):
-            yield {ChatEvent.STATUS: event}
-    improved_image_prompt = await generate_better_image_prompt(
-        message,
-        chat_history,
-        location_data=location_data,
-        note_references=references,
-        online_results=online_results,
-        model_type=text_to_image_config.model_type,
-        subscribed=subscribed,
-        uploaded_image_url=uploaded_image_url,
-    )
-
-    if send_status_func:
-        async for event in send_status_func(f"**Painting to Imagine**:\n{improved_image_prompt}"):
-            yield {ChatEvent.STATUS: event}
-
-    if text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
-        with timer("Generate image with OpenAI", logger):
-            if text_to_image_config.api_key:
-                api_key = text_to_image_config.api_key
-            elif text_to_image_config.openai_config:
-                api_key = text_to_image_config.openai_config.api_key
-            elif state.openai_client:
-                api_key = state.openai_client.api_key
-            auth_header = {"Authorization": f"Bearer {api_key}"} if api_key else {}
-            try:
-                response = state.openai_client.images.generate(
-                    prompt=improved_image_prompt,
-                    model=text2image_model,
-                    response_format="b64_json",
-                    extra_headers=auth_header,
-                )
-                image = response.data[0].b64_json
-                decoded_image = base64.b64decode(image)
-            except openai.OpenAIError or openai.BadRequestError or openai.APIConnectionError as e:
-                if "content_policy_violation" in e.message:
-                    logger.error(f"Image Generation blocked by OpenAI: {e}")
-                    status_code = e.status_code  # type: ignore
-                    message = f"Image generation blocked by OpenAI: {e.message}"  # type: ignore
-                    yield image_url or image, status_code, message, intent_type.value
-                    return
-                else:
-                    logger.error(f"Image Generation failed with {e}", exc_info=True)
-                    message = f"Image generation failed with OpenAI error: {e.message}"  # type: ignore
-                    status_code = e.status_code  # type: ignore
-                    yield image_url or image, status_code, message, intent_type.value
-                    return
-
-    elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.STABILITYAI:
-        with timer("Generate image with Stability AI", logger):
-            try:
-                response = requests.post(
-                    f"https://api.stability.ai/v2beta/stable-image/generate/sd3",
-                    headers={"authorization": f"Bearer {text_to_image_config.api_key}", "accept": "image/*"},
-                    files={"none": ""},
-                    data={
-                        "prompt": improved_image_prompt,
-                        "model": text2image_model,
-                        "mode": "text-to-image",
-                        "output_format": "png",
-                        "aspect_ratio": "1:1",
-                    },
-                )
-                decoded_image = response.content
-            except requests.RequestException as e:
-                logger.error(f"Image Generation failed with {e}", exc_info=True)
-                message = f"Image generation failed with Stability AI error: {e}"
-                status_code = e.status_code  # type: ignore
-                yield image_url or image, status_code, message, intent_type.value
-                return
-
-    with timer("Convert image to webp", logger):
-        # Convert png to webp for faster loading
-        webp_image_bytes = convert_image_to_webp(decoded_image)
-
-    with timer("Upload image to S3", logger):
-        image_url = upload_image(webp_image_bytes, user.uuid)
-    if image_url:
-        intent_type = ImageIntentType.TEXT_TO_IMAGE2
-    else:
-        intent_type = ImageIntentType.TEXT_TO_IMAGE_V3
-        image = base64.b64encode(webp_image_bytes).decode("utf-8")
-
-    yield image_url or image, status_code, improved_image_prompt, intent_type.value
 
 
 class ApiUserRateLimiter:
@@ -1217,11 +1146,6 @@ def scheduled_chat(
             token = token[0].token
         headers["Authorization"] = f"Bearer {token}"
 
-    # Log request details
-    logger.info(f"POST URL: {url}")
-    logger.info(f"Headers: {headers}")
-    logger.info(f"Payload: {json_payload}")
-
     # Call the chat API endpoint with authenticated user token and query
     raw_response = requests.post(url, headers=headers, json=json_payload, allow_redirects=False)
 
@@ -1230,14 +1154,6 @@ def scheduled_chat(
         redirect_url = raw_response.headers["Location"]
         logger.info(f"Redirecting to {redirect_url}")
         raw_response = requests.post(redirect_url, headers=headers, json=json_payload)
-
-    # Log response details
-    logger.info(f"Response status code: {raw_response.status_code}")
-    logger.info(f"Response headers: {raw_response.headers}")
-    logger.info(f"Response text: {raw_response.text}")
-    if raw_response.history:
-        for resp in raw_response.history:
-            logger.info(f"Redirected from {resp.url} with status code {resp.status_code}")
 
     # Stop if the chat API call was not successful
     if raw_response.status_code != 200:
