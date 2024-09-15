@@ -264,7 +264,10 @@ export default function Chat() {
 
             // Render error message as current message
             const errorMessage = (err as Error).message;
-            currentMessage.rawResponse = `Encountered Error: ${errorMessage}. Please try again later.`;
+            if (errorMessage.includes("Error in input stream"))
+                currentMessage.rawResponse = `Woops! The connection broke while I was writing my thoughts down. Maybe try again in a bit or dislike this message if the issue persists?`;
+            else
+                currentMessage.rawResponse = `Umm, not sure what just happened. I see this error message: ${errorMessage}. Could you try again or dislike this message if the issue persists?`;
 
             // Complete message streaming teardown properly
             currentMessage.completed = true;
