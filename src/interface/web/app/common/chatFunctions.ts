@@ -186,6 +186,11 @@ export function modifyFileFilterForConversation(
         });
 }
 
+interface NewConversationMetadata {
+    conversationId: string;
+    conversationUniqueId: string;
+}
+
 export async function createNewConversation(slug: string) {
     try {
         const response = await fetch(`/api/chat/sessions?client=web&agent_slug=${slug}`, {
@@ -194,9 +199,11 @@ export async function createNewConversation(slug: string) {
         if (!response.ok)
             throw new Error(`Failed to fetch chat sessions with status: ${response.status}`);
         const data = await response.json();
-        const conversationID = data.conversation_id;
-        if (!conversationID) throw new Error("Conversation ID not found in response");
-        return conversationID;
+        const uniqueId = data.unique_id;
+        const conversationId = data.conversation_id;
+        if (!uniqueId) throw new Error("Unique ID not found in response");
+        if (!conversationId) throw new Error("Conversation ID not found in response");
+        return { conversationId, conversationUniqueId: uniqueId } as NewConversationMetadata;
     } catch (error) {
         console.error("Error creating new conversation:", error);
         throw error;

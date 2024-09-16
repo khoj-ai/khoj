@@ -408,7 +408,7 @@ export const suggestionsData: Suggestion[] = [
         link: "",
     },
     {
-        type: SuggestionType.Code,
+        type: SuggestionType.Interviewing,
         color: suggestionToColorMap[SuggestionType.Interviewing] || DEFAULT_COLOR,
         description: "Provide tips for writing an effective resume.",
         link: "",
