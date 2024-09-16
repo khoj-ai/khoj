@@ -849,6 +849,7 @@ async def chat(
             location,
             partial(send_event, ChatEvent.STATUS),
             uploaded_image_url=uploaded_image_url,
+            agent=agent,
         ):
             if isinstance(result, dict) and ChatEvent.STATUS in result:
                 yield result[ChatEvent.STATUS]

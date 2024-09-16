@@ -32,6 +32,7 @@ def extract_questions(
     user: KhojUser = None,
     uploaded_image_url: Optional[str] = None,
     vision_enabled: bool = False,
+    personality_context: Optional[str] = None,
 ):
     """
     Infer search queries to retrieve relevant notes to answer user query
@@ -68,6 +69,7 @@ def extract_questions(
         yesterday_date=(today - timedelta(days=1)).strftime("%Y-%m-%d"),
         location=location,
         username=username,
+        personality_context=personality_context,
     )
 
     prompt = construct_structured_message(

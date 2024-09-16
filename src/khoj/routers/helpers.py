@@ -703,15 +703,13 @@ async def send_message_to_model_wrapper(
             model_type=conversation_config.model_type,
         )
 
-        openai_response = send_message_to_model(
+        return send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
             model=chat_model,
             response_type=response_type,
             api_base_url=api_base_url,
         )
-
-        return openai_response
     elif model_type == ChatModelOptions.ModelType.ANTHROPIC:
         api_key = conversation_config.openai_config.api_key
         truncated_messages = generate_chatml_messages_with_context(

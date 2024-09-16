@@ -211,6 +211,7 @@ Construct search queries to retrieve relevant information to answer the user's q
 - Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
 - When asked a meta, vague or random questions, search for a variety of broad topics to answer the user's question.
 - Share relevant search queries as a JSON list of strings. Do not say anything else.
+{personality_context}
 
 Current Date: {day_of_week}, {current_date}
 User's Location: {location}
@@ -261,7 +262,7 @@ Construct search queries to retrieve relevant information to answer the user's q
 - Break messages into multiple search queries when required to retrieve the relevant information.
 - Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
 - When asked a meta, vague or random questions, search for a variety of broad topics to answer the user's question.
-
+{personality_context}
 What searches will you perform to answer the users question? Respond with search queries as list of strings in a JSON object.
 Current Date: {day_of_week}, {current_date}
 User's Location: {location}
@@ -318,7 +319,7 @@ Construct search queries to retrieve relevant information to answer the user's q
 - Break messages into multiple search queries when required to retrieve the relevant information.
 - Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
 - When asked a meta, vague or random questions, search for a variety of broad topics to answer the user's question.
-
+{personality_context}
 What searches will you perform to answer the users question? Respond with a JSON object with the key "queries" mapping to a list of searches you would perform on the user's knowledge base. Just return the queries and nothing else.
 
 Current Date: {day_of_week}, {current_date}

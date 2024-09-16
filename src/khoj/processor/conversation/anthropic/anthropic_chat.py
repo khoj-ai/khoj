@@ -27,6 +27,7 @@ def extract_questions_anthropic(
     temperature=0.7,
     location_data: LocationData = None,
     user: KhojUser = None,
+    personality_context: Optional[str] = None,
 ):
     """
     Infer search queries to retrieve relevant notes to answer user query
@@ -59,6 +60,7 @@ def extract_questions_anthropic(
         yesterday_date=(today - timedelta(days=1)).strftime("%Y-%m-%d"),
         location=location,
         username=username,
+        personality_context=personality_context,
     )
 
     prompt = prompts.extract_questions_anthropic_user_message.format(

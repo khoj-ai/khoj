@@ -27,7 +27,13 @@ from khoj.database.adapters import (
     get_user_photo,
     get_user_search_model_or_default,
 )
-from khoj.database.models import ChatModelOptions, KhojUser, SpeechToTextModelOptions
+from khoj.database.models import (
+    Agent,
+    ChatModelOptions,
+    KhojUser,
+    SpeechToTextModelOptions,
+)
+from khoj.processor.conversation import prompts
 from khoj.processor.conversation.anthropic.anthropic_chat import (
     extract_questions_anthropic,
 )
@@ -333,6 +339,7 @@ async def extract_references_and_questions(
     location_data: LocationData = None,
     send_status_func: Optional[Callable] = None,
     uploaded_image_url: Optional[str] = None,
+    agent: Agent = None,
 ):
     user = request.user.object if request.user.is_authenticated else None
 
@@ -368,6 +375,8 @@ async def extract_references_and_questions(
     using_offline_chat = False
     logger.debug(f"Filters in query: {filters_in_query}")
 
+    personality_context = prompts.personality_context(personality=agent.personality) if agent else ""
+
     # Infer search queries from user message
     with timer("Extracting search queries took", logger):
         # If we've reached here, either the user has enabled offline chat or the openai model is enabled.
@@ -392,6 +401,7 @@ async def extract_references_and_questions(
                 location_data=location_data,
                 user=user,
                 max_prompt_size=conversation_config.max_prompt_size,
+                personality_context=personality_context,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
             openai_chat_config = conversation_config.openai_config
@@ -408,6 +418,7 @@ async def extract_references_and_questions(
                 user=user,
                 uploaded_image_url=uploaded_image_url,
                 vision_enabled=vision_enabled,
+                personality_context=personality_context,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
             api_key = conversation_config.openai_config.api_key
@@ -419,6 +430,7 @@ async def extract_references_and_questions(
                 conversation_log=meta_log,
                 location_data=location_data,
                 user=user,
+                personality_context=personality_context,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
             api_key = conversation_config.openai_config.api_key
@@ -431,6 +443,7 @@ async def extract_references_and_questions(
                 location_data=location_data,
                 max_tokens=conversation_config.max_prompt_size,
                 user=user,
+                personality_context=personality_context,
             )
 
     # Collate search results as context for GPT

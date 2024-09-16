@@ -2,7 +2,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 from threading import Thread
-from typing import Any, Iterator, List, Union
+from typing import Any, Iterator, List, Optional, Union
 
 from langchain.schema import ChatMessage
 from llama_cpp import Llama
@@ -33,6 +33,7 @@ def extract_questions_offline(
     user: KhojUser = None,
     max_prompt_size: int = None,
     temperature: float = 0.7,
+    personality_context: Optional[str] = None,
 ) -> List[str]:
     """
     Infer search queries to retrieve relevant notes to answer user query
@@ -73,6 +74,7 @@ def extract_questions_offline(
         this_year=today.year,
         location=location,
         username=username,
+        personality_context=personality_context,
     )
 
     messages = generate_chatml_messages_with_context(
