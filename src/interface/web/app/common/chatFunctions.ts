@@ -163,7 +163,7 @@ export function modifyFileFilterForConversation(
     const method = mode === "add" ? "POST" : "DELETE";
 
     const body = {
-        conversation_id: conversationId,
+        conversation_id: String(conversationId),
         filenames: filenames,
     };
     const addUrl = `/api/chat/conversation/file-filters/bulk`;
@@ -177,7 +177,6 @@ export function modifyFileFilterForConversation(
     })
         .then((response) => response.json())
         .then((data) => {
-            console.log("ADDEDFILES DATA: ", data);
             setAddedFiles(data);
         })
         .catch((err) => {
