@@ -203,7 +203,10 @@ export async function createNewConversation(slug: string) {
         const conversationId = data.conversation_id;
         if (!uniqueId) throw new Error("Unique ID not found in response");
         if (!conversationId) throw new Error("Conversation ID not found in response");
-        return { conversationId, conversationUniqueId: uniqueId } as NewConversationMetadata;
+        return {
+            conversationId: conversationId,
+            conversationUniqueId: uniqueId,
+        } as NewConversationMetadata;
     } catch (error) {
         console.error("Error creating new conversation:", error);
         throw error;
