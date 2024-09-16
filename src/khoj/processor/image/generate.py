@@ -8,7 +8,7 @@ import openai
 import requests
 
 from khoj.database.adapters import ConversationAdapters
-from khoj.database.models import KhojUser, TextToImageModelConfig
+from khoj.database.models import Agent, KhojUser, TextToImageModelConfig
 from khoj.routers.helpers import ChatEvent, generate_better_image_prompt
 from khoj.routers.storage import upload_image
 from khoj.utils import state
@@ -28,6 +28,7 @@ async def text_to_image(
     subscribed: bool = False,
     send_status_func: Optional[Callable] = None,
     uploaded_image_url: Optional[str] = None,
+    agent: Agent = None,
 ):
     status_code = 200
     image = None
@@ -67,6 +68,7 @@ async def text_to_image(
         model_type=text_to_image_config.model_type,
         subscribed=subscribed,
         uploaded_image_url=uploaded_image_url,
+        agent=agent,
     )
 
     if send_status_func:

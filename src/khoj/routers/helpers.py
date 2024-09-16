@@ -47,6 +47,7 @@ from khoj.database.adapters import (
     run_with_process_lock,
 )
 from khoj.database.models import (
+    Agent,
     ChatModelOptions,
     ClientApplication,
     Conversation,
@@ -258,7 +259,12 @@ async def acreate_title_from_query(query: str) -> str:
 
 
 async def aget_relevant_information_sources(
-    query: str, conversation_history: dict, is_task: bool, subscribed: bool, uploaded_image_url: str = None
+    query: str,
+    conversation_history: dict,
+    is_task: bool,
+    subscribed: bool,
+    uploaded_image_url: str = None,
+    agent: Agent = None,
 ):
     """
     Given a query, determine which of the available tools the agent should use in order to answer appropriately.
@@ -276,10 +282,15 @@ async def aget_relevant_information_sources(
     if uploaded_image_url:
         query = f"[placeholder for user attached image]\n{query}"
 
+    personality_context = (
+        prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
+    )
+
     relevant_tools_prompt = prompts.pick_relevant_information_collection_tools.format(
         query=query,
         tools=tool_options_str,
         chat_history=chat_history,
+        personality_context=personality_context,
     )
 
     with timer("Chat actor: Infer information sources to refer", logger):
@@ -313,7 +324,7 @@ async def aget_relevant_information_sources(
 
 
 async def aget_relevant_output_modes(
-    query: str, conversation_history: dict, is_task: bool = False, uploaded_image_url: str = None
+    query: str, conversation_history: dict, is_task: bool = False, uploaded_image_url: str = None, agent: Agent = None
 ):
     """
     Given a query, determine which of the available tools the agent should use in order to answer appropriately.
@@ -334,10 +345,15 @@ async def aget_relevant_output_modes(
     if uploaded_image_url:
         query = f"[placeholder for user attached image]\n{query}"
 
+    personality_context = (
+        prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
+    )
+
     relevant_mode_prompt = prompts.pick_relevant_output_mode.format(
         query=query,
         modes=mode_options_str,
         chat_history=chat_history,
+        personality_context=personality_context,
     )
 
     with timer("Chat actor: Infer output mode for chat response", logger):
@@ -364,7 +380,12 @@ async def aget_relevant_output_modes(
 
 
 async def infer_webpage_urls(
-    q: str, conversation_history: dict, location_data: LocationData, user: KhojUser, uploaded_image_url: str = None
+    q: str,
+    conversation_history: dict,
+    location_data: LocationData,
+    user: KhojUser,
+    uploaded_image_url: str = None,
+    agent: Agent = None,
 ) -> List[str]:
     """
     Infer webpage links from the given query
@@ -374,12 +395,17 @@ async def infer_webpage_urls(
     chat_history = construct_chat_history(conversation_history)
 
     utc_date = datetime.utcnow().strftime("%Y-%m-%d")
+    personality_context = (
+        prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
+    )
+
     online_queries_prompt = prompts.infer_webpages_to_read.format(
         current_date=utc_date,
         query=q,
         chat_history=chat_history,
         location=location,
         username=username,
+        personality_context=personality_context,
     )
 
     with timer("Chat actor: Infer webpage urls to read", logger):
@@ -400,7 +426,12 @@ async def infer_webpage_urls(
 
 
 async def generate_online_subqueries(
-    q: str, conversation_history: dict, location_data: LocationData, user: KhojUser, uploaded_image_url: str = None
+    q: str,
+    conversation_history: dict,
+    location_data: LocationData,
+    user: KhojUser,
+    uploaded_image_url: str = None,
+    agent: Agent = None,
 ) -> List[str]:
     """
     Generate subqueries from the given query
@@ -410,12 +441,17 @@ async def generate_online_subqueries(
     chat_history = construct_chat_history(conversation_history)
 
     utc_date = datetime.utcnow().strftime("%Y-%m-%d")
+    personality_context = (
+        prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
+    )
+
     online_queries_prompt = prompts.online_search_conversation_subqueries.format(
         current_date=utc_date,
         query=q,
         chat_history=chat_history,
         location=location,
         username=username,
+        personality_context=personality_context,
     )
 
     with timer("Chat actor: Generate online search subqueries", logger):
@@ -464,7 +500,7 @@ async def schedule_query(q: str, conversation_history: dict, uploaded_image_url:
         raise AssertionError(f"Invalid response for scheduling query: {raw_response}")
 
 
-async def extract_relevant_info(q: str, corpus: str, subscribed: bool) -> Union[str, None]:
+async def extract_relevant_info(q: str, corpus: str, subscribed: bool, agent: Agent = None) -> Union[str, None]:
     """
     Extract relevant information for a given query from the target corpus
     """
@@ -472,9 +508,14 @@ async def extract_relevant_info(q: str, corpus: str, subscribed: bool) -> Union[
     if is_none_or_empty(corpus) or is_none_or_empty(q):
         return None
 
+    personality_context = (
+        prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
+    )
+
     extract_relevant_information = prompts.extract_relevant_information.format(
         query=q,
         corpus=corpus.strip(),
+        personality_context=personality_context,
     )
 
     chat_model: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config()
@@ -490,7 +531,7 @@ async def extract_relevant_info(q: str, corpus: str, subscribed: bool) -> Union[
 
 
 async def extract_relevant_summary(
-    q: str, corpus: str, subscribed: bool = False, uploaded_image_url: str = None
+    q: str, corpus: str, subscribed: bool = False, uploaded_image_url: str = None, agent: Agent = None
 ) -> Union[str, None]:
     """
     Extract relevant information for a given query from the target corpus
@@ -499,9 +540,14 @@ async def extract_relevant_summary(
     if is_none_or_empty(corpus) or is_none_or_empty(q):
         return None
 
+    personality_context = (
+        prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
+    )
+
     extract_relevant_information = prompts.extract_relevant_summary.format(
         query=q,
         corpus=corpus.strip(),
+        personality_context=personality_context,
     )
 
     chat_model: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config()
@@ -526,12 +572,16 @@ async def generate_better_image_prompt(
     model_type: Optional[str] = None,
     subscribed: bool = False,
     uploaded_image_url: Optional[str] = None,
+    agent: Agent = None,
 ) -> str:
     """
     Generate a better image prompt from the given query
     """
 
     today_date = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d, %A")
+    personality_context = (
+        prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
+    )
     model_type = model_type or TextToImageModelConfig.ModelType.OPENAI
 
     if location_data:
@@ -559,6 +609,7 @@ async def generate_better_image_prompt(
             current_date=today_date,
             references=user_references,
             online_results=simplified_online_results,
+            personality_context=personality_context,
         )
     elif model_type in [TextToImageModelConfig.ModelType.STABILITYAI, TextToImageModelConfig.ModelType.REPLICATE]:
         image_prompt = prompts.image_generation_improve_prompt_sd.format(
@@ -568,6 +619,7 @@ async def generate_better_image_prompt(
             current_date=today_date,
             references=user_references,
             online_results=simplified_online_results,
+            personality_context=personality_context,
         )
 
     chat_model: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config()

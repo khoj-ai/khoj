@@ -11,7 +11,7 @@ import requests
 from bs4 import BeautifulSoup
 from markdownify import markdownify
 
-from khoj.database.models import KhojUser
+from khoj.database.models import Agent, KhojUser
 from khoj.routers.helpers import (
     ChatEvent,
     extract_relevant_info,
@@ -58,16 +58,17 @@ async def search_online(
     send_status_func: Optional[Callable] = None,
     custom_filters: List[str] = [],
     uploaded_image_url: str = None,
+    agent: Agent = None,
 ):
     query += " ".join(custom_filters)
     if not is_internet_connected():
-        logger.warn("Cannot search online as not connected to internet")
+        logger.warning("Cannot search online as not connected to internet")
         yield {}
         return
 
     # Breakdown the query into subqueries to get the correct answer
     subqueries = await generate_online_subqueries(
-        query, conversation_history, location, user, uploaded_image_url=uploaded_image_url
+        query, conversation_history, location, user, uploaded_image_url=uploaded_image_url, agent=agent
     )
     response_dict = {}
 
@@ -102,7 +103,7 @@ async def search_online(
             async for event in send_status_func(f"**Reading web pages**: {webpage_links_str}"):
                 yield {ChatEvent.STATUS: event}
     tasks = [
-        read_webpage_and_extract_content(subquery, link, content, subscribed=subscribed)
+        read_webpage_and_extract_content(subquery, link, content, subscribed=subscribed, agent=agent)
         for link, subquery, content in webpages
     ]
     results = await asyncio.gather(*tasks)
@@ -143,6 +144,7 @@ async def read_webpages(
     subscribed: bool = False,
     send_status_func: Optional[Callable] = None,
     uploaded_image_url: str = None,
+    agent: Agent = None,
 ):
     "Infer web pages to read from the query and extract relevant information from them"
     logger.info(f"Inferring web pages to read")
@@ -156,7 +158,7 @@ async def read_webpages(
         webpage_links_str = "\n- " + "\n- ".join(list(urls))
         async for event in send_status_func(f"**Reading web pages**: {webpage_links_str}"):
             yield {ChatEvent.STATUS: event}
-    tasks = [read_webpage_and_extract_content(query, url, subscribed=subscribed) for url in urls]
+    tasks = [read_webpage_and_extract_content(query, url, subscribed=subscribed, agent=agent) for url in urls]
     results = await asyncio.gather(*tasks)
 
     response: Dict[str, Dict] = defaultdict(dict)
@@ -167,14 +169,14 @@ async def read_webpages(
 
 
 async def read_webpage_and_extract_content(
-    subquery: str, url: str, content: str = None, subscribed: bool = False
+    subquery: str, url: str, content: str = None, subscribed: bool = False, agent: Agent = None
 ) -> Tuple[str, Union[None, str], str]:
     try:
         if is_none_or_empty(content):
             with timer(f"Reading web page at '{url}' took", logger):
                 content = await read_webpage_with_olostep(url) if OLOSTEP_API_KEY else await read_webpage_with_jina(url)
         with timer(f"Extracting relevant information from web page at '{url}' took", logger):
-            extracted_info = await extract_relevant_info(subquery, content, subscribed=subscribed)
+            extracted_info = await extract_relevant_info(subquery, content, subscribed=subscribed, agent=agent)
         return subquery, extracted_info, url
     except Exception as e:
         logger.error(f"Failed to read web page at '{url}' with {e}")

@@ -129,6 +129,7 @@ User's Notes:
 
 image_generation_improve_prompt_base = """
 You are a talented media artist with the ability to describe images to compose in professional, fine detail.
+{personality_context}
 Generate a vivid description of the image to be rendered using the provided context and user prompt below:
 
 Today's Date: {current_date}
@@ -375,6 +376,7 @@ Tell the user exactly what the website says in response to their query, while ad
 
 extract_relevant_information = PromptTemplate.from_template(
     """
+{personality_context}
 Target Query: {query}
 
 Web Pages:
@@ -400,6 +402,7 @@ Tell the user exactly what the document says in response to their query, while a
 
 extract_relevant_summary = PromptTemplate.from_template(
     """
+{personality_context}
 Target Query: {query}
 
 Document Contents:
@@ -409,9 +412,18 @@ Collate only relevant information from the document to answer the target query.
 """.strip()
 )
 
+personality_context = PromptTemplate.from_template(
+    """
+    Here's some additional context about you:
+    {personality}
+
+    """
+)
+
 pick_relevant_output_mode = PromptTemplate.from_template(
     """
 You are Khoj, an excellent analyst for selecting the correct way to respond to a user's query.
+{personality_context}
 You have access to a limited set of modes for your response.
 You can only use one of these modes.
 
@@ -464,6 +476,7 @@ Khoj:
 pick_relevant_information_collection_tools = PromptTemplate.from_template(
     """
 You are Khoj, an extremely smart and helpful search assistant.
+{personality_context}
 - You have access to a variety of data sources to help you answer the user's question
 - You can use the data sources listed below to collect more relevant information
 - You can use any combination of these data sources to answer the user's question
@@ -538,7 +551,7 @@ You are Khoj, an advanced web page reading assistant. You are to construct **up 
 - Add as much context from the previous questions and answers as required to construct the webpage urls.
 - Use multiple web page urls if required to retrieve the relevant information.
 - You have access to the the whole internet to retrieve information.
-
+{personality_context}
 Which webpages will you need to read to answer the user's question?
 Provide web page links as a list of strings in a JSON object.
 Current Date: {current_date}
@@ -585,7 +598,7 @@ You are Khoj, an advanced web search assistant. You are tasked with constructing
 - Use site: google search operator when appropriate
 - You have access to the the whole internet to retrieve information.
 - Official, up-to-date information about you, Khoj, is available at site:khoj.dev, github or pypi.
-
+{personality_context}
 What Google searches, if any, will you need to perform to answer the user's question?
 Provide search queries as a list of strings in a JSON object.
 Current Date: {current_date}

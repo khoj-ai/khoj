@@ -17,13 +17,14 @@ from starlette.authentication import has_required_scope, requires
 
 from khoj.app.settings import ALLOWED_HOSTS
 from khoj.database.adapters import (
+    AgentAdapters,
     ConversationAdapters,
     EntryAdapters,
     FileObjectAdapters,
     PublicConversationAdapters,
     aget_user_name,
 )
-from khoj.database.models import KhojUser
+from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation.prompts import help_message, no_entries_found
 from khoj.processor.conversation.utils import save_to_conversation_log
 from khoj.processor.image.generate import text_to_image
@@ -680,6 +681,11 @@ async def chat(
             return
         conversation_id = conversation.id
 
+        agent: Agent | None = None
+        default_agent = await AgentAdapters.aget_default_agent()
+        if conversation.agent and conversation.agent != default_agent:
+            agent = conversation.agent
+
         await is_ready_to_chat(user)
 
         user_name = await aget_user_name(user)
@@ -699,7 +705,12 @@ async def chat(
 
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
             conversation_commands = await aget_relevant_information_sources(
-                q, meta_log, is_automated_task, subscribed=subscribed, uploaded_image_url=uploaded_image_url
+                q,
+                meta_log,
+                is_automated_task,
+                subscribed=subscribed,
+                uploaded_image_url=uploaded_image_url,
+                agent=agent,
             )
             conversation_commands_str = ", ".join([cmd.value for cmd in conversation_commands])
             async for result in send_event(
@@ -707,7 +718,7 @@ async def chat(
             ):
                 yield result
 
-            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task, uploaded_image_url)
+            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task, uploaded_image_url, agent)
             async for result in send_event(ChatEvent.STATUS, f"**Decided Response Mode:** {mode.value}"):
                 yield result
             if mode not in conversation_commands:
@@ -756,7 +767,7 @@ async def chat(
                         yield result
 
                     response = await extract_relevant_summary(
-                        q, contextual_data, subscribed=subscribed, uploaded_image_url=uploaded_image_url
+                        q, contextual_data, subscribed=subscribed, uploaded_image_url=uploaded_image_url, agent=agent
                     )
                     response_log = str(response)
                     async for result in send_llm_response(response_log):
@@ -875,6 +886,7 @@ async def chat(
                     partial(send_event, ChatEvent.STATUS),
                     custom_filters,
                     uploaded_image_url=uploaded_image_url,
+                    agent=agent,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -898,6 +910,7 @@ async def chat(
                     subscribed,
                     partial(send_event, ChatEvent.STATUS),
                     uploaded_image_url=uploaded_image_url,
+                    agent=agent,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -944,6 +957,7 @@ async def chat(
                 subscribed=subscribed,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
                 uploaded_image_url=uploaded_image_url,
+                agent=agent,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
@@ -1154,6 +1168,7 @@ async def get_chat(
                 yield result
             return
         conversation_id = conversation.id
+        agent = conversation.agent if conversation.agent else None
 
         await is_ready_to_chat(user)
 
