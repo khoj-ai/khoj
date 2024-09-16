@@ -22,6 +22,7 @@ import { getIconFromIconName } from "@/app/common/iconUtils";
 import { AgentData } from "@/app/agents/page";
 import { createNewConversation } from "./common/chatFunctions";
 import { useIsMobileWidth } from "./common/utils";
+import { useSearchParams } from "next/navigation";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -51,6 +52,14 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [agentIcons, setAgentIcons] = useState<JSX.Element[]>([]);
     const [agents, setAgents] = useState<AgentData[]>([]);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+    const searchParams = useSearchParams();
+    const queryParam = searchParams.get("q");
+
+    useEffect(() => {
+        if (queryParam) {
+            setMessage(decodeURIComponent(queryParam));
+        }
+    }, [queryParam]);
 
     const onConversationIdChange = props.onConversationIdChange;
 
