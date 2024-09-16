@@ -350,6 +350,7 @@ class Conversation(BaseModel):
     title = models.CharField(max_length=200, default=None, null=True, blank=True)
     agent = models.ForeignKey(Agent, on_delete=models.SET_NULL, default=None, null=True, blank=True)
     file_filters = models.JSONField(default=list)
+    unique_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 
 
 class PublicConversation(BaseModel):
