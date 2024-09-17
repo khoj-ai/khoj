@@ -1,40 +1,37 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>Khoj AI - Automation</title>
-    </head>
-<body>
-<body style="font-family: 'Verdana', sans-serif; font-weight: 400; font-style: normal; padding: 0; text-align: left; width: 600px; margin: 20px auto;">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<a class="logo" href="https://khoj.dev" target="_blank" style="text-decoration: none; text-decoration: underline dotted;">
-    <img src="https://assets.khoj.dev/khoj_logo.png" alt="Khoj Logo" style="width: 100px;">
-</a>
-<div class="calls-to-action" style="margin-top: 20px;">
-    <div>
-        <h1 style="color: #333; font-size: large; font-weight: bold; margin: 0; line-height: 1.5; background-color: #fee285; padding: 8px; box-shadow: 6px 6px rgba(0, 0, 0, 1.5);">Your Automation, From Your Personal AI (Preview)</h1>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khoj AI - Automation</title>
+</head>
+<body style="font-family: 'Arial', sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+    <div style="background-color: #ffffff; border-radius: 10px; box-shadow: 0 0 20px rgba(0, 0, 0, 0.1); padding: 30px;">
+        <a href="https://khoj.dev" target="_blank" style="display: block; text-align: center; margin-bottom: 20px; text-decoration: none;">
+            <img src="https://assets.khoj.dev/khoj_logo.png" alt="Khoj Logo" style="width: 120px;">
+        </a>
 
-        <div style="display: grid; grid-template-columns: 1fr; grid-gap: 12px; margin-top: 20px;">
-            <div style="border: 1px solid black; border-radius: 8px; padding: 8px; box-shadow: 6px 6px rgba(0, 0, 0, 1.0); margin-top: 20px;">
-                <a href="https://app.khoj.dev/automations" style="text-decoration: none; text-decoration: underline dotted;">
-                    <h3 style="color: #333; font-size: large; margin: 0; padding: 0; line-height: 2.0; background-color: #b8f1c7; padding: 8px; ">{{subject}}</h3>
-                </a>
-                <p style="color: #333; font-size: medium; margin-top: 20px; padding: 0; line-height: 1.5;">{{result}}</p>
-            </div>
+        <h1 style="font-size: 24px; color: #2c3e50; margin-bottom: 20px; text-align: center; border-bottom: 2px solid #FFA07A; padding-bottom: 10px;">Your Automation, From Your Personal AI</h1>
+
+        <div style="background-color: #f8f9fa; border-left: 4px solid #FFA07A; padding: 15px; margin-bottom: 20px;">
+            <h3 style="color: #2c3e50; margin-top: 0;">{{ subject }}</h3>
+            <p style="margin-bottom: 0;">{{ result }}</p>
         </div>
-        <p style="color: #333; font-size: medium; margin-top: 20px; padding: 0; line-height: 1.5;">The automation I ran on your behalf: {{query}}</p>
-        <p style="color: #333; font-size: medium; margin-top: 20px; padding: 0; line-height: 1.5;">You can manage your automations via <a href="https://app.khoj.dev/automations">the settings page</a>.</p>
-        <p style="color: #333; font-size: medium; margin-top: 20px; padding: 0; line-height: 1.5;">This is an experimental feature. Please share any feedback with <a href="mailto:team@khoj.dev">team@khoj.dev</a>.</p>
-    </div>
-</div>
-<p style="color: #333; font-size: large; margin-top: 20px; padding: 0; line-height: 1.5;">- Khoj</p>
-<table style="width: 100%; margin-top: 20px;">
-    <tr>
-        <td style="text-align: center;"><a href="https://docs.khoj.dev" target="_blank" style="padding: 8px; color: #333; background-color: #fee285; border-radius: 8px; box-shadow: 6px 6px rgba(0, 0, 0, 1.0);">Docs</a></td>
-        <td style="text-align: center;"><a href="https://github.com/khoj-ai/khoj" target="_blank" style="padding: 8px; color: #333; background-color: #fee285; border-radius: 8px; box-shadow: 6px 6px rgba(0, 0, 0, 1.0);">GitHub</a></td>
-        <td style="text-align: center;"><a href="https://twitter.com/khoj_ai" target="_blank" style="padding: 8px; color: #333; background-color: #fee285; border-radius: 8px; box-shadow: 6px 6px rgba(0, 0, 0, 1.0);">Twitter</a></td>
-        <td style="text-align: center;"><a href="https://www.linkedin.com/company/khoj-ai" target="_blank" style="padding: 8px; color: #333; background-color: #fee285; border-radius: 8px; box-shadow: 6px 6px rgba(0, 0, 0, 1.0);">LinkedIn</a></td>
-    </tr>
-</table>
 
+        <div style="font-size: 14px; color: #666; margin-bottom: 20px;">
+            <p>The automation I ran on your behalf: {{ query }}</p>
+            <p>You can manage your automations via <a href="https://app.khoj.dev/automations" style="color: #007bff; text-decoration: none;">the settings page</a>.</p>
+            <p>This is an experimental feature. Please share any feedback with <a href="mailto:team@khoj.dev" style="color: #007bff; text-decoration: none;">team@khoj.dev</a>.</p>
+        </div>
+
+        <div style="font-size: 18px; font-weight: bold; margin-top: 30px; text-align: right;">- Khoj</div>
+
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="https://docs.khoj.dev" target="_blank" style="display: inline-block; margin: 0 10px; padding: 8px 15px; background-color: #FFA07A; color: #333; text-decoration: none; border-radius: 5px;">Docs</a>
+            <a href="https://github.com/khoj-ai/khoj" target="_blank" style="display: inline-block; margin: 0 10px; padding: 8px 15px; background-color: #FFA07A; color: #333; text-decoration: none; border-radius: 5px;">GitHub</a>
+            <a href="https://twitter.com/khoj_ai" target="_blank" style="display: inline-block; margin: 0 10px; padding: 8px 15px; background-color: #FFA07A; color: #333; text-decoration: none; border-radius: 5px;">Twitter</a>
+            <a href="https://www.linkedin.com/company/khoj-ai" target="_blank" style="display: inline-block; margin: 0 10px; padding: 8px 15px; background-color: #FFA07A; color: #333; text-decoration: none; border-radius: 5px;">LinkedIn</a>
+        </div>
+    </div>
 </body>
 </html>
