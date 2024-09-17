@@ -551,7 +551,6 @@ class ClientApplicationAdapters:
 
 class AgentAdapters:
     DEFAULT_AGENT_NAME = "Khoj"
-    DEFAULT_AGENT_AVATAR = "https://assets.khoj.dev/lamp-128.png"
     DEFAULT_AGENT_SLUG = "khoj"
 
     @staticmethod
@@ -614,7 +613,6 @@ class AgentAdapters:
                 chat_model=default_conversation_config,
                 personality=default_personality,
                 tools=["*"],
-                avatar=AgentAdapters.DEFAULT_AGENT_AVATAR,
                 slug=AgentAdapters.DEFAULT_AGENT_SLUG,
             )
             Conversation.objects.filter(agent=None).update(agent=agent)

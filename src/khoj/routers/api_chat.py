@@ -212,7 +212,6 @@ def chat_history(
         agent_metadata = {
             "slug": conversation.agent.slug,
             "name": conversation.agent.name,
-            "avatar": conversation.agent.avatar,
             "isCreator": conversation.agent.creator == user,
             "color": conversation.agent.style_color,
             "icon": conversation.agent.style_icon,
@@ -297,7 +296,6 @@ def get_shared_chat(
         agent_metadata = {
             "slug": conversation.agent.slug,
             "name": conversation.agent.name,
-            "avatar": conversation.agent.avatar,
             "isCreator": conversation.agent.creator == user,
             "color": conversation.agent.style_color,
             "icon": conversation.agent.style_icon,
@@ -455,7 +453,6 @@ def chat_sessions(
             "conversation_id": session[0],
             "slug": session[2] or session[1],
             "agent_name": session[4],
-            "agent_avatar": session[5],
             "created": session[6].strftime("%Y-%m-%d %H:%M:%S"),
             "updated": session[7].strftime("%Y-%m-%d %H:%M:%S"),
             "unique_id": str(session[8]),

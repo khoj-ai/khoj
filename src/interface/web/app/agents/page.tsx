@@ -42,7 +42,6 @@ import { createNewConversation } from "../common/chatFunctions";
 
 export interface AgentData {
     slug: string;
-    avatar: string;
     name: string;
     persona: string;
     color: string;
@@ -116,14 +115,7 @@ function AgentCard(props: AgentCardProps) {
                         >
                             <DialogTrigger>
                                 <div className="flex items-center relative top-2">
-                                    {getIconFromIconName(props.data.icon, props.data.color) || (
-                                        <Image
-                                            src={props.data.avatar}
-                                            alt={props.data.name}
-                                            width={50}
-                                            height={50}
-                                        />
-                                    )}
+                                    {getIconFromIconName(props.data.icon, props.data.color)}
                                     {props.data.name}
                                 </div>
                             </DialogTrigger>
@@ -151,14 +143,7 @@ function AgentCard(props: AgentCardProps) {
                             <DialogContent className="whitespace-pre-line max-h-[80vh]">
                                 <DialogHeader>
                                     <div className="flex items-center">
-                                        {getIconFromIconName(props.data.icon, props.data.color) || (
-                                            <Image
-                                                src={props.data.avatar}
-                                                alt={props.data.name}
-                                                width={32}
-                                                height={50}
-                                            />
-                                        )}
+                                        {getIconFromIconName(props.data.icon, props.data.color)}
                                         <p className="font-bold text-lg">{props.data.name}</p>
                                     </div>
                                 </DialogHeader>
@@ -191,14 +176,7 @@ function AgentCard(props: AgentCardProps) {
                         >
                             <DrawerTrigger>
                                 <div className="flex items-center">
-                                    {getIconFromIconName(props.data.icon, props.data.color) || (
-                                        <Image
-                                            src={props.data.avatar}
-                                            alt={props.data.name}
-                                            width={50}
-                                            height={50}
-                                        />
-                                    )}
+                                    {getIconFromIconName(props.data.icon, props.data.color)}
                                     {props.data.name}
                                 </div>
                             </DrawerTrigger>

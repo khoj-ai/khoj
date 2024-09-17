@@ -28,7 +28,6 @@ async def all_agents(
         agents_packet.append(
             {
                 "slug": agent.slug,
-                "avatar": agent.avatar,
                 "name": agent.name,
                 "persona": agent.personality,
                 "public": agent.public,
