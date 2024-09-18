@@ -141,19 +141,32 @@ class Agent(BaseModel):
         PENCIL_LINE = "PencilLine"
         CHALKBOARD = "Chalkboard"
 
+    class PrivacyLevel(models.TextChoices):
+        PUBLIC = "public"
+        PRIVATE = "private"
+        PROTECTED = "protected"
+
     creator = models.ForeignKey(
         KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True
     )  # Creator will only be null when the agents are managed by admin
     name = models.CharField(max_length=200)
     personality = models.TextField()
-    avatar = models.URLField(max_length=400, default=None, null=True, blank=True)
     tools = models.JSONField(default=list)  # List of tools the agent has access to, like online search or notes search
-    public = models.BooleanField(default=False)
     managed_by_admin = models.BooleanField(default=False)
     chat_model = models.ForeignKey(ChatModelOptions, on_delete=models.CASCADE)
-    slug = models.CharField(max_length=200)
+    slug = models.CharField(max_length=200, unique=True)
     style_color = models.CharField(max_length=200, choices=StyleColorTypes.choices, default=StyleColorTypes.BLUE)
     style_icon = models.CharField(max_length=200, choices=StyleIconTypes.choices, default=StyleIconTypes.LIGHBULB)
+    privacy_level = models.CharField(max_length=30, choices=PrivacyLevel.choices, default=PrivacyLevel.PRIVATE)
+
+    def save(self, *args, **kwargs):
+        if self.creator is None:
+            self.managed_by_admin = True
+
+        random_sequence = "".join(choice("0123456789") for i in range(6))
+        slug = f"{self.name.lower().replace(' ', '-')}-{random_sequence}"
+        self.slug = slug
+        super().save(*args, **kwargs)
 
 
 class ProcessLock(BaseModel):
@@ -406,6 +419,7 @@ class Entry(BaseModel):
         GITHUB = "github"
 
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
+    agent = models.ForeignKey(Agent, on_delete=models.CASCADE, default=None, null=True, blank=True)
     embeddings = VectorField(dimensions=None)
     raw = models.TextField()
     compiled = models.TextField()
@@ -418,12 +432,17 @@ class Entry(BaseModel):
     hashed_value = models.CharField(max_length=100)
     corpus_id = models.UUIDField(default=uuid.uuid4, editable=False)
 
+    def save(self, *args, **kwargs):
+        if self.user and self.agent:
+            raise ValidationError("An Entry cannot be associated with both a user and an agent.")
+
 
 class FileObject(BaseModel):
     # Same as Entry but raw will be a much larger string
     file_name = models.CharField(max_length=400, default=None, null=True, blank=True)
     raw_text = models.TextField()
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
+    agent = models.ForeignKey(Agent, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
 
 class EntryDates(BaseModel):

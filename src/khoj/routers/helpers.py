@@ -258,6 +258,29 @@ async def acreate_title_from_query(query: str) -> str:
     return response.strip()
 
 
+async def acheck_if_safe_prompt(system_prompt: str) -> bool:
+    """
+    Check if the system prompt is safe to use
+    """
+    safe_prompt_check = prompts.personality_prompt_safety_expert.format(system_prompt=system_prompt)
+    is_safe = True
+    reason = ""
+
+    with timer("Chat actor: Check if safe prompt", logger):
+        response = await send_message_to_model_wrapper(safe_prompt_check)
+
+        response = response.strip()
+        try:
+            response = json.loads(response)
+            is_safe = response.get("safe", "True") == "True"
+            if not is_safe:
+                reason = response.get("reason", "")
+        except Exception:
+            logger.error(f"Invalid response for checking safe prompt: {response}")
+
+    return is_safe, reason
+
+
 async def aget_relevant_information_sources(
     query: str,
     conversation_history: dict,

@@ -608,7 +608,7 @@ class AgentAdapters:
             # The default agent is public and managed by the admin. It's handled a little differently than other agents.
             agent = Agent.objects.create(
                 name=AgentAdapters.DEFAULT_AGENT_NAME,
-                public=True,
+                privacy_level=Agent.PrivacyLevel.PUBLIC,
                 managed_by_admin=True,
                 chat_model=default_conversation_config,
                 personality=default_personality,
@@ -622,6 +622,113 @@ class AgentAdapters:
     @staticmethod
     async def aget_default_agent():
         return await Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).afirst()
+
+    @staticmethod
+    async def acreate_agent(
+        user: KhojUser,
+        name: str,
+        personality: str,
+        privacy_level: str,
+        icon: str,
+        color: str,
+        chat_model: str,
+        files: List[str],
+    ):
+        chat_model_option = await ChatModelOptions.objects.filter(chat_model=chat_model).afirst()
+
+        agent = await Agent.objects.acreate(
+            name=name,
+            personality=personality,
+            privacy_level=privacy_level,
+            managed_by_admin=False,
+            style_icon=icon,
+            style_color=color,
+            chat_model=chat_model_option,
+            creator=user,
+        )
+
+        for file in files:
+            reference_file = await FileObject.objects.afirst(file_name=file, user=user)
+            if reference_file:
+                await FileObject.objects.acreate(file_name=file, agent=agent, raw_text=reference_file.raw_text)
+
+                # Duplicate all entries associated with the file
+                entries: List[Entry] = []
+                for entry in await Entry.objects.filter(file=file, user=user).all():
+                    entries.append(
+                        Entry(
+                            agent=agent,
+                            embeddings=entry.embeddings,
+                            raw=entry.raw,
+                            compiled=entry.compiled,
+                            heading=entry.heading,
+                            file_source=entry.file_source,
+                            file_type=entry.file_type,
+                            file_path=entry.file_path,
+                            file_name=entry.file_name,
+                            url=entry.url,
+                            hashed_value=entry.hashed_value,
+                        )
+                    )
+
+                # Bulk create entries
+                await Entry.objects.bulk_create(entries)
+
+        return agent
+
+    @staticmethod
+    async def aupdate_agent(
+        agent: Agent,
+        name: str,
+        personality: str,
+        privacy_level: str,
+        icon: str,
+        color: str,
+        chat_model: str,
+        files: List[str],
+    ):
+        chat_model_option = await ChatModelOptions.objects.filter(chat_model=chat_model).afirst()
+
+        agent.name = name
+        agent.personality = personality
+        agent.privacy_level = privacy_level
+        agent.style_icon = icon
+        agent.style_color = color
+        agent.chat_model = chat_model_option
+        await agent.asave()
+
+        # Delete all existing files and entries
+        await FileObject.objects.filter(agent=agent).adelete()
+        await Entry.objects.filter(agent=agent).adelete()
+
+        for file in files:
+            reference_file = await FileObject.objects.afirst(file_name=file, user=agent.creator)
+            if reference_file:
+                await FileObject.objects.acreate(file_name=file, agent=agent, raw_text=reference_file.raw_text)
+
+                # Duplicate all entries associated with the file
+                entries: List[Entry] = []
+                for entry in await Entry.objects.filter(file=file, user=agent.creator).all():
+                    entries.append(
+                        Entry(
+                            agent=agent,
+                            embeddings=entry.embeddings,
+                            raw=entry.raw,
+                            compiled=entry.compiled,
+                            heading=entry.heading,
+                            file_source=entry.file_source,
+                            file_type=entry.file_type,
+                            file_path=entry.file_path,
+                            file_name=entry.file_name,
+                            url=entry.url,
+                            hashed_value=entry.hashed_value,
+                        )
+                    )
+
+                # Bulk create entries
+                await Entry.objects.bulk_create(entries)
+
+        return agent
 
 
 class PublicConversationAdapters:
