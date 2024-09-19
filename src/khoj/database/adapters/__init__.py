@@ -785,10 +785,6 @@ class ConversationAdapters:
         return conversation
 
     @staticmethod
-    def get_conversation_by_unique_id(user: KhojUser, unique_id: str):
-        return Conversation.objects.filter(unique_id=unique_id, user=user).first()
-
-    @staticmethod
     def get_conversation_sessions(user: KhojUser, client_application: ClientApplication = None):
         return (
             Conversation.objects.filter(user=user, client=client_application)

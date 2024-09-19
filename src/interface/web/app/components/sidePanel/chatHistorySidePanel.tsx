@@ -66,9 +66,7 @@ interface ChatHistory {
     compressed: boolean;
     created: string;
     updated: string;
-    unique_id: string;
     showSidePanel: (isEnabled: boolean) => void;
-    selectedConversationId: string | null;
 }
 
 import {
@@ -399,7 +397,6 @@ interface SessionsAndFilesProps {
     conversationId: string | null;
     uploadedFiles: string[];
     isMobileWidth: boolean;
-    selectedConversationId: string | null;
 }
 
 function SessionsAndFiles(props: SessionsAndFilesProps) {
@@ -436,10 +433,6 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                                                         slug={chatHistory.slug}
                                                         agent_name={chatHistory.agent_name}
                                                         showSidePanel={props.setEnabled}
-                                                        unique_id={chatHistory.unique_id}
-                                                        selectedConversationId={
-                                                            props.selectedConversationId
-                                                        }
                                                     />
                                                 ),
                                             )}
@@ -451,7 +444,6 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                     <ChatSessionsModal
                         data={props.organizedData}
                         showSidePanel={props.setEnabled}
-                        selectedConversationId={props.selectedConversationId}
                     />
                 )}
             </div>
@@ -646,18 +638,20 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
 function ChatSession(props: ChatHistory) {
     const [isHovered, setIsHovered] = useState(false);
     const [title, setTitle] = useState(props.slug || "New Conversation 🌱");
-    var currConversationId =
-        props.conversation_id &&
-        props.selectedConversationId &&
-        parseInt(props.conversation_id) === parseInt(props.selectedConversationId);
+    var currConversationId = parseInt(
+        new URLSearchParams(window.location.search).get("conversationId") || "-1",
+    );
     return (
         <div
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             key={props.conversation_id}
-            className={`${styles.session} ${props.compressed ? styles.compressed : "!max-w-full"} ${isHovered ? `${styles.sessionHover}` : ""} ${currConversationId ? "dark:bg-neutral-800 bg-white" : ""}`}
+            className={`${styles.session} ${props.compressed ? styles.compressed : "!max-w-full"} ${isHovered ? `${styles.sessionHover}` : ""} ${currConversationId === parseInt(props.conversation_id) && currConversationId != -1 ? "dark:bg-neutral-800 bg-white" : ""}`}
         >
-            <Link href={`/chat?v=${props.unique_id}`} onClick={() => props.showSidePanel(false)}>
+            <Link
+                href={`/chat?conversationId=${props.conversation_id}`}
+                onClick={() => props.showSidePanel(false)}
+            >
                 <p className={styles.session}>{title}</p>
             </Link>
             <ChatSessionActionMenu conversationId={props.conversation_id} setTitle={setTitle} />
@@ -668,14 +662,9 @@ function ChatSession(props: ChatHistory) {
 interface ChatSessionsModalProps {
     data: GroupedChatHistory | null;
     showSidePanel: (isEnabled: boolean) => void;
-    selectedConversationId: string | null;
 }
 
-function ChatSessionsModal({
-    data,
-    showSidePanel,
-    selectedConversationId,
-}: ChatSessionsModalProps) {
+function ChatSessionsModal({ data, showSidePanel }: ChatSessionsModalProps) {
     return (
         <Dialog>
             <DialogTrigger className="flex text-left text-medium text-gray-500 hover:text-gray-300 cursor-pointer my-4 text-sm p-[0.5rem]">
@@ -706,8 +695,6 @@ function ChatSessionsModal({
                                                 slug={chatHistory.slug}
                                                 agent_name={chatHistory.agent_name}
                                                 showSidePanel={showSidePanel}
-                                                unique_id={chatHistory.unique_id}
-                                                selectedConversationId={selectedConversationId}
                                             />
                                         ))}
                                     </div>
@@ -829,7 +816,6 @@ export default function SidePanel(props: SidePanelProps) {
                                         userProfile={authenticatedData}
                                         conversationId={props.conversationId}
                                         isMobileWidth={props.isMobileWidth}
-                                        selectedConversationId={props.conversationId}
                                     />
                                 </div>
                             ) : (
@@ -898,7 +884,6 @@ export default function SidePanel(props: SidePanelProps) {
                         userProfile={authenticatedData}
                         conversationId={props.conversationId}
                         isMobileWidth={props.isMobileWidth}
-                        selectedConversationId={props.conversationId}
                     />
                 </div>
             )}
