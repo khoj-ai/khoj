@@ -163,7 +163,7 @@ export function modifyFileFilterForConversation(
     const method = mode === "add" ? "POST" : "DELETE";
 
     const body = {
-        conversation_id: String(conversationId),
+        conversation_id: conversationId,
         filenames: filenames,
     };
     const addUrl = `/api/chat/conversation/file-filters/bulk`;
@@ -177,17 +177,13 @@ export function modifyFileFilterForConversation(
     })
         .then((response) => response.json())
         .then((data) => {
+            console.log("ADDEDFILES DATA: ", data);
             setAddedFiles(data);
         })
         .catch((err) => {
             console.error(err);
             return;
         });
-}
-
-interface NewConversationMetadata {
-    conversationId: string;
-    conversationUniqueId: string;
 }
 
 export async function createNewConversation(slug: string) {
@@ -198,14 +194,9 @@ export async function createNewConversation(slug: string) {
         if (!response.ok)
             throw new Error(`Failed to fetch chat sessions with status: ${response.status}`);
         const data = await response.json();
-        const uniqueId = data.unique_id;
-        const conversationId = data.conversation_id;
-        if (!uniqueId) throw new Error("Unique ID not found in response");
-        if (!conversationId) throw new Error("Conversation ID not found in response");
-        return {
-            conversationId: conversationId,
-            conversationUniqueId: uniqueId,
-        } as NewConversationMetadata;
+        const conversationID = data.conversation_id;
+        if (!conversationID) throw new Error("Conversation ID not found in response");
+        return conversationID;
     } catch (error) {
         console.error("Error creating new conversation:", error);
         throw error;

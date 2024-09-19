@@ -32,8 +32,7 @@ interface ChatBodyDataProps {
 
 function ChatBodyData(props: ChatBodyDataProps) {
     const searchParams = useSearchParams();
-    const conversationUniqueId = searchParams.get("v");
-    const [conversationId, setConversationId] = useState<string | null>("");
+    const conversationId = searchParams.get("conversationId");
     const [message, setMessage] = useState("");
     const [image, setImage] = useState<string | null>(null);
     const [processingMessage, setProcessingMessage] = useState(false);
@@ -61,11 +60,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
             setProcessingMessage(true);
             setQueryToProcess(storedMessage);
         }
-
-        const conversationId = localStorage.getItem("conversationId");
-        if (conversationId) {
-            setConversationId(conversationId);
-        }
     }, [setQueryToProcess]);
 
     useEffect(() => {
@@ -74,30 +68,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
             setQueryToProcess(message);
         }
     }, [message, setQueryToProcess]);
-
-    useEffect(() => {
-        if (!conversationUniqueId) {
-            return;
-        }
-
-        fetch(
-            `/api/chat/metadata?conversation_unique_id=${encodeURIComponent(conversationUniqueId)}`,
-        )
-            .then((response) => {
-                if (!response.ok) {
-                    throw new Error(response.statusText);
-                }
-                return response.json();
-            })
-            .then((data) => {
-                setConversationId(data.conversationId);
-            })
-            .catch((err) => {
-                console.error(err);
-                setConversationId(null);
-                return;
-            });
-    });
 
     useEffect(() => {
         if (conversationId) {
@@ -117,13 +87,9 @@ function ChatBodyData(props: ChatBodyDataProps) {
         }
     }, [props.streamedMessages]);
 
-    if (!conversationUniqueId || conversationId === null) {
+    if (!conversationId) {
         window.location.href = "/";
         return;
-    }
-
-    if (!conversationId) {
-        return <Loading />;
     }
 
     return (

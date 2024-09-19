@@ -38,7 +38,6 @@ import { getIconFromIconName } from "../common/iconUtils";
 import { convertColorToTextClass } from "../common/colorUtils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useIsMobileWidth } from "../common/utils";
-import { createNewConversation } from "../common/chatFunctions";
 
 export interface AgentData {
     slug: string;
@@ -56,10 +55,13 @@ async function openChat(slug: string, userData: UserProfile | null) {
         return;
     }
 
-    try {
-        const response = await createNewConversation(slug);
-        window.location.href = `/chat?v=${response.conversationUniqueId}`;
-    } catch (error) {
+    const response = await fetch(`/api/chat/sessions?agent_slug=${slug}`, { method: "POST" });
+    const data = await response.json();
+    if (response.status == 200) {
+        window.location.href = `/chat?conversationId=${data.conversation_id}`;
+    } else if (response.status == 403 || response.status == 401) {
+        window.location.href = unauthenticatedRedirectUrl;
+    } else {
         alert("Failed to start chat session");
     }
 }

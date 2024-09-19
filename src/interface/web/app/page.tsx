@@ -22,6 +22,7 @@ import { getIconFromIconName } from "@/app/common/iconUtils";
 import { AgentData } from "@/app/agents/page";
 import { createNewConversation } from "./common/chatFunctions";
 import { useIsMobileWidth } from "./common/utils";
+import { useSearchParams } from "next/navigation";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -51,6 +52,14 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [agentIcons, setAgentIcons] = useState<JSX.Element[]>([]);
     const [agents, setAgents] = useState<AgentData[]>([]);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+    const searchParams = useSearchParams();
+    const queryParam = searchParams.get("q");
+
+    useEffect(() => {
+        if (queryParam) {
+            setMessage(decodeURIComponent(queryParam));
+        }
+    }, [queryParam]);
 
     const onConversationIdChange = props.onConversationIdChange;
 
@@ -138,13 +147,10 @@ function ChatBodyData(props: ChatBodyDataProps) {
             if (message && !processingMessage) {
                 setProcessingMessage(true);
                 try {
-                    const newConversationMetadata = await createNewConversation(
-                        selectedAgent || "khoj",
-                    );
-                    onConversationIdChange?.(newConversationMetadata.conversationId);
-                    window.location.href = `/chat?v=${newConversationMetadata.conversationUniqueId}`;
+                    const newConversationId = await createNewConversation(selectedAgent || "khoj");
+                    onConversationIdChange?.(newConversationId);
+                    window.location.href = `/chat?conversationId=${newConversationId}`;
                     localStorage.setItem("message", message);
-                    localStorage.setItem("conversationId", newConversationMetadata.conversationId);
                     if (image) {
                         localStorage.setItem("image", image);
                     }
