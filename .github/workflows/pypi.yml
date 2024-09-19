@@ -45,7 +45,7 @@ jobs:
           yarn install
         working-directory: src/interface/web
 
-      - name: Build and copy files
+      - name: 🪛 Build and copy files
         run: |
           yarn build
           mkdir -p /opt/hostedtoolcache/Python/3.11.9/x64/lib/python3.11/site-packages/khoj/interface/compiled
@@ -56,7 +56,7 @@ jobs:
       - name: 📂 Copy Generated Files
         run: |
           mkdir -p src/khoj/interface/compiled
-          cp -r /opt/hostedtoolcache/Python/3.11.9/x64/lib/python3.11/site-packages/khoj/interface/compiled/* src/khoj/interface/compiled/
+          rsync -av --ignore-existing /opt/hostedtoolcache/Python/3.11.9/x64/lib/python3.11/site-packages/khoj/interface/compiled/* src/khoj/interface/compiled/
 
       - name: ⚙️ Build Python Package
         run: |
