@@ -144,7 +144,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
         let conversationFetchURL = "";
 
         if (props.conversationId) {
-            conversationFetchURL = `/api/chat/history?client=web&conversation_id=${props.conversationId}&n=${10 * nextPage}`;
+            conversationFetchURL = `/api/chat/history?client=web&conversation_id=${encodeURIComponent(props.conversationId)}&n=${10 * nextPage}`;
         } else if (props.publicConversationSlug) {
             conversationFetchURL = `/api/chat/share/history?client=web&public_conversation_slug=${props.publicConversationSlug}&n=${10 * nextPage}`;
         } else {

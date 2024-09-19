@@ -442,7 +442,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                 </div>
             )}
             <div
-                className={`${styles.actualInputArea} items-center justify-between dark:bg-neutral-700 relative`}
+                className={`${styles.actualInputArea} items-center justify-between dark:bg-neutral-700 relative ${isDragAndDropping && "animate-pulse"}`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDragAndDropFiles}
@@ -547,7 +547,6 @@ export default function ChatInputArea(props: ChatInputProps) {
                     <ArrowUp className="w-6 h-6" weight="bold" />
                 </Button>
             </div>
-            {isDragAndDropping && <div className="text-muted-foreground">Drop file to upload</div>}
         </>
     );
 }

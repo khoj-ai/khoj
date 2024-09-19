@@ -5,6 +5,7 @@ import styles from "./chatMessage.module.css";
 import markdownIt from "markdown-it";
 import mditHljs from "markdown-it-highlightjs";
 import React, { useEffect, useRef, useState } from "react";
+import { createRoot } from "react-dom/client";
 
 import "katex/dist/katex.min.css";
 
@@ -23,6 +24,7 @@ import {
     MagnifyingGlass,
     Pause,
     Palette,
+    ClipboardText,
 } from "@phosphor-icons/react";
 
 import DOMPurify from "dompurify";
@@ -377,12 +379,9 @@ export default function ChatMessage(props: ChatMessageProps) {
             const preElements = messageRef.current.querySelectorAll("pre > .hljs");
             preElements.forEach((preElement) => {
                 const copyButton = document.createElement("button");
-                const copyImage = document.createElement("img");
-                copyImage.src = "/static/copy-button.svg";
-                copyImage.alt = "Copy";
-                copyImage.width = 24;
-                copyImage.height = 24;
-                copyButton.appendChild(copyImage);
+                const copyIcon = <ClipboardText size={24} weight="bold" />;
+                createRoot(copyButton).render(copyIcon);
+
                 copyButton.className = `hljs ${styles.codeCopyButton}`;
                 copyButton.addEventListener("click", () => {
                     let textContent = preElement.textContent || "";
@@ -392,7 +391,6 @@ export default function ChatMessage(props: ChatMessageProps) {
                     textContent = textContent.replace(/^Copy/, "");
                     textContent = textContent.trim();
                     navigator.clipboard.writeText(textContent);
-                    copyImage.src = "/static/copy-button-success.svg";
                 });
                 preElement.prepend(copyButton);
             });

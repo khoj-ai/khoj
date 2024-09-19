@@ -78,9 +78,7 @@ from khoj.routers.email import send_query_feedback
 @api_chat.get("/conversation/file-filters/{conversation_id}", response_class=Response)
 @requires(["authenticated"])
 def get_file_filter(request: Request, conversation_id: str) -> Response:
-    conversation = ConversationAdapters.get_conversation_by_user(
-        request.user.object, conversation_id=int(conversation_id)
-    )
+    conversation = ConversationAdapters.get_conversation_by_user(request.user.object, conversation_id=conversation_id)
     if not conversation:
         return Response(content=json.dumps({"status": "error", "message": "Conversation not found"}), status_code=404)
 
@@ -96,7 +94,7 @@ def get_file_filter(request: Request, conversation_id: str) -> Response:
 @api_chat.delete("/conversation/file-filters/bulk", response_class=Response)
 @requires(["authenticated"])
 def remove_files_filter(request: Request, filter: FilesFilterRequest) -> Response:
-    conversation_id = int(filter.conversation_id)
+    conversation_id = filter.conversation_id
     files_filter = filter.filenames
     file_filters = ConversationAdapters.remove_files_from_filter(request.user.object, conversation_id, files_filter)
     return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
@@ -106,7 +104,7 @@ def remove_files_filter(request: Request, filter: FilesFilterRequest) -> Respons
 @requires(["authenticated"])
 def add_files_filter(request: Request, filter: FilesFilterRequest):
     try:
-        conversation_id = int(filter.conversation_id)
+        conversation_id = filter.conversation_id
         files_filter = filter.filenames
         file_filters = ConversationAdapters.add_files_to_filter(request.user.object, conversation_id, files_filter)
         return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
@@ -119,7 +117,7 @@ def add_files_filter(request: Request, filter: FilesFilterRequest):
 @requires(["authenticated"])
 def add_file_filter(request: Request, filter: FileFilterRequest):
     try:
-        conversation_id = int(filter.conversation_id)
+        conversation_id = filter.conversation_id
         files_filter = [filter.filename]
         file_filters = ConversationAdapters.add_files_to_filter(request.user.object, conversation_id, files_filter)
         return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
@@ -131,7 +129,7 @@ def add_file_filter(request: Request, filter: FileFilterRequest):
 @api_chat.delete("/conversation/file-filters", response_class=Response)
 @requires(["authenticated"])
 def remove_file_filter(request: Request, filter: FileFilterRequest) -> Response:
-    conversation_id = int(filter.conversation_id)
+    conversation_id = filter.conversation_id
     files_filter = [filter.filename]
     file_filters = ConversationAdapters.remove_files_from_filter(request.user.object, conversation_id, files_filter)
     return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
@@ -190,7 +188,7 @@ async def chat_starters(
 def chat_history(
     request: Request,
     common: CommonQueryParams,
-    conversation_id: Optional[int] = None,
+    conversation_id: Optional[str] = None,
     n: Optional[int] = None,
 ):
     user = request.user.object
@@ -311,7 +309,7 @@ def get_shared_chat(
 async def clear_chat_history(
     request: Request,
     common: CommonQueryParams,
-    conversation_id: Optional[int] = None,
+    conversation_id: Optional[str] = None,
 ):
     user = request.user.object
 
@@ -374,7 +372,7 @@ def fork_public_conversation(
 def duplicate_chat_history_public_conversation(
     request: Request,
     common: CommonQueryParams,
-    conversation_id: int,
+    conversation_id: str,
 ):
     user = request.user.object
     domain = request.headers.get("host")
@@ -422,7 +420,7 @@ def chat_sessions(
 
     session_values = [
         {
-            "conversation_id": session[0],
+            "conversation_id": str(session[0]),
             "slug": session[2] or session[1],
             "agent_name": session[4],
             "created": session[6].strftime("%Y-%m-%d %H:%M:%S"),
@@ -453,7 +451,7 @@ async def create_chat_session(
     # Create new Conversation Session
     conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app, agent_slug)
 
-    response = {"conversation_id": conversation.id}
+    response = {"conversation_id": str(conversation.id)}
 
     conversation_metadata = {
         "agent": agent_slug,
@@ -495,7 +493,7 @@ async def set_conversation_title(
     request: Request,
     common: CommonQueryParams,
     title: str,
-    conversation_id: Optional[int] = None,
+    conversation_id: Optional[str] = None,
 ) -> Response:
     user = request.user.object
     title = title.strip()[:200]
@@ -525,7 +523,7 @@ class ChatRequestBody(BaseModel):
     d: Optional[float] = None
     stream: Optional[bool] = False
     title: Optional[str] = None
-    conversation_id: Optional[int] = None
+    conversation_id: Optional[str] = None
     city: Optional[str] = None
     region: Optional[str] = None
     country: Optional[str] = None
@@ -1028,7 +1026,7 @@ async def get_chat(
     d: float = None,
     stream: Optional[bool] = False,
     title: Optional[str] = None,
-    conversation_id: Optional[int] = None,
+    conversation_id: Optional[str] = None,
     city: Optional[str] = None,
     region: Optional[str] = None,
     country: Optional[str] = None,
