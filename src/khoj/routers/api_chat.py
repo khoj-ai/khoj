@@ -495,7 +495,7 @@ async def set_conversation_title(
     request: Request,
     common: CommonQueryParams,
     title: str,
-    conversation_id: Optional[int] = None,
+    conversation_id: Optional[str] = None,
 ) -> Response:
     user = request.user.object
     title = title.strip()[:200]
