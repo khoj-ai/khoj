@@ -663,7 +663,7 @@ class ConversationAdapters:
 
     @staticmethod
     def get_conversation_by_user(
-        user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None
+        user: KhojUser, client_application: ClientApplication = None, conversation_id: str = None
     ) -> Optional[Conversation]:
         if conversation_id:
             conversation = (
@@ -689,7 +689,7 @@ class ConversationAdapters:
 
     @staticmethod
     async def aset_conversation_title(
-        user: KhojUser, client_application: ClientApplication, conversation_id: int, title: str
+        user: KhojUser, client_application: ClientApplication, conversation_id: str, title: str
     ):
         conversation = await Conversation.objects.filter(
             user=user, client=client_application, id=conversation_id
@@ -701,7 +701,7 @@ class ConversationAdapters:
         return None
 
     @staticmethod
-    def get_conversation_by_id(conversation_id: int):
+    def get_conversation_by_id(conversation_id: str):
         return Conversation.objects.filter(id=conversation_id).first()
 
     @staticmethod
@@ -730,7 +730,7 @@ class ConversationAdapters:
 
     @staticmethod
     async def aget_conversation_by_user(
-        user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None, title: str = None
+        user: KhojUser, client_application: ClientApplication = None, conversation_id: str = None, title: str = None
     ) -> Optional[Conversation]:
         query = Conversation.objects.filter(user=user, client=client_application).prefetch_related("agent")
 
@@ -747,7 +747,7 @@ class ConversationAdapters:
 
     @staticmethod
     async def adelete_conversation_by_user(
-        user: KhojUser, client_application: ClientApplication = None, conversation_id: int = None
+        user: KhojUser, client_application: ClientApplication = None, conversation_id: str = None
     ):
         if conversation_id:
             return await Conversation.objects.filter(user=user, client=client_application, id=conversation_id).adelete()
@@ -900,7 +900,7 @@ class ConversationAdapters:
         user: KhojUser,
         conversation_log: dict,
         client_application: ClientApplication = None,
-        conversation_id: int = None,
+        conversation_id: str = None,
         user_message: str = None,
     ):
         slug = user_message.strip()[:200] if user_message else None
@@ -1042,7 +1042,7 @@ class ConversationAdapters:
         return new_config
 
     @staticmethod
-    def add_files_to_filter(user: KhojUser, conversation_id: int, files: List[str]):
+    def add_files_to_filter(user: KhojUser, conversation_id: str, files: List[str]):
         conversation = ConversationAdapters.get_conversation_by_user(user, conversation_id=conversation_id)
         file_list = EntryAdapters.get_all_filenames_by_source(user, "computer")
         for filename in files:
@@ -1056,7 +1056,7 @@ class ConversationAdapters:
         return conversation.file_filters
 
     @staticmethod
-    def remove_files_from_filter(user: KhojUser, conversation_id: int, files: List[str]):
+    def remove_files_from_filter(user: KhojUser, conversation_id: str, files: List[str]):
         conversation = ConversationAdapters.get_conversation_by_user(user, conversation_id=conversation_id)
         for filename in files:
             if filename in conversation.file_filters:
