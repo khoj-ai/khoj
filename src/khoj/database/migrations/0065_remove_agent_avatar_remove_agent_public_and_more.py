@@ -6,7 +6,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("database", "0065_add_unique_constraint_to_unique_id"),
+        ("database", "0064_remove_conversation_temp_id_alter_conversation_id"),
     ]
 
     operations = [

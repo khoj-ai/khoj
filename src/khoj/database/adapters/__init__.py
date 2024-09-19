@@ -556,20 +556,23 @@ class AgentAdapters:
     @staticmethod
     async def aget_agent_by_slug(agent_slug: str, user: KhojUser):
         return await Agent.objects.filter(
-            (Q(slug__iexact=agent_slug.lower())) & (Q(public=True) | Q(creator=user))
+            (Q(slug__iexact=agent_slug.lower())) & (Q(privacy_level=Agent.PrivacyLevel.PUBLIC) | Q(creator=user))
         ).afirst()
 
     @staticmethod
     def get_agent_by_slug(slug: str, user: KhojUser = None):
         if user:
-            return Agent.objects.filter((Q(slug__iexact=slug.lower())) & (Q(public=True) | Q(creator=user))).first()
-        return Agent.objects.filter(slug__iexact=slug.lower(), public=True).first()
+            return Agent.objects.filter(
+                (Q(slug__iexact=slug.lower())) & (Q(privacy_level=Agent.PrivacyLevel.PUBLIC) | Q(creator=user))
+            ).first()
+        return Agent.objects.filter(slug__iexact=slug.lower(), privacy_level=Agent.PrivacyLevel.PUBLIC).first()
 
     @staticmethod
     def get_all_accessible_agents(user: KhojUser = None):
+        public_query = Q(privacy_level=Agent.PrivacyLevel.PUBLIC)
         if user:
-            return Agent.objects.filter(Q(public=True) | Q(creator=user)).distinct().order_by("created_at")
-        return Agent.objects.filter(public=True).order_by("created_at")
+            return Agent.objects.filter(public_query | Q(creator=user)).distinct().order_by("created_at")
+        return Agent.objects.filter(public_query).order_by("created_at")
 
     @staticmethod
     async def aget_all_accessible_agents(user: KhojUser = None) -> List[Agent]:

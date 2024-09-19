@@ -160,12 +160,16 @@ class Agent(BaseModel):
     privacy_level = models.CharField(max_length=30, choices=PrivacyLevel.choices, default=PrivacyLevel.PRIVATE)
 
     def save(self, *args, **kwargs):
+        is_new = self._state.adding
+
         if self.creator is None:
             self.managed_by_admin = True
 
-        random_sequence = "".join(choice("0123456789") for i in range(6))
-        slug = f"{self.name.lower().replace(' ', '-')}-{random_sequence}"
-        self.slug = slug
+        if is_new:
+            random_sequence = "".join(choice("0123456789") for i in range(6))
+            slug = f"{self.name.lower().replace(' ', '-')}-{random_sequence}"
+            self.slug = slug
+
         super().save(*args, **kwargs)
 
 
@@ -186,7 +190,7 @@ class ProcessLock(BaseModel):
 def verify_agent(sender, instance, **kwargs):
     # check if this is a new instance
     if instance._state.adding:
-        if Agent.objects.filter(name=instance.name, public=True).exists():
+        if Agent.objects.filter(name=instance.name, privacy_level=Agent.PrivacyLevel.PUBLIC).exists():
             raise ValidationError(f"A public Agent with the name {instance.name} already exists.")
         if Agent.objects.filter(name=instance.name, creator=instance.creator).exists():
             raise ValidationError(f"A private Agent with the name {instance.name} already exists.")
