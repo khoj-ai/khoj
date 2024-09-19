@@ -224,7 +224,6 @@ def chat_history(
             "conversation_id": conversation.id,
             "slug": conversation.title if conversation.title else conversation.slug,
             "agent": agent_metadata,
-            "unique_id": conversation.unique_id,
         }
     )
 
@@ -244,33 +243,6 @@ def chat_history(
     )
 
     return {"status": "ok", "response": meta_log}
-
-
-@api_chat.get("/metadata")
-def get_chat_metadata(
-    request: Request,
-    common: CommonQueryParams,
-    conversation_unique_id: str,
-):
-    user = request.user.object
-
-    # Load Conversation Metadata
-    conversation = ConversationAdapters.get_conversation_by_unique_id(user, conversation_unique_id)
-
-    if conversation is None:
-        return Response(
-            content=json.dumps({"status": "error", "message": f"Conversation: {conversation_unique_id} not found"}),
-            status_code=404,
-        )
-
-    update_telemetry_state(
-        request=request,
-        telemetry_type="api",
-        api="chat_metadata",
-        **common.__dict__,
-    )
-
-    return {"status": "ok", "conversationId": conversation.id}
 
 
 @api_chat.get("/share/history")
@@ -446,7 +418,7 @@ def chat_sessions(
         conversations = conversations[:8]
 
     sessions = conversations.values_list(
-        "id", "slug", "title", "agent__slug", "agent__name", "agent__avatar", "created_at", "updated_at", "unique_id"
+        "id", "slug", "title", "agent__slug", "agent__name", "agent__avatar", "created_at", "updated_at"
     )
 
     session_values = [
@@ -457,7 +429,6 @@ def chat_sessions(
             "agent_avatar": session[5],
             "created": session[6].strftime("%Y-%m-%d %H:%M:%S"),
             "updated": session[7].strftime("%Y-%m-%d %H:%M:%S"),
-            "unique_id": str(session[8]),
         }
         for session in sessions
     ]
@@ -484,7 +455,7 @@ async def create_chat_session(
     # Create new Conversation Session
     conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app, agent_slug)
 
-    response = {"conversation_id": conversation.id, "unique_id": str(conversation.unique_id)}
+    response = {"conversation_id": conversation.id}
 
     conversation_metadata = {
         "agent": agent_slug,

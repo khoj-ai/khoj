@@ -147,13 +147,10 @@ function ChatBodyData(props: ChatBodyDataProps) {
             if (message && !processingMessage) {
                 setProcessingMessage(true);
                 try {
-                    const newConversationMetadata = await createNewConversation(
-                        selectedAgent || "khoj",
-                    );
-                    onConversationIdChange?.(newConversationMetadata.conversationId);
-                    window.location.href = `/chat?v=${newConversationMetadata.conversationUniqueId}`;
+                    const newConversationId = await createNewConversation(selectedAgent || "khoj");
+                    onConversationIdChange?.(newConversationId);
+                    window.location.href = `/chat?conversationId=${newConversationId}`;
                     localStorage.setItem("message", message);
-                    localStorage.setItem("conversationId", newConversationMetadata.conversationId);
                     if (image) {
                         localStorage.setItem("image", image);
                     }
