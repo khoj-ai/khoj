@@ -99,7 +99,7 @@ def initialization():
             openai_text_to_image_model = input(
                 f"Enter the OpenAI text to image model you want to use (default: {default_text_to_image_model}): "
             )
-            openai_speech2text_model = openai_text_to_image_model or default_text_to_image_model
+            openai_text_to_image_model = openai_text_to_image_model or default_text_to_image_model
             TextToImageModelConfig.objects.create(
                 model_name=openai_text_to_image_model, model_type=TextToImageModelConfig.ModelType.OPENAI
             )
