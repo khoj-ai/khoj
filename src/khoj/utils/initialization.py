@@ -6,11 +6,17 @@ from khoj.database.models import (
     ChatModelOptions,
     KhojUser,
     OpenAIProcessorConversationConfig,
+    ServerChatSettings,
     SpeechToTextModelOptions,
     TextToImageModelConfig,
 )
 from khoj.processor.conversation.utils import model_to_prompt_size, model_to_tokenizer
-from khoj.utils.constants import default_offline_chat_model, default_online_chat_model
+from khoj.utils.constants import (
+    default_anthropic_chat_models,
+    default_gemini_chat_models,
+    default_offline_chat_models,
+    default_openai_chat_models,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -32,78 +38,44 @@ def initialization(interactive: bool = True):
 
     def _create_chat_configuration():
         logger.info(
-            "🗣️  Configure chat models available to your server. You can always update these at /server/admin using your admin account"
+            "🗣️ Configure chat models available to your server. You can always update these at /server/admin using your admin account"
         )
 
-        try:
-            use_offline_model = "y" if not interactive else input("Use offline chat model? (y/n): ")
-            if use_offline_model == "y":
-                logger.info("🗣️ Setting up offline chat model")
-
-                if interactive:
-                    offline_chat_model = input(
-                        f"Enter the offline chat model you want to use. See HuggingFace for available GGUF models (default: {default_offline_chat_model}): "
-                    )
-                else:
-                    offline_chat_model = ""
-                if offline_chat_model == "":
-                    ChatModelOptions.objects.create(
-                        chat_model=default_offline_chat_model, model_type=ChatModelOptions.ModelType.OFFLINE
-                    )
-                else:
-                    default_max_tokens = model_to_prompt_size.get(offline_chat_model, 4000)
-                    max_tokens = input(
-                        f"Enter the maximum number of tokens to use for the offline chat model (default {default_max_tokens}):"
-                    )
-                    max_tokens = max_tokens or default_max_tokens
-
-                    default_tokenizer = model_to_tokenizer.get(
-                        offline_chat_model, "hf-internal-testing/llama-tokenizer"
-                    )
-                    tokenizer = input(
-                        f"Enter the tokenizer to use for the offline chat model (default: {default_tokenizer}):"
-                    )
-                    tokenizer = tokenizer or default_tokenizer
-
-                    ChatModelOptions.objects.create(
-                        chat_model=offline_chat_model,
-                        model_type=ChatModelOptions.ModelType.OFFLINE,
-                        max_prompt_size=max_tokens,
-                        tokenizer=tokenizer,
-                    )
-        except ModuleNotFoundError as e:
-            logger.warning("Offline models are not supported on this device.")
-
+        # Set up OpenAI's online models
         default_openai_api_key = os.getenv("OPENAI_API_KEY")
         default_use_openai_model = {True: "y", False: "n"}[default_openai_api_key != None]
-        use_openai_model = default_use_openai_model if not interactive else input("Use OpenAI models? (y/n): ")
-        if use_openai_model == "y":
-            logger.info("🗣️ Setting up your OpenAI configuration")
+        use_model_provider = default_use_openai_model if not interactive else input("Add OpenAI models? (y/n): ")
+        if use_model_provider == "y":
+            logger.info("️💬 Setting up your OpenAI configuration")
             if interactive:
-                api_key = input(f"Enter your OpenAI API key (default: {default_openai_api_key}): ")
+                user_api_key = input(f"Enter your OpenAI API key (default: {default_openai_api_key}): ")
+                api_key = user_api_key if user_api_key != "" else default_openai_api_key
             else:
                 api_key = default_openai_api_key
-            OpenAIProcessorConversationConfig.objects.create(api_key=api_key)
+            chat_model_provider = OpenAIProcessorConversationConfig.objects.create(api_key=api_key, name="OpenAI")
 
             if interactive:
-                openai_chat_model = input(
-                    f"Enter the OpenAI chat model you want to use (default: {default_online_chat_model}): "
+                chat_model_names = input(
+                    f"Enter the OpenAI chat models you want to use (default: {','.join(default_openai_chat_models)}): "
                 )
-                openai_chat_model = openai_chat_model or default_online_chat_model
+                chat_models = chat_model_names.split(",") if chat_model_names != "" else default_openai_chat_models
+                chat_models = [model.strip() for model in chat_models]
             else:
-                openai_chat_model = default_online_chat_model
-            default_max_tokens = model_to_prompt_size.get(openai_chat_model, 10000)
-            if interactive:
-                max_tokens = input(
-                    f"Enter the maximum number of tokens to use for the OpenAI chat model (default: {default_max_tokens}): "
-                )
-                max_tokens = max_tokens or default_max_tokens
-            else:
-                max_tokens = default_max_tokens
-            ChatModelOptions.objects.create(
-                chat_model=openai_chat_model, model_type=ChatModelOptions.ModelType.OPENAI, max_prompt_size=max_tokens
-            )
+                chat_models = default_openai_chat_models
 
+            # Add OpenAI chat models
+            for chat_model in chat_models:
+                vision_enabled = chat_model in ["gpt-4o-mini", "gpt-4o"]
+                default_max_tokens = model_to_prompt_size.get(chat_model)
+                ChatModelOptions.objects.create(
+                    chat_model=chat_model,
+                    model_type=ChatModelOptions.ModelType.OPENAI,
+                    max_prompt_size=default_max_tokens,
+                    openai_config=chat_model_provider,
+                    vision_enabled=vision_enabled,
+                )
+
+            # Add OpenAI speech to text model
             default_speech2text_model = "whisper-1"
             if interactive:
                 openai_speech2text_model = input(
@@ -116,6 +88,7 @@ def initialization(interactive: bool = True):
                 model_name=openai_speech2text_model, model_type=SpeechToTextModelOptions.ModelType.OPENAI
             )
 
+            # Add OpenAI text to image model
             default_text_to_image_model = "dall-e-3"
             if interactive:
                 openai_text_to_image_model = input(
@@ -128,9 +101,124 @@ def initialization(interactive: bool = True):
                 model_name=openai_text_to_image_model, model_type=TextToImageModelConfig.ModelType.OPENAI
             )
 
-        if use_offline_model == "y" or use_openai_model == "y":
-            logger.info("🗣️  Chat model configuration complete")
+        # Set up Google's Gemini online chat models
+        default_gemini_api_key = os.getenv("GEMINI_API_KEY")
+        default_use_gemini_model = {True: "y", False: "n"}[default_gemini_api_key != None]
+        use_model_provider = default_use_gemini_model if not interactive else input("Add Google's chat models? (y/n): ")
+        if use_model_provider == "y":
+            logger.info("️💬 Setting up your Google Gemini configuration")
+            if interactive:
+                user_api_key = input(f"Enter your Gemini API key (default: {default_gemini_api_key}): ")
+                api_key = user_api_key if user_api_key != "" else default_gemini_api_key
+            else:
+                api_key = default_gemini_api_key
+            chat_model_provider = OpenAIProcessorConversationConfig.objects.create(api_key=api_key, name="Gemini")
 
+            if interactive:
+                chat_model_names = input(
+                    f"Enter the Gemini chat models you want to use (default: {','.join(default_gemini_chat_models)}): "
+                )
+                chat_models = chat_model_names.split(",") if chat_model_names != "" else default_gemini_chat_models
+                chat_models = [model.strip() for model in chat_models]
+            else:
+                chat_models = default_gemini_chat_models
+
+            # Add Gemini chat models
+            for chat_model in chat_models:
+                default_max_tokens = model_to_prompt_size.get(chat_model)
+                vision_enabled = False
+                ChatModelOptions.objects.create(
+                    chat_model=chat_model,
+                    model_type=ChatModelOptions.ModelType.GOOGLE,
+                    max_prompt_size=default_max_tokens,
+                    openai_config=chat_model_provider,
+                    vision_enabled=False,
+                )
+
+        # Set up Anthropic's online chat models
+        default_anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+        default_use_anthropic_model = {True: "y", False: "n"}[default_anthropic_api_key != None]
+        use_model_provider = (
+            default_use_anthropic_model if not interactive else input("Add Anthropic's chat models? (y/n): ")
+        )
+        if use_model_provider == "y":
+            logger.info("️💬 Setting up your Anthropic configuration")
+            if interactive:
+                user_api_key = input(f"Enter your Anthropic API key (default: {default_anthropic_api_key}): ")
+                api_key = user_api_key if user_api_key != "" else default_anthropic_api_key
+            else:
+                api_key = default_anthropic_api_key
+            chat_model_provider = OpenAIProcessorConversationConfig.objects.create(api_key=api_key, name="Anthropic")
+
+            if interactive:
+                chat_model_names = input(
+                    f"Enter the Anthropic chat models you want to use (default: {','.join(default_anthropic_chat_models)}): "
+                )
+                chat_models = chat_model_names.split(",") if chat_model_names != "" else default_anthropic_chat_models
+                chat_models = [model.strip() for model in chat_models]
+            else:
+                chat_models = default_anthropic_chat_models
+
+            # Add Anthropic chat models
+            for chat_model in chat_models:
+                vision_enabled = False
+                default_max_tokens = model_to_prompt_size.get(chat_model)
+                ChatModelOptions.objects.create(
+                    chat_model=chat_model,
+                    model_type=ChatModelOptions.ModelType.ANTHROPIC,
+                    max_prompt_size=default_max_tokens,
+                    openai_config=chat_model_provider,
+                    vision_enabled=False,
+                )
+
+        # Set up offline chat models
+        use_model_provider = "y" if not interactive else input("Add Offline chat models? (y/n): ")
+        if use_model_provider == "y":
+            logger.info("️💬 Setting up Offline chat models")
+
+            if interactive:
+                chat_model_names = input(
+                    f"Enter the offline chat models you want to use. See HuggingFace for available GGUF models (default: {','.join(default_offline_chat_models)}): "
+                )
+                chat_models = chat_model_names.split(",") if chat_model_names != "" else default_offline_chat_models
+                chat_models = [model.strip() for model in chat_models]
+            else:
+                chat_models = default_offline_chat_models
+
+            # Add chat models
+            for chat_model in chat_models:
+                default_max_tokens = model_to_prompt_size.get(chat_model)
+                default_tokenizer = model_to_tokenizer.get(chat_model)
+                ChatModelOptions.objects.create(
+                    chat_model=chat_model,
+                    model_type=ChatModelOptions.ModelType.OFFLINE,
+                    max_prompt_size=default_max_tokens,
+                    tokenizer=default_tokenizer,
+                )
+
+        chat_models_configured = ChatModelOptions.objects.count()
+
+        # Explicitly set default chat model
+        if chat_models_configured > 0:
+            default_chat_model_name = ChatModelOptions.objects.first().chat_model
+            # If there are multiple chat models, ask the user to choose the default chat model
+            if chat_models_configured > 1 and interactive:
+                user_chat_model_name = input(
+                    f"Enter the default chat model to use (default: {default_chat_model_name}): "
+                )
+            else:
+                user_chat_model_name = None
+
+            # If the user's choice is valid, set it as the default chat model
+            if user_chat_model_name and ChatModelOptions.objects.filter(chat_model=user_chat_model_name).exists():
+                default_chat_model_name = user_chat_model_name
+
+            # Create a server chat settings object with the default chat model
+            default_chat_model = ChatModelOptions.objects.filter(chat_model=default_chat_model_name).first()
+            ServerChatSettings.objects.create(chat_default=default_chat_model)
+            logger.info("🗣️ Chat model configuration complete")
+
+        # Set up offline speech to text model
         use_offline_speech2text_model = "n" if not interactive else input("Use offline speech to text model? (y/n): ")
         if use_offline_speech2text_model == "y":
             logger.info("🗣️ Setting up offline speech to text model")
@@ -163,7 +251,8 @@ def initialization(interactive: bool = True):
             try:
                 _create_chat_configuration()
                 break
-            # Some environments don't support interactive input. We catch the exception and return if that's the case. The admin can still configure their settings from the admin page.
+            # Some environments don't support interactive input. We catch the exception and return if that's the case.
+            # The admin can still configure their settings from the admin page.
             except EOFError:
                 return
             except Exception as e:

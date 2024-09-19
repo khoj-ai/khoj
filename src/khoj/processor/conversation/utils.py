@@ -18,13 +18,20 @@ from khoj.utils.helpers import is_none_or_empty, merge_dicts
 
 logger = logging.getLogger(__name__)
 model_to_prompt_size = {
+    # OpenAI Models
     "gpt-3.5-turbo": 12000,
-    "gpt-3.5-turbo-0125": 12000,
-    "gpt-4-0125-preview": 20000,
     "gpt-4-turbo-preview": 20000,
+    "gpt-4o": 20000,
     "gpt-4o-mini": 20000,
     "o1-preview": 20000,
     "o1-mini": 20000,
+    # Google Models
+    "gemini-1.5-flash": 20000,
+    "gemini-1.5-pro": 20000,
+    # Anthropic Models
+    "claude-3-5-sonnet-20240620": 20000,
+    "claude-3-opus-20240229": 20000,
+    # Offline Models
     "TheBloke/Mistral-7B-Instruct-v0.2-GGUF": 3500,
     "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF": 3500,
     "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF": 20000,
@@ -163,7 +170,7 @@ def generate_chatml_messages_with_context(
         if loaded_model:
             max_prompt_size = infer_max_tokens(loaded_model.n_ctx(), model_to_prompt_size.get(model_name, math.inf))
         else:
-            max_prompt_size = model_to_prompt_size.get(model_name, 2000)
+            max_prompt_size = model_to_prompt_size.get(model_name, 10000)
 
     # Scale lookback turns proportional to max prompt size supported by model
     lookback_turns = max_prompt_size // 750
