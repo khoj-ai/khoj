@@ -405,7 +405,7 @@
             const chatApi = `${hostURL}/api/chat?client=desktop`;
             const chatApiBody = {
                 q: query,
-                conversation_id: parseInt(conversationID),
+                conversation_id: conversationID,
                 stream: true,
                 ...(!!city && { city: city }),
                 ...(!!region && { region: region }),
