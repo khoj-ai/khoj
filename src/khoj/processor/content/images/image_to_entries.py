@@ -4,8 +4,6 @@ import os
 from datetime import datetime
 from typing import Dict, List, Tuple
 
-from rapidocr_onnxruntime import RapidOCR
-
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import KhojUser
 from khoj.processor.content.text_to_entries import TextToEntries
@@ -58,7 +56,6 @@ class ImageToEntries(TextToEntries):
         entry_to_location_map: List[Tuple[str, str]] = []
         for image_file in image_files:
             try:
-                loader = RapidOCR()
                 bytes = image_files[image_file]
                 # write the image to a temporary file
                 timestamp_now = datetime.utcnow().timestamp()
@@ -71,13 +68,18 @@ class ImageToEntries(TextToEntries):
                     bytes = image_files[image_file]
                     f.write(bytes)
                 try:
+                    from rapidocr_onnxruntime import RapidOCR
+
+                    loader = RapidOCR()
                     image_entries_per_file = ""
                     result, _ = loader(tmp_file)
                     if result:
                         expanded_entries = [text[1] for text in result]
                         image_entries_per_file = " ".join(expanded_entries)
                 except ImportError:
-                    logger.warning(f"Unable to process file: {image_file}. This file will not be indexed.")
+                    logger.warning(
+                        f"Unable to process image or scanned file for text: {image_file}. This file will not be indexed."
+                    )
                     continue
                 entry_to_location_map.append((image_entries_per_file, image_file))
                 entries.extend([image_entries_per_file])
