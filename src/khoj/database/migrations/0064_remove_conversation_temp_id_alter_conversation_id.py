@@ -17,29 +17,32 @@ def reverse_remove_bigint_id(apps, schema_editor):
 
 
 def update_conversation_id_in_job_state(apps, schema_editor):
-    DjangoJob = apps.get_model("django_apscheduler", "DjangoJob")
-    Conversation = apps.get_model("database", "Conversation")
+    try:
+        DjangoJob = apps.get_model("django_apscheduler", "DjangoJob")
+        Conversation = apps.get_model("database", "Conversation")
 
-    for job in DjangoJob.objects.all():
-        job_state = pickle.loads(job.job_state)
-        kwargs = job_state.get("kwargs")
-        conversation_id = kwargs.get("conversation_id") if kwargs else None
-        automation_metadata = json.loads(job_state.get("name", "{}"))
+        for job in DjangoJob.objects.all():
+            job_state = pickle.loads(job.job_state)
+            kwargs = job_state.get("kwargs")
+            conversation_id = kwargs.get("conversation_id") if kwargs else None
+            automation_metadata = json.loads(job_state.get("name", "{}"))
 
-        if not conversation_id:
-            job.delete()
+            if not conversation_id:
+                job.delete()
 
-        if conversation_id:
-            try:
-                conversation = Conversation.objects.get(id=conversation_id)
-                automation_metadata["conversation_id"] = str(conversation.temp_id)
-                name = json.dumps(automation_metadata)
-                job_state["name"] = name
-                job_state["kwargs"]["conversation_id"] = str(conversation.temp_id)
-                job.job_state = pickle.dumps(job_state)
-                job.save()
-            except Conversation.DoesNotExist:
-                pass
+            if conversation_id:
+                try:
+                    conversation = Conversation.objects.get(id=conversation_id)
+                    automation_metadata["conversation_id"] = str(conversation.temp_id)
+                    name = json.dumps(automation_metadata)
+                    job_state["name"] = name
+                    job_state["kwargs"]["conversation_id"] = str(conversation.temp_id)
+                    job.job_state = pickle.dumps(job_state)
+                    job.save()
+                except Conversation.DoesNotExist:
+                    pass
+    except LookupError as e:
+        pass
 
 
 def no_op(apps, schema_editor):
