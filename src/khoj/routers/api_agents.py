@@ -1,10 +1,11 @@
 import json
 import logging
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Request
 from fastapi.requests import Request
 from fastapi.responses import Response
+from pydantic import BaseModel
 from starlette.authentication import requires
 
 from khoj.database.adapters import AgentAdapters
@@ -16,6 +17,16 @@ logger = logging.getLogger(__name__)
 
 
 api_agents = APIRouter()
+
+
+class CreateAgentBody(BaseModel):
+    name: str
+    persona: str
+    privacy_level: str
+    icon: str
+    color: str
+    chat_model: str
+    files: Optional[List[str]] = []
 
 
 @api_agents.get("", response_class=Response)
@@ -51,17 +62,11 @@ async def all_agents(
 async def create_agent(
     request: Request,
     common: CommonQueryParams,
-    name: str,
-    persona: str,
-    privacy_level: str,
-    icon: str,
-    color: str,
-    chat_model: str,
-    files: List[str],
+    body: CreateAgentBody,
 ) -> Response:
     user: KhojUser = request.user.object
 
-    is_safe_prompt, reason = await acheck_if_safe_prompt(persona)
+    is_safe_prompt, reason = await acheck_if_safe_prompt(body.persona)
     if not is_safe_prompt:
         return Response(
             content=json.dumps({"error": f"{reason}"}),
@@ -71,13 +76,13 @@ async def create_agent(
 
     agent = await AgentAdapters.acreate_agent(
         user,
-        name,
-        persona,
-        privacy_level,
-        icon,
-        color,
-        chat_model,
-        files,
+        body.name,
+        body.persona,
+        body.privacy_level,
+        body.icon,
+        body.color,
+        body.chat_model,
+        body.files,
     )
 
     agents_packet = {

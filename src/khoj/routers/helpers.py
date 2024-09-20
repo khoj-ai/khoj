@@ -262,7 +262,7 @@ async def acheck_if_safe_prompt(system_prompt: str) -> bool:
     """
     Check if the system prompt is safe to use
     """
-    safe_prompt_check = prompts.personality_prompt_safety_expert.format(system_prompt=system_prompt)
+    safe_prompt_check = prompts.personality_prompt_safety_expert.format(prompt=system_prompt)
     is_safe = True
     reason = ""
 
@@ -277,6 +277,9 @@ async def acheck_if_safe_prompt(system_prompt: str) -> bool:
                 reason = response.get("reason", "")
         except Exception:
             logger.error(f"Invalid response for checking safe prompt: {response}")
+
+    if not is_safe:
+        logger.error(f"Unsafe prompt: {system_prompt}. Reason: {reason}")
 
     return is_safe, reason
 

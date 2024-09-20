@@ -10,6 +10,7 @@ from enum import Enum
 from typing import Callable, Iterable, List, Optional, Type
 
 import cron_descriptor
+import django
 from apscheduler.job import Job
 from asgiref.sync import sync_to_async
 from django.contrib.sessions.backends.db import SessionStore
@@ -571,8 +572,13 @@ class AgentAdapters:
     def get_all_accessible_agents(user: KhojUser = None):
         public_query = Q(privacy_level=Agent.PrivacyLevel.PUBLIC)
         if user:
-            return Agent.objects.filter(public_query | Q(creator=user)).distinct().order_by("created_at")
-        return Agent.objects.filter(public_query).order_by("created_at")
+            return (
+                Agent.objects.filter(public_query | Q(creator=user))
+                .distinct()
+                .order_by("created_at")
+                .prefetch_related("creator")
+            )
+        return Agent.objects.filter(public_query).order_by("created_at").prefetch_related("creator")
 
     @staticmethod
     async def aget_all_accessible_agents(user: KhojUser = None) -> List[Agent]:
@@ -627,6 +633,7 @@ class AgentAdapters:
         return await Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).afirst()
 
     @staticmethod
+    @django.db.transaction.atomic
     async def acreate_agent(
         user: KhojUser,
         name: str,
@@ -651,7 +658,7 @@ class AgentAdapters:
         )
 
         for file in files:
-            reference_file = await FileObject.objects.afirst(file_name=file, user=user)
+            reference_file = await FileObject.objects.filter(file_name=file, user=user).afirst()
             if reference_file:
                 await FileObject.objects.acreate(file_name=file, agent=agent, raw_text=reference_file.raw_text)
 

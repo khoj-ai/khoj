@@ -583,7 +583,7 @@ async def chat(
             nonlocal connection_alive, ttft
             if not connection_alive or await request.is_disconnected():
                 connection_alive = False
-                logger.warn(f"User {user} disconnected from {common.client} client")
+                logger.warning(f"User {user} disconnected from {common.client} client")
                 return
             try:
                 if event_type == ChatEvent.END_LLM_RESPONSE:
