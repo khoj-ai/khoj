@@ -131,7 +131,7 @@ def run(should_start_server=True):
     logger.info(f"📦 Initializing DB:\n{db_migrate_output.getvalue().strip()}")
     logger.debug(f"🌍 Initializing Web Client:\n{collectstatic_output.getvalue().strip()}")
 
-    initialization()
+    initialization(not args.non_interactive)
 
     # Create app directory, if it doesn't exist
     state.config_file.parent.mkdir(parents=True, exist_ok=True)
