@@ -14,37 +14,63 @@ import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 ```
 
-## Setup
+## Setup Khoj
 These are the general setup instructions for self-hosted Khoj.
-You can install the Khoj server using either Docker or Pip.
+You can install the Khoj server using either [Docker](?server=docker) or [Pip](?server=pip).
 
 :::info[Offline Model + GPU]
 If you want to use the offline chat model and you have a GPU, you should use Installation Option 2  - local setup via the Python package directly. Our Docker image doesn't currently support running the offline chat model on GPU, making inference times really slow.
 :::
 
-### 1A. Install Method 1: Docker
+<Tabs groupId="server" queryString>
+  <TabItem value="docker" label="Docker">
+    <Tabs groupId="operating-systems" queryString="os">
+      <TabItem value="macos" label="MacOS">
+        <h3>Prerequisites</h3>
+        Install [Docker Desktop](https://docs.docker.com/desktop/install/mac-install/)
+      </TabItem>
+      <TabItem value="windows" label="Windows">
+      <h3>Prerequisites</h3>
+      1. Install [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) and restart your machine
+         ```shell
+         # Run in PowerShell
+         wsl --install
+         ```
+      2. Install [Docker Desktop](https://docs.docker.com/desktop/install/windows-install/) with **[WSL2 backend](https://docs.docker.com/desktop/wsl/#turn-on-docker-desktop-wsl-2)** (default)
+      </TabItem>
+      <TabItem value="linux" label="Linux">
+        <h3>Prerequisites</h3>
+        Install [Docker Desktop](https://docs.docker.com/desktop/install/windows-install/).
+        You can also use your package manager to install Docker Engine & Docker Compose.
+      </TabItem>
+    </Tabs>
 
-#### Prerequisites
-1. Install Docker Engine. See [official instructions](https://docs.docker.com/engine/install/).
-2. Ensure you have Docker Compose. See [official instructions](https://docs.docker.com/compose/install/).
-
-#### Setup
-
-1. Get the sample docker-compose file [from Github](https://github.com/khoj-ai/khoj/blob/master/docker-compose.yml).
-2. Configure the environment variables in the docker-compose.yml to your choosing.<br />
-   Note: *Your admin account will automatically be created based on the admin credentials in that file, so pay attention to those.*
-3. Now start the container by running the following command in the same directory as your docker-compose.yml file. This will automatically setup the database and run the Khoj server.
+<h3>Setup</h3>
+1. Download the Khoj docker-compose.yml file [from Github](https://github.com/khoj-ai/khoj/blob/master/docker-compose.yml)
    ```shell
+   # Windows users should use their WSL2 terminal to run these commands
+   mkdir ~/.khoj && cd ~/.khoj
+   wget https://raw.githubusercontent.com/khoj-ai/khoj/master/docker-compose.yml
+   ```
+2. Configure the environment variables in the docker-compose.yml
+   - Set `KHOJ_ADMIN_PASSWORD`, `KHOJ_DJANGO_SECRET_KEY` (and optionally the `KHOJ_ADMIN_EMAIL`) to something secure. This allows you to customize Khoj later via the admin panel.
+   - Set `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` to your API key if you want to use OpenAI, Anthropic or Gemini chat models respectively.
+3. Start Khoj by running the following command in the same directory as your docker-compose.yml file.
+   ```shell
+   # Windows users should use their WSL2 terminal to run these commands
+   cd ~/.khoj
    docker-compose up
    ```
 
-Khoj should now be running at http://localhost:42110! You can see the web UI in your browser.
+:::info[Remote Access]
+By default Khoj is only accessible on the machine it is running. To access Khoj from a remote machine see [Remote Access Docs](/advanced/remote).
+:::
 
-### 1B. Install Method 2: Pip
+Your setup is complete once you see `🌖 Khoj is ready to use` in the server logs on your terminal.
+  </TabItem>
+  <TabItem value="pip" label="Pip">
 
-#### Prerequisites
-
-##### Install Postgres (with PgVector)
+<h3>1. Install Postgres (with PgVector)</h3>
 
 Khoj uses Postgres DB for all server configuration and to scale to multi-user setups. It uses the pgvector package in Postgres to manage your document embeddings. Both Postgres and pgvector need to be installed for Khoj to work.
 
@@ -66,32 +92,32 @@ Install [Postgres.app](https://postgresapp.com/). This comes pre-installed with 
     </TabItem>
   </Tabs>
 
-##### Create the Khoj database
+<h3>2. Create the Khoj database</h3>
 
-Make sure to update your environment variables to match your Postgres configuration if you're using a different name. The default values should work for most people. When prompted for a password, you can use the default password `postgres`, or configure it to your preference. Make sure to set the environment variable `POSTGRES_PASSWORD` to the same value as the password you set here.
-
-  <Tabs groupId="operating-systems" queryString="os">
-    <TabItem value="macos" label="MacOS">
+<Tabs groupId="operating-systems" queryString="os">
+  <TabItem value="macos" label="MacOS">
     ```shell
-createdb khoj -U postgres --password
+    createdb khoj -U postgres --password
     ```
-    </TabItem>
-    <TabItem value="windows" label="Windows">
+  </TabItem>
+  <TabItem value="windows" label="Windows">
     ```shell
-createdb -U postgres khoj --password
-      ```
-    </TabItem>
-    <TabItem value="linux" label="Linux">
-      ```shell
-sudo -u postgres createdb khoj --password
-      ```
-    </TabItem>
-  </Tabs>
+    createdb -U postgres khoj --password
+    ```
+  </TabItem>
+  <TabItem value="linux" label="Linux">
+    ```shell
+    sudo -u postgres createdb khoj --password
+    ```
+  </TabItem>
+</Tabs>
 
-#### Install Khoj server
+:::info[Postgres Env Config]
+Make sure to update the `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_DB` or `POSTGRES_PASSWORD` environment variables to match any customizations in your Postgres configuration.
+:::
 
-##### Install Khoj Server
-- *Make sure [python](https://realpython.com/installing-python/) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine*
+<h3>3. Install Khoj Server</h3>
+- Make sure [python](https://realpython.com/installing-python/) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine
 - Check [llama-cpp-python setup](https://python.langchain.com/docs/integrations/llms/llamacpp#installation) if you hit any llama-cpp issues with the installation
 
 Run the following command in your terminal to install the Khoj server.
@@ -107,7 +133,7 @@ python -m pip install khoj
     ```
     </TabItem>
     <TabItem value="windows" label="Windows">
-      In PowerShell on Windows
+      Run the following command in PowerShell on Windows
       ```shell
  # 1. (Optional) To use NVIDIA (CUDA) GPU
  $env:CMAKE_ARGS = "-DLLAMA_OPENBLAS=on"
@@ -134,56 +160,47 @@ python -m pip install khoj
     </TabItem>
   </Tabs>
 
-##### Start Khoj Server
+<h3>4. Start Khoj Server</h3>
 
-Before getting started, configure the following environment variables in your terminal for the first run
-
-  <Tabs groupId="operating-systems" queryString="os">
-    <TabItem value="macos" label="MacOS">
-      ```shell
-      export KHOJ_ADMIN_EMAIL=<your-email>
-      export KHOJ_ADMIN_PASSWORD=<your-password>
-      ```
-    </TabItem>
-    <TabItem value="windows" label="Windows">
-      If you're using PowerShell:
-      ```shell
-      $env:KHOJ_ADMIN_EMAIL="<your-email>"
-      $env:KHOJ_ADMIN_PASSWORD="<your-password>"
-      ```
-    </TabItem>
-    <TabItem value="linux" label="Linux">
-      ```shell
-      export KHOJ_ADMIN_EMAIL=<your-email>
-      export KHOJ_ADMIN_PASSWORD=<your-password>
-      ```
-    </TabItem>
-  </Tabs>
-
-
-Run the following command from your terminal to start the Khoj backend and open Khoj in your browser.
+Run the following command from your terminal to start the Khoj service.
 
 ```shell
 khoj --anonymous-mode
 ```
-`--anonymous-mode` allows you to run the server without setting up Google credentials for login. This allows you to use any of the clients without a login wall. If you want to use Google login, you can skip this flag, but you will have to add your Google developer credentials.
+`--anonymous-mode` allows access to Khoj without requiring login. This is usually fine for local only, single user setups. If you need authentication follow the [authentication setup docs](/advanced/authentication).
 
-On the first run, you will be prompted to input credentials for your admin account and do some basic configuration for your chat model settings. Once created, you can go to http://localhost:42110/server/admin and login with the credentials you just created.
+<h4>First Run</h4>
+On the first run of the above command, you will be prompted to:
+1. Create an admin account with a email and secure password
+2. Customize the chat models to enable
+   - Keep your [OpenAI](https://platform.openai.com/api-keys), [Anthropic](https://console.anthropic.com/account/keys), [Gemini](https://aistudio.google.com/app/apikey) API keys and [OpenAI](https://platform.openai.com/docs/models), [Anthropic](https://docs.anthropic.com/en/docs/about-claude/models#model-names), [Gemini](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models#gemini-models), [Offline](https://huggingface.co/models?pipeline_tag=text-generation&library=gguf) chat model names handy to set any of them up during first run.
+3. Your setup is complete once you see `🌖 Khoj is ready to use` in the server logs on your terminal!
 
-Khoj should now be running at http://localhost:42110. You can see the web UI in your browser.
 
-Note: To start Khoj automatically in the background use [Task scheduler](https://www.windowscentral.com/how-create-automated-task-using-task-scheduler-windows-10) on Windows or [Cron](https://en.wikipedia.org/wiki/Cron) on Mac, Linux (e.g. with `@reboot khoj`)
+:::tip[Auto Start]
+To start Khoj automatically in the background use [Task scheduler](https://www.windowscentral.com/how-create-automated-task-using-task-scheduler-windows-10) on Windows or [Cron](https://en.wikipedia.org/wiki/Cron) on Mac, Linux (e.g. with `@reboot khoj`)
+:::
+  </TabItem>
+</Tabs>
 
+## Use Khoj
 
-### 2. Configure
-#### Login to the Khoj Admin Panel
+You can now open the web app at http://localhost:42110 and start interacting!<br />
+Nothing else is necessary, but you can customize your setup further by following the steps below.
+
+:::info[First Message to Offline Chat Model]
+The offline chat model gets downloaded when you first send a message to it. The download can take a few minutes! Subsequent messages should be faster.
+:::
+
+### Add Chat Models
+<h4>Login to the Khoj Admin Panel</h4>
 Go to http://localhost:42110/server/admin and login with the admin credentials you setup during installation.
 
 :::info[CSRF Error]
 Ensure you are using **localhost, not 127.0.0.1**, to access the admin panel to avoid the CSRF error.
 :::
 
-:::info[DISALLOWED HOST Error]
+:::info[DISALLOWED HOST or Bad Request (400) Error]
 You may hit this if you try access Khoj exposed on a custom domain (e.g. 192.168.12.3 or example.com) or over HTTP.
 Set the environment variables KHOJ_DOMAIN=your-domain and KHOJ_NO_HTTPS=false if required to avoid this error.
 :::
@@ -192,92 +209,131 @@ Set the environment variables KHOJ_DOMAIN=your-domain and KHOJ_NO_HTTPS=false if
 Using Safari on Mac? You might not be able to login to the admin panel. Try using Chrome or Firefox instead.
 :::
 
-#### Configure Chat Model
+<h4>Configure Chat Model</h4>
 Setup which chat model you'd want to use. Khoj supports local and online chat models.
 
-:::tip[Multiple Chat Models]
-Add a `ServerChatSettings` with `Default` and `Summarizer` fields set to your preferred chat model via [the admin panel](http://localhost:42110/server/admin/database/serverchatsettings/add/). Otherwise Khoj defaults to use the first chat model in your [ChatModelOptions](http://localhost:42110/server/admin/database/chatmodeloptions/) for all non chat response generation tasks.
-:::
-
-##### Configure OpenAI Chat
+<Tabs groupId="chatmodel" queryString>
+  <TabItem value="openai" label="OpenAI">
 
 :::info[Ollama Integration]
 Using Ollama? See the [Ollama Integration](/advanced/ollama) section for more custom setup instructions.
 :::
 
-1. Go to the [OpenAI settings](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/) in the server admin settings to add an OpenAI processor conversation config. This is where you set your API key and server API base URL. The API base URL is optional - it's only relevant if you're using another OpenAI-compatible proxy server.
-
+1. Create a new [OpenAI processor conversation config](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/add) in the server admin settings. This is kind of a misnomer, we know.
+   - Add your [OpenAI API key](https://platform.openai.com/api-keys)
+   - Give the configuration a friendly name like `OpenAI`
+   - (Optional) Set the API base URL. It is only relevant if you're using another OpenAI-compatible proxy server like [Ollama](/advanced/ollama) or [LMStudio](/advanced/lmstudio).
 ![example configuration for openai processor](/img/example_openai_processor_config.png)
-
-2. Go over to configure your [chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/). Set the `chat-model` field to a supported chat model[^1] of your choice. For example, you can specify `gpt-4o` if you're using OpenAI.
+2. Create a new [chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/add)
+    - Set the `chat-model` field to an [OpenAI chat model](https://platform.openai.com/docs/models). Example: `gpt-4o`.
     - Make sure to set the `model-type` field to `OpenAI`.
-    - The `tokenizer` and `max-prompt-size` fields are optional. Set them only if you're sure of the tokenizer or token limit for the model you're using. Contact us if you're unsure what to do here.
     - If your model supports vision, set the `vision enabled` field to `true`. This is currently only supported for OpenAI models with vision capabilities.
-
-![example configuration for chat model options](/img/example_chatmodel_option.png)
-
-##### Configure Anthropic Chat
-1. Go to the [OpenAI settings](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/) in the server admin settings to add an OpenAI processor conversation config. This is kind of a misnomer, we know. Do not configure the API base url. Just add your API key and give the configuration a friendly name.
-2. Go over to configure your [chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/). Set the `chat-model` field to a supported chat model by Anthropic of your choice. For example, you can specify `claude-3-5-sonnet-20240620`.
-    - Make sure to set the `model-type` field to `Anthropic`.
     - The `tokenizer` and `max-prompt-size` fields are optional. Set them only if you're sure of the tokenizer or token limit for the model you're using. Contact us if you're unsure what to do here.
+![example configuration for chat model options](/img/example_chatmodel_option.png)
+  </TabItem>
+  <TabItem value="anthropic" label="Anthropic">
+1. Create a new [OpenAI processor conversation config](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/add) in the server admin settings. This is kind of a misnomer, we know.
+   - Add your [Anthropic API key](https://console.anthropic.com/account/keys)
+   - Give the configuration a friendly name like `Anthropic`. Do not configure the API base url.
+2. Create a new [chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/add)
+    - Set the `chat-model` field to an [Anthropic chat model](https://docs.anthropic.com/en/docs/about-claude/models#model-names). Example: `claude-3-5-sonnet-20240620`.
+    - Set the `model-type` field to `Anthropic`.
+    - Set the `Openai config` field to the OpenAI processor conversation config for Anthropic you created in step 1.
+  </TabItem>
+  <TabItem value="gemini" label="Gemini">
+1. Create a new [OpenAI processor conversation config](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/add) in the server admin settings. This is kind of a misnomer, we know.
+   - Add your [Gemini API key](https://aistudio.google.com/app/apikey)
+   - Give the configuration a friendly name like `Gemini`. Do not configure the API base url.
+2. Create a new [chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/add)
+    - Set the `chat-model` field to a [Google Gemini chat model](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models#gemini-models). Example: `gemini-1.5-flash`.
+    - Set the `model-type` field to `Gemini`.
+    - Set the `Openai config` field to the OpenAI processor conversation config for Gemini you created in step 1.
 
-##### Configure Offline Chat
+  </TabItem>
+  <TabItem value="offline" label="Offline">
+Offline chat stays completely private and can work without internet using any open-weights model.
 
-Offline chat stays completely private and can work without internet using open-source models.
-
-**System Requirements**:
+:::tip[System Requirements]
 - Minimum 8 GB RAM. Recommend **16Gb VRAM**
 - Minimum **5 GB of Disk** available
-- A CPU supporting [AVX or AVX2 instructions](https://en.wikipedia.org/wiki/Advanced_Vector_Extensions) is required
-- An Nvidia, AMD GPU or a Mac M1+ machine would significantly speed up chat response times
+- A Nvidia, AMD GPU or a Mac M1+ machine would significantly speed up chat responses
+:::
 
-Any chat model on Huggingface in GGUF format can be used for local chat. Here's how you can set it up:
+1. Get the name of your preferred chat model from [HuggingFace](https://huggingface.co/models?pipeline_tag=text-generation&library=gguf). *Most GGUF format chat models are supported*.
+2. Open the [create chat model page](http://localhost:42110/server/admin/database/chatmodeloptions/add/) on the admin panel
+3. Set the `chat-model` field to the name of your preferred chat model
+   - Make sure the `model-type` is set to `Offline`
+4. Set the newly added chat model as your preferred model in your [User chat settings](http://localhost:42110/settings) and [Server chat settings](http://localhost:42110/server/admin/database/serverchatsettings/).
+5. Restart the Khoj server and [start chatting](http://localhost:42110) with your new offline model!
+  </TabItem>
+</Tabs>
 
-1. No need to setup a conversation processor config!
-2. Go over to configure your [chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/). Set the `chat-model` field to a supported chat model[^1] of your choice. For example, we recommend `bartowski/Meta-Llama-3.1-8B-Instruct-GGUF`, but [any gguf model on huggingface](https://huggingface.co/models?library=gguf) should work.
-  - Make sure to set the `model-type` to `Offline`. Do not set `openai config`.
-  - The `tokenizer` and `max-prompt-size` fields are optional. You can set these for non-standard models (i.e not Mistral or Llama based models) or when you know the token limit of the model to improve context stuffing.
+:::tip[Multiple Chat Models]
+Set your preferred default chat model in the `Default`, `Advanced` fields of your [ServerChatSettings](http://localhost:42110/server/admin/database/serverchatsettings/).
+Khoj uses these chat model for all intermediate steps like intent detection, web search etc.
+:::
 
-#### Share your data
-You can sync your files and folders with Khoj using the [Desktop](/clients/desktop#setup), [Obsidian](/clients/obsidian#setup), or [Emacs](/clients/emacs#setup) clients or just drag and drop specific files on the [website](/clients/web#upload-documents). You can also directly sync your [Notion workspace](/data-sources/notion_integration).
+:::info[Chat Model Fields]
+ - The `tokenizer` and `max-prompt-size` fields are optional. Set them only if you're sure of the tokenizer or token limit for the model you're using. This improves context stuffing. Contact us if you're unsure what to do here.
+ - Only tick the `vision enabled` field for OpenAI models with vision capabilities like gpt-4o. Vision capabilities in other chat models is not currently utilized.
+:::
 
-[^1]: Khoj, by default, can use [OpenAI GPT3.5+ chat models](https://platform.openai.com/docs/models/overview) or [GGUF chat models](https://huggingface.co/models?library=gguf). See [this section](/advanced/use-openai-proxy) on how to locally use OpenAI-format compatible proxy servers.
+### Sync your Knowledge
 
-### 3. Use Khoj 🚀
+- You can chat with your notes and documents using Khoj.
+- Khoj can keep your files and folders synced using the Khoj [Desktop](/clients/desktop#setup), [Obsidian](/clients/obsidian#setup) or [Emacs](/clients/emacs#setup) clients.
+- Your [Notion workspace](/data-sources/notion_integration) can be directly synced from the web app.
+- You can also just drag and drop specific files you want to chat with on the [Web app](/clients/web#upload-documents).
 
-Now open http://localhost:42110 to start interacting with Khoj!
+### Setup Khoj Clients
+The Khoj web app is available by default to chat, search and configure Khoj.<br />
+You can also install a Khoj client to easily access it from Obsidian, Emacs, Whatsapp or your OS and keep your documents synced with Khoj.
 
-### 4. Install Khoj Clients (Optional)
-Khoj exposes a web interface to search, chat and configure by default.<br />
-You can install a Khoj client to sync your documents or to easily access Khoj from within Obsidian, Emacs or your OS.
-
-- **Khoj Desktop**:<br />
-[Install](/clients/desktop#setup) the Khoj Desktop app.
-
-- **Khoj Obsidian**:<br />
-[Install](/clients/obsidian#setup) the Khoj Obsidian plugin.
-
-- **Khoj Emacs**:<br />
-[Install](/clients/emacs#setup) khoj.el
-
-#### Setup host URL
+:::info[Note]
 Set the host URL on your clients settings page to your Khoj server URL. By default, use `http://127.0.0.1:42110` or `http://localhost:42110`. Note that `localhost` may not work in all cases.
+:::
+
+<Tabs groupId="client" queryString>
+  <TabItem value="desktop" label="Desktop">
+  - Read the Khoj Desktop app [setup docs](/clients/desktop#setup).
+  </TabItem>
+  <TabItem value="emacs" label="Emacs">
+  - Read the Khoj Emacs package [setup docs](/clients/emacs#setup).
+  </TabItem>
+  <TabItem value="obsidian" label="Obsidian">
+  - Read the Khoj Obsidian plugin [setup docs](/clients/obsidian#setup).
+  </TabItem>
+  <TabItem value="whatsapp" label="Whatsapp">
+  - Read the Khoj Whatsapp app [setup docs](/clients/whatsapp).
+  </TabItem>
+</Tabs>
 
 ## Upgrade
 
-  <Tabs groupId="environment">
-    <TabItem value="localsetup" label="Local Setup">
+### Upgrade Server
+  <Tabs groupId="server" queryString>
+    <TabItem value="pip" label="Pip">
       ```shell
       pip install --upgrade khoj
       ```
       *Note: To upgrade to the latest pre-release version of the khoj server run below command*
     </TabItem>
     <TabItem value="docker" label="Docker">
-      From the same directory where you have your `docker-compose` file, this will fetch the latest build and upgrade your server.
+      Run the commands below from the same directory where you have your `docker-compose.yml` file.
+      This will fetch the latest build and upgrade your server.
       ```shell
+      # Windows users should use their WSL2 terminal to run these commands
+      cd ~/.khoj  # assuming your khoj docker-compose.yml file is here
       docker-compose up --build
       ```
+    </TabItem>
+  </Tabs>
+
+### Upgrade Clients
+  <Tabs groupId="client" queryString>
+    <TabItem value="desktop" label="Desktop">
+      - The Desktop app automatically updates to the latest released version on restart.
+      - You can manually download the latest version from the [Khoj Website](https://khoj.dev/downloads).
     </TabItem>
     <TabItem value="emacs" label="Emacs">
     - Use your Emacs Package Manager to Upgrade
@@ -290,9 +346,9 @@ Set the host URL on your clients settings page to your Khoj server URL. By defau
   </Tabs>
 
 ## Uninstall
-
-  <Tabs groupId="environment">
-    <TabItem value="localsetup" label="Local Setup">
+### Uninstall Server
+  <Tabs groupId="server" queryString>
+    <TabItem value="pip" label="Pip">
     ```shell
     # uninstall khoj server
     pip uninstall khoj
@@ -302,19 +358,25 @@ Set the host URL on your clients settings page to your Khoj server URL. By defau
     ```
     </TabItem>
     <TabItem value="docker" label="Docker">
-    From the same directory where you have your `docker-compose` file, run the command below to remove the server to delete its containers, networks, images and volumes.
+    Run the command below from the same directory where you have your `docker-compose` file.
+    This will remove the server containers, networks, images and volumes.
 
     ```shell
     docker-compose down --volumes
     ```
     </TabItem>
+  </Tabs>
+
+### Uninstall Clients
+  <Tabs groupId="client" queryString>
+    <TabItem value="desktop" label="Desktop">
+    Uninstall the Khoj Desktop client in the standard way from your OS.
+    </TabItem>
     <TabItem value="emacs" label="Emacs">
-    Uninstall the khoj Emacs, or desktop client in the standard way from Emacs or your OS respectively
-    You can also `rm -rf ~/.khoj` to remove the Khoj data directory if did a local install.
+    Uninstall the Khoj Emacs package in the standard way from Emacs.
     </TabItem>
     <TabItem value="obsidian" label="Obsidian">
-    Uninstall the khoj Obisidan, or desktop client in the standard way from Obsidian or your OS respectively
-    You can also `rm -rf ~/.khoj` to remove the Khoj data directory if did a local install.
+    Uninstall via the Community plugins tab on the settings pane in the Obsidian app
     </TabItem>
   </Tabs>
 
@@ -331,7 +393,6 @@ Set the host URL on your clients settings page to your Khoj server URL. By defau
      ```
   3. Now start `khoj` using the standard steps described earlier
 
-
 #### Install fails while building Tokenizer dependency
 - **Details**: `pip install khoj` fails while building the `tokenizers` dependency. Complains about Rust.
 - **Fix**: Install Rust to build the tokenizers package. For example on Mac run:
@@ -342,18 +403,6 @@ Set the host URL on your clients settings page to your Khoj server URL. By defau
     ```
 - **Refer**: [Issue with Fix](https://github.com/khoj-ai/khoj/issues/82#issuecomment-1241890946) for more details
 
-
 #### Khoj in Docker errors out with \"Killed\" in error message
 - **Fix**: Increase RAM available to Docker Containers in Docker Settings
 - **Refer**: [StackOverflow Solution](https://stackoverflow.com/a/50770267), [Configure Resources on Docker for Mac](https://docs.docker.com/desktop/mac/#resources)
-
-## Advanced
-### Self Host on Custom Domain
-
-You can self-host Khoj behind a custom domain as well. To do so, you need to set the `KHOJ_DOMAIN` environment variable to your domain (e.g., `export KHOJ_DOMAIN=my-khoj-domain.com` or add it to your `docker-compose.yml`). By default, the Khoj server you set up will not be accessible outside of `localhost` or `127.0.0.1`.
-
-:::warning[Without HTTPS certificate]
-To expose Khoj on a custom domain over the public internet, use of an SSL certificate is strongly recommended. You can use [Let's Encrypt](https://letsencrypt.org/) to get a free SSL certificate for your domain.
-
-To disable HTTPS, set the `KHOJ_NO_HTTPS` environment variable to `True`. This can be useful if Khoj is only accessible behind a secure, private network.
-:::
