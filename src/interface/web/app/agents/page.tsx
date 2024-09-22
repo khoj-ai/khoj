@@ -2,17 +2,30 @@
 
 import styles from "./agents.module.css";
 
-import Image from "next/image";
 import useSWR from "swr";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { useAuthenticatedData, UserProfile } from "../common/auth";
+import {
+    useAuthenticatedData,
+    UserProfile,
+    ModelOptions,
+    useUserConfig,
+    UserConfig,
+    SubscriptionStates,
+} from "../common/auth";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-import { PaperPlaneTilt, Lightning, Plus } from "@phosphor-icons/react";
-
+import {
+    PaperPlaneTilt,
+    Lightning,
+    Plus,
+    Circle,
+    Info,
+    Check,
+    ShieldWarning,
+} from "@phosphor-icons/react";
+import { set, z } from "zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Dialog,
@@ -34,10 +47,42 @@ import {
 import LoginPrompt from "../components/loginPrompt/loginPrompt";
 import { InlineLoading } from "../components/loading/loading";
 import SidePanel from "../components/sidePanel/chatHistorySidePanel";
-import { getIconFromIconName } from "../common/iconUtils";
-import { convertColorToTextClass } from "../common/colorUtils";
+import { getAvailableIcons, getIconFromIconName } from "../common/iconUtils";
+import { convertColorToTextClass, tailwindColors } from "../common/colorUtils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useIsMobileWidth } from "../common/utils";
+
+import {
+    Form,
+    FormControl,
+    FormDescription,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/ui/form";
+import { useForm, UseFormReturn } from "react-hook-form";
+import { Input } from "@/components/ui/input";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Textarea } from "@/components/ui/textarea";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { DialogTitle } from "@radix-ui/react-dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
 
 export interface AgentData {
     slug: string;
@@ -45,6 +90,10 @@ export interface AgentData {
     persona: string;
     color: string;
     icon: string;
+    privacy_level: string;
+    files?: string[];
+    creator?: string;
+    managed_by_admin: boolean;
 }
 
 async function openChat(slug: string, userData: UserProfile | null) {
@@ -70,6 +119,9 @@ const agentsFetcher = () =>
         .fetch("/api/agents")
         .then((res) => res.json())
         .catch((err) => console.log(err));
+
+// A generic fetcher function that uses the fetch API to make a request to a given URL and returns the response as JSON.
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 interface AgentCardProps {
     data: AgentData;
@@ -231,13 +283,462 @@ function AgentCard(props: AgentCardProps) {
     );
 }
 
+const EditAgentSchema = z.object({
+    name: z.string({ required_error: "Name is required" }).min(1, "Name is required"),
+    persona: z
+        .string({ required_error: "Personality is required" })
+        .min(1, "Personality is required"),
+    color: z.string({ required_error: "Color is required" }).min(1, "Color is required"),
+    icon: z.string({ required_error: "Icon is required" }).min(1, "Icon is required"),
+    privacy_level: z
+        .string({ required_error: "Privacy level is required" })
+        .min(1, "Privacy level is required"),
+    chat_model: z
+        .string({ required_error: "Chat model is required" })
+        .min(1, "Chat model is required"),
+    files: z.array(z.string()).default([]).optional(),
+});
+
+interface AgentModificationFormProps {
+    form: UseFormReturn<z.infer<typeof EditAgentSchema>>;
+    onSubmit: (values: z.infer<typeof EditAgentSchema>) => void;
+    create?: boolean;
+    errors?: string | null;
+    modelOptions: ModelOptions[];
+    filesOptions: string[];
+}
+
+function AgentModificationForm(props: AgentModificationFormProps) {
+    const [isSaving, setIsSaving] = useState(false);
+
+    const iconOptions = getAvailableIcons();
+    const colorOptions = tailwindColors;
+    const colorOptionClassName = convertColorToTextClass(props.form.getValues("color"));
+    const [showFilePicker, setShowFilePicker] = useState(false);
+
+    const privacyOptions = ["public", "private", "protected"];
+
+    return (
+        <Form {...props.form}>
+            <form
+                onSubmit={props.form.handleSubmit((values) => {
+                    props.onSubmit(values);
+                    setIsSaving(true);
+                })}
+                className="space-y-6"
+            >
+                <FormField
+                    control={props.form.control}
+                    name="name"
+                    render={({ field }) => (
+                        <FormItem className="space-y-1">
+                            <FormLabel>Name</FormLabel>
+                            <FormDescription>
+                                What should this agent be called? Pick something descriptive &
+                                memorable.
+                            </FormDescription>
+                            <FormControl>
+                                <Input placeholder="Biologist" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={props.form.control}
+                    name="persona"
+                    render={({ field }) => (
+                        <FormItem className="space-y-1">
+                            <FormLabel>Personality</FormLabel>
+                            <FormDescription>
+                                What is the personality, thought process, or tuning of this agent?
+                            </FormDescription>
+                            <FormControl>
+                                <Textarea
+                                    placeholder="You are an excellent biologist, at the top of your field in marine biology."
+                                    {...field}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={props.form.control}
+                    name="privacy_level"
+                    render={({ field }) => (
+                        <FormItem className="space-y-1">
+                            <FormLabel>
+                                <div>Privacy Level</div>
+                            </FormLabel>
+                            <FormDescription>
+                                <Collapsible>
+                                    <CollapsibleTrigger asChild>
+                                        <Button variant="ghost" className="px-0 py-1">
+                                            <span>
+                                                What's this?
+                                                <Info className="inline ml-1" />
+                                            </span>
+                                        </Button>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                        <b>Private</b>: only visible to you.
+                                        <br />
+                                        <b>Protected</b>: visible to anyone with a link.
+                                        <br />
+                                        <b>Public</b>: visible to everyone.
+                                        <br />
+                                        Note that we will review all public agents before they are
+                                        made public.
+                                    </CollapsibleContent>
+                                </Collapsible>
+                            </FormDescription>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                    <SelectTrigger className="w-[200px]">
+                                        <SelectValue placeholder="private" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="items-center space-y-1 inline-flex flex-col">
+                                    {privacyOptions.map((privacyOption) => (
+                                        <SelectItem key={privacyOption} value={privacyOption}>
+                                            <div className="flex items-center space-x-2">
+                                                {privacyOption}
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={props.form.control}
+                    name="chat_model"
+                    render={({ field }) => (
+                        <FormItem className="space-y-1">
+                            <FormLabel>Chat Model</FormLabel>
+                            <FormDescription>
+                                Which chat model should this agent use?
+                            </FormDescription>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                    <SelectTrigger className="text-left">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="items-start space-y-1 inline-flex flex-col">
+                                    {props.modelOptions.map((modelOption) => (
+                                        <SelectItem key={modelOption.id} value={modelOption.name}>
+                                            <div className="flex items-center space-x-2">
+                                                {modelOption.name}
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={props.form.control}
+                    name="files"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                            <FormLabel>Knowledge Base</FormLabel>
+                            <FormDescription>
+                                Which files should this agent have access to?
+                                <Button
+                                    variant="secondary"
+                                    className="w-[200px] justify-between"
+                                    onClick={() => setShowFilePicker(!showFilePicker)}
+                                >
+                                    {field.value
+                                        ? `${field.value.length} files selected`
+                                        : "Select files"}
+                                </Button>
+                            </FormDescription>
+                            {showFilePicker && (
+                                <Command>
+                                    <CommandInput placeholder="Find files..." />
+                                    <CommandList>
+                                        <CommandEmpty>No files found.</CommandEmpty>
+                                        <CommandGroup>
+                                            {props.filesOptions.map((file) => (
+                                                <CommandItem
+                                                    value={file}
+                                                    key={file}
+                                                    onSelect={() => {
+                                                        const currentFiles =
+                                                            props.form.getValues("files") || [];
+                                                        const newFiles = currentFiles.includes(file)
+                                                            ? currentFiles.filter(
+                                                                  (item) => item !== file,
+                                                              )
+                                                            : [...currentFiles, file];
+                                                        props.form.setValue("files", newFiles);
+                                                    }}
+                                                >
+                                                    <Check
+                                                        className={cn(
+                                                            "mr-2 h-4 w-4",
+                                                            field.value &&
+                                                                field.value.includes(file)
+                                                                ? "opacity-100"
+                                                                : "opacity-0",
+                                                        )}
+                                                    />
+                                                    {file}
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            )}
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <div className="grid">
+                    <FormLabel className="space-y-1">Look & Feel</FormLabel>
+                    <div className="flex items-center space-x-2 mt-2">
+                        <FormField
+                            control={props.form.control}
+                            name="color"
+                            render={({ field }) => (
+                                <FormItem className="space-y-3">
+                                    <Select
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger className="w-[200px]">
+                                                <SelectValue placeholder="Color" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent className="items-center space-y-1 inline-flex flex-col">
+                                            {colorOptions.map((colorOption) => (
+                                                <SelectItem key={colorOption} value={colorOption}>
+                                                    <div className="flex items-center space-x-2">
+                                                        <Circle
+                                                            className={`w-6 h-6 mr-2 ${convertColorToTextClass(colorOption)}`}
+                                                            weight="fill"
+                                                        />
+                                                        {colorOption}
+                                                    </div>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={props.form.control}
+                            name="icon"
+                            render={({ field }) => (
+                                <FormItem className="space-y-3">
+                                    <Select
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger className="w-[200px]">
+                                                <SelectValue placeholder="Icon" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent className="items-center space-y-1 inline-flex flex-col">
+                                            {iconOptions.map((iconOption) => (
+                                                <SelectItem key={iconOption} value={iconOption}>
+                                                    <div className="flex items-center space-x-2">
+                                                        {getIconFromIconName(
+                                                            iconOption,
+                                                            props.form.getValues("color"),
+                                                            "w-6",
+                                                            "h-6",
+                                                        )}
+                                                        {iconOption}
+                                                    </div>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                </div>
+                {props.errors && (
+                    <Alert className="bg-secondary border-none my-4">
+                        <AlertDescription>
+                            <ShieldWarning
+                                weight="fill"
+                                className="h-4 w-4 text-yellow-400 inline"
+                            />
+                            <span className="font-bold">{props.errors}</span>
+                        </AlertDescription>
+                    </Alert>
+                )}
+                <fieldset>
+                    <Button
+                        type="submit"
+                        variant={"ghost"}
+                        disabled={isSaving}
+                        className={`${isSaving ? "bg-stone-100 dark:bg-neutral-900" : ""} text-white ${colorOptionClassName}`}
+                    >
+                        {isSaving ? "Booting..." : "Save"}
+                    </Button>
+                </fieldset>
+            </form>
+        </Form>
+    );
+}
+
+interface CreateAgentCardProps {
+    data: AgentData;
+    userProfile: UserProfile | null;
+    isMobileWidth: boolean;
+    filesOptions: string[];
+    modelOptions: ModelOptions[];
+    selectedChatModelOption: string;
+    isSubscribed: boolean;
+    setAgentChangeTriggered: (value: boolean) => void;
+}
+
+function CreateAgentCard(props: CreateAgentCardProps) {
+    const [showModal, setShowModal] = useState(false);
+    const [errors, setErrors] = useState<string | null>(null);
+
+    const form = useForm<z.infer<typeof EditAgentSchema>>({
+        resolver: zodResolver(EditAgentSchema),
+        defaultValues: {
+            name: props.data.name,
+            persona: props.data.persona,
+            color: props.data.color,
+            icon: props.data.icon,
+            privacy_level: props.data.privacy_level,
+            chat_model: props.selectedChatModelOption,
+            files: [],
+        },
+    });
+
+    const onSubmit = (values: z.infer<typeof EditAgentSchema>) => {
+        console.log(JSON.stringify(values));
+
+        let agentsApiUrl = `/api/agents`;
+
+        fetch(agentsApiUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(values),
+        })
+            .then((response) => {
+                console.log(response);
+                if (response.status === 200) {
+                    form.reset();
+                    setShowModal(false);
+                    setErrors(null);
+                    props.setAgentChangeTriggered(true);
+                } else {
+                    response.json().then((data) => {
+                        console.error(data);
+                        form.clearErrors();
+                        if (data.error) {
+                            setErrors(data.error);
+                        }
+                    });
+                }
+            })
+            .catch((error) => {
+                console.error("Error:", error);
+                setErrors(error);
+            });
+    };
+
+    if (props.isMobileWidth) {
+        return (
+            <Drawer open={showModal} onOpenChange={setShowModal}>
+                <DrawerTrigger>
+                    <div className="flex items-center">
+                        <Plus />
+                        Create Agent
+                    </div>
+                </DrawerTrigger>
+                <DrawerContent className="p-2">
+                    <DrawerHeader>
+                        <DrawerTitle>Create Agent</DrawerTitle>
+                    </DrawerHeader>
+                    <DrawerDescription>
+                        <AgentModificationForm
+                            form={form}
+                            onSubmit={onSubmit}
+                            create={true}
+                            errors={errors}
+                            filesOptions={props.filesOptions}
+                            modelOptions={props.modelOptions}
+                        />
+                    </DrawerDescription>
+                    <DrawerFooter>
+                        <DrawerClose>Dismiss</DrawerClose>
+                    </DrawerFooter>
+                </DrawerContent>
+            </Drawer>
+        );
+    }
+
+    return (
+        <Dialog open={showModal} onOpenChange={setShowModal}>
+            <DialogTrigger>
+                <div className="flex items-center text-md gap-2">
+                    <Plus />
+                    Create Agent
+                </div>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogTitle>Create Agent</DialogTitle>
+                <AgentModificationForm
+                    form={form}
+                    onSubmit={onSubmit}
+                    create={true}
+                    errors={errors}
+                    filesOptions={props.filesOptions}
+                    modelOptions={props.modelOptions}
+                />
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 export default function Agents() {
-    const { data, error } = useSWR<AgentData[]>("agents", agentsFetcher, {
+    const { data, error, mutate } = useSWR<AgentData[]>("agents", agentsFetcher, {
         revalidateOnFocus: false,
     });
     const authenticatedData = useAuthenticatedData();
+    const { userConfig } = useUserConfig(true);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
     const isMobileWidth = useIsMobileWidth();
+
+    const { data: filesData, error: fileError } = useSWR<string[]>(
+        "/api/content/computer",
+        fetcher,
+    );
+
+    const [agentChangeTriggered, setAgentChangeTriggered] = useState(false);
+
+    useEffect(() => {
+        if (agentChangeTriggered) {
+            mutate();
+            setAgentChangeTriggered(false);
+        }
+    }, [agentChangeTriggered]);
 
     if (error) {
         return (
@@ -258,6 +759,14 @@ export default function Agents() {
         );
     }
 
+    const modelOptions: ModelOptions[] = userConfig?.chat_model_options || [];
+    const selectedChatModelOption: number = userConfig?.selected_chat_model_config || 0;
+
+    // The default model option should map to the item in the modelOptions array that has the same id as the selectedChatModelOption
+    const defaultModelOption = modelOptions.find(
+        (modelOption) => modelOption.id === selectedChatModelOption,
+    );
+
     return (
         <main className={`w-full mx-auto`}>
             <div className={`grid w-full mx-auto`}>
@@ -272,19 +781,32 @@ export default function Agents() {
                     <div className={`pt-6 md:pt-8 flex justify-between`}>
                         <h1 className="text-3xl flex items-center">Agents</h1>
                         <div className="ml-auto float-right border p-2 pt-3 rounded-xl font-bold hover:bg-stone-100 dark:hover:bg-neutral-900">
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger>
-                                        <div className="flex flex-row">
-                                            <Plus className="pr-2 w-6 h-6" />
-                                            <p className="pr-2">Create Agent</p>
-                                        </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Coming Soon!</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
+                            <CreateAgentCard
+                                data={{
+                                    slug: "",
+                                    name: "",
+                                    persona: "",
+                                    color: "",
+                                    icon: "",
+                                    privacy_level: "private",
+                                    managed_by_admin: false,
+                                }}
+                                userProfile={authenticatedData}
+                                isMobileWidth={isMobileWidth}
+                                filesOptions={filesData || []}
+                                modelOptions={userConfig?.chat_model_options || []}
+                                selectedChatModelOption={defaultModelOption?.name || ""}
+                                isSubscribed={
+                                    (userConfig?.subscription_state &&
+                                        userConfig?.subscription_state in
+                                            [
+                                                SubscriptionStates.SUBSCRIBED,
+                                                SubscriptionStates.TRIAL,
+                                            ]) ||
+                                    false
+                                }
+                                setAgentChangeTriggered={setAgentChangeTriggered}
+                            />
                         </div>
                     </div>
                     {showLoginPrompt && (

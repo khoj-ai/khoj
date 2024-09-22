@@ -576,9 +576,9 @@ class AgentAdapters:
                 Agent.objects.filter(public_query | Q(creator=user))
                 .distinct()
                 .order_by("created_at")
-                .prefetch_related("creator")
+                .prefetch_related("creator", "chat_model")
             )
-        return Agent.objects.filter(public_query).order_by("created_at").prefetch_related("creator")
+        return Agent.objects.filter(public_query).order_by("created_at").prefetch_related("creator", "chat_model")
 
     @staticmethod
     async def aget_all_accessible_agents(user: KhojUser = None) -> List[Agent]:
@@ -634,7 +634,7 @@ class AgentAdapters:
 
     @staticmethod
     @django.db.transaction.atomic
-    async def acreate_agent(
+    def create_agent(
         user: KhojUser,
         name: str,
         personality: str,
@@ -644,9 +644,9 @@ class AgentAdapters:
         chat_model: str,
         files: List[str],
     ):
-        chat_model_option = await ChatModelOptions.objects.filter(chat_model=chat_model).afirst()
+        chat_model_option = ChatModelOptions.objects.filter(chat_model=chat_model).first()
 
-        agent = await Agent.objects.acreate(
+        agent = Agent.objects.create(
             name=name,
             personality=personality,
             privacy_level=privacy_level,
@@ -658,13 +658,13 @@ class AgentAdapters:
         )
 
         for file in files:
-            reference_file = await FileObject.objects.filter(file_name=file, user=user).afirst()
+            reference_file = FileObject.objects.filter(file_name=file, user=user).first()
             if reference_file:
-                await FileObject.objects.acreate(file_name=file, agent=agent, raw_text=reference_file.raw_text)
+                FileObject.objects.create(file_name=file, agent=agent, raw_text=reference_file.raw_text)
 
                 # Duplicate all entries associated with the file
                 entries: List[Entry] = []
-                for entry in await Entry.objects.filter(file=file, user=user).all():
+                for entry in Entry.objects.filter(file_name=file, user=user).all():
                     entries.append(
                         Entry(
                             agent=agent,
@@ -682,7 +682,7 @@ class AgentAdapters:
                     )
 
                 # Bulk create entries
-                await Entry.objects.bulk_create(entries)
+                Entry.objects.bulk_create(entries)
 
         return agent
 

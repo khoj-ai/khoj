@@ -2,6 +2,7 @@ import json
 import logging
 from typing import List, Optional
 
+from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Request
 from fastapi.requests import Request
 from fastapi.responses import Response
@@ -48,6 +49,7 @@ async def all_agents(
                 "color": agent.style_color,
                 "icon": agent.style_icon,
                 "privacy_level": agent.privacy_level,
+                "chat_model": agent.chat_model.chat_model,
             }
         )
 
@@ -74,7 +76,7 @@ async def create_agent(
             status_code=400,
         )
 
-    agent = await AgentAdapters.acreate_agent(
+    agent = await sync_to_async(AgentAdapters.create_agent)(
         user,
         body.name,
         body.persona,
@@ -94,6 +96,7 @@ async def create_agent(
         "color": agent.style_color,
         "icon": agent.style_icon,
         "privacy_level": agent.privacy_level,
+        "chat_model": agent.chat_model.chat_model,
     }
 
     return Response(content=json.dumps(agents_packet), media_type="application/json", status_code=200)
@@ -146,6 +149,7 @@ async def update_agent(
         "color": agent.style_color,
         "icon": agent.style_icon,
         "privacy_level": agent.privacy_level,
+        "chat_model": agent.chat_model.chat_model,
     }
 
     return Response(content=json.dumps(agents_packet), media_type="application/json", status_code=200)

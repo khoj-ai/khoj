@@ -141,4 +141,8 @@ function getIconFromFilename(
     }
 }
 
-export { getIconFromIconName, getIconFromFilename };
+function getAvailableIcons() {
+    return Object.keys(iconMap);
+}
+
+export { getIconFromIconName, getIconFromFilename, getAvailableIcons };

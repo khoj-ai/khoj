@@ -6,7 +6,7 @@ import "intl-tel-input/styles";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 
-import { useUserConfig, ModelOptions, UserConfig } from "../common/auth";
+import { useUserConfig, ModelOptions, UserConfig, SubscriptionStates } from "../common/auth";
 import { toTitleCase, useIsMobileWidth } from "../common/utils";
 
 import { isValidPhoneNumber } from "libphonenumber-js";
@@ -78,7 +78,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
 
-const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+export const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const [syncedFiles, setSyncedFiles] = useState<string[]>([]);
     const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
@@ -615,7 +615,9 @@ export default function SettingsView() {
             if (userConfig) {
                 let newUserConfig = userConfig;
                 newUserConfig.subscription_state =
-                    state === "cancel" ? "unsubscribed" : "subscribed";
+                    state === "cancel"
+                        ? SubscriptionStates.UNSUBSCRIBED
+                        : SubscriptionStates.SUBSCRIBED;
                 setUserConfig(newUserConfig);
             }
 
