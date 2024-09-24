@@ -177,7 +177,6 @@ export function modifyFileFilterForConversation(
     })
         .then((response) => response.json())
         .then((data) => {
-            console.log("ADDEDFILES DATA: ", data);
             setAddedFiles(data);
         })
         .catch((err) => {

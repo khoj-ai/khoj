@@ -225,7 +225,7 @@ export default function SharedChat() {
         const chatAPI = "/api/chat?client=web";
         const chatAPIBody = {
             q: queryToProcess,
-            conversation_id: parseInt(conversationId),
+            conversation_id: conversationId,
             stream: true,
             ...(locationData && {
                 region: locationData.region,

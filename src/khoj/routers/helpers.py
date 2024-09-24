@@ -21,7 +21,7 @@ from typing import (
     Tuple,
     Union,
 )
-from urllib.parse import parse_qs, urljoin, urlparse
+from urllib.parse import parse_qs, quote, urljoin, urlparse
 
 import cron_descriptor
 import pytz
@@ -799,7 +799,7 @@ def generate_chat_response(
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     user: KhojUser = None,
     client_application: ClientApplication = None,
-    conversation_id: int = None,
+    conversation_id: str = None,
     location_data: LocationData = None,
     user_name: Optional[str] = None,
     uploaded_image_url: Optional[str] = None,
@@ -1102,7 +1102,7 @@ def scheduled_chat(
     user: KhojUser,
     calling_url: URL,
     job_id: str = None,
-    conversation_id: int = None,
+    conversation_id: str = None,
 ):
     logger.info(f"Processing scheduled_chat: {query_to_run}")
     if job_id:
@@ -1131,7 +1131,8 @@ def scheduled_chat(
 
     # Replace the original conversation_id with the conversation_id
     if conversation_id:
-        query_dict["conversation_id"] = [conversation_id]
+        # encode the conversation_id to avoid any issues with special characters
+        query_dict["conversation_id"] = [quote(conversation_id)]
 
     # Restructure the original query_dict into a valid JSON payload for the chat API
     json_payload = {key: values[0] for key, values in query_dict.items()}
@@ -1185,7 +1186,7 @@ def scheduled_chat(
 
 
 async def create_automation(
-    q: str, timezone: str, user: KhojUser, calling_url: URL, meta_log: dict = {}, conversation_id: int = None
+    q: str, timezone: str, user: KhojUser, calling_url: URL, meta_log: dict = {}, conversation_id: str = None
 ):
     crontime, query_to_run, subject = await schedule_query(q, meta_log)
     job = await schedule_automation(query_to_run, subject, crontime, timezone, q, user, calling_url, conversation_id)
@@ -1200,7 +1201,7 @@ async def schedule_automation(
     scheduling_request: str,
     user: KhojUser,
     calling_url: URL,
-    conversation_id: int,
+    conversation_id: str,
 ):
     # Disable minute level automation recurrence
     minute_value = crontime.split(" ")[0]
@@ -1218,7 +1219,7 @@ async def schedule_automation(
             "scheduling_request": scheduling_request,
             "subject": subject,
             "crontime": crontime,
-            "conversation_id": conversation_id,
+            "conversation_id": str(conversation_id),
         }
     )
     query_id = hashlib.md5(f"{query_to_run}_{crontime}".encode("utf-8")).hexdigest()

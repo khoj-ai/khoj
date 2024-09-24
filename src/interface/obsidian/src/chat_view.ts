@@ -1055,7 +1055,7 @@ export class KhojChatView extends KhojPaneView {
             q: query,
             n: this.setting.resultsCount,
             stream: true,
-            ...(!!conversationId && { conversation_id: parseInt(conversationId) }),
+            ...(!!conversationId && { conversation_id: conversationId }),
             ...(!!this.location && {
                 city: this.location.city,
                 region: this.location.region,

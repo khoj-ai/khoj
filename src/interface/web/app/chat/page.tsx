@@ -3,7 +3,7 @@
 import styles from "./chat.module.css";
 import React, { Suspense, useEffect, useState } from "react";
 
-import SidePanel from "../components/sidePanel/chatHistorySidePanel";
+import SidePanel, { ChatSessionActionMenu } from "../components/sidePanel/chatHistorySidePanel";
 import ChatHistory from "../components/chatHistory/chatHistory";
 import { useSearchParams } from "next/navigation";
 import Loading from "../components/loading/loading";
@@ -17,6 +17,8 @@ import { useIPLocationData, useIsMobileWidth, welcomeConsole } from "../common/u
 import ChatInputArea, { ChatOptions } from "../components/chatInputArea/chatInputArea";
 import { useAuthenticatedData } from "../common/auth";
 import { AgentData } from "../agents/page";
+import { DotsThreeVertical } from "@phosphor-icons/react";
+import { Button } from "@/components/ui/button";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -104,7 +106,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 />
             </div>
             <div
-                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-t-2xl rounded-b-none md:rounded-xl`}
+                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-t-2xl rounded-b-none md:rounded-xl h-fit`}
             >
                 <ChatInputArea
                     agentColor={agentMetadata?.color}
@@ -133,6 +135,7 @@ export default function Chat() {
     const [processQuerySignal, setProcessQuerySignal] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [image64, setImage64] = useState<string>("");
+
     const locationData = useIPLocationData();
     const authenticatedData = useAuthenticatedData();
     const isMobileWidth = useIsMobileWidth();
@@ -235,7 +238,7 @@ export default function Chat() {
         const chatAPI = "/api/chat?client=web";
         const chatAPIBody = {
             q: queryToProcess,
-            conversation_id: parseInt(conversationId),
+            conversation_id: conversationId,
             stream: true,
             ...(locationData && {
                 region: locationData.region,
@@ -297,17 +300,22 @@ export default function Chat() {
             </div>
             <div className={styles.chatBox}>
                 <div className={styles.chatBoxBody}>
-                    {!isMobileWidth && (
+                    {!isMobileWidth && conversationId && (
                         <div
-                            className={`text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mr-8`}
+                            className={`${styles.chatTitleWrapper} text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mr-8 pt-6 col-auto h-fit`}
                         >
                             {title && (
                                 <h2
-                                    className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden pt-6`}
+                                    className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden`}
                                 >
                                     {title}
                                 </h2>
                             )}
+                            <ChatSessionActionMenu
+                                conversationId={conversationId}
+                                setTitle={setTitle}
+                                sizing="md"
+                            />
                         </div>
                     )}
                     <Suspense fallback={<Loading />}>

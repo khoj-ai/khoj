@@ -107,7 +107,7 @@ def save_to_conversation_log(
     inferred_queries: List[str] = [],
     intent_type: str = "remember",
     client_application: ClientApplication = None,
-    conversation_id: int = None,
+    conversation_id: str = None,
     automation_id: str = None,
     uploaded_image_url: str = None,
 ):

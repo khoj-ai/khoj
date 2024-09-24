@@ -328,7 +328,7 @@ async def extract_references_and_questions(
     q: str,
     n: int,
     d: float,
-    conversation_id: int,
+    conversation_id: str,
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     location_data: LocationData = None,
     send_status_func: Optional[Callable] = None,

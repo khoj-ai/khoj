@@ -182,9 +182,12 @@ function FilesMenu(props: FilesMenuProps) {
     useEffect(() => {
         if (!files) return;
 
+        const uniqueFiles = Array.from(new Set(files));
+
         // First, sort lexically
-        files.sort();
-        let sortedFiles = files;
+        uniqueFiles.sort();
+
+        let sortedFiles = uniqueFiles;
 
         if (addedFiles) {
             sortedFiles = addedFiles.concat(
@@ -458,12 +461,13 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
     );
 }
 
-interface ChatSessionActionMenuProps {
+export interface ChatSessionActionMenuProps {
     conversationId: string;
     setTitle: (title: string) => void;
+    sizing?: "sm" | "md" | "lg";
 }
 
-function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
+export function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
     const [renamedTitle, setRenamedTitle] = useState("");
     const [isRenaming, setIsRenaming] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
@@ -596,10 +600,25 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
         );
     }
 
+    function sizeClass() {
+        switch (props.sizing) {
+            case "sm":
+                return "h-4 w-4";
+            case "md":
+                return "h-6 w-6";
+            case "lg":
+                return "h-8 w-8";
+            default:
+                return "h-4 w-4";
+        }
+    }
+
+    const size = sizeClass();
+
     return (
         <DropdownMenu onOpenChange={(open) => setIsOpen(open)} open={isOpen}>
             <DropdownMenuTrigger>
-                <DotsThreeVertical className="h-4 w-4" />
+                <DotsThreeVertical className={`${size}`} />
             </DropdownMenuTrigger>
             <DropdownMenuContent>
                 <DropdownMenuItem>
@@ -608,7 +627,7 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
                         variant={"ghost"}
                         onClick={() => setIsRenaming(true)}
                     >
-                        <Pencil className="mr-2 h-4 w-4" />
+                        <Pencil className={`mr-2 ${size}`} />
                         Rename
                     </Button>
                 </DropdownMenuItem>
@@ -618,7 +637,7 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
                         variant={"ghost"}
                         onClick={() => setIsSharing(true)}
                     >
-                        <Share className="mr-2 h-4 w-4" />
+                        <Share className={`mr-2 ${size}`} />
                         Share
                     </Button>
                 </DropdownMenuItem>
@@ -628,7 +647,7 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
                         variant={"ghost"}
                         onClick={() => setIsDeleting(true)}
                     >
-                        <Trash className="mr-2 h-4 w-4" />
+                        <Trash className={`mr-2 ${size}`} />
                         Delete
                     </Button>
                 </DropdownMenuItem>
@@ -640,15 +659,14 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
 function ChatSession(props: ChatHistory) {
     const [isHovered, setIsHovered] = useState(false);
     const [title, setTitle] = useState(props.slug || "New Conversation 🌱");
-    var currConversationId = parseInt(
-        new URLSearchParams(window.location.search).get("conversationId") || "-1",
-    );
+    var currConversationId =
+        new URLSearchParams(window.location.search).get("conversationId") || "-1";
     return (
         <div
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             key={props.conversation_id}
-            className={`${styles.session} ${props.compressed ? styles.compressed : "!max-w-full"} ${isHovered ? `${styles.sessionHover}` : ""} ${currConversationId === parseInt(props.conversation_id) && currConversationId != -1 ? "dark:bg-neutral-800 bg-white" : ""}`}
+            className={`${styles.session} ${props.compressed ? styles.compressed : "!max-w-full"} ${isHovered ? `${styles.sessionHover}` : ""} ${currConversationId === props.conversation_id && currConversationId != "-1" ? "dark:bg-neutral-800 bg-white" : ""}`}
         >
             <Link
                 href={`/chat?conversationId=${props.conversation_id}`}
