@@ -1215,7 +1215,7 @@ async def schedule_automation(
             "scheduling_request": scheduling_request,
             "subject": subject,
             "crontime": crontime,
-            "conversation_id": conversation_id,
+            "conversation_id": str(conversation_id),
         }
     )
     query_id = hashlib.md5(f"{query_to_run}_{crontime}".encode("utf-8")).hexdigest()
