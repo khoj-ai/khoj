@@ -632,6 +632,7 @@ async def send_message_to_model_wrapper(
             messages=truncated_messages,
             loaded_model=loaded_model,
             model=chat_model,
+            max_prompt_size=max_tokens,
             streaming=False,
             response_type=response_type,
         )
@@ -721,6 +722,7 @@ def send_message_to_model_wrapper_sync(
             system_message=system_message,
             model_name=chat_model,
             loaded_model=loaded_model,
+            max_prompt_size=max_tokens,
             vision_enabled=vision_available,
             model_type=conversation_config.model_type,
         )
@@ -729,6 +731,7 @@ def send_message_to_model_wrapper_sync(
             messages=truncated_messages,
             loaded_model=loaded_model,
             model=chat_model,
+            max_prompt_size=max_tokens,
             streaming=False,
             response_type=response_type,
         )
@@ -739,6 +742,7 @@ def send_message_to_model_wrapper_sync(
             user_message=message,
             system_message=system_message,
             model_name=chat_model,
+            max_prompt_size=max_tokens,
             vision_enabled=vision_available,
             model_type=conversation_config.model_type,
         )
