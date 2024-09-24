@@ -39,6 +39,8 @@ async def all_agents(
     agents = await AgentAdapters.aget_all_accessible_agents(user)
     agents_packet = list()
     for agent in agents:
+        files = agent.fileobject_set.all()
+        file_names = [file.file_name for file in files]
         agents_packet.append(
             {
                 "slug": agent.slug,
@@ -50,6 +52,7 @@ async def all_agents(
                 "icon": agent.style_icon,
                 "privacy_level": agent.privacy_level,
                 "chat_model": agent.chat_model.chat_model,
+                "files": file_names,
             }
         )
 

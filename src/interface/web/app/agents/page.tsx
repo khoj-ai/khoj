@@ -24,9 +24,11 @@ import {
     Info,
     Check,
     ShieldWarning,
+    Lock,
+    Book,
 } from "@phosphor-icons/react";
 import { set, z } from "zod";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Dialog,
     DialogContent,
@@ -112,6 +114,15 @@ async function openChat(slug: string, userData: UserProfile | null) {
     } else {
         alert("Failed to start chat session");
     }
+}
+
+function Badge(props: { icon: JSX.Element; text: string }) {
+    return (
+        <div className="flex items-center space-x-2 rounded-full border-accent-500 border p-1">
+            <div className="text-muted-foreground">{props.icon}</div>
+            <div className="text-muted-foreground">{props.text}</div>
+        </div>
+    );
 }
 
 const agentsFetcher = () =>
@@ -258,7 +269,7 @@ function AgentCard(props: AgentCardProps) {
                             <DrawerContent className="whitespace-pre-line p-2">
                                 <DrawerHeader>
                                     <DrawerTitle>{props.data.name}</DrawerTitle>
-                                    <DrawerDescription>Full Prompt</DrawerDescription>
+                                    <DrawerDescription>Persona</DrawerDescription>
                                 </DrawerHeader>
                                 {props.data.persona}
                                 <DrawerFooter>
@@ -279,6 +290,14 @@ function AgentCard(props: AgentCardProps) {
                     </button>
                 </div>
             </CardContent>
+            <CardFooter>
+                <div className="flex items-center justify-between">
+                    <Badge icon={<Lock />} text={props.data.privacy_level} />
+                    {props.data.files && props.data.files.length > 0 && (
+                        <Badge icon={<Book />} text={`${props.data.files.length} files`} />
+                    )}
+                </div>
+            </CardFooter>
         </Card>
     );
 }
@@ -581,7 +600,7 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                                 weight="fill"
                                 className="h-4 w-4 text-yellow-400 inline"
                             />
-                            <span className="font-bold">{props.errors}</span>
+                            <span>{props.errors}</span>
                         </AlertDescription>
                     </Alert>
                 )}
@@ -726,6 +745,9 @@ export default function Agents() {
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
     const isMobileWidth = useIsMobileWidth();
 
+    const [personalAgents, setPersonalAgents] = useState<AgentData[]>([]);
+    const [publicAgents, setPublicAgents] = useState<AgentData[]>([]);
+
     const { data: filesData, error: fileError } = useSWR<string[]>(
         "/api/content/computer",
         fetcher,
@@ -739,6 +761,23 @@ export default function Agents() {
             setAgentChangeTriggered(false);
         }
     }, [agentChangeTriggered]);
+
+    useEffect(() => {
+        if (data) {
+            const personalAgents = data.filter(
+                (agent) => agent.creator === authenticatedData?.username,
+            );
+            setPersonalAgents(personalAgents);
+
+            // Public agents are agents that are not private and not created by the user
+            const publicAgents = data.filter(
+                (agent) =>
+                    agent.privacy_level !== "private" &&
+                    agent.creator !== authenticatedData?.username,
+            );
+            setPublicAgents(publicAgents);
+        }
+    }, [data]);
 
     if (error) {
         return (
@@ -822,15 +861,30 @@ export default function Agents() {
                             specialized personas to tune your conversation to your needs.
                         </AlertDescription>
                     </Alert>
-                    <div className={`${styles.agentList}`}>
-                        {data.map((agent) => (
-                            <AgentCard
-                                key={agent.slug}
-                                data={agent}
-                                userProfile={authenticatedData}
-                                isMobileWidth={isMobileWidth}
-                            />
-                        ))}
+                    <div className="pt-6 md:pt-8">
+                        <div className={`${styles.agentList}`}>
+                            {personalAgents.map((agent) => (
+                                <AgentCard
+                                    key={agent.slug}
+                                    data={agent}
+                                    userProfile={authenticatedData}
+                                    isMobileWidth={isMobileWidth}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                    <div className="pt-6 md:pt-8">
+                        <h2 className="text-2xl">Explore</h2>
+                        <div className={`${styles.agentList}`}>
+                            {publicAgents.map((agent) => (
+                                <AgentCard
+                                    key={agent.slug}
+                                    data={agent}
+                                    userProfile={authenticatedData}
+                                    isMobileWidth={isMobileWidth}
+                                />
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>

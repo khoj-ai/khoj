@@ -576,9 +576,13 @@ class AgentAdapters:
                 Agent.objects.filter(public_query | Q(creator=user))
                 .distinct()
                 .order_by("created_at")
-                .prefetch_related("creator", "chat_model")
+                .prefetch_related("creator", "chat_model", "fileobject_set")
             )
-        return Agent.objects.filter(public_query).order_by("created_at").prefetch_related("creator", "chat_model")
+        return (
+            Agent.objects.filter(public_query)
+            .order_by("created_at")
+            .prefetch_related("creator", "chat_model", "fileobject_set")
+        )
 
     @staticmethod
     async def aget_all_accessible_agents(user: KhojUser = None) -> List[Agent]:
@@ -664,7 +668,7 @@ class AgentAdapters:
 
                 # Duplicate all entries associated with the file
                 entries: List[Entry] = []
-                for entry in Entry.objects.filter(file_name=file, user=user).all():
+                for entry in Entry.objects.filter(file_path=file, user=user).all():
                     entries.append(
                         Entry(
                             agent=agent,
