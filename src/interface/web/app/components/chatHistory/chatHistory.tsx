@@ -13,7 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { InlineLoading } from "../loading/loading";
 
-import { Lightbulb } from "@phosphor-icons/react";
+import { Lightbulb, ArrowDown } from "@phosphor-icons/react";
 
 import ProfileCard from "../profileCard/profileCard";
 import { getIconFromIconName } from "@/app/common/iconUtils";
@@ -67,16 +67,39 @@ export default function ChatHistory(props: ChatHistoryProps) {
     const [data, setData] = useState<ChatHistoryData | null>(null);
     const [currentPage, setCurrentPage] = useState(0);
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
+    // for the auto scroll feature, to control whether the chat should automatically scroll to the bottom
+    const [autoScroll, setAutoScroll] = useState(true);
 
     const ref = useRef<HTMLDivElement>(null);
     const chatHistoryRef = useRef<HTMLDivElement | null>(null);
     const sentinelRef = useRef<HTMLDivElement | null>(null);
+    const scrollAreaRef = useRef<HTMLDivElement | null>(null);
 
     const [incompleteIncomingMessageIndex, setIncompleteIncomingMessageIndex] = useState<
         number | null
     >(null);
     const [fetchingData, setFetchingData] = useState(false);
     const isMobileWidth = useIsMobileWidth();
+
+    useEffect(() => {
+        if (autoScroll) {
+            scrollToBottom();
+        }
+    }, [props.incomingMessages, autoScroll]);
+
+    useEffect(() => {
+        const scrollArea = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+        if (scrollArea) {
+            const handleScroll = () => {
+                const { scrollTop, scrollHeight, clientHeight } = scrollArea as HTMLElement;
+                const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+                setAutoScroll(isAtBottom);
+            };
+
+            scrollArea.addEventListener('scroll', handleScroll);
+            return () => scrollArea.removeEventListener('scroll', handleScroll);
+        }
+    }, []);
 
     useEffect(() => {
         // This function ensures that scrolling to bottom happens after the data (chat messages) has been updated and rendered the first time.
@@ -197,8 +220,12 @@ export default function ChatHistory(props: ChatHistoryProps) {
     }
 
     const scrollToBottom = () => {
-        if (chatHistoryRef.current) {
-            chatHistoryRef.current.scrollIntoView(false);
+        const scrollArea = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+        if (scrollArea) {
+            scrollArea.scrollTo({
+                top: scrollArea.scrollHeight,
+                behavior: 'smooth'
+            });
         }
     };
 
@@ -233,8 +260,8 @@ export default function ChatHistory(props: ChatHistoryProps) {
         return null;
     }
     return (
-        <ScrollArea className={`h-[80vh]`}>
-            <div ref={ref}>
+        <ScrollArea className={`h-[80vh] relative`} ref={scrollAreaRef}>
+            <div ref={ref} className="">
                 <div className={styles.chatHistory} ref={chatHistoryRef}>
                     <div ref={sentinelRef} style={{ height: "1px" }}>
                         {fetchingData && (
@@ -334,6 +361,18 @@ export default function ChatHistory(props: ChatHistoryProps) {
                         </div>
                     )}
                 </div>
+                {/* for the scroll to bottom button */}
+                {!autoScroll && (
+                    <button
+                        className="absolute bottom-4 right-5  bg-blue-500 text-white p-2 rounded-full shadow-lg"
+                        onClick={() => {
+                            setAutoScroll(true);
+                            scrollToBottom();
+                        }}
+                    >
+                        <ArrowDown size={24} />
+                    </button>
+                )}
             </div>
         </ScrollArea>
     );
