@@ -67,11 +67,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
     const [data, setData] = useState<ChatHistoryData | null>(null);
     const [currentPage, setCurrentPage] = useState(0);
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
-    // for the auto scroll feature, to control whether the chat should automatically scroll to the bottom
-    const [autoScroll, setAutoScroll] = useState(true);
-
-    const ref = useRef<HTMLDivElement>(null);
-    const chatHistoryRef = useRef<HTMLDivElement | null>(null);
     const sentinelRef = useRef<HTMLDivElement | null>(null);
     const scrollAreaRef = useRef<HTMLDivElement | null>(null);
 
@@ -79,27 +74,31 @@ export default function ChatHistory(props: ChatHistoryProps) {
         number | null
     >(null);
     const [fetchingData, setFetchingData] = useState(false);
+    const [isNearBottom, setIsNearBottom] = useState(true);
     const isMobileWidth = useIsMobileWidth();
+    const scrollAreaSelector = "[data-radix-scroll-area-viewport]";
 
     useEffect(() => {
-        if (autoScroll) {
-            scrollToBottom();
-        }
-    }, [props.incomingMessages, autoScroll]);
+        const scrollArea = scrollAreaRef.current?.querySelector(scrollAreaSelector);
+        if (!scrollArea) return;
 
-    useEffect(() => {
-        const scrollArea = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
-        if (scrollArea) {
-            const handleScroll = () => {
-                const { scrollTop, scrollHeight, clientHeight } = scrollArea as HTMLElement;
-                const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
-                setAutoScroll(isAtBottom);
-            };
+        const handleScroll = () => {
+            const { scrollTop, scrollHeight, clientHeight } = scrollArea as HTMLElement;
+            const bottomThreshold = 100; // pixels from bottom
+            const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+            const isNearBottom = distanceFromBottom <= bottomThreshold;
+            setIsNearBottom(isNearBottom);
+        };
 
-            scrollArea.addEventListener('scroll', handleScroll);
-            return () => scrollArea.removeEventListener('scroll', handleScroll);
-        }
+        scrollArea.addEventListener("scroll", handleScroll);
+        return () => scrollArea.removeEventListener("scroll", handleScroll);
     }, []);
+
+    useEffect(() => {
+        if (props.incomingMessages && props.incomingMessages.length > 0 && isNearBottom) {
+            setTimeout(scrollToBottom, 0);
+        }
+    }, [props.incomingMessages, isNearBottom]);
 
     useEffect(() => {
         // This function ensures that scrolling to bottom happens after the data (chat messages) has been updated and rendered the first time.
@@ -153,10 +152,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
             if (lastMessage && !lastMessage.completed) {
                 setIncompleteIncomingMessageIndex(props.incomingMessages.length - 1);
             }
-        }
-
-        if (isUserAtBottom()) {
-            scrollToBottom();
         }
     }, [props.incomingMessages]);
 
@@ -220,25 +215,12 @@ export default function ChatHistory(props: ChatHistoryProps) {
     }
 
     const scrollToBottom = () => {
-        const scrollArea = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
-        if (scrollArea) {
-            scrollArea.scrollTo({
-                top: scrollArea.scrollHeight,
-                behavior: 'smooth'
-            });
-        }
-    };
+        const scrollArea = scrollAreaRef.current?.querySelector(scrollAreaSelector);
+        if (!scrollArea) return;
 
-    const isUserAtBottom = () => {
-        if (!chatHistoryRef.current) return false;
-
-        // NOTE: This isn't working. It always seems to return true. This is because
-
-        const { scrollTop, scrollHeight, clientHeight } = chatHistoryRef.current as HTMLDivElement;
-        const threshold = 25; // pixels from the bottom
-
-        // Considered at the bottom if within threshold pixels from the bottom
-        return scrollTop + clientHeight >= scrollHeight - threshold;
+        const scrollAreaEl = scrollArea as HTMLElement;
+        scrollAreaEl.scrollTop = scrollAreaEl.scrollHeight;
+        setIsNearBottom(true);
     };
 
     function constructAgentLink() {
@@ -261,8 +243,8 @@ export default function ChatHistory(props: ChatHistoryProps) {
     }
     return (
         <ScrollArea className={`h-[80vh] relative`} ref={scrollAreaRef}>
-            <div ref={ref} className="">
-                <div className={styles.chatHistory} ref={chatHistoryRef}>
+            <div>
+                <div className={styles.chatHistory}>
                     <div ref={sentinelRef} style={{ height: "1px" }}>
                         {fetchingData && (
                             <InlineLoading message="Loading Conversation" className="opacity-50" />
@@ -361,12 +343,12 @@ export default function ChatHistory(props: ChatHistoryProps) {
                         </div>
                     )}
                 </div>
-                {/* for the scroll to bottom button */}
-                {!autoScroll && (
+                {!isNearBottom && (
                     <button
-                        className="absolute bottom-4 right-5  bg-blue-500 text-white p-2 rounded-full shadow-lg"
+                        title="Scroll to bottom"
+                        className="absolute bottom-4 right-5 bg-white dark:bg-[hsl(var(--background))] text-neutral-500 p-2 rounded-full shadow-lg"
                         onClick={() => {
-                            setAutoScroll(true);
+                            setIsNearBottom(true);
                             scrollToBottom();
                         }}
                     >
