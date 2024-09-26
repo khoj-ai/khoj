@@ -346,7 +346,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                 {!isNearBottom && (
                     <button
                         title="Scroll to bottom"
-                        className="absolute bottom-4 right-5 bg-white dark:bg-[hsl(var(--background))] text-neutral-500 p-2 rounded-full shadow-lg"
+                        className="absolute bottom-4 right-5 bg-white dark:bg-[hsl(var(--background))] text-neutral-500 dark:text-white p-2 rounded-full shadow-xl"
                         onClick={() => {
                             setIsNearBottom(true);
                             scrollToBottom();
