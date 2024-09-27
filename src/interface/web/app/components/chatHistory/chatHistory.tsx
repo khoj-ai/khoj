@@ -82,7 +82,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
         const scrollArea = scrollAreaRef.current?.querySelector(scrollAreaSelector);
         if (!scrollArea) return;
 
-        const handleScroll = () => {
+        const detectIsNearBottom = () => {
             const { scrollTop, scrollHeight, clientHeight } = scrollArea as HTMLElement;
             const bottomThreshold = 100; // pixels from bottom
             const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
@@ -90,10 +90,11 @@ export default function ChatHistory(props: ChatHistoryProps) {
             setIsNearBottom(isNearBottom);
         };
 
-        scrollArea.addEventListener("scroll", handleScroll);
-        return () => scrollArea.removeEventListener("scroll", handleScroll);
+        scrollArea.addEventListener("scroll", detectIsNearBottom);
+        return () => scrollArea.removeEventListener("scroll", detectIsNearBottom);
     }, []);
 
+    // Auto scroll while incoming message is streamed
     useEffect(() => {
         if (props.incomingMessages && props.incomingMessages.length > 0 && isNearBottom) {
             setTimeout(scrollToBottom, 0);
@@ -185,13 +186,11 @@ export default function ChatHistory(props: ChatHistoryProps) {
                         return;
                     }
                     props.setAgent(chatData.response.agent);
-
                     setData(chatData.response);
-
+                    setFetchingData(false);
                     if (currentPage < 2) {
                         scrollToBottom();
                     }
-                    setFetchingData(false);
                 } else {
                     if (chatData.response.agent && chatData.response.conversation_id) {
                         const chatMetadata = {
@@ -219,7 +218,10 @@ export default function ChatHistory(props: ChatHistoryProps) {
         if (!scrollArea) return;
 
         const scrollAreaEl = scrollArea as HTMLElement;
-        scrollAreaEl.scrollTop = scrollAreaEl.scrollHeight;
+        scrollAreaEl.scrollTo({
+            top: scrollAreaEl.scrollHeight,
+            behavior: "smooth",
+        });
         setIsNearBottom(true);
     };
 
@@ -348,8 +350,8 @@ export default function ChatHistory(props: ChatHistoryProps) {
                         title="Scroll to bottom"
                         className="absolute bottom-4 right-5 bg-white dark:bg-[hsl(var(--background))] text-neutral-500 dark:text-white p-2 rounded-full shadow-xl"
                         onClick={() => {
-                            setIsNearBottom(true);
                             scrollToBottom();
+                            setIsNearBottom(true);
                         }}
                     >
                         <ArrowDown size={24} />
