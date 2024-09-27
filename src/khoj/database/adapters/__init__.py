@@ -561,6 +561,12 @@ class AgentAdapters:
         ).afirst()
 
     @staticmethod
+    async def aget_agent_by_name(agent_name: str, user: KhojUser):
+        return await Agent.objects.filter(
+            (Q(name__iexact=agent_name.lower())) & (Q(privacy_level=Agent.PrivacyLevel.PUBLIC) | Q(creator=user))
+        ).afirst()
+
+    @staticmethod
     def get_agent_by_slug(slug: str, user: KhojUser = None):
         if user:
             return Agent.objects.filter(
@@ -637,62 +643,8 @@ class AgentAdapters:
         return await Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).afirst()
 
     @staticmethod
-    @django.db.transaction.atomic
-    def create_agent(
-        user: KhojUser,
-        name: str,
-        personality: str,
-        privacy_level: str,
-        icon: str,
-        color: str,
-        chat_model: str,
-        files: List[str],
-    ):
-        chat_model_option = ChatModelOptions.objects.filter(chat_model=chat_model).first()
-
-        agent = Agent.objects.create(
-            name=name,
-            personality=personality,
-            privacy_level=privacy_level,
-            managed_by_admin=False,
-            style_icon=icon,
-            style_color=color,
-            chat_model=chat_model_option,
-            creator=user,
-        )
-
-        for file in files:
-            reference_file = FileObject.objects.filter(file_name=file, user=user).first()
-            if reference_file:
-                FileObject.objects.create(file_name=file, agent=agent, raw_text=reference_file.raw_text)
-
-                # Duplicate all entries associated with the file
-                entries: List[Entry] = []
-                for entry in Entry.objects.filter(file_path=file, user=user).all():
-                    entries.append(
-                        Entry(
-                            agent=agent,
-                            embeddings=entry.embeddings,
-                            raw=entry.raw,
-                            compiled=entry.compiled,
-                            heading=entry.heading,
-                            file_source=entry.file_source,
-                            file_type=entry.file_type,
-                            file_path=entry.file_path,
-                            file_name=entry.file_name,
-                            url=entry.url,
-                            hashed_value=entry.hashed_value,
-                        )
-                    )
-
-                # Bulk create entries
-                Entry.objects.bulk_create(entries)
-
-        return agent
-
-    @staticmethod
     async def aupdate_agent(
-        agent: Agent,
+        user: KhojUser,
         name: str,
         personality: str,
         privacy_level: str,
@@ -703,26 +655,30 @@ class AgentAdapters:
     ):
         chat_model_option = await ChatModelOptions.objects.filter(chat_model=chat_model).afirst()
 
-        agent.name = name
-        agent.personality = personality
-        agent.privacy_level = privacy_level
-        agent.style_icon = icon
-        agent.style_color = color
-        agent.chat_model = chat_model_option
-        await agent.asave()
+        agent, created = await Agent.objects.filter(name=name, creator=user).aupdate_or_create(
+            defaults={
+                "name": name,
+                "creator": user,
+                "personality": personality,
+                "privacy_level": privacy_level,
+                "style_icon": icon,
+                "style_color": color,
+                "chat_model": chat_model_option,
+            }
+        )
 
         # Delete all existing files and entries
         await FileObject.objects.filter(agent=agent).adelete()
         await Entry.objects.filter(agent=agent).adelete()
 
         for file in files:
-            reference_file = await FileObject.objects.afirst(file_name=file, user=agent.creator)
+            reference_file = await FileObject.objects.filter(file_name=file, user=agent.creator).afirst()
             if reference_file:
                 await FileObject.objects.acreate(file_name=file, agent=agent, raw_text=reference_file.raw_text)
 
                 # Duplicate all entries associated with the file
                 entries: List[Entry] = []
-                for entry in await Entry.objects.filter(file=file, user=agent.creator).all():
+                for entry in await Entry.objects.filter(file_path=file, user=agent.creator).all():
                     entries.append(
                         Entry(
                             agent=agent,

@@ -96,6 +96,7 @@ export interface AgentData {
     files?: string[];
     creator?: string;
     managed_by_admin: boolean;
+    chat_model: string;
 }
 
 async function openChat(slug: string, userData: UserProfile | null) {
@@ -117,10 +118,13 @@ async function openChat(slug: string, userData: UserProfile | null) {
 }
 
 function Badge(props: { icon: JSX.Element; text: string }) {
+    // Always convert text to proper case (e.g., "public" -> "Public")
+    const displayBadgeText = props.text.replace(/^\w/, (c) => c.toUpperCase());
+
     return (
-        <div className="flex items-center space-x-2 rounded-full border-accent-500 border p-1">
+        <div className="flex items-center space-x-2 rounded-full border-accent-500 border p-1.5">
             <div className="text-muted-foreground">{props.icon}</div>
-            <div className="text-muted-foreground">{props.text}</div>
+            <div className="text-muted-foreground">{displayBadgeText}</div>
         </div>
     );
 }
@@ -138,6 +142,12 @@ interface AgentCardProps {
     data: AgentData;
     userProfile: UserProfile | null;
     isMobileWidth: boolean;
+    editCard: boolean;
+    filesOptions: string[];
+    modelOptions: ModelOptions[];
+    selectedChatModelOption: string;
+    isSubscribed: boolean;
+    setAgentChangeTriggered: (value: boolean) => void;
 }
 
 function AgentCard(props: AgentCardProps) {
@@ -145,8 +155,22 @@ function AgentCard(props: AgentCardProps) {
     const agentSlug = searchParams.get("agent");
     const [showModal, setShowModal] = useState(agentSlug === props.data.slug);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+    const [errors, setErrors] = useState<string | null>(null);
 
     const userData = props.userProfile;
+
+    const form = useForm<z.infer<typeof EditAgentSchema>>({
+        resolver: zodResolver(EditAgentSchema),
+        defaultValues: {
+            name: props.data.name,
+            persona: props.data.persona,
+            color: props.data.color,
+            icon: props.data.icon,
+            privacy_level: props.data.privacy_level,
+            chat_model: props.data.chat_model,
+            files: props.data.files,
+        },
+    });
 
     if (showModal) {
         window.history.pushState(
@@ -155,6 +179,42 @@ function AgentCard(props: AgentCardProps) {
             `/agents?agent=${props.data.slug}`,
         );
     }
+
+    const onSubmit = (values: z.infer<typeof EditAgentSchema>) => {
+        console.log(JSON.stringify(values));
+
+        let agentsApiUrl = `/api/agents`;
+        let method = props.editCard ? "PATCH" : "POST";
+
+        fetch(agentsApiUrl, {
+            method: method,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(values),
+        })
+            .then((response) => {
+                console.log(response);
+                if (response.status === 200) {
+                    form.reset();
+                    setShowModal(false);
+                    setErrors(null);
+                    props.setAgentChangeTriggered(true);
+                } else {
+                    response.json().then((data) => {
+                        console.error(data);
+                        form.clearErrors();
+                        if (data.error) {
+                            setErrors(data.error);
+                        }
+                    });
+                }
+            })
+            .catch((error) => {
+                console.error("Error:", error);
+                setErrors(error);
+            });
+    };
 
     const stylingString = convertColorToTextClass(props.data.color);
 
@@ -205,31 +265,44 @@ function AgentCard(props: AgentCardProps) {
                                     </Button>
                                 )}
                             </div>
-                            <DialogContent className="whitespace-pre-line max-h-[80vh]">
-                                <DialogHeader>
-                                    <div className="flex items-center">
-                                        {getIconFromIconName(props.data.icon, props.data.color)}
-                                        <p className="font-bold text-lg">{props.data.name}</p>
+                            {props.editCard ? (
+                                <DialogContent className="whitespace-pre-line max-h-[80vh]">
+                                    <AgentModificationForm
+                                        form={form}
+                                        onSubmit={onSubmit}
+                                        create={true}
+                                        errors={errors}
+                                        filesOptions={props.filesOptions}
+                                        modelOptions={props.modelOptions}
+                                    />
+                                </DialogContent>
+                            ) : (
+                                <DialogContent className="whitespace-pre-line max-h-[80vh]">
+                                    <DialogHeader>
+                                        <div className="flex items-center">
+                                            {getIconFromIconName(props.data.icon, props.data.color)}
+                                            <p className="font-bold text-lg">{props.data.name}</p>
+                                        </div>
+                                    </DialogHeader>
+                                    <div className="max-h-[60vh] overflow-y-scroll text-neutral-500 dark:text-white">
+                                        {props.data.persona}
                                     </div>
-                                </DialogHeader>
-                                <div className="max-h-[60vh] overflow-y-scroll text-neutral-500 dark:text-white">
-                                    {props.data.persona}
-                                </div>
-                                <DialogFooter>
-                                    <Button
-                                        className={`pt-6 pb-6 ${stylingString} bg-white dark:bg-[hsl(var(--background))] text-neutral-500 dark:text-white border-2 border-stone-100 shadow-sm rounded-xl hover:bg-stone-100 dark:hover:bg-neutral-900 dark:border-neutral-700`}
-                                        onClick={() => {
-                                            openChat(props.data.slug, userData);
-                                            setShowModal(false);
-                                        }}
-                                    >
-                                        <PaperPlaneTilt
-                                            className={`w-6 h-6 m-2 ${convertColorToTextClass(props.data.color)}`}
-                                        />
-                                        Start Chatting
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
+                                    <DialogFooter>
+                                        <Button
+                                            className={`pt-6 pb-6 ${stylingString} bg-white dark:bg-[hsl(var(--background))] text-neutral-500 dark:text-white border-2 border-stone-100 shadow-sm rounded-xl hover:bg-stone-100 dark:hover:bg-neutral-900 dark:border-neutral-700`}
+                                            onClick={() => {
+                                                openChat(props.data.slug, userData);
+                                                setShowModal(false);
+                                            }}
+                                        >
+                                            <PaperPlaneTilt
+                                                className={`w-6 h-6 m-2 ${convertColorToTextClass(props.data.color)}`}
+                                            />
+                                            Start Chatting
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            )}
                         </Dialog>
                     ) : (
                         <Drawer
@@ -266,16 +339,29 @@ function AgentCard(props: AgentCardProps) {
                                     </Button>
                                 )}
                             </div>
-                            <DrawerContent className="whitespace-pre-line p-2">
-                                <DrawerHeader>
-                                    <DrawerTitle>{props.data.name}</DrawerTitle>
-                                    <DrawerDescription>Persona</DrawerDescription>
-                                </DrawerHeader>
-                                {props.data.persona}
-                                <DrawerFooter>
-                                    <DrawerClose>Done</DrawerClose>
-                                </DrawerFooter>
-                            </DrawerContent>
+                            {props.editCard ? (
+                                <DrawerContent className="whitespace-pre-line max-h-[80vh]">
+                                    <AgentModificationForm
+                                        form={form}
+                                        onSubmit={onSubmit}
+                                        create={true}
+                                        errors={errors}
+                                        filesOptions={props.filesOptions}
+                                        modelOptions={props.modelOptions}
+                                    />
+                                </DrawerContent>
+                            ) : (
+                                <DrawerContent className="whitespace-pre-line p-2">
+                                    <DrawerHeader>
+                                        <DrawerTitle>{props.data.name}</DrawerTitle>
+                                        <DrawerDescription>Persona</DrawerDescription>
+                                    </DrawerHeader>
+                                    {props.data.persona}
+                                    <DrawerFooter>
+                                        <DrawerClose>Done</DrawerClose>
+                                    </DrawerFooter>
+                                </DrawerContent>
+                            )}
                         </Drawer>
                     )}
                 </CardTitle>
@@ -291,10 +377,10 @@ function AgentCard(props: AgentCardProps) {
                 </div>
             </CardContent>
             <CardFooter>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-1">
                     <Badge icon={<Lock />} text={props.data.privacy_level} />
                     {props.data.files && props.data.files.length > 0 && (
-                        <Badge icon={<Book />} text={`${props.data.files.length} files`} />
+                        <Badge icon={<Book />} text={`knowledge`} />
                     )}
                 </div>
             </CardFooter>
@@ -395,9 +481,9 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                                 <Collapsible>
                                     <CollapsibleTrigger asChild>
                                         <Button variant="ghost" className="px-0 py-1">
-                                            <span>
-                                                What's this?
-                                                <Info className="inline ml-1" />
+                                            <span className="items-center flex gap-1 text-sm">
+                                                <Info className="inline" />
+                                                <p className="text-sm">What is this?</p>
                                             </span>
                                         </Button>
                                     </CollapsibleTrigger>
@@ -409,7 +495,7 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                                         <b>Public</b>: visible to everyone.
                                         <br />
                                         Note that we will review all public agents before they are
-                                        made public.
+                                        made accessible to others.
                                     </CollapsibleContent>
                                 </Collapsible>
                             </FormDescription>
@@ -473,7 +559,10 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                                 <Button
                                     variant="secondary"
                                     className="w-[200px] justify-between"
-                                    onClick={() => setShowFilePicker(!showFilePicker)}
+                                    onClick={(e) => {
+                                        setShowFilePicker(!showFilePicker);
+                                        e.preventDefault();
+                                    }}
                                 >
                                     {field.value
                                         ? `${field.value.length} files selected`
@@ -800,6 +889,11 @@ export default function Agents() {
 
     const modelOptions: ModelOptions[] = userConfig?.chat_model_options || [];
     const selectedChatModelOption: number = userConfig?.selected_chat_model_config || 0;
+    const isSubscribed: boolean =
+        (userConfig?.subscription_state &&
+            userConfig?.subscription_state in
+                [SubscriptionStates.SUBSCRIBED, SubscriptionStates.TRIAL]) ||
+        false;
 
     // The default model option should map to the item in the modelOptions array that has the same id as the selectedChatModelOption
     const defaultModelOption = modelOptions.find(
@@ -829,21 +923,14 @@ export default function Agents() {
                                     icon: "",
                                     privacy_level: "private",
                                     managed_by_admin: false,
+                                    chat_model: "",
                                 }}
                                 userProfile={authenticatedData}
                                 isMobileWidth={isMobileWidth}
                                 filesOptions={filesData || []}
                                 modelOptions={userConfig?.chat_model_options || []}
                                 selectedChatModelOption={defaultModelOption?.name || ""}
-                                isSubscribed={
-                                    (userConfig?.subscription_state &&
-                                        userConfig?.subscription_state in
-                                            [
-                                                SubscriptionStates.SUBSCRIBED,
-                                                SubscriptionStates.TRIAL,
-                                            ]) ||
-                                    false
-                                }
+                                isSubscribed={isSubscribed}
                                 setAgentChangeTriggered={setAgentChangeTriggered}
                             />
                         </div>
@@ -869,6 +956,12 @@ export default function Agents() {
                                     data={agent}
                                     userProfile={authenticatedData}
                                     isMobileWidth={isMobileWidth}
+                                    filesOptions={filesData ?? []}
+                                    selectedChatModelOption={defaultModelOption?.name || ""}
+                                    isSubscribed={isSubscribed}
+                                    setAgentChangeTriggered={setAgentChangeTriggered}
+                                    modelOptions={userConfig?.chat_model_options || []}
+                                    editCard={true}
                                 />
                             ))}
                         </div>
@@ -882,6 +975,12 @@ export default function Agents() {
                                     data={agent}
                                     userProfile={authenticatedData}
                                     isMobileWidth={isMobileWidth}
+                                    editCard={false}
+                                    filesOptions={filesData ?? []}
+                                    selectedChatModelOption={defaultModelOption?.name || ""}
+                                    isSubscribed={isSubscribed}
+                                    setAgentChangeTriggered={setAgentChangeTriggered}
+                                    modelOptions={userConfig?.chat_model_options || []}
                                 />
                             ))}
                         </div>

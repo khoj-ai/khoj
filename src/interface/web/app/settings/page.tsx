@@ -294,7 +294,6 @@ export const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose })
                 </div>
             </div>
             <div className="flex flex-col h-full">
-                <div className="flex-none p-4">Synced files</div>
                 <div className="flex-none p-4 bg-background border-b">
                     <CommandInput
                         placeholder="Find synced files"

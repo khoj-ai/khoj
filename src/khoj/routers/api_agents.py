@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 api_agents = APIRouter()
 
 
-class CreateAgentBody(BaseModel):
+class ModifyAgentBody(BaseModel):
     name: str
     persona: str
     privacy_level: str
@@ -67,7 +67,7 @@ async def all_agents(
 async def create_agent(
     request: Request,
     common: CommonQueryParams,
-    body: CreateAgentBody,
+    body: ModifyAgentBody,
 ) -> Response:
     user: KhojUser = request.user.object
 
@@ -79,7 +79,7 @@ async def create_agent(
             status_code=400,
         )
 
-    agent = await sync_to_async(AgentAdapters.create_agent)(
+    agent = await AgentAdapters.aupdate_agent(
         user,
         body.name,
         body.persona,
@@ -110,18 +110,11 @@ async def create_agent(
 async def update_agent(
     request: Request,
     common: CommonQueryParams,
-    slug: str,
-    name: str,
-    persona: str,
-    privacy_level: str,
-    icon: str,
-    color: str,
-    chat_model: str,
-    files: List[str],
+    body: ModifyAgentBody,
 ) -> Response:
     user: KhojUser = request.user.object
 
-    is_safe_prompt, reason = await acheck_if_safe_prompt(persona)
+    is_safe_prompt, reason = await acheck_if_safe_prompt(body.persona)
     if not is_safe_prompt:
         return Response(
             content=json.dumps({"error": f"{reason}"}),
@@ -129,18 +122,24 @@ async def update_agent(
             status_code=400,
         )
 
-    selected_agent = await AgentAdapters.aget_agent_by_slug(slug, user)
+    selected_agent = await AgentAdapters.aget_agent_by_name(body.name, user)
+
+    if not selected_agent:
+        return Response(
+            content=json.dumps({"error": f"Agent with name {body.name} not found."}),
+            media_type="application/json",
+            status_code=404,
+        )
 
     agent = await AgentAdapters.aupdate_agent(
-        selected_agent,
-        slug,
-        name,
-        persona,
-        privacy_level,
-        icon,
-        color,
-        chat_model,
-        files,
+        user,
+        body.name,
+        body.persona,
+        body.privacy_level,
+        body.icon,
+        body.color,
+        body.chat_model,
+        body.files,
     )
 
     agents_packet = {
