@@ -4,7 +4,7 @@ import styles from "./agents.module.css";
 
 import useSWR from "swr";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
     useAuthenticatedData,
@@ -26,6 +26,8 @@ import {
     ShieldWarning,
     Lock,
     Book,
+    Brain,
+    Waveform,
 } from "@phosphor-icons/react";
 import { set, z } from "zod";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -85,6 +87,18 @@ import {
     CommandItem,
     CommandList,
 } from "@/components/ui/command";
+import { uploadDataForIndexing } from "../common/chatFunctions";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Progress } from "@/components/ui/progress";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Sheet, SheetContent, SheetHeader, SheetTrigger } from "@/components/ui/sheet";
 
 export interface AgentData {
     slug: string;
@@ -266,7 +280,10 @@ function AgentCard(props: AgentCardProps) {
                                 )}
                             </div>
                             {props.editCard ? (
-                                <DialogContent className="whitespace-pre-line max-h-[80vh]">
+                                <DialogContent className="whitespace-pre-line max-w-xl">
+                                    <DialogTitle>
+                                        Edit <b>{props.data.name}</b>
+                                    </DialogTitle>
                                     <AgentModificationForm
                                         form={form}
                                         onSubmit={onSubmit}
@@ -286,6 +303,18 @@ function AgentCard(props: AgentCardProps) {
                                     </DialogHeader>
                                     <div className="max-h-[60vh] overflow-y-scroll text-neutral-500 dark:text-white">
                                         {props.data.persona}
+                                    </div>
+                                    <div className="flex items-center justify-between gap-1">
+                                        {props.editCard && (
+                                            <Badge
+                                                icon={<Lock />}
+                                                text={props.data.privacy_level}
+                                            />
+                                        )}
+                                        {props.data.files && props.data.files.length > 0 && (
+                                            <Badge icon={<Book />} text={`knowledge`} />
+                                        )}
+                                        <Badge icon={<Brain />} text={props.data.chat_model} />
                                     </div>
                                     <DialogFooter>
                                         <Button
@@ -340,7 +369,7 @@ function AgentCard(props: AgentCardProps) {
                                 )}
                             </div>
                             {props.editCard ? (
-                                <DrawerContent className="whitespace-pre-line max-h-[80vh]">
+                                <DrawerContent className="whitespace-pre-line">
                                     <AgentModificationForm
                                         form={form}
                                         onSubmit={onSubmit}
@@ -357,6 +386,18 @@ function AgentCard(props: AgentCardProps) {
                                         <DrawerDescription>Persona</DrawerDescription>
                                     </DrawerHeader>
                                     {props.data.persona}
+                                    <div className="flex items-center justify-between gap-1">
+                                        {props.editCard && (
+                                            <Badge
+                                                icon={<Lock />}
+                                                text={props.data.privacy_level}
+                                            />
+                                        )}
+                                        {props.data.files && props.data.files.length > 0 && (
+                                            <Badge icon={<Book />} text={`knowledge`} />
+                                        )}
+                                        <Badge icon={<Brain />} text={props.data.chat_model} />
+                                    </div>
                                     <DrawerFooter>
                                         <DrawerClose>Done</DrawerClose>
                                     </DrawerFooter>
@@ -378,10 +419,11 @@ function AgentCard(props: AgentCardProps) {
             </CardContent>
             <CardFooter>
                 <div className="flex items-center justify-between gap-1">
-                    <Badge icon={<Lock />} text={props.data.privacy_level} />
+                    {props.editCard && <Badge icon={<Lock />} text={props.data.privacy_level} />}
                     {props.data.files && props.data.files.length > 0 && (
                         <Badge icon={<Book />} text={`knowledge`} />
                     )}
+                    <Badge icon={<Brain />} text={props.data.chat_model} />
                 </div>
             </CardFooter>
         </Card>
@@ -419,7 +461,83 @@ function AgentModificationForm(props: AgentModificationFormProps) {
     const iconOptions = getAvailableIcons();
     const colorOptions = tailwindColors;
     const colorOptionClassName = convertColorToTextClass(props.form.getValues("color"));
+
     const [showFilePicker, setShowFilePicker] = useState(false);
+    const [isDragAndDropping, setIsDragAndDropping] = useState(false);
+    const [warning, setWarning] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+    const [progressValue, setProgressValue] = useState(0);
+    const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (!uploading) {
+            setProgressValue(0);
+        }
+
+        if (uploading) {
+            const interval = setInterval(() => {
+                setProgressValue((prev) => {
+                    const increment = Math.floor(Math.random() * 5) + 1; // Generates a random number between 1 and 5
+                    const nextValue = prev + increment;
+                    return nextValue < 100 ? nextValue : 100; // Ensures progress does not exceed 100
+                });
+            }, 800);
+            return () => clearInterval(interval);
+        }
+    }, [uploading]);
+
+    useEffect(() => {
+        if (uploadedFiles.length > 0) {
+            handleAgentFileChange(uploadedFiles);
+        }
+    }, [uploadedFiles]);
+
+    function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
+        event.preventDefault();
+        setIsDragAndDropping(true);
+    }
+
+    function handleDragLeave(event: React.DragEvent<HTMLDivElement>) {
+        event.preventDefault();
+        setIsDragAndDropping(false);
+    }
+
+    function handleDragAndDropFiles(event: React.DragEvent<HTMLDivElement>) {
+        event.preventDefault();
+        setIsDragAndDropping(false);
+
+        if (!event.dataTransfer.files) return;
+
+        uploadFiles(event.dataTransfer.files);
+    }
+
+    function uploadFiles(files: FileList) {
+        uploadDataForIndexing(files, setWarning, setUploading, setError, setUploadedFiles);
+    }
+
+    function openFileInput() {
+        if (fileInputRef && fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    }
+
+    function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+        if (!event.target.files) return;
+
+        uploadFiles(event.target.files);
+    }
+
+    const handleAgentFileChange = (files: string[]) => {
+        for (const file of files) {
+            const currentFiles = props.form.getValues("files") || [];
+            const newFiles = currentFiles.includes(file)
+                ? currentFiles.filter((item) => item !== file)
+                : [...currentFiles, file];
+            props.form.setValue("files", newFiles);
+        }
+    };
 
     const privacyOptions = ["public", "private", "protected"];
 
@@ -555,58 +673,112 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                         <FormItem className="flex flex-col">
                             <FormLabel>Knowledge Base</FormLabel>
                             <FormDescription>
-                                Which files should this agent have access to?
-                                <Button
-                                    variant="secondary"
-                                    className="w-[200px] justify-between"
-                                    onClick={(e) => {
-                                        setShowFilePicker(!showFilePicker);
-                                        e.preventDefault();
-                                    }}
-                                >
-                                    {field.value
-                                        ? `${field.value.length} files selected`
-                                        : "Select files"}
-                                </Button>
+                                Which files should this agent have access to?{" "}
+                                <a href="/settings">Manage files</a>.
                             </FormDescription>
-                            {showFilePicker && (
-                                <Command>
-                                    <CommandInput placeholder="Find files..." />
-                                    <CommandList>
-                                        <CommandEmpty>No files found.</CommandEmpty>
-                                        <CommandGroup>
-                                            {props.filesOptions.map((file) => (
-                                                <CommandItem
-                                                    value={file}
-                                                    key={file}
-                                                    onSelect={() => {
-                                                        const currentFiles =
-                                                            props.form.getValues("files") || [];
-                                                        const newFiles = currentFiles.includes(file)
-                                                            ? currentFiles.filter(
-                                                                  (item) => item !== file,
-                                                              )
-                                                            : [...currentFiles, file];
-                                                        props.form.setValue("files", newFiles);
+                            <Collapsible>
+                                <CollapsibleTrigger>Show File Picker</CollapsibleTrigger>
+                                <CollapsibleContent>
+                                    <Command>
+                                        <AlertDialog open={warning !== null || error != null}>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Alert</AlertDialogTitle>
+                                                </AlertDialogHeader>
+                                                <AlertDialogDescription>
+                                                    {warning || error}
+                                                </AlertDialogDescription>
+                                                <AlertDialogAction
+                                                    className="bg-slate-400 hover:bg-slate-500"
+                                                    onClick={() => {
+                                                        setWarning(null);
+                                                        setError(null);
+                                                        setUploading(false);
                                                     }}
                                                 >
-                                                    <Check
-                                                        className={cn(
-                                                            "mr-2 h-4 w-4",
-                                                            field.value &&
-                                                                field.value.includes(file)
-                                                                ? "opacity-100"
-                                                                : "opacity-0",
-                                                        )}
+                                                    Close
+                                                </AlertDialogAction>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                        <div
+                                            className={`flex flex-col h-full cursor-pointer`}
+                                            onDragOver={handleDragOver}
+                                            onDragLeave={handleDragLeave}
+                                            onDrop={handleDragAndDropFiles}
+                                            onClick={openFileInput}
+                                        >
+                                            <input
+                                                type="file"
+                                                multiple
+                                                ref={fileInputRef}
+                                                style={{ display: "none" }}
+                                                onChange={handleFileChange}
+                                            />
+                                            <div className="flex-none p-4">
+                                                {uploading && (
+                                                    <Progress
+                                                        indicatorColor="bg-slate-500"
+                                                        className="w-full h-2 rounded-full"
+                                                        value={progressValue}
                                                     />
-                                                    {file}
-                                                </CommandItem>
-                                            ))}
-                                        </CommandGroup>
-                                    </CommandList>
-                                </Command>
-                            )}
-                            <FormMessage />
+                                                )}
+                                            </div>
+                                            <div
+                                                className={`flex-none p-4 bg-secondary border-b ${isDragAndDropping ? "animate-pulse" : ""} rounded-lg`}
+                                            >
+                                                <div className="flex items-center justify-center w-full h-16 border-2 border-dashed border-gray-300 rounded-lg">
+                                                    {isDragAndDropping ? (
+                                                        <div className="flex items-center justify-center w-full h-full">
+                                                            <Waveform className="h-6 w-6 mr-2" />
+                                                            <span>Drop files to upload</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center justify-center w-full h-full">
+                                                            <Plus className="h-6 w-6 mr-2" />
+                                                            <span>Drag and drop files here</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <CommandInput placeholder="Select files..." />
+                                        <CommandList>
+                                            <CommandEmpty>No files found.</CommandEmpty>
+                                            <CommandGroup>
+                                                {props.filesOptions.map((file) => (
+                                                    <CommandItem
+                                                        value={file}
+                                                        key={file}
+                                                        onSelect={() => {
+                                                            const currentFiles =
+                                                                props.form.getValues("files") || [];
+                                                            const newFiles = currentFiles.includes(
+                                                                file,
+                                                            )
+                                                                ? currentFiles.filter(
+                                                                      (item) => item !== file,
+                                                                  )
+                                                                : [...currentFiles, file];
+                                                            props.form.setValue("files", newFiles);
+                                                        }}
+                                                    >
+                                                        <Check
+                                                            className={cn(
+                                                                "mr-2 h-4 w-4",
+                                                                field.value &&
+                                                                    field.value.includes(file)
+                                                                    ? "opacity-100"
+                                                                    : "opacity-0",
+                                                            )}
+                                                        />
+                                                        {file}
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </CollapsibleContent>
+                            </Collapsible>
                         </FormItem>
                     )}
                 />
@@ -784,16 +956,14 @@ function CreateAgentCard(props: CreateAgentCardProps) {
                     <DrawerHeader>
                         <DrawerTitle>Create Agent</DrawerTitle>
                     </DrawerHeader>
-                    <DrawerDescription>
-                        <AgentModificationForm
-                            form={form}
-                            onSubmit={onSubmit}
-                            create={true}
-                            errors={errors}
-                            filesOptions={props.filesOptions}
-                            modelOptions={props.modelOptions}
-                        />
-                    </DrawerDescription>
+                    <AgentModificationForm
+                        form={form}
+                        onSubmit={onSubmit}
+                        create={true}
+                        errors={errors}
+                        filesOptions={props.filesOptions}
+                        modelOptions={props.modelOptions}
+                    />
                     <DrawerFooter>
                         <DrawerClose>Dismiss</DrawerClose>
                     </DrawerFooter>
@@ -803,15 +973,15 @@ function CreateAgentCard(props: CreateAgentCardProps) {
     }
 
     return (
-        <Dialog open={showModal} onOpenChange={setShowModal}>
-            <DialogTrigger>
+        <Sheet open={showModal} onOpenChange={setShowModal}>
+            <SheetTrigger>
                 <div className="flex items-center text-md gap-2">
                     <Plus />
                     Create Agent
                 </div>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogTitle>Create Agent</DialogTitle>
+            </SheetTrigger>
+            <SheetContent side={"right"}>
+                <SheetHeader>Create Agent</SheetHeader>
                 <AgentModificationForm
                     form={form}
                     onSubmit={onSubmit}
@@ -820,8 +990,8 @@ function CreateAgentCard(props: CreateAgentCardProps) {
                     filesOptions={props.filesOptions}
                     modelOptions={props.modelOptions}
                 />
-            </DialogContent>
-        </Dialog>
+            </SheetContent>
+        </Sheet>
     );
 }
 

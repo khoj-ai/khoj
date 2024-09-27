@@ -276,7 +276,7 @@ export const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose })
                     )}
                 </div>
                 <div
-                    className={`flex-none p-4 bg-secondary border-b ${isDragAndDropping ? "animate-pulse" : ""}`}
+                    className={`flex-none p-4 bg-secondary border-b ${isDragAndDropping ? "animate-pulse" : ""} rounded-lg`}
                 >
                     <div className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg">
                         {isDragAndDropping ? (
