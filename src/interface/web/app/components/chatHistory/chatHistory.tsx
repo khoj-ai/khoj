@@ -101,20 +101,10 @@ export default function ChatHistory(props: ChatHistoryProps) {
         }
     }, [props.incomingMessages, isNearBottom]);
 
+    // Scroll to bottom after the first data fetch on chat history load.
     useEffect(() => {
-        // This function ensures that scrolling to bottom happens after the data (chat messages) has been updated and rendered the first time.
-        const scrollToBottomAfterDataLoad = () => {
-            // Assume the data is loading in this scenario.
-            if (!data?.chat.length) {
-                setTimeout(() => {
-                    scrollToBottom();
-                }, 500);
-            }
-        };
-
-        if (currentPage < 2) {
-            // Call the function defined above.
-            scrollToBottomAfterDataLoad();
+        if (data && data.chat && data.chat.length > 0 && currentPage === 0) {
+            scrollToBottom(true);
         }
     }, [data, currentPage]);
 
@@ -188,8 +178,8 @@ export default function ChatHistory(props: ChatHistoryProps) {
                     props.setAgent(chatData.response.agent);
                     setData(chatData.response);
                     setFetchingData(false);
-                    if (currentPage < 2) {
-                        scrollToBottom();
+                    if (currentPage === 0) {
+                        scrollToBottom(true);
                     }
                 } else {
                     if (chatData.response.agent && chatData.response.conversation_id) {
@@ -213,14 +203,16 @@ export default function ChatHistory(props: ChatHistoryProps) {
             });
     }
 
-    const scrollToBottom = () => {
+    const scrollToBottom = (instant: boolean = false) => {
         const scrollArea = scrollAreaRef.current?.querySelector(scrollAreaSelector);
         if (!scrollArea) return;
 
-        const scrollAreaEl = scrollArea as HTMLElement;
-        scrollAreaEl.scrollTo({
-            top: scrollAreaEl.scrollHeight,
-            behavior: "smooth",
+        requestAnimationFrame(() => {
+            const scrollAreaEl = scrollArea as HTMLElement;
+            scrollAreaEl.scrollTo({
+                top: scrollAreaEl.scrollHeight,
+                behavior: instant ? "auto" : "smooth",
+            });
         });
         setIsNearBottom(true);
     };
