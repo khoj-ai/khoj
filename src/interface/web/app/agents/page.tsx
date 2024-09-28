@@ -1176,8 +1176,7 @@ export default function Agents() {
     const [personalAgents, setPersonalAgents] = useState<AgentData[]>([]);
     const [publicAgents, setPublicAgents] = useState<AgentData[]>([]);
 
-    const searchParams = new URLSearchParams(window.location.search);
-    const agentSlug = searchParams.get("agent");
+    const [agentSlug, setAgentSlug] = useState<string | null>(null);
 
     const { data: filesData, error: fileError } = useSWR<string[]>(
         "/api/content/computer",
@@ -1208,23 +1207,29 @@ export default function Agents() {
             );
             setPublicAgents(publicAgents);
 
-            // Search for the agent with the slug in the URL
-            if (agentSlug) {
-                const selectedAgent = data.find((agent) => agent.slug === agentSlug);
-                if (!selectedAgent) {
-                    // See if the agent is accessible as a protected agent.
-                    fetch(`/api/agents/${agentSlug}`)
-                        .then((res) => {
-                            if (res.status === 404) {
-                                throw new Error("Agent not found");
-                            }
-                            return res.json();
-                        })
-                        .then((agent: AgentData) => {
-                            if (agent.privacy_level === "protected") {
-                                setPublicAgents((prev) => [...prev, agent]);
-                            }
-                        });
+            if (typeof window !== "undefined") {
+                const searchParams = new URLSearchParams(window.location.search);
+                const agentSlug = searchParams.get("agent");
+
+                // Search for the agent with the slug in the URL
+                if (agentSlug) {
+                    setAgentSlug(agentSlug);
+                    const selectedAgent = data.find((agent) => agent.slug === agentSlug);
+                    if (!selectedAgent) {
+                        // See if the agent is accessible as a protected agent.
+                        fetch(`/api/agents/${agentSlug}`)
+                            .then((res) => {
+                                if (res.status === 404) {
+                                    throw new Error("Agent not found");
+                                }
+                                return res.json();
+                            })
+                            .then((agent: AgentData) => {
+                                if (agent.privacy_level === "protected") {
+                                    setPublicAgents((prev) => [...prev, agent]);
+                                }
+                            });
+                    }
                 }
             }
         }
