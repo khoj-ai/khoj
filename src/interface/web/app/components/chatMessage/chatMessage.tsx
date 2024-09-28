@@ -406,10 +406,6 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
         }
     }, [markdownRendered, isHovering, messageRef]);
 
-    if (!props.chatMessage.message) {
-        return null;
-    }
-
     function formatDate(timestamp: string) {
         // Format date in HH:MM, DD MMM YYYY format
         let date = new Date(timestamp + "Z");
@@ -449,6 +445,9 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
     function constructClasses(chatMessage: SingleChatMessage) {
         let classes = [styles.chatMessageContainer, "shadow-md"];
         classes.push(styles[chatMessage.by]);
+        if (!chatMessage.message) {
+            classes.push(styles.emptyChatMessage);
+        }
 
         if (props.customClassName) {
             classes.push(styles[`${chatMessage.by}${props.customClassName}`]);

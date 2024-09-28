@@ -70,30 +70,31 @@ export default function ChatHistory(props: ChatHistoryProps) {
     const sentinelRef = useRef<HTMLDivElement | null>(null);
     const scrollAreaRef = useRef<HTMLDivElement | null>(null);
     const latestUserMessageRef = useRef<HTMLDivElement | null>(null);
+    const latestFetchedMessageRef = useRef<HTMLDivElement | null>(null);
 
     const [incompleteIncomingMessageIndex, setIncompleteIncomingMessageIndex] = useState<
         number | null
     >(null);
     const [fetchingData, setFetchingData] = useState(false);
     const [isNearBottom, setIsNearBottom] = useState(true);
-    const [scrollPosition, setScrollPosition] = useState(0);
     const isMobileWidth = useIsMobileWidth();
     const scrollAreaSelector = "[data-radix-scroll-area-viewport]";
+    const fetchMessageCount = 10;
 
     useEffect(() => {
-        const scrollArea = scrollAreaRef.current?.querySelector(scrollAreaSelector);
-        if (!scrollArea) return;
+        const scrollAreaEl = scrollAreaRef.current?.querySelector<HTMLElement>(scrollAreaSelector);
+        if (!scrollAreaEl) return;
 
         const detectIsNearBottom = () => {
-            const { scrollTop, scrollHeight, clientHeight } = scrollArea as HTMLElement;
+            const { scrollTop, scrollHeight, clientHeight } = scrollAreaEl;
             const bottomThreshold = 100; // pixels from bottom
             const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
             const isNearBottom = distanceFromBottom <= bottomThreshold;
             setIsNearBottom(isNearBottom);
         };
 
-        scrollArea.addEventListener("scroll", detectIsNearBottom);
-        return () => scrollArea.removeEventListener("scroll", detectIsNearBottom);
+        scrollAreaEl.addEventListener("scroll", detectIsNearBottom);
+        return () => scrollAreaEl.removeEventListener("scroll", detectIsNearBottom);
     }, []);
 
     // Auto scroll while incoming message is streamed
@@ -119,15 +120,8 @@ export default function ChatHistory(props: ChatHistoryProps) {
         const observer = new IntersectionObserver(
             (entries) => {
                 if (entries[0].isIntersecting && hasMoreMessages) {
-                    const scrollArea = scrollAreaRef.current?.querySelector(
-                        scrollAreaSelector,
-                    ) as HTMLElement;
-                    if (scrollArea) {
-                        setScrollPosition(scrollArea.scrollHeight - scrollArea.scrollTop);
-                    }
                     setFetchingData(true);
                     fetchMoreMessages(currentPage);
-                    setCurrentPage((prev) => prev + 1);
                 }
             },
             { threshold: 1.0 },
@@ -157,21 +151,25 @@ export default function ChatHistory(props: ChatHistoryProps) {
     }, [props.incomingMessages]);
 
     const adjustScrollPosition = () => {
-        const scrollArea = scrollAreaRef.current?.querySelector(scrollAreaSelector) as HTMLElement;
-        if (!scrollArea) return;
-        scrollArea.scrollTo({ top: scrollArea.scrollHeight - scrollPosition, behavior: "auto" });
+        const scrollAreaEl = scrollAreaRef.current?.querySelector<HTMLElement>(scrollAreaSelector);
+        requestAnimationFrame(() => {
+            // Snap scroll position to the latest fetched message ref
+            latestFetchedMessageRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
+            // Now scroll up smoothly to render user scroll action
+            scrollAreaEl?.scrollBy({ behavior: "smooth", top: -150 });
+        });
     };
 
     function fetchMoreMessages(currentPage: number) {
         if (!hasMoreMessages || fetchingData) return;
         const nextPage = currentPage + 1;
-
+        const maxMessagesToFetch = nextPage * fetchMessageCount;
         let conversationFetchURL = "";
 
         if (props.conversationId) {
-            conversationFetchURL = `/api/chat/history?client=web&conversation_id=${encodeURIComponent(props.conversationId)}&n=${10 * nextPage}`;
+            conversationFetchURL = `/api/chat/history?client=web&conversation_id=${encodeURIComponent(props.conversationId)}&n=${maxMessagesToFetch}`;
         } else if (props.publicConversationSlug) {
-            conversationFetchURL = `/api/chat/share/history?client=web&public_conversation_slug=${props.publicConversationSlug}&n=${10 * nextPage}`;
+            conversationFetchURL = `/api/chat/share/history?client=web&public_conversation_slug=${props.publicConversationSlug}&n=${maxMessagesToFetch}`;
         } else {
             return;
         }
@@ -186,6 +184,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                     chatData.response.chat &&
                     chatData.response.chat.length > 0
                 ) {
+                    setCurrentPage(Math.ceil(chatData.response.chat.length / fetchMessageCount));
                     if (chatData.response.chat.length === data?.chat.length) {
                         setHasMoreMessages(false);
                         setFetchingData(false);
@@ -197,7 +196,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                     if (currentPage === 0) {
                         scrollToBottom(true);
                     } else {
-                        setTimeout(adjustScrollPosition, 0);
+                        adjustScrollPosition();
                     }
                 } else {
                     if (chatData.response.agent && chatData.response.conversation_id) {
@@ -222,12 +221,9 @@ export default function ChatHistory(props: ChatHistoryProps) {
     }
 
     const scrollToBottom = (instant: boolean = false) => {
-        const scrollArea = scrollAreaRef.current?.querySelector(scrollAreaSelector);
-        if (!scrollArea) return;
-
+        const scrollAreaEl = scrollAreaRef.current?.querySelector<HTMLElement>(scrollAreaSelector);
         requestAnimationFrame(() => {
-            const scrollAreaEl = scrollArea as HTMLElement;
-            scrollAreaEl.scrollTo({
+            scrollAreaEl?.scrollTo({
                 top: scrollAreaEl.scrollHeight,
                 behavior: instant ? "auto" : "smooth",
             });
@@ -253,6 +249,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
     if (!props.conversationId && !props.publicConversationSlug) {
         return null;
     }
+
     return (
         <ScrollArea className={`h-[80vh] relative`} ref={scrollAreaRef}>
             <div>
@@ -267,7 +264,17 @@ export default function ChatHistory(props: ChatHistoryProps) {
                         data.chat.map((chatMessage, index) => (
                             <ChatMessage
                                 key={`${index}fullHistory`}
-                                ref={index === data.chat.length - 2 ? latestUserMessageRef : null}
+                                ref={
+                                    // attach ref to the second last message to handle scroll on page load
+                                    index === data.chat.length - 2
+                                        ? latestUserMessageRef
+                                        : // attach ref to the newest fetched message to handle scroll on fetch
+                                          // note: stabilize index selection against last page having less messages than fetchMessageCount
+                                          index ===
+                                            data.chat.length - (currentPage - 1) * fetchMessageCount
+                                          ? latestFetchedMessageRef
+                                          : null
+                                }
                                 isMobileWidth={isMobileWidth}
                                 chatMessage={chatMessage}
                                 customClassName="fullHistory"
