@@ -566,6 +566,14 @@ class AgentAdapters:
         ).afirst()
 
     @staticmethod
+    async def adelete_agent_by_slug(agent_slug: str, user: KhojUser):
+        agent = await AgentAdapters.aget_agent_by_slug(agent_slug, user)
+        if agent:
+            await agent.adelete()
+            return True
+        return False
+
+    @staticmethod
     async def aget_agent_by_slug(agent_slug: str, user: KhojUser):
         return await Agent.objects.filter(
             (Q(slug__iexact=agent_slug.lower())) & (Q(privacy_level=Agent.PrivacyLevel.PUBLIC) | Q(creator=user))

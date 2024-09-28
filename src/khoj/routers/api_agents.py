@@ -96,6 +96,29 @@ async def get_agent(
     return Response(content=json.dumps(agents_packet), media_type="application/json", status_code=200)
 
 
+@api_agents.delete("/{agent_slug}", response_class=Response)
+@requires(["authenticated"])
+async def delete_agent(
+    request: Request,
+    common: CommonQueryParams,
+    agent_slug: str,
+) -> Response:
+    user: KhojUser = request.user.object
+
+    agent = await AgentAdapters.aget_agent_by_slug(agent_slug, user)
+
+    if not agent:
+        return Response(
+            content=json.dumps({"error": f"Agent with name {agent_slug} not found."}),
+            media_type="application/json",
+            status_code=404,
+        )
+
+    await AgentAdapters.adelete_agent_by_slug(agent_slug, user)
+
+    return Response(content=json.dumps({"message": "Agent deleted."}), media_type="application/json", status_code=200)
+
+
 @api_agents.post("", response_class=Response)
 @requires(["authenticated"])
 async def create_agent(

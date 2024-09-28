@@ -31,6 +31,11 @@ import {
     CaretUpDown,
     Globe,
     LockOpen,
+    FloppyDisk,
+    DotsThreeCircleVertical,
+    DotsThreeVertical,
+    Pencil,
+    Trash,
 } from "@phosphor-icons/react";
 import { set, z } from "zod";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -267,26 +272,87 @@ function AgentCard(props: AgentCardProps) {
                                     {props.data.name}
                                 </div>
                             </DialogTrigger>
-                            <div className="float-right">
-                                {props.userProfile ? (
-                                    <Button
-                                        className={`bg-[hsl(var(--background))] w-14 h-14 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100 dark:hover:bg-neutral-900`}
-                                        onClick={() => openChat(props.data.slug, userData)}
-                                    >
-                                        <PaperPlaneTilt
-                                            className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`}
-                                        />
-                                    </Button>
-                                ) : (
-                                    <Button
-                                        className={`bg-[hsl(var(--background))] w-14 h-14 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100 dark:hover:bg-neutral-900`}
-                                        onClick={() => setShowLoginPrompt(true)}
-                                    >
-                                        <PaperPlaneTilt
-                                            className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`}
-                                        />
-                                    </Button>
+                            <div className="flex float-right">
+                                {props.editCard && (
+                                    <div className="float-right">
+                                        <Popover>
+                                            <PopoverTrigger>
+                                                <Button
+                                                    className={`bg-[hsl(var(--background))] w-14 h-14 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100 dark:hover:bg-neutral-900`}
+                                                >
+                                                    <DotsThreeVertical
+                                                        className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`}
+                                                    />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent
+                                                className="w-fit grid p-1"
+                                                side={"bottom"}
+                                                align={"end"}
+                                            >
+                                                <Button
+                                                    className="items-center justify-start"
+                                                    variant={"ghost"}
+                                                    onClick={() => setShowModal(true)}
+                                                >
+                                                    <Pencil className="w-4 h-4 mr-2" />
+                                                    Edit
+                                                </Button>
+                                                {props.editCard &&
+                                                    props.data.privacy_level !== "private" && (
+                                                        <ShareLink
+                                                            buttonTitle="Share"
+                                                            title="Share Agent"
+                                                            description="Share a link to this agent with others. They'll be able to chat with it, and ask questions to all of its knowledge base."
+                                                            buttonVariant={"ghost" as const}
+                                                            includeIcon={true}
+                                                            url={`${window.location.origin}/agents?agent=${props.data.slug}`}
+                                                        />
+                                                    )}
+                                                {props.data.creator === userData?.username && (
+                                                    <Button
+                                                        className="items-center justify-start"
+                                                        variant={"destructive"}
+                                                        onClick={() => {
+                                                            fetch(
+                                                                `/api/agents/${props.data.slug}`,
+                                                                {
+                                                                    method: "DELETE",
+                                                                },
+                                                            ).then(() => {
+                                                                props.setAgentChangeTriggered(true);
+                                                            });
+                                                        }}
+                                                    >
+                                                        <Trash className="w-4 h-4 mr-2" />
+                                                        Delete
+                                                    </Button>
+                                                )}
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
                                 )}
+                                <div className="float-right">
+                                    {props.userProfile ? (
+                                        <Button
+                                            className={`bg-[hsl(var(--background))] w-14 h-14 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100 dark:hover:bg-neutral-900`}
+                                            onClick={() => openChat(props.data.slug, userData)}
+                                        >
+                                            <PaperPlaneTilt
+                                                className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`}
+                                            />
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            className={`bg-[hsl(var(--background))] w-14 h-14 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100 dark:hover:bg-neutral-900`}
+                                            onClick={() => setShowLoginPrompt(true)}
+                                        >
+                                            <PaperPlaneTilt
+                                                className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`}
+                                            />
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                             {props.editCard ? (
                                 <DialogContent
@@ -316,7 +382,7 @@ function AgentCard(props: AgentCardProps) {
                                     <div className="max-h-[60vh] overflow-y-scroll text-neutral-500 dark:text-white">
                                         {props.data.persona}
                                     </div>
-                                    <div className="flex flex-wrap items-center justify-between gap-1">
+                                    <div className="flex flex-wrap items-center gap-1">
                                         {props.editCard && (
                                             <Badge
                                                 icon={lockIcon}
@@ -359,26 +425,87 @@ function AgentCard(props: AgentCardProps) {
                                     {props.data.name}
                                 </div>
                             </DrawerTrigger>
-                            <div className="float-right">
-                                {props.userProfile ? (
-                                    <Button
-                                        className={`bg-[hsl(var(--background))] w-14 h-14 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100`}
-                                        onClick={() => openChat(props.data.slug, userData)}
-                                    >
-                                        <PaperPlaneTilt
-                                            className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`}
-                                        />
-                                    </Button>
-                                ) : (
-                                    <Button
-                                        className={`bg-[hsl(var(--background))] w-14 h-14 rounded-xl border dark:border-neutral-700 shadow-sm`}
-                                        onClick={() => setShowLoginPrompt(true)}
-                                    >
-                                        <PaperPlaneTilt
-                                            className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`}
-                                        />
-                                    </Button>
+                            <div className="flex float-right">
+                                {props.editCard && (
+                                    <div className="float-right">
+                                        <Popover>
+                                            <PopoverTrigger>
+                                                <Button
+                                                    className={`bg-[hsl(var(--background))] w-14 h-14 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100 dark:hover:bg-neutral-900`}
+                                                >
+                                                    <DotsThreeVertical
+                                                        className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`}
+                                                    />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent
+                                                className="w-fit grid p-1"
+                                                side={"bottom"}
+                                                align={"end"}
+                                            >
+                                                <Button
+                                                    className="items-center justify-start"
+                                                    variant={"ghost"}
+                                                    onClick={() => setShowModal(true)}
+                                                >
+                                                    <Pencil className="w-4 h-4 mr-2" />
+                                                    Edit
+                                                </Button>
+                                                {props.editCard &&
+                                                    props.data.privacy_level !== "private" && (
+                                                        <ShareLink
+                                                            buttonTitle="Share"
+                                                            title="Share Agent"
+                                                            description="Share a link to this agent with others. They'll be able to chat with it, and ask questions to all of its knowledge base."
+                                                            buttonVariant={"ghost" as const}
+                                                            includeIcon={true}
+                                                            url={`${window.location.origin}/agents?agent=${props.data.slug}`}
+                                                        />
+                                                    )}
+                                                {props.data.creator === userData?.username && (
+                                                    <Button
+                                                        className="items-center justify-start"
+                                                        variant={"destructive"}
+                                                        onClick={() => {
+                                                            fetch(
+                                                                `/api/agents/${props.data.slug}`,
+                                                                {
+                                                                    method: "DELETE",
+                                                                },
+                                                            ).then(() => {
+                                                                props.setAgentChangeTriggered(true);
+                                                            });
+                                                        }}
+                                                    >
+                                                        <Trash className="w-4 h-4 mr-2" />
+                                                        Delete
+                                                    </Button>
+                                                )}
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
                                 )}
+                                <div className="float-right">
+                                    {props.userProfile ? (
+                                        <Button
+                                            className={`bg-[hsl(var(--background))] w-14 h-14 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100 dark:hover:bg-neutral-900`}
+                                            onClick={() => openChat(props.data.slug, userData)}
+                                        >
+                                            <PaperPlaneTilt
+                                                className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`}
+                                            />
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            className={`bg-[hsl(var(--background))] w-14 h-14 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100 dark:hover:bg-neutral-900`}
+                                            onClick={() => setShowLoginPrompt(true)}
+                                        >
+                                            <PaperPlaneTilt
+                                                className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`}
+                                            />
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                             {props.editCard ? (
                                 <DrawerContent className="whitespace-pre-line p-2">
@@ -399,7 +526,7 @@ function AgentCard(props: AgentCardProps) {
                                         <DrawerDescription>Persona</DrawerDescription>
                                     </DrawerHeader>
                                     {props.data.persona}
-                                    <div className="flex flex-wrap items-center justify-between gap-1">
+                                    <div className="flex flex-wrap items-center gap-1">
                                         {props.editCard && (
                                             <Badge
                                                 icon={lockIcon}
@@ -431,7 +558,7 @@ function AgentCard(props: AgentCardProps) {
                 </div>
             </CardContent>
             <CardFooter>
-                <div className="flex flex-wrap items-center justify-between gap-1">
+                <div className="flex flex-wrap items-center gap-1">
                     {props.editCard && <Badge icon={lockIcon} text={props.data.privacy_level} />}
                     {props.data.files && props.data.files.length > 0 && (
                         <Badge icon={<Book />} text={`knowledge`} />
@@ -888,17 +1015,19 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                         type="submit"
                         variant={"ghost"}
                         disabled={isSaving}
-                        className={`${isSaving ? "bg-stone-100 dark:bg-neutral-900" : ""} text-white ${colorOptionClassName}`}
+                        className={`items-center ${isSaving ? "bg-stone-100 dark:bg-neutral-900" : ""} text-white ${colorOptionClassName}`}
                     >
+                        <FloppyDisk className="h-4 w-4 mr-2" />
                         {isSaving ? "Booting..." : "Save"}
                     </Button>
                     {!!!props.create && props.form.getValues("privacy_level") !== "private" && (
                         <ShareLink
                             buttonTitle="Share"
-                            title="Share agent"
+                            title="Share Agent"
                             description="Share a link to this agent with others. They'll be able to chat with it, and ask questions to all of its knowledge base."
                             buttonVariant={"ghost" as const}
                             buttonClassName={`${colorOptionClassName}`}
+                            includeIcon={true}
                             url={`${window.location.origin}/agents?agent=${props.slug}`}
                         />
                     )}
