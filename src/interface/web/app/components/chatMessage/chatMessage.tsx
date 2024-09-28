@@ -347,7 +347,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             props.chatMessage.intent.type.includes("text-to-image") &&
             props.chatMessage.intent["inferred-queries"]?.length > 0
         ) {
-            message += `\n\n**Inferred Query**\n\n${props.chatMessage.intent["inferred-queries"][0]}`;
+            message += `\n\n${props.chatMessage.intent["inferred-queries"][0]}`;
         }
 
         setTextRendered(message);

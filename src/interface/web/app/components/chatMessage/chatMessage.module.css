@@ -58,16 +58,18 @@ div.emptyChatMessage {
 }
 
 div.chatMessageContainer img {
-    width: 50%;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 80vh;
+    object-fit: contain;
+    display: block;
+    margin-top: 0.25rem;
+    margin-right: auto;
 }
 
 div.chatMessageContainer h3 img {
     width: 24px;
-}
-
-div.you img {
-    height: 16rem;
-    width: auto;
 }
 
 div.you {

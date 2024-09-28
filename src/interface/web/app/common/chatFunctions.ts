@@ -126,7 +126,7 @@ export function handleImageResponse(imageJson: any, liveStream: boolean): Respon
             rawResponse = `![](data:image/webp;base64,${imageJson.image})`;
         }
         if (inferredQuery && !liveStream) {
-            rawResponse += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
+            rawResponse += `\n\n${inferredQuery}`;
         }
     }
 
