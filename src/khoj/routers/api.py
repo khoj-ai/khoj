@@ -375,7 +375,7 @@ async def extract_references_and_questions(
     using_offline_chat = False
     logger.debug(f"Filters in query: {filters_in_query}")
 
-    personality_context = prompts.personality_context(personality=agent.personality) if agent else ""
+    personality_context = prompts.personality_context.format(personality=agent.personality) if agent else ""
 
     # Infer search queries from user message
     with timer("Extracting search queries took", logger):
