@@ -28,6 +28,9 @@ import {
     Book,
     Brain,
     Waveform,
+    CaretUpDown,
+    Globe,
+    LockOpen,
 } from "@phosphor-icons/react";
 import { set, z } from "zod";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -171,6 +174,14 @@ function AgentCard(props: AgentCardProps) {
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
     const [errors, setErrors] = useState<string | null>(null);
 
+    let lockIcon = <Lock />;
+
+    if (props.data.privacy_level === "public") {
+        lockIcon = <Globe />;
+    } else if (props.data.privacy_level === "protected") {
+        lockIcon = <LockOpen />;
+    }
+
     const userData = props.userProfile;
 
     const form = useForm<z.infer<typeof EditAgentSchema>>({
@@ -280,7 +291,9 @@ function AgentCard(props: AgentCardProps) {
                                 )}
                             </div>
                             {props.editCard ? (
-                                <DialogContent className="whitespace-pre-line max-w-xl">
+                                <DialogContent
+                                    className={"lg:max-w-screen-lg overflow-y-scroll max-h-screen"}
+                                >
                                     <DialogTitle>
                                         Edit <b>{props.data.name}</b>
                                     </DialogTitle>
@@ -304,10 +317,10 @@ function AgentCard(props: AgentCardProps) {
                                     <div className="max-h-[60vh] overflow-y-scroll text-neutral-500 dark:text-white">
                                         {props.data.persona}
                                     </div>
-                                    <div className="flex items-center justify-between gap-1">
+                                    <div className="flex flex-wrap items-center justify-between gap-1">
                                         {props.editCard && (
                                             <Badge
-                                                icon={<Lock />}
+                                                icon={lockIcon}
                                                 text={props.data.privacy_level}
                                             />
                                         )}
@@ -369,7 +382,7 @@ function AgentCard(props: AgentCardProps) {
                                 )}
                             </div>
                             {props.editCard ? (
-                                <DrawerContent className="whitespace-pre-line">
+                                <DrawerContent className="whitespace-pre-line p-2">
                                     <AgentModificationForm
                                         form={form}
                                         onSubmit={onSubmit}
@@ -386,10 +399,10 @@ function AgentCard(props: AgentCardProps) {
                                         <DrawerDescription>Persona</DrawerDescription>
                                     </DrawerHeader>
                                     {props.data.persona}
-                                    <div className="flex items-center justify-between gap-1">
+                                    <div className="flex flex-wrap items-center justify-between gap-1">
                                         {props.editCard && (
                                             <Badge
-                                                icon={<Lock />}
+                                                icon={lockIcon}
                                                 text={props.data.privacy_level}
                                             />
                                         )}
@@ -418,8 +431,8 @@ function AgentCard(props: AgentCardProps) {
                 </div>
             </CardContent>
             <CardFooter>
-                <div className="flex items-center justify-between gap-1">
-                    {props.editCard && <Badge icon={<Lock />} text={props.data.privacy_level} />}
+                <div className="flex flex-wrap items-center justify-between gap-1">
+                    {props.editCard && <Badge icon={lockIcon} text={props.data.privacy_level} />}
                     {props.data.files && props.data.files.length > 0 && (
                         <Badge icon={<Book />} text={`knowledge`} />
                     )}
@@ -462,7 +475,6 @@ function AgentModificationForm(props: AgentModificationFormProps) {
     const colorOptions = tailwindColors;
     const colorOptionClassName = convertColorToTextClass(props.form.getValues("color"));
 
-    const [showFilePicker, setShowFilePicker] = useState(false);
     const [isDragAndDropping, setIsDragAndDropping] = useState(false);
     const [warning, setWarning] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -677,7 +689,12 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                                 <a href="/settings">Manage files</a>.
                             </FormDescription>
                             <Collapsible>
-                                <CollapsibleTrigger>Show File Picker</CollapsibleTrigger>
+                                <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2">
+                                    <CaretUpDown />
+                                    {field.value && field.value.length > 0
+                                        ? `${field.value.length} files selected`
+                                        : "Select files"}
+                                </CollapsibleTrigger>
                                 <CollapsibleContent>
                                     <Command>
                                         <AlertDialog open={warning !== null || error != null}>
@@ -783,8 +800,8 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                     )}
                 />
                 <div className="grid">
-                    <FormLabel className="space-y-1">Look & Feel</FormLabel>
-                    <div className="flex items-center space-x-2 mt-2">
+                    <FormLabel className="mb-2">Look & Feel</FormLabel>
+                    <div className="flex gap-1 justify-left">
                         <FormField
                             control={props.form.control}
                             name="color"
@@ -908,6 +925,18 @@ function CreateAgentCard(props: CreateAgentCardProps) {
         },
     });
 
+    useEffect(() => {
+        form.reset({
+            name: props.data.name,
+            persona: props.data.persona,
+            color: props.data.color,
+            icon: props.data.icon,
+            privacy_level: props.data.privacy_level,
+            chat_model: props.selectedChatModelOption,
+            files: [],
+        });
+    }, [props.selectedChatModelOption, props.data]);
+
     const onSubmit = (values: z.infer<typeof EditAgentSchema>) => {
         console.log(JSON.stringify(values));
 
@@ -973,15 +1002,15 @@ function CreateAgentCard(props: CreateAgentCardProps) {
     }
 
     return (
-        <Sheet open={showModal} onOpenChange={setShowModal}>
-            <SheetTrigger>
+        <Dialog open={showModal} onOpenChange={setShowModal}>
+            <DialogTrigger>
                 <div className="flex items-center text-md gap-2">
                     <Plus />
                     Create Agent
                 </div>
-            </SheetTrigger>
-            <SheetContent side={"right"}>
-                <SheetHeader>Create Agent</SheetHeader>
+            </DialogTrigger>
+            <DialogContent className={"lg:max-w-screen-lg overflow-y-scroll max-h-screen"}>
+                <DialogHeader>Create Agent</DialogHeader>
                 <AgentModificationForm
                     form={form}
                     onSubmit={onSubmit}
@@ -990,8 +1019,8 @@ function CreateAgentCard(props: CreateAgentCardProps) {
                     filesOptions={props.filesOptions}
                     modelOptions={props.modelOptions}
                 />
-            </SheetContent>
-        </Sheet>
+            </DialogContent>
+        </Dialog>
     );
 }
 
