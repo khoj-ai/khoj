@@ -4,7 +4,7 @@ import styles from "./chatMessage.module.css";
 
 import markdownIt from "markdown-it";
 import mditHljs from "markdown-it-highlightjs";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, forwardRef } from "react";
 import { createRoot } from "react-dom/client";
 
 import "katex/dist/katex.min.css";
@@ -275,7 +275,7 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
     );
 }
 
-export default function ChatMessage(props: ChatMessageProps) {
+const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) => {
     const [copySuccess, setCopySuccess] = useState<boolean>(false);
     const [isHovering, setIsHovering] = useState<boolean>(false);
     const [textRendered, setTextRendered] = useState<string>("");
@@ -478,17 +478,8 @@ export default function ChatMessage(props: ChatMessageProps) {
         const sentenceRegex = /[^.!?]+[.!?]*/g;
         const chunks = props.chatMessage.message.match(sentenceRegex) || [];
 
-        if (!chunks) {
-            return;
-        }
+        if (!chunks || chunks.length === 0 || !chunks[0]) return;
 
-        if (chunks.length === 0) {
-            return;
-        }
-
-        if (!chunks[0]) {
-            return;
-        }
         setIsPlaying(true);
 
         let nextBlobPromise = fetchBlob(chunks[0]);
@@ -548,6 +539,7 @@ export default function ChatMessage(props: ChatMessageProps) {
 
     return (
         <div
+            ref={ref}
             className={constructClasses(props.chatMessage)}
             onMouseLeave={(event) => setIsHovering(false)}
             onMouseEnter={(event) => setIsHovering(true)}
@@ -640,4 +632,8 @@ export default function ChatMessage(props: ChatMessageProps) {
             </div>
         </div>
     );
-}
+});
+
+ChatMessage.displayName = "ChatMessage";
+
+export default ChatMessage;

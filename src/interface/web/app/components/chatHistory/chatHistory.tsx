@@ -69,6 +69,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
     const sentinelRef = useRef<HTMLDivElement | null>(null);
     const scrollAreaRef = useRef<HTMLDivElement | null>(null);
+    const latestUserMessageRef = useRef<HTMLDivElement | null>(null);
 
     const [incompleteIncomingMessageIndex, setIncompleteIncomingMessageIndex] = useState<
         number | null
@@ -101,10 +102,12 @@ export default function ChatHistory(props: ChatHistoryProps) {
         }
     }, [props.incomingMessages, isNearBottom]);
 
-    // Scroll to bottom after the first data fetch on chat history load.
+    // Scroll to most recent user message after the first page of chat messages is loaded.
     useEffect(() => {
-        if (data && data.chat && data.chat.length > 0 && currentPage === 0) {
-            scrollToBottom(true);
+        if (data && data.chat && data.chat.length > 0 && currentPage < 2) {
+            setTimeout(() => {
+                latestUserMessageRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
+            }, 0);
         }
     }, [data, currentPage]);
 
@@ -249,6 +252,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                         data.chat.map((chatMessage, index) => (
                             <ChatMessage
                                 key={`${index}fullHistory`}
+                                ref={index === data.chat.length - 2 ? latestUserMessageRef : null}
                                 isMobileWidth={isMobileWidth}
                                 chatMessage={chatMessage}
                                 customClassName="fullHistory"
