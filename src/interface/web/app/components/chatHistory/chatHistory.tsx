@@ -76,6 +76,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
     >(null);
     const [fetchingData, setFetchingData] = useState(false);
     const [isNearBottom, setIsNearBottom] = useState(true);
+    const [scrollPosition, setScrollPosition] = useState(0);
     const isMobileWidth = useIsMobileWidth();
     const scrollAreaSelector = "[data-radix-scroll-area-viewport]";
 
@@ -118,6 +119,12 @@ export default function ChatHistory(props: ChatHistoryProps) {
         const observer = new IntersectionObserver(
             (entries) => {
                 if (entries[0].isIntersecting && hasMoreMessages) {
+                    const scrollArea = scrollAreaRef.current?.querySelector(
+                        scrollAreaSelector,
+                    ) as HTMLElement;
+                    if (scrollArea) {
+                        setScrollPosition(scrollArea.scrollHeight - scrollArea.scrollTop);
+                    }
                     setFetchingData(true);
                     fetchMoreMessages(currentPage);
                     setCurrentPage((prev) => prev + 1);
@@ -148,6 +155,12 @@ export default function ChatHistory(props: ChatHistoryProps) {
             }
         }
     }, [props.incomingMessages]);
+
+    const adjustScrollPosition = () => {
+        const scrollArea = scrollAreaRef.current?.querySelector(scrollAreaSelector) as HTMLElement;
+        if (!scrollArea) return;
+        scrollArea.scrollTo({ top: scrollArea.scrollHeight - scrollPosition, behavior: "auto" });
+    };
 
     function fetchMoreMessages(currentPage: number) {
         if (!hasMoreMessages || fetchingData) return;
@@ -183,6 +196,8 @@ export default function ChatHistory(props: ChatHistoryProps) {
                     setFetchingData(false);
                     if (currentPage === 0) {
                         scrollToBottom(true);
+                    } else {
+                        setTimeout(adjustScrollPosition, 0);
                     }
                 } else {
                     if (chatData.response.agent && chatData.response.conversation_id) {
