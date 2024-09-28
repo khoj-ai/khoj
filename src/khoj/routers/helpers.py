@@ -258,7 +258,7 @@ async def acreate_title_from_query(query: str) -> str:
     return response.strip()
 
 
-async def acheck_if_safe_prompt(system_prompt: str) -> bool:
+async def acheck_if_safe_prompt(system_prompt: str) -> Tuple[bool, str]:
     """
     Check if the system prompt is safe to use
     """
