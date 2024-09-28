@@ -62,6 +62,40 @@ async def all_agents(
     return Response(content=json.dumps(agents_packet), media_type="application/json", status_code=200)
 
 
+@api_agents.get("/{agent_slug}", response_class=Response)
+async def get_agent(
+    request: Request,
+    common: CommonQueryParams,
+    agent_slug: str,
+) -> Response:
+    user: KhojUser = request.user.object if request.user.is_authenticated else None
+    agent = await AgentAdapters.aget_readonly_agent_by_slug(agent_slug, user)
+
+    if not agent:
+        return Response(
+            content=json.dumps({"error": f"Agent with name {agent_slug} not found."}),
+            media_type="application/json",
+            status_code=404,
+        )
+
+    files = agent.fileobject_set.all()
+    file_names = [file.file_name for file in files]
+    agents_packet = {
+        "slug": agent.slug,
+        "name": agent.name,
+        "persona": agent.personality,
+        "creator": agent.creator.username if agent.creator else None,
+        "managed_by_admin": agent.managed_by_admin,
+        "color": agent.style_color,
+        "icon": agent.style_icon,
+        "privacy_level": agent.privacy_level,
+        "chat_model": agent.chat_model.chat_model,
+        "files": file_names,
+    }
+
+    return Response(content=json.dumps(agents_packet), media_type="application/json", status_code=200)
+
+
 @api_agents.post("", response_class=Response)
 @requires(["authenticated"])
 async def create_agent(

@@ -195,17 +195,6 @@ def verify_agent(sender, instance, **kwargs):
         if Agent.objects.filter(name=instance.name, creator=instance.creator).exists():
             raise ValidationError(f"A private Agent with the name {instance.name} already exists.")
 
-        slug = instance.name.lower().replace(" ", "-")
-        observed_random_numbers = set()
-        while Agent.objects.filter(slug=slug).exists():
-            try:
-                random_number = choice([i for i in range(0, 1000) if i not in observed_random_numbers])
-            except IndexError:
-                raise ValidationError("Unable to generate a unique slug for the Agent. Please try again later.")
-            observed_random_numbers.add(random_number)
-            slug = f"{slug}-{random_number}"
-        instance.slug = slug
-
 
 class NotionConfig(BaseModel):
     token = models.CharField(max_length=200)

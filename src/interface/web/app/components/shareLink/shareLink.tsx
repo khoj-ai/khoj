@@ -17,8 +17,16 @@ interface ShareLinkProps {
     title: string;
     description: string;
     url: string;
-    onShare: () => void;
-    buttonVariant?: keyof typeof buttonVariants;
+    onShare?: () => void;
+    buttonVariant?:
+        | "default"
+        | "destructive"
+        | "outline"
+        | "secondary"
+        | "ghost"
+        | "link"
+        | null
+        | undefined;
     includeIcon?: boolean;
     buttonClassName?: string;
 }
@@ -38,7 +46,7 @@ export default function ShareLink(props: ShareLinkProps) {
                 <Button
                     size="sm"
                     className={`${props.buttonClassName || "px-3"}`}
-                    variant={props.buttonVariant ?? ("default" as const)}
+                    variant={props.buttonVariant ?? "default"}
                 >
                     {props.includeIcon && <Share className="w-4 h-4 mr-2" />}
                     {props.buttonTitle}

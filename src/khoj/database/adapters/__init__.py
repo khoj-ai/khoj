@@ -555,6 +555,17 @@ class AgentAdapters:
     DEFAULT_AGENT_SLUG = "khoj"
 
     @staticmethod
+    async def aget_readonly_agent_by_slug(agent_slug: str, user: KhojUser):
+        return await Agent.objects.filter(
+            (Q(slug__iexact=agent_slug.lower()))
+            & (
+                Q(privacy_level=Agent.PrivacyLevel.PUBLIC)
+                | Q(privacy_level=Agent.PrivacyLevel.PROTECTED)
+                | Q(creator=user)
+            )
+        ).afirst()
+
+    @staticmethod
     async def aget_agent_by_slug(agent_slug: str, user: KhojUser):
         return await Agent.objects.filter(
             (Q(slug__iexact=agent_slug.lower())) & (Q(privacy_level=Agent.PrivacyLevel.PUBLIC) | Q(creator=user))
@@ -678,7 +689,7 @@ class AgentAdapters:
 
                 # Duplicate all entries associated with the file
                 entries: List[Entry] = []
-                for entry in await Entry.objects.filter(file_path=file, user=agent.creator).all():
+                async for entry in Entry.objects.filter(file_path=file, user=agent.creator).aiterator():
                     entries.append(
                         Entry(
                             agent=agent,
@@ -696,7 +707,7 @@ class AgentAdapters:
                     )
 
                 # Bulk create entries
-                await Entry.objects.bulk_create(entries)
+                await Entry.objects.abulk_create(entries)
 
         return agent
 

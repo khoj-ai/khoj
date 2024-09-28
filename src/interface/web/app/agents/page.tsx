@@ -102,6 +102,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Sheet, SheetContent, SheetHeader, SheetTrigger } from "@/components/ui/sheet";
+import ShareLink from "../components/shareLink/shareLink";
 
 export interface AgentData {
     slug: string;
@@ -165,12 +166,11 @@ interface AgentCardProps {
     selectedChatModelOption: string;
     isSubscribed: boolean;
     setAgentChangeTriggered: (value: boolean) => void;
+    agentSlug: string;
 }
 
 function AgentCard(props: AgentCardProps) {
-    const searchParams = new URLSearchParams(window.location.search);
-    const agentSlug = searchParams.get("agent");
-    const [showModal, setShowModal] = useState(agentSlug === props.data.slug);
+    const [showModal, setShowModal] = useState(props.agentSlug === props.data.slug);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
     const [errors, setErrors] = useState<string | null>(null);
 
@@ -206,8 +206,6 @@ function AgentCard(props: AgentCardProps) {
     }
 
     const onSubmit = (values: z.infer<typeof EditAgentSchema>) => {
-        console.log(JSON.stringify(values));
-
         let agentsApiUrl = `/api/agents`;
         let method = props.editCard ? "PATCH" : "POST";
 
@@ -300,10 +298,11 @@ function AgentCard(props: AgentCardProps) {
                                     <AgentModificationForm
                                         form={form}
                                         onSubmit={onSubmit}
-                                        create={true}
+                                        create={false}
                                         errors={errors}
                                         filesOptions={props.filesOptions}
                                         modelOptions={props.modelOptions}
+                                        slug={props.data.slug}
                                     />
                                 </DialogContent>
                             ) : (
@@ -386,10 +385,11 @@ function AgentCard(props: AgentCardProps) {
                                     <AgentModificationForm
                                         form={form}
                                         onSubmit={onSubmit}
-                                        create={true}
+                                        create={false}
                                         errors={errors}
                                         filesOptions={props.filesOptions}
                                         modelOptions={props.modelOptions}
+                                        slug={props.data.slug}
                                     />
                                 </DrawerContent>
                             ) : (
@@ -466,6 +466,7 @@ interface AgentModificationFormProps {
     errors?: string | null;
     modelOptions: ModelOptions[];
     filesOptions: string[];
+    slug?: string;
 }
 
 function AgentModificationForm(props: AgentModificationFormProps) {
@@ -610,7 +611,7 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                             <FormDescription>
                                 <Collapsible>
                                     <CollapsibleTrigger asChild>
-                                        <Button variant="ghost" className="px-0 py-1">
+                                        <Button variant={"ghost" as const} className="px-0 py-1">
                                             <span className="items-center flex gap-1 text-sm">
                                                 <Info className="inline" />
                                                 <p className="text-sm">What is this?</p>
@@ -891,6 +892,16 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                     >
                         {isSaving ? "Booting..." : "Save"}
                     </Button>
+                    {!!!props.create && props.form.getValues("privacy_level") !== "private" && (
+                        <ShareLink
+                            buttonTitle="Share"
+                            title="Share agent"
+                            description="Share a link to this agent with others. They'll be able to chat with it, and ask questions to all of its knowledge base."
+                            buttonVariant={"ghost" as const}
+                            buttonClassName={`${colorOptionClassName}`}
+                            url={`${window.location.origin}/agents?agent=${props.slug}`}
+                        />
+                    )}
                 </fieldset>
             </form>
         </Form>
@@ -1036,6 +1047,9 @@ export default function Agents() {
     const [personalAgents, setPersonalAgents] = useState<AgentData[]>([]);
     const [publicAgents, setPublicAgents] = useState<AgentData[]>([]);
 
+    const searchParams = new URLSearchParams(window.location.search);
+    const agentSlug = searchParams.get("agent");
+
     const { data: filesData, error: fileError } = useSWR<string[]>(
         "/api/content/computer",
         fetcher,
@@ -1064,6 +1078,26 @@ export default function Agents() {
                     agent.creator !== authenticatedData?.username,
             );
             setPublicAgents(publicAgents);
+
+            // Search for the agent with the slug in the URL
+            if (agentSlug) {
+                const selectedAgent = data.find((agent) => agent.slug === agentSlug);
+                if (!selectedAgent) {
+                    // See if the agent is accessible as a protected agent.
+                    fetch(`/api/agents/${agentSlug}`)
+                        .then((res) => {
+                            if (res.status === 404) {
+                                throw new Error("Agent not found");
+                            }
+                            return res.json();
+                        })
+                        .then((agent: AgentData) => {
+                            if (agent.privacy_level === "protected") {
+                                setPublicAgents((prev) => [...prev, agent]);
+                            }
+                        });
+                }
+            }
         }
     }, [data]);
 
@@ -1161,6 +1195,7 @@ export default function Agents() {
                                     setAgentChangeTriggered={setAgentChangeTriggered}
                                     modelOptions={userConfig?.chat_model_options || []}
                                     editCard={true}
+                                    agentSlug={agentSlug || ""}
                                 />
                             ))}
                         </div>
@@ -1180,6 +1215,7 @@ export default function Agents() {
                                     isSubscribed={isSubscribed}
                                     setAgentChangeTriggered={setAgentChangeTriggered}
                                     modelOptions={userConfig?.chat_model_options || []}
+                                    agentSlug={agentSlug || ""}
                                 />
                             ))}
                         </div>
