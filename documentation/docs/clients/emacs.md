@@ -76,8 +76,8 @@ M-x package-install khoj
   :bind ("C-c s" . 'khoj)
   :config (setq khoj-api-key "YOUR_KHOJ_CLOUD_API_KEY"
                 khoj-server-url "https://app.khoj.dev"
-                khoj-org-directories '("~/docs/org-roam" "~/docs/notes")
-                khoj-org-files '("~/docs/todo.org" "~/docs/work.org")))
+                khoj-index-directories '("~/docs/org-roam" "~/docs/notes")
+                khoj-index-files '("~/docs/todo.org" "~/docs/work.org")))
 ```
 
 #### **Straight.el**
