@@ -87,7 +87,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
 
         const detectIsNearBottom = () => {
             const { scrollTop, scrollHeight, clientHeight } = scrollAreaEl;
-            const bottomThreshold = 100; // pixels from bottom
+            const bottomThreshold = 50; // pixels from bottom
             const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
             const isNearBottom = distanceFromBottom <= bottomThreshold;
             setIsNearBottom(isNearBottom);
