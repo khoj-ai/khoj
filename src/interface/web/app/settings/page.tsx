@@ -78,7 +78,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
 
-export const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const [syncedFiles, setSyncedFiles] = useState<string[]>([]);
     const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
