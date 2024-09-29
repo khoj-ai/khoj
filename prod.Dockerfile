@@ -1,25 +1,33 @@
+# syntax=docker/dockerfile:1
 FROM ubuntu:jammy
-
+LABEL homepage="https://khoj.dev"
+LABEL repository="https://github.com/khoj-ai/khoj"
 LABEL org.opencontainers.image.source="https://github.com/khoj-ai/khoj"
+LABEL org.opencontainers.image.description="Your second brain, containerized for multi-user, cloud deployment"
 
 # Install System Dependencies
-RUN apt update -y && apt -y install python3-pip libsqlite3-0 ffmpeg libsm6 libxext6 swig curl
-
-# Install Node.js and Yarn
-RUN curl -sL https://deb.nodesource.com/setup_20.x | bash -
-RUN apt -y install nodejs
-RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
-RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
-RUN apt update && apt -y install yarn
-
-WORKDIR /app
+RUN apt update -y && apt -y install \
+    python3-pip \
+    libsqlite3-0 \
+    ffmpeg \
+    libsm6 \
+    libxext6 \
+    swig \
+    curl && \
+    # Required by Next.js Web app
+    curl -sL https://deb.nodesource.com/setup_20.x | bash - && \
+    curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
+    echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
+    apt update -y && apt -y --no-install-recommends install nodejs yarn && \
+    apt clean && rm -rf /var/lib/apt/lists/*
 
 # Install Application
+WORKDIR /app
 COPY pyproject.toml .
 COPY README.md .
 ARG VERSION=0.0.0
 RUN sed -i "s/dynamic = \\[\"version\"\\]/version = \"$VERSION\"/" pyproject.toml && \
-    TMPDIR=/home/cache/ pip install --cache-dir=/home/cache/ -e .[prod]
+    pip install --no-cache-dir -e .[prod]
 
 # Copy Source Code
 COPY . .
@@ -29,7 +37,7 @@ ENV PYTHONPATH=/app/src:$PYTHONPATH
 
 # Go to the directory src/interface/web and export the built Next.js assets
 WORKDIR /app/src/interface/web
-RUN bash -c "yarn cache clean && yarn install --verbose && yarn ciexport"
+RUN bash -c "yarn install --frozen-lockfile --verbose && yarn ciexport && yarn cache clean"
 WORKDIR /app
 
 # Run the Application
@@ -37,4 +45,4 @@ WORKDIR /app
 # but these should be passed in through the docker-compose.yml file.
 ARG PORT
 EXPOSE ${PORT}
-ENTRYPOINT [ "gunicorn", "-c", "gunicorn-config.py", "src.khoj.main:app" ]
+ENTRYPOINT ["gunicorn", "-c", "gunicorn-config.py", "src.khoj.main:app"]
