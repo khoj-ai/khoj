@@ -58,7 +58,6 @@ dependencies = [
     "uvicorn == 0.30.6",
     "aiohttp ~= 3.9.0",
     "langchain == 0.2.5",
-    "langchain-openai == 0.1.7",
     "langchain-community == 0.2.5",
     "requests >= 2.26.0",
     "tenacity == 8.3.0",
