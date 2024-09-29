@@ -1,4 +1,4 @@
-""" Main module for Khoj Assistant
+""" Main module for Khoj
    isort:skip_file
 """
 
