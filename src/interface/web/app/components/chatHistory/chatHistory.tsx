@@ -146,6 +146,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
             const lastMessage = props.incomingMessages[props.incomingMessages.length - 1];
             if (lastMessage && !lastMessage.completed) {
                 setIncompleteIncomingMessageIndex(props.incomingMessages.length - 1);
+                props.setTitle(lastMessage.rawQuery);
             }
         }
     }, [props.incomingMessages]);
