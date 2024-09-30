@@ -25,6 +25,7 @@ class LocationData(BaseModel):
     city: Optional[str]
     region: Optional[str]
     country: Optional[str]
+    country_code: Optional[str]
 
     def __str__(self):
         parts = []

@@ -60,6 +60,7 @@
         let region = null;
         let city = null;
         let countryName = null;
+        let countryCode = null;
         let timezone = null;
         let chatMessageState = {
             newResponseTextEl: null,
@@ -76,6 +77,7 @@
                 region = data.region;
                 city = data.city;
                 countryName = data.country_name;
+                countryCode = data.country_code;
                 timezone = data.timezone;
             })
             .catch(err => {
@@ -157,6 +159,7 @@
                 ...(!!city && { city: city }),
                 ...(!!region && { region: region }),
                 ...(!!countryName && { country: countryName }),
+                ...(!!countryCode && { country_code: countryCode }),
                 ...(!!timezone && { timezone: timezone }),
             };
 

@@ -36,6 +36,7 @@ interface Location {
     region: string;
     city: string;
     countryName: string;
+    countryCode: string;
     timezone: string;
 }
 
@@ -70,6 +71,7 @@ export class KhojChatView extends KhojPaneView {
                     region: data.region,
                     city: data.city,
                     countryName: data.country_name,
+                    countryCode: data.country_code,
                     timezone: data.timezone,
                 };
             })
@@ -1060,6 +1062,7 @@ export class KhojChatView extends KhojPaneView {
                 city: this.location.city,
                 region: this.location.region,
                 country: this.location.countryName,
+                country_code: this.location.countryCode,
                 timezone: this.location.timezone,
             }),
         };

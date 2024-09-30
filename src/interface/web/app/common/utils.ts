@@ -6,6 +6,7 @@ export interface LocationData {
     city: string;
     region: string;
     country: string;
+    countryCode: string;
     postal: string;
     latitude: number;
     longitude: number;

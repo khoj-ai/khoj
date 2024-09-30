@@ -7,7 +7,6 @@ from collections import defaultdict
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import aiohttp
-import requests
 from bs4 import BeautifulSoup
 from markdownify import markdownify
 
@@ -80,7 +79,7 @@ async def search_online(
 
     with timer(f"Internet searches for {list(subqueries)} took", logger):
         search_func = search_with_google if SERPER_DEV_API_KEY else search_with_jina
-        search_tasks = [search_func(subquery) for subquery in subqueries]
+        search_tasks = [search_func(subquery, location) for subquery in subqueries]
         search_results = await asyncio.gather(*search_tasks)
         response_dict = {subquery: search_result for subquery, search_result in search_results}
 
@@ -115,8 +114,9 @@ async def search_online(
     yield response_dict
 
 
-async def search_with_google(query: str) -> Tuple[str, Dict[str, List[Dict]]]:
-    payload = json.dumps({"q": query})
+async def search_with_google(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:
+    country_code = location.country_code.lower() if location and location.country_code else "us"
+    payload = json.dumps({"q": query, "gl": country_code})
     headers = {"X-API-KEY": SERPER_DEV_API_KEY, "Content-Type": "application/json"}
 
     async with aiohttp.ClientSession() as session:
@@ -220,7 +220,7 @@ async def read_webpage_with_jina(web_url: str) -> str:
             return response_json["data"]["content"]
 
 
-async def search_with_jina(query: str) -> Tuple[str, Dict[str, List[Dict]]]:
+async def search_with_jina(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:
     encoded_query = urllib.parse.quote(query)
     jina_search_api_url = f"{JINA_SEARCH_API_URL}/{encoded_query}"
     headers = {"Accept": "application/json"}

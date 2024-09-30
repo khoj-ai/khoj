@@ -529,6 +529,7 @@ class ChatRequestBody(BaseModel):
     city: Optional[str] = None
     region: Optional[str] = None
     country: Optional[str] = None
+    country_code: Optional[str] = None
     timezone: Optional[str] = None
     image: Optional[str] = None
 
@@ -556,6 +557,7 @@ async def chat(
     city = body.city
     region = body.region
     country = body.country
+    country_code = body.country_code
     timezone = body.timezone
     image = body.image
 
@@ -653,8 +655,8 @@ async def chat(
 
         user_name = await aget_user_name(user)
         location = None
-        if city or region or country:
-            location = LocationData(city=city, region=region, country=country)
+        if city or region or country or country_code:
+            location = LocationData(city=city, region=region, country=country, country_code=country_code)
 
         if is_query_empty(q):
             async for result in send_llm_response("Please ask your query to get started."):

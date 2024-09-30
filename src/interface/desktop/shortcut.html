@@ -308,18 +308,19 @@
     <script src="./utils.js"></script>
     <script src="./chatutils.js"></script>
     <script>
-
         let region = null;
         let city = null;
         let countryName = null;
+        let countryCode = null;
         let timezone = null;
 
         fetch("https://ipapi.co/json")
             .then(response => response.json())
             .then(data => {
-                region = data.region;
                 city = data.city;
+                region = data.region;
                 countryName = data.country_name;
+                countryCode = data.country_code;
                 timezone = data.timezone;
             })
             .catch(err => {
@@ -410,6 +411,7 @@
                 ...(!!city && { city: city }),
                 ...(!!region && { region: region }),
                 ...(!!countryName && { country: countryName }),
+                ...(!!countryCode && { country_code: countryCode }),
                 ...(!!timezone && { timezone: timezone }),
             };
 
