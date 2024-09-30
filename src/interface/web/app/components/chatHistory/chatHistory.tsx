@@ -100,16 +100,16 @@ export default function ChatHistory(props: ChatHistoryProps) {
     // Auto scroll while incoming message is streamed
     useEffect(() => {
         if (props.incomingMessages && props.incomingMessages.length > 0 && isNearBottom) {
-            setTimeout(scrollToBottom, 0);
+            scrollToBottom();
         }
     }, [props.incomingMessages, isNearBottom]);
 
     // Scroll to most recent user message after the first page of chat messages is loaded.
     useEffect(() => {
         if (data && data.chat && data.chat.length > 0 && currentPage < 2) {
-            setTimeout(() => {
+            requestAnimationFrame(() => {
                 latestUserMessageRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
-            }, 0);
+            });
         }
     }, [data, currentPage]);
 
