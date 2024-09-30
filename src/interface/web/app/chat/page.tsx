@@ -136,7 +136,9 @@ export default function Chat() {
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [image64, setImage64] = useState<string>("");
 
-    const locationData = useIPLocationData();
+    const locationData = useIPLocationData() || {
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    };
     const authenticatedData = useAuthenticatedData();
     const isMobileWidth = useIsMobileWidth();
 

@@ -61,7 +61,7 @@
         let city = null;
         let countryName = null;
         let countryCode = null;
-        let timezone = null;
+        let timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         let chatMessageState = {
             newResponseTextEl: null,
             newResponseEl: null,

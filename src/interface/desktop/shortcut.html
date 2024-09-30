@@ -312,7 +312,7 @@
         let city = null;
         let countryName = null;
         let countryCode = null;
-        let timezone = null;
+        let timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
         fetch("https://ipapi.co/json")
             .then(response => response.json())

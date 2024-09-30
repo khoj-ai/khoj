@@ -111,7 +111,9 @@ export default function SharedChat() {
     const [paramSlug, setParamSlug] = useState<string | undefined>(undefined);
     const [image64, setImage64] = useState<string>("");
 
-    const locationData = useIPLocationData();
+    const locationData = useIPLocationData() || {
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    };
     const authenticatedData = useAuthenticatedData();
     const isMobileWidth = useIsMobileWidth();
 
