@@ -1132,7 +1132,7 @@ def scheduled_chat(
     # Replace the original conversation_id with the conversation_id
     if conversation_id:
         # encode the conversation_id to avoid any issues with special characters
-        query_dict["conversation_id"] = [quote(conversation_id)]
+        query_dict["conversation_id"] = [quote(str(conversation_id))]
 
     # Restructure the original query_dict into a valid JSON payload for the chat API
     json_payload = {key: values[0] for key, values in query_dict.items()}

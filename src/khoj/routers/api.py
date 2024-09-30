@@ -574,7 +574,7 @@ async def post_automation(
     try:
         # Use the query to run as the scheduling request if the scheduling request is unset
         automation = await schedule_automation(
-            query_to_run, subject, crontime, timezone, q, user, calling_url, conversation.id
+            query_to_run, subject, crontime, timezone, q, user, calling_url, str(conversation.id)
         )
     except Exception as e:
         logger.error(f"Error creating automation {q} for {user.email}: {e}", exc_info=True)
@@ -679,7 +679,7 @@ def edit_job(
         # Create new Conversation Session associated with this new task
         conversation = ConversationAdapters.create_conversation_session(user, request.user.client_app, title=title)
 
-        conversation_id = conversation.id
+        conversation_id = str(conversation.id)
         automation_metadata["conversation_id"] = conversation_id
 
     # Modify automation with updated query, subject
