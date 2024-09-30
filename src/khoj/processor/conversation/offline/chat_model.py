@@ -46,7 +46,7 @@ def extract_questions_offline(
     assert loaded_model is None or isinstance(loaded_model, Llama), "loaded_model must be of type Llama, if configured"
     offline_chat_model = loaded_model or download_model(model, max_tokens=max_prompt_size)
 
-    location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
+    location = f"{location_data}" if location_data else "Unknown"
     username = prompts.user_name.format(name=user.get_full_name()) if user and user.get_full_name() else ""
 
     # Extract Past User Message and Inferred Questions from Conversation Log
@@ -171,8 +171,7 @@ def converse_offline(
     conversation_primer = prompts.query_prompt.format(query=user_query)
 
     if location_data:
-        location = f"{location_data.city}, {location_data.region}, {location_data.country}"
-        location_prompt = prompts.user_location.format(location=location)
+        location_prompt = prompts.user_location.format(location=f"{location_data}")
         system_prompt = f"{system_prompt}\n{location_prompt}"
 
     if user_name:
