@@ -9,6 +9,7 @@ import random
 import uuid
 from collections import OrderedDict
 from enum import Enum
+from functools import lru_cache
 from importlib import import_module
 from importlib.metadata import version
 from itertools import islice
@@ -24,6 +25,7 @@ import torch
 from asgiref.sync import sync_to_async
 from magika import Magika
 from PIL import Image
+from pytz import country_names, country_timezones
 
 from khoj.utils import constants
 
@@ -431,3 +433,24 @@ def convert_image_to_webp(image_bytes):
         webp_image_bytes = webp_image_io.getvalue()
         webp_image_io.close()
         return webp_image_bytes
+
+
+@lru_cache
+def tz_to_cc_map() -> dict[str, str]:
+    """Create a mapping of timezone to country code"""
+    timezone_country = {}
+    for countrycode in country_timezones:
+        timezones = country_timezones[countrycode]
+        for timezone in timezones:
+            timezone_country[timezone] = countrycode
+    return timezone_country
+
+
+def get_country_code_from_timezone(tz: str) -> str:
+    """Get country code from timezone"""
+    return tz_to_cc_map().get(tz, "US")
+
+
+def get_country_name_from_timezone(tz: str) -> str:
+    """Get country name from timezone"""
+    return country_names.get(get_country_code_from_timezone(tz), "United States")

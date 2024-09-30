@@ -55,6 +55,8 @@ from khoj.utils.helpers import (
     ConversationCommand,
     command_descriptions,
     convert_image_to_webp,
+    get_country_code_from_timezone,
+    get_country_name_from_timezone,
     get_device,
     is_none_or_empty,
 )
@@ -556,8 +558,8 @@ async def chat(
     conversation_id = body.conversation_id
     city = body.city
     region = body.region
-    country = body.country
-    country_code = body.country_code
+    country = body.country or get_country_name_from_timezone(body.timezone)
+    country_code = body.country_code or get_country_code_from_timezone(body.timezone)
     timezone = body.timezone
     image = body.image
 
