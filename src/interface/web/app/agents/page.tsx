@@ -160,7 +160,7 @@ function Badge(props: { icon: JSX.Element; text?: string; hoverText?: string }) 
                     <div className="flex items-center space-x-2 rounded-full border-accent-500 border p-1.5">
                         <div className="text-muted-foreground">{props.icon}</div>
                         {displayBadgeText && displayBadgeText.length > 0 && (
-                            <div className="text-muted-foreground">{displayBadgeText}</div>
+                            <div className="text-muted-foreground text-sm">{displayBadgeText}</div>
                         )}
                     </div>
                 </TooltipTrigger>
@@ -942,144 +942,7 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                         These are optional settings that you can use to customize your agent.
                     </FormDescription>
                 </FormItem>
-                <FormField
-                    control={props.form.control}
-                    name="input_tools"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                            <FormLabel>Restrict Input Tools</FormLabel>
-                            <FormDescription>
-                                Which knowledge retrieval tools should this agent use?
-                                <br />
-                                <b>Default:</b> Access to all.
-                            </FormDescription>
-                            <Collapsible>
-                                <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2">
-                                    <CaretUpDown />
-                                    {field.value && field.value.length > 0
-                                        ? `${field.value.length} tools selected`
-                                        : "All tools"}
-                                </CollapsibleTrigger>
-                                <CollapsibleContent>
-                                    <Command>
-                                        <CommandList>
-                                            <CommandGroup>
-                                                {Object.entries(props.inputToolOptions).map(
-                                                    ([key, value]) => (
-                                                        <CommandItem
-                                                            value={key}
-                                                            key={key}
-                                                            onSelect={() => {
-                                                                const currentInputTools =
-                                                                    props.form.getValues(
-                                                                        "input_tools",
-                                                                    ) || [];
-                                                                const newInputTools =
-                                                                    currentInputTools.includes(key)
-                                                                        ? currentInputTools.filter(
-                                                                              (item) =>
-                                                                                  item !== key,
-                                                                          )
-                                                                        : [
-                                                                              ...currentInputTools,
-                                                                              key,
-                                                                          ];
-                                                                props.form.setValue(
-                                                                    "input_tools",
-                                                                    newInputTools,
-                                                                );
-                                                            }}
-                                                        >
-                                                            <Check
-                                                                className={cn(
-                                                                    "mr-2 h-4 w-4",
-                                                                    field.value &&
-                                                                        field.value.includes(key)
-                                                                        ? "opacity-100"
-                                                                        : "opacity-0",
-                                                                )}
-                                                            />
-                                                            <b>{key}</b>: {value}
-                                                        </CommandItem>
-                                                    ),
-                                                )}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </CollapsibleContent>
-                            </Collapsible>
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={props.form.control}
-                    name="output_modes"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                            <FormLabel>Restrict Output Modes</FormLabel>
-                            <FormDescription>
-                                Which output modes should this agent use?
-                                <br />
-                                <b>Default:</b> Access to all.
-                            </FormDescription>
-                            <Collapsible>
-                                <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2">
-                                    <CaretUpDown />
-                                    {field.value && field.value.length > 0
-                                        ? `${field.value.length} modes selected`
-                                        : "All modes"}
-                                </CollapsibleTrigger>
-                                <CollapsibleContent>
-                                    <Command>
-                                        <CommandList>
-                                            <CommandGroup>
-                                                {Object.entries(props.outputModeOptions).map(
-                                                    ([key, value]) => (
-                                                        <CommandItem
-                                                            value={key}
-                                                            key={key}
-                                                            onSelect={() => {
-                                                                const currentOutputModes =
-                                                                    props.form.getValues(
-                                                                        "output_modes",
-                                                                    ) || [];
-                                                                const newOutputModes =
-                                                                    currentOutputModes.includes(key)
-                                                                        ? currentOutputModes.filter(
-                                                                              (item) =>
-                                                                                  item !== key,
-                                                                          )
-                                                                        : [
-                                                                              ...currentOutputModes,
-                                                                              key,
-                                                                          ];
-                                                                props.form.setValue(
-                                                                    "output_modes",
-                                                                    newOutputModes,
-                                                                );
-                                                            }}
-                                                        >
-                                                            <Check
-                                                                className={cn(
-                                                                    "mr-2 h-4 w-4",
-                                                                    field.value &&
-                                                                        field.value.includes(key)
-                                                                        ? "opacity-100"
-                                                                        : "opacity-0",
-                                                                )}
-                                                            />
-                                                            <b>{key}</b>: {value}
-                                                        </CommandItem>
-                                                    ),
-                                                )}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </CollapsibleContent>
-                            </Collapsible>
-                        </FormItem>
-                    )}
-                />
+
                 <FormField
                     control={props.form.control}
                     name="files"
@@ -1087,10 +950,8 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                         <FormItem className="flex flex-col">
                             <FormLabel>Knowledge Base</FormLabel>
                             <FormDescription>
-                                Which files should this agent have access to?{" "}
-                                <a href="/settings">Manage files</a>.
-                                <br />
-                                <b>Default:</b> Access to none.
+                                Which information should be part of your agent's digital brain?{" "}
+                                <a href="/settings">Manage data</a>.
                             </FormDescription>
                             <Collapsible>
                                 <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2">
@@ -1195,6 +1056,144 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                                                         {file}
                                                     </CommandItem>
                                                 ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </CollapsibleContent>
+                            </Collapsible>
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={props.form.control}
+                    name="input_tools"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                            <FormLabel>Restrict Input Tools</FormLabel>
+                            <FormDescription>
+                                Which knowledge retrieval tools should this agent be limited to?
+                                <br />
+                                <b>Default:</b> No limitations.
+                            </FormDescription>
+                            <Collapsible>
+                                <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2">
+                                    <CaretUpDown />
+                                    {field.value && field.value.length > 0
+                                        ? `${field.value.length} tools selected`
+                                        : "All tools"}
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                    <Command>
+                                        <CommandList>
+                                            <CommandGroup>
+                                                {Object.entries(props.inputToolOptions).map(
+                                                    ([key, value]) => (
+                                                        <CommandItem
+                                                            value={key}
+                                                            key={key}
+                                                            onSelect={() => {
+                                                                const currentInputTools =
+                                                                    props.form.getValues(
+                                                                        "input_tools",
+                                                                    ) || [];
+                                                                const newInputTools =
+                                                                    currentInputTools.includes(key)
+                                                                        ? currentInputTools.filter(
+                                                                              (item) =>
+                                                                                  item !== key,
+                                                                          )
+                                                                        : [
+                                                                              ...currentInputTools,
+                                                                              key,
+                                                                          ];
+                                                                props.form.setValue(
+                                                                    "input_tools",
+                                                                    newInputTools,
+                                                                );
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    field.value &&
+                                                                        field.value.includes(key)
+                                                                        ? "opacity-100"
+                                                                        : "opacity-0",
+                                                                )}
+                                                            />
+                                                            <b>{key}</b>: {value}
+                                                        </CommandItem>
+                                                    ),
+                                                )}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </CollapsibleContent>
+                            </Collapsible>
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={props.form.control}
+                    name="output_modes"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                            <FormLabel>Restrict Output Modes</FormLabel>
+                            <FormDescription>
+                                Which output modes should this agent be limited to?
+                                <br />
+                                <b>Default:</b> No limitations.
+                            </FormDescription>
+                            <Collapsible>
+                                <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2">
+                                    <CaretUpDown />
+                                    {field.value && field.value.length > 0
+                                        ? `${field.value.length} modes selected`
+                                        : "All modes"}
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                    <Command>
+                                        <CommandList>
+                                            <CommandGroup>
+                                                {Object.entries(props.outputModeOptions).map(
+                                                    ([key, value]) => (
+                                                        <CommandItem
+                                                            value={key}
+                                                            key={key}
+                                                            onSelect={() => {
+                                                                const currentOutputModes =
+                                                                    props.form.getValues(
+                                                                        "output_modes",
+                                                                    ) || [];
+                                                                const newOutputModes =
+                                                                    currentOutputModes.includes(key)
+                                                                        ? currentOutputModes.filter(
+                                                                              (item) =>
+                                                                                  item !== key,
+                                                                          )
+                                                                        : [
+                                                                              ...currentOutputModes,
+                                                                              key,
+                                                                          ];
+                                                                props.form.setValue(
+                                                                    "output_modes",
+                                                                    newOutputModes,
+                                                                );
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    field.value &&
+                                                                        field.value.includes(key)
+                                                                        ? "opacity-100"
+                                                                        : "opacity-0",
+                                                                )}
+                                                            />
+                                                            <b>{key}</b>: {value}
+                                                        </CommandItem>
+                                                    ),
+                                                )}
                                             </CommandGroup>
                                         </CommandList>
                                     </Command>
