@@ -187,17 +187,6 @@ class Agent(BaseModel):
             slug = f"{self.name.lower().replace(' ', '-')}-{random_sequence}"
             self.slug = slug
 
-        # if Agent.InputToolOptions.GENERAL in self.input_tools:
-        #     if len(self.input_tools) > 1:
-        #         raise ValidationError("General tool cannot be used with any other tool.")
-
-        # if Agent.InputToolOptions.SUMMARIZE in self.input_tools:
-        #     if len(self.input_tools) > 1:
-        #         raise ValidationError("Summarize tool cannot be used with any other tool.")
-
-        # if len(self.output_modes) > 1:
-        #     raise ValidationError("Only one output mode can be selected.")
-
         super().save(*args, **kwargs)
 
 
