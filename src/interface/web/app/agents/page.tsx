@@ -297,12 +297,14 @@ function AgentCard(props: AgentCardProps) {
                 />
                 {props.data.output_modes.map((outputMode) => (
                     <Badge
+                        key={outputMode}
                         icon={getIconForSlashCommand(outputMode)}
                         hoverText={`${outputMode}: ${props.outputModeOptions[outputMode]}`}
                     />
                 ))}
                 {props.data.input_tools.map((inputTool) => (
                     <Badge
+                        key={inputTool}
                         icon={getIconForSlashCommand(inputTool)}
                         hoverText={`${inputTool}: ${props.inputToolOptions[inputTool]}`}
                     />
@@ -771,8 +773,7 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                             <FormLabel>Personality</FormLabel>
                             <FormDescription>
                                 What is the personality, thought process, or tuning of this agent?
-                                Get creative; this is how you can influence the agent's
-                                constitution.
+                                Get creative; this is how you can influence the agent constitution.
                             </FormDescription>
                             <FormControl>
                                 <Textarea
@@ -950,7 +951,7 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                         <FormItem className="flex flex-col">
                             <FormLabel>Knowledge Base</FormLabel>
                             <FormDescription>
-                                Which information should be part of your agent's digital brain?{" "}
+                                Which information should be part of its digital brain?{" "}
                                 <a href="/settings">Manage data</a>.
                             </FormDescription>
                             <Collapsible>
