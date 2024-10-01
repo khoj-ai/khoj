@@ -186,6 +186,8 @@ async def create_agent(
         body.color,
         body.chat_model,
         body.files,
+        body.input_tools,
+        body.output_modes,
     )
 
     agents_packet = {
