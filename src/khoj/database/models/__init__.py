@@ -128,7 +128,7 @@ class Agent(BaseModel):
         EMERALD = "emerald"
 
     class StyleIconTypes(models.TextChoices):
-        LIGHBULB = "Lightbulb"
+        LIGHTBULB = "Lightbulb"
         HEALTH = "Health"
         ROBOT = "Robot"
         APERTURE = "Aperture"
@@ -173,7 +173,7 @@ class Agent(BaseModel):
     chat_model = models.ForeignKey(ChatModelOptions, on_delete=models.CASCADE)
     slug = models.CharField(max_length=200, unique=True)
     style_color = models.CharField(max_length=200, choices=StyleColorTypes.choices, default=StyleColorTypes.BLUE)
-    style_icon = models.CharField(max_length=200, choices=StyleIconTypes.choices, default=StyleIconTypes.LIGHBULB)
+    style_icon = models.CharField(max_length=200, choices=StyleIconTypes.choices, default=StyleIconTypes.LIGHTBULB)
     privacy_level = models.CharField(max_length=30, choices=PrivacyLevel.choices, default=PrivacyLevel.PRIVATE)
 
     def save(self, *args, **kwargs):
