@@ -683,6 +683,12 @@ function AgentModificationForm(props: AgentModificationFormProps) {
         }
     }, [uploadedFiles]);
 
+    useEffect(() => {
+        if (props.errors) {
+            setIsSaving(false);
+        }
+    }, [props.errors]);
+
     function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
         event.preventDefault();
         setIsDragAndDropping(true);
@@ -1199,7 +1205,7 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                 />
                 {props.errors && (
                     <Alert className="bg-secondary border-none my-4">
-                        <AlertDescription>
+                        <AlertDescription className="flex items-center gap-1">
                             <ShieldWarning
                                 weight="fill"
                                 className="h-4 w-4 text-yellow-400 inline"
@@ -1290,7 +1296,6 @@ function CreateAgentCard(props: CreateAgentCardProps) {
             body: JSON.stringify(values),
         })
             .then((response) => {
-                console.log(response);
                 if (response.status === 200) {
                     form.reset();
                     setShowModal(false);
@@ -1299,7 +1304,6 @@ function CreateAgentCard(props: CreateAgentCardProps) {
                 } else {
                     response.json().then((data) => {
                         console.error(data);
-                        form.clearErrors();
                         if (data.error) {
                             setErrors(data.error);
                         }
@@ -1309,7 +1313,6 @@ function CreateAgentCard(props: CreateAgentCardProps) {
             .catch((error) => {
                 console.error("Error:", error);
                 setErrors(error);
-                form.clearErrors();
             });
     };
 

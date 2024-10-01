@@ -34,6 +34,20 @@ import {
     ChatsTeardrop,
     GlobeSimple,
     ArrowRight,
+    Cigarette,
+    CraneTower,
+    Heart,
+    Leaf,
+    NewspaperClipping,
+    OrangeSlice,
+    Rainbow,
+    SmileyMelting,
+    YinYang,
+    SneakerMove,
+    Student,
+    Oven,
+    Gavel,
+    Broadcast,
 } from "@phosphor-icons/react";
 import { Markdown, OrgMode, Pdf, Word } from "@/app/components/logo/fileLogo";
 
@@ -111,6 +125,45 @@ const iconMap: IconMap = {
     Chalkboard: (color: string, width: string, height: string) => (
         <Chalkboard className={`${width} ${height} ${color} mr-2`} />
     ),
+    Cigarette: (color: string, width: string, height: string) => (
+        <Cigarette className={`${width} ${height} ${color} mr-2`} />
+    ),
+    CraneTower: (color: string, width: string, height: string) => (
+        <CraneTower className={`${width} ${height} ${color} mr-2`} />
+    ),
+    Heart: (color: string, width: string, height: string) => (
+        <Heart className={`${width} ${height} ${color} mr-2`} />
+    ),
+    Leaf: (color: string, width: string, height: string) => (
+        <Leaf className={`${width} ${height} ${color} mr-2`} />
+    ),
+    NewspaperClipping: (color: string, width: string, height: string) => (
+        <NewspaperClipping className={`${width} ${height} ${color} mr-2`} />
+    ),
+    OrangeSlice: (color: string, width: string, height: string) => (
+        <OrangeSlice className={`${width} ${height} ${color} mr-2`} />
+    ),
+    SmileyMelting: (color: string, width: string, height: string) => (
+        <SmileyMelting className={`${width} ${height} ${color} mr-2`} />
+    ),
+    YinYang: (color: string, width: string, height: string) => (
+        <YinYang className={`${width} ${height} ${color} mr-2`} />
+    ),
+    SneakerMove: (color: string, width: string, height: string) => (
+        <SneakerMove className={`${width} ${height} ${color} mr-2`} />
+    ),
+    Student: (color: string, width: string, height: string) => (
+        <Student className={`${width} ${height} ${color} mr-2`} />
+    ),
+    Oven: (color: string, width: string, height: string) => (
+        <Oven className={`${width} ${height} ${color} mr-2`} />
+    ),
+    Gavel: (color: string, width: string, height: string) => (
+        <Gavel className={`${width} ${height} ${color} mr-2`} />
+    ),
+    Broadcast: (color: string, width: string, height: string) => (
+        <Broadcast className={`${width} ${height} ${color} mr-2`} />
+    ),
 };
 
 export function getIconForSlashCommand(command: string, customClassName: string | null = null) {
@@ -150,6 +203,11 @@ export function getIconForSlashCommand(command: string, customClassName: string 
     if (command.includes("online")) {
         return <GlobeSimple className={className} />;
     }
+
+    if (command.includes("text")) {
+        return <PencilLine className={className} />;
+    }
+
     return <ArrowRight className={className} />;
 }
 
