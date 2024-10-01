@@ -124,39 +124,77 @@ Run the following command in your terminal to install the Khoj server.
 
   <Tabs groupId="operating-systems" queryString="os">
     <TabItem value="macos" label="MacOS">
+      <Tabs groupId="gpu" queryString="gpu">
+        <TabItem value="arm" label="ARM/M1+">
     ```shell
-# ARM/M1+ Machines
-MAKE_ARGS="-DLLAMA_METAL=on" python -m pip install khoj
-
-# Intel Machines
+CMAKE_ARGS="-DGGML_METAL=on" python -m pip install khoj
+    ```
+        </TabItem>
+        <TabItem value="intel" label="Intel">
+    ```shell
 python -m pip install khoj
     ```
+        </TabItem>
+      </Tabs>
     </TabItem>
     <TabItem value="windows" label="Windows">
       Run the following command in PowerShell on Windows
-      ```shell
- # 1. (Optional) To use NVIDIA (CUDA) GPU
- $env:CMAKE_ARGS = "-DLLAMA_OPENBLAS=on"
- # 1. (Optional) To use AMD (ROCm) GPU
- $env:CMAKE_ARGS = "-DLLAMA_HIPBLAS=on"
- # 1. (Optional) To use VULCAN GPU
- $env:CMAKE_ARGS = "-DLLAMA_VULKAN=on"
-
+      <Tabs groupId="gpu" queryString="gpu">
+        <TabItem value="cpu" label="CPU">
+       ```shell
+ # Install Khoj
+ py -m pip install khoj
+      ```
+        </TabItem>
+        <TabItem value="nvidia" label="NVIDIA (CUDA) GPU">
+       ```shell
+ # 1. To use NVIDIA (CUDA) GPU
+ $env:CMAKE_ARGS = "-DGGML_CUDA=on"
  # 2. Install Khoj
  py -m pip install khoj
       ```
+        </TabItem>
+        <TabItem value="amd" label="AMD (ROCm) GPU">
+       ```shell
+ # 1. To use AMD (ROCm) GPU
+ $env:CMAKE_ARGS = "-DGGML_HIPBLAS=on"
+ # 2. Install Khoj
+ py -m pip install khoj
+      ```
+        </TabItem>
+        <TabItem value="vulkan" label="VULKAN GPU">
+       ```shell
+ # 1. To use VULCAN GPU
+ $env:CMAKE_ARGS = "-DGGML_VULKAN=on"
+ # 2. Install Khoj
+ py -m pip install khoj
+      ```
+        </TabItem>
+      </Tabs>
     </TabItem>
     <TabItem value="linux" label="Linux">
-      ```shell
- # CPU
- python -m pip install khoj
- # NVIDIA (CUDA) GPU
- CMAKE_ARGS="DLLAMA_CUDA=on" FORCE_CMAKE=1 python -m pip install khoj
- # AMD (ROCm) GPU
- CMAKE_ARGS="-DLLAMA_HIPBLAS=on" FORCE_CMAKE=1 python -m pip install khoj
- # VULCAN GPU
- CMAKE_ARGS="-DLLAMA_VULKAN=on" FORCE_CMAKE=1 python -m pip install khoj
-      ```
+      <Tabs groupId="gpu" queryString="gpu">
+        <TabItem value="cpu" label="CPU">
+          ```shell
+          python -m pip install khoj
+          ```
+        </TabItem>
+        <TabItem value="nvidia" label="NVIDIA (CUDA) GPU">
+          ```shell
+          CMAKE_ARGS="-DGGML_CUDA=on" FORCE_CMAKE=1 python -m pip install khoj
+          ```
+        </TabItem>
+        <TabItem value="amd" label="AMD (ROCm) GPU">
+          ```shell
+          CMAKE_ARGS="-DGGML_HIPBLAS=on" FORCE_CMAKE=1 python -m pip install khoj
+          ```
+        </TabItem>
+        <TabItem value="vulkan" label="VULKAN GPU">
+          ```shell
+          CMAKE_ARGS="-DGGML_VULKAN=on" FORCE_CMAKE=1 python -m pip install khoj
+          ```
+        </TabItem>
+      </Tabs>
     </TabItem>
   </Tabs>
 

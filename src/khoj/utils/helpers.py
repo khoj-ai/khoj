@@ -336,7 +336,7 @@ tool_descriptions_for_llm = {
 }
 
 mode_descriptions_for_llm = {
-    ConversationCommand.Image: "Use this if the user is requesting an image or visual response to their query.",
+    ConversationCommand.Image: "Use this if the user is requesting you to generate a picture based on their description.",
     ConversationCommand.Automation: "Use this if the user is requesting a response at a scheduled date or time.",
     ConversationCommand.Text: "Use this if the other response modes don't seem to fit the query.",
 }

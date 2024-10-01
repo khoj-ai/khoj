@@ -192,6 +192,7 @@ def initialize_server(config: Optional[FullConfig]):
         configure_server(config, init=True)
     except Exception as e:
         logger.error(f"🚨 Failed to configure server on app load: {e}", exc_info=True)
+        raise e
 
 
 def configure_server(

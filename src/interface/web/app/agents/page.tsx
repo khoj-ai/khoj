@@ -295,7 +295,7 @@ export default function Agents() {
                         <h1 className="text-3xl flex items-center">Agents</h1>
                         <div className="ml-auto float-right border p-2 pt-3 rounded-xl font-bold hover:bg-stone-100 dark:hover:bg-neutral-900">
                             <TooltipProvider>
-                                <Tooltip>
+                                <Tooltip delayDuration={10}>
                                     <TooltipTrigger>
                                         <div className="flex flex-row">
                                             <Plus className="pr-2 w-6 h-6" />

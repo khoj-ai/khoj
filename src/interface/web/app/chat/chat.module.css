@@ -95,7 +95,7 @@ div.agentIndicator {
 }
 
 div.chatTitleWrapper {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: 1fr auto;
 }
 
 @media screen and (max-width: 768px) {

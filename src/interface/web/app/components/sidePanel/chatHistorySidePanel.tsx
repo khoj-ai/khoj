@@ -352,7 +352,7 @@ function FilesMenu(props: FilesMenuProps) {
                     <div className="w-auto bg-background border border-muted p-4 drop-shadow-sm rounded-2xl my-8">
                         <div className="flex items-center justify-between space-x-4">
                             <h4 className="text-sm font-semibold">
-                                {usingConversationContext ? "Mange Context" : "Files"}
+                                {usingConversationContext ? "Manage Context" : "Files"}
                                 <p>
                                     {usingConversationContext ? (
                                         <span className="text-muted-foreground text-xs">
