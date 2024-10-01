@@ -260,13 +260,13 @@ Using Ollama? See the [Ollama Integration](/advanced/ollama) section for more cu
 1. Create a new [OpenAI processor conversation config](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/add) in the server admin settings. This is kind of a misnomer, we know.
    - Add your [OpenAI API key](https://platform.openai.com/api-keys)
    - Give the configuration a friendly name like `OpenAI`
-   - (Optional) Set the API base URL. It is only relevant if you're using another OpenAI-compatible proxy server like [Ollama](/advanced/ollama) or [LMStudio](/advanced/lmstudio).
+   - (Optional) Set the API base URL. It is only relevant if you're using another OpenAI-compatible proxy server like [Ollama](/advanced/ollama) or [LMStudio](/advanced/lmstudio).<br />
 ![example configuration for openai processor](/img/example_openai_processor_config.png)
 2. Create a new [chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/add)
     - Set the `chat-model` field to an [OpenAI chat model](https://platform.openai.com/docs/models). Example: `gpt-4o`.
     - Make sure to set the `model-type` field to `OpenAI`.
     - If your model supports vision, set the `vision enabled` field to `true`. This is currently only supported for OpenAI models with vision capabilities.
-    - The `tokenizer` and `max-prompt-size` fields are optional. Set them only if you're sure of the tokenizer or token limit for the model you're using. Contact us if you're unsure what to do here.
+    - The `tokenizer` and `max-prompt-size` fields are optional. Set them only if you're sure of the tokenizer or token limit for the model you're using. Contact us if you're unsure what to do here.<br />
 ![example configuration for chat model options](/img/example_chatmodel_option.png)
   </TabItem>
   <TabItem value="anthropic" label="Anthropic">
