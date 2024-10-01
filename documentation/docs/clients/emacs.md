@@ -30,6 +30,12 @@ sidebar_position: 2
 | ![khoj search on emacs](/img/khoj_search_on_emacs.png) | ![khoj chat on emacs](/img/khoj_chat_on_emacs.png) |
 
 ## Setup
+:::info[Self Hosting]
+If you are self-hosting the Khoj server modify the install steps below:
+- Set `khoj-server-url` to your Khoj server URL. By default, use `http://127.0.0.1:42110`.
+- Do not set `khoj-api-key` if your Khoj server runs in anonymous mode. For example, `khoj --anonymous-mode`
+:::
+
 1. Generate an API key on the [Khoj Web App](https://app.khoj.dev/settings#clients)
 2. Add below snippet to your Emacs config file, usually at `~/.emacs.d/init.el`
 
@@ -43,6 +49,7 @@ M-x package-install khoj
 
 ; Set your Khoj API key
 (setq khoj-api-key "YOUR_KHOJ_CLOUD_API_KEY")
+(setq khoj-server-url "https://app.khoj.dev")
 ```
 
 #### **Minimal Install**
@@ -54,7 +61,8 @@ M-x package-install khoj
   :ensure t
   :pin melpa-stable
   :bind ("C-c s" . 'khoj)
-  :config (setq khoj-api-key "YOUR_KHOJ_CLOUD_API_KEY"))
+  :config (setq khoj-api-key "YOUR_KHOJ_CLOUD_API_KEY"
+                khoj-server-url "https://app.khoj.dev"))
 ```
 
 #### **Standard Install**
@@ -67,8 +75,9 @@ M-x package-install khoj
   :pin melpa-stable
   :bind ("C-c s" . 'khoj)
   :config (setq khoj-api-key "YOUR_KHOJ_CLOUD_API_KEY"
-                khoj-org-directories '("~/docs/org-roam" "~/docs/notes")
-                khoj-org-files '("~/docs/todo.org" "~/docs/work.org")))
+                khoj-server-url "https://app.khoj.dev"
+                khoj-index-directories '("~/docs/org-roam" "~/docs/notes")
+                khoj-index-files '("~/docs/todo.org" "~/docs/work.org")))
 ```
 
 #### **Straight.el**
@@ -81,6 +90,7 @@ M-x package-install khoj
   :straight (khoj :type git :host github :repo "khoj-ai/khoj" :files (:defaults "src/interface/emacs/khoj.el"))
   :bind ("C-c s" . 'khoj)
   :config (setq khoj-api-key "YOUR_KHOJ_CLOUD_API_KEY"
+                khoj-server-url "https://app.khoj.dev"
                 khoj-org-directories '("~/docs/org-roam" "~/docs/notes")
                 khoj-org-files '("~/docs/todo.org" "~/docs/work.org")))
 ```
