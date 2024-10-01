@@ -671,6 +671,8 @@ class AgentAdapters:
         color: str,
         chat_model: str,
         files: List[str],
+        input_tools: List[str],
+        output_modes: List[str],
     ):
         chat_model_option = await ChatModelOptions.objects.filter(chat_model=chat_model).afirst()
 
@@ -683,6 +685,8 @@ class AgentAdapters:
                 "style_icon": icon,
                 "style_color": color,
                 "chat_model": chat_model_option,
+                "input_tools": input_tools,
+                "output_modes": output_modes,
             }
         )
 

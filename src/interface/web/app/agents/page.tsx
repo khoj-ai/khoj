@@ -106,7 +106,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Sheet, SheetContent, SheetHeader, SheetTrigger } from "@/components/ui/sheet";
 import ShareLink from "../components/shareLink/shareLink";
 
 export interface AgentData {
@@ -120,6 +119,8 @@ export interface AgentData {
     creator?: string;
     managed_by_admin: boolean;
     chat_model: string;
+    input_tools: string[];
+    output_modes: string[];
 }
 
 async function openChat(slug: string, userData: UserProfile | null) {
@@ -172,6 +173,8 @@ interface AgentCardProps {
     isSubscribed: boolean;
     setAgentChangeTriggered: (value: boolean) => void;
     agentSlug: string;
+    inputToolOptions: { [key: string]: string };
+    outputModeOptions: { [key: string]: string };
 }
 
 function AgentCard(props: AgentCardProps) {
@@ -199,6 +202,8 @@ function AgentCard(props: AgentCardProps) {
             privacy_level: props.data.privacy_level,
             chat_model: props.data.chat_model,
             files: props.data.files,
+            input_tools: props.data.input_tools,
+            output_modes: props.data.output_modes,
         },
     });
 
@@ -241,6 +246,7 @@ function AgentCard(props: AgentCardProps) {
             .catch((error) => {
                 console.error("Error:", error);
                 setErrors(error);
+                form.clearErrors();
             });
     };
 
@@ -369,6 +375,8 @@ function AgentCard(props: AgentCardProps) {
                                         filesOptions={props.filesOptions}
                                         modelOptions={props.modelOptions}
                                         slug={props.data.slug}
+                                        inputToolOptions={props.inputToolOptions}
+                                        outputModeOptions={props.outputModeOptions}
                                     />
                                 </DialogContent>
                             ) : (
@@ -517,6 +525,8 @@ function AgentCard(props: AgentCardProps) {
                                         filesOptions={props.filesOptions}
                                         modelOptions={props.modelOptions}
                                         slug={props.data.slug}
+                                        inputToolOptions={props.inputToolOptions}
+                                        outputModeOptions={props.outputModeOptions}
                                     />
                                 </DrawerContent>
                             ) : (
@@ -584,6 +594,8 @@ const EditAgentSchema = z.object({
         .string({ required_error: "Chat model is required" })
         .min(1, "Chat model is required"),
     files: z.array(z.string()).default([]).optional(),
+    input_tools: z.array(z.string()).default([]).optional(),
+    output_modes: z.array(z.string()).default([]).optional(),
 });
 
 interface AgentModificationFormProps {
@@ -593,6 +605,8 @@ interface AgentModificationFormProps {
     errors?: string | null;
     modelOptions: ModelOptions[];
     filesOptions: string[];
+    inputToolOptions: { [key: string]: string };
+    outputModeOptions: { [key: string]: string };
     slug?: string;
 }
 
@@ -694,7 +708,7 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                     control={props.form.control}
                     name="name"
                     render={({ field }) => (
-                        <FormItem className="space-y-1">
+                        <FormItem className="space-y-0">
                             <FormLabel>Name</FormLabel>
                             <FormDescription>
                                 What should this agent be called? Pick something descriptive &
@@ -716,6 +730,8 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                             <FormLabel>Personality</FormLabel>
                             <FormDescription>
                                 What is the personality, thought process, or tuning of this agent?
+                                Get creative; this is how you can influence the agent's
+                                constitution.
                             </FormDescription>
                             <FormControl>
                                 <Textarea
@@ -727,56 +743,7 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                         </FormItem>
                     )}
                 />
-                <FormField
-                    control={props.form.control}
-                    name="privacy_level"
-                    render={({ field }) => (
-                        <FormItem className="space-y-1">
-                            <FormLabel>
-                                <div>Privacy Level</div>
-                            </FormLabel>
-                            <FormDescription>
-                                <Collapsible>
-                                    <CollapsibleTrigger asChild>
-                                        <Button variant={"ghost" as const} className="px-0 py-1">
-                                            <span className="items-center flex gap-1 text-sm">
-                                                <Info className="inline" />
-                                                <p className="text-sm">What is this?</p>
-                                            </span>
-                                        </Button>
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent>
-                                        <b>Private</b>: only visible to you.
-                                        <br />
-                                        <b>Protected</b>: visible to anyone with a link.
-                                        <br />
-                                        <b>Public</b>: visible to everyone.
-                                        <br />
-                                        Note that we will review all public agents before they are
-                                        made accessible to others.
-                                    </CollapsibleContent>
-                                </Collapsible>
-                            </FormDescription>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                    <SelectTrigger className="w-[200px]">
-                                        <SelectValue placeholder="private" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent className="items-center space-y-1 inline-flex flex-col">
-                                    {privacyOptions.map((privacyOption) => (
-                                        <SelectItem key={privacyOption} value={privacyOption}>
-                                            <div className="flex items-center space-x-2">
-                                                {privacyOption}
-                                            </div>
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+
                 <FormField
                     control={props.form.control}
                     name="chat_model"
@@ -784,7 +751,7 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                         <FormItem className="space-y-1">
                             <FormLabel>Chat Model</FormLabel>
                             <FormDescription>
-                                Which chat model should this agent use?
+                                Which large language model should this agent use?
                             </FormDescription>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
@@ -808,6 +775,272 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                 />
                 <FormField
                     control={props.form.control}
+                    name="privacy_level"
+                    render={({ field }) => (
+                        <FormItem className="">
+                            <FormLabel>
+                                <div>Privacy Level</div>
+                            </FormLabel>
+                            <FormDescription>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant={"ghost" as const} className="p-0 h-fit">
+                                            <span className="items-center flex gap-1 text-sm">
+                                                <Info className="inline" />
+                                                <p className="text-sm">Learn more</p>
+                                            </span>
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent>
+                                        <b>Private</b>: only visible to you.
+                                        <br />
+                                        <b>Protected</b>: visible to anyone with a link.
+                                        <br />
+                                        <b>Public</b>: visible to everyone.
+                                        <br />
+                                        All public agents will be reviewed by us before they are
+                                        launched.
+                                    </PopoverContent>
+                                </Popover>
+                            </FormDescription>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                    <SelectTrigger className="w-[200px]">
+                                        <SelectValue placeholder="private" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="items-center space-y-1 inline-flex flex-col">
+                                    {privacyOptions.map((privacyOption) => (
+                                        <SelectItem key={privacyOption} value={privacyOption}>
+                                            <div className="flex items-center space-x-2">
+                                                {privacyOption}
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <div className="grid">
+                    <FormLabel className="mb-2">Look & Feel</FormLabel>
+                    <div className="flex gap-1 justify-left">
+                        <FormField
+                            control={props.form.control}
+                            name="color"
+                            render={({ field }) => (
+                                <FormItem className="space-y-3">
+                                    <Select
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger className="w-[200px]">
+                                                <SelectValue placeholder="Color" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent className="items-center space-y-1 inline-flex flex-col">
+                                            {colorOptions.map((colorOption) => (
+                                                <SelectItem key={colorOption} value={colorOption}>
+                                                    <div className="flex items-center space-x-2">
+                                                        <Circle
+                                                            className={`w-6 h-6 mr-2 ${convertColorToTextClass(colorOption)}`}
+                                                            weight="fill"
+                                                        />
+                                                        {colorOption}
+                                                    </div>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={props.form.control}
+                            name="icon"
+                            render={({ field }) => (
+                                <FormItem className="space-y-3">
+                                    <Select
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger className="w-[200px]">
+                                                <SelectValue placeholder="Icon" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent className="items-center space-y-1 inline-flex flex-col">
+                                            {iconOptions.map((iconOption) => (
+                                                <SelectItem key={iconOption} value={iconOption}>
+                                                    <div className="flex items-center space-x-2">
+                                                        {getIconFromIconName(
+                                                            iconOption,
+                                                            props.form.getValues("color"),
+                                                            "w-6",
+                                                            "h-6",
+                                                        )}
+                                                        {iconOption}
+                                                    </div>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                </div>
+                <FormItem className="flex flex-col">
+                    <FormLabel className="text-md">Advanced Settings</FormLabel>
+                    <FormDescription>
+                        These are optional settings that you can use to customize your agent.
+                    </FormDescription>
+                </FormItem>
+                <FormField
+                    control={props.form.control}
+                    name="input_tools"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                            <FormLabel>Restrict Input Tools</FormLabel>
+                            <FormDescription>
+                                Which knowledge retrieval tools should this agent use?
+                                <br />
+                                <b>Default:</b> Access to all.
+                            </FormDescription>
+                            <Collapsible>
+                                <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2">
+                                    <CaretUpDown />
+                                    {field.value && field.value.length > 0
+                                        ? `${field.value.length} tools selected`
+                                        : "All tools"}
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                    <Command>
+                                        <CommandList>
+                                            <CommandGroup>
+                                                {Object.entries(props.inputToolOptions).map(
+                                                    ([key, value]) => (
+                                                        <CommandItem
+                                                            value={key}
+                                                            key={key}
+                                                            onSelect={() => {
+                                                                const currentInputTools =
+                                                                    props.form.getValues(
+                                                                        "input_tools",
+                                                                    ) || [];
+                                                                const newInputTools =
+                                                                    currentInputTools.includes(key)
+                                                                        ? currentInputTools.filter(
+                                                                              (item) =>
+                                                                                  item !== key,
+                                                                          )
+                                                                        : [
+                                                                              ...currentInputTools,
+                                                                              key,
+                                                                          ];
+                                                                props.form.setValue(
+                                                                    "input_tools",
+                                                                    newInputTools,
+                                                                );
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    field.value &&
+                                                                        field.value.includes(key)
+                                                                        ? "opacity-100"
+                                                                        : "opacity-0",
+                                                                )}
+                                                            />
+                                                            <b>{key}</b>: {value}
+                                                        </CommandItem>
+                                                    ),
+                                                )}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </CollapsibleContent>
+                            </Collapsible>
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={props.form.control}
+                    name="output_modes"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                            <FormLabel>Restrict Output Modes</FormLabel>
+                            <FormDescription>
+                                Which output modes should this agent use?
+                                <br />
+                                <b>Default:</b> Access to all.
+                            </FormDescription>
+                            <Collapsible>
+                                <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2">
+                                    <CaretUpDown />
+                                    {field.value && field.value.length > 0
+                                        ? `${field.value.length} modes selected`
+                                        : "All modes"}
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                    <Command>
+                                        <CommandList>
+                                            <CommandGroup>
+                                                {Object.entries(props.outputModeOptions).map(
+                                                    ([key, value]) => (
+                                                        <CommandItem
+                                                            value={key}
+                                                            key={key}
+                                                            onSelect={() => {
+                                                                const currentOutputModes =
+                                                                    props.form.getValues(
+                                                                        "output_modes",
+                                                                    ) || [];
+                                                                const newOutputModes =
+                                                                    currentOutputModes.includes(key)
+                                                                        ? currentOutputModes.filter(
+                                                                              (item) =>
+                                                                                  item !== key,
+                                                                          )
+                                                                        : [
+                                                                              ...currentOutputModes,
+                                                                              key,
+                                                                          ];
+                                                                props.form.setValue(
+                                                                    "output_modes",
+                                                                    newOutputModes,
+                                                                );
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    field.value &&
+                                                                        field.value.includes(key)
+                                                                        ? "opacity-100"
+                                                                        : "opacity-0",
+                                                                )}
+                                                            />
+                                                            <b>{key}</b>: {value}
+                                                        </CommandItem>
+                                                    ),
+                                                )}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </CollapsibleContent>
+                            </Collapsible>
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={props.form.control}
                     name="files"
                     render={({ field }) => (
                         <FormItem className="flex flex-col">
@@ -815,6 +1048,8 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                             <FormDescription>
                                 Which files should this agent have access to?{" "}
                                 <a href="/settings">Manage files</a>.
+                                <br />
+                                <b>Default:</b> Access to none.
                             </FormDescription>
                             <Collapsible>
                                 <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2">
@@ -927,78 +1162,6 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                         </FormItem>
                     )}
                 />
-                <div className="grid">
-                    <FormLabel className="mb-2">Look & Feel</FormLabel>
-                    <div className="flex gap-1 justify-left">
-                        <FormField
-                            control={props.form.control}
-                            name="color"
-                            render={({ field }) => (
-                                <FormItem className="space-y-3">
-                                    <Select
-                                        onValueChange={field.onChange}
-                                        defaultValue={field.value}
-                                    >
-                                        <FormControl>
-                                            <SelectTrigger className="w-[200px]">
-                                                <SelectValue placeholder="Color" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent className="items-center space-y-1 inline-flex flex-col">
-                                            {colorOptions.map((colorOption) => (
-                                                <SelectItem key={colorOption} value={colorOption}>
-                                                    <div className="flex items-center space-x-2">
-                                                        <Circle
-                                                            className={`w-6 h-6 mr-2 ${convertColorToTextClass(colorOption)}`}
-                                                            weight="fill"
-                                                        />
-                                                        {colorOption}
-                                                    </div>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <FormField
-                            control={props.form.control}
-                            name="icon"
-                            render={({ field }) => (
-                                <FormItem className="space-y-3">
-                                    <Select
-                                        onValueChange={field.onChange}
-                                        defaultValue={field.value}
-                                    >
-                                        <FormControl>
-                                            <SelectTrigger className="w-[200px]">
-                                                <SelectValue placeholder="Icon" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent className="items-center space-y-1 inline-flex flex-col">
-                                            {iconOptions.map((iconOption) => (
-                                                <SelectItem key={iconOption} value={iconOption}>
-                                                    <div className="flex items-center space-x-2">
-                                                        {getIconFromIconName(
-                                                            iconOption,
-                                                            props.form.getValues("color"),
-                                                            "w-6",
-                                                            "h-6",
-                                                        )}
-                                                        {iconOption}
-                                                    </div>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-                </div>
                 {props.errors && (
                     <Alert className="bg-secondary border-none my-4">
                         <AlertDescription>
@@ -1046,6 +1209,8 @@ interface CreateAgentCardProps {
     selectedChatModelOption: string;
     isSubscribed: boolean;
     setAgentChangeTriggered: (value: boolean) => void;
+    inputToolOptions: { [key: string]: string };
+    outputModeOptions: { [key: string]: string };
 }
 
 function CreateAgentCard(props: CreateAgentCardProps) {
@@ -1109,6 +1274,7 @@ function CreateAgentCard(props: CreateAgentCardProps) {
             .catch((error) => {
                 console.error("Error:", error);
                 setErrors(error);
+                form.clearErrors();
             });
     };
 
@@ -1132,6 +1298,8 @@ function CreateAgentCard(props: CreateAgentCardProps) {
                         errors={errors}
                         filesOptions={props.filesOptions}
                         modelOptions={props.modelOptions}
+                        inputToolOptions={props.inputToolOptions}
+                        outputModeOptions={props.outputModeOptions}
                     />
                     <DrawerFooter>
                         <DrawerClose>Dismiss</DrawerClose>
@@ -1158,10 +1326,17 @@ function CreateAgentCard(props: CreateAgentCardProps) {
                     errors={errors}
                     filesOptions={props.filesOptions}
                     modelOptions={props.modelOptions}
+                    inputToolOptions={props.inputToolOptions}
+                    outputModeOptions={props.outputModeOptions}
                 />
             </DialogContent>
         </Dialog>
     );
+}
+
+interface AgentConfigurationOptions {
+    input_tools: { [key: string]: string };
+    output_modes: { [key: string]: string };
 }
 
 export default function Agents() {
@@ -1182,6 +1357,9 @@ export default function Agents() {
         "/api/content/computer",
         fetcher,
     );
+
+    const { data: agentConfigurationOptions, error: agentConfigurationOptionsError } =
+        useSWR<AgentConfigurationOptions>("/api/agents/options", fetcher);
 
     const [agentChangeTriggered, setAgentChangeTriggered] = useState(false);
 
@@ -1291,6 +1469,8 @@ export default function Agents() {
                                     privacy_level: "private",
                                     managed_by_admin: false,
                                     chat_model: "",
+                                    input_tools: [],
+                                    output_modes: [],
                                 }}
                                 userProfile={authenticatedData}
                                 isMobileWidth={isMobileWidth}
@@ -1299,6 +1479,8 @@ export default function Agents() {
                                 selectedChatModelOption={defaultModelOption?.name || ""}
                                 isSubscribed={isSubscribed}
                                 setAgentChangeTriggered={setAgentChangeTriggered}
+                                inputToolOptions={agentConfigurationOptions?.input_tools || {}}
+                                outputModeOptions={agentConfigurationOptions?.output_modes || {}}
                             />
                         </div>
                     </div>
@@ -1330,6 +1512,10 @@ export default function Agents() {
                                     modelOptions={userConfig?.chat_model_options || []}
                                     editCard={true}
                                     agentSlug={agentSlug || ""}
+                                    inputToolOptions={agentConfigurationOptions?.input_tools || {}}
+                                    outputModeOptions={
+                                        agentConfigurationOptions?.output_modes || {}
+                                    }
                                 />
                             ))}
                         </div>
@@ -1350,6 +1536,10 @@ export default function Agents() {
                                     setAgentChangeTriggered={setAgentChangeTriggered}
                                     modelOptions={userConfig?.chat_model_options || []}
                                     agentSlug={agentSlug || ""}
+                                    inputToolOptions={agentConfigurationOptions?.input_tools || {}}
+                                    outputModeOptions={
+                                        agentConfigurationOptions?.output_modes || {}
+                                    }
                                 />
                             ))}
                         </div>

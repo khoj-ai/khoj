@@ -3,12 +3,15 @@ import uuid
 from random import choice
 
 from django.contrib.auth.models import AbstractUser
+from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from pgvector.django import VectorField
 from phonenumber_field.modelfields import PhoneNumberField
+
+from khoj.utils.helpers import ConversationCommand
 
 
 class BaseModel(models.Model):
@@ -146,12 +149,26 @@ class Agent(BaseModel):
         PRIVATE = "private"
         PROTECTED = "protected"
 
+    class InputToolOptions(models.TextChoices):
+        # These map to various ConversationCommand types
+        GENERAL = "general"
+        ONLINE = "online"
+        NOTES = "notes"
+        SUMMARIZE = "summarize"
+        WEBPAGE = "webpage"
+
+    class OutputModeOptions(models.TextChoices):
+        # These map to various ConversationCommand types
+        TEXT = "text"
+        IMAGE = "image"
+
     creator = models.ForeignKey(
         KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True
     )  # Creator will only be null when the agents are managed by admin
     name = models.CharField(max_length=200)
     personality = models.TextField()
-    tools = models.JSONField(default=list)  # List of tools the agent has access to, like online search or notes search
+    input_tools = ArrayField(models.CharField(max_length=200, choices=InputToolOptions.choices), default=list)
+    output_modes = ArrayField(models.CharField(max_length=200, choices=OutputModeOptions.choices), default=list)
     managed_by_admin = models.BooleanField(default=False)
     chat_model = models.ForeignKey(ChatModelOptions, on_delete=models.CASCADE)
     slug = models.CharField(max_length=200, unique=True)
@@ -169,6 +186,17 @@ class Agent(BaseModel):
             random_sequence = "".join(choice("0123456789") for i in range(6))
             slug = f"{self.name.lower().replace(' ', '-')}-{random_sequence}"
             self.slug = slug
+
+        # if Agent.InputToolOptions.GENERAL in self.input_tools:
+        #     if len(self.input_tools) > 1:
+        #         raise ValidationError("General tool cannot be used with any other tool.")
+
+        # if Agent.InputToolOptions.SUMMARIZE in self.input_tools:
+        #     if len(self.input_tools) > 1:
+        #         raise ValidationError("Summarize tool cannot be used with any other tool.")
+
+        # if len(self.output_modes) > 1:
+        #     raise ValidationError("Only one output mode can be selected.")
 
         super().save(*args, **kwargs)
 
