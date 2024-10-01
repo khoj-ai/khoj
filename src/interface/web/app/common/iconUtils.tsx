@@ -26,6 +26,14 @@ import {
     Wallet,
     PencilLine,
     Chalkboard,
+    Gps,
+    Question,
+    Browser,
+    Notebook,
+    Shapes,
+    ChatsTeardrop,
+    GlobeSimple,
+    ArrowRight,
 } from "@phosphor-icons/react";
 import { Markdown, OrgMode, Pdf, Word } from "@/app/components/logo/fileLogo";
 
@@ -104,6 +112,46 @@ const iconMap: IconMap = {
         <Chalkboard className={`${width} ${height} ${color} mr-2`} />
     ),
 };
+
+export function getIconForSlashCommand(command: string, customClassName: string | null = null) {
+    const className = customClassName ?? "h-4 w-4";
+    if (command.includes("summarize")) {
+        return <Gps className={className} />;
+    }
+
+    if (command.includes("help")) {
+        return <Question className={className} />;
+    }
+
+    if (command.includes("automation")) {
+        return <Robot className={className} />;
+    }
+
+    if (command.includes("webpage")) {
+        return <Browser className={className} />;
+    }
+
+    if (command.includes("notes")) {
+        return <Notebook className={className} />;
+    }
+
+    if (command.includes("image")) {
+        return <Image className={className} />;
+    }
+
+    if (command.includes("default")) {
+        return <Shapes className={className} />;
+    }
+
+    if (command.includes("general")) {
+        return <ChatsTeardrop className={className} />;
+    }
+
+    if (command.includes("online")) {
+        return <GlobeSimple className={className} />;
+    }
+    return <ArrowRight className={className} />;
+}
 
 function getIconFromIconName(
     iconName: string,

@@ -59,7 +59,11 @@ import {
 import LoginPrompt from "../components/loginPrompt/loginPrompt";
 import { InlineLoading } from "../components/loading/loading";
 import SidePanel from "../components/sidePanel/chatHistorySidePanel";
-import { getAvailableIcons, getIconFromIconName } from "../common/iconUtils";
+import {
+    getAvailableIcons,
+    getIconForSlashCommand,
+    getIconFromIconName,
+} from "../common/iconUtils";
 import { convertColorToTextClass, tailwindColors } from "../common/colorUtils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useIsMobileWidth } from "../common/utils";
@@ -107,6 +111,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import ShareLink from "../components/shareLink/shareLink";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export interface AgentData {
     slug: string;
@@ -141,15 +146,26 @@ async function openChat(slug: string, userData: UserProfile | null) {
     }
 }
 
-function Badge(props: { icon: JSX.Element; text: string }) {
+function Badge(props: { icon: JSX.Element; text?: string; hoverText?: string }) {
     // Always convert text to proper case (e.g., "public" -> "Public")
-    const displayBadgeText = props.text.replace(/^\w/, (c) => c.toUpperCase());
+    const displayBadgeText = props.text?.replace(/^\w/, (c) => c.toUpperCase()) || "";
 
     return (
-        <div className="flex items-center space-x-2 rounded-full border-accent-500 border p-1.5">
-            <div className="text-muted-foreground">{props.icon}</div>
-            <div className="text-muted-foreground">{displayBadgeText}</div>
-        </div>
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipContent asChild>
+                    <div className="text-sm">{props.hoverText || displayBadgeText}</div>
+                </TooltipContent>
+                <TooltipTrigger>
+                    <div className="flex items-center space-x-2 rounded-full border-accent-500 border p-1.5">
+                        <div className="text-muted-foreground">{props.icon}</div>
+                        {displayBadgeText && displayBadgeText.length > 0 && (
+                            <div className="text-muted-foreground">{displayBadgeText}</div>
+                        )}
+                    </div>
+                </TooltipTrigger>
+            </Tooltip>
+        </TooltipProvider>
     );
 }
 
@@ -183,11 +199,14 @@ function AgentCard(props: AgentCardProps) {
     const [errors, setErrors] = useState<string | null>(null);
 
     let lockIcon = <Lock />;
+    let privacyHoverText = "Private agents are only visible to you.";
 
     if (props.data.privacy_level === "public") {
         lockIcon = <Globe />;
+        privacyHoverText = "Public agents are visible to everyone.";
     } else if (props.data.privacy_level === "protected") {
         lockIcon = <LockOpen />;
+        privacyHoverText = "Protected agents are visible to anyone with a direct link.";
     }
 
     const userData = props.userProfile;
@@ -251,6 +270,46 @@ function AgentCard(props: AgentCardProps) {
     };
 
     const stylingString = convertColorToTextClass(props.data.color);
+
+    function makeBadgeFooter() {
+        return (
+            <div className="flex flex-wrap items-center gap-1">
+                {props.editCard && (
+                    <Badge
+                        icon={lockIcon}
+                        text={props.data.privacy_level}
+                        hoverText={privacyHoverText}
+                    />
+                )}
+                {props.data.files && props.data.files.length > 0 && (
+                    <Badge
+                        icon={<Book />}
+                        text={`knowledge`}
+                        hoverText={
+                            "The agent has a custom knowledge base it can use to give you answers."
+                        }
+                    />
+                )}
+                <Badge
+                    icon={<Brain />}
+                    text={props.data.chat_model}
+                    hoverText={`The agent uses the ${props.data.chat_model} model to chat with you.`}
+                />
+                {props.data.output_modes.map((outputMode) => (
+                    <Badge
+                        icon={getIconForSlashCommand(outputMode)}
+                        hoverText={`${outputMode}: ${props.outputModeOptions[outputMode]}`}
+                    />
+                ))}
+                {props.data.input_tools.map((inputTool) => (
+                    <Badge
+                        icon={getIconForSlashCommand(inputTool)}
+                        hoverText={`${inputTool}: ${props.inputToolOptions[inputTool]}`}
+                    />
+                ))}
+            </div>
+        );
+    }
 
     return (
         <Card
@@ -391,16 +450,7 @@ function AgentCard(props: AgentCardProps) {
                                         {props.data.persona}
                                     </div>
                                     <div className="flex flex-wrap items-center gap-1">
-                                        {props.editCard && (
-                                            <Badge
-                                                icon={lockIcon}
-                                                text={props.data.privacy_level}
-                                            />
-                                        )}
-                                        {props.data.files && props.data.files.length > 0 && (
-                                            <Badge icon={<Book />} text={`knowledge`} />
-                                        )}
-                                        <Badge icon={<Brain />} text={props.data.chat_model} />
+                                        {makeBadgeFooter()}
                                     </div>
                                     <DialogFooter>
                                         <Button
@@ -537,16 +587,7 @@ function AgentCard(props: AgentCardProps) {
                                     </DrawerHeader>
                                     {props.data.persona}
                                     <div className="flex flex-wrap items-center gap-1">
-                                        {props.editCard && (
-                                            <Badge
-                                                icon={lockIcon}
-                                                text={props.data.privacy_level}
-                                            />
-                                        )}
-                                        {props.data.files && props.data.files.length > 0 && (
-                                            <Badge icon={<Book />} text={`knowledge`} />
-                                        )}
-                                        <Badge icon={<Brain />} text={props.data.chat_model} />
+                                        {makeBadgeFooter()}
                                     </div>
                                     <DrawerFooter>
                                         <DrawerClose>Done</DrawerClose>
@@ -568,13 +609,7 @@ function AgentCard(props: AgentCardProps) {
                 </div>
             </CardContent>
             <CardFooter>
-                <div className="flex flex-wrap items-center gap-1">
-                    {props.editCard && <Badge icon={lockIcon} text={props.data.privacy_level} />}
-                    {props.data.files && props.data.files.length > 0 && (
-                        <Badge icon={<Book />} text={`knowledge`} />
-                    )}
-                    <Badge icon={<Brain />} text={props.data.chat_model} />
-                </div>
+                <div className="flex flex-wrap items-center gap-1">{makeBadgeFooter()}</div>
             </CardFooter>
         </Card>
     );
