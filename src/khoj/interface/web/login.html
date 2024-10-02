@@ -1,4 +1,5 @@
 <html>
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
@@ -8,75 +9,166 @@
     <link rel="stylesheet" href="/static/assets/khoj.css">
     <meta property="og:image" content="https://assets.khoj.dev/khoj_hero.png">
 </head>
-<body>
-    <div class="khoj-header"></div>
-    <!-- Login Modal -->
-    <div id="login-modal">
-        <img class="khoj-logo" src="https://assets.khoj.dev/khoj_lantern_128x128.png" alt="Khoj">
-        <div class="login-modal-title">Login to Khoj</div>
-        <!-- Sign in with Magic Link -->
-        <div class="khoj-magic-link">
-            <input type="email" id="email" placeholder="Email" autofocus required>
-            <button id="magic-link-button">Send Magic Link</button>
-        </div>
-        <!-- Divider -->
-        <div class="divider">OR</div>
-        <!-- Sign Up/Login with Google OAuth -->
-        <div class="g_id_signin" data-shape="circle" data-text="continue_with" data-logo_alignment="center" data-size="large" data-type="standard"></div>
-        <div id="g_id_onload" data-client_id="{{ google_client_id }}" data-ux_mode="popup" data-use_fedcm_for_prompt="true" data-login_uri="{{ redirect_uri }}" data-auto-select="true"></div>
-    </div>
-    <div class="khoj-footer"></div>
 
-    <script>
-        const magicLinkButton = document.getElementById('magic-link-button');
-        const emailInput = document.getElementById('email');
-        magicLinkButton.addEventListener('click', async () => {
-            const email = emailInput.value;
-            if (!email) {
-                alert('Please enter a valid email address');
-                return;
-            }
-            if (!email.includes('@')) {
-                alert('Please enter a valid email address');
-                return;
-            }
-            magicLinkButton.disabled = true;
-            magicLinkButton.innerText = 'Check your email for a sign-in link!';
-            const response = await fetch('/auth/magic', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ "email": email }),
-            });
-            if (response.status === 200) {
-                console.log('Magic link sent to your email');
-            } else {
-                alert('Failed to send magic link');
-            }
-        });
-    </script>
+<body>
+    <div class="split-container">
+        <!-- Left side with login -->
+        <div class="split left">
+            <div id="login-modal">
+                <img class="khoj-logo" src="https://assets.khoj.dev/khoj_lantern_128x128.png" alt="Khoj">
+                <div class="login-modal-title">Login to Khoj</div>
+                <!-- Sign Up/Login with Google OAuth -->
+                <div class="g_id_signin" data-shape="circle" data-text="continue_with" data-logo_alignment="center"
+                    data-size="large" data-type="standard"></div>
+                <div id="g_id_onload" data-client_id="{{ google_client_id }}" data-ux_mode="popup"
+                    data-use_fedcm_for_prompt="true" data-login_uri="{{ redirect_uri }}" data-auto-select="true"></div>
+
+                <!-- Divider -->
+                <div class="divider">OR</div>
+                <!-- Sign in with Magic Link -->
+                <div class="khoj-magic-link">
+                    <input type="email" id="email" placeholder="Email" autofocus required>
+                    <button id="magic-link-button">Get Login Link</button>
+                </div>
+
+            </div>
+            <!-- Footer links -->
+            <div class="footer-links">
+                <a href="https://khoj.dev/terms-of-service" target="_blank">Terms of Service</a>
+                <span class="divider-vertical"></span>
+                <a href="https://khoj.dev/privacy-policy" target="_blank">Privacy Policy</a>
+            </div>
+        </div>
+        <!-- Right side with content -->
+        <div class="split right">
+            <div class="right-content">
+                <h1>Unlock Your Second Brain</h1>
+                <p>Transform the way you think, create, and remember</p>
+                <div class="features">
+                    <div class="feature">
+                        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2"
+                            fill="none">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <path d="M14 2v6h6" />
+                            <path d="M16 13H8" />
+                            <path d="M16 17H8" />
+                            <path d="M10 9H8" />
+                        </svg>
+                        <span>Get answers across your documents and the internet</span>
+                    </div>
+                    <div class="feature">
+                        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2"
+                            fill="none">
+                            <path
+                                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                            <path d="M3.3 7l8.7 5 8.7-5" />
+                        </svg>
+                        <span>Go deeper in the topics personal to you</span>
+                    </div>
+                    <div class="feature">
+                        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2"
+                            fill="none">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                            <path d="M2 17l10 5 10-5" />
+                            <path d="M2 12l10 5 10-5" />
+                        </svg>
+                        <span>Use specialized agents</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <style>
         body {
             margin: 0;
             height: 100vh;
+            font-family: 'Arial', sans-serif;
+            color: #333;
+            overflow: hidden;
+        }
+
+        .split-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .split {
+            flex: 1;
             display: flex;
             justify-content: center;
             align-items: center;
-            background-size: cover;
-            font-family: 'Arial', sans-serif;
-            color: #333;
+            flex-direction: column;
+        }
+
+        .left {
+            background-color: #fff;
+        }
+
+        .right {
+            background: linear-gradient(135deg, #FFA07A 0%, #c4e4c6 100%);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .right::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0.1;
+        }
+
+        .right-content {
+            text-align: center;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .right-content h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .right-content p {
+            font-size: 1.2rem;
+            margin-bottom: 3rem;
+            opacity: 0.9;
+        }
+
+        .features {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .feature svg {
+            width: 24px;
+            height: 24px;
+            stroke: white;
         }
 
         #login-modal {
-            background: rgba(255, 255, 255, 0.9);
+            display: grid;
+            background: white;
             border-radius: 10px;
             padding: 40px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             text-align: center;
-            width: 300px;
-            display: grid;
+            width: max-content;
         }
 
         .khoj-logo {
@@ -108,27 +200,122 @@
             padding: 10px;
             border: none;
             border-radius: 5px;
-            background-color: #4CAF50;
+            background-color: #FFA07A;
             color: white;
             cursor: pointer;
             font-size: 16px;
+            transition: background-color 0.3s;
         }
 
         #magic-link-button:hover {
-            background-color: #45a049;
+            background-color: #FFA07A
+        }
+
+        #magic-link-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
         }
 
         .divider {
-            border-top: 1px solid #ccc;
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: #000;
+            /* Adjust the text color as needed */
             margin: 20px 0;
+            /* Adjust the margin as needed */
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #000;
+            /* Adjust the line color as needed */
+            margin: 0 10px;
+            /* Adjust the spacing as needed */
         }
 
         .g_id_signin {
             margin: 0 auto;
             display: block;
         }
+
+        .footer-links {
+            width: 100%;
+            text-align: center;
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 20px;
+        }
+
+        .footer-links a {
+            color: #666;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+
+        .divider-vertical {
+            display: inline-block;
+            width: 1px;
+            height: 12px;
+            background-color: #666;
+            margin: 0 10px;
+            vertical-align: middle;
+        }
+
+        @media (max-width: 768px) {
+            .split-container {
+                flex-direction: column;
+            }
+
+            .right {
+                display: none;
+            }
+
+            .left {
+                padding: 2rem;
+            }
+        }
     </style>
+
+    <script>
+        const magicLinkButton = document.getElementById('magic-link-button');
+        const emailInput = document.getElementById('email');
+        magicLinkButton.addEventListener('click', async () => {
+            const email = emailInput.value;
+            if (!email) {
+                alert('Please enter a valid email address');
+                return;
+            }
+            if (!email.includes('@')) {
+                alert('Please enter a valid email address');
+                return;
+            }
+            magicLinkButton.disabled = true;
+            magicLinkButton.innerText = 'Check your email for a sign-in link!';
+            const response = await fetch('/auth/magic', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ "email": email }),
+            });
+            if (response.status === 200) {
+                console.log('Magic link sent to your email');
+            } else {
+                alert('Failed to send magic link');
+                magicLinkButton.disabled = false;
+                magicLinkButton.innerText = 'Get Login Link';
+            }
+        });
+    </script>
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </body>
+
 </html>
