@@ -56,6 +56,8 @@ from khoj.utils.helpers import (
     ConversationCommand,
     command_descriptions,
     convert_image_to_webp,
+    get_country_code_from_timezone,
+    get_country_name_from_timezone,
     get_device,
     is_none_or_empty,
 )
@@ -530,8 +532,10 @@ class ChatRequestBody(BaseModel):
     city: Optional[str] = None
     region: Optional[str] = None
     country: Optional[str] = None
+    country_code: Optional[str] = None
     timezone: Optional[str] = None
     image: Optional[str] = None
+    create_new: Optional[bool] = False
 
 
 @api_chat.post("")
@@ -541,10 +545,10 @@ async def chat(
     common: CommonQueryParams,
     body: ChatRequestBody,
     rate_limiter_per_minute=Depends(
-        ApiUserRateLimiter(requests=60, subscribed_requests=60, window=60, slug="chat_minute")
+        ApiUserRateLimiter(requests=60, subscribed_requests=200, window=60, slug="chat_minute")
     ),
     rate_limiter_per_day=Depends(
-        ApiUserRateLimiter(requests=600, subscribed_requests=600, window=60 * 60 * 24, slug="chat_day")
+        ApiUserRateLimiter(requests=600, subscribed_requests=6000, window=60 * 60 * 24, slug="chat_day")
     ),
 ):
     # Access the parameters from the body
@@ -556,7 +560,8 @@ async def chat(
     conversation_id = body.conversation_id
     city = body.city
     region = body.region
-    country = body.country
+    country = body.country or get_country_name_from_timezone(body.timezone)
+    country_code = body.country_code or get_country_code_from_timezone(body.timezone)
     timezone = body.timezone
     image = body.image
 
@@ -642,7 +647,11 @@ async def chat(
         conversation_commands = [get_conversation_command(query=q, any_references=True)]
 
         conversation = await ConversationAdapters.aget_conversation_by_user(
-            user, client_application=request.user.client_app, conversation_id=conversation_id, title=title
+            user,
+            client_application=request.user.client_app,
+            conversation_id=conversation_id,
+            title=title,
+            create_new=body.create_new,
         )
         if not conversation:
             async for result in send_llm_response(f"Conversation {conversation_id} not found"):
@@ -659,8 +668,8 @@ async def chat(
 
         user_name = await aget_user_name(user)
         location = None
-        if city or region or country:
-            location = LocationData(city=city, region=region, country=country)
+        if city or region or country or country_code:
+            location = LocationData(city=city, region=region, country=country, country_code=country_code)
 
         if is_query_empty(q):
             async for result in send_llm_response("Please ask your query to get started."):

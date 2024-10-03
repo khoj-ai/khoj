@@ -518,12 +518,14 @@ function EditCard(props: EditCardProps) {
             updateQueryUrl += `&subject=${encodeURIComponent(values.subject)}`;
         }
         updateQueryUrl += `&crontime=${encodeURIComponent(cronFrequency)}`;
-        if (props.locationData) {
+        if (props.locationData && props.locationData.city)
             updateQueryUrl += `&city=${encodeURIComponent(props.locationData.city)}`;
+        if (props.locationData && props.locationData.region)
             updateQueryUrl += `&region=${encodeURIComponent(props.locationData.region)}`;
+        if (props.locationData && props.locationData.country)
             updateQueryUrl += `&country=${encodeURIComponent(props.locationData.country)}`;
+        if (props.locationData && props.locationData.timezone)
             updateQueryUrl += `&timezone=${encodeURIComponent(props.locationData.timezone)}`;
-        }
 
         let method = props.createNew ? "POST" : "PUT";
 

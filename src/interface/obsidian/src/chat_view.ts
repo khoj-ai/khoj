@@ -33,9 +33,10 @@ interface ChatMessageState {
 }
 
 interface Location {
-    region: string;
-    city: string;
-    countryName: string;
+    region?: string;
+    city?: string;
+    countryName?: string;
+    countryCode?: string;
     timezone: string;
 }
 
@@ -43,7 +44,7 @@ export class KhojChatView extends KhojPaneView {
     result: string;
     setting: KhojSetting;
     waitingForLocation: boolean;
-    location: Location;
+    location: Location = { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone };
     keyPressTimeout: NodeJS.Timeout | null = null;
 	userMessages: string[] = [];  // Store user sent messages for input history cycling
 	currentMessageIndex: number = -1;  // Track current message index in userMessages array
@@ -70,6 +71,7 @@ export class KhojChatView extends KhojPaneView {
                     region: data.region,
                     city: data.city,
                     countryName: data.country_name,
+                    countryCode: data.country_code,
                     timezone: data.timezone,
                 };
             })
@@ -1056,12 +1058,11 @@ export class KhojChatView extends KhojPaneView {
             n: this.setting.resultsCount,
             stream: true,
             ...(!!conversationId && { conversation_id: conversationId }),
-            ...(!!this.location && {
-                city: this.location.city,
-                region: this.location.region,
-                country: this.location.countryName,
-                timezone: this.location.timezone,
-            }),
+            ...(!!this.location && this.location.city && { city: this.location.city }),
+            ...(!!this.location && this.location.region && { region: this.location.region }),
+            ...(!!this.location && this.location.countryName && { country: this.location.countryName }),
+            ...(!!this.location && this.location.countryCode && { country_code: this.location.countryCode }),
+            ...(!!this.location && this.location.timezone && { timezone: this.location.timezone }),
         };
 
         let newResponseEl = this.createKhojResponseDiv();
