@@ -25,6 +25,17 @@ class LocationData(BaseModel):
     city: Optional[str]
     region: Optional[str]
     country: Optional[str]
+    country_code: Optional[str]
+
+    def __str__(self):
+        parts = []
+        if self.city:
+            parts.append(self.city)
+        if self.region:
+            parts.append(self.region)
+        if self.country:
+            parts.append(self.country)
+        return ", ".join(parts)
 
 
 class FileFilterRequest(BaseModel):

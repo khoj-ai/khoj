@@ -369,7 +369,7 @@ async def infer_webpage_urls(
     """
     Infer webpage links from the given query
     """
-    location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
+    location = f"{location_data}" if location_data else "Unknown"
     username = prompts.user_name.format(name=user.get_full_name()) if user.get_full_name() else ""
     chat_history = construct_chat_history(conversation_history)
 
@@ -405,7 +405,7 @@ async def generate_online_subqueries(
     """
     Generate subqueries from the given query
     """
-    location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
+    location = f"{location_data}" if location_data else "Unknown"
     username = prompts.user_name.format(name=user.get_full_name()) if user.get_full_name() else ""
     chat_history = construct_chat_history(conversation_history)
 
@@ -535,8 +535,7 @@ async def generate_better_image_prompt(
     model_type = model_type or TextToImageModelConfig.ModelType.OPENAI
 
     if location_data:
-        location = f"{location_data.city}, {location_data.region}, {location_data.country}"
-        location_prompt = prompts.user_location.format(location=location)
+        location_prompt = prompts.user_location.format(location=f"{location_data}")
     else:
         location_prompt = "Unknown"
 
