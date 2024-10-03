@@ -531,6 +531,7 @@ class ChatRequestBody(BaseModel):
     country: Optional[str] = None
     timezone: Optional[str] = None
     image: Optional[str] = None
+    create_new: Optional[bool] = False
 
 
 @api_chat.post("")
@@ -540,10 +541,10 @@ async def chat(
     common: CommonQueryParams,
     body: ChatRequestBody,
     rate_limiter_per_minute=Depends(
-        ApiUserRateLimiter(requests=60, subscribed_requests=60, window=60, slug="chat_minute")
+        ApiUserRateLimiter(requests=60, subscribed_requests=200, window=60, slug="chat_minute")
     ),
     rate_limiter_per_day=Depends(
-        ApiUserRateLimiter(requests=600, subscribed_requests=600, window=60 * 60 * 24, slug="chat_day")
+        ApiUserRateLimiter(requests=600, subscribed_requests=6000, window=60 * 60 * 24, slug="chat_day")
     ),
 ):
     # Access the parameters from the body
@@ -641,7 +642,11 @@ async def chat(
         conversation_commands = [get_conversation_command(query=q, any_references=True)]
 
         conversation = await ConversationAdapters.aget_conversation_by_user(
-            user, client_application=request.user.client_app, conversation_id=conversation_id, title=title
+            user,
+            client_application=request.user.client_app,
+            conversation_id=conversation_id,
+            title=title,
+            create_new=body.create_new,
         )
         if not conversation:
             async for result in send_llm_response(f"Conversation {conversation_id} not found"):

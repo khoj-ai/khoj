@@ -730,8 +730,15 @@ class ConversationAdapters:
 
     @staticmethod
     async def aget_conversation_by_user(
-        user: KhojUser, client_application: ClientApplication = None, conversation_id: str = None, title: str = None
+        user: KhojUser,
+        client_application: ClientApplication = None,
+        conversation_id: str = None,
+        title: str = None,
+        create_new: bool = False,
     ) -> Optional[Conversation]:
+        if create_new:
+            return await ConversationAdapters.acreate_conversation_session(user, client_application)
+
         query = Conversation.objects.filter(user=user, client=client_application).prefetch_related("agent")
 
         if conversation_id:
