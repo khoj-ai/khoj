@@ -2,11 +2,13 @@ import asyncio
 import json
 import logging
 import math
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional, Union
 
 from asgiref.sync import sync_to_async
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     Header,
     HTTPException,
@@ -58,6 +60,8 @@ logger = logging.getLogger(__name__)
 
 api_content = APIRouter()
 
+executor = ThreadPoolExecutor()
+
 
 class File(BaseModel):
     path: str
@@ -75,6 +79,11 @@ class IndexerInput(BaseModel):
     plaintext: Optional[dict[str, str]] = None
     image: Optional[dict[str, bytes]] = None
     docx: Optional[dict[str, bytes]] = None
+
+
+async def run_in_executor(func, *args):
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(executor, func, *args)
 
 
 @api_content.put("")
@@ -209,6 +218,7 @@ async def set_content_github(
 @requires(["authenticated"])
 async def set_content_notion(
     request: Request,
+    background_tasks: BackgroundTasks,
     updated_config: Union[NotionContentConfig, None],
     client: Optional[str] = None,
 ):
@@ -224,6 +234,10 @@ async def set_content_notion(
     except Exception as e:
         logger.error(e, exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to set Notion config")
+
+    if updated_config.token:
+        # Trigger an async job to configure_content. Let it run without blocking the response.
+        background_tasks.add_task(run_in_executor, configure_content, {}, False, SearchType.Notion, user)
 
     update_telemetry_state(
         request=request,
