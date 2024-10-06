@@ -223,7 +223,7 @@ def truncate_messages(
 ) -> list[ChatMessage]:
     """Truncate messages to fit within max prompt size supported by model"""
 
-    default_tokenizer = "hf-internal-testing/llama-tokenizer"
+    default_tokenizer = "gpt-4o"
 
     try:
         if loaded_model:
@@ -240,13 +240,9 @@ def truncate_messages(
         else:
             encoder = download_model(model_name).tokenizer()
     except:
-        if default_tokenizer in state.pretrained_tokenizers:
-            encoder = state.pretrained_tokenizers[default_tokenizer]
-        else:
-            encoder = AutoTokenizer.from_pretrained(default_tokenizer)
-            state.pretrained_tokenizers[default_tokenizer] = encoder
+        encoder = tiktoken.encoding_for_model(default_tokenizer)
         logger.debug(
-            f"Fallback to default chat model tokenizer: {tokenizer_name}.\nConfigure tokenizer for unsupported model: {model_name} in Khoj settings to improve context stuffing."
+            f"Fallback to default chat model tokenizer: {default_tokenizer}.\nConfigure tokenizer for model: {model_name} in Khoj settings to improve context stuffing."
         )
 
     # Extract system message from messages
