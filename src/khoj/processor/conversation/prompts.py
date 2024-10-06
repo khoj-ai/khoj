@@ -45,6 +45,13 @@ Instructions:\n{bio}
 """.strip()
 )
 
+# To make Gemini be more verbose and match language of user's query.
+# Prompt forked from https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models
+gemini_verbose_language_personality = """
+All questions should be answered comprehensively with details, unless the user requests a concise response specifically.
+Respond in the same language as the query.
+""".strip()
+
 ## General Conversation
 ## --
 general_conversation = PromptTemplate.from_template(
