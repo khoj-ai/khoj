@@ -79,7 +79,6 @@ def extract_questions_gemini(
         model_name=model,
         temperature=temperature,
         api_key=api_key,
-        max_tokens=max_tokens,
         model_kwargs=model_kwargs,
     )
 
@@ -218,5 +217,4 @@ def converse_gemini(
         api_key=api_key,
         system_prompt=system_prompt,
         completion_func=completion_func,
-        max_prompt_size=max_prompt_size,
     )
