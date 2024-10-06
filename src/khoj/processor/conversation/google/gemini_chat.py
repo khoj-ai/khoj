@@ -9,6 +9,7 @@ from langchain.schema import ChatMessage
 from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.google.utils import (
+    format_messages_for_gemini,
     gemini_chat_completion_with_backoff,
     gemini_completion_with_backoff,
 )
@@ -105,15 +106,7 @@ def gemini_send_message_to_model(messages, api_key, model, response_type="text")
     """
     Send message to model
     """
-    system_prompt = None
-    if len(messages) == 1:
-        messages[0].role = "user"
-    else:
-        system_prompt = ""
-        for message in messages.copy():
-            if message.role == "system":
-                system_prompt += message.content
-                messages.remove(message)
+    messages, system_prompt = format_messages_for_gemini(messages)
 
     model_kwargs = {}
     if response_type == "json_object":
@@ -195,14 +188,7 @@ def converse_gemini(
         tokenizer_name=tokenizer_name,
     )
 
-    for message in messages:
-        if message.role == "assistant":
-            message.role = "model"
-
-    for message in messages.copy():
-        if message.role == "system":
-            system_prompt += message.content
-            messages.remove(message)
+    messages, system_prompt = format_messages_for_gemini(messages, system_prompt)
 
     truncated_messages = "\n".join({f"{message.content[:40]}..." for message in messages})
     logger.debug(f"Conversation Context for Gemini: {truncated_messages}")

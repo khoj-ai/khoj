@@ -10,6 +10,7 @@ from google.generativeai.types.safety_types import (
     HarmCategory,
     HarmProbability,
 )
+from langchain.schema import ChatMessage
 from tenacity import (
     before_sleep_log,
     retry,
@@ -19,6 +20,7 @@ from tenacity import (
 )
 
 from khoj.processor.conversation.utils import ThreadedGenerator
+from khoj.utils.helpers import is_none_or_empty
 
 logger = logging.getLogger(__name__)
 
@@ -182,3 +184,23 @@ def generate_safety_response(safety_ratings):
     return safety_response_choice.format(
         category=max_safety_category, probability=max_safety_rating.probability.name, discomfort_level=discomfort_level
     )
+
+
+def format_messages_for_gemini(messages: list[ChatMessage], system_prompt: str = None) -> tuple[list[str], str]:
+    if len(messages) == 1:
+        messages[0].role = "user"
+        return messages, system_prompt
+
+    for message in messages:
+        if message.role == "assistant":
+            message.role = "model"
+
+    # Extract system message
+    system_prompt = system_prompt or ""
+    for message in messages.copy():
+        if message.role == "system":
+            system_prompt += message.content
+            messages.remove(message)
+    system_prompt = None if is_none_or_empty(system_prompt) else system_prompt
+
+    return messages, system_prompt
