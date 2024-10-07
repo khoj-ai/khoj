@@ -258,6 +258,32 @@ async def acreate_title_from_query(query: str) -> str:
     return response.strip()
 
 
+async def acheck_if_safe_prompt(system_prompt: str) -> Tuple[bool, str]:
+    """
+    Check if the system prompt is safe to use
+    """
+    safe_prompt_check = prompts.personality_prompt_safety_expert.format(prompt=system_prompt)
+    is_safe = True
+    reason = ""
+
+    with timer("Chat actor: Check if safe prompt", logger):
+        response = await send_message_to_model_wrapper(safe_prompt_check)
+
+        response = response.strip()
+        try:
+            response = json.loads(response)
+            is_safe = response.get("safe", "True") == "True"
+            if not is_safe:
+                reason = response.get("reason", "")
+        except Exception:
+            logger.error(f"Invalid response for checking safe prompt: {response}")
+
+    if not is_safe:
+        logger.error(f"Unsafe prompt: {system_prompt}. Reason: {reason}")
+
+    return is_safe, reason
+
+
 async def aget_relevant_information_sources(
     query: str,
     conversation_history: dict,
@@ -273,9 +299,12 @@ async def aget_relevant_information_sources(
     tool_options = dict()
     tool_options_str = ""
 
+    agent_tools = agent.input_tools if agent else []
+
     for tool, description in tool_descriptions_for_llm.items():
         tool_options[tool.value] = description
-        tool_options_str += f'- "{tool.value}": "{description}"\n'
+        if len(agent_tools) == 0 or tool.value in agent_tools:
+            tool_options_str += f'- "{tool.value}": "{description}"\n'
 
     chat_history = construct_chat_history(conversation_history)
 
@@ -311,7 +340,10 @@ async def aget_relevant_information_sources(
 
         final_response = [] if not is_task else [ConversationCommand.AutomatedTask]
         for llm_suggested_tool in response:
-            if llm_suggested_tool in tool_options.keys():
+            # Add a double check to verify it's in the agent list, because the LLM sometimes gets confused by the tool options.
+            if llm_suggested_tool in tool_options.keys() and (
+                len(agent_tools) == 0 or llm_suggested_tool in agent_tools
+            ):
                 # Check whether the tool exists as a valid ConversationCommand
                 final_response.append(ConversationCommand(llm_suggested_tool))
 
@@ -333,12 +365,15 @@ async def aget_relevant_output_modes(
     mode_options = dict()
     mode_options_str = ""
 
+    output_modes = agent.output_modes if agent else []
+
     for mode, description in mode_descriptions_for_llm.items():
         # Do not allow tasks to schedule another task
         if is_task and mode == ConversationCommand.Automation:
             continue
         mode_options[mode.value] = description
-        mode_options_str += f'- "{mode.value}": "{description}"\n'
+        if len(output_modes) == 0 or mode.value in output_modes:
+            mode_options_str += f'- "{mode.value}": "{description}"\n'
 
     chat_history = construct_chat_history(conversation_history)
 
@@ -368,7 +403,9 @@ async def aget_relevant_output_modes(
             return ConversationCommand.Text
 
         output_mode = response["output"]
-        if output_mode in mode_options.keys():
+
+        # Add a double check to verify it's in the agent list, because the LLM sometimes gets confused by the tool options.
+        if output_mode in mode_options.keys() and (len(output_modes) == 0 or output_mode in output_modes):
             # Check whether the tool exists as a valid ConversationCommand
             return ConversationCommand(output_mode)
 

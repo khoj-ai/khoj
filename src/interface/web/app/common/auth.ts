@@ -36,6 +36,15 @@ export interface SyncedContent {
     github: boolean;
     notion: boolean;
 }
+
+export enum SubscriptionStates {
+    EXPIRED = "expired",
+    TRIAL = "trial",
+    SUBSCRIBED = "subscribed",
+    UNSUBSCRIBED = "unsubscribed",
+    INVALID = "invalid",
+}
+
 export interface UserConfig {
     // user info
     username: string;
@@ -58,7 +67,7 @@ export interface UserConfig {
     voice_model_options: ModelOptions[];
     selected_voice_model_config: number;
     // user billing info
-    subscription_state: string;
+    subscription_state: SubscriptionStates;
     subscription_renewal_date: string;
     // server settings
     khoj_cloud_subscription_url: string | undefined;

@@ -10,6 +10,7 @@ from enum import Enum
 from typing import Callable, Iterable, List, Optional, Type
 
 import cron_descriptor
+import django
 from apscheduler.job import Job
 from asgiref.sync import sync_to_async
 from django.contrib.sessions.backends.db import SessionStore
@@ -551,26 +552,62 @@ class ClientApplicationAdapters:
 
 class AgentAdapters:
     DEFAULT_AGENT_NAME = "Khoj"
-    DEFAULT_AGENT_AVATAR = "https://assets.khoj.dev/lamp-128.png"
     DEFAULT_AGENT_SLUG = "khoj"
+
+    @staticmethod
+    async def aget_readonly_agent_by_slug(agent_slug: str, user: KhojUser):
+        return await Agent.objects.filter(
+            (Q(slug__iexact=agent_slug.lower()))
+            & (
+                Q(privacy_level=Agent.PrivacyLevel.PUBLIC)
+                | Q(privacy_level=Agent.PrivacyLevel.PROTECTED)
+                | Q(creator=user)
+            )
+        ).afirst()
+
+    @staticmethod
+    async def adelete_agent_by_slug(agent_slug: str, user: KhojUser):
+        agent = await AgentAdapters.aget_agent_by_slug(agent_slug, user)
+        if agent:
+            await agent.adelete()
+            return True
+        return False
 
     @staticmethod
     async def aget_agent_by_slug(agent_slug: str, user: KhojUser):
         return await Agent.objects.filter(
-            (Q(slug__iexact=agent_slug.lower())) & (Q(public=True) | Q(creator=user))
+            (Q(slug__iexact=agent_slug.lower())) & (Q(privacy_level=Agent.PrivacyLevel.PUBLIC) | Q(creator=user))
+        ).afirst()
+
+    @staticmethod
+    async def aget_agent_by_name(agent_name: str, user: KhojUser):
+        return await Agent.objects.filter(
+            (Q(name__iexact=agent_name.lower())) & (Q(privacy_level=Agent.PrivacyLevel.PUBLIC) | Q(creator=user))
         ).afirst()
 
     @staticmethod
     def get_agent_by_slug(slug: str, user: KhojUser = None):
         if user:
-            return Agent.objects.filter((Q(slug__iexact=slug.lower())) & (Q(public=True) | Q(creator=user))).first()
-        return Agent.objects.filter(slug__iexact=slug.lower(), public=True).first()
+            return Agent.objects.filter(
+                (Q(slug__iexact=slug.lower())) & (Q(privacy_level=Agent.PrivacyLevel.PUBLIC) | Q(creator=user))
+            ).first()
+        return Agent.objects.filter(slug__iexact=slug.lower(), privacy_level=Agent.PrivacyLevel.PUBLIC).first()
 
     @staticmethod
     def get_all_accessible_agents(user: KhojUser = None):
+        public_query = Q(privacy_level=Agent.PrivacyLevel.PUBLIC)
         if user:
-            return Agent.objects.filter(Q(public=True) | Q(creator=user)).distinct().order_by("created_at")
-        return Agent.objects.filter(public=True).order_by("created_at")
+            return (
+                Agent.objects.filter(public_query | Q(creator=user))
+                .distinct()
+                .order_by("created_at")
+                .prefetch_related("creator", "chat_model", "fileobject_set")
+            )
+        return (
+            Agent.objects.filter(public_query)
+            .order_by("created_at")
+            .prefetch_related("creator", "chat_model", "fileobject_set")
+        )
 
     @staticmethod
     async def aget_all_accessible_agents(user: KhojUser = None) -> List[Agent]:
@@ -609,12 +646,11 @@ class AgentAdapters:
             # The default agent is public and managed by the admin. It's handled a little differently than other agents.
             agent = Agent.objects.create(
                 name=AgentAdapters.DEFAULT_AGENT_NAME,
-                public=True,
+                privacy_level=Agent.PrivacyLevel.PUBLIC,
                 managed_by_admin=True,
                 chat_model=default_conversation_config,
                 personality=default_personality,
                 tools=["*"],
-                avatar=AgentAdapters.DEFAULT_AGENT_AVATAR,
                 slug=AgentAdapters.DEFAULT_AGENT_SLUG,
             )
             Conversation.objects.filter(agent=None).update(agent=agent)
@@ -624,6 +660,68 @@ class AgentAdapters:
     @staticmethod
     async def aget_default_agent():
         return await Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).afirst()
+
+    @staticmethod
+    async def aupdate_agent(
+        user: KhojUser,
+        name: str,
+        personality: str,
+        privacy_level: str,
+        icon: str,
+        color: str,
+        chat_model: str,
+        files: List[str],
+        input_tools: List[str],
+        output_modes: List[str],
+    ):
+        chat_model_option = await ChatModelOptions.objects.filter(chat_model=chat_model).afirst()
+
+        agent, created = await Agent.objects.filter(name=name, creator=user).aupdate_or_create(
+            defaults={
+                "name": name,
+                "creator": user,
+                "personality": personality,
+                "privacy_level": privacy_level,
+                "style_icon": icon,
+                "style_color": color,
+                "chat_model": chat_model_option,
+                "input_tools": input_tools,
+                "output_modes": output_modes,
+            }
+        )
+
+        # Delete all existing files and entries
+        await FileObject.objects.filter(agent=agent).adelete()
+        await Entry.objects.filter(agent=agent).adelete()
+
+        for file in files:
+            reference_file = await FileObject.objects.filter(file_name=file, user=agent.creator).afirst()
+            if reference_file:
+                await FileObject.objects.acreate(file_name=file, agent=agent, raw_text=reference_file.raw_text)
+
+                # Duplicate all entries associated with the file
+                entries: List[Entry] = []
+                async for entry in Entry.objects.filter(file_path=file, user=agent.creator).aiterator():
+                    entries.append(
+                        Entry(
+                            agent=agent,
+                            embeddings=entry.embeddings,
+                            raw=entry.raw,
+                            compiled=entry.compiled,
+                            heading=entry.heading,
+                            file_source=entry.file_source,
+                            file_type=entry.file_type,
+                            file_path=entry.file_path,
+                            file_name=entry.file_name,
+                            url=entry.url,
+                            hashed_value=entry.hashed_value,
+                        )
+                    )
+
+                # Bulk create entries
+                await Entry.objects.abulk_create(entries)
+
+        return agent
 
 
 class PublicConversationAdapters:
@@ -1197,6 +1295,10 @@ class EntryAdapters:
         return Entry.objects.filter(user=user).exists()
 
     @staticmethod
+    def agent_has_entries(agent: Agent):
+        return Entry.objects.filter(agent=agent).exists()
+
+    @staticmethod
     async def auser_has_entries(user: KhojUser):
         return await Entry.objects.filter(user=user).aexists()
 
@@ -1229,15 +1331,19 @@ class EntryAdapters:
         return total_size / 1024 / 1024
 
     @staticmethod
-    def apply_filters(user: KhojUser, query: str, file_type_filter: str = None):
+    def apply_filters(user: KhojUser, query: str, file_type_filter: str = None, agent: Agent = None):
         q_filter_terms = Q()
 
         word_filters = EntryAdapters.word_filter.get_filter_terms(query)
         file_filters = EntryAdapters.file_filter.get_filter_terms(query)
         date_filters = EntryAdapters.date_filter.get_query_date_range(query)
 
+        user_or_agent = Q(user=user)
+        if agent != None:
+            user_or_agent |= Q(agent=agent)
+
         if len(word_filters) == 0 and len(file_filters) == 0 and len(date_filters) == 0:
-            return Entry.objects.filter(user=user)
+            return Entry.objects.filter(user_or_agent)
 
         for term in word_filters:
             if term.startswith("+"):
@@ -1273,7 +1379,7 @@ class EntryAdapters:
                 formatted_max_date = date.fromtimestamp(max_date).strftime("%Y-%m-%d")
                 q_filter_terms &= Q(embeddings_dates__date__lte=formatted_max_date)
 
-        relevant_entries = Entry.objects.filter(user=user).filter(q_filter_terms)
+        relevant_entries = Entry.objects.filter(user_or_agent).filter(q_filter_terms)
         if file_type_filter:
             relevant_entries = relevant_entries.filter(file_type=file_type_filter)
         return relevant_entries
@@ -1286,9 +1392,15 @@ class EntryAdapters:
         file_type_filter: str = None,
         raw_query: str = None,
         max_distance: float = math.inf,
+        agent: Agent = None,
     ):
-        relevant_entries = EntryAdapters.apply_filters(user, raw_query, file_type_filter)
-        relevant_entries = relevant_entries.filter(user=user).annotate(
+        user_or_agent = Q(user=user)
+
+        if agent != None:
+            user_or_agent |= Q(agent=agent)
+
+        relevant_entries = EntryAdapters.apply_filters(user, raw_query, file_type_filter, agent)
+        relevant_entries = relevant_entries.filter(user_or_agent).annotate(
             distance=CosineDistance("embeddings", embeddings)
         )
         relevant_entries = relevant_entries.filter(distance__lte=max_distance)

@@ -1,13 +1,14 @@
 import logging
 import math
 from pathlib import Path
-from typing import List, Tuple, Type, Union
+from typing import List, Optional, Tuple, Type, Union
 
 import torch
 from asgiref.sync import sync_to_async
 from sentence_transformers import util
 
 from khoj.database.adapters import EntryAdapters, get_user_search_model_or_default
+from khoj.database.models import Agent
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import KhojUser
 from khoj.processor.content.text_to_entries import TextToEntries
@@ -101,6 +102,7 @@ async def query(
     type: SearchType = SearchType.All,
     question_embedding: Union[torch.Tensor, None] = None,
     max_distance: float = None,
+    agent: Optional[Agent] = None,
 ) -> Tuple[List[dict], List[Entry]]:
     "Search for entries that answer the query"
 
@@ -129,6 +131,7 @@ async def query(
             file_type_filter=file_type,
             raw_query=raw_query,
             max_distance=max_distance,
+            agent=agent,
         ).all()
         hits = await sync_to_async(list)(hits)  # type: ignore[call-arg]
 

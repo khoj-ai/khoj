@@ -1,4 +1,4 @@
-const tailwindColors = [
+export const tailwindColors = [
     "red",
     "yellow",
     "green",
