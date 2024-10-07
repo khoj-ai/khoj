@@ -25,6 +25,7 @@ import {
     Pause,
     Palette,
     ClipboardText,
+    Check,
 } from "@phosphor-icons/react";
 
 import DOMPurify from "dompurify";
@@ -377,28 +378,33 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
         if (messageRef.current) {
             const preElements = messageRef.current.querySelectorAll("pre > .hljs");
             preElements.forEach((preElement) => {
-                const copyButton = document.createElement("button");
-                const copyIcon = <ClipboardText size={24} weight="bold" />;
-                createRoot(copyButton).render(copyIcon);
+                if (!preElement.querySelector(`${styles.codeCopyButton}`)) {
+                    const copyButton = document.createElement("button");
+                    const copyIcon = <ClipboardText size={24} />;
+                    createRoot(copyButton).render(copyIcon);
 
-                copyButton.className = `hljs ${styles.codeCopyButton}`;
-                copyButton.addEventListener("click", () => {
-                    let textContent = preElement.textContent || "";
-                    // Strip any leading $ characters
-                    textContent = textContent.replace(/^\$+/, "");
-                    // Remove 'Copy' if it's at the start of the string
-                    textContent = textContent.replace(/^Copy/, "");
-                    textContent = textContent.trim();
-                    navigator.clipboard.writeText(textContent);
-                });
-                preElement.prepend(copyButton);
+                    copyButton.className = `hljs ${styles.codeCopyButton}`;
+                    copyButton.addEventListener("click", () => {
+                        let textContent = preElement.textContent || "";
+                        // Strip any leading $ characters
+                        textContent = textContent.replace(/^\$+/, "");
+                        // Remove 'Copy' if it's at the start of the string
+                        textContent = textContent.replace(/^Copy/, "");
+                        textContent = textContent.trim();
+                        navigator.clipboard.writeText(textContent);
+
+                        // Replace the copy icon with a checkmark
+                        const copiedIcon = <Check size={24} />;
+                        createRoot(copyButton).render(copiedIcon);
+                    });
+                    preElement.prepend(copyButton);
+                }
             });
 
             renderMathInElement(messageRef.current, {
                 delimiters: [
                     { left: "$$", right: "$$", display: true },
                     { left: "\\[", right: "\\]", display: true },
-                    { left: "$", right: "$", display: false },
                     { left: "\\(", right: "\\)", display: false },
                 ],
             });
