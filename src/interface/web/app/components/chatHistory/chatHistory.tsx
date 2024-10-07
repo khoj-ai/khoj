@@ -15,7 +15,7 @@ import { InlineLoading } from "../loading/loading";
 
 import { Lightbulb, ArrowDown } from "@phosphor-icons/react";
 
-import ProfileCard from "../profileCard/profileCard";
+import AgentProfileCard from "../profileCard/profileCard";
 import { getIconFromIconName } from "@/app/common/iconUtils";
 import { AgentData } from "@/app/agents/page";
 import React from "react";
@@ -350,7 +350,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                     {data && (
                         <div className={`${styles.agentIndicator} pb-4`}>
                             <div className="relative group mx-2 cursor-pointer">
-                                <ProfileCard
+                                <AgentProfileCard
                                     name={constructAgentName()}
                                     link={constructAgentLink()}
                                     avatar={

@@ -212,7 +212,6 @@ def chat_history(
         agent_metadata = {
             "slug": conversation.agent.slug,
             "name": conversation.agent.name,
-            "avatar": conversation.agent.avatar,
             "isCreator": conversation.agent.creator == user,
             "color": conversation.agent.style_color,
             "icon": conversation.agent.style_icon,
@@ -269,7 +268,6 @@ def get_shared_chat(
         agent_metadata = {
             "slug": conversation.agent.slug,
             "name": conversation.agent.name,
-            "avatar": conversation.agent.avatar,
             "isCreator": conversation.agent.creator == user,
             "color": conversation.agent.style_color,
             "icon": conversation.agent.style_icon,
@@ -419,7 +417,7 @@ def chat_sessions(
         conversations = conversations[:8]
 
     sessions = conversations.values_list(
-        "id", "slug", "title", "agent__slug", "agent__name", "agent__avatar", "created_at", "updated_at"
+        "id", "slug", "title", "agent__slug", "agent__name", "created_at", "updated_at"
     )
 
     session_values = [
@@ -427,9 +425,8 @@ def chat_sessions(
             "conversation_id": str(session[0]),
             "slug": session[2] or session[1],
             "agent_name": session[4],
-            "agent_avatar": session[5],
-            "created": session[6].strftime("%Y-%m-%d %H:%M:%S"),
-            "updated": session[7].strftime("%Y-%m-%d %H:%M:%S"),
+            "created": session[5].strftime("%Y-%m-%d %H:%M:%S"),
+            "updated": session[6].strftime("%Y-%m-%d %H:%M:%S"),
         }
         for session in sessions
     ]
@@ -591,7 +588,7 @@ async def chat(
             nonlocal connection_alive, ttft
             if not connection_alive or await request.is_disconnected():
                 connection_alive = False
-                logger.warn(f"User {user} disconnected from {common.client} client")
+                logger.warning(f"User {user} disconnected from {common.client} client")
                 return
             try:
                 if event_type == ChatEvent.END_LLM_RESPONSE:

@@ -63,7 +63,6 @@ interface ChatHistory {
     conversation_id: string;
     slug: string;
     agent_name: string;
-    agent_avatar: string;
     compressed: boolean;
     created: string;
     updated: string;
@@ -435,7 +434,6 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                                                             chatHistory.conversation_id
                                                         }
                                                         slug={chatHistory.slug}
-                                                        agent_avatar={chatHistory.agent_avatar}
                                                         agent_name={chatHistory.agent_name}
                                                         showSidePanel={props.setEnabled}
                                                     />
@@ -713,7 +711,6 @@ function ChatSessionsModal({ data, showSidePanel }: ChatSessionsModalProps) {
                                                 key={chatHistory.conversation_id}
                                                 conversation_id={chatHistory.conversation_id}
                                                 slug={chatHistory.slug}
-                                                agent_avatar={chatHistory.agent_avatar}
                                                 agent_name={chatHistory.agent_name}
                                                 showSidePanel={showSidePanel}
                                             />

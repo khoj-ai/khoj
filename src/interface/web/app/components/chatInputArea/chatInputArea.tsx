@@ -50,6 +50,7 @@ import { convertToBGClass } from "@/app/common/colorUtils";
 import LoginPrompt from "../loginPrompt/loginPrompt";
 import { uploadDataForIndexing } from "../../common/chatFunctions";
 import { InlineLoading } from "../loading/loading";
+import { getIconForSlashCommand } from "@/app/common/iconUtils";
 
 export interface ChatOptions {
     [key: string]: string;
@@ -191,46 +192,6 @@ export default function ChatInputArea(props: ChatInputProps) {
             props.setUploadedFiles,
             props.conversationId,
         );
-    }
-
-    function getIconForSlashCommand(command: string) {
-        const className = "h-4 w-4 mr-2";
-        if (command.includes("summarize")) {
-            return <Gps className={className} />;
-        }
-
-        if (command.includes("help")) {
-            return <Question className={className} />;
-        }
-
-        if (command.includes("automation")) {
-            return <Robot className={className} />;
-        }
-
-        if (command.includes("webpage")) {
-            return <Browser className={className} />;
-        }
-
-        if (command.includes("notes")) {
-            return <Notebook className={className} />;
-        }
-
-        if (command.includes("image")) {
-            return <Image className={className} />;
-        }
-
-        if (command.includes("default")) {
-            return <Shapes className={className} />;
-        }
-
-        if (command.includes("general")) {
-            return <ChatsTeardrop className={className} />;
-        }
-
-        if (command.includes("online")) {
-            return <GlobeSimple className={className} />;
-        }
-        return <ArrowRight className={className} />;
     }
 
     // Assuming this function is added within the same context as the provided excerpt
@@ -426,7 +387,11 @@ export default function ChatInputArea(props: ChatInputProps) {
                                                     >
                                                         <div className="grid grid-cols-1 gap-1">
                                                             <div className="font-bold flex items-center">
-                                                                {getIconForSlashCommand(key)}/{key}
+                                                                {getIconForSlashCommand(
+                                                                    key,
+                                                                    "h-4 w-4 mr-2",
+                                                                )}
+                                                                /{key}
                                                             </div>
                                                             <div>{value}</div>
                                                         </div>

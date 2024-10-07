@@ -6,7 +6,7 @@ import "intl-tel-input/styles";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 
-import { useUserConfig, ModelOptions, UserConfig } from "../common/auth";
+import { useUserConfig, ModelOptions, UserConfig, SubscriptionStates } from "../common/auth";
 import { toTitleCase, useIsMobileWidth } from "../common/utils";
 
 import { isValidPhoneNumber } from "libphonenumber-js";
@@ -276,7 +276,7 @@ const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     )}
                 </div>
                 <div
-                    className={`flex-none p-4 bg-secondary border-b ${isDragAndDropping ? "animate-pulse" : ""}`}
+                    className={`flex-none p-4 bg-secondary border-b ${isDragAndDropping ? "animate-pulse" : ""} rounded-lg`}
                 >
                     <div className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg">
                         {isDragAndDropping ? (
@@ -294,7 +294,6 @@ const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 </div>
             </div>
             <div className="flex flex-col h-full">
-                <div className="flex-none p-4">Synced files</div>
                 <div className="flex-none p-4 bg-background border-b">
                     <CommandInput
                         placeholder="Find synced files"
@@ -615,7 +614,9 @@ export default function SettingsView() {
             if (userConfig) {
                 let newUserConfig = userConfig;
                 newUserConfig.subscription_state =
-                    state === "cancel" ? "unsubscribed" : "subscribed";
+                    state === "cancel"
+                        ? SubscriptionStates.UNSUBSCRIBED
+                        : SubscriptionStates.SUBSCRIBED;
                 setUserConfig(newUserConfig);
             }
 

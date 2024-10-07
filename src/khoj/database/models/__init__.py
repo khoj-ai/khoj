@@ -3,12 +3,15 @@ import uuid
 from random import choice
 
 from django.contrib.auth.models import AbstractUser
+from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from pgvector.django import VectorField
 from phonenumber_field.modelfields import PhoneNumberField
+
+from khoj.utils.helpers import ConversationCommand
 
 
 class BaseModel(models.Model):
@@ -125,7 +128,7 @@ class Agent(BaseModel):
         EMERALD = "emerald"
 
     class StyleIconTypes(models.TextChoices):
-        LIGHBULB = "Lightbulb"
+        LIGHTBULB = "Lightbulb"
         HEALTH = "Health"
         ROBOT = "Robot"
         APERTURE = "Aperture"
@@ -140,20 +143,64 @@ class Agent(BaseModel):
         CLOCK_COUNTER_CLOCKWISE = "ClockCounterClockwise"
         PENCIL_LINE = "PencilLine"
         CHALKBOARD = "Chalkboard"
+        CIGARETTE = "Cigarette"
+        CRANE_TOWER = "CraneTower"
+        HEART = "Heart"
+        LEAF = "Leaf"
+        NEWSPAPER_CLIPPING = "NewspaperClipping"
+        ORANGE_SLICE = "OrangeSlice"
+        SMILEY_MELTING = "SmileyMelting"
+        YIN_YANG = "YinYang"
+        SNEAKER_MOVE = "SneakerMove"
+        STUDENT = "Student"
+        OVEN = "Oven"
+        GAVEL = "Gavel"
+        BROADCAST = "Broadcast"
+
+    class PrivacyLevel(models.TextChoices):
+        PUBLIC = "public"
+        PRIVATE = "private"
+        PROTECTED = "protected"
+
+    class InputToolOptions(models.TextChoices):
+        # These map to various ConversationCommand types
+        GENERAL = "general"
+        ONLINE = "online"
+        NOTES = "notes"
+        SUMMARIZE = "summarize"
+        WEBPAGE = "webpage"
+
+    class OutputModeOptions(models.TextChoices):
+        # These map to various ConversationCommand types
+        TEXT = "text"
+        IMAGE = "image"
 
     creator = models.ForeignKey(
         KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True
     )  # Creator will only be null when the agents are managed by admin
     name = models.CharField(max_length=200)
     personality = models.TextField()
-    avatar = models.URLField(max_length=400, default=None, null=True, blank=True)
-    tools = models.JSONField(default=list)  # List of tools the agent has access to, like online search or notes search
-    public = models.BooleanField(default=False)
+    input_tools = ArrayField(models.CharField(max_length=200, choices=InputToolOptions.choices), default=list)
+    output_modes = ArrayField(models.CharField(max_length=200, choices=OutputModeOptions.choices), default=list)
     managed_by_admin = models.BooleanField(default=False)
     chat_model = models.ForeignKey(ChatModelOptions, on_delete=models.CASCADE)
-    slug = models.CharField(max_length=200)
+    slug = models.CharField(max_length=200, unique=True)
     style_color = models.CharField(max_length=200, choices=StyleColorTypes.choices, default=StyleColorTypes.BLUE)
-    style_icon = models.CharField(max_length=200, choices=StyleIconTypes.choices, default=StyleIconTypes.LIGHBULB)
+    style_icon = models.CharField(max_length=200, choices=StyleIconTypes.choices, default=StyleIconTypes.LIGHTBULB)
+    privacy_level = models.CharField(max_length=30, choices=PrivacyLevel.choices, default=PrivacyLevel.PRIVATE)
+
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+
+        if self.creator is None:
+            self.managed_by_admin = True
+
+        if is_new:
+            random_sequence = "".join(choice("0123456789") for i in range(6))
+            slug = f"{self.name.lower().replace(' ', '-')}-{random_sequence}"
+            self.slug = slug
+
+        super().save(*args, **kwargs)
 
 
 class ProcessLock(BaseModel):
@@ -173,21 +220,10 @@ class ProcessLock(BaseModel):
 def verify_agent(sender, instance, **kwargs):
     # check if this is a new instance
     if instance._state.adding:
-        if Agent.objects.filter(name=instance.name, public=True).exists():
+        if Agent.objects.filter(name=instance.name, privacy_level=Agent.PrivacyLevel.PUBLIC).exists():
             raise ValidationError(f"A public Agent with the name {instance.name} already exists.")
         if Agent.objects.filter(name=instance.name, creator=instance.creator).exists():
             raise ValidationError(f"A private Agent with the name {instance.name} already exists.")
-
-        slug = instance.name.lower().replace(" ", "-")
-        observed_random_numbers = set()
-        while Agent.objects.filter(slug=slug).exists():
-            try:
-                random_number = choice([i for i in range(0, 1000) if i not in observed_random_numbers])
-            except IndexError:
-                raise ValidationError("Unable to generate a unique slug for the Agent. Please try again later.")
-            observed_random_numbers.add(random_number)
-            slug = f"{slug}-{random_number}"
-        instance.slug = slug
 
 
 class NotionConfig(BaseModel):
@@ -406,6 +442,7 @@ class Entry(BaseModel):
         GITHUB = "github"
 
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
+    agent = models.ForeignKey(Agent, on_delete=models.CASCADE, default=None, null=True, blank=True)
     embeddings = VectorField(dimensions=None)
     raw = models.TextField()
     compiled = models.TextField()
@@ -418,12 +455,17 @@ class Entry(BaseModel):
     hashed_value = models.CharField(max_length=100)
     corpus_id = models.UUIDField(default=uuid.uuid4, editable=False)
 
+    def save(self, *args, **kwargs):
+        if self.user and self.agent:
+            raise ValidationError("An Entry cannot be associated with both a user and an agent.")
+
 
 class FileObject(BaseModel):
     # Same as Entry but raw will be a much larger string
     file_name = models.CharField(max_length=400, default=None, null=True, blank=True)
     raw_text = models.TextField()
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
+    agent = models.ForeignKey(Agent, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
 
 class EntryDates(BaseModel):
