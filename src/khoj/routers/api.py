@@ -112,6 +112,7 @@ async def execute_search(
     r: Optional[bool] = False,
     max_distance: Optional[Union[float, None]] = None,
     dedupe: Optional[bool] = True,
+    agent: Optional[Agent] = None,
 ):
     start_time = time.time()
 
@@ -163,6 +164,7 @@ async def execute_search(
                     t,
                     question_embedding=encoded_asymmetric_query,
                     max_distance=max_distance,
+                    agent=agent,
                 )
             ]
 
@@ -355,9 +357,10 @@ async def extract_references_and_questions(
         return
 
     if not await sync_to_async(EntryAdapters.user_has_entries)(user=user):
-        logger.debug("No documents in knowledge base. Use a Khoj client to sync and chat with your docs.")
-        yield compiled_references, inferred_queries, q
-        return
+        if not await sync_to_async(EntryAdapters.agent_has_entries)(agent=agent):
+            logger.debug("No documents in knowledge base. Use a Khoj client to sync and chat with your docs.")
+            yield compiled_references, inferred_queries, q
+            return
 
     # Extract filter terms from user message
     defiltered_query = q
@@ -465,6 +468,7 @@ async def extract_references_and_questions(
                     r=True,
                     max_distance=d,
                     dedupe=False,
+                    agent=agent,
                 )
             )
         search_results = text_search.deduplicated_search_responses(search_results)

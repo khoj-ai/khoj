@@ -3,12 +3,15 @@ import uuid
 from random import choice
 
 from django.contrib.auth.models import AbstractUser
+from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from pgvector.django import VectorField
 from phonenumber_field.modelfields import PhoneNumberField
+
+from khoj.utils.helpers import ConversationCommand
 
 
 class BaseModel(models.Model):
@@ -125,7 +128,7 @@ class Agent(BaseModel):
         EMERALD = "emerald"
 
     class StyleIconTypes(models.TextChoices):
-        LIGHBULB = "Lightbulb"
+        LIGHTBULB = "Lightbulb"
         HEALTH = "Health"
         ROBOT = "Robot"
         APERTURE = "Aperture"
@@ -140,23 +143,50 @@ class Agent(BaseModel):
         CLOCK_COUNTER_CLOCKWISE = "ClockCounterClockwise"
         PENCIL_LINE = "PencilLine"
         CHALKBOARD = "Chalkboard"
+        CIGARETTE = "Cigarette"
+        CRANE_TOWER = "CraneTower"
+        HEART = "Heart"
+        LEAF = "Leaf"
+        NEWSPAPER_CLIPPING = "NewspaperClipping"
+        ORANGE_SLICE = "OrangeSlice"
+        SMILEY_MELTING = "SmileyMelting"
+        YIN_YANG = "YinYang"
+        SNEAKER_MOVE = "SneakerMove"
+        STUDENT = "Student"
+        OVEN = "Oven"
+        GAVEL = "Gavel"
+        BROADCAST = "Broadcast"
 
     class PrivacyLevel(models.TextChoices):
         PUBLIC = "public"
         PRIVATE = "private"
         PROTECTED = "protected"
 
+    class InputToolOptions(models.TextChoices):
+        # These map to various ConversationCommand types
+        GENERAL = "general"
+        ONLINE = "online"
+        NOTES = "notes"
+        SUMMARIZE = "summarize"
+        WEBPAGE = "webpage"
+
+    class OutputModeOptions(models.TextChoices):
+        # These map to various ConversationCommand types
+        TEXT = "text"
+        IMAGE = "image"
+
     creator = models.ForeignKey(
         KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True
     )  # Creator will only be null when the agents are managed by admin
     name = models.CharField(max_length=200)
     personality = models.TextField()
-    tools = models.JSONField(default=list)  # List of tools the agent has access to, like online search or notes search
+    input_tools = ArrayField(models.CharField(max_length=200, choices=InputToolOptions.choices), default=list)
+    output_modes = ArrayField(models.CharField(max_length=200, choices=OutputModeOptions.choices), default=list)
     managed_by_admin = models.BooleanField(default=False)
     chat_model = models.ForeignKey(ChatModelOptions, on_delete=models.CASCADE)
     slug = models.CharField(max_length=200, unique=True)
     style_color = models.CharField(max_length=200, choices=StyleColorTypes.choices, default=StyleColorTypes.BLUE)
-    style_icon = models.CharField(max_length=200, choices=StyleIconTypes.choices, default=StyleIconTypes.LIGHBULB)
+    style_icon = models.CharField(max_length=200, choices=StyleIconTypes.choices, default=StyleIconTypes.LIGHTBULB)
     privacy_level = models.CharField(max_length=30, choices=PrivacyLevel.choices, default=PrivacyLevel.PRIVATE)
 
     def save(self, *args, **kwargs):

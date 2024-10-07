@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Request
@@ -10,8 +10,13 @@ from pydantic import BaseModel
 from starlette.authentication import requires
 
 from khoj.database.adapters import AgentAdapters
-from khoj.database.models import KhojUser
+from khoj.database.models import Agent, KhojUser
 from khoj.routers.helpers import CommonQueryParams, acheck_if_safe_prompt
+from khoj.utils.helpers import (
+    ConversationCommand,
+    command_descriptions_for_agent,
+    mode_descriptions_for_agent,
+)
 
 # Initialize Router
 logger = logging.getLogger(__name__)
@@ -28,6 +33,8 @@ class ModifyAgentBody(BaseModel):
     color: str
     chat_model: str
     files: Optional[List[str]] = []
+    input_tools: Optional[List[str]] = []
+    output_modes: Optional[List[str]] = []
 
 
 @api_agents.get("", response_class=Response)
@@ -53,6 +60,8 @@ async def all_agents(
                 "privacy_level": agent.privacy_level,
                 "chat_model": agent.chat_model.chat_model,
                 "files": file_names,
+                "input_tools": agent.input_tools,
+                "output_modes": agent.output_modes,
             }
         )
 
@@ -60,6 +69,36 @@ async def all_agents(
     agents_packet.sort(key=lambda x: x["name"])
     agents_packet.sort(key=lambda x: x["slug"] == "khoj", reverse=True)
     return Response(content=json.dumps(agents_packet), media_type="application/json", status_code=200)
+
+
+@api_agents.get("/options", response_class=Response)
+async def get_agent_configuration_options(
+    request: Request,
+    common: CommonQueryParams,
+) -> Response:
+    agent_input_tools = [key for key, _ in Agent.InputToolOptions.choices]
+    agent_output_modes = [key for key, _ in Agent.OutputModeOptions.choices]
+
+    agent_input_tool_with_descriptions: Dict[str, str] = {}
+    for key in agent_input_tools:
+        conversation_command = ConversationCommand(key)
+        agent_input_tool_with_descriptions[key] = command_descriptions_for_agent[conversation_command]
+
+    agent_output_modes_with_descriptions: Dict[str, str] = {}
+    for key in agent_output_modes:
+        conversation_command = ConversationCommand(key)
+        agent_output_modes_with_descriptions[key] = mode_descriptions_for_agent[conversation_command]
+
+    return Response(
+        content=json.dumps(
+            {
+                "input_tools": agent_input_tool_with_descriptions,
+                "output_modes": agent_output_modes_with_descriptions,
+            }
+        ),
+        media_type="application/json",
+        status_code=200,
+    )
 
 
 @api_agents.get("/{agent_slug}", response_class=Response)
@@ -91,6 +130,8 @@ async def get_agent(
         "privacy_level": agent.privacy_level,
         "chat_model": agent.chat_model.chat_model,
         "files": file_names,
+        "input_tools": agent.input_tools,
+        "output_modes": agent.output_modes,
     }
 
     return Response(content=json.dumps(agents_packet), media_type="application/json", status_code=200)
@@ -145,6 +186,8 @@ async def create_agent(
         body.color,
         body.chat_model,
         body.files,
+        body.input_tools,
+        body.output_modes,
     )
 
     agents_packet = {
@@ -157,6 +200,9 @@ async def create_agent(
         "icon": agent.style_icon,
         "privacy_level": agent.privacy_level,
         "chat_model": agent.chat_model.chat_model,
+        "files": body.files,
+        "input_tools": agent.input_tools,
+        "output_modes": agent.output_modes,
     }
 
     return Response(content=json.dumps(agents_packet), media_type="application/json", status_code=200)
@@ -197,6 +243,8 @@ async def update_agent(
         body.color,
         body.chat_model,
         body.files,
+        body.input_tools,
+        body.output_modes,
     )
 
     agents_packet = {
@@ -209,6 +257,9 @@ async def update_agent(
         "icon": agent.style_icon,
         "privacy_level": agent.privacy_level,
         "chat_model": agent.chat_model.chat_model,
+        "files": body.files,
+        "input_tools": agent.input_tools,
+        "output_modes": agent.output_modes,
     }
 
     return Response(content=json.dumps(agents_packet), media_type="application/json", status_code=200)
