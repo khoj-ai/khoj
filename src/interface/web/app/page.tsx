@@ -123,18 +123,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
         //generate colored icons for the selected agents
         const agentIcons = agents
             .filter((agent) => agent !== null && agent !== undefined)
-            .map(
-                (agent) =>
-                    getIconFromIconName(agent.icon, agent.color) || (
-                        <Image
-                            key={agent.name}
-                            src={agent.avatar}
-                            alt={agent.name}
-                            width={50}
-                            height={50}
-                        />
-                    ),
-            );
+            .map((agent) => getIconFromIconName(agent.icon, agent.color)!);
         setAgentIcons(agentIcons);
     }, [agentsData, props.isMobileWidth]);
 

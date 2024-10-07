@@ -17,13 +17,14 @@ from starlette.authentication import has_required_scope, requires
 
 from khoj.app.settings import ALLOWED_HOSTS
 from khoj.database.adapters import (
+    AgentAdapters,
     ConversationAdapters,
     EntryAdapters,
     FileObjectAdapters,
     PublicConversationAdapters,
     aget_user_name,
 )
-from khoj.database.models import KhojUser
+from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation.prompts import help_message, no_entries_found
 from khoj.processor.conversation.utils import save_to_conversation_log
 from khoj.processor.image.generate import text_to_image
@@ -211,7 +212,6 @@ def chat_history(
         agent_metadata = {
             "slug": conversation.agent.slug,
             "name": conversation.agent.name,
-            "avatar": conversation.agent.avatar,
             "isCreator": conversation.agent.creator == user,
             "color": conversation.agent.style_color,
             "icon": conversation.agent.style_icon,
@@ -268,7 +268,6 @@ def get_shared_chat(
         agent_metadata = {
             "slug": conversation.agent.slug,
             "name": conversation.agent.name,
-            "avatar": conversation.agent.avatar,
             "isCreator": conversation.agent.creator == user,
             "color": conversation.agent.style_color,
             "icon": conversation.agent.style_icon,
@@ -418,7 +417,7 @@ def chat_sessions(
         conversations = conversations[:8]
 
     sessions = conversations.values_list(
-        "id", "slug", "title", "agent__slug", "agent__name", "agent__avatar", "created_at", "updated_at"
+        "id", "slug", "title", "agent__slug", "agent__name", "created_at", "updated_at"
     )
 
     session_values = [
@@ -426,9 +425,8 @@ def chat_sessions(
             "conversation_id": str(session[0]),
             "slug": session[2] or session[1],
             "agent_name": session[4],
-            "agent_avatar": session[5],
-            "created": session[6].strftime("%Y-%m-%d %H:%M:%S"),
-            "updated": session[7].strftime("%Y-%m-%d %H:%M:%S"),
+            "created": session[5].strftime("%Y-%m-%d %H:%M:%S"),
+            "updated": session[6].strftime("%Y-%m-%d %H:%M:%S"),
         }
         for session in sessions
     ]
@@ -590,7 +588,7 @@ async def chat(
             nonlocal connection_alive, ttft
             if not connection_alive or await request.is_disconnected():
                 connection_alive = False
-                logger.warn(f"User {user} disconnected from {common.client} client")
+                logger.warning(f"User {user} disconnected from {common.client} client")
                 return
             try:
                 if event_type == ChatEvent.END_LLM_RESPONSE:
@@ -658,6 +656,11 @@ async def chat(
             return
         conversation_id = conversation.id
 
+        agent: Agent | None = None
+        default_agent = await AgentAdapters.aget_default_agent()
+        if conversation.agent and conversation.agent != default_agent:
+            agent = conversation.agent
+
         await is_ready_to_chat(user)
 
         user_name = await aget_user_name(user)
@@ -677,7 +680,12 @@ async def chat(
 
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
             conversation_commands = await aget_relevant_information_sources(
-                q, meta_log, is_automated_task, subscribed=subscribed, uploaded_image_url=uploaded_image_url
+                q,
+                meta_log,
+                is_automated_task,
+                subscribed=subscribed,
+                uploaded_image_url=uploaded_image_url,
+                agent=agent,
             )
             conversation_commands_str = ", ".join([cmd.value for cmd in conversation_commands])
             async for result in send_event(
@@ -685,7 +693,7 @@ async def chat(
             ):
                 yield result
 
-            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task, uploaded_image_url)
+            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task, uploaded_image_url, agent)
             async for result in send_event(ChatEvent.STATUS, f"**Decided Response Mode:** {mode.value}"):
                 yield result
             if mode not in conversation_commands:
@@ -734,7 +742,7 @@ async def chat(
                         yield result
 
                     response = await extract_relevant_summary(
-                        q, contextual_data, subscribed=subscribed, uploaded_image_url=uploaded_image_url
+                        q, contextual_data, subscribed=subscribed, uploaded_image_url=uploaded_image_url, agent=agent
                     )
                     response_log = str(response)
                     async for result in send_llm_response(response_log):
@@ -816,6 +824,7 @@ async def chat(
             location,
             partial(send_event, ChatEvent.STATUS),
             uploaded_image_url=uploaded_image_url,
+            agent=agent,
         ):
             if isinstance(result, dict) and ChatEvent.STATUS in result:
                 yield result[ChatEvent.STATUS]
@@ -853,6 +862,7 @@ async def chat(
                     partial(send_event, ChatEvent.STATUS),
                     custom_filters,
                     uploaded_image_url=uploaded_image_url,
+                    agent=agent,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -876,6 +886,7 @@ async def chat(
                     subscribed,
                     partial(send_event, ChatEvent.STATUS),
                     uploaded_image_url=uploaded_image_url,
+                    agent=agent,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -922,6 +933,7 @@ async def chat(
                 subscribed=subscribed,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
                 uploaded_image_url=uploaded_image_url,
+                agent=agent,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
@@ -1132,6 +1144,7 @@ async def get_chat(
                 yield result
             return
         conversation_id = conversation.id
+        agent = conversation.agent if conversation.agent else None
 
         await is_ready_to_chat(user)
 

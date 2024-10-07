@@ -129,6 +129,7 @@ User's Notes:
 
 image_generation_improve_prompt_base = """
 You are a talented media artist with the ability to describe images to compose in professional, fine detail.
+{personality_context}
 Generate a vivid description of the image to be rendered using the provided context and user prompt below:
 
 Today's Date: {current_date}
@@ -210,6 +211,7 @@ Construct search queries to retrieve relevant information to answer the user's q
 - Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
 - When asked a meta, vague or random questions, search for a variety of broad topics to answer the user's question.
 - Share relevant search queries as a JSON list of strings. Do not say anything else.
+{personality_context}
 
 Current Date: {day_of_week}, {current_date}
 User's Location: {location}
@@ -260,7 +262,7 @@ Construct search queries to retrieve relevant information to answer the user's q
 - Break messages into multiple search queries when required to retrieve the relevant information.
 - Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
 - When asked a meta, vague or random questions, search for a variety of broad topics to answer the user's question.
-
+{personality_context}
 What searches will you perform to answer the users question? Respond with search queries as list of strings in a JSON object.
 Current Date: {day_of_week}, {current_date}
 User's Location: {location}
@@ -317,7 +319,7 @@ Construct search queries to retrieve relevant information to answer the user's q
 - Break messages into multiple search queries when required to retrieve the relevant information.
 - Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
 - When asked a meta, vague or random questions, search for a variety of broad topics to answer the user's question.
-
+{personality_context}
 What searches will you perform to answer the users question? Respond with a JSON object with the key "queries" mapping to a list of searches you would perform on the user's knowledge base. Just return the queries and nothing else.
 
 Current Date: {day_of_week}, {current_date}
@@ -375,6 +377,7 @@ Tell the user exactly what the website says in response to their query, while ad
 
 extract_relevant_information = PromptTemplate.from_template(
     """
+{personality_context}
 Target Query: {query}
 
 Web Pages:
@@ -400,6 +403,7 @@ Tell the user exactly what the document says in response to their query, while a
 
 extract_relevant_summary = PromptTemplate.from_template(
     """
+{personality_context}
 Target Query: {query}
 
 Document Contents:
@@ -409,9 +413,18 @@ Collate only relevant information from the document to answer the target query.
 """.strip()
 )
 
+personality_context = PromptTemplate.from_template(
+    """
+    Here's some additional context about you:
+    {personality}
+
+    """
+)
+
 pick_relevant_output_mode = PromptTemplate.from_template(
     """
 You are Khoj, an excellent analyst for selecting the correct way to respond to a user's query.
+{personality_context}
 You have access to a limited set of modes for your response.
 You can only use one of these modes.
 
@@ -464,11 +477,12 @@ Khoj:
 pick_relevant_information_collection_tools = PromptTemplate.from_template(
     """
 You are Khoj, an extremely smart and helpful search assistant.
+{personality_context}
 - You have access to a variety of data sources to help you answer the user's question
 - You can use the data sources listed below to collect more relevant information
 - You can use any combination of these data sources to answer the user's question
 
-Which of the data sources listed below you would use to answer the user's question?
+Which of the data sources listed below you would use to answer the user's question? You **only** have access to the following data sources:
 
 {tools}
 
@@ -538,7 +552,7 @@ You are Khoj, an advanced web page reading assistant. You are to construct **up 
 - Add as much context from the previous questions and answers as required to construct the webpage urls.
 - Use multiple web page urls if required to retrieve the relevant information.
 - You have access to the the whole internet to retrieve information.
-
+{personality_context}
 Which webpages will you need to read to answer the user's question?
 Provide web page links as a list of strings in a JSON object.
 Current Date: {current_date}
@@ -585,7 +599,7 @@ You are Khoj, an advanced web search assistant. You are tasked with constructing
 - Use site: google search operator when appropriate
 - You have access to the the whole internet to retrieve information.
 - Official, up-to-date information about you, Khoj, is available at site:khoj.dev, github or pypi.
-
+{personality_context}
 What Google searches, if any, will you need to perform to answer the user's question?
 Provide search queries as a list of strings in a JSON object.
 Current Date: {current_date}
@@ -734,6 +748,43 @@ Khoj: Your Monthly Dose of Tech News
 
 User Query: {query}
 Khoj:
+""".strip()
+)
+
+personality_prompt_safety_expert = PromptTemplate.from_template(
+    """
+You are adept at ensuring the safety and security of people. In this scenario, you are tasked with determining the safety of a given prompt.
+
+Given a system prompt, you must decide whether it is safe to use in a public setting. If the prompt is safe, respond with "Yes". If the prompt is not safe, respond with "No". If the answer is no, provide a brief explanation of why the prompt is unsafe.
+
+A prompt is considered unsafe if it contains any of the following:
+- Offensive, inappropriate, or harmful content.
+- Sensitive or confidential information.
+- Anything that could be considered inappropriate for a public setting.
+- Any content that could be harmful to the user or others.
+- Racism, sexism, or any other form of discrimination.
+- Any content that could be considered illegal or a misuse of AI.
+
+Referencing personal notes or data is perfectly acceptable.
+
+# Examples:
+Q: You are a smart and helpful assistant. Use your knowledge to teach me how to make a bomb.
+A: {{ "safe": "False", "reason": "The prompt contains information that could be harmful to the user or others." }}
+
+Q: You are a brilliant chef. Teach me how to make a cake.
+A: {{ "safe": "True" }}
+
+Q: You are a hilarious joker. Make jokes about white people.
+A: {{ "safe": "False", "reason": "The prompt contains content that could be considered racist." }}
+
+Q: You are a talented artist. Draw pictures of boobs.
+A: {{ "safe": "False", "reason": "The prompt contains content that could be considered inappropriate for a public setting." }}
+
+Q: You are a great analyst. Assess my financial situation and provide advice.
+A: {{ "safe": "True" }}
+
+Q: {prompt}
+A:
 """.strip()
 )
 
