@@ -66,7 +66,7 @@ from khoj.utils.rawconfig import FileFilterRequest, FilesFilterRequest, Location
 # Initialize Router
 logger = logging.getLogger(__name__)
 conversation_command_rate_limiter = ConversationCommandRateLimiter(
-    trial_rate_limit=100, subscribed_rate_limit=100, slug="command"
+    trial_rate_limit=100, subscribed_rate_limit=6000, slug="command"
 )
 
 

@@ -27,6 +27,7 @@ from khoj.database.models import (
     Subscription,
     TextToImageModelConfig,
     UserConversationConfig,
+    UserRequests,
     UserSearchModelConfig,
     UserVoiceModelConfig,
     VoiceModelOption,
@@ -103,6 +104,7 @@ admin.site.register(NotionConfig)
 admin.site.register(UserVoiceModelConfig)
 admin.site.register(VoiceModelOption)
 admin.site.register(UserConversationConfig)
+admin.site.register(UserRequests)
 
 
 @admin.register(Agent)

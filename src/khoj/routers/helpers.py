@@ -1029,13 +1029,23 @@ class ApiUserRateLimiter:
 
         # Check if the user has exceeded the rate limit
         if subscribed and count_requests >= self.subscribed_requests:
+            logger.info(
+                f"Rate limit: {count_requests} requests in {self.window} seconds for user: {user}. Limit is {self.subscribed_requests} requests."
+            )
             raise HTTPException(status_code=429, detail="Slow down! Too Many Requests")
         if not subscribed and count_requests >= self.requests:
             if self.requests >= self.subscribed_requests:
+                logger.info(
+                    f"Rate limit: {count_requests} requests in {self.window} seconds for user: {user}. Limit is {self.subscribed_requests} requests."
+                )
                 raise HTTPException(
                     status_code=429,
                     detail="Slow down! Too Many Requests",
                 )
+
+            logger.info(
+                f"Rate limit: {count_requests} requests in {self.window} seconds for user: {user}. Limit is {self.subscribed_requests} requests."
+            )
             raise HTTPException(
                 status_code=429,
                 detail="We're glad you're enjoying Khoj! You've exceeded your usage limit for today. Come back tomorrow or subscribe to increase your usage limit via [your settings](https://app.khoj.dev/settings).",
@@ -1073,6 +1083,9 @@ class ConversationCommandRateLimiter:
         ).acount()
 
         if subscribed and count_requests >= self.subscribed_rate_limit:
+            logger.info(
+                f"Rate limit: {count_requests} requests in 24 hours for user: {user}. Limit is {self.subscribed_rate_limit} requests."
+            )
             raise HTTPException(status_code=429, detail="Slow down! Too Many Requests")
         if not subscribed and count_requests >= self.trial_rate_limit:
             raise HTTPException(
