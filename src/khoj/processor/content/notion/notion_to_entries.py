@@ -52,7 +52,8 @@ class NotionToEntries(TextToEntries):
             token=config.token,
         )
         self.session = requests.Session()
-        self.session.headers.update({"Authorization": f"Bearer {config.token}", "Notion-Version": "2022-02-22"})
+        if config.token:
+            self.session.headers.update({"Authorization": f"Bearer {config.token}", "Notion-Version": "2022-02-22"})
         self.unsupported_block_types = [
             NotionBlockType.BOOKMARK.value,
             NotionBlockType.DIVIDER.value,

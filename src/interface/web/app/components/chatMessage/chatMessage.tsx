@@ -301,7 +301,6 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                             delimiters: [
                                 { left: "$$", right: "$$", display: true },
                                 { left: "\\[", right: "\\]", display: true },
-                                { left: "$", right: "$", display: false },
                                 { left: "\\(", right: "\\)", display: false },
                             ],
                         });
