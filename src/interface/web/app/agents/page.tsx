@@ -103,8 +103,10 @@ import { uploadDataForIndexing } from "../common/chatFunctions";
 import {
     AlertDialog,
     AlertDialogAction,
+    AlertDialogCancel,
     AlertDialogContent,
     AlertDialogDescription,
+    AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
@@ -156,7 +158,7 @@ function Badge(props: { icon: JSX.Element; text?: string; hoverText?: string }) 
                 <TooltipContent asChild>
                     <div className="text-sm">{props.hoverText || displayBadgeText}</div>
                 </TooltipContent>
-                <TooltipTrigger>
+                <TooltipTrigger className="cursor-text">
                     <div className="flex items-center space-x-2 rounded-full border-accent-500 border p-1.5">
                         <div className="text-muted-foreground">{props.icon}</div>
                         {displayBadgeText && displayBadgeText.length > 0 && (
@@ -436,6 +438,7 @@ function AgentCard(props: AgentCardProps) {
                                         modelOptions={props.modelOptions}
                                         slug={props.data.slug}
                                         inputToolOptions={props.inputToolOptions}
+                                        isSubscribed={props.isSubscribed}
                                         outputModeOptions={props.outputModeOptions}
                                     />
                                 </DialogContent>
@@ -578,6 +581,7 @@ function AgentCard(props: AgentCardProps) {
                                         slug={props.data.slug}
                                         inputToolOptions={props.inputToolOptions}
                                         outputModeOptions={props.outputModeOptions}
+                                        isSubscribed={props.isSubscribed}
                                     />
                                 </DrawerContent>
                             ) : (
@@ -637,6 +641,7 @@ const EditAgentSchema = z.object({
 interface AgentModificationFormProps {
     form: UseFormReturn<z.infer<typeof EditAgentSchema>>;
     onSubmit: (values: z.infer<typeof EditAgentSchema>) => void;
+    userConfig?: UserConfig;
     create?: boolean;
     errors?: string | null;
     modelOptions: ModelOptions[];
@@ -644,6 +649,7 @@ interface AgentModificationFormProps {
     inputToolOptions: { [key: string]: string };
     outputModeOptions: { [key: string]: string };
     slug?: string;
+    isSubscribed: boolean;
 }
 
 function AgentModificationForm(props: AgentModificationFormProps) {
@@ -659,7 +665,9 @@ function AgentModificationForm(props: AgentModificationFormProps) {
     const [uploading, setUploading] = useState(false);
     const [progressValue, setProgressValue] = useState(0);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
-    const [allFileOptions, setAllFileOptions] = useState<string[]>(props.filesOptions);
+    const [allFileOptions, setAllFileOptions] = useState<string[]>([]);
+
+    const [showSubscribeDialog, setShowSubscribeDialog] = useState(true);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -679,6 +687,13 @@ function AgentModificationForm(props: AgentModificationFormProps) {
             return () => clearInterval(interval);
         }
     }, [uploading]);
+
+    useEffect(() => {
+        const currentFiles = props.form.getValues("files") || [];
+        const fileOptions = props.filesOptions || [];
+        const concatenatedFiles = [...currentFiles, ...fileOptions];
+        setAllFileOptions((prev) => [...prev, ...concatenatedFiles]);
+    }, []);
 
     useEffect(() => {
         if (uploadedFiles.length > 0) {
@@ -740,6 +755,38 @@ function AgentModificationForm(props: AgentModificationFormProps) {
 
     const privacyOptions = ["public", "private", "protected"];
 
+    if (!props.isSubscribed && showSubscribeDialog) {
+        return (
+            <AlertDialog open={true}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Upgrade to Futurist</AlertDialogTitle>
+                    </AlertDialogHeader>
+                    <AlertDialogDescription>
+                        You need to be a Futurist subscriber to create more agents.{" "}
+                        <a href="/settings">Upgrade now</a>.
+                    </AlertDialogDescription>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel
+                            onClick={() => {
+                                setShowSubscribeDialog(false);
+                            }}
+                        >
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                window.location.href = "/settings";
+                            }}
+                        >
+                            Continue
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        );
+    }
+
     return (
         <Form {...props.form}>
             <form
@@ -753,7 +800,7 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                     control={props.form.control}
                     name="name"
                     render={({ field }) => (
-                        <FormItem className="space-y-0">
+                        <FormItem className="space-y-0 grid gap-2">
                             <FormLabel>Name</FormLabel>
                             <FormDescription>
                                 What should this agent be called? Pick something descriptive &
@@ -771,7 +818,7 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                     control={props.form.control}
                     name="persona"
                     render={({ field }) => (
-                        <FormItem className="space-y-1">
+                        <FormItem className="space-y-1 grid gap-2">
                             <FormLabel>Personality</FormLabel>
                             <FormDescription>
                                 What is the personality, thought process, or tuning of this agent?
@@ -792,7 +839,7 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                     control={props.form.control}
                     name="chat_model"
                     render={({ field }) => (
-                        <FormItem className="space-y-1">
+                        <FormItem className="space-y-1 grid gap-2">
                             <FormLabel>Chat Model</FormLabel>
                             <FormDescription>
                                 Which large language model should this agent use?
@@ -821,7 +868,7 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                     control={props.form.control}
                     name="privacy_level"
                     render={({ field }) => (
-                        <FormItem className="">
+                        <FormItem className="space-y-1 grid gap-2">
                             <FormLabel>
                                 <div>Privacy Level</div>
                             </FormLabel>
@@ -950,7 +997,7 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                     control={props.form.control}
                     name="files"
                     render={({ field }) => (
-                        <FormItem className="flex flex-col">
+                        <FormItem className="flex flex-col gap-2">
                             <FormLabel>Knowledge Base</FormLabel>
                             <FormDescription>
                                 Which information should be part of its digital brain?{" "}
@@ -1071,7 +1118,7 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                     control={props.form.control}
                     name="input_tools"
                     render={({ field }) => (
-                        <FormItem className="flex flex-col">
+                        <FormItem className="flex flex-col gap-2">
                             <FormLabel>Restrict Input Tools</FormLabel>
                             <FormDescription>
                                 Which knowledge retrieval tools should this agent be limited to?
@@ -1140,7 +1187,7 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                     control={props.form.control}
                     name="output_modes"
                     render={({ field }) => (
-                        <FormItem className="flex flex-col">
+                        <FormItem className="flex flex-col gap-2">
                             <FormLabel>Restrict Output Modes</FormLabel>
                             <FormDescription>
                                 Which output modes should this agent be limited to?
@@ -1220,7 +1267,7 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                     <Button
                         type="submit"
                         variant={"ghost"}
-                        disabled={isSaving}
+                        disabled={isSaving || !props.isSubscribed}
                         className={`items-center ${isSaving ? "bg-stone-100 dark:bg-neutral-900" : ""} text-white ${colorOptionClassName}`}
                     >
                         <FloppyDisk className="h-4 w-4 mr-2" />
@@ -1259,6 +1306,7 @@ interface CreateAgentCardProps {
 function CreateAgentCard(props: CreateAgentCardProps) {
     const [showModal, setShowModal] = useState(false);
     const [errors, setErrors] = useState<string | null>(null);
+    const [showLoginPrompt, setShowLoginPrompt] = useState(true);
 
     const form = useForm<z.infer<typeof EditAgentSchema>>({
         resolver: zodResolver(EditAgentSchema),
@@ -1329,6 +1377,12 @@ function CreateAgentCard(props: CreateAgentCardProps) {
                     <DrawerHeader>
                         <DrawerTitle>Create Agent</DrawerTitle>
                     </DrawerHeader>
+                    {!props.userProfile && showLoginPrompt && (
+                        <LoginPrompt
+                            loginRedirectMessage="Sign in to start chatting with a specialized agent"
+                            onOpenChange={setShowLoginPrompt}
+                        />
+                    )}
                     <AgentModificationForm
                         form={form}
                         onSubmit={onSubmit}
@@ -1338,6 +1392,7 @@ function CreateAgentCard(props: CreateAgentCardProps) {
                         modelOptions={props.modelOptions}
                         inputToolOptions={props.inputToolOptions}
                         outputModeOptions={props.outputModeOptions}
+                        isSubscribed={props.isSubscribed}
                     />
                     <DrawerFooter>
                         <DrawerClose>Dismiss</DrawerClose>
@@ -1357,6 +1412,12 @@ function CreateAgentCard(props: CreateAgentCardProps) {
             </DialogTrigger>
             <DialogContent className={"lg:max-w-screen-lg overflow-y-scroll max-h-screen"}>
                 <DialogHeader>Create Agent</DialogHeader>
+                {!props.userProfile && showLoginPrompt && (
+                    <LoginPrompt
+                        loginRedirectMessage="Sign in to start chatting with a specialized agent"
+                        onOpenChange={setShowLoginPrompt}
+                    />
+                )}
                 <AgentModificationForm
                     form={form}
                     onSubmit={onSubmit}
@@ -1366,6 +1427,7 @@ function CreateAgentCard(props: CreateAgentCardProps) {
                     modelOptions={props.modelOptions}
                     inputToolOptions={props.inputToolOptions}
                     outputModeOptions={props.outputModeOptions}
+                    isSubscribed={props.isSubscribed}
                 />
             </DialogContent>
         </Dialog>
@@ -1392,7 +1454,7 @@ export default function Agents() {
     const [agentSlug, setAgentSlug] = useState<string | null>(null);
 
     const { data: filesData, error: fileError } = useSWR<string[]>(
-        "/api/content/computer",
+        userConfig ? "/api/content/computer" : null,
         fetcher,
     );
 
@@ -1474,8 +1536,11 @@ export default function Agents() {
     const selectedChatModelOption: number = userConfig?.selected_chat_model_config || 0;
     const isSubscribed: boolean =
         (userConfig?.subscription_state &&
-            userConfig?.subscription_state in
-                [SubscriptionStates.SUBSCRIBED, SubscriptionStates.TRIAL]) ||
+            [
+                SubscriptionStates.SUBSCRIBED.valueOf(),
+                SubscriptionStates.TRIAL.valueOf(),
+                SubscriptionStates.UNSUBSCRIBED.valueOf(),
+            ].includes(userConfig.subscription_state)) ||
         false;
 
     // The default model option should map to the item in the modelOptions array that has the same id as the selectedChatModelOption

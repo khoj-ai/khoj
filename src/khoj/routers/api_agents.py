@@ -161,7 +161,7 @@ async def delete_agent(
 
 
 @api_agents.post("", response_class=Response)
-@requires(["authenticated"])
+@requires(["authenticated", "premium"])
 async def create_agent(
     request: Request,
     common: CommonQueryParams,
@@ -213,7 +213,7 @@ async def create_agent(
 
 
 @api_agents.patch("", response_class=Response)
-@requires(["authenticated"])
+@requires(["authenticated", "premium"])
 async def update_agent(
     request: Request,
     common: CommonQueryParams,
