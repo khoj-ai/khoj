@@ -150,10 +150,14 @@ function GenericOnlineReferenceCard(props: OnlineReferenceCardProps) {
                                 rel="noreferrer"
                                 className="!no-underline p-2"
                             >
-                                <div className="flex items-center">
-                                    <img src={favicon} alt="" className="!w-4 h-4 mr-2" />
+                                <div className="flex items-center gap-2">
+                                    <img
+                                        src={favicon}
+                                        alt=""
+                                        className="!w-4 h-4 mr-2 flex-shrink-0"
+                                    />
                                     <h3
-                                        className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground`}
+                                        className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground flex-grow`}
                                     >
                                         {domain}
                                     </h3>
