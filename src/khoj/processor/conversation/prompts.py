@@ -415,10 +415,10 @@ Collate only relevant information from the document to answer the target query.
 
 personality_context = PromptTemplate.from_template(
     """
-    Here's some additional context about you:
-    {personality}
+Here's some additional context about you:
+{personality}
 
-    """
+"""
 )
 
 pick_relevant_output_mode = PromptTemplate.from_template(
