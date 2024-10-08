@@ -349,15 +349,27 @@ async def extract_references_and_questions(
     compiled_references: List[Any] = []
     inferred_queries: List[str] = []
 
+    agent_has_entries = False
+
+    if agent:
+        agent_has_entries = await sync_to_async(EntryAdapters.agent_has_entries)(agent=agent)
+
     if (
         not ConversationCommand.Notes in conversation_commands
         and not ConversationCommand.Default in conversation_commands
+        and not agent_has_entries
     ):
         yield compiled_references, inferred_queries, q
         return
 
+    # If Notes or Default is not in the conversation command, then the search should be restricted to the agent's knowledge base
+    should_limit_to_agent_knowledge = (
+        ConversationCommand.Notes not in conversation_commands
+        and ConversationCommand.Default not in conversation_commands
+    )
+
     if not await sync_to_async(EntryAdapters.user_has_entries)(user=user):
-        if not await sync_to_async(EntryAdapters.agent_has_entries)(agent=agent):
+        if not agent_has_entries:
             logger.debug("No documents in knowledge base. Use a Khoj client to sync and chat with your docs.")
             yield compiled_references, inferred_queries, q
             return
@@ -461,7 +473,7 @@ async def extract_references_and_questions(
             n_items = min(n, 3) if using_offline_chat else n
             search_results.extend(
                 await execute_search(
-                    user,
+                    user if not should_limit_to_agent_knowledge else None,
                     f"{query} {filters_in_query}",
                     n=n_items,
                     t=SearchType.All,
