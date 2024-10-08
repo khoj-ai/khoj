@@ -348,11 +348,17 @@ async def aget_relevant_information_sources(
                 final_response.append(ConversationCommand(llm_suggested_tool))
 
         if is_none_or_empty(final_response):
-            final_response = [ConversationCommand.Default]
+            if len(agent_tools) == 0:
+                final_response = [ConversationCommand.Default]
+            else:
+                final_response = agent_tools
         return final_response
     except Exception as e:
         logger.error(f"Invalid response for determining relevant tools: {response}")
-        return [ConversationCommand.Default]
+        if len(agent_tools) == 0:
+            final_response = [ConversationCommand.Default]
+        else:
+            final_response = agent_tools
 
 
 async def aget_relevant_output_modes(
