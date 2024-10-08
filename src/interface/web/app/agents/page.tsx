@@ -246,7 +246,6 @@ function AgentCard(props: AgentCardProps) {
             body: JSON.stringify(values),
         })
             .then((response) => {
-                console.log(response);
                 if (response.status === 200) {
                     form.reset();
                     setShowModal(false);
@@ -660,6 +659,8 @@ function AgentModificationForm(props: AgentModificationFormProps) {
     const [uploading, setUploading] = useState(false);
     const [progressValue, setProgressValue] = useState(0);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+    const [allFileOptions, setAllFileOptions] = useState<string[]>(props.filesOptions);
+
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -682,6 +683,7 @@ function AgentModificationForm(props: AgentModificationFormProps) {
     useEffect(() => {
         if (uploadedFiles.length > 0) {
             handleAgentFileChange(uploadedFiles);
+            setAllFileOptions((prev) => [...prev, ...uploadedFiles]);
         }
     }, [uploadedFiles]);
 
@@ -1028,7 +1030,7 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                                         <CommandList>
                                             <CommandEmpty>No files found.</CommandEmpty>
                                             <CommandGroup>
-                                                {props.filesOptions.map((file) => (
+                                                {allFileOptions.map((file) => (
                                                     <CommandItem
                                                         value={file}
                                                         key={file}
@@ -1284,8 +1286,6 @@ function CreateAgentCard(props: CreateAgentCardProps) {
     }, [props.selectedChatModelOption, props.data]);
 
     const onSubmit = (values: z.infer<typeof EditAgentSchema>) => {
-        console.log(JSON.stringify(values));
-
         let agentsApiUrl = `/api/agents`;
 
         fetch(agentsApiUrl, {
