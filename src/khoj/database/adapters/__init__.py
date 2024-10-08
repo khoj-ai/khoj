@@ -641,6 +641,10 @@ class AgentAdapters:
             agent.chat_model = default_conversation_config
             agent.slug = AgentAdapters.DEFAULT_AGENT_SLUG
             agent.name = AgentAdapters.DEFAULT_AGENT_NAME
+            agent.privacy_level = Agent.PrivacyLevel.PUBLIC
+            agent.managed_by_admin = True
+            agent.input_tools = []
+            agent.output_modes = []
             agent.save()
         else:
             # The default agent is public and managed by the admin. It's handled a little differently than other agents.
@@ -650,7 +654,6 @@ class AgentAdapters:
                 managed_by_admin=True,
                 chat_model=default_conversation_config,
                 personality=default_personality,
-                tools=["*"],
                 slug=AgentAdapters.DEFAULT_AGENT_SLUG,
             )
             Conversation.objects.filter(agent=None).update(agent=agent)
