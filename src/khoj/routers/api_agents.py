@@ -169,7 +169,11 @@ async def create_agent(
 ) -> Response:
     user: KhojUser = request.user.object
 
-    is_safe_prompt, reason = await acheck_if_safe_prompt(body.persona)
+    is_safe_prompt, reason = True, ""
+
+    if body.privacy_level != Agent.PrivacyLevel.PRIVATE:
+        is_safe_prompt, reason = await acheck_if_safe_prompt(body.persona)
+
     if not is_safe_prompt:
         return Response(
             content=json.dumps({"error": f"{reason}"}),
@@ -217,7 +221,11 @@ async def update_agent(
 ) -> Response:
     user: KhojUser = request.user.object
 
-    is_safe_prompt, reason = await acheck_if_safe_prompt(body.persona)
+    is_safe_prompt, reason = True, ""
+
+    if body.privacy_level != Agent.PrivacyLevel.PRIVATE:
+        is_safe_prompt, reason = await acheck_if_safe_prompt(body.persona)
+
     if not is_safe_prompt:
         return Response(
             content=json.dumps({"error": f"{reason}"}),
