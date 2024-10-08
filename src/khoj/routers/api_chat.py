@@ -758,7 +758,12 @@ async def chat(
                         yield result
 
                     response = await extract_relevant_summary(
-                        q, contextual_data, subscribed=subscribed, uploaded_image_url=uploaded_image_url, agent=agent
+                        q,
+                        contextual_data,
+                        conversation_history=meta_log,
+                        subscribed=subscribed,
+                        uploaded_image_url=uploaded_image_url,
+                        agent=agent,
                     )
                     response_log = str(response)
                     async for result in send_llm_response(response_log):
@@ -1238,7 +1243,11 @@ async def get_chat(
                         yield result
 
                     response = await extract_relevant_summary(
-                        q, contextual_data, subscribed=subscribed, uploaded_image_url=uploaded_image_url
+                        q,
+                        contextual_data,
+                        conversation_history=meta_log,
+                        subscribed=subscribed,
+                        uploaded_image_url=uploaded_image_url,
                     )
                     response_log = str(response)
                     async for result in send_llm_response(response_log):

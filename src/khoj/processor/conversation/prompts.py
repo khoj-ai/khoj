@@ -411,6 +411,10 @@ Tell the user exactly what the document says in response to their query, while a
 extract_relevant_summary = PromptTemplate.from_template(
     """
 {personality_context}
+
+Conversation History:
+{chat_history}
+
 Target Query: {query}
 
 Document Contents:
