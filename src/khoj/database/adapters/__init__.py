@@ -568,6 +568,10 @@ class AgentAdapters:
     @staticmethod
     async def adelete_agent_by_slug(agent_slug: str, user: KhojUser):
         agent = await AgentAdapters.aget_agent_by_slug(agent_slug, user)
+
+        async for entry in Entry.objects.filter(agent=agent).aiterator():
+            await entry.adelete()
+
         if agent:
             await agent.adelete()
             return True
