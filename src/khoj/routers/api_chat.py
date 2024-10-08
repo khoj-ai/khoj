@@ -661,6 +661,11 @@ async def chat(
         if conversation.agent and conversation.agent != default_agent:
             agent = conversation.agent
 
+        if not conversation.agent:
+            conversation.agent = default_agent
+            await conversation.asave()
+            agent = default_agent
+
         await is_ready_to_chat(user)
 
         user_name = await aget_user_name(user)
