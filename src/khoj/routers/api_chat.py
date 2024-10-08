@@ -722,19 +722,30 @@ async def chat(
             conversation_commands.remove(ConversationCommand.Summarize)
         elif ConversationCommand.Summarize in conversation_commands:
             response_log = ""
-            if len(file_filters) == 0:
+            agent_has_entries = await EntryAdapters.aagent_has_entries(agent)
+            if len(file_filters) == 0 and not agent_has_entries:
                 response_log = "No files selected for summarization. Please add files using the section on the left."
                 async for result in send_llm_response(response_log):
                     yield result
-            elif len(file_filters) > 1:
+            elif len(file_filters) > 1 and not agent_has_entries:
                 response_log = "Only one file can be selected for summarization."
                 async for result in send_llm_response(response_log):
                     yield result
             else:
                 try:
-                    file_object = await FileObjectAdapters.async_get_file_objects_by_name(user, file_filters[0])
+                    file_object = None
+                    if await EntryAdapters.aagent_has_entries(agent):
+                        file_names = await EntryAdapters.aget_agent_entry_filepaths(agent)
+                        if len(file_names) > 0:
+                            file_object = await FileObjectAdapters.async_get_file_objects_by_name(
+                                None, file_names[0], agent
+                            )
+
+                    if len(file_filters) > 0:
+                        file_object = await FileObjectAdapters.async_get_file_objects_by_name(user, file_filters[0])
+
                     if len(file_object) == 0:
-                        response_log = "Sorry, we couldn't find the full text of this file. Please re-upload the document and try again."
+                        response_log = "Sorry, I couldn't find the full text of this file. Please re-upload the document and try again."
                         async for result in send_llm_response(response_log):
                             yield result
                         return
@@ -753,7 +764,7 @@ async def chat(
                     async for result in send_llm_response(response_log):
                         yield result
                 except Exception as e:
-                    response_log = "Error summarizing file."
+                    response_log = "Error summarizing file. Please try again, or contact support."
                     logger.error(f"Error summarizing file for {user.email}: {e}", exc_info=True)
                     async for result in send_llm_response(response_log):
                         yield result

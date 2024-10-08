@@ -1214,8 +1214,8 @@ class FileObjectAdapters:
         return await FileObject.objects.acreate(user=user, file_name=file_name, raw_text=raw_text)
 
     @staticmethod
-    async def async_get_file_objects_by_name(user: KhojUser, file_name: str):
-        return await sync_to_async(list)(FileObject.objects.filter(user=user, file_name=file_name))
+    async def async_get_file_objects_by_name(user: KhojUser, file_name: str, agent: Agent = None):
+        return await sync_to_async(list)(FileObject.objects.filter(user=user, file_name=file_name, agent=agent))
 
     @staticmethod
     async def async_get_all_file_objects(user: KhojUser):
@@ -1306,6 +1306,10 @@ class EntryAdapters:
         return await Entry.objects.filter(user=user).aexists()
 
     @staticmethod
+    async def aagent_has_entries(agent: Agent):
+        return await Entry.objects.filter(agent=agent).aexists()
+
+    @staticmethod
     async def adelete_entry_by_file(user: KhojUser, file_path: str):
         return await Entry.objects.filter(user=user, file_path=file_path).adelete()
 
@@ -1318,6 +1322,10 @@ class EntryAdapters:
             deleted_count += count
 
         return deleted_count
+
+    @staticmethod
+    async def aget_agent_entry_filepaths(agent: Agent):
+        return await sync_to_async(list)(Entry.objects.filter(agent=agent).values_list("file_path", flat=True))
 
     @staticmethod
     def get_all_filenames_by_source(user: KhojUser, file_source: str):
