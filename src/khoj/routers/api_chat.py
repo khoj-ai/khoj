@@ -695,7 +695,6 @@ async def chat(
         is_automated_task = conversation_commands == [ConversationCommand.AutomatedTask]
 
         pending_research = True
-
         researched_results = ""
         online_results: Dict = dict()
         ## Extract Document References
@@ -785,7 +784,7 @@ async def chat(
                     yield result
             else:
                 response_log = await generate_summary_from_files(
-                    q=query,
+                    q=q,
                     user=user,
                     file_filters=file_filters,
                     meta_log=meta_log,
@@ -1260,7 +1259,7 @@ async def old_chat(
                     yield result
             else:
                 response_log = await generate_summary_from_files(
-                    q=query,
+                    q=q,
                     user=user,
                     file_filters=file_filters,
                     meta_log=meta_log,
