@@ -351,7 +351,7 @@ async def aget_relevant_information_sources(
             if len(agent_tools) == 0:
                 final_response = [ConversationCommand.Default]
             else:
-                final_response = agent_tools
+                final_response = [ConversationCommand.General]
         return final_response
     except Exception as e:
         logger.error(f"Invalid response for determining relevant tools: {response}")
