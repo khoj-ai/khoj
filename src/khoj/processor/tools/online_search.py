@@ -102,7 +102,7 @@ async def search_online(
             async for event in send_status_func(f"**Reading web pages**: {webpage_links_str}"):
                 yield {ChatEvent.STATUS: event}
     tasks = [
-        read_webpage_and_extract_content(subquery, link, content, subscribed=subscribed, agent=agent)
+        read_webpage_and_extract_content(subquery, link, content, subscribed=subscribed, user=user, agent=agent)
         for link, subquery, content in webpages
     ]
     results = await asyncio.gather(*tasks)
@@ -158,7 +158,9 @@ async def read_webpages(
         webpage_links_str = "\n- " + "\n- ".join(list(urls))
         async for event in send_status_func(f"**Reading web pages**: {webpage_links_str}"):
             yield {ChatEvent.STATUS: event}
-    tasks = [read_webpage_and_extract_content(query, url, subscribed=subscribed, agent=agent) for url in urls]
+    tasks = [
+        read_webpage_and_extract_content(query, url, subscribed=subscribed, user=user, agent=agent) for url in urls
+    ]
     results = await asyncio.gather(*tasks)
 
     response: Dict[str, Dict] = defaultdict(dict)
@@ -169,14 +171,14 @@ async def read_webpages(
 
 
 async def read_webpage_and_extract_content(
-    subquery: str, url: str, content: str = None, subscribed: bool = False, agent: Agent = None
+    subquery: str, url: str, content: str = None, subscribed: bool = False, user: KhojUser = None, agent: Agent = None
 ) -> Tuple[str, Union[None, str], str]:
     try:
         if is_none_or_empty(content):
             with timer(f"Reading web page at '{url}' took", logger):
                 content = await read_webpage_with_olostep(url) if OLOSTEP_API_KEY else await read_webpage_with_jina(url)
         with timer(f"Extracting relevant information from web page at '{url}' took", logger):
-            extracted_info = await extract_relevant_info(subquery, content, subscribed=subscribed, agent=agent)
+            extracted_info = await extract_relevant_info(subquery, content, user=user, agent=agent)
         return subquery, extracted_info, url
     except Exception as e:
         logger.error(f"Failed to read web page at '{url}' with {e}")
