@@ -230,6 +230,20 @@ function AgentCard(props: AgentCardProps) {
         },
     });
 
+    useEffect(() => {
+        form.reset({
+            name: props.data.name,
+            persona: props.data.persona,
+            color: props.data.color,
+            icon: props.data.icon,
+            privacy_level: props.data.privacy_level,
+            chat_model: props.data.chat_model,
+            files: props.data.files,
+            input_tools: props.data.input_tools,
+            output_modes: props.data.output_modes,
+        });
+    }, [props.data]);
+
     if (showModal) {
         window.history.pushState(
             {},
