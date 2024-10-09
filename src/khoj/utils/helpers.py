@@ -345,6 +345,13 @@ tool_descriptions_for_llm = {
     ConversationCommand.Summarize: "To retrieve an answer that depends on the entire document or a large text.",
 }
 
+function_calling_description_for_llm = {
+    ConversationCommand.Notes: "Use this if you think the user's personal knowledge base contains relevant context.",
+    ConversationCommand.Online: "Use this if you think the there's important information on the internet related to the query.",
+    ConversationCommand.Webpage: "Use this if the user has provided a webpage URL or you are share of a webpage URL that will help you directly answer this query",
+    ConversationCommand.Summarize: "Use this if you want to retrieve an answer that depends on reading an entire corpus.",
+}
+
 mode_descriptions_for_llm = {
     ConversationCommand.Image: "Use this if the user is requesting you to generate a picture based on their description.",
     ConversationCommand.Automation: "Use this if the user is requesting a response at a scheduled date or time.",

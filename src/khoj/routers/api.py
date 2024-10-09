@@ -355,9 +355,10 @@ async def extract_references_and_questions(
         agent_has_entries = await sync_to_async(EntryAdapters.agent_has_entries)(agent=agent)
 
     if (
-        not ConversationCommand.Notes in conversation_commands
-        and not ConversationCommand.Default in conversation_commands
-        and not agent_has_entries
+        # not ConversationCommand.Notes in conversation_commands
+        # and not ConversationCommand.Default in conversation_commands
+        # and not agent_has_entries
+        True
     ):
         yield compiled_references, inferred_queries, q
         return

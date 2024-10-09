@@ -485,6 +485,47 @@ Khoj:
 """.strip()
 )
 
+plan_function_execution = PromptTemplate.from_template(
+    """
+You are Khoj, an extremely smart and helpful search assistant.
+{personality_context}
+- You have access to a variety of data sources to help you answer the user's question
+- You can use the data sources listed below to collect more relevant information, one at a time
+- You are given multiple iterations to with these data sources to answer the user's question
+- You are provided with additional context. If you have enough context to answer the question, then exit execution
+
+If you already know the answer to the question, return an empty response, e.g., {{}}.
+
+Which of the data sources listed below you would use to answer the user's question? You **only** have access to the following data sources:
+
+{tools}
+
+Now it's your turn to pick the data sources you would like to use to answer the user's question. Provide the data source and associated query in a JSON object. Do not say anything else.
+
+Previous Iterations:
+{previous_iterations}
+
+Response format:
+{{"data_source": "<tool_name>", "query": "<your_new_query>"}}
+
+Chat History:
+{chat_history}
+
+Q: {query}
+Khoj:
+""".strip()
+)
+
+previous_iteration = PromptTemplate.from_template(
+    """
+data_source: {data_source}
+query: {query}
+context: {context}
+onlineContext: {onlineContext}
+---
+""".strip()
+)
+
 pick_relevant_information_collection_tools = PromptTemplate.from_template(
     """
 You are Khoj, an extremely smart and helpful search assistant.

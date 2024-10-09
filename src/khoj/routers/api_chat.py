@@ -41,13 +41,18 @@ from khoj.routers.helpers import (
     aget_relevant_output_modes,
     construct_automation_created_message,
     create_automation,
-    extract_relevant_summary,
+    extract_relevant_info,
+    generate_summary_from_files,
     get_conversation_command,
     is_query_empty,
     is_ready_to_chat,
     read_chat_stream,
     update_telemetry_state,
     validate_conversation_config,
+)
+from khoj.routers.research import (
+    InformationCollectionIteration,
+    execute_information_collection,
 )
 from khoj.routers.storage import upload_image_to_bucket
 from khoj.utils import state
@@ -689,7 +694,46 @@ async def chat(
         meta_log = conversation.conversation_log
         is_automated_task = conversation_commands == [ConversationCommand.AutomatedTask]
 
+        pending_research = True
+
+        researched_results = ""
+        online_results: Dict = dict()
+        ## Extract Document References
+        compiled_references, inferred_queries, defiltered_query = [], [], None
+
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
+            async for research_result in execute_information_collection(
+                request=request,
+                user=user,
+                query=q,
+                conversation_id=conversation_id,
+                conversation_history=meta_log,
+                subscribed=subscribed,
+                uploaded_image_url=uploaded_image_url,
+                agent=agent,
+                send_status_func=partial(send_event, ChatEvent.STATUS),
+                location=location,
+                file_filters=conversation.file_filters if conversation else [],
+            ):
+                if type(research_result) == InformationCollectionIteration:
+                    pending_research = False
+                    if research_result.onlineContext:
+                        researched_results += str(research_result.onlineContext)
+                        online_results.update(research_result.onlineContext)
+
+                    if research_result.context:
+                        researched_results += str(research_result.context)
+                        compiled_references.extend(research_result.context)
+
+                else:
+                    yield research_result
+
+            researched_results = await extract_relevant_info(q, researched_results, agent)
+
+            logger.info(f"Researched Results: {researched_results}")
+
+            pending_research = False
+
             conversation_commands = await aget_relevant_information_sources(
                 q,
                 meta_log,
@@ -724,9 +768,11 @@ async def chat(
             and not used_slash_summarize
             # but we can't actually summarize
             and len(file_filters) != 1
+            # not pending research
+            and not pending_research
         ):
             conversation_commands.remove(ConversationCommand.Summarize)
-        elif ConversationCommand.Summarize in conversation_commands:
+        elif ConversationCommand.Summarize in conversation_commands and pending_research:
             response_log = ""
             agent_has_entries = await EntryAdapters.aagent_has_entries(agent)
             if len(file_filters) == 0 and not agent_has_entries:
@@ -738,47 +784,15 @@ async def chat(
                 async for result in send_llm_response(response_log):
                     yield result
             else:
-                try:
-                    file_object = None
-                    if await EntryAdapters.aagent_has_entries(agent):
-                        file_names = await EntryAdapters.aget_agent_entry_filepaths(agent)
-                        if len(file_names) > 0:
-                            file_object = await FileObjectAdapters.async_get_file_objects_by_name(
-                                None, file_names[0], agent
-                            )
-
-                    if len(file_filters) > 0:
-                        file_object = await FileObjectAdapters.async_get_file_objects_by_name(user, file_filters[0])
-
-                    if len(file_object) == 0:
-                        response_log = "Sorry, I couldn't find the full text of this file. Please re-upload the document and try again."
-                        async for result in send_llm_response(response_log):
-                            yield result
-                        return
-                    contextual_data = " ".join([file.raw_text for file in file_object])
-                    if not q:
-                        q = "Create a general summary of the file"
-                    async for result in send_event(
-                        ChatEvent.STATUS, f"**Constructing Summary Using:** {file_object[0].file_name}"
-                    ):
-                        yield result
-
-                    response = await extract_relevant_summary(
-                        q,
-                        contextual_data,
-                        conversation_history=meta_log,
-                        subscribed=subscribed,
-                        uploaded_image_url=uploaded_image_url,
-                        agent=agent,
-                    )
-                    response_log = str(response)
-                    async for result in send_llm_response(response_log):
-                        yield result
-                except Exception as e:
-                    response_log = "Error summarizing file. Please try again, or contact support."
-                    logger.error(f"Error summarizing file for {user.email}: {e}", exc_info=True)
-                    async for result in send_llm_response(response_log):
-                        yield result
+                response_log = await generate_summary_from_files(
+                    q=query,
+                    user=user,
+                    file_filters=file_filters,
+                    meta_log=meta_log,
+                    subscribed=subscribed,
+                    send_status_func=partial(send_event, ChatEvent.STATUS),
+                    send_response_func=partial(send_llm_response),
+                )
             await sync_to_async(save_to_conversation_log)(
                 q,
                 response_log,
@@ -838,8 +852,6 @@ async def chat(
             return
 
         # Gather Context
-        ## Extract Document References
-        compiled_references, inferred_queries, defiltered_query = [], [], None
         async for result in extract_references_and_questions(
             request,
             meta_log,
@@ -867,8 +879,6 @@ async def chat(
             async for result in send_event(ChatEvent.STATUS, f"**Found Relevant Notes**: {headings}"):
                 yield result
 
-        online_results: Dict = dict()
-
         if conversation_commands == [ConversationCommand.Notes] and not await EntryAdapters.auser_has_entries(user):
             async for result in send_llm_response(f"{no_entries_found.format()}"):
                 yield result
@@ -878,7 +888,7 @@ async def chat(
             conversation_commands.remove(ConversationCommand.Notes)
 
         ## Gather Online References
-        if ConversationCommand.Online in conversation_commands:
+        if ConversationCommand.Online in conversation_commands and pending_research:
             try:
                 async for result in search_online(
                     defiltered_query,
@@ -903,7 +913,7 @@ async def chat(
                 return
 
         ## Gather Webpage References
-        if ConversationCommand.Webpage in conversation_commands:
+        if ConversationCommand.Webpage in conversation_commands and pending_research:
             try:
                 async for result in read_webpages(
                     defiltered_query,
@@ -1008,6 +1018,7 @@ async def chat(
             defiltered_query,
             meta_log,
             conversation,
+            researched_results,
             compiled_references,
             online_results,
             inferred_queries,
@@ -1051,36 +1062,32 @@ async def chat(
         return Response(content=json.dumps(response_data), media_type="application/json", status_code=200)
 
 
-# Deprecated API. Remove by end of September 2024
-@api_chat.get("")
+# @api_chat.post("")
 @requires(["authenticated"])
-async def get_chat(
+async def old_chat(
     request: Request,
     common: CommonQueryParams,
-    q: str,
-    n: int = 7,
-    d: float = None,
-    stream: Optional[bool] = False,
-    title: Optional[str] = None,
-    conversation_id: Optional[str] = None,
-    city: Optional[str] = None,
-    region: Optional[str] = None,
-    country: Optional[str] = None,
-    timezone: Optional[str] = None,
-    image: Optional[str] = None,
+    body: ChatRequestBody,
     rate_limiter_per_minute=Depends(
-        ApiUserRateLimiter(requests=60, subscribed_requests=60, window=60, slug="chat_minute")
+        ApiUserRateLimiter(requests=60, subscribed_requests=200, window=60, slug="chat_minute")
     ),
     rate_limiter_per_day=Depends(
-        ApiUserRateLimiter(requests=600, subscribed_requests=600, window=60 * 60 * 24, slug="chat_day")
+        ApiUserRateLimiter(requests=600, subscribed_requests=6000, window=60 * 60 * 24, slug="chat_day")
     ),
 ):
-    # Issue a deprecation warning
-    warnings.warn(
-        "The 'get_chat' API endpoint is deprecated. It will be removed by the end of September 2024.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
+    # Access the parameters from the body
+    q = body.q
+    n = body.n
+    d = body.d
+    stream = body.stream
+    title = body.title
+    conversation_id = body.conversation_id
+    city = body.city
+    region = body.region
+    country = body.country or get_country_name_from_timezone(body.timezone)
+    country_code = body.country_code or get_country_code_from_timezone(body.timezone)
+    timezone = body.timezone
+    image = body.image
 
     async def event_generator(q: str, image: str):
         start_time = time.perf_counter()
@@ -1108,7 +1115,7 @@ async def get_chat(
             nonlocal connection_alive, ttft
             if not connection_alive or await request.is_disconnected():
                 connection_alive = False
-                logger.warn(f"User {user} disconnected from {common.client} client")
+                logger.warning(f"User {user} disconnected from {common.client} client")
                 return
             try:
                 if event_type == ChatEvent.END_LLM_RESPONSE:
@@ -1164,21 +1171,34 @@ async def get_chat(
         conversation_commands = [get_conversation_command(query=q, any_references=True)]
 
         conversation = await ConversationAdapters.aget_conversation_by_user(
-            user, client_application=request.user.client_app, conversation_id=conversation_id, title=title
+            user,
+            client_application=request.user.client_app,
+            conversation_id=conversation_id,
+            title=title,
+            create_new=body.create_new,
         )
         if not conversation:
             async for result in send_llm_response(f"Conversation {conversation_id} not found"):
                 yield result
             return
         conversation_id = conversation.id
-        agent = conversation.agent if conversation.agent else None
+
+        agent: Agent | None = None
+        default_agent = await AgentAdapters.aget_default_agent()
+        if conversation.agent and conversation.agent != default_agent:
+            agent = conversation.agent
+
+        if not conversation.agent:
+            conversation.agent = default_agent
+            await conversation.asave()
+            agent = default_agent
 
         await is_ready_to_chat(user)
 
         user_name = await aget_user_name(user)
         location = None
-        if city or region or country:
-            location = LocationData(city=city, region=region, country=country)
+        if city or region or country or country_code:
+            location = LocationData(city=city, region=region, country=country, country_code=country_code)
 
         if is_query_empty(q):
             async for result in send_llm_response("Please ask your query to get started."):
@@ -1192,7 +1212,12 @@ async def get_chat(
 
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
             conversation_commands = await aget_relevant_information_sources(
-                q, meta_log, is_automated_task, subscribed=subscribed, uploaded_image_url=uploaded_image_url
+                q,
+                meta_log,
+                is_automated_task,
+                subscribed=subscribed,
+                uploaded_image_url=uploaded_image_url,
+                agent=agent,
             )
             conversation_commands_str = ", ".join([cmd.value for cmd in conversation_commands])
             async for result in send_event(
@@ -1200,7 +1225,7 @@ async def get_chat(
             ):
                 yield result
 
-            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task, uploaded_image_url)
+            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task, uploaded_image_url, agent)
             async for result in send_event(ChatEvent.STATUS, f"**Decided Response Mode:** {mode.value}"):
                 yield result
             if mode not in conversation_commands:
@@ -1224,45 +1249,25 @@ async def get_chat(
             conversation_commands.remove(ConversationCommand.Summarize)
         elif ConversationCommand.Summarize in conversation_commands:
             response_log = ""
-            if len(file_filters) == 0:
+            agent_has_entries = await EntryAdapters.aagent_has_entries(agent)
+            if len(file_filters) == 0 and not agent_has_entries:
                 response_log = "No files selected for summarization. Please add files using the section on the left."
                 async for result in send_llm_response(response_log):
                     yield result
-            elif len(file_filters) > 1:
+            elif len(file_filters) > 1 and not agent_has_entries:
                 response_log = "Only one file can be selected for summarization."
                 async for result in send_llm_response(response_log):
                     yield result
             else:
-                try:
-                    file_object = await FileObjectAdapters.async_get_file_objects_by_name(user, file_filters[0])
-                    if len(file_object) == 0:
-                        response_log = "Sorry, we couldn't find the full text of this file. Please re-upload the document and try again."
-                        async for result in send_llm_response(response_log):
-                            yield result
-                        return
-                    contextual_data = " ".join([file.raw_text for file in file_object])
-                    if not q:
-                        q = "Create a general summary of the file"
-                    async for result in send_event(
-                        ChatEvent.STATUS, f"**Constructing Summary Using:** {file_object[0].file_name}"
-                    ):
-                        yield result
-
-                    response = await extract_relevant_summary(
-                        q,
-                        contextual_data,
-                        conversation_history=meta_log,
-                        subscribed=subscribed,
-                        uploaded_image_url=uploaded_image_url,
-                    )
-                    response_log = str(response)
-                    async for result in send_llm_response(response_log):
-                        yield result
-                except Exception as e:
-                    response_log = "Error summarizing file."
-                    logger.error(f"Error summarizing file for {user.email}: {e}", exc_info=True)
-                    async for result in send_llm_response(response_log):
-                        yield result
+                response_log = await generate_summary_from_files(
+                    q=query,
+                    user=user,
+                    file_filters=file_filters,
+                    meta_log=meta_log,
+                    subscribed=subscribed,
+                    send_status_func=partial(send_event, ChatEvent.STATUS),
+                    send_response_func=partial(send_llm_response),
+                )
             await sync_to_async(save_to_conversation_log)(
                 q,
                 response_log,
@@ -1335,6 +1340,7 @@ async def get_chat(
             location,
             partial(send_event, ChatEvent.STATUS),
             uploaded_image_url=uploaded_image_url,
+            agent=agent,
         ):
             if isinstance(result, dict) and ChatEvent.STATUS in result:
                 yield result[ChatEvent.STATUS]
@@ -1349,8 +1355,6 @@ async def get_chat(
             headings = headings.replace("#", "")
             async for result in send_event(ChatEvent.STATUS, f"**Found Relevant Notes**: {headings}"):
                 yield result
-
-        online_results: Dict = dict()
 
         if conversation_commands == [ConversationCommand.Notes] and not await EntryAdapters.auser_has_entries(user):
             async for result in send_llm_response(f"{no_entries_found.format()}"):
@@ -1372,6 +1376,7 @@ async def get_chat(
                     partial(send_event, ChatEvent.STATUS),
                     custom_filters,
                     uploaded_image_url=uploaded_image_url,
+                    agent=agent,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -1395,6 +1400,7 @@ async def get_chat(
                     subscribed,
                     partial(send_event, ChatEvent.STATUS),
                     uploaded_image_url=uploaded_image_url,
+                    agent=agent,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -1441,6 +1447,7 @@ async def get_chat(
                 subscribed=subscribed,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
                 uploaded_image_url=uploaded_image_url,
+                agent=agent,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]

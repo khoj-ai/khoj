@@ -14,6 +14,7 @@ from typing import (
     Annotated,
     Any,
     AsyncGenerator,
+    Callable,
     Dict,
     Iterator,
     List,
@@ -39,6 +40,7 @@ from khoj.database.adapters import (
     AutomationAdapters,
     ConversationAdapters,
     EntryAdapters,
+    FileObjectAdapters,
     create_khoj_token,
     get_khoj_tokens,
     get_user_name,
@@ -614,6 +616,58 @@ async def extract_relevant_summary(
     return response.strip()
 
 
+async def generate_summary_from_files(
+    q: str,
+    user: KhojUser,
+    file_filters: List[str],
+    meta_log: dict,
+    subscribed: bool,
+    uploaded_image_url: str = None,
+    agent: Agent = None,
+    send_status_func: Optional[Callable] = None,
+    send_response_func: Optional[Callable] = None,
+):
+    try:
+        file_object = None
+        if await EntryAdapters.aagent_has_entries(agent):
+            file_names = await EntryAdapters.aget_agent_entry_filepaths(agent)
+            if len(file_names) > 0:
+                file_object = await FileObjectAdapters.async_get_file_objects_by_name(None, file_names[0], agent)
+
+        if len(file_filters) > 0:
+            file_object = await FileObjectAdapters.async_get_file_objects_by_name(user, file_filters[0])
+
+        if len(file_object) == 0:
+            response_log = (
+                "Sorry, I couldn't find the full text of this file. Please re-upload the document and try again."
+            )
+            async for result in send_response_func(response_log):
+                yield result
+            return
+        contextual_data = " ".join([file.raw_text for file in file_object])
+        if not q:
+            q = "Create a general summary of the file"
+        async for result in send_status_func(f"**Constructing Summary Using:** {file_object[0].file_name}"):
+            yield result
+
+        response = await extract_relevant_summary(
+            q,
+            contextual_data,
+            conversation_history=meta_log,
+            subscribed=subscribed,
+            uploaded_image_url=uploaded_image_url,
+            agent=agent,
+        )
+        response_log = str(response)
+        async for result in send_response_func(response_log):
+            yield result
+    except Exception as e:
+        response_log = "Error summarizing file. Please try again, or contact support."
+        logger.error(f"Error summarizing file for {user.email}: {e}", exc_info=True)
+        async for result in send_response_func(response_log):
+            yield result
+
+
 async def generate_better_image_prompt(
     q: str,
     conversation_history: str,
@@ -893,6 +947,7 @@ def generate_chat_response(
     q: str,
     meta_log: dict,
     conversation: Conversation,
+    meta_research: str = "",
     compiled_references: List[Dict] = [],
     online_results: Dict[str, Dict] = {},
     inferred_queries: List[str] = [],
@@ -910,6 +965,9 @@ def generate_chat_response(
 
     metadata = {}
     agent = AgentAdapters.get_conversation_agent_by_id(conversation.agent.id) if conversation.agent else None
+    query_to_run = q
+    if meta_research:
+        query_to_run = f"AI Research: {meta_research} {q}"
     try:
         partial_completion = partial(
             save_to_conversation_log,
@@ -937,7 +995,7 @@ def generate_chat_response(
             chat_response = converse_offline(
                 references=compiled_references,
                 online_results=online_results,
-                user_query=q,
+                user_query=query_to_run,
                 loaded_model=loaded_model,
                 conversation_log=meta_log,
                 completion_func=partial_completion,
@@ -956,7 +1014,7 @@ def generate_chat_response(
             chat_model = conversation_config.chat_model
             chat_response = converse(
                 compiled_references,
-                q,
+                query_to_run,
                 image_url=uploaded_image_url,
                 online_results=online_results,
                 conversation_log=meta_log,
@@ -977,7 +1035,7 @@ def generate_chat_response(
             api_key = conversation_config.openai_config.api_key
             chat_response = converse_anthropic(
                 compiled_references,
-                q,
+                query_to_run,
                 online_results,
                 meta_log,
                 model=conversation_config.chat_model,
@@ -994,7 +1052,7 @@ def generate_chat_response(
             api_key = conversation_config.openai_config.api_key
             chat_response = converse_gemini(
                 compiled_references,
-                q,
+                query_to_run,
                 online_results,
                 meta_log,
                 model=conversation_config.chat_model,
