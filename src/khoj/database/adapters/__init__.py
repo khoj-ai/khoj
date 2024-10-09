@@ -556,14 +556,18 @@ class AgentAdapters:
 
     @staticmethod
     async def aget_readonly_agent_by_slug(agent_slug: str, user: KhojUser):
-        return await Agent.objects.filter(
-            (Q(slug__iexact=agent_slug.lower()))
-            & (
-                Q(privacy_level=Agent.PrivacyLevel.PUBLIC)
-                | Q(privacy_level=Agent.PrivacyLevel.PROTECTED)
-                | Q(creator=user)
+        return (
+            await Agent.objects.filter(
+                (Q(slug__iexact=agent_slug.lower()))
+                & (
+                    Q(privacy_level=Agent.PrivacyLevel.PUBLIC)
+                    | Q(privacy_level=Agent.PrivacyLevel.PROTECTED)
+                    | Q(creator=user)
+                )
             )
-        ).afirst()
+            .prefetch_related("creator", "chat_model", "fileobject_set")
+            .afirst()
+        )
 
     @staticmethod
     async def adelete_agent_by_slug(agent_slug: str, user: KhojUser):
@@ -579,15 +583,23 @@ class AgentAdapters:
 
     @staticmethod
     async def aget_agent_by_slug(agent_slug: str, user: KhojUser):
-        return await Agent.objects.filter(
-            (Q(slug__iexact=agent_slug.lower())) & (Q(privacy_level=Agent.PrivacyLevel.PUBLIC) | Q(creator=user))
-        ).afirst()
+        return (
+            await Agent.objects.filter(
+                (Q(slug__iexact=agent_slug.lower())) & (Q(privacy_level=Agent.PrivacyLevel.PUBLIC) | Q(creator=user))
+            )
+            .prefetch_related("creator", "chat_model", "fileobject_set")
+            .afirst()
+        )
 
     @staticmethod
     async def aget_agent_by_name(agent_name: str, user: KhojUser):
-        return await Agent.objects.filter(
-            (Q(name__iexact=agent_name.lower())) & (Q(privacy_level=Agent.PrivacyLevel.PUBLIC) | Q(creator=user))
-        ).afirst()
+        return (
+            await Agent.objects.filter(
+                (Q(name__iexact=agent_name.lower())) & (Q(privacy_level=Agent.PrivacyLevel.PUBLIC) | Q(creator=user))
+            )
+            .prefetch_related("creator", "chat_model", "fileobject_set")
+            .afirst()
+        )
 
     @staticmethod
     def get_agent_by_slug(slug: str, user: KhojUser = None):
