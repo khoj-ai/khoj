@@ -209,14 +209,17 @@ def chat_history(
 
     agent_metadata = None
     if conversation.agent:
-        agent_metadata = {
-            "slug": conversation.agent.slug,
-            "name": conversation.agent.name,
-            "isCreator": conversation.agent.creator == user,
-            "color": conversation.agent.style_color,
-            "icon": conversation.agent.style_icon,
-            "persona": conversation.agent.personality,
-        }
+        if conversation.agent.privacy_level == Agent.PrivacyLevel.PRIVATE:
+            conversation.agent = None
+        else:
+            agent_metadata = {
+                "slug": conversation.agent.slug,
+                "name": conversation.agent.name,
+                "isCreator": conversation.agent.creator == user,
+                "color": conversation.agent.style_color,
+                "icon": conversation.agent.style_icon,
+                "persona": conversation.agent.personality,
+            }
 
     meta_log = conversation.conversation_log
     meta_log.update(
@@ -265,14 +268,17 @@ def get_shared_chat(
 
     agent_metadata = None
     if conversation.agent:
-        agent_metadata = {
-            "slug": conversation.agent.slug,
-            "name": conversation.agent.name,
-            "isCreator": conversation.agent.creator == user,
-            "color": conversation.agent.style_color,
-            "icon": conversation.agent.style_icon,
-            "persona": conversation.agent.personality,
-        }
+        if conversation.agent.privacy_level == Agent.PrivacyLevel.PRIVATE:
+            conversation.agent = None
+        else:
+            agent_metadata = {
+                "slug": conversation.agent.slug,
+                "name": conversation.agent.name,
+                "isCreator": conversation.agent.creator == user,
+                "color": conversation.agent.style_color,
+                "icon": conversation.agent.style_icon,
+                "persona": conversation.agent.personality,
+            }
 
     meta_log = conversation.conversation_log
     scrubbed_title = conversation.title if conversation.title else conversation.slug
