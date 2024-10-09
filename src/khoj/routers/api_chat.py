@@ -19,7 +19,6 @@ from khoj.database.adapters import (
     AgentAdapters,
     ConversationAdapters,
     EntryAdapters,
-    FileObjectAdapters,
     PublicConversationAdapters,
     aget_user_name,
 )
@@ -29,6 +28,7 @@ from khoj.processor.conversation.utils import save_to_conversation_log
 from khoj.processor.image.generate import text_to_image
 from khoj.processor.speech.text_to_speech import generate_text_to_speech
 from khoj.processor.tools.online_search import read_webpages, search_online
+from khoj.processor.tools.run_code import run_code
 from khoj.routers.api import extract_references_and_questions
 from khoj.routers.helpers import (
     ApiUserRateLimiter,
@@ -46,7 +46,6 @@ from khoj.routers.helpers import (
     is_query_empty,
     is_ready_to_chat,
     read_chat_stream,
-    run_code,
     update_telemetry_state,
     validate_conversation_config,
 )

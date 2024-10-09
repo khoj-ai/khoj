@@ -2,6 +2,7 @@ import logging
 import math
 import queue
 from datetime import datetime
+from enum import Enum
 from time import perf_counter
 from typing import Any, Dict, List, Optional
 
@@ -10,7 +11,7 @@ from langchain.schema import ChatMessage
 from llama_cpp.llama import Llama
 from transformers import AutoTokenizer
 
-from khoj.database.adapters import ConversationAdapters
+from khoj.database.adapters import ConversationAdapters, ais_user_subscribed
 from khoj.database.models import ChatModelOptions, ClientApplication, KhojUser
 from khoj.processor.conversation.offline.utils import download_model, infer_max_tokens
 from khoj.utils import state
@@ -73,6 +74,26 @@ class ThreadedGenerator:
 
     def close(self):
         self.queue.put(StopIteration)
+
+
+def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:
+    chat_history = ""
+    for chat in conversation_history.get("chat", [])[-n:]:
+        if chat["by"] == "khoj" and chat["intent"].get("type") in ["remember", "reminder", "summarize"]:
+            chat_history += f"User: {chat['intent']['query']}\n"
+            chat_history += f"{agent_name}: {chat['message']}\n"
+        elif chat["by"] == "khoj" and ("text-to-image" in chat["intent"].get("type")):
+            chat_history += f"User: {chat['intent']['query']}\n"
+            chat_history += f"{agent_name}: [generated image redacted for space]\n"
+    return chat_history
+
+
+class ChatEvent(Enum):
+    START_LLM_RESPONSE = "start_llm_response"
+    END_LLM_RESPONSE = "end_llm_response"
+    MESSAGE = "message"
+    REFERENCES = "references"
+    STATUS = "status"
 
 
 def message_to_log(
