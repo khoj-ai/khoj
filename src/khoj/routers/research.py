@@ -27,9 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 class InformationCollectionIteration:
-    def __init__(
-        self, data_source: str, query: str, context: str = None, onlineContext: str = None, result: Any = None
-    ):
+    def __init__(self, data_source: str, query: str, context: str = None, onlineContext: dict = None):
         self.data_source = data_source
         self.query = query
         self.context = context
@@ -260,7 +258,7 @@ async def execute_information_collection(
                     if isinstance(response, dict) and ChatEvent.STATUS in response:
                         yield response[ChatEvent.STATUS]
                     else:
-                        response_log = response
+                        response_log = response  # type: ignore
                         previous_iterations.append(
                             InformationCollectionIteration(
                                 data_source=this_iteration.data_source,
