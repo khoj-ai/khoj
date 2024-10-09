@@ -128,10 +128,14 @@ async def execute_information_collection(
 ):
     iteration = 0
     MAX_ITERATIONS = 2
-    previous_iterations = []
+    previous_iterations = List[InformationCollectionIteration]
     while iteration < MAX_ITERATIONS:
         online_results: Dict = dict()
-        compiled_references, inferred_queries, defiltered_query = [], [], None
+
+        compiled_references: List[Any] = []
+        inferred_queries: List[Any] = []
+        defiltered_query = None
+
         this_iteration = await apick_next_tool(
             query, conversation_history, subscribed, uploaded_image_url, agent, previous_iterations
         )
