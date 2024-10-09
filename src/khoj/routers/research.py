@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from fastapi import Request
 
-from khoj.database.adapters import EntryAdapters
+from khoj.database.adapters import ConversationAdapters, EntryAdapters
 from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import remove_json_codeblock
@@ -76,6 +76,7 @@ async def apick_next_tool(
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
     )
 
+    # TODO Add current date/time to the query
     function_planning_prompt = prompts.plan_function_execution.format(
         query=query,
         tools=tool_options_str,
@@ -84,11 +85,14 @@ async def apick_next_tool(
         previous_iterations=previous_iterations_history,
     )
 
+    chat_model_option = await ConversationAdapters.aget_advanced_conversation_config()
+
     with timer("Chat actor: Infer information sources to refer", logger):
         response = await send_message_to_model_wrapper(
             function_planning_prompt,
             response_type="json_object",
             subscribed=subscribed,
+            chat_model_option=chat_model_option,
         )
 
     try:
@@ -97,6 +101,8 @@ async def apick_next_tool(
         response = json.loads(response)
         suggested_data_source = response.get("data_source", None)
         suggested_query = response.get("query", None)
+
+        logger.info(f"Response for determining relevant tools: {response}")
 
         return InformationCollectionIteration(
             data_source=suggested_data_source,

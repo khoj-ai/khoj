@@ -45,6 +45,8 @@ OLOSTEP_QUERY_PARAMS = {
     "expandMarkdown": "True",
     "expandHtml": "False",
 }
+
+# TODO: Should this be 0 to let advanced model decide which web pages to read?
 MAX_WEBPAGES_TO_READ = 1
 
 

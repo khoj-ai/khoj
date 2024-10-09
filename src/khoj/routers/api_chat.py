@@ -743,11 +743,6 @@ async def chat(
                 uploaded_image_url=uploaded_image_url,
                 agent=agent,
             )
-            conversation_commands_str = ", ".join([cmd.value for cmd in conversation_commands])
-            async for result in send_event(
-                ChatEvent.STATUS, f"**Chose Data Sources to Search:** {conversation_commands_str}"
-            ):
-                yield result
 
             mode = await aget_relevant_output_modes(q, meta_log, is_automated_task, uploaded_image_url, agent)
             async for result in send_event(ChatEvent.STATUS, f"**Decided Response Mode:** {mode.value}"):
@@ -876,11 +871,15 @@ async def chat(
                 defiltered_query = result[2]
 
         if not is_none_or_empty(compiled_references):
-            headings = "\n- " + "\n- ".join(set([c.get("compiled", c).split("\n")[0] for c in compiled_references]))
-            # Strip only leading # from headings
-            headings = headings.replace("#", "")
-            async for result in send_event(ChatEvent.STATUS, f"**Found Relevant Notes**: {headings}"):
-                yield result
+            try:
+                headings = "\n- " + "\n- ".join(set([c.get("compiled", c).split("\n")[0] for c in compiled_references]))
+                # Strip only leading # from headings
+                headings = headings.replace("#", "")
+                async for result in send_event(ChatEvent.STATUS, f"**Found Relevant Notes**: {headings}"):
+                    yield result
+            except Exception as e:
+                # TODO Get correct type for compiled across research notes extraction
+                logger.error(f"Error extracting references: {e}", exc_info=True)
 
         if conversation_commands == [ConversationCommand.Notes] and not await EntryAdapters.auser_has_entries(user):
             async for result in send_llm_response(f"{no_entries_found.format()}"):
