@@ -123,6 +123,7 @@ def converse(
     references,
     user_query,
     online_results: Optional[Dict[str, Dict]] = None,
+    code_results: Optional[Dict[str, Dict]] = None,
     conversation_log={},
     model: str = "gpt-4o-mini",
     api_key: Optional[str] = None,
@@ -176,6 +177,10 @@ def converse(
         completion_func(chat_response=prompts.no_online_results_found.format())
         return iter([prompts.no_online_results_found.format()])
 
+    if not is_none_or_empty(code_results):
+        conversation_primer = (
+            f"{prompts.code_executed_context.format(code_results=str(code_results))}\n{conversation_primer}"
+        )
     if not is_none_or_empty(online_results):
         conversation_primer = (
             f"{prompts.online_search_conversation.format(online_results=str(online_results))}\n{conversation_primer}"

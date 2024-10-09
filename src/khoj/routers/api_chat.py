@@ -3,7 +3,6 @@ import base64
 import json
 import logging
 import time
-import warnings
 from datetime import datetime
 from functools import partial
 from typing import Any, Dict, List, Optional
@@ -47,6 +46,7 @@ from khoj.routers.helpers import (
     is_query_empty,
     is_ready_to_chat,
     read_chat_stream,
+    run_code,
     update_telemetry_state,
     validate_conversation_config,
 )
@@ -950,6 +950,30 @@ async def chat(
                     exc_info=True,
                 )
 
+        ## Gather Code Results
+        if ConversationCommand.Code in conversation_commands:
+            try:
+                async for result in run_code(
+                    defiltered_query,
+                    meta_log,
+                    location,
+                    user,
+                    partial(send_event, ChatEvent.STATUS),
+                    uploaded_image_url=uploaded_image_url,
+                    agent=agent,
+                ):
+                    if isinstance(result, dict) and ChatEvent.STATUS in result:
+                        yield result[ChatEvent.STATUS]
+                    else:
+                        code_results = result
+                async for result in send_event(ChatEvent.STATUS, f"**Ran code snippets**: {len(code_results)}"):
+                    yield result
+            except ValueError as e:
+                logger.warning(
+                    f"Failed to use code tool: {e}. Attempting to respond without code results",
+                    exc_info=True,
+                )
+
         ## Send Gathered References
         async for result in send_event(
             ChatEvent.REFERENCES,
@@ -957,6 +981,7 @@ async def chat(
                 "inferredQueries": inferred_queries,
                 "context": compiled_references,
                 "onlineContext": online_results,
+                "codeContext": code_results,
             },
         ):
             yield result
@@ -1024,6 +1049,7 @@ async def chat(
             conversation,
             compiled_references,
             online_results,
+            code_results,
             inferred_queries,
             conversation_commands,
             user,

@@ -135,7 +135,8 @@ def filter_questions(questions: List[str]):
 def converse_offline(
     user_query,
     references=[],
-    online_results=[],
+    online_results={},
+    code_results={},
     conversation_log={},
     model: str = "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
     loaded_model: Union[Any, None] = None,
@@ -187,6 +188,10 @@ def converse_offline(
         completion_func(chat_response=prompts.no_online_results_found.format())
         return iter([prompts.no_online_results_found.format()])
 
+    if ConversationCommand.Code in conversation_commands and not is_none_or_empty(code_results):
+        conversation_primer = (
+            f"{prompts.code_executed_context.format(code_results=str(code_results))}\n{conversation_primer}"
+        )
     if ConversationCommand.Online in conversation_commands:
         simplified_online_results = online_results.copy()
         for result in online_results:
