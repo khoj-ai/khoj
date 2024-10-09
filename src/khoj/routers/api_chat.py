@@ -6,7 +6,7 @@ import time
 import warnings
 from datetime import datetime
 from functools import partial
-from typing import Dict, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import unquote
 
 from asgiref.sync import sync_to_async
@@ -698,7 +698,9 @@ async def chat(
         researched_results = ""
         online_results: Dict = dict()
         ## Extract Document References
-        compiled_references, inferred_queries, defiltered_query = [], [], None
+        compiled_references: List[Any] = []
+        inferred_queries: List[Any] = []
+        defiltered_query: str = None
 
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
             async for research_result in execute_information_collection(
