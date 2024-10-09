@@ -783,7 +783,7 @@ async def chat(
                 async for result in send_llm_response(response_log):
                     yield result
             else:
-                response_log = await generate_summary_from_files(
+                async for response in generate_summary_from_files(
                     q=q,
                     user=user,
                     file_filters=file_filters,
@@ -791,7 +791,9 @@ async def chat(
                     subscribed=subscribed,
                     send_status_func=partial(send_event, ChatEvent.STATUS),
                     send_response_func=partial(send_llm_response),
-                )
+                ):
+                    yield response
+
             await sync_to_async(save_to_conversation_log)(
                 q,
                 response_log,

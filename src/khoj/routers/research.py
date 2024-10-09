@@ -245,14 +245,25 @@ async def execute_information_collection(
                     )
                 )
             else:
-                response_log = await generate_summary_from_files(
+                async for response in generate_summary_from_files(
                     q=query,
                     user=user,
                     file_filters=file_filters,
                     meta_log=conversation_history,
                     subscribed=subscribed,
                     send_status_func=send_status_func,
-                )
+                ):
+                    if isinstance(response, dict) and ChatEvent.STATUS in response:
+                        yield response[ChatEvent.STATUS]
+                    else:
+                        response_log = response
+                        previous_iterations.append(
+                            InformationCollectionIteration(
+                                data_source=this_iteration.data_source,
+                                query=this_iteration.query,
+                                context=response_log,
+                            )
+                        )
         else:
             iteration = MAX_ITERATIONS
 
