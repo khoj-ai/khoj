@@ -137,7 +137,9 @@ async function openChat(slug: string, userData: UserProfile | null) {
         return;
     }
 
-    const response = await fetch(`/api/chat/sessions?agent_slug=${slug}`, { method: "POST" });
+    const response = await fetch(`/api/chat/sessions?agent_slug=${encodeURIComponent(slug)}`, {
+        method: "POST",
+    });
     const data = await response.json();
     if (response.status == 200) {
         window.location.href = `/chat?conversationId=${data.conversation_id}`;

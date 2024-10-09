@@ -826,7 +826,7 @@ class ConversationAdapters:
         user: KhojUser, client_application: ClientApplication = None, agent_slug: str = None, title: str = None
     ):
         if agent_slug:
-            agent = await AgentAdapters.aget_agent_by_slug(agent_slug, user)
+            agent = await AgentAdapters.aget_readonly_agent_by_slug(agent_slug, user)
             if agent is None:
                 raise HTTPException(status_code=400, detail="No such agent currently exists.")
             return await Conversation.objects.acreate(user=user, client=client_application, agent=agent, title=title)
@@ -838,7 +838,7 @@ class ConversationAdapters:
         user: KhojUser, client_application: ClientApplication = None, agent_slug: str = None, title: str = None
     ):
         if agent_slug:
-            agent = AgentAdapters.get_agent_by_slug(agent_slug, user)
+            agent = AgentAdapters.aget_readonly_agent_by_slug(agent_slug, user)
             if agent is None:
                 raise HTTPException(status_code=400, detail="No such agent currently exists.")
             return Conversation.objects.create(user=user, client=client_application, agent=agent, title=title)
