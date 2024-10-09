@@ -321,7 +321,7 @@ command_descriptions = {
     ConversationCommand.Notes: "Only talk about information that is available in your knowledge base.",
     ConversationCommand.Default: "The default command when no command specified. It intelligently auto-switches between general and notes mode.",
     ConversationCommand.Online: "Search for information on the internet.",
-    ConversationCommand.Webpage: "Get information from webpage links provided by you.",
+    ConversationCommand.Webpage: "Get information from webpage suggested by you.",
     ConversationCommand.Image: "Generate images by describing your imagination in words.",
     ConversationCommand.Automation: "Automatically run your query at a specified time or interval.",
     ConversationCommand.Help: "Get help with how to use or setup Khoj from the documentation",
@@ -329,11 +329,11 @@ command_descriptions = {
 }
 
 command_descriptions_for_agent = {
-    ConversationCommand.General: "Respond without any outside information or personal knowledge.",
-    ConversationCommand.Notes: "Search through the knowledge base. Required if the agent expects context from the knowledge base.",
-    ConversationCommand.Online: "Search for the latest, up-to-date information from the internet.",
-    ConversationCommand.Webpage: "Scrape specific web pages for information.",
-    ConversationCommand.Summarize: "Retrieve an answer that depends on the entire document or a large text. Knowledge base must be a single document.",
+    ConversationCommand.General: "Agent can use the agents knowledge base and general knowledge.",
+    ConversationCommand.Notes: "Agent can search the users knowledge base for information.",
+    ConversationCommand.Online: "Agent can search the internet for information.",
+    ConversationCommand.Webpage: "Agent can read suggested web pages for information.",
+    ConversationCommand.Summarize: "Agent can read an entire document. Agents knowledge base must be a single document.",
 }
 
 tool_descriptions_for_llm = {
@@ -352,8 +352,8 @@ mode_descriptions_for_llm = {
 }
 
 mode_descriptions_for_agent = {
-    ConversationCommand.Image: "Allow the agent to generate images.",
-    ConversationCommand.Text: "Allow the agent to generate text.",
+    ConversationCommand.Image: "Agent can generate image in response.",
+    ConversationCommand.Text: "Agent can generate text in response.",
 }
 
 
