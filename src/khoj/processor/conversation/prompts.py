@@ -487,7 +487,7 @@ Khoj:
 
 plan_function_execution = PromptTemplate.from_template(
     """
-You are Khoj, an extremely smart and helpful search assistant.
+You are an extremely methodical planner. Your goal is to make a plan to execute a function based on the user's query.
 {personality_context}
 - You have access to a variety of data sources to help you answer the user's question
 - You can use the data sources listed below to collect more relevant information, one at a time
@@ -512,7 +512,7 @@ Chat History:
 {chat_history}
 
 Q: {query}
-Khoj:
+Response:
 """.strip()
 )
 
