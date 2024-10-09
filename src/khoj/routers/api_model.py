@@ -40,7 +40,7 @@ def get_user_chat_model(
     chat_model = ConversationAdapters.get_conversation_config(user)
 
     if chat_model is None:
-        chat_model = ConversationAdapters.get_default_conversation_config()
+        chat_model = ConversationAdapters.get_default_conversation_config(user)
 
     return Response(status_code=200, content=json.dumps({"id": chat_model.id, "chat_model": chat_model.chat_model}))
 

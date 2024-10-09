@@ -244,7 +244,7 @@ def configure_server(
 
         state.SearchType = configure_search_types()
         state.search_models = configure_search(state.search_models, state.config.search_type)
-        setup_default_agent()
+        setup_default_agent(user)
 
         message = "📡 Telemetry disabled" if telemetry_disabled(state.config.app) else "📡 Telemetry enabled"
         logger.info(message)
@@ -256,8 +256,8 @@ def configure_server(
         raise e
 
 
-def setup_default_agent():
-    AgentAdapters.create_default_agent()
+def setup_default_agent(user: KhojUser):
+    AgentAdapters.create_default_agent(user)
 
 
 def initialize_content(regenerate: bool, search_type: Optional[SearchType] = None, user: KhojUser = None):
