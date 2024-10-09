@@ -128,7 +128,7 @@ async def execute_information_collection(
 ):
     iteration = 0
     MAX_ITERATIONS = 2
-    previous_iterations = List[InformationCollectionIteration]
+    previous_iterations: List[InformationCollectionIteration] = []
     while iteration < MAX_ITERATIONS:
         online_results: Dict = dict()
 
