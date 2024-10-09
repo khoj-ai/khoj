@@ -302,9 +302,7 @@ function AgentCard(props: AgentCardProps) {
                     <Badge
                         icon={<Book />}
                         text={`knowledge`}
-                        hoverText={
-                            "The agent has a custom knowledge base it can use to give you answers."
-                        }
+                        hoverText={`The agent has a custom knowledge base with ${props.data.files.length} documents. It can use them to give you answers.`}
                     />
                 )}
                 <Badge
