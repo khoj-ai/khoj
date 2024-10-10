@@ -211,13 +211,13 @@ async def execute_information_collection(
                     direct_web_pages: Dict[str, Dict] = result  # type: ignore
 
                     webpages = []
-                    for query in direct_web_pages:
-                        if online_results.get(query):
-                            online_results[query]["webpages"] = direct_web_pages[query]["webpages"]
+                    for web_query in direct_web_pages:
+                        if online_results.get(web_query):
+                            online_results[web_query]["webpages"] = direct_web_pages[web_query]["webpages"]
                         else:
-                            online_results[query] = {"webpages": direct_web_pages[query]["webpages"]}
+                            online_results[web_query] = {"webpages": direct_web_pages[web_query]["webpages"]}
 
-                        for webpage in direct_web_pages[query]["webpages"]:
+                        for webpage in direct_web_pages[web_query]["webpages"]:
                             webpages.append(webpage["link"])
                     yield send_status_func(f"**Read web pages**: {webpages}")
 

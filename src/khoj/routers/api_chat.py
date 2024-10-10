@@ -717,16 +717,17 @@ async def chat(
                 file_filters=conversation.file_filters if conversation else [],
             ):
                 if type(research_result) == InformationCollectionIteration:
-                    pending_research = False
-                    # if research_result.onlineContext:
-                    #     researched_results += str(research_result.onlineContext)
-                    #     online_results.update(research_result.onlineContext)
+                    if research_result.summarizedResult:
+                        pending_research = False
+                        # if research_result.onlineContext:
+                        #     researched_results += str(research_result.onlineContext)
+                        #     online_results.update(research_result.onlineContext)
 
-                    # if research_result.context:
-                    #     researched_results += str(research_result.context)
-                    #     compiled_references.extend(research_result.context)
+                        # if research_result.context:
+                        #     researched_results += str(research_result.context)
+                        #     compiled_references.extend(research_result.context)
 
-                    researched_results += research_result.summarizedResult
+                        researched_results += research_result.summarizedResult
 
                 else:
                     yield research_result
