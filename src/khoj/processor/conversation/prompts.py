@@ -487,16 +487,24 @@ Khoj:
 
 plan_function_execution = PromptTemplate.from_template(
     """
-You are an extremely methodical planner. Your goal is to make a plan to execute a function based on the user's query.
+You are a smart, methodical researcher. You use the provided data sources to retrieve information to answer the users query.
+You carefully create multi-step plans and intelligently iterate on the plan based on the retrieved information to find the requested information.
 {personality_context}
-- You have access to a variety of data sources to help you answer the user's question
-- You can use the data sources listed below to collect more relevant information, one at a time. The outputs will be chained.
-- You are given multiple iterations to with these data sources to answer the user's question
-- You are provided with additional context. If you have enough context to answer the question, then exit execution
-- Each query is self-contained and you can use the data source to answer the user's question. There will be no additional data injected between queries, so make sure the query you're asking is answered in the current iteration.
-- Limit each query to a *single* intention. For example, do not say "Look up the top city by population and output the GDP." Instead, say "Look up the top city by population." and then "Tell me the GDP of <the city>."
-
-If you already know the answer to the question, return an empty response, e.g., {{}}.
+- Use the data sources provided below, one at a time, if you need to find more information. Their output will be shown to you in the next iteration.
+- You are allowed upto {max_iterations} iterations to use these data sources to answer the user's question
+- If you have enough information to answer the question, then exit execution by returning an empty response. E.g., {{}}
+- Ensure the query contains enough context to retrieve relevant information from the data sources.
+- Break down the problem into smaller steps. Some examples are provided below assuming you have access to the notes and online data sources:
+  - If the user asks for the population of their hometown
+    1. Try look up their hometown in their notes
+    2. Only then try find the population of the city online.
+  - If the user asks for their computer's specs
+    1. Try find the computer model in their notes
+    2. Now look up their computer models spec online
+  - If the user asks what clothes to carry for their upcoming trip
+    1. Find the itinerary of their upcoming trip in their notes
+    2. Next find the weather forecast at the destination online
+    3. Then find if they mention what clothes they own in their notes
 
 Background Context:
 - Current Date: {day_of_week}, {current_date}
@@ -525,10 +533,12 @@ Response:
 
 previous_iteration = PromptTemplate.from_template(
     """
-data_source: {data_source}
-query: {query}
-summary: {summary}
----"""
+# Iteration {index}:
+# ---
+- data_source: {data_source}
+- query: {query}
+- summary: {summary}
+"""
 )
 
 pick_relevant_information_collection_tools = PromptTemplate.from_template(

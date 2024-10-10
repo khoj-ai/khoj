@@ -346,9 +346,9 @@ tool_descriptions_for_llm = {
 }
 
 function_calling_description_for_llm = {
-    ConversationCommand.Notes: "Use this if you think the user's personal knowledge base contains relevant context.",
-    ConversationCommand.Online: "Use this if you think the there's important information on the internet related to the query.",
-    ConversationCommand.Webpage: "Use this if the user has provided a webpage URL or you are share of a webpage URL that will help you directly answer this query",
+    ConversationCommand.Notes: "To search the user's personal knowledge base. Especially helpful if the question expects context from the user's notes or documents.",
+    ConversationCommand.Online: "To search for the latest, up-to-date information from the internet.",
+    ConversationCommand.Webpage: "To use if the user has directly provided the webpage urls or you are certain of the webpage urls to read.",
 }
 
 mode_descriptions_for_llm = {

@@ -54,6 +54,7 @@ async def apick_next_tool(
     user_name: str = None,
     agent: Agent = None,
     previous_iterations: List[InformationCollectionIteration] = None,
+    max_iterations: int = 5,
 ):
     """
     Given a query, determine which of the available tools the agent should use in order to answer appropriately. One at a time, and it's able to use subsequent iterations to refine the answer.
@@ -72,11 +73,12 @@ async def apick_next_tool(
     chat_history = construct_chat_history(conversation_history)
 
     previous_iterations_history = ""
-    for iteration in previous_iterations:
+    for idx, iteration in enumerate(previous_iterations):
         iteration_data = prompts.previous_iteration.format(
             query=iteration.query,
             data_source=iteration.data_source,
             summary=iteration.summarizedResult,
+            index=idx + 1,
         )
 
         previous_iterations_history += iteration_data
@@ -104,6 +106,7 @@ async def apick_next_tool(
         username=username,
         location=location_data,
         previous_iterations=previous_iterations_history,
+        max_iterations=max_iterations,
     )
 
     chat_model_option = await ConversationAdapters.aget_advanced_conversation_config()
@@ -152,10 +155,10 @@ async def execute_information_collection(
     location: LocationData = None,
     file_filters: List[str] = [],
 ):
-    iteration = 0
+    current_iteration = 0
     MAX_ITERATIONS = 2
     previous_iterations: List[InformationCollectionIteration] = []
-    while iteration < MAX_ITERATIONS:
+    while current_iteration < MAX_ITERATIONS:
         online_results: Dict = dict()
 
         compiled_references: List[Any] = []
@@ -164,7 +167,15 @@ async def execute_information_collection(
         result: str = ""
 
         this_iteration = await apick_next_tool(
-            query, conversation_history, subscribed, uploaded_image_url, location, user_name, agent, previous_iterations
+            query,
+            conversation_history,
+            subscribed,
+            uploaded_image_url,
+            location,
+            user_name,
+            agent,
+            previous_iterations,
+            MAX_ITERATIONS,
         )
         if this_iteration.data_source == ConversationCommand.Notes:
             ## Extract Document References
@@ -291,9 +302,9 @@ async def execute_information_collection(
         #                 )
         #             )
         else:
-            iteration = MAX_ITERATIONS
+            current_iteration = MAX_ITERATIONS
 
-        iteration += 1
+        current_iteration += 1
 
         if compiled_references or online_results:
             results_data = f"**Results**:\n"
@@ -302,8 +313,8 @@ async def execute_information_collection(
             if online_results:
                 results_data += f"**Online Results**: {online_results}\n"
 
-            intermediate_result = await extract_relevant_info(this_iteration.query, results_data, agent)
-            this_iteration.summarizedResult = intermediate_result
+            # intermediate_result = await extract_relevant_info(this_iteration.query, results_data, agent)
+            this_iteration.summarizedResult = results_data
 
         previous_iterations.append(this_iteration)
         yield this_iteration
