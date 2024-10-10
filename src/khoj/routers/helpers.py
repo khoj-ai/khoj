@@ -947,7 +947,6 @@ def generate_chat_response(
     q: str,
     meta_log: dict,
     conversation: Conversation,
-    meta_research: str = "",
     compiled_references: List[Dict] = [],
     online_results: Dict[str, Dict] = {},
     inferred_queries: List[str] = [],
@@ -958,6 +957,7 @@ def generate_chat_response(
     location_data: LocationData = None,
     user_name: Optional[str] = None,
     uploaded_image_url: Optional[str] = None,
+    meta_research: str = "",
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
     chat_response = None

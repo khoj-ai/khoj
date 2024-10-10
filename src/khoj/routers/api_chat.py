@@ -720,13 +720,11 @@ async def chat(
                 if type(research_result) == InformationCollectionIteration:
                     if research_result.summarizedResult:
                         pending_research = False
-                        # if research_result.onlineContext:
-                        #     researched_results += str(research_result.onlineContext)
-                        #     online_results.update(research_result.onlineContext)
+                        if research_result.onlineContext:
+                            online_results.update(research_result.onlineContext)
 
-                        # if research_result.context:
-                        #     researched_results += str(research_result.context)
-                        #     compiled_references.extend(research_result.context)
+                        if research_result.context:
+                            compiled_references.extend(research_result.context)
 
                         researched_results += research_result.summarizedResult
 
@@ -1021,10 +1019,9 @@ async def chat(
         async for result in send_event(ChatEvent.STATUS, f"**Generating a well-informed response**"):
             yield result
         llm_response, chat_metadata = await agenerate_chat_response(
-            defiltered_query,
+            q,
             meta_log,
             conversation,
-            researched_results,
             compiled_references,
             online_results,
             inferred_queries,
@@ -1035,6 +1032,7 @@ async def chat(
             location,
             user_name,
             uploaded_image_url,
+            researched_results,
         )
 
         # Send Response

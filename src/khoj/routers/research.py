@@ -33,7 +33,7 @@ class InformationCollectionIteration:
         self,
         data_source: str,
         query: str,
-        context: str = None,
+        context: Dict[str, Dict] = None,
         onlineContext: dict = None,
         summarizedResult: str = None,
     ):
@@ -187,7 +187,7 @@ async def execute_information_collection(
                     compiled_references.extend(result[0])
                     inferred_queries.extend(result[1])
                     defiltered_query = result[2]
-                    this_iteration.context = str(compiled_references)
+                    this_iteration.context = compiled_references
 
         elif this_iteration.data_source == ConversationCommand.Online:
             async for result in search_online(
