@@ -59,7 +59,7 @@ async def apick_next_tool(
         if len(agent_tools) == 0 or tool.value in agent_tools:
             tool_options_str += f'- "{tool.value}": "{description}"\n'
 
-    chat_history = construct_chat_history(conversation_history)
+    chat_history = construct_chat_history(conversation_history, agent_name=agent.name if agent else "Khoj")
 
     if uploaded_image_url:
         query = f"[placeholder for user attached image]\n{query}"
