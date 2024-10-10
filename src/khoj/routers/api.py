@@ -160,8 +160,8 @@ async def execute_search(
             search_futures += [
                 executor.submit(
                     text_search.query,
-                    user,
                     user_query,
+                    user,
                     t,
                     question_embedding=encoded_asymmetric_query,
                     max_distance=max_distance,
