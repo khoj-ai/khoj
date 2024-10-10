@@ -26,6 +26,7 @@ import {
     Palette,
     ClipboardText,
     Check,
+    Code,
 } from "@phosphor-icons/react";
 
 import DOMPurify from "dompurify";
@@ -276,6 +277,10 @@ function chooseIconFromHeader(header: string, iconColor: string) {
 
     if (compareHeader.includes("paint")) {
         return <Palette className={`${classNames}`} />;
+    }
+
+    if (compareHeader.includes("code")) {
+        return <Code className={`${classNames}`} />;
     }
 
     return <Brain className={`${classNames}`} />;
