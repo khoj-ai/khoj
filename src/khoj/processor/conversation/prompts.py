@@ -490,9 +490,11 @@ plan_function_execution = PromptTemplate.from_template(
 You are an extremely methodical planner. Your goal is to make a plan to execute a function based on the user's query.
 {personality_context}
 - You have access to a variety of data sources to help you answer the user's question
-- You can use the data sources listed below to collect more relevant information, one at a time
+- You can use the data sources listed below to collect more relevant information, one at a time. The outputs will be chained.
 - You are given multiple iterations to with these data sources to answer the user's question
 - You are provided with additional context. If you have enough context to answer the question, then exit execution
+- Each query is self-contained and you can use the data source to answer the user's question. There will be no additional data injected between queries, so make sure the query you're asking is answered in the current iteration.
+- Limit each query to a *single* intention. For example, do not say "Look up the top city by population and output the GDP." Instead, say "Look up the top city by population." and then "Tell me the GDP of <the city>."
 
 If you already know the answer to the question, return an empty response, e.g., {{}}.
 
@@ -500,7 +502,7 @@ Which of the data sources listed below you would use to answer the user's questi
 
 {tools}
 
-Now it's your turn to pick the data sources you would like to use to answer the user's question. Provide the data source and associated query in a JSON object. Do not say anything else.
+Provide the data source and associated query in a JSON object. Do not say anything else.
 
 Previous Iterations:
 {previous_iterations}
@@ -520,8 +522,7 @@ previous_iteration = PromptTemplate.from_template(
     """
 data_source: {data_source}
 query: {query}
-context: {context}
-onlineContext: {onlineContext}
+summary: {summary}
 ---
 """.strip()
 )

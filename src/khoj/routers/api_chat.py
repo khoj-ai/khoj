@@ -718,18 +718,20 @@ async def chat(
             ):
                 if type(research_result) == InformationCollectionIteration:
                     pending_research = False
-                    if research_result.onlineContext:
-                        researched_results += str(research_result.onlineContext)
-                        online_results.update(research_result.onlineContext)
+                    # if research_result.onlineContext:
+                    #     researched_results += str(research_result.onlineContext)
+                    #     online_results.update(research_result.onlineContext)
 
-                    if research_result.context:
-                        researched_results += str(research_result.context)
-                        compiled_references.extend(research_result.context)
+                    # if research_result.context:
+                    #     researched_results += str(research_result.context)
+                    #     compiled_references.extend(research_result.context)
+
+                    researched_results += research_result.summarizedResult
 
                 else:
                     yield research_result
 
-            researched_results = await extract_relevant_info(q, researched_results, agent)
+            # researched_results = await extract_relevant_info(q, researched_results, agent)
 
             logger.info(f"Researched Results: {researched_results}")
 
