@@ -853,37 +853,37 @@ async def chat(
                 yield result
             return
 
-        # Gather Context
-        async for result in extract_references_and_questions(
-            request,
-            meta_log,
-            q,
-            (n or 7),
-            d,
-            conversation_id,
-            conversation_commands,
-            location,
-            partial(send_event, ChatEvent.STATUS),
-            uploaded_image_url=uploaded_image_url,
-            agent=agent,
-        ):
-            if isinstance(result, dict) and ChatEvent.STATUS in result:
-                yield result[ChatEvent.STATUS]
-            else:
-                compiled_references.extend(result[0])
-                inferred_queries.extend(result[1])
-                defiltered_query = result[2]
+        # # Gather Context
+        # async for result in extract_references_and_questions(
+        #     request,
+        #     meta_log,
+        #     q,
+        #     (n or 7),
+        #     d,
+        #     conversation_id,
+        #     conversation_commands,
+        #     location,
+        #     partial(send_event, ChatEvent.STATUS),
+        #     uploaded_image_url=uploaded_image_url,
+        #     agent=agent,
+        # ):
+        #     if isinstance(result, dict) and ChatEvent.STATUS in result:
+        #         yield result[ChatEvent.STATUS]
+        #     else:
+        #         compiled_references.extend(result[0])
+        #         inferred_queries.extend(result[1])
+        #         defiltered_query = result[2]
 
-        if not is_none_or_empty(compiled_references):
-            try:
-                headings = "\n- " + "\n- ".join(set([c.get("compiled", c).split("\n")[0] for c in compiled_references]))
-                # Strip only leading # from headings
-                headings = headings.replace("#", "")
-                async for result in send_event(ChatEvent.STATUS, f"**Found Relevant Notes**: {headings}"):
-                    yield result
-            except Exception as e:
-                # TODO Get correct type for compiled across research notes extraction
-                logger.error(f"Error extracting references: {e}", exc_info=True)
+        # if not is_none_or_empty(compiled_references):
+        #     try:
+        #         headings = "\n- " + "\n- ".join(set([c.get("compiled", c).split("\n")[0] for c in compiled_references]))
+        #         # Strip only leading # from headings
+        #         headings = headings.replace("#", "")
+        #         async for result in send_event(ChatEvent.STATUS, f"**Found Relevant Notes**: {headings}"):
+        #             yield result
+        #     except Exception as e:
+        #         # TODO Get correct type for compiled across research notes extraction
+        #         logger.error(f"Error extracting references: {e}", exc_info=True)
 
         if conversation_commands == [ConversationCommand.Notes] and not await EntryAdapters.auser_has_entries(user):
             async for result in send_llm_response(f"{no_entries_found.format()}"):
