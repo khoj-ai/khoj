@@ -21,6 +21,7 @@ from khoj.routers.helpers import (
 from khoj.utils.helpers import (
     ConversationCommand,
     function_calling_description_for_llm,
+    is_none_or_empty,
     timer,
 )
 from khoj.utils.rawconfig import LocationData
@@ -188,6 +189,17 @@ async def execute_information_collection(
                     inferred_queries.extend(result[1])
                     defiltered_query = result[2]
                     this_iteration.context = compiled_references
+
+        if not is_none_or_empty(compiled_references):
+            try:
+                headings = "\n- " + "\n- ".join(set([c.get("compiled", c).split("\n")[0] for c in compiled_references]))
+                # Strip only leading # from headings
+                headings = headings.replace("#", "")
+                async for result in send_status_func(f"**Found Relevant Notes**: {headings}"):
+                    yield result
+            except Exception as e:
+                # TODO Get correct type for compiled across research notes extraction
+                logger.error(f"Error extracting references: {e}", exc_info=True)
 
         elif this_iteration.data_source == ConversationCommand.Online:
             async for result in search_online(
