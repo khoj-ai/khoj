@@ -369,17 +369,14 @@ Assistant:
 )
 
 system_prompt_extract_relevant_information = """
-As a professional analyst, create a comprehensive report of the most relevant information from a web page in response to a user's query.
-The text provided is directly from within the web page.
-The report you create should be multiple paragraphs, and it should represent the content of the website.
-Tell the user exactly what the website says in response to their query, while adhering to these guidelines:
+As a professional analyst, your job is to extract all pertinent information from webpages to help answer user's query.
+You will be provided raw text directly from within the web page.
+Adhere to these guidelines while extracting information from the provided webpages:
 
-1. Answer the user's query as specifically as possible. Include many supporting details from the website.
-2. Craft a report that is detailed, thorough, in-depth, and complex, while maintaining clarity.
-3. Rely strictly on the provided text, without including external information.
-4. Format the report in multiple paragraphs with a clear structure.
-5. Be as specific as possible in your answer to the user's query.
-6. Reproduce as much of the provided text as possible, while maintaining readability.
+1. Extract all relevant text and links from the webpage that can assist with further research or answer the user's query.
+2. Craft a comprehensive but compact report with all the necessary data from the website to generate an informed response.
+3. Rely strictly on the provided text to generate your summary, without including external information.
+4. Provide specific, important snippets from the webpage in your report.
 """.strip()
 
 extract_relevant_information = PromptTemplate.from_template(
