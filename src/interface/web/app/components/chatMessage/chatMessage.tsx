@@ -10,6 +10,7 @@ import { createRoot } from "react-dom/client";
 import "katex/dist/katex.min.css";
 
 import { TeaserReferencesSection, constructAllReferences } from "../referencePanel/referencePanel";
+import { replaceFileLinksWithBase64 } from "@/app/common/chatFunctions";
 
 import {
     ThumbsUp,
@@ -375,6 +376,30 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             props.chatMessage.intent["inferred-queries"]?.length > 0
         ) {
             message += `\n\n${props.chatMessage.intent["inferred-queries"][0]}`;
+        }
+
+        // Replace file links with base64 data
+        message = replaceFileLinksWithBase64(message, props.chatMessage.codeContext);
+
+        // Add code context files to the message
+        if (props.chatMessage.codeContext) {
+            Object.entries(props.chatMessage.codeContext).forEach(([key, value]) => {
+                value.results.output_files?.forEach((file) => {
+                    if (file.filename.endsWith(".png") || file.filename.endsWith(".jpg")) {
+                        // Don't add the image again if it's already in the message!
+                        if (!message.includes(`![${file.filename}](`)) {
+                            message += `\n\n![${file.filename}](data:image/png;base64,${file.b64_data})`;
+                        }
+                    } else if (
+                        file.filename.endsWith(".txt") ||
+                        file.filename.endsWith(".org") ||
+                        file.filename.endsWith(".md")
+                    ) {
+                        const decodedText = atob(file.b64_data);
+                        message += `\n\n\`\`\`\n${decodedText}\n\`\`\``;
+                    }
+                });
+            });
         }
 
         setTextRendered(message);

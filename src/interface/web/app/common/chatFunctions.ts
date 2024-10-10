@@ -115,6 +115,33 @@ export function processMessageChunk(
         if (onlineContext) currentMessage.onlineContext = onlineContext;
         if (context) currentMessage.context = context;
 
+        // Replace file links with base64 data
+        currentMessage.rawResponse = replaceFileLinksWithBase64(
+            currentMessage.rawResponse,
+            codeContext,
+        );
+
+        // Add code context files to the message
+        if (codeContext) {
+            Object.entries(codeContext).forEach(([key, value]) => {
+                value.results.output_files?.forEach((file) => {
+                    if (file.filename.endsWith(".png") || file.filename.endsWith(".jpg")) {
+                        // Don't add the image again if it's already in the message!
+                        if (!currentMessage.rawResponse.includes(`![${file.filename}](`)) {
+                            currentMessage.rawResponse += `\n\n![${file.filename}](data:image/png;base64,${file.b64_data})`;
+                        }
+                    } else if (
+                        file.filename.endsWith(".txt") ||
+                        file.filename.endsWith(".org") ||
+                        file.filename.endsWith(".md")
+                    ) {
+                        const decodedText = atob(file.b64_data);
+                        currentMessage.rawResponse += `\n\n\`\`\`\n${decodedText}\n\`\`\``;
+                    }
+                });
+            });
+        }
+
         // Mark current message streaming as completed
         currentMessage.completed = true;
     }
@@ -157,6 +184,22 @@ export function handleImageResponse(imageJson: any, liveStream: boolean): Respon
 
     reference.response = rawResponse;
     return reference;
+}
+
+export function replaceFileLinksWithBase64(message: string, codeContext: CodeContext) {
+    if (!codeContext) return message;
+
+    Object.values(codeContext).forEach((contextData) => {
+        contextData.results.output_files?.forEach((file) => {
+            const regex = new RegExp(`!\\[.*?\\]\\(.*${file.filename}\\)`, "g");
+            if (file.filename.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
+                const replacement = `![${file.filename}](data:image/${file.filename.split(".").pop()};base64,${file.b64_data})`;
+                message = message.replace(regex, replacement);
+            }
+        });
+    });
+
+    return message;
 }
 
 export function modifyFileFilterForConversation(
