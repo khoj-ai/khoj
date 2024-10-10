@@ -199,6 +199,7 @@ async def execute_information_collection(
                 subscribed,
                 send_status_func,
                 [],
+                max_webpages_to_read=0,
                 uploaded_image_url=uploaded_image_url,
                 agent=agent,
             ):

@@ -46,8 +46,7 @@ OLOSTEP_QUERY_PARAMS = {
     "expandHtml": "False",
 }
 
-# TODO: Should this be 0 to let advanced model decide which web pages to read?
-MAX_WEBPAGES_TO_READ = 1
+DEFAULT_MAX_WEBPAGES_TO_READ = 1
 
 
 async def search_online(
@@ -58,6 +57,7 @@ async def search_online(
     subscribed: bool = False,
     send_status_func: Optional[Callable] = None,
     custom_filters: List[str] = [],
+    max_webpages_to_read: int = DEFAULT_MAX_WEBPAGES_TO_READ,
     uploaded_image_url: str = None,
     agent: Agent = None,
 ):
@@ -91,7 +91,7 @@ async def search_online(
     webpages = {
         (organic.get("link"), subquery, organic.get("content"))
         for subquery in response_dict
-        for organic in response_dict[subquery].get("organic", [])[:MAX_WEBPAGES_TO_READ]
+        for organic in response_dict[subquery].get("organic", [])[:max_webpages_to_read]
         if "answerBox" not in response_dict[subquery]
     }
 
