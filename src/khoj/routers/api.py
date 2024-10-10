@@ -42,6 +42,7 @@ from khoj.processor.conversation.offline.chat_model import extract_questions_off
 from khoj.processor.conversation.offline.whisper import transcribe_audio_offline
 from khoj.processor.conversation.openai.gpt import extract_questions
 from khoj.processor.conversation.openai.whisper import transcribe_audio
+from khoj.processor.conversation.utils import defilter_query
 from khoj.routers.helpers import (
     ApiUserRateLimiter,
     ChatEvent,
@@ -375,9 +376,7 @@ async def extract_references_and_questions(
             return
 
     # Extract filter terms from user message
-    defiltered_query = q
-    for filter in [DateFilter(), WordFilter(), FileFilter()]:
-        defiltered_query = filter.defilter(defiltered_query)
+    defiltered_query = defilter_query(q)
     filters_in_query = q.replace(defiltered_query, "").strip()
     conversation = await sync_to_async(ConversationAdapters.get_conversation_by_id)(conversation_id)
 

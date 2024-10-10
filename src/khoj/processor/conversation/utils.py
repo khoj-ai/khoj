@@ -14,6 +14,9 @@ from transformers import AutoTokenizer
 from khoj.database.adapters import ConversationAdapters, ais_user_subscribed
 from khoj.database.models import ChatModelOptions, ClientApplication, KhojUser
 from khoj.processor.conversation.offline.utils import download_model, infer_max_tokens
+from khoj.search_filter.date_filter import DateFilter
+from khoj.search_filter.file_filter import FileFilter
+from khoj.search_filter.word_filter import WordFilter
 from khoj.utils import state
 from khoj.utils.helpers import is_none_or_empty, merge_dicts
 
@@ -320,3 +323,11 @@ def reciprocal_conversation_to_chatml(message_pair):
 def remove_json_codeblock(response: str):
     """Remove any markdown json codeblock formatting if present. Useful for non schema enforceable models"""
     return response.removeprefix("```json").removesuffix("```")
+
+
+def defilter_query(query: str):
+    """Remove any query filters in query"""
+    defiltered_query = query
+    for filter in [DateFilter(), WordFilter(), FileFilter()]:
+        defiltered_query = filter.defilter(defiltered_query)
+    return defiltered_query

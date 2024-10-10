@@ -7,8 +7,6 @@ from math import inf
 from typing import List, Tuple
 
 import dateparser as dtparse
-from dateparser.search import search_dates
-from dateparser_data.settings import default_parsers
 from dateutil.relativedelta import relativedelta
 
 from khoj.search_filter.base_filter import BaseFilter

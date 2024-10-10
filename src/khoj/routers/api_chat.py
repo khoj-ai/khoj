@@ -24,7 +24,7 @@ from khoj.database.adapters import (
 )
 from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation.prompts import help_message, no_entries_found
-from khoj.processor.conversation.utils import save_to_conversation_log
+from khoj.processor.conversation.utils import defilter_query, save_to_conversation_log
 from khoj.processor.image.generate import text_to_image
 from khoj.processor.speech.text_to_speech import generate_text_to_speech
 from khoj.processor.tools.online_search import read_webpages, search_online
@@ -700,7 +700,7 @@ async def chat(
         ## Extract Document References
         compiled_references: List[Any] = []
         inferred_queries: List[Any] = []
-        defiltered_query: str = None
+        defiltered_query = defilter_query(q)
 
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
             async for research_result in execute_information_collection(
