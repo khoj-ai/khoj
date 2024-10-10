@@ -954,7 +954,9 @@ async def chat(
         ## Gather Code Results
         if ConversationCommand.Code in conversation_commands:
             try:
-                previous_iteration_history = ""
+                previous_iteration_history = (
+                    f"# Iteration 1:\n#---\nNotes:\n{compiled_references}\n\nOnline Results:{online_results}"
+                )
                 async for result in run_code(
                     defiltered_query,
                     meta_log,
