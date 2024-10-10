@@ -696,6 +696,7 @@ async def chat(
         pending_research = True
         researched_results = ""
         online_results: Dict = dict()
+        code_results: Dict = dict()
         ## Extract Document References
         compiled_references: List[Any] = []
         inferred_queries: List[Any] = []
@@ -721,7 +722,8 @@ async def chat(
                         pending_research = False
                         if research_result.onlineContext:
                             online_results.update(research_result.onlineContext)
-
+                        if research_result.codeContext:
+                            code_results.update(research_result.codeContext)
                         if research_result.context:
                             compiled_references.extend(research_result.context)
 

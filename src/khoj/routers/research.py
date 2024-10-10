@@ -10,6 +10,7 @@ from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import remove_json_codeblock
 from khoj.processor.tools.online_search import read_webpages, search_online
+from khoj.processor.tools.run_code import run_code
 from khoj.routers.api import extract_references_and_questions
 from khoj.routers.helpers import (
     ChatEvent,
@@ -36,12 +37,14 @@ class InformationCollectionIteration:
         query: str,
         context: Dict[str, Dict] = None,
         onlineContext: dict = None,
+        codeContext: dict = None,
         summarizedResult: str = None,
     ):
         self.data_source = data_source
         self.query = query
         self.context = context
         self.onlineContext = onlineContext
+        self.codeContext = codeContext
         self.summarizedResult = summarizedResult
 
 
@@ -160,7 +163,7 @@ async def execute_information_collection(
     previous_iterations: List[InformationCollectionIteration] = []
     while current_iteration < MAX_ITERATIONS:
         online_results: Dict = dict()
-
+        code_results: Dict = dict()
         compiled_references: List[Any] = []
         inferred_queries: List[Any] = []
 
@@ -260,6 +263,30 @@ async def execute_information_collection(
             except Exception as e:
                 logger.error(f"Error reading webpages: {e}", exc_info=True)
 
+        elif this_iteration.data_source == ConversationCommand.Code:
+            try:
+                async for result in run_code(
+                    this_iteration.query,
+                    conversation_history,
+                    location,
+                    user,
+                    send_status_func,
+                    uploaded_image_url=uploaded_image_url,
+                    agent=agent,
+                ):
+                    if isinstance(result, dict) and ChatEvent.STATUS in result:
+                        yield result[ChatEvent.STATUS]
+                    else:
+                        code_results: Dict[str, Dict] = result  # type: ignore
+                        this_iteration.codeContext = code_results
+                async for result in send_status_func(f"**Ran code snippets**: {len(this_iteration.codeContext)}"):
+                    yield result
+            except ValueError as e:
+                logger.warning(
+                    f"Failed to use code tool: {e}. Attempting to respond without code results",
+                    exc_info=True,
+                )
+
         # TODO: Fix summarize later
         # elif this_iteration.data_source == ConversationCommand.Summarize:
         #     response_log = ""
@@ -306,12 +333,14 @@ async def execute_information_collection(
 
         current_iteration += 1
 
-        if compiled_references or online_results:
+        if compiled_references or online_results or code_results:
             results_data = f"**Results**:\n"
             if compiled_references:
                 results_data += f"**Document References**: {compiled_references}\n"
             if online_results:
                 results_data += f"**Online Results**: {online_results}\n"
+            if code_results:
+                results_data += f"**Code Results**: {code_results}\n"
 
             # intermediate_result = await extract_relevant_info(this_iteration.query, results_data, agent)
             this_iteration.summarizedResult = results_data
