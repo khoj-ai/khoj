@@ -455,6 +455,7 @@ export function TeaserReferencesSection(props: TeaserReferenceSectionProps) {
                     <ReferencePanel
                         notesReferenceCardData={props.notesReferenceCardData}
                         onlineReferenceCardData={props.onlineReferenceCardData}
+                        codeReferenceCardData={props.codeReferenceCardData}
                     />
                 )}
             </div>
@@ -465,6 +466,7 @@ export function TeaserReferencesSection(props: TeaserReferenceSectionProps) {
 interface ReferencePanelDataProps {
     notesReferenceCardData: NotesContextReferenceData[];
     onlineReferenceCardData: OnlineReferenceData[];
+    codeReferenceCardData: CodeReferenceData[];
 }
 
 export default function ReferencePanel(props: ReferencePanelDataProps) {
@@ -499,6 +501,15 @@ export default function ReferencePanel(props: ReferencePanelDataProps) {
                                 showFullContent={true}
                                 {...online}
                                 key={`${online.title}-${index}`}
+                            />
+                        );
+                    })}
+                    {props.codeReferenceCardData.map((code, index) => {
+                        return (
+                            <CodeContextReferenceCard
+                                showFullContent={true}
+                                {...code}
+                                key={`code-${index}`}
                             />
                         );
                     })}
