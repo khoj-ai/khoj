@@ -28,6 +28,7 @@ SANDBOX_URL = os.getenv("KHOJ_TERRARIUM_URL", "http://localhost:8080")
 async def run_code(
     query: str,
     conversation_history: dict,
+    previous_iterations_history: str,
     location_data: LocationData,
     user: KhojUser,
     send_status_func: Optional[Callable] = None,
@@ -42,7 +43,7 @@ async def run_code(
     try:
         with timer("Chat actor: Generate programs to execute", logger):
             codes = await generate_python_code(
-                query, conversation_history, location_data, user, uploaded_image_url, agent
+                query, conversation_history, previous_iterations_history, location_data, user, uploaded_image_url, agent
             )
     except Exception as e:
         raise ValueError(f"Failed to generate code for {query} with error: {e}")
@@ -66,6 +67,7 @@ async def run_code(
 async def generate_python_code(
     q: str,
     conversation_history: dict,
+    previous_iterations_history: str,
     location_data: LocationData,
     user: KhojUser,
     uploaded_image_url: str = None,
@@ -85,6 +87,7 @@ async def generate_python_code(
         current_date=utc_date,
         query=q,
         chat_history=chat_history,
+        previous_iterations_history=previous_iterations_history,
         location=location,
         username=username,
         personality_context=personality_context,

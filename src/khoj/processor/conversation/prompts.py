@@ -753,7 +753,10 @@ For example:
 {{"codes": ["print('Hello, World!')", "print('Goodbye, World!')"]}}
 
 Now it's your turn to construct python programs to answer the user's question. Provide them as a list of strings in a JSON object. Do not say anything else.
-History:
+Data from Previous Iterations:
+{previous_iterations_history}
+
+Chat History:
 {chat_history}
 
 User: {query}

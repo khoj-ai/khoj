@@ -8,7 +8,11 @@ from fastapi import Request
 from khoj.database.adapters import ConversationAdapters, EntryAdapters
 from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
-from khoj.processor.conversation.utils import remove_json_codeblock
+from khoj.processor.conversation.utils import (
+    InformationCollectionIteration,
+    construct_iteration_history,
+    remove_json_codeblock,
+)
 from khoj.processor.tools.online_search import read_webpages, search_online
 from khoj.processor.tools.run_code import run_code
 from khoj.routers.api import extract_references_and_questions
@@ -30,24 +34,6 @@ from khoj.utils.rawconfig import LocationData
 logger = logging.getLogger(__name__)
 
 
-class InformationCollectionIteration:
-    def __init__(
-        self,
-        data_source: str,
-        query: str,
-        context: Dict[str, Dict] = None,
-        onlineContext: dict = None,
-        codeContext: dict = None,
-        summarizedResult: str = None,
-    ):
-        self.data_source = data_source
-        self.query = query
-        self.context = context
-        self.onlineContext = onlineContext
-        self.codeContext = codeContext
-        self.summarizedResult = summarizedResult
-
-
 async def apick_next_tool(
     query: str,
     conversation_history: dict,
@@ -56,7 +42,7 @@ async def apick_next_tool(
     location: LocationData = None,
     user_name: str = None,
     agent: Agent = None,
-    previous_iterations: List[InformationCollectionIteration] = None,
+    previous_iterations_history: str = None,
     max_iterations: int = 5,
 ):
     """
@@ -75,17 +61,6 @@ async def apick_next_tool(
 
     chat_history = construct_chat_history(conversation_history)
 
-    previous_iterations_history = ""
-    for idx, iteration in enumerate(previous_iterations):
-        iteration_data = prompts.previous_iteration.format(
-            query=iteration.query,
-            data_source=iteration.data_source,
-            summary=iteration.summarizedResult,
-            index=idx + 1,
-        )
-
-        previous_iterations_history += iteration_data
-
     if uploaded_image_url:
         query = f"[placeholder for user attached image]\n{query}"
 
@@ -98,7 +73,6 @@ async def apick_next_tool(
     location_data = f"{location}" if location else "Unknown"
     username = prompts.user_name.format(name=user_name) if user_name else ""
 
-    # TODO Add current date/time to the query
     function_planning_prompt = prompts.plan_function_execution.format(
         query=query,
         tools=tool_options_str,
@@ -166,6 +140,7 @@ async def execute_information_collection(
         code_results: Dict = dict()
         compiled_references: List[Any] = []
         inferred_queries: List[Any] = []
+        previous_iterations_history = construct_iteration_history(previous_iterations, prompts.previous_iteration)
 
         result: str = ""
 
@@ -177,7 +152,7 @@ async def execute_information_collection(
             location,
             user_name,
             agent,
-            previous_iterations,
+            previous_iterations_history,
             MAX_ITERATIONS,
         )
         if this_iteration.data_source == ConversationCommand.Notes:
@@ -268,6 +243,7 @@ async def execute_information_collection(
                 async for result in run_code(
                     this_iteration.query,
                     conversation_history,
+                    previous_iterations_history,
                     location,
                     user,
                     send_status_func,

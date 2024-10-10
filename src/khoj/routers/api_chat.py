@@ -954,9 +954,11 @@ async def chat(
         ## Gather Code Results
         if ConversationCommand.Code in conversation_commands:
             try:
+                previous_iteration_history = ""
                 async for result in run_code(
                     defiltered_query,
                     meta_log,
+                    previous_iteration_history,
                     location,
                     user,
                     partial(send_event, ChatEvent.STATUS),

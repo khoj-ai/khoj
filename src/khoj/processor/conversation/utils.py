@@ -79,6 +79,40 @@ class ThreadedGenerator:
         self.queue.put(StopIteration)
 
 
+class InformationCollectionIteration:
+    def __init__(
+        self,
+        data_source: str,
+        query: str,
+        context: Dict[str, Dict] = None,
+        onlineContext: dict = None,
+        codeContext: dict = None,
+        summarizedResult: str = None,
+    ):
+        self.data_source = data_source
+        self.query = query
+        self.context = context
+        self.onlineContext = onlineContext
+        self.codeContext = codeContext
+        self.summarizedResult = summarizedResult
+
+
+def construct_iteration_history(
+    previous_iterations: List[InformationCollectionIteration], previous_iteration_prompt: str
+) -> str:
+    previous_iterations_history = ""
+    for idx, iteration in enumerate(previous_iterations):
+        iteration_data = previous_iteration_prompt.format(
+            query=iteration.query,
+            data_source=iteration.data_source,
+            summary=iteration.summarizedResult,
+            index=idx + 1,
+        )
+
+        previous_iterations_history += iteration_data
+    return previous_iterations_history
+
+
 def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:
     chat_history = ""
     for chat in conversation_history.get("chat", [])[-n:]:
