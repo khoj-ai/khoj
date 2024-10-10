@@ -1,13 +1,20 @@
-import { Context, OnlineContext, StreamMessage } from "../components/chatMessage/chatMessage";
+import {
+    CodeContext,
+    Context,
+    OnlineContext,
+    StreamMessage,
+} from "../components/chatMessage/chatMessage";
 
 export interface RawReferenceData {
     context?: Context[];
     onlineContext?: OnlineContext;
+    codeContext?: CodeContext;
 }
 
 export interface ResponseWithReferences {
     context?: Context[];
     online?: OnlineContext;
+    codeContext?: CodeContext;
     response?: string;
 }
 
@@ -63,10 +70,11 @@ export function processMessageChunk(
     currentMessage: StreamMessage,
     context: Context[] = [],
     onlineContext: OnlineContext = {},
-): { context: Context[]; onlineContext: OnlineContext } {
+    codeContext: CodeContext = {},
+): { context: Context[]; onlineContext: OnlineContext; codeContext: CodeContext } {
     const chunk = convertMessageChunkToJson(rawChunk);
 
-    if (!currentMessage || !chunk || !chunk.type) return { context, onlineContext };
+    if (!currentMessage || !chunk || !chunk.type) return { context, onlineContext, codeContext };
 
     if (chunk.type === "status") {
         console.log(`status: ${chunk.data}`);
@@ -77,7 +85,8 @@ export function processMessageChunk(
 
         if (references.context) context = references.context;
         if (references.onlineContext) onlineContext = references.onlineContext;
-        return { context, onlineContext };
+        if (references.codeContext) codeContext = references.codeContext;
+        return { context, onlineContext, codeContext };
     } else if (chunk.type === "message") {
         const chunkData = chunk.data;
         if (chunkData !== null && typeof chunkData === "object") {
@@ -102,13 +111,14 @@ export function processMessageChunk(
         console.log(`Completed streaming: ${new Date()}`);
 
         // Append any references after all the data has been streamed
+        if (codeContext) currentMessage.codeContext = codeContext;
         if (onlineContext) currentMessage.onlineContext = onlineContext;
         if (context) currentMessage.context = context;
 
         // Mark current message streaming as completed
         currentMessage.completed = true;
     }
-    return { context, onlineContext };
+    return { context, onlineContext, codeContext };
 }
 
 export function handleImageResponse(imageJson: any, liveStream: boolean): ResponseWithReferences {

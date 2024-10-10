@@ -11,7 +11,7 @@ const md = new markdownIt({
     typographer: true,
 });
 
-import { Context, WebPage, OnlineContext } from "../chatMessage/chatMessage";
+import { Context, WebPage, OnlineContext, CodeContext } from "../chatMessage/chatMessage";
 import { Card } from "@/components/ui/card";
 
 import {
@@ -94,9 +94,65 @@ function NotesContextReferenceCard(props: NotesContextReferenceCardProps) {
     );
 }
 
+interface CodeContextReferenceCardProps {
+    code: string;
+    output: string;
+    error: string;
+    showFullContent: boolean;
+}
+
+function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
+    const fileIcon = getIconFromFilename(".py", "w-6 h-6 text-muted-foreground inline-flex mr-2");
+    const snippet = DOMPurify.sanitize(props.code);
+    const [isHovering, setIsHovering] = useState(false);
+
+    return (
+        <>
+            <Popover open={isHovering && !props.showFullContent} onOpenChange={setIsHovering}>
+                <PopoverTrigger asChild>
+                    <Card
+                        onMouseEnter={() => setIsHovering(true)}
+                        onMouseLeave={() => setIsHovering(false)}
+                        className={`${props.showFullContent ? "w-auto" : "w-[200px]"} overflow-hidden break-words text-balance rounded-lg p-2 bg-muted border-none`}
+                    >
+                        <h3
+                            className={`${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground}`}
+                        >
+                            {fileIcon}
+                            Code
+                        </h3>
+                        <p
+                            className={`${props.showFullContent ? "block" : "overflow-hidden line-clamp-2"}`}
+                        >
+                            {snippet}
+                        </p>
+                    </Card>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] mx-2">
+                    <Card
+                        className={`w-auto overflow-hidden break-words text-balance rounded-lg p-2 border-none`}
+                    >
+                        <h3 className={`line-clamp-2 text-muted-foreground}`}>
+                            {fileIcon}
+                            Code
+                        </h3>
+                        <p className={`overflow-hidden line-clamp-3`}>{snippet}</p>
+                    </Card>
+                </PopoverContent>
+            </Popover>
+        </>
+    );
+}
+
 export interface ReferencePanelData {
     notesReferenceCardData: NotesContextReferenceData[];
     onlineReferenceCardData: OnlineReferenceData[];
+}
+
+export interface CodeReferenceData {
+    code: string;
+    output: string;
+    error: string;
 }
 
 interface OnlineReferenceData {
@@ -214,9 +270,27 @@ function GenericOnlineReferenceCard(props: OnlineReferenceCardProps) {
     );
 }
 
-export function constructAllReferences(contextData: Context[], onlineData: OnlineContext) {
+export function constructAllReferences(
+    contextData: Context[],
+    onlineData: OnlineContext,
+    codeContext: CodeContext,
+) {
     const onlineReferences: OnlineReferenceData[] = [];
     const contextReferences: NotesContextReferenceData[] = [];
+    const codeReferences: CodeReferenceData[] = [];
+
+    if (codeContext) {
+        for (const [key, value] of Object.entries(codeContext)) {
+            if (!value.results) {
+                continue;
+            }
+            codeReferences.push({
+                code: value.code,
+                output: value.results.std_out,
+                error: value.results.std_err,
+            });
+        }
+    }
 
     if (onlineData) {
         let localOnlineReferences = [];
@@ -298,12 +372,14 @@ export function constructAllReferences(contextData: Context[], onlineData: Onlin
     return {
         notesReferenceCardData: contextReferences,
         onlineReferenceCardData: onlineReferences,
+        codeReferenceCardData: codeReferences,
     };
 }
 
 export interface TeaserReferenceSectionProps {
     notesReferenceCardData: NotesContextReferenceData[];
     onlineReferenceCardData: OnlineReferenceData[];
+    codeReferenceCardData: CodeReferenceData[];
     isMobileWidth: boolean;
 }
 
@@ -315,16 +391,27 @@ export function TeaserReferencesSection(props: TeaserReferenceSectionProps) {
     }, [props.isMobileWidth]);
 
     const notesDataToShow = props.notesReferenceCardData.slice(0, numTeaserSlots);
+    const codeDataToShow = props.codeReferenceCardData.slice(
+        0,
+        numTeaserSlots - notesDataToShow.length,
+    );
     const onlineDataToShow =
-        notesDataToShow.length < numTeaserSlots
-            ? props.onlineReferenceCardData.slice(0, numTeaserSlots - notesDataToShow.length)
+        notesDataToShow.length + codeDataToShow.length < numTeaserSlots
+            ? props.onlineReferenceCardData.slice(
+                  0,
+                  numTeaserSlots - codeDataToShow.length - notesDataToShow.length,
+              )
             : [];
 
     const shouldShowShowMoreButton =
-        props.notesReferenceCardData.length > 0 || props.onlineReferenceCardData.length > 0;
+        props.notesReferenceCardData.length > 0 ||
+        props.codeReferenceCardData.length > 0 ||
+        props.onlineReferenceCardData.length > 0;
 
     const numReferences =
-        props.notesReferenceCardData.length + props.onlineReferenceCardData.length;
+        props.notesReferenceCardData.length +
+        props.codeReferenceCardData.length +
+        props.onlineReferenceCardData.length;
 
     if (numReferences === 0) {
         return null;
@@ -343,6 +430,15 @@ export function TeaserReferencesSection(props: TeaserReferenceSectionProps) {
                             showFullContent={false}
                             {...note}
                             key={`${note.title}-${index}`}
+                        />
+                    );
+                })}
+                {codeDataToShow.map((code, index) => {
+                    return (
+                        <CodeContextReferenceCard
+                            showFullContent={false}
+                            {...code}
+                            key={`code-${index}`}
                         />
                     );
                 })}

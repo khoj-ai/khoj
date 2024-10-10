@@ -5,6 +5,7 @@ import { useAuthenticatedData } from "@/app/common/auth";
 import { useState, useEffect } from "react";
 
 import ChatMessage, {
+    CodeContext,
     Context,
     OnlineContext,
     OnlineContextData,
@@ -46,6 +47,7 @@ interface SupplementReferences {
 interface ResponseWithReferences {
     context?: Context[];
     online?: OnlineContext;
+    code?: CodeContext;
     response?: string;
 }
 
@@ -192,6 +194,7 @@ function ReferenceVerification(props: ReferenceVerificationProps) {
                     context: [],
                     created: new Date().toISOString(),
                     onlineContext: {},
+                    codeContext: {},
                 }}
                 isMobileWidth={isMobileWidth}
             />
@@ -622,6 +625,7 @@ export default function FactChecker() {
                                         context: [],
                                         created: new Date().toISOString(),
                                         onlineContext: {},
+                                        codeContext: {},
                                     }}
                                     isMobileWidth={isMobileWidth}
                                 />

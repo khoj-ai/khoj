@@ -97,6 +97,26 @@ export interface OnlineContextData {
     peopleAlsoAsk: PeopleAlsoAsk[];
 }
 
+export interface CodeContext {
+    [key: string]: CodeContextData;
+}
+
+export interface CodeContextData {
+    code: string;
+    results: {
+        success: boolean;
+        output_files: CodeContextFile[];
+        std_out: string;
+        std_err: string;
+        code_runtime: number;
+    };
+}
+
+export interface CodeContextFile {
+    filename: string;
+    b64_data: string;
+}
+
 interface Intent {
     type: string;
     query: string;
@@ -111,6 +131,7 @@ export interface SingleChatMessage {
     created: string;
     context: Context[];
     onlineContext: OnlineContext;
+    codeContext: CodeContext;
     rawQuery?: string;
     intent?: Intent;
     agent?: AgentData;
@@ -122,6 +143,7 @@ export interface StreamMessage {
     trainOfThought: string[];
     context: Context[];
     onlineContext: OnlineContext;
+    codeContext: CodeContext;
     completed: boolean;
     rawQuery: string;
     timestamp: string;
@@ -539,6 +561,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
     const allReferences = constructAllReferences(
         props.chatMessage.context,
         props.chatMessage.onlineContext,
+        props.chatMessage.codeContext,
     );
 
     return (
@@ -560,6 +583,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                     isMobileWidth={props.isMobileWidth}
                     notesReferenceCardData={allReferences.notesReferenceCardData}
                     onlineReferenceCardData={allReferences.onlineReferenceCardData}
+                    codeReferenceCardData={allReferences.codeReferenceCardData}
                 />
             </div>
             <div className={styles.chatFooter}>

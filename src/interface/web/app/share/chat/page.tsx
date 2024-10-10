@@ -164,6 +164,7 @@ export default function SharedChat() {
                 trainOfThought: [],
                 context: [],
                 onlineContext: {},
+                codeContext: {},
                 completed: false,
                 timestamp: new Date().toISOString(),
                 rawQuery: queryToProcess || "",
