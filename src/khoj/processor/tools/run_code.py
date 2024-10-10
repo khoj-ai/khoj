@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import json
 import logging
+import os
 from typing import Any, Callable, List, Optional
 
 import aiohttp
@@ -21,6 +22,9 @@ from khoj.utils.rawconfig import LocationData
 logger = logging.getLogger(__name__)
 
 
+SANDBOX_URL = os.getenv("KHOJ_TERRARIUM_URL", "http://localhost:8080")
+
+
 async def run_code(
     query: str,
     conversation_history: dict,
@@ -29,7 +33,7 @@ async def run_code(
     send_status_func: Optional[Callable] = None,
     uploaded_image_url: str = None,
     agent: Agent = None,
-    sandbox_url: str = "http://localhost:8080",
+    sandbox_url: str = SANDBOX_URL,
 ):
     # Generate Code
     if send_status_func:
@@ -104,7 +108,7 @@ async def generate_python_code(
     return codes
 
 
-async def execute_sandboxed_python(code: str, sandbox_url: str = "http://localhost:8080") -> dict[str, Any]:
+async def execute_sandboxed_python(code: str, sandbox_url: str = SANDBOX_URL) -> dict[str, Any]:
     """
     Takes code to run as a string and calls the terrarium API to execute it.
     Returns the result of the code execution as a dictionary.
