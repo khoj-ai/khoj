@@ -191,7 +191,7 @@ async def execute_information_collection(
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
                 else:
-                    online_results = result
+                    online_results: Dict[str, Dict] = result  # type: ignore
                     this_iteration.onlineContext = online_results
 
         elif this_iteration.data_source == ConversationCommand.Webpage:
@@ -208,7 +208,7 @@ async def execute_information_collection(
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
                 else:
-                    direct_web_pages: Dict[str, Dict] = result
+                    direct_web_pages: Dict[str, Dict] = result  # type: ignore
 
                     webpages = []
                     for query in direct_web_pages:
