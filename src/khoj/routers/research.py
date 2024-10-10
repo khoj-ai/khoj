@@ -133,7 +133,7 @@ async def execute_information_collection(
     file_filters: List[str] = [],
 ):
     current_iteration = 0
-    MAX_ITERATIONS = 2
+    MAX_ITERATIONS = 5
     previous_iterations: List[InformationCollectionIteration] = []
     while current_iteration < MAX_ITERATIONS:
         online_results: Dict = dict()
