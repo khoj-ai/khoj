@@ -195,33 +195,34 @@ async def execute_information_collection(
                     this_iteration.onlineContext = online_results
 
         elif this_iteration.data_source == ConversationCommand.Webpage:
-            async for result in read_webpages(
-                this_iteration.query,
-                conversation_history,
-                location,
-                user,
-                subscribed,
-                send_status_func,
-                uploaded_image_url=uploaded_image_url,
-                agent=agent,
-            ):
-                if isinstance(result, dict) and ChatEvent.STATUS in result:
-                    yield result[ChatEvent.STATUS]
-                else:
-                    direct_web_pages: Dict[str, Dict] = result  # type: ignore
+            try:
+                async for result in read_webpages(
+                    this_iteration.query,
+                    conversation_history,
+                    location,
+                    user,
+                    subscribed,
+                    send_status_func,
+                    uploaded_image_url=uploaded_image_url,
+                    agent=agent,
+                ):
+                    if isinstance(result, dict) and ChatEvent.STATUS in result:
+                        yield result[ChatEvent.STATUS]
+                    else:
+                        direct_web_pages: Dict[str, Dict] = result  # type: ignore
 
-                    webpages = []
-                    for web_query in direct_web_pages:
-                        if online_results.get(web_query):
-                            online_results[web_query]["webpages"] = direct_web_pages[web_query]["webpages"]
-                        else:
-                            online_results[web_query] = {"webpages": direct_web_pages[web_query]["webpages"]}
+                        webpages = []
+                        for web_query in direct_web_pages:
+                            if online_results.get(web_query):
+                                online_results[web_query]["webpages"] = direct_web_pages[web_query]["webpages"]
+                            else:
+                                online_results[web_query] = {"webpages": direct_web_pages[web_query]["webpages"]}
 
-                        for webpage in direct_web_pages[web_query]["webpages"]:
-                            webpages.append(webpage["link"])
-                    yield send_status_func(f"**Read web pages**: {webpages}")
-
-                    this_iteration.onlineContext = online_results
+                            for webpage in direct_web_pages[web_query]["webpages"]:
+                                webpages.append(webpage["link"])
+                        this_iteration.onlineContext = online_results
+            except Exception as e:
+                logger.error(f"Error reading webpages: {e}", exc_info=True)
 
         # TODO: Fix summarize later
         # elif this_iteration.data_source == ConversationCommand.Summarize:
