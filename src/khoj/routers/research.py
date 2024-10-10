@@ -208,7 +208,7 @@ async def execute_information_collection(
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
                 else:
-                    direct_web_pages = result
+                    direct_web_pages: Dict[str, Dict] = result
 
                     webpages = []
                     for query in direct_web_pages:
