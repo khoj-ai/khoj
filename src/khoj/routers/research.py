@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional
 
 from fastapi import Request
@@ -48,6 +49,8 @@ async def apick_next_tool(
     conversation_history: dict,
     subscribed: bool,
     uploaded_image_url: str = None,
+    location: LocationData = None,
+    user_name: str = None,
     agent: Agent = None,
     previous_iterations: List[InformationCollectionIteration] = None,
 ):
@@ -84,12 +87,21 @@ async def apick_next_tool(
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
     )
 
+    # Extract Past User Message and Inferred Questions from Conversation Log
+    today = datetime.today()
+    location_data = f"{location}" if location else "Unknown"
+    username = prompts.user_name.format(name=user_name) if user_name else ""
+
     # TODO Add current date/time to the query
     function_planning_prompt = prompts.plan_function_execution.format(
         query=query,
         tools=tool_options_str,
         chat_history=chat_history,
         personality_context=personality_context,
+        current_date=today.strftime("%Y-%m-%d"),
+        day_of_week=today.strftime("%A"),
+        username=username,
+        location=location_data,
         previous_iterations=previous_iterations_history,
     )
 
@@ -135,6 +147,7 @@ async def execute_information_collection(
     uploaded_image_url: str = None,
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
+    user_name: str = None,
     location: LocationData = None,
     file_filters: List[str] = [],
 ):
@@ -150,7 +163,7 @@ async def execute_information_collection(
         result: str = ""
 
         this_iteration = await apick_next_tool(
-            query, conversation_history, subscribed, uploaded_image_url, agent, previous_iterations
+            query, conversation_history, subscribed, uploaded_image_url, location, user_name, agent, previous_iterations
         )
         if this_iteration.data_source == ConversationCommand.Notes:
             ## Extract Document References

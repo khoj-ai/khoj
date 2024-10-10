@@ -498,6 +498,11 @@ You are an extremely methodical planner. Your goal is to make a plan to execute 
 
 If you already know the answer to the question, return an empty response, e.g., {{}}.
 
+Background Context:
+- Current Date: {day_of_week}, {current_date}
+- User's Location: {location}
+- {username}
+
 Which of the data sources listed below you would use to answer the user's question? You **only** have access to the following data sources:
 
 {tools}
@@ -523,8 +528,7 @@ previous_iteration = PromptTemplate.from_template(
 data_source: {data_source}
 query: {query}
 summary: {summary}
----
-""".strip()
+---"""
 )
 
 pick_relevant_information_collection_tools = PromptTemplate.from_template(

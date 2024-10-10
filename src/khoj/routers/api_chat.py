@@ -713,6 +713,7 @@ async def chat(
                 uploaded_image_url=uploaded_image_url,
                 agent=agent,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
+                user_name=user_name,
                 location=location,
                 file_filters=conversation.file_filters if conversation else [],
             ):
