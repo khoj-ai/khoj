@@ -350,8 +350,8 @@ tool_descriptions_for_llm = {
 
 function_calling_description_for_llm = {
     ConversationCommand.Notes: "To search the user's personal knowledge base. Especially helpful if the question expects context from the user's notes or documents.",
-    ConversationCommand.Online: "To search for the latest, up-to-date information from the internet.",
-    ConversationCommand.Webpage: "To use if the user has directly provided the webpage urls or you are certain of the webpage urls to read.",
+    ConversationCommand.Online: "To search the internet for the latest, up-to-date information.",
+    ConversationCommand.Webpage: "To read a webpage url for detailed information from the internet.",
     ConversationCommand.Code: "To run Python code in a Pyodide sandbox with no network access. Helpful when need to parse information, run complex calculations, create documents and charts for user. Matplotlib, bs4, pandas, numpy, etc. are available.",
 }
 

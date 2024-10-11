@@ -82,14 +82,14 @@ class ThreadedGenerator:
 class InformationCollectionIteration:
     def __init__(
         self,
-        data_source: str,
+        tool: str,
         query: str,
         context: Dict[str, Dict] = None,
         onlineContext: dict = None,
         codeContext: dict = None,
         summarizedResult: str = None,
     ):
-        self.data_source = data_source
+        self.tool = tool
         self.query = query
         self.context = context
         self.onlineContext = onlineContext
@@ -103,9 +103,9 @@ def construct_iteration_history(
     previous_iterations_history = ""
     for idx, iteration in enumerate(previous_iterations):
         iteration_data = previous_iteration_prompt.format(
+            tool=iteration.tool,
             query=iteration.query,
-            data_source=iteration.data_source,
-            summary=iteration.summarizedResult,
+            result=iteration.summarizedResult,
             index=idx + 1,
         )
 

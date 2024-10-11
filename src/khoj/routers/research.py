@@ -100,20 +100,21 @@ async def apick_next_tool(
         response = response.strip()
         response = remove_json_codeblock(response)
         response = json.loads(response)
-        suggested_data_source = response.get("data_source", None)
-        suggested_query = response.get("query", None)
+        selected_tool = response.get("tool", None)
+        generated_query = response.get("query", None)
+        scratchpad = response.get("scratchpad", None)
 
         logger.info(f"Response for determining relevant tools: {response}")
 
         return InformationCollectionIteration(
-            data_source=suggested_data_source,
-            query=suggested_query,
+            tool=selected_tool,
+            query=generated_query,
         )
 
     except Exception as e:
         logger.error(f"Invalid response for determining relevant tools: {response}. {e}", exc_info=True)
         return InformationCollectionIteration(
-            data_source=None,
+            tool=None,
             query=None,
         )
 
@@ -155,7 +156,7 @@ async def execute_information_collection(
             previous_iterations_history,
             MAX_ITERATIONS,
         )
-        if this_iteration.data_source == ConversationCommand.Notes:
+        if this_iteration.tool == ConversationCommand.Notes:
             ## Extract Document References
             compiled_references, inferred_queries, defiltered_query = [], [], None
             async for result in extract_references_and_questions(
@@ -190,7 +191,7 @@ async def execute_information_collection(
                 # TODO Get correct type for compiled across research notes extraction
                 logger.error(f"Error extracting references: {e}", exc_info=True)
 
-        elif this_iteration.data_source == ConversationCommand.Online:
+        elif this_iteration.tool == ConversationCommand.Online:
             async for result in search_online(
                 this_iteration.query,
                 conversation_history,
@@ -209,7 +210,7 @@ async def execute_information_collection(
                     online_results: Dict[str, Dict] = result  # type: ignore
                     this_iteration.onlineContext = online_results
 
-        elif this_iteration.data_source == ConversationCommand.Webpage:
+        elif this_iteration.tool == ConversationCommand.Webpage:
             try:
                 async for result in read_webpages(
                     this_iteration.query,
@@ -239,7 +240,7 @@ async def execute_information_collection(
             except Exception as e:
                 logger.error(f"Error reading webpages: {e}", exc_info=True)
 
-        elif this_iteration.data_source == ConversationCommand.Code:
+        elif this_iteration.tool == ConversationCommand.Code:
             try:
                 async for result in run_code(
                     this_iteration.query,
