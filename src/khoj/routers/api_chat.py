@@ -952,7 +952,7 @@ async def chat(
                 )
 
         ## Gather Code Results
-        if ConversationCommand.Code in conversation_commands:
+        if ConversationCommand.Code in conversation_commands and pending_research:
             try:
                 previous_iteration_history = (
                     f"# Iteration 1:\n#---\nNotes:\n{compiled_references}\n\nOnline Results:{online_results}"
@@ -993,7 +993,7 @@ async def chat(
 
         # Generate Output
         ## Generate Image Output
-        if ConversationCommand.Image in conversation_commands:
+        if ConversationCommand.Image in conversation_commands and pending_research:
             async for result in text_to_image(
                 q,
                 user,
