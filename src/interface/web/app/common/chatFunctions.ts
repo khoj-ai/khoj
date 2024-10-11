@@ -116,7 +116,7 @@ export function processMessageChunk(
         if (context) currentMessage.context = context;
 
         // Replace file links with base64 data
-        currentMessage.rawResponse = replaceFileLinksWithBase64(
+        currentMessage.rawResponse = renderCodeGenImageInline(
             currentMessage.rawResponse,
             codeContext,
         );
@@ -186,12 +186,12 @@ export function handleImageResponse(imageJson: any, liveStream: boolean): Respon
     return reference;
 }
 
-export function replaceFileLinksWithBase64(message: string, codeContext: CodeContext) {
+export function renderCodeGenImageInline(message: string, codeContext: CodeContext) {
     if (!codeContext) return message;
 
     Object.values(codeContext).forEach((contextData) => {
         contextData.results.output_files?.forEach((file) => {
-            const regex = new RegExp(`!\\[.*?\\]\\(.*${file.filename}\\)`, "g");
+            const regex = new RegExp(`!?\\[.*?\\]\\(.*${file.filename}\\)`, "g");
             if (file.filename.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
                 const replacement = `![${file.filename}](data:image/${file.filename.split(".").pop()};base64,${file.b64_data})`;
                 message = message.replace(regex, replacement);

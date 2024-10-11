@@ -10,7 +10,7 @@ import { createRoot } from "react-dom/client";
 import "katex/dist/katex.min.css";
 
 import { TeaserReferencesSection, constructAllReferences } from "../referencePanel/referencePanel";
-import { replaceFileLinksWithBase64 } from "@/app/common/chatFunctions";
+import { renderCodeGenImageInline } from "@/app/common/chatFunctions";
 
 import {
     ThumbsUp,
@@ -379,7 +379,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
         }
 
         // Replace file links with base64 data
-        message = replaceFileLinksWithBase64(message, props.chatMessage.codeContext);
+        message = renderCodeGenImageInline(message, props.chatMessage.codeContext);
 
         // Add code context files to the message
         if (props.chatMessage.codeContext) {

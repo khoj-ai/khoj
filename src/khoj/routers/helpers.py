@@ -452,6 +452,7 @@ async def infer_webpage_urls(
     # Validate that the response is a non-empty, JSON-serializable list of URLs
     try:
         response = response.strip()
+        response = remove_json_codeblock(response)
         urls = json.loads(response)
         valid_unique_urls = {str(url).strip() for url in urls["links"] if is_valid_url(url)}
         if is_none_or_empty(valid_unique_urls):
