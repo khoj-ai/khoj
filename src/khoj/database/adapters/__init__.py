@@ -113,13 +113,15 @@ async def get_or_create_user(token: dict) -> KhojUser:
     return user
 
 
-async def aget_or_create_user_by_phone_number(phone_number: str) -> KhojUser:
+async def aget_or_create_user_by_phone_number(phone_number: str) -> tuple[KhojUser, bool]:
+    is_new = False
     if is_none_or_empty(phone_number):
-        return None
+        return None, is_new
     user = await aget_user_by_phone_number(phone_number)
     if not user:
         user = await acreate_user_by_phone_number(phone_number)
-    return user
+        is_new = True
+    return user, is_new
 
 
 async def aset_user_phone_number(user: KhojUser, phone_number: str) -> KhojUser:
@@ -165,8 +167,10 @@ async def acreate_user_by_phone_number(phone_number: str) -> KhojUser:
     return user
 
 
-async def aget_or_create_user_by_email(email: str) -> KhojUser:
-    user, _ = await KhojUser.objects.filter(email=email).aupdate_or_create(defaults={"username": email, "email": email})
+async def aget_or_create_user_by_email(email: str) -> tuple[KhojUser, bool]:
+    user, is_new = await KhojUser.objects.filter(email=email).aupdate_or_create(
+        defaults={"username": email, "email": email}
+    )
     await user.asave()
 
     if user:
@@ -177,7 +181,7 @@ async def aget_or_create_user_by_email(email: str) -> KhojUser:
     if not user_subscription:
         await Subscription.objects.acreate(user=user, type="trial")
 
-    return user
+    return user, is_new
 
 
 async def aget_user_validated_by_email_verification_code(code: str) -> KhojUser:
@@ -248,9 +252,9 @@ def get_user_subscription(email: str) -> Optional[Subscription]:
 
 async def set_user_subscription(
     email: str, is_recurring=None, renewal_date=None, type="standard"
-) -> Optional[Subscription]:
+) -> tuple[Optional[Subscription], bool]:
     # Get or create the user object and their subscription
-    user = await aget_or_create_user_by_email(email)
+    user, is_new = await aget_or_create_user_by_email(email)
     user_subscription = await Subscription.objects.filter(user=user).afirst()
 
     # Update the user subscription state
@@ -262,7 +266,7 @@ async def set_user_subscription(
     elif renewal_date is not None:
         user_subscription.renewal_date = renewal_date
     await user_subscription.asave()
-    return user_subscription
+    return user_subscription, is_new
 
 
 def subscription_to_state(subscription: Subscription) -> str:

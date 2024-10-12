@@ -42,6 +42,7 @@ from khoj.database.adapters import (
 from khoj.database.models import ClientApplication, KhojUser, ProcessLock, Subscription
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
 from khoj.routers.api_content import configure_content, configure_search
+from khoj.routers.helpers import update_telemetry_state
 from khoj.routers.twilio import is_twilio_enabled
 from khoj.utils import constants, state
 from khoj.utils.config import SearchType
@@ -165,7 +166,15 @@ class UserAuthenticationBackend(AuthenticationBackend):
 
             create_if_not_exists = request.query_params.get("create_if_not_exists")
             if create_if_not_exists:
-                user = await aget_or_create_user_by_phone_number(phone_number)
+                user, is_new = await aget_or_create_user_by_phone_number(phone_number)
+                if user and is_new:
+                    update_telemetry_state(
+                        request=request,
+                        telemetry_type="api",
+                        api="create_user",
+                        metadata={"user_id": str(user.uuid)},
+                    )
+                    logger.log(logging.INFO, f"🥳 New User Created: {user.uuid}")
             else:
                 user = await aget_user_by_phone_number(phone_number)
 

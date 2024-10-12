@@ -305,7 +305,7 @@ def get_shared_chat(
     update_telemetry_state(
         request=request,
         telemetry_type="api",
-        api="chat_history",
+        api="get_shared_chat_history",
         **common.__dict__,
     )
 
