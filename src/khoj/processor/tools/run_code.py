@@ -97,7 +97,7 @@ async def generate_python_code(
         code_generation_prompt,
         uploaded_image_url=uploaded_image_url,
         response_type="json_object",
-        subscribed=subscribed,
+        user=user,
     )
 
     # Validate that the response is a non-empty, JSON-serializable list

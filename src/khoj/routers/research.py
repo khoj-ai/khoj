@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 async def apick_next_tool(
     query: str,
     conversation_history: dict,
-    subscribed: bool,
+    user: KhojUser = None,
     uploaded_image_url: str = None,
     location: LocationData = None,
     user_name: str = None,
@@ -86,13 +86,13 @@ async def apick_next_tool(
         max_iterations=max_iterations,
     )
 
-    chat_model_option = await ConversationAdapters.aget_advanced_conversation_config()
+    chat_model_option = await ConversationAdapters.aget_advanced_conversation_config(user)
 
     with timer("Chat actor: Infer information sources to refer", logger):
         response = await send_message_to_model_wrapper(
             function_planning_prompt,
             response_type="json_object",
-            subscribed=subscribed,
+            user=user,
             chat_model_option=chat_model_option,
         )
 
@@ -148,7 +148,7 @@ async def execute_information_collection(
         this_iteration = await apick_next_tool(
             query,
             conversation_history,
-            subscribed,
+            user,
             uploaded_image_url,
             location,
             user_name,

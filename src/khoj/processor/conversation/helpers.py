@@ -18,11 +18,11 @@ async def send_message_to_model_wrapper(
     system_message: str = "",
     response_type: str = "text",
     chat_model_option: ChatModelOptions = None,
-    subscribed: bool = False,
+    user: KhojUser = None,
     uploaded_image_url: str = None,
 ):
     conversation_config: ChatModelOptions = (
-        chat_model_option or await ConversationAdapters.aget_default_conversation_config()
+        chat_model_option or await ConversationAdapters.aget_default_conversation_config(user)
     )
 
     vision_available = conversation_config.vision_enabled
@@ -32,6 +32,7 @@ async def send_message_to_model_wrapper(
             conversation_config = vision_enabled_config
             vision_available = True
 
+    subscribed = await ais_user_subscribed(user)
     chat_model = conversation_config.chat_model
     max_tokens = (
         conversation_config.subscribed_max_prompt_size
