@@ -141,7 +141,6 @@ async def read_webpages(
     conversation_history: dict,
     location: LocationData,
     user: KhojUser,
-    subscribed: bool = False,
     send_status_func: Optional[Callable] = None,
     uploaded_image_url: str = None,
     agent: Agent = None,

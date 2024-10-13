@@ -910,7 +910,6 @@ async def chat(
                     meta_log,
                     location,
                     user,
-                    subscribed,
                     partial(send_event, ChatEvent.STATUS),
                     uploaded_image_url=uploaded_image_url,
                     agent=agent,
