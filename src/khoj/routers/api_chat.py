@@ -194,7 +194,7 @@ def chat_history(
     n: Optional[int] = None,
 ):
     user = request.user.object
-    validate_conversation_config()
+    validate_conversation_config(user)
 
     # Load Conversation History
     conversation = ConversationAdapters.get_conversation_by_user(
@@ -694,7 +694,7 @@ async def chat(
                 q,
                 meta_log,
                 is_automated_task,
-                subscribed=subscribed,
+                user=user,
                 uploaded_image_url=uploaded_image_url,
                 agent=agent,
             )
@@ -704,7 +704,7 @@ async def chat(
             ):
                 yield result
 
-            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task, uploaded_image_url, agent)
+            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task, user, uploaded_image_url, agent)
             async for result in send_event(ChatEvent.STATUS, f"**Decided Response Mode:** {mode.value}"):
                 yield result
             if mode not in conversation_commands:
@@ -767,8 +767,8 @@ async def chat(
                         q,
                         contextual_data,
                         conversation_history=meta_log,
-                        subscribed=subscribed,
                         uploaded_image_url=uploaded_image_url,
+                        user=user,
                         agent=agent,
                     )
                     response_log = str(response)
@@ -957,7 +957,6 @@ async def chat(
                 location_data=location,
                 references=compiled_references,
                 online_results=online_results,
-                subscribed=subscribed,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
                 uploaded_image_url=uploaded_image_url,
                 agent=agent,
@@ -1192,7 +1191,7 @@ async def get_chat(
 
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
             conversation_commands = await aget_relevant_information_sources(
-                q, meta_log, is_automated_task, subscribed=subscribed, uploaded_image_url=uploaded_image_url
+                q, meta_log, is_automated_task, user=user, uploaded_image_url=uploaded_image_url
             )
             conversation_commands_str = ", ".join([cmd.value for cmd in conversation_commands])
             async for result in send_event(
@@ -1200,7 +1199,7 @@ async def get_chat(
             ):
                 yield result
 
-            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task, uploaded_image_url)
+            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task, user, uploaded_image_url)
             async for result in send_event(ChatEvent.STATUS, f"**Decided Response Mode:** {mode.value}"):
                 yield result
             if mode not in conversation_commands:
@@ -1252,7 +1251,7 @@ async def get_chat(
                         q,
                         contextual_data,
                         conversation_history=meta_log,
-                        subscribed=subscribed,
+                        user=user,
                         uploaded_image_url=uploaded_image_url,
                     )
                     response_log = str(response)
@@ -1438,7 +1437,6 @@ async def get_chat(
                 location_data=location,
                 references=compiled_references,
                 online_results=online_results,
-                subscribed=subscribed,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
                 uploaded_image_url=uploaded_image_url,
             ):
