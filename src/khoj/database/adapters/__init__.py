@@ -939,21 +939,21 @@ class ConversationAdapters:
     def get_conversation_config(user: KhojUser):
         subscribed = is_user_subscribed(user)
         if not subscribed:
-            return ConversationAdapters.get_default_conversation_config()
+            return ConversationAdapters.get_default_conversation_config(user)
         config = UserConversationConfig.objects.filter(user=user).first()
         if config:
             return config.setting
-        return ConversationAdapters.get_advanced_conversation_config()
+        return ConversationAdapters.get_advanced_conversation_config(user)
 
     @staticmethod
     async def aget_conversation_config(user: KhojUser):
         subscribed = await ais_user_subscribed(user)
         if not subscribed:
-            return await ConversationAdapters.aget_default_conversation_config()
+            return await ConversationAdapters.aget_default_conversation_config(user)
         config = await UserConversationConfig.objects.filter(user=user).prefetch_related("setting").afirst()
         if config:
             return config.setting
-        return ConversationAdapters.aget_advanced_conversation_config()
+        return ConversationAdapters.aget_advanced_conversation_config(user)
 
     @staticmethod
     async def aget_voice_model_config(user: KhojUser) -> Optional[VoiceModelOption]:
@@ -1014,22 +1014,22 @@ class ConversationAdapters:
         return await ChatModelOptions.objects.filter().prefetch_related("openai_config").afirst()
 
     @staticmethod
-    def get_advanced_conversation_config():
+    def get_advanced_conversation_config(user: KhojUser):
         server_chat_settings = ServerChatSettings.objects.first()
         if server_chat_settings is not None and server_chat_settings.chat_advanced is not None:
             return server_chat_settings.chat_advanced
-        return ConversationAdapters.get_default_conversation_config()
+        return ConversationAdapters.get_default_conversation_config(user)
 
     @staticmethod
-    async def aget_advanced_conversation_config():
+    async def aget_advanced_conversation_config(user: KhojUser = None):
         server_chat_settings: ServerChatSettings = (
             await ServerChatSettings.objects.filter()
             .prefetch_related("chat_advanced", "chat_advanced__openai_config")
             .afirst()
         )
-        if server_chat_settings is not None or server_chat_settings.chat_advanced is not None:
+        if server_chat_settings is not None and server_chat_settings.chat_advanced is not None:
             return server_chat_settings.chat_advanced
-        return await ConversationAdapters.aget_default_conversation_config()
+        return await ConversationAdapters.aget_default_conversation_config(user)
 
     @staticmethod
     def create_conversation_from_public_conversation(
