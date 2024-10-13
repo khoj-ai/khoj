@@ -7,6 +7,7 @@ from fastapi import APIRouter, Request
 from starlette.authentication import requires
 
 from khoj.database import adapters
+from khoj.routers.helpers import update_telemetry_state
 from khoj.utils import state
 
 # Stripe integration for Khoj Cloud Subscription
@@ -48,6 +49,8 @@ async def subscribe(request: Request):
     customer_id = subscription["customer"]
     customer = stripe.Customer.retrieve(customer_id)
     customer_email = customer["email"]
+    user = None
+    is_new = False
 
     # Handle valid stripe webhook events
     success = True
@@ -55,7 +58,9 @@ async def subscribe(request: Request):
         # Mark the user as subscribed and update the next renewal date on payment
         subscription = stripe.Subscription.list(customer=customer_id).data[0]
         renewal_date = datetime.fromtimestamp(subscription["current_period_end"], tz=timezone.utc)
-        user = await adapters.set_user_subscription(customer_email, is_recurring=True, renewal_date=renewal_date)
+        user, is_new = await adapters.set_user_subscription(
+            customer_email, is_recurring=True, renewal_date=renewal_date
+        )
         success = user is not None
     elif event_type in {"customer.subscription.updated"}:
         user_subscription = await sync_to_async(adapters.get_user_subscription)(customer_email)
@@ -63,14 +68,23 @@ async def subscribe(request: Request):
         if user_subscription and user_subscription.renewal_date:
             # Mark user as unsubscribed or resubscribed
             is_recurring = not subscription["cancel_at_period_end"]
-            updated_user = await adapters.set_user_subscription(customer_email, is_recurring=is_recurring)
-            success = updated_user is not None
+            user, is_new = await adapters.set_user_subscription(customer_email, is_recurring=is_recurring)
+            success = user is not None
     elif event_type in {"customer.subscription.deleted"}:
         # Reset the user to trial state
-        user = await adapters.set_user_subscription(
+        user, is_new = await adapters.set_user_subscription(
             customer_email, is_recurring=False, renewal_date=False, type="trial"
         )
         success = user is not None
+
+    if user and is_new:
+        update_telemetry_state(
+            request=request,
+            telemetry_type="api",
+            api="create_user",
+            metadata={"user_id": str(user.user.uuid)},
+        )
+        logger.log(logging.INFO, f"🥳 New User Created: {user.user.uuid}")
 
     logger.info(f'Stripe subscription {event["type"]} for {customer_email}')
     return {"success": success}

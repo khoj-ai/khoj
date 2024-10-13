@@ -198,7 +198,7 @@ def chat_history(
     n: Optional[int] = None,
 ):
     user = request.user.object
-    validate_conversation_config()
+    validate_conversation_config(user)
 
     # Load Conversation History
     conversation = ConversationAdapters.get_conversation_by_user(
@@ -309,7 +309,7 @@ def get_shared_chat(
     update_telemetry_state(
         request=request,
         telemetry_type="api",
-        api="chat_history",
+        api="get_shared_chat_history",
         **common.__dict__,
     )
 
@@ -742,12 +742,12 @@ async def chat(
                 q,
                 meta_log,
                 is_automated_task,
-                subscribed=subscribed,
+                user=user,
                 uploaded_image_url=uploaded_image_url,
                 agent=agent,
             )
 
-            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task, uploaded_image_url, agent)
+            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task, user, uploaded_image_url, agent)
             async for result in send_event(ChatEvent.STATUS, f"**Decided Response Mode:** {mode.value}"):
                 yield result
             if mode not in conversation_commands:
@@ -1001,7 +1001,6 @@ async def chat(
                 location_data=location,
                 references=compiled_references,
                 online_results=online_results,
-                subscribed=subscribed,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
                 uploaded_image_url=uploaded_image_url,
                 agent=agent,

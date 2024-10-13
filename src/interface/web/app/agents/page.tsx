@@ -32,7 +32,6 @@ import {
     Globe,
     LockOpen,
     FloppyDisk,
-    DotsThreeCircleVertical,
     DotsThreeVertical,
     Pencil,
     Trash,
@@ -46,16 +45,6 @@ import {
     DialogHeader,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-    Drawer,
-    DrawerClose,
-    DrawerContent,
-    DrawerDescription,
-    DrawerFooter,
-    DrawerHeader,
-    DrawerTitle,
-    DrawerTrigger,
-} from "@/components/ui/drawer";
 import LoginPrompt from "../components/loginPrompt/loginPrompt";
 import { InlineLoading } from "../components/loading/loading";
 import SidePanel from "../components/sidePanel/chatHistorySidePanel";
@@ -340,281 +329,149 @@ function AgentCard(props: AgentCardProps) {
             )}
             <CardHeader>
                 <CardTitle>
-                    {!props.isMobileWidth ? (
-                        <Dialog
-                            open={showModal}
-                            onOpenChange={() => {
-                                setShowModal(!showModal);
-                                window.history.pushState({}, `Khoj AI - Agents`, `/agents`);
-                            }}
-                        >
-                            <DialogTrigger>
-                                <div className="flex items-center relative top-2">
-                                    {getIconFromIconName(props.data.icon, props.data.color)}
-                                    {props.data.name}
-                                </div>
-                            </DialogTrigger>
-                            <div className="flex float-right">
-                                {props.editCard && (
-                                    <div className="float-right">
-                                        <Popover>
-                                            <PopoverTrigger>
-                                                <Button
-                                                    className={`bg-[hsl(var(--background))] w-10 h-10 p-0 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100 dark:hover:bg-neutral-900`}
-                                                >
-                                                    <DotsThreeVertical
-                                                        className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`}
-                                                    />
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent
-                                                className="w-fit grid p-1"
-                                                side={"bottom"}
-                                                align={"end"}
+                    <Dialog
+                        open={showModal}
+                        onOpenChange={() => {
+                            setShowModal(!showModal);
+                            window.history.pushState({}, `Khoj AI - Agents`, `/agents`);
+                        }}
+                    >
+                        <DialogTrigger>
+                            <div className="flex items-center relative top-2">
+                                {getIconFromIconName(props.data.icon, props.data.color)}
+                                {props.data.name}
+                            </div>
+                        </DialogTrigger>
+                        <div className="flex float-right">
+                            {props.editCard && (
+                                <div className="float-right">
+                                    <Popover>
+                                        <PopoverTrigger>
+                                            <Button
+                                                className={`bg-[hsl(var(--background))] w-10 h-10 p-0 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100 dark:hover:bg-neutral-900`}
                                             >
+                                                <DotsThreeVertical
+                                                    className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`}
+                                                />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent
+                                            className="w-fit grid p-1"
+                                            side={"bottom"}
+                                            align={"end"}
+                                        >
+                                            <Button
+                                                className="items-center justify-start"
+                                                variant={"ghost"}
+                                                onClick={() => setShowModal(true)}
+                                            >
+                                                <Pencil className="w-4 h-4 mr-2" />
+                                                Edit
+                                            </Button>
+                                            {props.editCard &&
+                                                props.data.privacy_level !== "private" && (
+                                                    <ShareLink
+                                                        buttonTitle="Share"
+                                                        title="Share Agent"
+                                                        description="Share a link to this agent with others. They'll be able to chat with it, and ask questions to all of its knowledge base."
+                                                        buttonVariant={"ghost" as const}
+                                                        includeIcon={true}
+                                                        url={`${window.location.origin}/agents?agent=${props.data.slug}`}
+                                                    />
+                                                )}
+                                            {props.data.creator === userData?.username && (
                                                 <Button
                                                     className="items-center justify-start"
-                                                    variant={"ghost"}
-                                                    onClick={() => setShowModal(true)}
+                                                    variant={"destructive"}
+                                                    onClick={() => {
+                                                        fetch(`/api/agents/${props.data.slug}`, {
+                                                            method: "DELETE",
+                                                        }).then(() => {
+                                                            props.setAgentChangeTriggered(true);
+                                                        });
+                                                    }}
                                                 >
-                                                    <Pencil className="w-4 h-4 mr-2" />
-                                                    Edit
+                                                    <Trash className="w-4 h-4 mr-2" />
+                                                    Delete
                                                 </Button>
-                                                {props.editCard &&
-                                                    props.data.privacy_level !== "private" && (
-                                                        <ShareLink
-                                                            buttonTitle="Share"
-                                                            title="Share Agent"
-                                                            description="Share a link to this agent with others. They'll be able to chat with it, and ask questions to all of its knowledge base."
-                                                            buttonVariant={"ghost" as const}
-                                                            includeIcon={true}
-                                                            url={`${window.location.origin}/agents?agent=${props.data.slug}`}
-                                                        />
-                                                    )}
-                                                {props.data.creator === userData?.username && (
-                                                    <Button
-                                                        className="items-center justify-start"
-                                                        variant={"destructive"}
-                                                        onClick={() => {
-                                                            fetch(
-                                                                `/api/agents/${props.data.slug}`,
-                                                                {
-                                                                    method: "DELETE",
-                                                                },
-                                                            ).then(() => {
-                                                                props.setAgentChangeTriggered(true);
-                                                            });
-                                                        }}
-                                                    >
-                                                        <Trash className="w-4 h-4 mr-2" />
-                                                        Delete
-                                                    </Button>
-                                                )}
-                                            </PopoverContent>
-                                        </Popover>
-                                    </div>
-                                )}
-                                <div className="float-right">
-                                    {props.userProfile ? (
-                                        <Button
-                                            className={`bg-[hsl(var(--background))] w-10 h-10 p-0 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100 dark:hover:bg-neutral-900`}
-                                            onClick={() => openChat(props.data.slug, userData)}
-                                        >
-                                            <PaperPlaneTilt
-                                                className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`}
-                                            />
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            className={`bg-[hsl(var(--background))] w-14 h-14 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100 dark:hover:bg-neutral-900`}
-                                            onClick={() => setShowLoginPrompt(true)}
-                                        >
-                                            <PaperPlaneTilt
-                                                className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`}
-                                            />
-                                        </Button>
-                                    )}
+                                            )}
+                                        </PopoverContent>
+                                    </Popover>
                                 </div>
-                            </div>
-                            {props.editCard ? (
-                                <DialogContent
-                                    className={"lg:max-w-screen-lg overflow-y-scroll max-h-screen"}
-                                >
-                                    <DialogTitle>
-                                        Edit <b>{props.data.name}</b>
-                                    </DialogTitle>
-                                    <AgentModificationForm
-                                        form={form}
-                                        onSubmit={onSubmit}
-                                        create={false}
-                                        errors={errors}
-                                        filesOptions={props.filesOptions}
-                                        modelOptions={props.modelOptions}
-                                        slug={props.data.slug}
-                                        inputToolOptions={props.inputToolOptions}
-                                        isSubscribed={props.isSubscribed}
-                                        outputModeOptions={props.outputModeOptions}
-                                    />
-                                </DialogContent>
-                            ) : (
-                                <DialogContent className="whitespace-pre-line max-h-[80vh]">
-                                    <DialogHeader>
-                                        <div className="flex items-center">
-                                            {getIconFromIconName(props.data.icon, props.data.color)}
-                                            <p className="font-bold text-lg">{props.data.name}</p>
-                                        </div>
-                                    </DialogHeader>
-                                    <div className="max-h-[60vh] overflow-y-scroll text-neutral-500 dark:text-white">
-                                        {props.data.persona}
-                                    </div>
-                                    <div className="flex flex-wrap items-center gap-1">
-                                        {makeBadgeFooter()}
-                                    </div>
-                                    <DialogFooter>
-                                        <Button
-                                            className={`pt-6 pb-6 ${stylingString} bg-white dark:bg-[hsl(var(--background))] text-neutral-500 dark:text-white border-2 border-stone-100 shadow-sm rounded-xl hover:bg-stone-100 dark:hover:bg-neutral-900 dark:border-neutral-700`}
-                                            onClick={() => {
-                                                openChat(props.data.slug, userData);
-                                                setShowModal(false);
-                                            }}
-                                        >
-                                            <PaperPlaneTilt
-                                                className={`w-6 h-6 m-2 ${convertColorToTextClass(props.data.color)}`}
-                                            />
-                                            Start Chatting
-                                        </Button>
-                                    </DialogFooter>
-                                </DialogContent>
                             )}
-                        </Dialog>
-                    ) : (
-                        <Drawer
-                            open={showModal}
-                            onOpenChange={(open) => {
-                                setShowModal(open);
-                                window.history.pushState({}, `Khoj AI - Agents`, `/agents`);
-                            }}
-                        >
-                            <DrawerTrigger>
-                                <div className="flex items-center">
-                                    {getIconFromIconName(props.data.icon, props.data.color)}
-                                    {props.data.name}
-                                </div>
-                            </DrawerTrigger>
-                            <div className="flex float-right">
-                                {props.editCard && (
-                                    <div className="float-right">
-                                        <Popover>
-                                            <PopoverTrigger>
-                                                <Button
-                                                    className={`bg-[hsl(var(--background))] w-10 h-10 p-0 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100 dark:hover:bg-neutral-900`}
-                                                >
-                                                    <DotsThreeVertical
-                                                        className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`}
-                                                    />
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent
-                                                className="w-fit grid p-1"
-                                                side={"bottom"}
-                                                align={"end"}
-                                            >
-                                                <Button
-                                                    className="items-center justify-start"
-                                                    variant={"ghost"}
-                                                    onClick={() => setShowModal(true)}
-                                                >
-                                                    <Pencil className="w-4 h-4 mr-2" />
-                                                    Edit
-                                                </Button>
-                                                {props.editCard &&
-                                                    props.data.privacy_level !== "private" && (
-                                                        <ShareLink
-                                                            buttonTitle="Share"
-                                                            title="Share Agent"
-                                                            description="Share a link to this agent with others. They'll be able to chat with it, and ask questions to all of its knowledge base."
-                                                            buttonVariant={"ghost" as const}
-                                                            includeIcon={true}
-                                                            url={`${window.location.origin}/agents?agent=${props.data.slug}`}
-                                                        />
-                                                    )}
-                                                {props.data.creator === userData?.username && (
-                                                    <Button
-                                                        className="items-center justify-start"
-                                                        variant={"destructive"}
-                                                        onClick={() => {
-                                                            fetch(
-                                                                `/api/agents/${props.data.slug}`,
-                                                                {
-                                                                    method: "DELETE",
-                                                                },
-                                                            ).then(() => {
-                                                                props.setAgentChangeTriggered(true);
-                                                            });
-                                                        }}
-                                                    >
-                                                        <Trash className="w-4 h-4 mr-2" />
-                                                        Delete
-                                                    </Button>
-                                                )}
-                                            </PopoverContent>
-                                        </Popover>
-                                    </div>
+                            <div className="float-right">
+                                {props.userProfile ? (
+                                    <Button
+                                        className={`bg-[hsl(var(--background))] w-10 h-10 p-0 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100 dark:hover:bg-neutral-900`}
+                                        onClick={() => openChat(props.data.slug, userData)}
+                                    >
+                                        <PaperPlaneTilt
+                                            className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`}
+                                        />
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        className={`bg-[hsl(var(--background))] w-14 h-14 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100 dark:hover:bg-neutral-900`}
+                                        onClick={() => setShowLoginPrompt(true)}
+                                    >
+                                        <PaperPlaneTilt
+                                            className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`}
+                                        />
+                                    </Button>
                                 )}
-                                <div className="float-right">
-                                    {props.userProfile ? (
-                                        <Button
-                                            className={`bg-[hsl(var(--background))] w-10 h-10 p-0 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100 dark:hover:bg-neutral-900`}
-                                            onClick={() => openChat(props.data.slug, userData)}
-                                        >
-                                            <PaperPlaneTilt
-                                                className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`}
-                                            />
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            className={`bg-[hsl(var(--background))] w-14 h-14 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100 dark:hover:bg-neutral-900`}
-                                            onClick={() => setShowLoginPrompt(true)}
-                                        >
-                                            <PaperPlaneTilt
-                                                className={`w-6 h-6 ${convertColorToTextClass(props.data.color)}`}
-                                            />
-                                        </Button>
-                                    )}
-                                </div>
                             </div>
-                            {props.editCard ? (
-                                <DrawerContent className="whitespace-pre-line p-2">
-                                    <AgentModificationForm
-                                        form={form}
-                                        onSubmit={onSubmit}
-                                        create={false}
-                                        errors={errors}
-                                        filesOptions={props.filesOptions}
-                                        modelOptions={props.modelOptions}
-                                        slug={props.data.slug}
-                                        inputToolOptions={props.inputToolOptions}
-                                        outputModeOptions={props.outputModeOptions}
-                                        isSubscribed={props.isSubscribed}
-                                    />
-                                </DrawerContent>
-                            ) : (
-                                <DrawerContent className="whitespace-pre-line p-2">
-                                    <DrawerHeader>
-                                        <DrawerTitle>{props.data.name}</DrawerTitle>
-                                        <DrawerDescription>Persona</DrawerDescription>
-                                    </DrawerHeader>
+                        </div>
+                        {props.editCard ? (
+                            <DialogContent
+                                className={"lg:max-w-screen-lg overflow-y-scroll max-h-screen"}
+                            >
+                                <DialogTitle>
+                                    Edit <b>{props.data.name}</b>
+                                </DialogTitle>
+                                <AgentModificationForm
+                                    form={form}
+                                    onSubmit={onSubmit}
+                                    create={false}
+                                    errors={errors}
+                                    filesOptions={props.filesOptions}
+                                    modelOptions={props.modelOptions}
+                                    slug={props.data.slug}
+                                    inputToolOptions={props.inputToolOptions}
+                                    isSubscribed={props.isSubscribed}
+                                    outputModeOptions={props.outputModeOptions}
+                                />
+                            </DialogContent>
+                        ) : (
+                            <DialogContent className="whitespace-pre-line max-h-[80vh] max-w-[90vw] rounded-lg">
+                                <DialogHeader>
+                                    <div className="flex items-center">
+                                        {getIconFromIconName(props.data.icon, props.data.color)}
+                                        <p className="font-bold text-lg">{props.data.name}</p>
+                                    </div>
+                                </DialogHeader>
+                                <div className="max-h-[60vh] overflow-y-scroll text-neutral-500 dark:text-white">
                                     {props.data.persona}
-                                    <div className="flex flex-wrap items-center gap-1">
-                                        {makeBadgeFooter()}
-                                    </div>
-                                    <DrawerFooter>
-                                        <DrawerClose>Done</DrawerClose>
-                                    </DrawerFooter>
-                                </DrawerContent>
-                            )}
-                        </Drawer>
-                    )}
+                                </div>
+                                <div className="flex flex-wrap items-center gap-1">
+                                    {makeBadgeFooter()}
+                                </div>
+                                <DialogFooter>
+                                    <Button
+                                        className={`pt-6 pb-6 ${stylingString} bg-white dark:bg-[hsl(var(--background))] text-neutral-500 dark:text-white border-2 border-stone-100 shadow-sm rounded-xl hover:bg-stone-100 dark:hover:bg-neutral-900 dark:border-neutral-700`}
+                                        onClick={() => {
+                                            openChat(props.data.slug, userData);
+                                            setShowModal(false);
+                                        }}
+                                    >
+                                        <PaperPlaneTilt
+                                            className={`w-6 h-6 m-2 ${convertColorToTextClass(props.data.color)}`}
+                                        />
+                                        Start Chatting
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        )}
+                    </Dialog>
                 </CardTitle>
             </CardHeader>
             <CardContent>
@@ -930,7 +787,7 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                 />
                 <div className="grid">
                     <FormLabel className="mb-2">Look & Feel</FormLabel>
-                    <div className="flex gap-1 justify-left">
+                    <div className="flex gap-1 justify-left flex-col md:flex-row">
                         <FormField
                             control={props.form.control}
                             name="color"
@@ -1377,44 +1234,6 @@ function CreateAgentCard(props: CreateAgentCardProps) {
                 setErrors(error);
             });
     };
-
-    if (props.isMobileWidth) {
-        return (
-            <Drawer open={showModal} onOpenChange={setShowModal}>
-                <DrawerTrigger>
-                    <div className="flex items-center">
-                        <Plus />
-                        Create Agent
-                    </div>
-                </DrawerTrigger>
-                <DrawerContent className="p-2">
-                    <DrawerHeader>
-                        <DrawerTitle>Create Agent</DrawerTitle>
-                    </DrawerHeader>
-                    {!props.userProfile && showLoginPrompt && (
-                        <LoginPrompt
-                            loginRedirectMessage="Sign in to start chatting with a specialized agent"
-                            onOpenChange={setShowLoginPrompt}
-                        />
-                    )}
-                    <AgentModificationForm
-                        form={form}
-                        onSubmit={onSubmit}
-                        create={true}
-                        errors={errors}
-                        filesOptions={props.filesOptions}
-                        modelOptions={props.modelOptions}
-                        inputToolOptions={props.inputToolOptions}
-                        outputModeOptions={props.outputModeOptions}
-                        isSubscribed={props.isSubscribed}
-                    />
-                    <DrawerFooter>
-                        <DrawerClose>Dismiss</DrawerClose>
-                    </DrawerFooter>
-                </DrawerContent>
-            </Drawer>
-        );
-    }
 
     return (
         <Dialog open={showModal} onOpenChange={setShowModal}>

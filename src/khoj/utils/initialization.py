@@ -129,9 +129,6 @@ def initialization(interactive: bool = True):
             if user_chat_model_name and ChatModelOptions.objects.filter(chat_model=user_chat_model_name).exists():
                 default_chat_model_name = user_chat_model_name
 
-            # Create a server chat settings object with the default chat model
-            default_chat_model = ChatModelOptions.objects.filter(chat_model=default_chat_model_name).first()
-            ServerChatSettings.objects.create(chat_default=default_chat_model)
             logger.info("🗣️ Chat model configuration complete")
 
         # Set up offline speech to text model
