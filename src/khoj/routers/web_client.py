@@ -51,6 +51,17 @@ def chat_page(request: Request):
     )
 
 
+@web_client.get("/excalidraw", response_class=FileResponse)
+@requires(["authenticated"], redirect="login_page")
+def chat_page(request: Request):
+    return templates.TemplateResponse(
+        "excalidraw/index.html",
+        context={
+            "request": request,
+        },
+    )
+
+
 @web_client.get("/experimental", response_class=FileResponse)
 @requires(["authenticated"], redirect="login_page")
 def experimental_page(request: Request):
