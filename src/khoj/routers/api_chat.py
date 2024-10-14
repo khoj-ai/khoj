@@ -209,7 +209,7 @@ def chat_history(
 
     agent_metadata = None
     if conversation.agent:
-        if conversation.agent.privacy_level == Agent.PrivacyLevel.PRIVATE:
+        if conversation.agent.privacy_level == Agent.PrivacyLevel.PRIVATE and conversation.agent.creator != user:
             conversation.agent = None
         else:
             agent_metadata = {
