@@ -3,7 +3,6 @@ import base64
 import json
 import logging
 import time
-import warnings
 from datetime import datetime
 from functools import partial
 from typing import Dict, Optional
@@ -839,25 +838,33 @@ async def chat(
         # Gather Context
         ## Extract Document References
         compiled_references, inferred_queries, defiltered_query = [], [], None
-        async for result in extract_references_and_questions(
-            request,
-            meta_log,
-            q,
-            (n or 7),
-            d,
-            conversation_id,
-            conversation_commands,
-            location,
-            partial(send_event, ChatEvent.STATUS),
-            uploaded_image_url=uploaded_image_url,
-            agent=agent,
-        ):
-            if isinstance(result, dict) and ChatEvent.STATUS in result:
-                yield result[ChatEvent.STATUS]
-            else:
-                compiled_references.extend(result[0])
-                inferred_queries.extend(result[1])
-                defiltered_query = result[2]
+        try:
+            async for result in extract_references_and_questions(
+                request,
+                meta_log,
+                q,
+                (n or 7),
+                d,
+                conversation_id,
+                conversation_commands,
+                location,
+                partial(send_event, ChatEvent.STATUS),
+                uploaded_image_url=uploaded_image_url,
+                agent=agent,
+            ):
+                if isinstance(result, dict) and ChatEvent.STATUS in result:
+                    yield result[ChatEvent.STATUS]
+                else:
+                    compiled_references.extend(result[0])
+                    inferred_queries.extend(result[1])
+                    defiltered_query = result[2]
+        except Exception as e:
+            error_message = f"Error searching knowledge base: {e}. Attempting to respond without document references."
+            logger.warning(error_message)
+            async for result in send_event(
+                ChatEvent.STATUS, "Document search failed. I'll try respond without document references"
+            ):
+                yield result
 
         if not is_none_or_empty(compiled_references):
             headings = "\n- " + "\n- ".join(set([c.get("compiled", c).split("\n")[0] for c in compiled_references]))
