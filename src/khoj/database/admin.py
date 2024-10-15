@@ -69,10 +69,11 @@ class KhojUserAdmin(UserAdmin):
         "id",
         "email",
         "username",
+        "phone_number",
         "is_active",
+        "uuid",
         "is_staff",
         "is_superuser",
-        "phone_number",
     )
     search_fields = ("email", "username", "phone_number", "uuid")
     filter_horizontal = ("groups", "user_permissions")
