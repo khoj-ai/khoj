@@ -902,12 +902,13 @@ async def chat(
                         yield result[ChatEvent.STATUS]
                     else:
                         online_results = result
-            except ValueError as e:
+            except Exception as e:
                 error_message = f"Error searching online: {e}. Attempting to respond without online results"
                 logger.warning(error_message)
-                async for result in send_llm_response(error_message):
+                async for result in send_event(
+                    ChatEvent.STATUS, "Online search failed. I'll try respond without online references"
+                ):
                     yield result
-                return
 
         ## Gather Webpage References
         if ConversationCommand.Webpage in conversation_commands:
@@ -936,11 +937,15 @@ async def chat(
                         webpages.append(webpage["link"])
                 async for result in send_event(ChatEvent.STATUS, f"**Read web pages**: {webpages}"):
                     yield result
-            except ValueError as e:
+            except Exception as e:
                 logger.warning(
-                    f"Error directly reading webpages: {e}. Attempting to respond without online results",
+                    f"Error reading webpages: {e}. Attempting to respond without webpage results",
                     exc_info=True,
                 )
+                async for result in send_event(
+                    ChatEvent.STATUS, "Webpage read failed. I'll try respond without webpage references"
+                ):
+                    yield result
 
         ## Send Gathered References
         async for result in send_event(
