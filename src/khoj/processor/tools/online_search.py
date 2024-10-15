@@ -29,6 +29,9 @@ JINA_READER_API_URL = "https://r.jina.ai/"
 JINA_SEARCH_API_URL = "https://s.jina.ai/"
 JINA_API_KEY = os.getenv("JINA_API_KEY")
 
+FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
+FIRECRAWL_API_URL = os.getenv("FIRECRAWL_API_URL", "https://api.firecrawl.dev")
+
 OLOSTEP_API_KEY = os.getenv("OLOSTEP_API_KEY")
 OLOSTEP_API_URL = "https://agent.olostep.com/olostep-p2p-incomingAPI"
 OLOSTEP_QUERY_PARAMS = {
@@ -172,7 +175,12 @@ async def read_webpage_and_extract_content(
     try:
         if is_none_or_empty(content):
             with timer(f"Reading web page at '{url}' took", logger):
-                content = await read_webpage_with_olostep(url) if OLOSTEP_API_KEY else await read_webpage_with_jina(url)
+                if FIRECRAWL_API_KEY:
+                    content = await read_webpage_with_firecrawl(url)
+                elif OLOSTEP_API_KEY:
+                    content = await read_webpage_with_olostep(url)
+                else:
+                    content = await read_webpage_with_jina(url)
         with timer(f"Extracting relevant information from web page at '{url}' took", logger):
             extracted_info = await extract_relevant_info(subquery, content, user=user, agent=agent)
         return subquery, extracted_info, url
@@ -218,6 +226,18 @@ async def read_webpage_with_jina(web_url: str) -> str:
             response.raise_for_status()
             response_json = await response.json()
             return response_json["data"]["content"]
+
+
+async def read_webpage_with_firecrawl(web_url: str) -> str:
+    firecrawl_api_url = f"{FIRECRAWL_API_URL}/v1/scrape"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {FIRECRAWL_API_KEY}"}
+    params = {"url": web_url, "formats": ["markdown"], "excludeTags": ["script", ".ad"]}
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(firecrawl_api_url, json=params, headers=headers) as response:
+            response.raise_for_status()
+            response_json = await response.json()
+            return response_json["data"]["markdown"]
 
 
 async def search_with_jina(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:
