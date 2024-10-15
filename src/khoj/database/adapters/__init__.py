@@ -696,10 +696,12 @@ class AgentAdapters:
         files: List[str],
         input_tools: List[str],
         output_modes: List[str],
+        slug: Optional[str] = None,
     ):
         chat_model_option = await ChatModelOptions.objects.filter(chat_model=chat_model).afirst()
 
-        agent, created = await Agent.objects.filter(name=name, creator=user).aupdate_or_create(
+        # Slug will be None for new agents, which will trigger a new agent creation with a generated, immutable slug
+        agent, created = await Agent.objects.filter(slug=slug, creator=user).aupdate_or_create(
             defaults={
                 "name": name,
                 "creator": user,

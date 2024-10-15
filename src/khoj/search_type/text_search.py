@@ -3,6 +3,7 @@ import math
 from pathlib import Path
 from typing import List, Optional, Tuple, Type, Union
 
+import requests
 import torch
 from asgiref.sync import sync_to_async
 from sentence_transformers import util
@@ -231,8 +232,12 @@ def setup(
 
 def cross_encoder_score(query: str, hits: List[SearchResponse], search_model_name: str) -> List[SearchResponse]:
     """Score all retrieved entries using the cross-encoder"""
-    with timer("Cross-Encoder Predict Time", logger, state.device):
-        cross_scores = state.cross_encoder_model[search_model_name].predict(query, hits)
+    try:
+        with timer("Cross-Encoder Predict Time", logger, state.device):
+            cross_scores = state.cross_encoder_model[search_model_name].predict(query, hits)
+    except requests.exceptions.HTTPError as e:
+        logger.error(f"Failed to rerank documents using the inference endpoint. Error: {e}.", exc_info=True)
+        cross_scores = [0.0] * len(hits)
 
     # Convert cross-encoder scores to distances and pass in hits for reranking
     for idx in range(len(cross_scores)):

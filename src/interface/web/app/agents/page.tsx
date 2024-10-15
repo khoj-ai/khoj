@@ -35,8 +35,10 @@ import {
     DotsThreeVertical,
     Pencil,
     Trash,
+    ArrowRight,
+    ArrowLeft,
 } from "@phosphor-icons/react";
-import { set, z } from "zod";
+import { set, z, ZodError } from "zod";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Dialog,
@@ -245,12 +247,18 @@ function AgentCard(props: AgentCardProps) {
         let agentsApiUrl = `/api/agents`;
         let method = props.editCard ? "PATCH" : "POST";
 
+        let valuesToSend: any = values;
+
+        if (props.editCard) {
+            valuesToSend = { ...values, slug: props.data.slug };
+        }
+
         fetch(agentsApiUrl, {
             method: method,
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify(values),
+            body: JSON.stringify(valuesToSend),
         })
             .then((response) => {
                 if (response.status === 200) {
@@ -537,8 +545,35 @@ function AgentModificationForm(props: AgentModificationFormProps) {
     const [progressValue, setProgressValue] = useState(0);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [allFileOptions, setAllFileOptions] = useState<string[]>([]);
+    const [currentStep, setCurrentStep] = useState(0);
 
     const [showSubscribeDialog, setShowSubscribeDialog] = useState(true);
+
+    const privacyOptions = ["public", "private", "protected"];
+
+    const basicFields = [
+        { name: "name", label: "Name" },
+        { name: "persona", label: "Personality" },
+    ];
+
+    const advancedFields = [
+        { name: "files", label: "Knowledge Base" },
+        { name: "input_tools", label: "Input Tools" },
+        { name: "output_modes", label: "Output Modes" },
+    ];
+
+    const customizationFields = [
+        { name: "color", label: "Color" },
+        { name: "icon", label: "Icon" },
+        { name: "chat_model", label: "Chat Model" },
+        { name: "privacy_level", label: "Privacy Level" },
+    ];
+
+    const formGroups = [
+        { fields: basicFields, label: "Basic Settings" },
+        { fields: customizationFields, label: "Customization & Access" },
+        { fields: advancedFields, label: "Advanced Settings" },
+    ];
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -563,7 +598,9 @@ function AgentModificationForm(props: AgentModificationFormProps) {
         const currentFiles = props.form.getValues("files") || [];
         const fileOptions = props.filesOptions || [];
         const concatenatedFiles = [...currentFiles, ...fileOptions];
-        setAllFileOptions((prev) => [...prev, ...concatenatedFiles]);
+        const fullAllFileOptions = [...allFileOptions, ...concatenatedFiles];
+        const dedupedAllFileOptions = Array.from(new Set(fullAllFileOptions));
+        setAllFileOptions(dedupedAllFileOptions);
     }, []);
 
     useEffect(() => {
@@ -614,6 +651,25 @@ function AgentModificationForm(props: AgentModificationFormProps) {
         uploadFiles(event.target.files);
     }
 
+    const handleNext = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+        if (currentStep < formGroups.length - 1) {
+            setCurrentStep(currentStep + 1);
+        }
+    };
+
+    const handlePrevious = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+        if (currentStep > 0) {
+            setCurrentStep(currentStep - 1);
+        }
+    };
+
+    const handleSubmit = (values: any) => {
+        props.onSubmit(values);
+        setIsSaving(true);
+    };
+
     const handleAgentFileChange = (files: string[]) => {
         for (const file of files) {
             const currentFiles = props.form.getValues("files") || [];
@@ -624,7 +680,30 @@ function AgentModificationForm(props: AgentModificationFormProps) {
         }
     };
 
-    const privacyOptions = ["public", "private", "protected"];
+    const areRequiredFieldsCompletedForCurrentStep = (formGroup: {
+        fields: { name: string }[];
+    }) => {
+        try {
+            EditAgentSchema.parse(props.form.getValues());
+            return true;
+        } catch (error) {
+            const errors: { [key: string]: string } = (error as ZodError).errors.reduce(
+                (acc: any, curr: any) => {
+                    acc[curr.path[0]] = curr.message;
+                    return acc;
+                },
+                {},
+            );
+
+            for (const field of formGroup.fields) {
+                if (errors[field.name]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    };
 
     if (!props.isSubscribed && showSubscribeDialog) {
         return (
@@ -658,471 +737,570 @@ function AgentModificationForm(props: AgentModificationFormProps) {
         );
     }
 
-    return (
-        <Form {...props.form}>
-            <form
-                onSubmit={props.form.handleSubmit((values) => {
-                    props.onSubmit(values);
-                    setIsSaving(true);
-                })}
-                className="space-y-6"
-            >
-                <FormField
-                    control={props.form.control}
-                    name="name"
-                    render={({ field }) => (
-                        <FormItem className="space-y-0 grid gap-2">
-                            <FormLabel>Name</FormLabel>
-                            <FormDescription>
-                                What should this agent be called? Pick something descriptive &
-                                memorable.
-                            </FormDescription>
-                            <FormControl>
-                                <Input placeholder="Biologist" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                <FormField
-                    control={props.form.control}
-                    name="persona"
-                    render={({ field }) => (
-                        <FormItem className="space-y-1 grid gap-2">
-                            <FormLabel>Personality</FormLabel>
-                            <FormDescription>
-                                What is the personality, thought process, or tuning of this agent?
-                                Get creative; this is how you can influence the agent constitution.
-                            </FormDescription>
-                            <FormControl>
-                                <Textarea
-                                    placeholder="You are an excellent biologist, at the top of your field in marine biology."
-                                    {...field}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                <FormField
-                    control={props.form.control}
-                    name="chat_model"
-                    render={({ field }) => (
-                        <FormItem className="space-y-1 grid gap-2">
-                            <FormLabel>Chat Model</FormLabel>
-                            <FormDescription>
-                                Which large language model should this agent use?
-                            </FormDescription>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+    const renderFormField = (fieldName: string) => {
+        switch (fieldName) {
+            case "name":
+                return (
+                    <FormField
+                        key={fieldName}
+                        control={props.form.control}
+                        name="name"
+                        render={({ field }) => (
+                            <FormItem className="space-y-0 grid gap-2">
+                                <FormLabel>Name</FormLabel>
+                                <FormDescription>
+                                    What should this agent be called? Pick something descriptive &
+                                    memorable.
+                                </FormDescription>
                                 <FormControl>
-                                    <SelectTrigger className="text-left">
-                                        <SelectValue />
-                                    </SelectTrigger>
+                                    <Input placeholder="Biologist" {...field} />
                                 </FormControl>
-                                <SelectContent className="items-start space-y-1 inline-flex flex-col">
-                                    {props.modelOptions.map((modelOption) => (
-                                        <SelectItem key={modelOption.id} value={modelOption.name}>
-                                            <div className="flex items-center space-x-2">
-                                                {modelOption.name}
-                                            </div>
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={props.form.control}
-                    name="privacy_level"
-                    render={({ field }) => (
-                        <FormItem className="space-y-1 grid gap-2">
-                            <FormLabel>
-                                <div>Privacy Level</div>
-                            </FormLabel>
-                            <FormDescription>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button variant={"ghost" as const} className="p-0 h-fit">
-                                            <span className="items-center flex gap-1 text-sm">
-                                                <Info className="inline" />
-                                                <p className="text-sm">Learn more</p>
-                                            </span>
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent>
-                                        <b>Private</b>: only visible to you.
-                                        <br />
-                                        <b>Protected</b>: visible to anyone with a link.
-                                        <br />
-                                        <b>Public</b>: visible to everyone.
-                                        <br />
-                                        All public agents will be reviewed by us before they are
-                                        launched.
-                                    </PopoverContent>
-                                </Popover>
-                            </FormDescription>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                    <SelectTrigger className="w-[200px]">
-                                        <SelectValue placeholder="private" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent className="items-center space-y-1 inline-flex flex-col">
-                                    {privacyOptions.map((privacyOption) => (
-                                        <SelectItem key={privacyOption} value={privacyOption}>
-                                            <div className="flex items-center space-x-2">
-                                                {privacyOption}
-                                            </div>
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <div className="grid">
-                    <FormLabel className="mb-2">Look & Feel</FormLabel>
-                    <div className="flex gap-1 justify-left flex-col md:flex-row">
-                        <FormField
-                            control={props.form.control}
-                            name="color"
-                            render={({ field }) => (
-                                <FormItem className="space-y-3">
-                                    <Select
-                                        onValueChange={field.onChange}
-                                        defaultValue={field.value}
-                                    >
-                                        <FormControl>
-                                            <SelectTrigger className="w-[200px]">
-                                                <SelectValue placeholder="Color" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent className="items-center space-y-1 inline-flex flex-col">
-                                            {colorOptions.map((colorOption) => (
-                                                <SelectItem key={colorOption} value={colorOption}>
-                                                    <div className="flex items-center space-x-2">
-                                                        <Circle
-                                                            className={`w-6 h-6 mr-2 ${convertColorToTextClass(colorOption)}`}
-                                                            weight="fill"
-                                                        />
-                                                        {colorOption}
-                                                    </div>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <FormField
-                            control={props.form.control}
-                            name="icon"
-                            render={({ field }) => (
-                                <FormItem className="space-y-3">
-                                    <Select
-                                        onValueChange={field.onChange}
-                                        defaultValue={field.value}
-                                    >
-                                        <FormControl>
-                                            <SelectTrigger className="w-[200px]">
-                                                <SelectValue placeholder="Icon" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent className="items-center space-y-1 inline-flex flex-col">
-                                            {iconOptions.map((iconOption) => (
-                                                <SelectItem key={iconOption} value={iconOption}>
-                                                    <div className="flex items-center space-x-2">
-                                                        {getIconFromIconName(
-                                                            iconOption,
-                                                            props.form.getValues("color"),
-                                                            "w-6",
-                                                            "h-6",
-                                                        )}
-                                                        {iconOption}
-                                                    </div>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-                </div>
-                <FormItem className="flex flex-col">
-                    <FormLabel className="text-md">Advanced Settings</FormLabel>
-                    <FormDescription>
-                        These are optional settings that you can use to customize your agent.
-                    </FormDescription>
-                </FormItem>
-
-                <FormField
-                    control={props.form.control}
-                    name="files"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-col gap-2">
-                            <FormLabel>Knowledge Base</FormLabel>
-                            <FormDescription>
-                                Which information should be part of its digital brain?{" "}
-                                <a href="/settings">Manage data</a>.
-                            </FormDescription>
-                            <Collapsible>
-                                <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2">
-                                    <CaretUpDown />
-                                    {field.value && field.value.length > 0
-                                        ? `${field.value.length} files selected`
-                                        : "Select files"}
-                                </CollapsibleTrigger>
-                                <CollapsibleContent>
-                                    <Command>
-                                        <AlertDialog open={warning !== null || error != null}>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Alert</AlertDialogTitle>
-                                                </AlertDialogHeader>
-                                                <AlertDialogDescription>
-                                                    {warning || error}
-                                                </AlertDialogDescription>
-                                                <AlertDialogAction
-                                                    className="bg-slate-400 hover:bg-slate-500"
-                                                    onClick={() => {
-                                                        setWarning(null);
-                                                        setError(null);
-                                                        setUploading(false);
-                                                    }}
-                                                >
-                                                    Close
-                                                </AlertDialogAction>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                        <div
-                                            className={`flex flex-col h-full cursor-pointer`}
-                                            onDragOver={handleDragOver}
-                                            onDragLeave={handleDragLeave}
-                                            onDrop={handleDragAndDropFiles}
-                                            onClick={openFileInput}
-                                        >
-                                            <input
-                                                type="file"
-                                                multiple
-                                                ref={fileInputRef}
-                                                style={{ display: "none" }}
-                                                onChange={handleFileChange}
-                                            />
-                                            <div className="flex-none p-4">
-                                                {uploading && (
-                                                    <Progress
-                                                        indicatorColor="bg-slate-500"
-                                                        className="w-full h-2 rounded-full"
-                                                        value={progressValue}
-                                                    />
-                                                )}
-                                            </div>
-                                            <div
-                                                className={`flex-none p-4 bg-secondary border-b ${isDragAndDropping ? "animate-pulse" : ""} rounded-lg`}
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                );
+            case "chat_model":
+                return (
+                    <FormField
+                        key={fieldName}
+                        control={props.form.control}
+                        name="chat_model"
+                        render={({ field }) => (
+                            <FormItem className="space-y-1 grid gap-2">
+                                <FormLabel>Chat Model</FormLabel>
+                                <FormDescription>
+                                    Which large language model should this agent use?
+                                </FormDescription>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger className="text-left">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent className="items-start space-y-1 inline-flex flex-col">
+                                        {props.modelOptions.map((modelOption) => (
+                                            <SelectItem
+                                                key={modelOption.id}
+                                                value={modelOption.name}
                                             >
-                                                <div className="flex items-center justify-center w-full h-16 border-2 border-dashed border-gray-300 rounded-lg">
-                                                    {isDragAndDropping ? (
-                                                        <div className="flex items-center justify-center w-full h-full">
-                                                            <Waveform className="h-6 w-6 mr-2" />
-                                                            <span>Drop files to upload</span>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="flex items-center justify-center w-full h-full">
-                                                            <Plus className="h-6 w-6 mr-2" />
-                                                            <span>Drag and drop files here</span>
-                                                        </div>
-                                                    )}
+                                                <div className="flex items-center space-x-2">
+                                                    {modelOption.name}
                                                 </div>
-                                            </div>
-                                        </div>
-                                        <CommandInput placeholder="Select files..." />
-                                        <CommandList>
-                                            <CommandEmpty>No files found.</CommandEmpty>
-                                            <CommandGroup>
-                                                {allFileOptions.map((file) => (
-                                                    <CommandItem
-                                                        value={file}
-                                                        key={file}
-                                                        onSelect={() => {
-                                                            const currentFiles =
-                                                                props.form.getValues("files") || [];
-                                                            const newFiles = currentFiles.includes(
-                                                                file,
-                                                            )
-                                                                ? currentFiles.filter(
-                                                                      (item) => item !== file,
-                                                                  )
-                                                                : [...currentFiles, file];
-                                                            props.form.setValue("files", newFiles);
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                );
+            case "privacy_level":
+                return (
+                    <FormField
+                        key={fieldName}
+                        control={props.form.control}
+                        name="privacy_level"
+                        render={({ field }) => (
+                            <FormItem className="space-y-1 grid gap-2">
+                                <FormLabel>
+                                    <div>Privacy Level</div>
+                                </FormLabel>
+                                <FormDescription>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant={"ghost" as const}
+                                                className="p-0 h-fit"
+                                            >
+                                                <span className="items-center flex gap-1 text-sm">
+                                                    <Info className="inline" />
+                                                    <p className="text-sm">Learn more</p>
+                                                </span>
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent>
+                                            <b>Private</b>: only visible to you.
+                                            <br />
+                                            <b>Protected</b>: visible to anyone with a link.
+                                            <br />
+                                            <b>Public</b>: visible to everyone.
+                                            <br />
+                                            All public agents will be reviewed by us before they are
+                                            launched.
+                                        </PopoverContent>
+                                    </Popover>
+                                </FormDescription>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger className="w-[200px]">
+                                            <SelectValue placeholder="private" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent className="items-center space-y-1 inline-flex flex-col">
+                                        {privacyOptions.map((privacyOption) => (
+                                            <SelectItem key={privacyOption} value={privacyOption}>
+                                                <div className="flex items-center space-x-2">
+                                                    {privacyOption}
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                );
+            case "color":
+                return (
+                    <FormField
+                        key={fieldName}
+                        control={props.form.control}
+                        name="color"
+                        render={({ field }) => (
+                            <FormItem className="space-y-3">
+                                <FormLabel>Color</FormLabel>
+                                <FormDescription>Choose a color for your agent.</FormDescription>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger className="w-[200px]">
+                                            <SelectValue placeholder="Color" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent className="items-center space-y-1 inline-flex flex-col">
+                                        {colorOptions.map((colorOption) => (
+                                            <SelectItem key={colorOption} value={colorOption}>
+                                                <div className="flex items-center space-x-2">
+                                                    <Circle
+                                                        className={`w-6 h-6 mr-2 ${convertColorToTextClass(colorOption)}`}
+                                                        weight="fill"
+                                                    />
+                                                    {colorOption}
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                );
+            case "icon":
+                return (
+                    <FormField
+                        key={fieldName}
+                        control={props.form.control}
+                        name="icon"
+                        render={({ field }) => (
+                            <FormItem className="space-y-3">
+                                <FormLabel>Icon</FormLabel>
+                                <FormDescription>Choose an icon for your agent.</FormDescription>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger className="w-[200px]">
+                                            <SelectValue placeholder="Icon" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent className="items-center space-y-1 inline-flex flex-col">
+                                        {iconOptions.map((iconOption) => (
+                                            <SelectItem key={iconOption} value={iconOption}>
+                                                <div className="flex items-center space-x-2">
+                                                    {getIconFromIconName(
+                                                        iconOption,
+                                                        props.form.getValues("color"),
+                                                        "w-6",
+                                                        "h-6",
+                                                    )}
+                                                    {iconOption}
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                );
+            case "persona":
+                return (
+                    <FormField
+                        key={fieldName}
+                        control={props.form.control}
+                        name="persona"
+                        render={({ field }) => (
+                            <FormItem className="space-y-1 grid gap-2">
+                                <FormLabel>Personality</FormLabel>
+                                <FormDescription>
+                                    What is the personality, thought process, or tuning of this
+                                    agent? Get creative; this is how you can influence the agent
+                                    constitution.
+                                </FormDescription>
+                                <FormControl>
+                                    <Textarea
+                                        placeholder="You are an excellent biologist, at the top of your field in marine biology."
+                                        {...field}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                );
+            case "files":
+                return (
+                    <FormField
+                        key={fieldName}
+                        control={props.form.control}
+                        name="files"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col gap-2">
+                                <FormLabel>Knowledge Base</FormLabel>
+                                <FormDescription>
+                                    Which information should be part of its digital brain?{" "}
+                                    <a href="/settings">Manage data</a>.
+                                </FormDescription>
+                                <Collapsible>
+                                    <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2">
+                                        <CaretUpDown />
+                                        {field.value && field.value.length > 0
+                                            ? `${field.value.length} files selected`
+                                            : "Select files"}
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                        <Command>
+                                            <AlertDialog open={warning !== null || error != null}>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Alert</AlertDialogTitle>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogDescription>
+                                                        {warning || error}
+                                                    </AlertDialogDescription>
+                                                    <AlertDialogAction
+                                                        className="bg-slate-400 hover:bg-slate-500"
+                                                        onClick={() => {
+                                                            setWarning(null);
+                                                            setError(null);
+                                                            setUploading(false);
                                                         }}
                                                     >
-                                                        <Check
-                                                            className={cn(
-                                                                "mr-2 h-4 w-4",
-                                                                field.value &&
-                                                                    field.value.includes(file)
-                                                                    ? "opacity-100"
-                                                                    : "opacity-0",
-                                                            )}
+                                                        Close
+                                                    </AlertDialogAction>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                            <div
+                                                className={`flex flex-col h-full cursor-pointer`}
+                                                onDragOver={handleDragOver}
+                                                onDragLeave={handleDragLeave}
+                                                onDrop={handleDragAndDropFiles}
+                                                onClick={openFileInput}
+                                            >
+                                                <input
+                                                    type="file"
+                                                    multiple
+                                                    ref={fileInputRef}
+                                                    style={{ display: "none" }}
+                                                    onChange={handleFileChange}
+                                                />
+                                                <div className="flex-none p-4">
+                                                    {uploading && (
+                                                        <Progress
+                                                            indicatorColor="bg-slate-500"
+                                                            className="w-full h-2 rounded-full"
+                                                            value={progressValue}
                                                         />
-                                                        {file}
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </CollapsibleContent>
-                            </Collapsible>
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={props.form.control}
-                    name="input_tools"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-col gap-2">
-                            <FormLabel>Restrict Input Tools</FormLabel>
-                            <FormDescription>
-                                Which knowledge retrieval tools should this agent be limited to?
-                                <br />
-                                <b>Default:</b> No limitations.
-                            </FormDescription>
-                            <Collapsible>
-                                <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2">
-                                    <CaretUpDown />
-                                    {field.value && field.value.length > 0
-                                        ? `${field.value.length} tools selected`
-                                        : "All tools"}
-                                </CollapsibleTrigger>
-                                <CollapsibleContent>
-                                    <Command>
-                                        <CommandList>
-                                            <CommandGroup>
-                                                {Object.entries(props.inputToolOptions).map(
-                                                    ([key, value]) => (
+                                                    )}
+                                                </div>
+                                                <div
+                                                    className={`flex-none p-4 bg-secondary border-b ${isDragAndDropping ? "animate-pulse" : ""} rounded-lg`}
+                                                >
+                                                    <div className="flex items-center justify-center w-full h-16 border-2 border-dashed border-gray-300 rounded-lg">
+                                                        {isDragAndDropping ? (
+                                                            <div className="flex items-center justify-center w-full h-full">
+                                                                <Waveform className="h-6 w-6 mr-2" />
+                                                                <span>Drop files to upload</span>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex items-center justify-center w-full h-full">
+                                                                <Plus className="h-6 w-6 mr-2" />
+                                                                <span>
+                                                                    Drag and drop files here
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <CommandInput placeholder="Select files..." />
+                                            <CommandList>
+                                                <CommandEmpty>No files found.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {allFileOptions.map((file) => (
                                                         <CommandItem
-                                                            value={key}
-                                                            key={key}
+                                                            value={file}
+                                                            key={file}
                                                             onSelect={() => {
-                                                                const currentInputTools =
-                                                                    props.form.getValues(
+                                                                const currentFiles =
+                                                                    props.form.getValues("files") ||
+                                                                    [];
+                                                                const newFiles =
+                                                                    currentFiles.includes(file)
+                                                                        ? currentFiles.filter(
+                                                                              (item) =>
+                                                                                  item !== file,
+                                                                          )
+                                                                        : [...currentFiles, file];
+                                                                props.form.setValue(
+                                                                    "files",
+                                                                    newFiles,
+                                                                );
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    field.value &&
+                                                                        field.value.includes(file)
+                                                                        ? "opacity-100"
+                                                                        : "opacity-0",
+                                                                )}
+                                                            />
+                                                            {file}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </CollapsibleContent>
+                                </Collapsible>
+                            </FormItem>
+                        )}
+                    />
+                );
+            case "input_tools":
+                return (
+                    <FormField
+                        key={fieldName}
+                        control={props.form.control}
+                        name="input_tools"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col gap-2">
+                                <FormLabel>Restrict Input Tools</FormLabel>
+                                <FormDescription>
+                                    Which knowledge retrieval tools should this agent be limited to?
+                                    <br />
+                                    <b>Default:</b> No limitations.
+                                </FormDescription>
+                                <Collapsible>
+                                    <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2">
+                                        <CaretUpDown />
+                                        {field.value && field.value.length > 0
+                                            ? `${field.value.length} tools selected`
+                                            : "All tools"}
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                        <Command>
+                                            <CommandList>
+                                                <CommandGroup>
+                                                    {Object.entries(props.inputToolOptions).map(
+                                                        ([key, value]) => (
+                                                            <CommandItem
+                                                                value={key}
+                                                                key={key}
+                                                                onSelect={() => {
+                                                                    const currentInputTools =
+                                                                        props.form.getValues(
+                                                                            "input_tools",
+                                                                        ) || [];
+                                                                    const newInputTools =
+                                                                        currentInputTools.includes(
+                                                                            key,
+                                                                        )
+                                                                            ? currentInputTools.filter(
+                                                                                  (item) =>
+                                                                                      item !== key,
+                                                                              )
+                                                                            : [
+                                                                                  ...currentInputTools,
+                                                                                  key,
+                                                                              ];
+                                                                    props.form.setValue(
                                                                         "input_tools",
-                                                                    ) || [];
-                                                                const newInputTools =
-                                                                    currentInputTools.includes(key)
-                                                                        ? currentInputTools.filter(
-                                                                              (item) =>
-                                                                                  item !== key,
-                                                                          )
-                                                                        : [
-                                                                              ...currentInputTools,
-                                                                              key,
-                                                                          ];
-                                                                props.form.setValue(
-                                                                    "input_tools",
-                                                                    newInputTools,
-                                                                );
-                                                            }}
-                                                        >
-                                                            <Check
-                                                                className={cn(
-                                                                    "mr-2 h-4 w-4",
-                                                                    field.value &&
-                                                                        field.value.includes(key)
-                                                                        ? "opacity-100"
-                                                                        : "opacity-0",
-                                                                )}
-                                                            />
-                                                            <b>{key}</b>: {value}
-                                                        </CommandItem>
-                                                    ),
-                                                )}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </CollapsibleContent>
-                            </Collapsible>
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={props.form.control}
-                    name="output_modes"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-col gap-2">
-                            <FormLabel>Restrict Output Modes</FormLabel>
-                            <FormDescription>
-                                Which output modes should this agent be limited to?
-                                <br />
-                                <b>Default:</b> No limitations.
-                            </FormDescription>
-                            <Collapsible>
-                                <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2">
-                                    <CaretUpDown />
-                                    {field.value && field.value.length > 0
-                                        ? `${field.value.length} modes selected`
-                                        : "All modes"}
-                                </CollapsibleTrigger>
-                                <CollapsibleContent>
-                                    <Command>
-                                        <CommandList>
-                                            <CommandGroup>
-                                                {Object.entries(props.outputModeOptions).map(
-                                                    ([key, value]) => (
-                                                        <CommandItem
-                                                            value={key}
-                                                            key={key}
-                                                            onSelect={() => {
-                                                                const currentOutputModes =
-                                                                    props.form.getValues(
+                                                                        newInputTools,
+                                                                    );
+                                                                }}
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-4 w-4",
+                                                                        field.value &&
+                                                                            field.value.includes(
+                                                                                key,
+                                                                            )
+                                                                            ? "opacity-100"
+                                                                            : "opacity-0",
+                                                                    )}
+                                                                />
+                                                                <div
+                                                                    className={cn(
+                                                                        "flex items-center space-x-2",
+                                                                    )}
+                                                                >
+                                                                    <p>
+                                                                        <b>{key}</b>
+                                                                    </p>
+                                                                    <p>{value}</p>
+                                                                </div>
+                                                            </CommandItem>
+                                                        ),
+                                                    )}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </CollapsibleContent>
+                                </Collapsible>
+                            </FormItem>
+                        )}
+                    />
+                );
+            case "output_modes":
+                return (
+                    <FormField
+                        key={fieldName}
+                        control={props.form.control}
+                        name="output_modes"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col gap-2">
+                                <FormLabel>Restrict Output Modes</FormLabel>
+                                <FormDescription>
+                                    Which output modes should this agent be limited to?
+                                    <br />
+                                    <b>Default:</b> No limitations.
+                                </FormDescription>
+                                <Collapsible>
+                                    <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2">
+                                        <CaretUpDown />
+                                        {field.value && field.value.length > 0
+                                            ? `${field.value.length} modes selected`
+                                            : "All modes"}
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                        <Command>
+                                            <CommandList>
+                                                <CommandGroup>
+                                                    {Object.entries(props.outputModeOptions).map(
+                                                        ([key, value]) => (
+                                                            <CommandItem
+                                                                value={key}
+                                                                key={key}
+                                                                onSelect={() => {
+                                                                    const currentOutputModes =
+                                                                        props.form.getValues(
+                                                                            "output_modes",
+                                                                        ) || [];
+                                                                    const newOutputModes =
+                                                                        currentOutputModes.includes(
+                                                                            key,
+                                                                        )
+                                                                            ? currentOutputModes.filter(
+                                                                                  (item) =>
+                                                                                      item !== key,
+                                                                              )
+                                                                            : [
+                                                                                  ...currentOutputModes,
+                                                                                  key,
+                                                                              ];
+                                                                    props.form.setValue(
                                                                         "output_modes",
-                                                                    ) || [];
-                                                                const newOutputModes =
-                                                                    currentOutputModes.includes(key)
-                                                                        ? currentOutputModes.filter(
-                                                                              (item) =>
-                                                                                  item !== key,
-                                                                          )
-                                                                        : [
-                                                                              ...currentOutputModes,
-                                                                              key,
-                                                                          ];
-                                                                props.form.setValue(
-                                                                    "output_modes",
-                                                                    newOutputModes,
-                                                                );
-                                                            }}
-                                                        >
-                                                            <Check
-                                                                className={cn(
-                                                                    "mr-2 h-4 w-4",
-                                                                    field.value &&
-                                                                        field.value.includes(key)
-                                                                        ? "opacity-100"
-                                                                        : "opacity-0",
-                                                                )}
-                                                            />
-                                                            <b>{key}</b>: {value}
-                                                        </CommandItem>
-                                                    ),
-                                                )}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </CollapsibleContent>
-                            </Collapsible>
-                        </FormItem>
+                                                                        newOutputModes,
+                                                                    );
+                                                                }}
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-4 w-4",
+                                                                        field.value &&
+                                                                            field.value.includes(
+                                                                                key,
+                                                                            )
+                                                                            ? "opacity-100"
+                                                                            : "opacity-0",
+                                                                    )}
+                                                                />
+                                                                <div
+                                                                    className={cn(
+                                                                        "flex items-center space-x-2",
+                                                                    )}
+                                                                >
+                                                                    <p>
+                                                                        <b>{key}</b>
+                                                                    </p>
+                                                                    <p>{value}</p>
+                                                                </div>
+                                                            </CommandItem>
+                                                        ),
+                                                    )}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </CollapsibleContent>
+                                </Collapsible>
+                            </FormItem>
+                        )}
+                    />
+                );
+            default:
+                return null;
+        }
+    };
+
+    return (
+        <Form {...props.form}>
+            <form onSubmit={props.form.handleSubmit(handleSubmit)} className="space-y-6">
+                <div className="space-y-6">{formGroups[currentStep].label}</div>
+                {currentStep < formGroups.length &&
+                    formGroups[currentStep].fields.map((field) => renderFormField(field.name))}
+                <div className="flex justify-between mt-4">
+                    <Button
+                        type="button"
+                        variant={"outline"}
+                        onClick={handlePrevious}
+                        disabled={currentStep === 0}
+                        className={`items-center ${isSaving ? "bg-stone-100 dark:bg-neutral-900" : ""} text-white ${colorOptionClassName}`}
+                    >
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Previous
+                    </Button>
+                    {currentStep < formGroups.length - 1 ? (
+                        <Button
+                            type="button"
+                            variant={"outline"}
+                            onClick={handleNext}
+                            disabled={
+                                !areRequiredFieldsCompletedForCurrentStep(formGroups[currentStep])
+                            }
+                            className={`items-center ${isSaving ? "bg-stone-100 dark:bg-neutral-900" : ""} text-white ${colorOptionClassName}`}
+                        >
+                            Next
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                    ) : (
+                        <Button
+                            type="submit"
+                            variant={"outline"}
+                            disabled={isSaving || !props.isSubscribed}
+                            className={`items-center ${isSaving ? "bg-stone-100 dark:bg-neutral-900" : ""} text-white ${colorOptionClassName}`}
+                        >
+                            <FloppyDisk className="h-4 w-4 mr-2" />
+                            {isSaving ? "Booting..." : "Save"}
+                        </Button>
                     )}
-                />
+                </div>
+
                 {props.errors && (
                     <Alert className="bg-secondary border-none my-4">
                         <AlertDescription className="flex items-center gap-1">
@@ -1134,28 +1312,6 @@ function AgentModificationForm(props: AgentModificationFormProps) {
                         </AlertDescription>
                     </Alert>
                 )}
-                <fieldset>
-                    <Button
-                        type="submit"
-                        variant={"ghost"}
-                        disabled={isSaving || !props.isSubscribed}
-                        className={`items-center ${isSaving ? "bg-stone-100 dark:bg-neutral-900" : ""} text-white ${colorOptionClassName}`}
-                    >
-                        <FloppyDisk className="h-4 w-4 mr-2" />
-                        {isSaving ? "Booting..." : "Save"}
-                    </Button>
-                    {!!!props.create && props.form.getValues("privacy_level") !== "private" && (
-                        <ShareLink
-                            buttonTitle="Share"
-                            title="Share Agent"
-                            description="Share a link to this agent with others. They'll be able to chat with it, and ask questions to all of its knowledge base."
-                            buttonVariant={"ghost" as const}
-                            buttonClassName={`${colorOptionClassName}`}
-                            includeIcon={true}
-                            url={`${window.location.origin}/agents?agent=${props.slug}`}
-                        />
-                    )}
-                </fieldset>
             </form>
         </Form>
     );

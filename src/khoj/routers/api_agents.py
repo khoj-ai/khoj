@@ -35,6 +35,7 @@ class ModifyAgentBody(BaseModel):
     files: Optional[List[str]] = []
     input_tools: Optional[List[str]] = []
     output_modes: Optional[List[str]] = []
+    slug: Optional[str] = None
 
 
 @api_agents.get("", response_class=Response)
@@ -192,6 +193,7 @@ async def create_agent(
         body.files,
         body.input_tools,
         body.output_modes,
+        body.slug,
     )
 
     agents_packet = {
@@ -233,7 +235,7 @@ async def update_agent(
             status_code=400,
         )
 
-    selected_agent = await AgentAdapters.aget_agent_by_name(body.name, user)
+    selected_agent = await AgentAdapters.aget_agent_by_slug(body.slug, user)
 
     if not selected_agent:
         return Response(
@@ -253,6 +255,7 @@ async def update_agent(
         body.files,
         body.input_tools,
         body.output_modes,
+        body.slug,
     )
 
     agents_packet = {

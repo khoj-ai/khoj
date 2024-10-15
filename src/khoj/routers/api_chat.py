@@ -213,7 +213,7 @@ def chat_history(
 
     agent_metadata = None
     if conversation.agent:
-        if conversation.agent.privacy_level == Agent.PrivacyLevel.PRIVATE:
+        if conversation.agent.privacy_level == Agent.PrivacyLevel.PRIVATE and conversation.agent.creator != user:
             conversation.agent = None
         else:
             agent_metadata = {
@@ -853,27 +853,36 @@ async def chat(
             return
 
         # # Gather Context
-        # async for result in extract_references_and_questions(
-        #     request,
-        #     meta_log,
-        #     q,
-        #     (n or 7),
-        #     d,
-        #     conversation_id,
-        #     conversation_commands,
-        #     location,
-        #     partial(send_event, ChatEvent.STATUS),
-        #     uploaded_image_url=uploaded_image_url,
-        #     agent=agent,
-        # ):
-        #     if isinstance(result, dict) and ChatEvent.STATUS in result:
-        #         yield result[ChatEvent.STATUS]
-        #     else:
-        #         compiled_references.extend(result[0])
-        #         inferred_queries.extend(result[1])
-        #         defiltered_query = result[2]
-
-        # if not is_none_or_empty(compiled_references):
+        # # Extract Document References
+        # try:
+        #     async for result in extract_references_and_questions(
+        #         request,
+        #         meta_log,
+        #         q,
+        #         (n or 7),
+        #         d,
+        #         conversation_id,
+        #         conversation_commands,
+        #         location,
+        #         partial(send_event, ChatEvent.STATUS),
+        #         uploaded_image_url=uploaded_image_url,
+        #         agent=agent,
+        #     ):
+        #         if isinstance(result, dict) and ChatEvent.STATUS in result:
+        #             yield result[ChatEvent.STATUS]
+        #         else:
+        #             compiled_references.extend(result[0])
+        #             inferred_queries.extend(result[1])
+        #             defiltered_query = result[2]
+        # except Exception as e:
+        #     error_message = f"Error searching knowledge base: {e}. Attempting to respond without document references."
+        #     logger.warning(error_message)
+        #     async for result in send_event(
+        #         ChatEvent.STATUS, "Document search failed. I'll try respond without document references"
+        #     ):
+        #         yield result
+        #
+        # # if not is_none_or_empty(compiled_references):
         #     try:
         #         headings = "\n- " + "\n- ".join(set([c.get("compiled", c).split("\n")[0] for c in compiled_references]))
         #         # Strip only leading # from headings
@@ -910,12 +919,13 @@ async def chat(
                         yield result[ChatEvent.STATUS]
                     else:
                         online_results = result
-            except ValueError as e:
+            except Exception as e:
                 error_message = f"Error searching online: {e}. Attempting to respond without online results"
                 logger.warning(error_message)
-                async for result in send_llm_response(error_message):
+                async for result in send_event(
+                    ChatEvent.STATUS, "Online search failed. I'll try respond without online references"
+                ):
                     yield result
-                return
 
         ## Gather Webpage References
         if ConversationCommand.Webpage in conversation_commands and pending_research:
@@ -925,7 +935,6 @@ async def chat(
                     meta_log,
                     location,
                     user,
-                    subscribed,
                     partial(send_event, ChatEvent.STATUS),
                     uploaded_image_url=uploaded_image_url,
                     agent=agent,
@@ -945,11 +954,15 @@ async def chat(
                         webpages.append(webpage["link"])
                 async for result in send_event(ChatEvent.STATUS, f"**Read web pages**: {webpages}"):
                     yield result
-            except ValueError as e:
+            except Exception as e:
                 logger.warning(
-                    f"Error directly reading webpages: {e}. Attempting to respond without online results",
+                    f"Error reading webpages: {e}. Attempting to respond without webpage results",
                     exc_info=True,
                 )
+                async for result in send_event(
+                    ChatEvent.STATUS, "Webpage read failed. I'll try respond without webpage references"
+                ):
+                    yield result
 
         ## Gather Code Results
         if ConversationCommand.Code in conversation_commands and pending_research:

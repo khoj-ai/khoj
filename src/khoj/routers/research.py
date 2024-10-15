@@ -227,7 +227,6 @@ async def execute_information_collection(
                     conversation_history,
                     location,
                     user,
-                    subscribed,
                     send_status_func,
                     uploaded_image_url=uploaded_image_url,
                     agent=agent,
