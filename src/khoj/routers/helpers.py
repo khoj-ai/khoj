@@ -551,12 +551,14 @@ async def schedule_query(
         raise AssertionError(f"Invalid response for scheduling query: {raw_response}")
 
 
-async def extract_relevant_info(q: str, corpus: str, user: KhojUser = None, agent: Agent = None) -> Union[str, None]:
+async def extract_relevant_info(
+    qs: set[str], corpus: str, user: KhojUser = None, agent: Agent = None
+) -> Union[str, None]:
     """
     Extract relevant information for a given query from the target corpus
     """
 
-    if is_none_or_empty(corpus) or is_none_or_empty(q):
+    if is_none_or_empty(corpus) or is_none_or_empty(qs):
         return None
 
     personality_context = (
@@ -564,7 +566,7 @@ async def extract_relevant_info(q: str, corpus: str, user: KhojUser = None, agen
     )
 
     extract_relevant_information = prompts.extract_relevant_information.format(
-        query=q,
+        query=", ".join(qs),
         corpus=corpus.strip(),
         personality_context=personality_context,
     )
