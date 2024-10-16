@@ -193,7 +193,7 @@ you need to convert the user's query to a description format that the novice art
 - arrow
 - frame
 
-use these primitives to describe what sort of diagram the drawer should create.
+use these primitives to describe what sort of diagram the drawer should create. the artist must recreate the diagram every time, so include all relevant prior information in your description.
 
 use simple, concise language.
 
@@ -220,11 +220,9 @@ excalidraw_diagram_generation_prompt = PromptTemplate.from_template(
 You are a program manager with the ability to describe diagrams to compose in professional, fine detail.
 {personality_context}
 
-You need to create a declarative description of the diagram and relevant components, using this base schema:
+You need to create a declarative description of the diagram and relevant components, using this base schema. Use the `label` property to specify the text to be rendered in the respective elements. Always use light colors for the `backgroundColor` property.
 
-```json
-[
-{
+{{
     type: string,
     x: number,
     y: number,
@@ -233,12 +231,10 @@ You need to create a declarative description of the diagram and relevant compone
     width: number,
     height: number,
     id: string,
-    label: {
+    label: {{
         text: string,
-    }
-}
-]
-```
+    }}
+}}
 
 Valid types:
 - text
@@ -251,57 +247,54 @@ Valid types:
 
 For arrows and lines, you can use the `points` property to specify the start and end points of the arrow and the `start` and `end` properties to connect the linear elements to other elements. Lines and arrows can only start and end at rectangle, text, diamond, or ellipse elements. You may also use the `label` property to specify the text to be rendered.
 
-```json
-{
-    "type": "arrow",
-    "x": 100,
-    "y": 100,
-    "width": 200,
-    "height": 200,
-    "strokeColor": "#000000",
-    "start": {
+{{
+    type: "arrow",
+    id: string,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    strokeColor: string,
+    start: {{
         id: string,
-    },
-    "end": {
+    }},
+    end: {{
         id: string,
-    },
-    "label": {
-        "text": string,
-    }
-    "points": [
+    }},
+    label: {{
+        text: string,
+    }}
+    points: [
         [number, number],
         [number, number],
     ]
-}
-```
+}}
 
-For text, you must use the `text` property to specify the text to be rendered. You may also use `fontSize` property to specify the font size of the text.
+For text, you must use the `text` property to specify the text to be rendered. You may also use `fontSize` property to specify the font size of the text. Only use the `text` element for titles, subtitles, and overviews. For labels, use the `label` property in the respective elements.
 
-```json
-{
-    "type": "text",
-    "x": number,
-    "y": number,
-    "fontSize": number,
-    "text": string,
-
-}
-```
+{{
+    type: "text",
+    id: string,
+    x: number,
+    y: number,
+    fontSize: number,
+    text: string,
+}}
 
 For frames, you can use the `children` property to specify the elements that are inside the frame by their ids.
 
-```json
-{
-    "type": "frame",
-    "x": number,
-    "y": number,
-    "width": number,
-    "height": number,
-    "children": [
+{{
+    type: "frame",
+    id: string,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    name: string,
+    children: [
         string
     ]
-}
-```
+}}
 
 Here's an example of a valid diagram:
 
@@ -309,19 +302,17 @@ Design Description: Create a diagram describing a circular development process w
 
 Response:
 
-```json
 [
-  {"type":"text","x":-106,"y":201,"width":61,"height":25,"id":"design_text","text":"Design","fontSize":20},
-  {"type":"ellipse","x":-169,"y":113,"width":188,"height":202,"id":"design_ellipse", "label": {"text": "Design"}},
-  {"type":"ellipse","x":62,"y":394,"width":186,"height":188,"id":"implement_ellipse", "label": {"text": "Implement"}},
-  {"type":"ellipse","x":-348,"y":430,"width":184,"height":170,"id":"feedback_ellipse", "label": {"text": "Feedback"}},
-  {"type":"arrow","x":21,"y":273,"width":86,"height":105,"id":"design_to_implement_arrow","points":[[0,0],[86,105]],"start":{"id":"design_ellipse"},"end":{"id":"implement_ellipse"}},
-  {"type":"arrow","x":50,"y":519,"width":198,"height":6,"id":"implement_to_feedback_arrow","points":[[0,0],[-198,-6]],"start":{"id":"implement_ellipse"},"end":{"id":"feedback_ellipse"}},
-  {"type":"arrow","x":-228,"y":417,"width":85,"height":123,"id":"feedback_to_design_arrow","points":[[0,0],[85,-123]],"start":{"id":"feedback_ellipse"},"end":{"id":"design_ellipse"}}
+    {{"type":"text","x":-150,"y":50,"width":300,"height":40,"id":"title_text","text":"Circular Development Process","fontSize":24}},
+    {{"type":"ellipse","x":-169,"y":113,"width":188,"height":202,"id":"design_ellipse", "label": {{"text": "Design"}}}},
+    {{"type":"ellipse","x":62,"y":394,"width":186,"height":188,"id":"implement_ellipse", "label": {{"text": "Implement"}}}},
+    {{"type":"ellipse","x":-348,"y":430,"width":184,"height":170,"id":"feedback_ellipse", "label": {{"text": "Feedback"}}}},
+    {{"type":"arrow","x":21,"y":273,"width":86,"height":105,"id":"design_to_implement_arrow","points":[[0,0],[86,105]],"start":{{"id":"design_ellipse"}}, "end":{{"id":"implement_ellipse"}}}},
+    {{"type":"arrow","x":50,"y":519,"width":198,"height":6,"id":"implement_to_feedback_arrow","points":[[0,0],[-198,-6]],"start":{{"id":"implement_ellipse"}}, "end":{{"id":"feedback_ellipse"}}}},
+    {{"type":"arrow","x":-228,"y":417,"width":85,"height":123,"id":"feedback_to_design_arrow","points":[[0,0],[85,-123]],"start":{{"id":"feedback_ellipse"}}, "end":{{"id":"design_ellipse"}}}},
 ]
-```
 
-Create a detailed diagram from the provided context and user prompt below:
+Create a detailed diagram from the provided context and user prompt below. Return a valid JSON object:
 
 Diagram Description: {query}
 

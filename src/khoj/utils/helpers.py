@@ -314,6 +314,7 @@ class ConversationCommand(str, Enum):
     Automation = "automation"
     AutomatedTask = "automated_task"
     Summarize = "summarize"
+    Diagram = "diagram"
 
 
 command_descriptions = {
@@ -322,10 +323,11 @@ command_descriptions = {
     ConversationCommand.Default: "The default command when no command specified. It intelligently auto-switches between general and notes mode.",
     ConversationCommand.Online: "Search for information on the internet.",
     ConversationCommand.Webpage: "Get information from webpage suggested by you.",
-    ConversationCommand.Image: "Generate images by describing your imagination in words.",
+    ConversationCommand.Image: "Generate illustrative, creative images by describing your imagination in words.",
     ConversationCommand.Automation: "Automatically run your query at a specified time or interval.",
     ConversationCommand.Help: "Get help with how to use or setup Khoj from the documentation",
     ConversationCommand.Summarize: "Get help with a question pertaining to an entire document.",
+    ConversationCommand.Diagram: "Draw a flowchart, diagram, or any other visual representation best expressed with primitives like lines, rectangles, and text.",
 }
 
 command_descriptions_for_agent = {
@@ -349,11 +351,13 @@ mode_descriptions_for_llm = {
     ConversationCommand.Image: "Use this if the user is requesting you to generate a picture based on their description.",
     ConversationCommand.Automation: "Use this if the user is requesting a response at a scheduled date or time.",
     ConversationCommand.Text: "Use this if the other response modes don't seem to fit the query.",
+    ConversationCommand.Diagram: "Use this if the user is requesting a visual representation that requires primitives like lines, rectangles, and text.",
 }
 
 mode_descriptions_for_agent = {
     ConversationCommand.Image: "Agent can generate image in response.",
     ConversationCommand.Text: "Agent can generate text in response.",
+    ConversationCommand.Diagram: "Agent can generate a visual representation that requires primitives like lines, rectangles, and text.",
 }
 
 

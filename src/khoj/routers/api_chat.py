@@ -42,6 +42,7 @@ from khoj.routers.helpers import (
     construct_automation_created_message,
     create_automation,
     extract_relevant_summary,
+    generate_excalidraw_diagram_description,
     get_conversation_command,
     is_query_empty,
     is_ready_to_chat,
@@ -996,6 +997,57 @@ async def chat(
                 "inferredQueries": [improved_image_prompt],
                 "image": image,
             }
+            async for result in send_llm_response(json.dumps(content_obj)):
+                yield result
+            return
+
+        if ConversationCommand.Diagram in conversation_commands:
+            async for result in send_event(ChatEvent.STATUS, f"**Drawing**: {q}"):
+                yield result
+
+            intent_type = "excalidraw"
+            inferred_queries = []
+            diagram_description = ""
+
+            async for result in generate_excalidraw_diagram_description(
+                q=q,
+                conversation_history=meta_log,
+                location_data=location,
+                note_references=compiled_references,
+                online_results=online_results,
+                uploaded_image_url=uploaded_image_url,
+                user=user,
+                agent=agent,
+                send_status_func=partial(send_event, ChatEvent.STATUS),
+            ):
+                if isinstance(result, dict) and ChatEvent.STATUS in result:
+                    yield result[ChatEvent.STATUS]
+                else:
+                    better_diagram_description_prompt, excalidraw_diagram_description = result
+                    inferred_queries.append(better_diagram_description_prompt)
+                    diagram_description = excalidraw_diagram_description
+
+            content_obj = {
+                "intentType": intent_type,
+                "inferredQueries": inferred_queries,
+                "image": diagram_description,
+            }
+
+            await sync_to_async(save_to_conversation_log)(
+                q,
+                excalidraw_diagram_description,
+                user,
+                meta_log,
+                user_message_time,
+                intent_type="excalidraw",
+                inferred_queries=[better_diagram_description_prompt],
+                client_application=request.user.client_app,
+                conversation_id=conversation_id,
+                compiled_references=compiled_references,
+                online_results=online_results,
+                uploaded_image_url=uploaded_image_url,
+            )
+
             async for result in send_llm_response(json.dumps(content_obj)):
                 yield result
             return
