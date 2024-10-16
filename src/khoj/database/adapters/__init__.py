@@ -1,6 +1,7 @@
 import json
 import logging
 import math
+import os
 import random
 import re
 import secrets
@@ -10,7 +11,6 @@ from enum import Enum
 from typing import Callable, Iterable, List, Optional, Type
 
 import cron_descriptor
-import django
 from apscheduler.job import Job
 from asgiref.sync import sync_to_async
 from django.contrib.sessions.backends.db import SessionStore
@@ -52,6 +52,7 @@ from khoj.database.models import (
     UserTextToImageModelConfig,
     UserVoiceModelConfig,
     VoiceModelOption,
+    WebScraper,
 )
 from khoj.processor.conversation import prompts
 from khoj.search_filter.date_filter import DateFilter
@@ -1032,17 +1033,43 @@ class ConversationAdapters:
         return await ConversationAdapters.aget_default_conversation_config(user)
 
     @staticmethod
-    async def aget_webscraper(FIRECRAWL_API_KEY: str = None, OLOSTEP_API_KEY: str = None):
-        server_chat_settings: ServerChatSettings = await ServerChatSettings.objects.filter().afirst()
+    async def aget_server_webscraper():
+        server_chat_settings = await ServerChatSettings.objects.filter().prefetch_related("web_scraper").afirst()
         if server_chat_settings is not None and server_chat_settings.web_scraper is not None:
-            web_scraper = ServerChatSettings.WebScraper(server_chat_settings.web_scraper)
-            if (web_scraper == ServerChatSettings.WebScraper.FIRECRAWL and FIRECRAWL_API_KEY) or (
-                web_scraper == ServerChatSettings.WebScraper.OLOSTEP and OLOSTEP_API_KEY
-            ):
-                return web_scraper
-        # Fallback to JinaAI if the API keys for the other providers are not set
-        # JinaAI is the default web scraper as it does not require an API key
-        return ServerChatSettings.WebScraper.JINAAI
+            return server_chat_settings.web_scraper
+        return None
+
+    @staticmethod
+    async def aget_enabled_webscrapers():
+        enabled_scrapers = []
+        server_webscraper = await ConversationAdapters.aget_server_webscraper()
+        if server_webscraper:
+            # Only use the webscraper set in the server chat settings
+            enabled_scrapers = [
+                (server_webscraper.type, server_webscraper.api_key, server_webscraper.api_url, server_webscraper.name)
+            ]
+        if not enabled_scrapers:
+            # Use the enabled web scrapers, using the newest created scraper first, until get web page content
+            enabled_scrapers = [
+                (scraper.type, scraper.api_key, scraper.api_url, scraper.name)
+                async for scraper in WebScraper.objects.all().order_by("-created_at").aiterator()
+            ]
+        if not enabled_scrapers:
+            # Use scrapers enabled via environment variables
+            if os.getenv("FIRECRAWL_API_KEY"):
+                api_url = os.getenv("FIRECRAWL_API_URL", "https://api.firecrawl.dev")
+                enabled_scrapers.append(
+                    (WebScraper.WebScraperType.FIRECRAWL, os.getenv("FIRECRAWL_API_KEY"), api_url, "Firecrawl")
+                )
+            if os.getenv("OLOSTEP_API_KEY"):
+                api_url = os.getenv("OLOSTEP_API_URL", "https://agent.olostep.com/olostep-p2p-incomingAPI")
+                enabled_scrapers.append(
+                    (WebScraper.WebScraperType.OLOSTEP, os.getenv("OLOSTEP_API_KEY"), api_url, "Olostep")
+                )
+            # Jina is the default fallback scraper to use as it does not require an API key
+            api_url = os.getenv("JINA_READER_API_URL", "https://r.jina.ai/")
+            enabled_scrapers.append((WebScraper.WebScraperType.JINA, os.getenv("JINA_API_KEY"), api_url, "Jina"))
+        return enabled_scrapers
 
     @staticmethod
     def create_conversation_from_public_conversation(

@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 from markdownify import markdownify
 
 from khoj.database.adapters import ConversationAdapters
-from khoj.database.models import Agent, KhojUser, ServerChatSettings
+from khoj.database.models import Agent, KhojUser, WebScraper
 from khoj.processor.conversation import prompts
 from khoj.routers.helpers import (
     ChatEvent,
@@ -27,16 +27,11 @@ logger = logging.getLogger(__name__)
 SERPER_DEV_API_KEY = os.getenv("SERPER_DEV_API_KEY")
 SERPER_DEV_URL = "https://google.serper.dev/search"
 
-JINA_READER_API_URL = "https://r.jina.ai/"
 JINA_SEARCH_API_URL = "https://s.jina.ai/"
 JINA_API_KEY = os.getenv("JINA_API_KEY")
 
-FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
-FIRECRAWL_API_URL = os.getenv("FIRECRAWL_API_URL", "https://api.firecrawl.dev")
 FIRECRAWL_TO_EXTRACT = os.getenv("FIRECRAWL_TO_EXTRACT", "False").lower() == "true"
 
-OLOSTEP_API_KEY = os.getenv("OLOSTEP_API_KEY")
-OLOSTEP_API_URL = "https://agent.olostep.com/olostep-p2p-incomingAPI"
 OLOSTEP_QUERY_PARAMS = {
     "timeout": 35,  # seconds
     "waitBeforeScraping": 1,  # seconds
@@ -175,29 +170,47 @@ async def read_webpages(
     yield response
 
 
+async def read_webpage(
+    url, scraper_type=None, api_key=None, api_url=None, subqueries=None, agent=None
+) -> Tuple[str | None, str | None]:
+    if scraper_type == WebScraper.WebScraperType.FIRECRAWL and FIRECRAWL_TO_EXTRACT:
+        return None, await query_webpage_with_firecrawl(url, subqueries, api_key, api_url, agent)
+    elif scraper_type == WebScraper.WebScraperType.FIRECRAWL:
+        return await read_webpage_with_firecrawl(url, api_key, api_url), None
+    elif scraper_type == WebScraper.WebScraperType.OLOSTEP:
+        return await read_webpage_with_olostep(url, api_key, api_url), None
+    else:
+        return await read_webpage_with_jina(url, api_key, api_url), None
+
+
 async def read_webpage_and_extract_content(
     subqueries: set[str], url: str, content: str = None, user: KhojUser = None, agent: Agent = None
 ) -> Tuple[set[str], str, Union[None, str]]:
-    # Select the web scraper to use for reading the web page
-    web_scraper = await ConversationAdapters.aget_webscraper(FIRECRAWL_API_KEY, OLOSTEP_API_KEY)
+    # Select the web scrapers to use for reading the web page
+    web_scrapers = await ConversationAdapters.aget_enabled_webscrapers()
+
+    # Fallback through enabled web scrapers until we successfully read the web page
     extracted_info = None
-    try:
-        if is_none_or_empty(content):
-            with timer(f"Reading web page with {web_scraper.value} at '{url}' took", logger, log_level=logging.INFO):
-                if web_scraper == ServerChatSettings.WebScraper.FIRECRAWL:
-                    if FIRECRAWL_TO_EXTRACT:
-                        extracted_info = await read_webpage_and_extract_content_with_firecrawl(url, subqueries, agent)
-                    else:
-                        content = await read_webpage_with_firecrawl(url)
-                elif web_scraper == ServerChatSettings.WebScraper.OLOSTEP:
-                    content = await read_webpage_with_olostep(url)
-                else:
-                    content = await read_webpage_with_jina(url)
-        if is_none_or_empty(extracted_info):
-            with timer(f"Extracting relevant information from web page at '{url}' took", logger):
-                extracted_info = await extract_relevant_info(subqueries, content, user=user, agent=agent)
-    except Exception as e:
-        logger.error(f"Failed to read web page with {web_scraper.value} at '{url}' with {e}")
+    for scraper_type, api_key, api_url, api_name in web_scrapers:
+        try:
+            # Read the web page
+            if is_none_or_empty(content):
+                with timer(f"Reading web page with {scraper_type} at '{url}' took", logger, log_level=logging.INFO):
+                    content, extracted_info = await read_webpage(url, scraper_type, api_key, api_url, subqueries, agent)
+
+            # Extract relevant information from the web page
+            if is_none_or_empty(extracted_info):
+                with timer(f"Extracting relevant information from web page at '{url}' took", logger):
+                    extracted_info = await extract_relevant_info(subqueries, content, user=user, agent=agent)
+
+            # If we successfully extracted information, break the loop
+            if not is_none_or_empty(extracted_info):
+                break
+        except Exception as e:
+            logger.warning(f"Failed to read web page with {scraper_type} at '{url}' with {e}")
+            # If this is the last web scraper in the list, log an error
+            if api_name == web_scrapers[-1][-1]:
+                logger.error(f"All web scrapers failed for '{url}'")
 
     return subqueries, url, extracted_info
 
@@ -216,23 +229,23 @@ async def read_webpage_at_url(web_url: str) -> str:
             return markdownify(body)
 
 
-async def read_webpage_with_olostep(web_url: str) -> str:
-    headers = {"Authorization": f"Bearer {OLOSTEP_API_KEY}"}
+async def read_webpage_with_olostep(web_url: str, api_key: str, api_url: str) -> str:
+    headers = {"Authorization": f"Bearer {api_key}"}
     web_scraping_params: Dict[str, Union[str, int, bool]] = OLOSTEP_QUERY_PARAMS.copy()  # type: ignore
     web_scraping_params["url"] = web_url
 
     async with aiohttp.ClientSession() as session:
-        async with session.get(OLOSTEP_API_URL, params=web_scraping_params, headers=headers) as response:
+        async with session.get(api_url, params=web_scraping_params, headers=headers) as response:
             response.raise_for_status()
             response_json = await response.json()
             return response_json["markdown_content"]
 
 
-async def read_webpage_with_jina(web_url: str) -> str:
-    jina_reader_api_url = f"{JINA_READER_API_URL}/{web_url}"
+async def read_webpage_with_jina(web_url: str, api_key: str, api_url: str) -> str:
+    jina_reader_api_url = f"{api_url}/{web_url}"
     headers = {"Accept": "application/json", "X-Timeout": "30"}
-    if JINA_API_KEY:
-        headers["Authorization"] = f"Bearer {JINA_API_KEY}"
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
 
     async with aiohttp.ClientSession() as session:
         async with session.get(jina_reader_api_url, headers=headers) as response:
@@ -241,9 +254,9 @@ async def read_webpage_with_jina(web_url: str) -> str:
             return response_json["data"]["content"]
 
 
-async def read_webpage_with_firecrawl(web_url: str) -> str:
-    firecrawl_api_url = f"{FIRECRAWL_API_URL}/v1/scrape"
-    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {FIRECRAWL_API_KEY}"}
+async def read_webpage_with_firecrawl(web_url: str, api_key: str, api_url: str) -> str:
+    firecrawl_api_url = f"{api_url}/v1/scrape"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
     params = {"url": web_url, "formats": ["markdown"], "excludeTags": ["script", ".ad"]}
 
     async with aiohttp.ClientSession() as session:
@@ -253,9 +266,11 @@ async def read_webpage_with_firecrawl(web_url: str) -> str:
             return response_json["data"]["markdown"]
 
 
-async def read_webpage_and_extract_content_with_firecrawl(web_url: str, queries: set[str], agent: Agent = None) -> str:
-    firecrawl_api_url = f"{FIRECRAWL_API_URL}/v1/scrape"
-    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {FIRECRAWL_API_KEY}"}
+async def query_webpage_with_firecrawl(
+    web_url: str, queries: set[str], api_key: str, api_url: str, agent: Agent = None
+) -> str:
+    firecrawl_api_url = f"{api_url}/v1/scrape"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
     schema = {
         "type": "object",
         "properties": {
