@@ -198,6 +198,7 @@ class ServerChatSettingsAdmin(admin.ModelAdmin):
     list_display = (
         "chat_default",
         "chat_advanced",
+        "web_scraper",
     )
 
 

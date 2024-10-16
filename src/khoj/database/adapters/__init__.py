@@ -1032,6 +1032,19 @@ class ConversationAdapters:
         return await ConversationAdapters.aget_default_conversation_config(user)
 
     @staticmethod
+    async def aget_webscraper(FIRECRAWL_API_KEY: str = None, OLOSTEP_API_KEY: str = None):
+        server_chat_settings: ServerChatSettings = await ServerChatSettings.objects.filter().afirst()
+        if server_chat_settings is not None and server_chat_settings.web_scraper is not None:
+            web_scraper = ServerChatSettings.WebScraper(server_chat_settings.web_scraper)
+            if (web_scraper == ServerChatSettings.WebScraper.FIRECRAWL and FIRECRAWL_API_KEY) or (
+                web_scraper == ServerChatSettings.WebScraper.OLOSTEP and OLOSTEP_API_KEY
+            ):
+                return web_scraper
+        # Fallback to JinaAI if the API keys for the other providers are not set
+        # JinaAI is the default web scraper as it does not require an API key
+        return ServerChatSettings.WebScraper.JINAAI
+
+    @staticmethod
     def create_conversation_from_public_conversation(
         user: KhojUser, public_conversation: PublicConversation, client_app: ClientApplication
     ):

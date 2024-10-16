@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
+from django.utils.translation import gettext_lazy
 from pgvector.django import VectorField
 from phonenumber_field.modelfields import PhoneNumberField
 
@@ -245,12 +246,18 @@ class GithubRepoConfig(BaseModel):
 
 
 class ServerChatSettings(BaseModel):
+    class WebScraper(models.TextChoices):
+        FIRECRAWL = "firecrawl", gettext_lazy("Firecrawl")
+        OLOSTEP = "olostep", gettext_lazy("Olostep")
+        JINAAI = "jinaai", gettext_lazy("JinaAI")
+
     chat_default = models.ForeignKey(
         ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="chat_default"
     )
     chat_advanced = models.ForeignKey(
         ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="chat_advanced"
     )
+    web_scraper = models.CharField(max_length=20, choices=WebScraper.choices, default=WebScraper.JINAAI)
 
 
 class LocalOrgConfig(BaseModel):

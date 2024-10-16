@@ -10,7 +10,8 @@ import aiohttp
 from bs4 import BeautifulSoup
 from markdownify import markdownify
 
-from khoj.database.models import Agent, KhojUser
+from khoj.database.adapters import ConversationAdapters
+from khoj.database.models import Agent, KhojUser, ServerChatSettings
 from khoj.processor.conversation import prompts
 from khoj.routers.helpers import (
     ChatEvent,
@@ -177,16 +178,18 @@ async def read_webpages(
 async def read_webpage_and_extract_content(
     subqueries: set[str], url: str, content: str = None, user: KhojUser = None, agent: Agent = None
 ) -> Tuple[set[str], str, Union[None, str]]:
+    # Select the web scraper to use for reading the web page
+    web_scraper = await ConversationAdapters.aget_webscraper(FIRECRAWL_API_KEY, OLOSTEP_API_KEY)
     extracted_info = None
     try:
         if is_none_or_empty(content):
-            with timer(f"Reading web page at '{url}' took", logger):
-                if FIRECRAWL_API_KEY:
+            with timer(f"Reading web page with {web_scraper.value} at '{url}' took", logger):
+                if web_scraper == ServerChatSettings.WebScraper.FIRECRAWL:
                     if FIRECRAWL_TO_EXTRACT:
                         extracted_info = await read_webpage_and_extract_content_with_firecrawl(url, subqueries, agent)
                     else:
                         content = await read_webpage_with_firecrawl(url)
-                elif OLOSTEP_API_KEY:
+                elif web_scraper == ServerChatSettings.WebScraper.OLOSTEP:
                     content = await read_webpage_with_olostep(url)
                 else:
                     content = await read_webpage_with_jina(url)
@@ -194,7 +197,7 @@ async def read_webpage_and_extract_content(
             with timer(f"Extracting relevant information from web page at '{url}' took", logger):
                 extracted_info = await extract_relevant_info(subqueries, content, user=user, agent=agent)
     except Exception as e:
-        logger.error(f"Failed to read web page at '{url}' with {e}")
+        logger.error(f"Failed to read web page with {web_scraper.value} at '{url}' with {e}")
 
     return subqueries, url, extracted_info
 
