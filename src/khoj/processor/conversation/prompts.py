@@ -176,6 +176,158 @@ Improved Prompt:
 """.strip()
 )
 
+## Diagram Generation
+## --
+
+improve_diagram_description_prompt = PromptTemplate.from_template(
+    """
+you are an architect working with a novice artist using a diagramming tool.
+{personality_context}
+
+you need to convert the user's query to a description format that the novice artist can use very well. you are allowed to use primitives like
+- text
+- rectangle
+- diamond
+- ellipse
+- line
+- arrow
+- frame
+
+use these primitives to describe what sort of diagram the drawer should create.
+
+use simple, concise language.
+
+Today's Date: {current_date}
+User's Location: {location}
+
+User's Notes:
+{references}
+
+Online References:
+{online_results}
+
+Conversation Log:
+{chat_history}
+
+Query: {query}
+
+
+""".strip()
+)
+
+excalidraw_diagram_generation_prompt = PromptTemplate.from_template(
+    """
+You are a program manager with the ability to describe diagrams to compose in professional, fine detail.
+{personality_context}
+
+You need to create a declarative description of the diagram and relevant components, using this base schema:
+
+```json
+[
+{
+    type: string,
+    x: number,
+    y: number,
+    strokeColor: string,
+    backgroundColor: string,
+    width: number,
+    height: number,
+    id: string,
+    label: {
+        text: string,
+    }
+}
+]
+```
+
+Valid types:
+- text
+- rectangle
+- diamond
+- ellipse
+- line
+- arrow
+
+
+For arrows and lines, you can use the `points` property to specify the start and end points of the arrow and the `start` and `end` properties to connect the linear elements to other elements. Lines and arrows can only start and end at rectangle, text, diamond, or ellipse elements. You may also use the `label` property to specify the text to be rendered.
+
+```json
+{
+    "type": "arrow",
+    "x": 100,
+    "y": 100,
+    "width": 200,
+    "height": 200,
+    "strokeColor": "#000000",
+    "start": {
+        id: string,
+    },
+    "end": {
+        id: string,
+    },
+    "label": {
+        "text": string,
+    }
+    "points": [
+        [number, number],
+        [number, number],
+    ]
+}
+```
+
+For text, you must use the `text` property to specify the text to be rendered. You may also use `fontSize` property to specify the font size of the text.
+
+```json
+{
+    "type": "text",
+    "x": number,
+    "y": number,
+    "fontSize": number,
+    "text": string,
+
+}
+```
+
+For frames, you can use the `children` property to specify the elements that are inside the frame by their ids.
+
+```json
+{
+    "type": "frame",
+    "x": number,
+    "y": number,
+    "width": number,
+    "height": number,
+    "children": [
+        string
+    ]
+}
+```
+
+Here's an example of a valid diagram:
+
+Design Description: Create a diagram describing a circular development process with 3 stages: design, implementation and feedback. The design stage is connected to the implementation stage and the implementation stage is connected to the feedback stage and the feedback stage is connected to the design stage. Each stage should be labeled with the stage name.
+
+Response:
+
+```json
+[
+  {"type":"text","x":-106,"y":201,"width":61,"height":25,"id":"design_text","text":"Design","fontSize":20},
+  {"type":"ellipse","x":-169,"y":113,"width":188,"height":202,"id":"design_ellipse", "label": {"text": "Design"}},
+  {"type":"ellipse","x":62,"y":394,"width":186,"height":188,"id":"implement_ellipse", "label": {"text": "Implement"}},
+  {"type":"ellipse","x":-348,"y":430,"width":184,"height":170,"id":"feedback_ellipse", "label": {"text": "Feedback"}},
+  {"type":"arrow","x":21,"y":273,"width":86,"height":105,"id":"design_to_implement_arrow","points":[[0,0],[86,105]],"start":{"id":"design_ellipse"},"end":{"id":"implement_ellipse"}},
+  {"type":"arrow","x":50,"y":519,"width":198,"height":6,"id":"implement_to_feedback_arrow","points":[[0,0],[-198,-6]],"start":{"id":"implement_ellipse"},"end":{"id":"feedback_ellipse"}},
+  {"type":"arrow","x":-228,"y":417,"width":85,"height":123,"id":"feedback_to_design_arrow","points":[[0,0],[85,-123]],"start":{"id":"feedback_ellipse"},"end":{"id":"design_ellipse"}}
+]
+```
+
+Create a detailed diagram from the provided context and user prompt below:
+
+Diagram Description: {query}
+
+""".strip()
+)
+
 ## Online Search Conversation
 ## --
 online_search_conversation = PromptTemplate.from_template(
