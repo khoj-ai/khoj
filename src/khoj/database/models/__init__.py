@@ -249,6 +249,7 @@ class WebScraper(BaseModel):
         FIRECRAWL = "firecrawl", gettext_lazy("Firecrawl")
         OLOSTEP = "olostep", gettext_lazy("Olostep")
         JINA = "jina", gettext_lazy("Jina")
+        DIRECT = "direct", gettext_lazy("Direct")
 
     name = models.CharField(max_length=200, default=None, null=True, blank=True, unique=True)
     type = models.CharField(max_length=20, choices=WebScraperType.choices, default=WebScraperType.JINA)

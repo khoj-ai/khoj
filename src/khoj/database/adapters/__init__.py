@@ -60,7 +60,12 @@ from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.utils import state
 from khoj.utils.config import OfflineChatProcessorModel
-from khoj.utils.helpers import generate_random_name, is_none_or_empty, timer
+from khoj.utils.helpers import (
+    generate_random_name,
+    in_debug_mode,
+    is_none_or_empty,
+    timer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -1066,9 +1071,16 @@ class ConversationAdapters:
                 enabled_scrapers.append(
                     (WebScraper.WebScraperType.OLOSTEP, os.getenv("OLOSTEP_API_KEY"), api_url, "Olostep")
                 )
-            # Jina is the default fallback scraper to use as it does not require an API key
+
+            # Jina is the default fallback scrapers to use as it does not require an API key
             api_url = os.getenv("JINA_READER_API_URL", "https://r.jina.ai/")
             enabled_scrapers.append((WebScraper.WebScraperType.JINA, os.getenv("JINA_API_KEY"), api_url, "Jina"))
+
+            # Only enable the direct web page scraper by default in self-hosted single user setups.
+            # Useful for reading webpages on your intranet.
+            if state.anonymous_mode or in_debug_mode():
+                enabled_scrapers.append((WebScraper.WebScraperType.DIRECT, None, None, "Direct"))
+
         return enabled_scrapers
 
     @staticmethod

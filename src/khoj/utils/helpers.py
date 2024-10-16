@@ -2,10 +2,12 @@ from __future__ import annotations  # to avoid quoting type hints
 
 import datetime
 import io
+import ipaddress
 import logging
 import os
 import platform
 import random
+import urllib.parse
 import uuid
 from collections import OrderedDict
 from enum import Enum
@@ -433,6 +435,50 @@ def is_internet_connected():
         response = requests.head("https://www.google.com")
         return response.status_code == 200
     except:
+        return False
+
+
+def is_internal_url(url: str) -> bool:
+    """
+    Check if a URL is likely to be internal/non-public.
+
+    Args:
+    url (str): The URL to check.
+
+    Returns:
+    bool: True if the URL is likely internal, False otherwise.
+    """
+    try:
+        parsed_url = urllib.parse.urlparse(url)
+        hostname = parsed_url.hostname
+
+        # Check for localhost
+        if hostname in ["localhost", "127.0.0.1", "::1"]:
+            return True
+
+        # Check for IP addresses in private ranges
+        try:
+            ip = ipaddress.ip_address(hostname)
+            return ip.is_private
+        except ValueError:
+            pass  # Not an IP address, continue with other checks
+
+        # Check for common internal TLDs
+        internal_tlds = [".local", ".internal", ".private", ".corp", ".home", ".lan"]
+        if any(hostname.endswith(tld) for tld in internal_tlds):
+            return True
+
+        # Check for non-standard ports
+        # if parsed_url.port and parsed_url.port not in [80, 443]:
+        #     return True
+
+        # Check for URLs without a TLD
+        if "." not in hostname:
+            return True
+
+        return False
+    except Exception:
+        # If we can't parse the URL or something else goes wrong, assume it's not internal
         return False
 
 

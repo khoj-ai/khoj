@@ -19,7 +19,13 @@ from khoj.routers.helpers import (
     generate_online_subqueries,
     infer_webpage_urls,
 )
-from khoj.utils.helpers import is_internet_connected, is_none_or_empty, timer
+from khoj.utils.helpers import (
+    is_env_var_true,
+    is_internal_url,
+    is_internet_connected,
+    is_none_or_empty,
+    timer,
+)
 from khoj.utils.rawconfig import LocationData
 
 logger = logging.getLogger(__name__)
@@ -30,7 +36,7 @@ SERPER_DEV_URL = "https://google.serper.dev/search"
 JINA_SEARCH_API_URL = "https://s.jina.ai/"
 JINA_API_KEY = os.getenv("JINA_API_KEY")
 
-FIRECRAWL_TO_EXTRACT = os.getenv("FIRECRAWL_TO_EXTRACT", "False").lower() == "true"
+FIRECRAWL_TO_EXTRACT = is_env_var_true("FIRECRAWL_TO_EXTRACT")
 
 OLOSTEP_QUERY_PARAMS = {
     "timeout": 35,  # seconds
@@ -179,8 +185,10 @@ async def read_webpage(
         return await read_webpage_with_firecrawl(url, api_key, api_url), None
     elif scraper_type == WebScraper.WebScraperType.OLOSTEP:
         return await read_webpage_with_olostep(url, api_key, api_url), None
-    else:
+    elif scraper_type == WebScraper.WebScraperType.JINA:
         return await read_webpage_with_jina(url, api_key, api_url), None
+    else:
+        return await read_webpage_at_url(url), None
 
 
 async def read_webpage_and_extract_content(
@@ -188,6 +196,9 @@ async def read_webpage_and_extract_content(
 ) -> Tuple[set[str], str, Union[None, str]]:
     # Select the web scrapers to use for reading the web page
     web_scrapers = await ConversationAdapters.aget_enabled_webscrapers()
+    # Only use the direct web scraper for internal URLs
+    if is_internal_url(url):
+        web_scrapers = [scraper for scraper in web_scrapers if scraper[0] == WebScraper.WebScraperType.DIRECT]
 
     # Fallback through enabled web scrapers until we successfully read the web page
     extracted_info = None
