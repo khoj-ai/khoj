@@ -322,6 +322,12 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                             by: "khoj",
                                             automationId: "",
                                             rawQuery: message.rawQuery,
+                                            intent: {
+                                                type: message.intentType || "",
+                                                query: message.rawQuery,
+                                                "memory-type": "",
+                                                "inferred-queries": message.inferredQueries || [],
+                                            },
                                         }}
                                         customClassName="fullHistory"
                                         borderLeftColor={`${data?.agent?.color}-500`}

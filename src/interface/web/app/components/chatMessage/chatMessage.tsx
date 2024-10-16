@@ -35,6 +35,7 @@ import { AgentData } from "@/app/agents/page";
 
 import renderMathInElement from "katex/contrib/auto-render";
 import "katex/dist/katex.min.css";
+import ExcalidrawComponent from "../excalidraw/excalidraw";
 
 const md = new markdownIt({
     html: true,
@@ -127,6 +128,9 @@ export interface StreamMessage {
     timestamp: string;
     agent?: AgentData;
     uploadedImageData?: string;
+    intentType?: string;
+    inferredQueries?: string[];
+    image?: string;
 }
 
 export interface ChatHistoryData {
@@ -283,6 +287,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
     const [markdownRendered, setMarkdownRendered] = useState<string>("");
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const [interrupted, setInterrupted] = useState<boolean>(false);
+    const [excalidrawData, setExcalidrawData] = useState<string>("");
 
     const interruptedRef = useRef<boolean>(false);
     const messageRef = useRef<HTMLDivElement>(null);
@@ -321,6 +326,14 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
     useEffect(() => {
         let message = props.chatMessage.message;
 
+        console.log("chat message", props.chatMessage);
+
+        if (props.chatMessage.intent && props.chatMessage.intent.type == "excalidraw") {
+            message = props.chatMessage.intent["inferred-queries"][0];
+            console.log("excalidraw message", message);
+            setExcalidrawData(props.chatMessage.message);
+        }
+
         // Replace LaTeX delimiters with placeholders
         message = message
             .replace(/\\\(/g, "LEFTPAREN")
@@ -332,22 +345,28 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             message = `![uploaded image](${props.chatMessage.uploadedImageData})\n\n${message}`;
         }
 
-        if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image") {
-            message = `![generated image](data:image/png;base64,${message})`;
-        } else if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image2") {
-            message = `![generated image](${message})`;
-        } else if (
-            props.chatMessage.intent &&
-            props.chatMessage.intent.type == "text-to-image-v3"
-        ) {
-            message = `![generated image](data:image/webp;base64,${message})`;
-        }
-        if (
-            props.chatMessage.intent &&
-            props.chatMessage.intent.type.includes("text-to-image") &&
-            props.chatMessage.intent["inferred-queries"]?.length > 0
-        ) {
-            message += `\n\n${props.chatMessage.intent["inferred-queries"][0]}`;
+        const intentTypeHandlers = {
+            "text-to-image": (msg: string) => `![generated image](data:image/png;base64,${msg})`,
+            "text-to-image2": (msg: string) => `![generated image](${msg})`,
+            "text-to-image-v3": (msg: string) =>
+                `![generated image](data:image/webp;base64,${msg})`,
+            excalidraw: (msg: string) => {
+                console.log("excalidraw message", msg);
+                return msg;
+            },
+        };
+
+        if (props.chatMessage.intent) {
+            const { type, "inferred-queries": inferredQueries } = props.chatMessage.intent;
+
+            console.log("intent type", type);
+            if (type in intentTypeHandlers) {
+                message = intentTypeHandlers[type as keyof typeof intentTypeHandlers](message);
+            }
+
+            if (type.includes("text-to-image") && inferredQueries?.length > 0) {
+                message += `\n\n${inferredQueries[0]}`;
+            }
         }
 
         setTextRendered(message);
@@ -554,6 +573,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                     className={styles.chatMessage}
                     dangerouslySetInnerHTML={{ __html: markdownRendered }}
                 />
+                {excalidrawData && <ExcalidrawComponent data={excalidrawData} />}
             </div>
             <div className={styles.teaserReferencesContainer}>
                 <TeaserReferencesSection
