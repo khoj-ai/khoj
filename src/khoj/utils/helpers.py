@@ -164,9 +164,9 @@ def get_class_by_name(name: str) -> object:
 class timer:
     """Context manager to log time taken for a block of code to run"""
 
-    def __init__(self, message: str, logger: logging.Logger, device: torch.device = None):
+    def __init__(self, message: str, logger: logging.Logger, device: torch.device = None, log_level=logging.DEBUG):
         self.message = message
-        self.logger = logger
+        self.logger = logger.debug if log_level == logging.DEBUG else logger.info
         self.device = device
 
     def __enter__(self):
@@ -176,9 +176,9 @@ class timer:
     def __exit__(self, *_):
         elapsed = perf_counter() - self.start
         if self.device is None:
-            self.logger.debug(f"{self.message}: {elapsed:.3f} seconds")
+            self.logger(f"{self.message}: {elapsed:.3f} seconds")
         else:
-            self.logger.debug(f"{self.message}: {elapsed:.3f} seconds on device: {self.device}")
+            self.logger(f"{self.message}: {elapsed:.3f} seconds on device: {self.device}")
 
 
 class LRU(OrderedDict):

@@ -571,12 +571,11 @@ async def extract_relevant_info(
         personality_context=personality_context,
     )
 
-    with timer("Chat actor: Extract relevant information from data", logger):
-        response = await send_message_to_model_wrapper(
-            extract_relevant_information,
-            prompts.system_prompt_extract_relevant_information,
-            user=user,
-        )
+    response = await send_message_to_model_wrapper(
+        extract_relevant_information,
+        prompts.system_prompt_extract_relevant_information,
+        user=user,
+    )
     return response.strip()
 
 

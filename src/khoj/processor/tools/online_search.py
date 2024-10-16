@@ -183,7 +183,7 @@ async def read_webpage_and_extract_content(
     extracted_info = None
     try:
         if is_none_or_empty(content):
-            with timer(f"Reading web page with {web_scraper.value} at '{url}' took", logger):
+            with timer(f"Reading web page with {web_scraper.value} at '{url}' took", logger, log_level=logging.INFO):
                 if web_scraper == ServerChatSettings.WebScraper.FIRECRAWL:
                     if FIRECRAWL_TO_EXTRACT:
                         extracted_info = await read_webpage_and_extract_content_with_firecrawl(url, subqueries, agent)
