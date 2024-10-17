@@ -278,6 +278,19 @@ export default function SharedChat() {
 
             <div className={styles.chatBox}>
                 <div className={styles.chatBoxBody}>
+                    {!isMobileWidth && title && (
+                        <div
+                            className={`${styles.chatTitleWrapper} text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mr-8 pt-6 col-auto h-fit`}
+                        >
+                            {title && (
+                                <h2
+                                    className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden`}
+                                >
+                                    {title}
+                                </h2>
+                            )}
+                        </div>
+                    )}
                     <Suspense fallback={<Loading />}>
                         <ChatBodyData
                             conversationId={conversationId}
