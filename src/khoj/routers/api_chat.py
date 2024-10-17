@@ -574,7 +574,6 @@ async def chat(
         chat_metadata: dict = {}
         connection_alive = True
         user: KhojUser = request.user.object
-        subscribed: bool = has_required_scope(request, ["premium"])
         event_delimiter = "␃🔚␗"
         q = unquote(q)
         nonlocal conversation_id
@@ -641,7 +640,7 @@ async def chat(
                 request=request,
                 telemetry_type="api",
                 api="chat",
-                client=request.user.client_app,
+                client=common.client,
                 user_agent=request.headers.get("user-agent"),
                 host=request.headers.get("host"),
                 metadata=chat_metadata,
