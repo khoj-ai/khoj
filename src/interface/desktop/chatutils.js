@@ -189,11 +189,19 @@ function processOnlineReferences(referenceSection, onlineContext) { //same
     return numOnlineReferences;
 }
 
-function renderMessageWithReference(message, by, context=null, dt=null, onlineContext=null, intentType=null, inferredQueries=null) { //same
+function renderMessageWithReference(message, by, context=null, dt=null, onlineContext=null, intentType=null, inferredQueries=null, conversationId=null, hostURL=null) {
     let chatEl;
     if (intentType?.includes("text-to-image")) {
         let imageMarkdown = generateImageMarkdown(message, intentType, inferredQueries);
         chatEl = renderMessage(imageMarkdown, by, dt, null, false, "return");
+    } else if (intentType === "excalidraw") {
+        let domain = hostURL ?? "http://localhost:42110/";
+
+        if (!domain.endsWith("/")) domain += "/";
+
+        let excalidrawMessage = `Hey, I'm not ready to show you diagrams yet here. But you can view it in the web UI at ${domain}chat?conversationId=${conversationId}`;
+
+        chatEl = renderMessage(excalidrawMessage, by, dt, null, false, "return");
     } else {
         chatEl = renderMessage(message, by, dt, null, false, "return");
     }
@@ -312,7 +320,6 @@ function formatHTMLMessage(message, raw=false, willReplace=true) { //same
 }
 
 function createReferenceSection(references, createLinkerSection=false) {
-    console.log("linker data: ", createLinkerSection);
     let referenceSection = document.createElement('div');
     referenceSection.classList.add("reference-section");
     referenceSection.classList.add("collapsed");
@@ -417,7 +424,11 @@ function handleImageResponse(imageJson, rawResponse) {
             rawResponse += `![generated_image](${imageJson.image})`;
         } else if (imageJson.intentType === "text-to-image-v3") {
             rawResponse = `![](data:image/webp;base64,${imageJson.image})`;
+        } else if (imageJson.intentType === "excalidraw") {
+            const redirectMessage = `Hey, I'm not ready to show you diagrams yet here. But you can view it in the web UI`;
+            rawResponse += redirectMessage;
         }
+
         if (inferredQuery) {
             rawResponse += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
         }
