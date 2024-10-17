@@ -114,6 +114,7 @@ class CrossEncoderModel:
             payload = {"inputs": {"query": query, "passages": [hit.additional[key] for hit in hits]}}
             headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
             response = requests.post(target_url, json=payload, headers=headers)
+            response.raise_for_status()
             return response.json()["scores"]
 
         cross_inp = [[query, hit.additional[key]] for hit in hits]
