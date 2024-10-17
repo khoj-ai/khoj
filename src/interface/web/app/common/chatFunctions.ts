@@ -175,7 +175,11 @@ export function modifyFileFilterForConversation(
         },
         body: JSON.stringify(body),
     })
-        .then((response) => response.json())
+        .then((res) => {
+            if (!res.ok)
+                throw new Error(`Failed to call API at ${addUrl} with error ${res.statusText}`);
+            return res.json();
+        })
         .then((data) => {
             setAddedFiles(data);
         })
