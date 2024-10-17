@@ -174,6 +174,7 @@ class Agent(BaseModel):
         # These map to various ConversationCommand types
         TEXT = "text"
         IMAGE = "image"
+        AUTOMATION = "automation"
 
     creator = models.ForeignKey(
         KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True

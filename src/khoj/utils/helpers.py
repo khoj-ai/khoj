@@ -347,12 +347,13 @@ tool_descriptions_for_llm = {
 
 mode_descriptions_for_llm = {
     ConversationCommand.Image: "Use this if the user is requesting you to generate a picture based on their description.",
-    ConversationCommand.Automation: "Use this if the user is requesting a response at a scheduled date or time.",
+    ConversationCommand.Automation: "Use this if you are confident the user is requesting a response at a scheduled date, time and frequency",
     ConversationCommand.Text: "Use this if the other response modes don't seem to fit the query.",
 }
 
 mode_descriptions_for_agent = {
     ConversationCommand.Image: "Agent can generate image in response.",
+    ConversationCommand.Automation: "Agent can schedule a task to run at a scheduled date, time and frequency in response.",
     ConversationCommand.Text: "Agent can generate text in response.",
 }
 
