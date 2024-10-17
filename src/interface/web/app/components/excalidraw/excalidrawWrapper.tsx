@@ -92,7 +92,6 @@ export default function ExcalidrawWrapper(props: ExcalidrawWrapperProps) {
 
     useEffect(() => {
         const elements = convertToExcalidrawElements(props.data);
-        // console.log("EXCALIDRAW ELEMENTS", elements);
         setExcalidrawElements(elements);
     }, []);
 

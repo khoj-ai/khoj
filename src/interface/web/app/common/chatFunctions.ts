@@ -88,8 +88,6 @@ export function processMessageChunk(
         if (chunkData !== null && typeof chunkData === "object") {
             let responseWithIntent = handleJsonResponse(chunkData);
 
-            console.log(responseWithIntent);
-
             if (responseWithIntent.intentType && responseWithIntent.intentType === "excalidraw") {
                 currentMessage.rawResponse = responseWithIntent.response;
             } else {
@@ -106,7 +104,6 @@ export function processMessageChunk(
             try {
                 const jsonData = JSON.parse(chunkData.trim());
                 let responseWithIntent = handleJsonResponse(jsonData);
-                console.log(responseWithIntent);
                 currentMessage.rawResponse += responseWithIntent.response;
                 currentMessage.intentType = responseWithIntent.intentType;
                 currentMessage.inferredQueries = responseWithIntent.inferredQueries;
@@ -116,7 +113,6 @@ export function processMessageChunk(
         } else {
             currentMessage.rawResponse += chunkData;
         }
-        console.log(`current message: ${currentMessage}`);
     } else if (chunk.type === "start_llm_response") {
         console.log(`Started streaming: ${new Date()}`);
     } else if (chunk.type === "end_llm_response") {
@@ -136,7 +132,6 @@ export function handleImageResponse(imageJson: any, liveStream: boolean): Respon
     let rawResponse = "";
 
     if (imageJson.image) {
-        console.log(`Image response: ${imageJson.image}`);
         // If response has image field, response may be a generated image
         rawResponse = imageJson.image;
     }

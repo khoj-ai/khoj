@@ -326,11 +326,8 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
     useEffect(() => {
         let message = props.chatMessage.message;
 
-        console.log("chat message", props.chatMessage);
-
         if (props.chatMessage.intent && props.chatMessage.intent.type == "excalidraw") {
             message = props.chatMessage.intent["inferred-queries"][0];
-            console.log("excalidraw message", message);
             setExcalidrawData(props.chatMessage.message);
         }
 
@@ -351,7 +348,6 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             "text-to-image-v3": (msg: string) =>
                 `![generated image](data:image/webp;base64,${msg})`,
             excalidraw: (msg: string) => {
-                console.log("excalidraw message", msg);
                 return msg;
             },
         };
