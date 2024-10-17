@@ -624,7 +624,7 @@ async def extract_relevant_summary(
 
 async def generate_excalidraw_diagram_description(
     q: str,
-    conversation_history: str,
+    conversation_history: Dict[str, Any],
     location_data: LocationData,
     note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
@@ -663,7 +663,7 @@ async def generate_excalidraw_diagram_description(
 
 async def generate_better_diagram_description(
     q: str,
-    conversation_history: str,
+    conversation_history: Dict[str, Any],
     location_data: LocationData,
     note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
