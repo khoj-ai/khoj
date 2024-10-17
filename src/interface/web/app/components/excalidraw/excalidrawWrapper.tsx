@@ -27,7 +27,6 @@ import { convertToExcalidrawElements } from "@excalidraw/excalidraw";
 
 import { Button } from "@/components/ui/button";
 
-import SidePanel from "../../components/sidePanel/chatHistorySidePanel";
 import { useIsMobileWidth } from "../../common/utils";
 import { ArrowsInSimple, ArrowsOutSimple } from "@phosphor-icons/react";
 
@@ -102,89 +101,38 @@ export default function ExcalidrawWrapper(props: ExcalidrawWrapperProps) {
         appState: AppState,
         files: BinaryFiles,
     ) => {
-        // console.log(elements, appState, files);
-        // console.log(convertFromExcalidrawElements(elements));
-        // console.log(convertFromExcalidrawElements(elements).map((element) => JSON.stringify(element)));
-        // console.log("EXCALIDRAW CHANGE");
         for (const element of elements) {
             if (!element.isDeleted) {
-                // console.log(JSON.stringify(convertFromExcalidrawElements([element])));
             }
         }
         setExcalidrawCurrentState(elements);
     };
 
     return (
-        <div className={`flex flex-col ${expanded ? "fixed inset-0 z-50 bg-white" : ""}`}>
-            <Button
-                onClick={() => {
-                    setExpanded(!expanded);
-                    // Trigger a resize event to make Excalidraw adjust its size
-                    window.dispatchEvent(new Event("resize"));
-                }}
-                variant={"outline"}
-                className={`${expanded ? "absolute top-2 right-2 z-10" : ""}`}
+        <div className="relative">
+            <div
+                className={`${expanded ? "fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center" : ""}`}
             >
-                {expanded ? (
-                    <ArrowsInSimple className="h-4 w-4" />
-                ) : (
-                    <ArrowsOutSimple className="h-4 w-4" />
-                )}
-            </Button>
-            <div className={`flex ${expanded ? "h-screen" : "h-[500px]"}`}>
-                {/* <Button
-                onClick={() => {
-                    setExcalidrawElements(
-                        convertToExcalidrawElements(
-                            convertFromExcalidrawElements(excalidrawCurrentState),
-                            ),
-                            );
-                            const sceneData = {
-                                elements: [
-                                    {
-                                        type: "rectangle",
-                                        version: 141,
-                                        versionNonce: 361174001,
-                                        isDeleted: false,
-                                        id: "oDVXy8D6rom3H1-LLH2-f",
-                                        fillStyle: "hachure",
-                                        strokeWidth: 1,
-                                        strokeStyle: "solid",
-                                        roughness: 1,
-                                        opacity: 100,
-                                        angle: 0,
-                                        x: 100.50390625,
-                                        y: 93.67578125,
-                                        strokeColor: "#c92a2a",
-                                        backgroundColor: "transparent",
-                                        width: 186.47265625,
-                                        height: 141.9765625,
-                                        seed: 1968410350,
-                                        groupIds: [],
-                                        boundElements: null,
-                                        locked: false,
-                                        link: null,
-                                        updated: 1,
-                                        roundness: {
-                                            type: 3,
-                                            value: 32,
-                                            },
-                                            frameId: null,
-                                            } as ExcalidrawElement,
-                                            ],
-                                            appState: {
-                                                viewBackgroundColor: "#edf2ff",
-                                                },
-                                                };
-                                                excalidrawAPI?.updateScene(sceneData);
-                                                }}
-                                                variant="default"
-                                                >
-                                                Refresh
-                                                </Button> */}
-
+                <Button
+                    onClick={() => {
+                        setExpanded(!expanded);
+                        // Trigger a resize event to make Excalidraw adjust its size
+                        window.dispatchEvent(new Event("resize"));
+                    }}
+                    variant={"outline"}
+                    className={`${expanded ? "absolute top-2 left-2 z-[60]" : ""}`}
+                >
+                    {expanded ? (
+                        <ArrowsInSimple className="h-4 w-4" />
+                    ) : (
+                        <ArrowsOutSimple className="h-4 w-4" />
+                    )}
+                </Button>
                 <div
-                    className={`flex-grow overflow-hidden ${expanded ? "w-full h-full" : "h-[500px]"}`}
+                    className={`
+                    ${expanded ? "w-[80vw] h-[80vh]" : "w-full h-[500px]"}
+                    bg-white overflow-hidden rounded-lg relative
+                `}
                 >
                     <Excalidraw
                         initialData={{
