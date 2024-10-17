@@ -218,7 +218,7 @@ def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="A
             chat_history += f"{agent_name}: [generated image redacted for space]\n"
         elif chat["by"] == "khoj" and ("excalidraw" in chat["intent"].get("type")):
             chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += f"{agent_name}: {chat['message']}\n"
+            chat_history += f"{agent_name}: {chat['intent']['inferred-queries'][0]}\n"
     return chat_history
 
 
