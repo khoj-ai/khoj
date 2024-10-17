@@ -39,6 +39,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const setQueryToProcess = props.setQueryToProcess;
     const streamedMessages = props.streamedMessages;
 
+    const chatHistoryCustomClassName = props.isMobileWidth ? "w-full" : "w-4/6";
+
     useEffect(() => {
         if (image) {
             props.setImage64(encodeURIComponent(image));
@@ -78,10 +80,11 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     setTitle={props.setTitle}
                     pendingMessage={processingMessage ? message : ""}
                     incomingMessages={props.streamedMessages}
+                    customClassName={chatHistoryCustomClassName}
                 />
             </div>
             <div
-                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-t-2xl rounded-b-none md:rounded-xl`}
+                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-t-2xl rounded-b-none md:rounded-xl h-fit ${chatHistoryCustomClassName} mr-auto ml-auto`}
             >
                 <ChatInputArea
                     isLoggedIn={props.isLoggedIn}
