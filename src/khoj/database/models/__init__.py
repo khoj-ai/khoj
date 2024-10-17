@@ -9,7 +9,6 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
-from django.utils.translation import gettext_lazy
 from pgvector.django import VectorField
 from phonenumber_field.modelfields import PhoneNumberField
 
@@ -246,15 +245,41 @@ class GithubRepoConfig(BaseModel):
 
 class WebScraper(BaseModel):
     class WebScraperType(models.TextChoices):
-        FIRECRAWL = "firecrawl", gettext_lazy("Firecrawl")
-        OLOSTEP = "olostep", gettext_lazy("Olostep")
-        JINA = "jina", gettext_lazy("Jina")
-        DIRECT = "direct", gettext_lazy("Direct")
+        FIRECRAWL = "Firecrawl"
+        OLOSTEP = "Olostep"
+        JINA = "Jina"
+        DIRECT = "Direct"
 
-    name = models.CharField(max_length=200, default=None, null=True, blank=True, unique=True)
+    name = models.CharField(
+        max_length=200,
+        default=None,
+        null=True,
+        blank=True,
+        unique=True,
+        help_text="Friendly name. If not set, it will be set to the type of the scraper.",
+    )
     type = models.CharField(max_length=20, choices=WebScraperType.choices, default=WebScraperType.JINA)
-    api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
-    api_url = models.URLField(max_length=200, default=None, null=True, blank=True)
+    api_key = models.CharField(
+        max_length=200,
+        default=None,
+        null=True,
+        blank=True,
+        help_text="API key of the web scraper. Only set if scraper service requires an API key. Default is set from env var.",
+    )
+    api_url = models.URLField(
+        max_length=200,
+        default=None,
+        null=True,
+        blank=True,
+        help_text="API URL of the web scraper. Only set if scraper service on non-default URL.",
+    )
+    priority = models.IntegerField(
+        default=None,
+        null=True,
+        blank=True,
+        unique=True,
+        help_text="Priority of the web scraper. Lower numbers run first.",
+    )
 
     def clean(self):
         error = {}
@@ -278,12 +303,16 @@ class WebScraper(BaseModel):
                     error["api_key"] = "Set API key to use Olostep. Get API key from https://olostep.com/."
             elif self.type == self.WebScraperType.JINA:
                 self.api_key = os.getenv("JINA_API_KEY")
-
         if error:
             raise ValidationError(error)
 
     def save(self, *args, **kwargs):
         self.clean()
+
+        if self.priority is None:
+            max_priority = WebScraper.objects.aggregate(models.Max("priority"))["priority__max"]
+            self.priority = max_priority + 1 if max_priority else 1
+
         super().save(*args, **kwargs)
 
 

@@ -36,7 +36,7 @@ SERPER_DEV_URL = "https://google.serper.dev/search"
 JINA_SEARCH_API_URL = "https://s.jina.ai/"
 JINA_API_KEY = os.getenv("JINA_API_KEY")
 
-FIRECRAWL_TO_EXTRACT = is_env_var_true("FIRECRAWL_TO_EXTRACT")
+FIRECRAWL_USE_LLM_EXTRACT = is_env_var_true("FIRECRAWL_USE_LLM_EXTRACT")
 
 OLOSTEP_QUERY_PARAMS = {
     "timeout": 35,  # seconds
@@ -179,7 +179,7 @@ async def read_webpages(
 async def read_webpage(
     url, scraper_type=None, api_key=None, api_url=None, subqueries=None, agent=None
 ) -> Tuple[str | None, str | None]:
-    if scraper_type == WebScraper.WebScraperType.FIRECRAWL and FIRECRAWL_TO_EXTRACT:
+    if scraper_type == WebScraper.WebScraperType.FIRECRAWL and FIRECRAWL_USE_LLM_EXTRACT:
         return None, await query_webpage_with_firecrawl(url, subqueries, api_key, api_url, agent)
     elif scraper_type == WebScraper.WebScraperType.FIRECRAWL:
         return await read_webpage_with_firecrawl(url, api_key, api_url), None

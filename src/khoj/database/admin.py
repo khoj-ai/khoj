@@ -206,6 +206,7 @@ class ServerChatSettingsAdmin(admin.ModelAdmin):
 @admin.register(WebScraper)
 class WebScraperAdmin(admin.ModelAdmin):
     list_display = (
+        "priority",
         "name",
         "type",
         "api_key",
@@ -213,7 +214,7 @@ class WebScraperAdmin(admin.ModelAdmin):
         "created_at",
     )
     search_fields = ("name", "api_key", "api_url", "type")
-    ordering = ("-created_at",)
+    ordering = ("priority",)
 
 
 @admin.register(Conversation)

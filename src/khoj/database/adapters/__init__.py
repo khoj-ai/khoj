@@ -1054,10 +1054,10 @@ class ConversationAdapters:
                 (server_webscraper.type, server_webscraper.api_key, server_webscraper.api_url, server_webscraper.name)
             ]
         if not enabled_scrapers:
-            # Use the enabled web scrapers, using the newest created scraper first, until get web page content
+            # Use the enabled web scrapers, ordered by priority, until get web page content
             enabled_scrapers = [
                 (scraper.type, scraper.api_key, scraper.api_url, scraper.name)
-                async for scraper in WebScraper.objects.all().order_by("-created_at").aiterator()
+                async for scraper in WebScraper.objects.all().order_by("priority").aiterator()
             ]
         if not enabled_scrapers:
             # Use scrapers enabled via environment variables
