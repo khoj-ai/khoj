@@ -46,33 +46,16 @@
                 <p>Transform the way you think, create, and remember</p>
                 <div class="features">
                     <div class="feature">
-                        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2"
-                            fill="none">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <path d="M14 2v6h6" />
-                            <path d="M16 13H8" />
-                            <path d="M16 17H8" />
-                            <path d="M10 9H8" />
-                        </svg>
+                        <img src="/static/assets/icons/chat.svg" alt="Chat" width="24" height="24">
                         <span>Get answers across your documents and the internet</span>
                     </div>
                     <div class="feature">
-                        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2"
-                            fill="none">
-                            <path
-                                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                            <path d="M3.3 7l8.7 5 8.7-5" />
-                        </svg>
-                        <span>Go deeper in the topics personal to you</span>
+                        <img src="/static/assets/icons/agents.svg" alt="Agents" width="24" height="24">
+                        <span>Create agents with the knowledge and tools to take on any role</span>
                     </div>
                     <div class="feature">
-                        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2"
-                            fill="none">
-                            <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                            <path d="M2 17l10 5 10-5" />
-                            <path d="M2 12l10 5 10-5" />
-                        </svg>
-                        <span>Use specialized agents</span>
+                        <img src="/static/assets/icons/automation.svg" alt="Automations" width="24" height="24">
+                        <span>Automate away repetitive research</span>
                     </div>
                 </div>
             </div>
@@ -158,6 +141,12 @@
         .feature svg {
             width: 24px;
             height: 24px;
+            stroke: white;
+        }
+        .feature img {
+            width: 24px;
+            height: 24px;
+            filter: invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%);
             stroke: white;
         }
 

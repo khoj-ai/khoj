@@ -12,6 +12,7 @@
         fill-rule="evenodd"
         clip-rule="evenodd"
         fill-opacity="1"
+        stroke="currentColor"
         stroke-width="1.16584"
         stroke-dasharray="none"
     />
