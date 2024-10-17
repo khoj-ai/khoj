@@ -17,8 +17,6 @@ import { useIPLocationData, useIsMobileWidth, welcomeConsole } from "../common/u
 import ChatInputArea, { ChatOptions } from "../components/chatInputArea/chatInputArea";
 import { useAuthenticatedData } from "../common/auth";
 import { AgentData } from "../agents/page";
-import { DotsThreeVertical } from "@phosphor-icons/react";
-import { Button } from "@/components/ui/button";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
