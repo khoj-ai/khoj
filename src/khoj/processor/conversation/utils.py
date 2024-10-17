@@ -84,7 +84,7 @@ class InformationCollectionIteration:
         self,
         tool: str,
         query: str,
-        context: Dict[str, Dict] = None,
+        context: list = None,
         onlineContext: dict = None,
         codeContext: dict = None,
         summarizedResult: str = None,

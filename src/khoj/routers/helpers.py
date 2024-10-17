@@ -647,8 +647,8 @@ async def generate_summary_from_files(
             q,
             contextual_data,
             conversation_history=meta_log,
-            subscribed=subscribed,
             uploaded_image_url=uploaded_image_url,
+            user=user,
             agent=agent,
         )
         response_log = str(response)

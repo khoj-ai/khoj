@@ -147,6 +147,7 @@ async def execute_information_collection(
         code_results: Dict = dict()
         compiled_references: List[Any] = []
         inferred_queries: List[Any] = []
+        this_iteration = InformationCollectionIteration(tool=None, query=query)
         previous_iterations_history = construct_iteration_history(previous_iterations, prompts.previous_iteration)
 
         async for result in apick_next_tool(
@@ -163,7 +164,7 @@ async def execute_information_collection(
         ):
             if isinstance(result, dict) and ChatEvent.STATUS in result:
                 yield result[ChatEvent.STATUS]
-            else:
+            elif isinstance(result, InformationCollectionIteration):
                 this_iteration = result
 
         if this_iteration.tool == ConversationCommand.Notes:
