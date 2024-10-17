@@ -326,7 +326,7 @@
                         entries.forEach(entry => {
                             // If the element is in the viewport, fetch the remaining message and unobserve the element
                             if (entry.isIntersecting) {
-                                fetchRemainingChatMessages(chatHistoryUrl, headers);
+                                fetchRemainingChatMessages(chatHistoryUrl, headers, chatBody.dataset.conversation_id, hostURL);
                                 observer.unobserve(entry.target);
                             }
                         });
@@ -342,7 +342,11 @@
                                 new Date(chat_log.created),
                                 chat_log.onlineContext,
                                 chat_log.intent?.type,
-                                chat_log.intent?.["inferred-queries"]);
+                                chat_log.intent?.["inferred-queries"],
+                                chatBody.dataset.conversationId ?? "",
+                                hostURL,
+                            );
+
                             chatBody.appendChild(messageElement);
 
                             // When the 4th oldest message is within viewing distance (~60% scrolled up)
@@ -421,7 +425,7 @@
             }
         }
 
-        function fetchRemainingChatMessages(chatHistoryUrl, headers) {
+        function fetchRemainingChatMessages(chatHistoryUrl, headers, conversationId, hostURL) {
             // Create a new IntersectionObserver
             let observer = new IntersectionObserver((entries, observer) => {
                 entries.forEach(entry => {
@@ -435,7 +439,9 @@
                             new Date(chat_log.created),
                             chat_log.onlineContext,
                             chat_log.intent?.type,
-                            chat_log.intent?.["inferred-queries"]
+                            chat_log.intent?.["inferred-queries"],
+                            chatBody.dataset.conversationId ?? "",
+                            hostURL,
                         );
                         entry.target.replaceWith(messageElement);
 

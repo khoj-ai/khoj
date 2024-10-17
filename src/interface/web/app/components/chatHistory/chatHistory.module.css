@@ -2,12 +2,7 @@ div.chatHistory {
     display: flex;
     flex-direction: column;
     height: 100%;
-}
-
-div.chatLayout {
-    height: 80vh;
-    overflow-y: auto;
-    margin: 0 auto;
+    margin: auto;
 }
 
 div.agentIndicator a {

@@ -75,7 +75,7 @@ div.titleBar {
 div.chatBoxBody {
     display: grid;
     height: 100%;
-    width: 70%;
+    width: 95%;
     margin: auto;
 }
 
