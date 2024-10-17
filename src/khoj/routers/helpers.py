@@ -632,7 +632,7 @@ async def generate_excalidraw_diagram_description(
     user: KhojUser = None,
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
-) -> AsyncGenerator[Dict[str, Any], None]:
+):
     if send_status_func:
         async for event in send_status_func("**Enhancing the Diagramming Prompt**"):
             yield {ChatEvent.STATUS: event}
