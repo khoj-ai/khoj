@@ -1,6 +1,7 @@
 import json
 import logging
 import math
+import os
 import random
 import re
 import secrets
@@ -10,7 +11,6 @@ from enum import Enum
 from typing import Callable, Iterable, List, Optional, Type
 
 import cron_descriptor
-import django
 from apscheduler.job import Job
 from asgiref.sync import sync_to_async
 from django.contrib.sessions.backends.db import SessionStore
@@ -52,6 +52,7 @@ from khoj.database.models import (
     UserTextToImageModelConfig,
     UserVoiceModelConfig,
     VoiceModelOption,
+    WebScraper,
 )
 from khoj.processor.conversation import prompts
 from khoj.search_filter.date_filter import DateFilter
@@ -59,7 +60,12 @@ from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.utils import state
 from khoj.utils.config import OfflineChatProcessorModel
-from khoj.utils.helpers import generate_random_name, is_none_or_empty, timer
+from khoj.utils.helpers import (
+    generate_random_name,
+    in_debug_mode,
+    is_none_or_empty,
+    timer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -1030,6 +1036,70 @@ class ConversationAdapters:
         if server_chat_settings is not None and server_chat_settings.chat_advanced is not None:
             return server_chat_settings.chat_advanced
         return await ConversationAdapters.aget_default_conversation_config(user)
+
+    @staticmethod
+    async def aget_server_webscraper():
+        server_chat_settings = await ServerChatSettings.objects.filter().prefetch_related("web_scraper").afirst()
+        if server_chat_settings is not None and server_chat_settings.web_scraper is not None:
+            return server_chat_settings.web_scraper
+        return None
+
+    @staticmethod
+    async def aget_enabled_webscrapers() -> list[WebScraper]:
+        enabled_scrapers: list[WebScraper] = []
+        server_webscraper = await ConversationAdapters.aget_server_webscraper()
+        if server_webscraper:
+            # Only use the webscraper set in the server chat settings
+            enabled_scrapers = [server_webscraper]
+        if not enabled_scrapers:
+            # Use the enabled web scrapers, ordered by priority, until get web page content
+            enabled_scrapers = [scraper async for scraper in WebScraper.objects.all().order_by("priority").aiterator()]
+        if not enabled_scrapers:
+            # Use scrapers enabled via environment variables
+            if os.getenv("FIRECRAWL_API_KEY"):
+                api_url = os.getenv("FIRECRAWL_API_URL", "https://api.firecrawl.dev")
+                enabled_scrapers.append(
+                    WebScraper(
+                        type=WebScraper.WebScraperType.FIRECRAWL,
+                        name=WebScraper.WebScraperType.FIRECRAWL.capitalize(),
+                        api_key=os.getenv("FIRECRAWL_API_KEY"),
+                        api_url=api_url,
+                    )
+                )
+            if os.getenv("OLOSTEP_API_KEY"):
+                api_url = os.getenv("OLOSTEP_API_URL", "https://agent.olostep.com/olostep-p2p-incomingAPI")
+                enabled_scrapers.append(
+                    WebScraper(
+                        type=WebScraper.WebScraperType.OLOSTEP,
+                        name=WebScraper.WebScraperType.OLOSTEP.capitalize(),
+                        api_key=os.getenv("OLOSTEP_API_KEY"),
+                        api_url=api_url,
+                    )
+                )
+            # Jina is the default fallback scrapers to use as it does not require an API key
+            api_url = os.getenv("JINA_READER_API_URL", "https://r.jina.ai/")
+            enabled_scrapers.append(
+                WebScraper(
+                    type=WebScraper.WebScraperType.JINA,
+                    name=WebScraper.WebScraperType.JINA.capitalize(),
+                    api_key=os.getenv("JINA_API_KEY"),
+                    api_url=api_url,
+                )
+            )
+
+            # Only enable the direct web page scraper by default in self-hosted single user setups.
+            # Useful for reading webpages on your intranet.
+            if state.anonymous_mode or in_debug_mode():
+                enabled_scrapers.append(
+                    WebScraper(
+                        type=WebScraper.WebScraperType.DIRECT,
+                        name=WebScraper.WebScraperType.DIRECT.capitalize(),
+                        api_key=None,
+                        api_url=None,
+                    )
+                )
+
+        return enabled_scrapers
 
     @staticmethod
     def create_conversation_from_public_conversation(

@@ -353,13 +353,13 @@ async def aget_relevant_information_sources(
                 final_response = [ConversationCommand.Default]
             else:
                 final_response = [ConversationCommand.General]
-        return final_response
-    except Exception as e:
+    except Exception:
         logger.error(f"Invalid response for determining relevant tools: {response}")
         if len(agent_tools) == 0:
             final_response = [ConversationCommand.Default]
         else:
             final_response = agent_tools
+    return final_response
 
 
 async def aget_relevant_output_modes(
@@ -551,12 +551,14 @@ async def schedule_query(
         raise AssertionError(f"Invalid response for scheduling query: {raw_response}")
 
 
-async def extract_relevant_info(q: str, corpus: str, user: KhojUser = None, agent: Agent = None) -> Union[str, None]:
+async def extract_relevant_info(
+    qs: set[str], corpus: str, user: KhojUser = None, agent: Agent = None
+) -> Union[str, None]:
     """
     Extract relevant information for a given query from the target corpus
     """
 
-    if is_none_or_empty(corpus) or is_none_or_empty(q):
+    if is_none_or_empty(corpus) or is_none_or_empty(qs):
         return None
 
     personality_context = (
@@ -564,17 +566,16 @@ async def extract_relevant_info(q: str, corpus: str, user: KhojUser = None, agen
     )
 
     extract_relevant_information = prompts.extract_relevant_information.format(
-        query=q,
+        query=", ".join(qs),
         corpus=corpus.strip(),
         personality_context=personality_context,
     )
 
-    with timer("Chat actor: Extract relevant information from data", logger):
-        response = await send_message_to_model_wrapper(
-            extract_relevant_information,
-            prompts.system_prompt_extract_relevant_information,
-            user=user,
-        )
+    response = await send_message_to_model_wrapper(
+        extract_relevant_information,
+        prompts.system_prompt_extract_relevant_information,
+        user=user,
+    )
     return response.strip()
 
 

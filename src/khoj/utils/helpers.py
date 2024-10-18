@@ -2,10 +2,12 @@ from __future__ import annotations  # to avoid quoting type hints
 
 import datetime
 import io
+import ipaddress
 import logging
 import os
 import platform
 import random
+import urllib.parse
 import uuid
 from collections import OrderedDict
 from enum import Enum
@@ -164,9 +166,9 @@ def get_class_by_name(name: str) -> object:
 class timer:
     """Context manager to log time taken for a block of code to run"""
 
-    def __init__(self, message: str, logger: logging.Logger, device: torch.device = None):
+    def __init__(self, message: str, logger: logging.Logger, device: torch.device = None, log_level=logging.DEBUG):
         self.message = message
-        self.logger = logger
+        self.logger = logger.debug if log_level == logging.DEBUG else logger.info
         self.device = device
 
     def __enter__(self):
@@ -176,9 +178,9 @@ class timer:
     def __exit__(self, *_):
         elapsed = perf_counter() - self.start
         if self.device is None:
-            self.logger.debug(f"{self.message}: {elapsed:.3f} seconds")
+            self.logger(f"{self.message}: {elapsed:.3f} seconds")
         else:
-            self.logger.debug(f"{self.message}: {elapsed:.3f} seconds on device: {self.device}")
+            self.logger(f"{self.message}: {elapsed:.3f} seconds on device: {self.device}")
 
 
 class LRU(OrderedDict):
@@ -433,6 +435,46 @@ def is_internet_connected():
         response = requests.head("https://www.google.com")
         return response.status_code == 200
     except:
+        return False
+
+
+def is_internal_url(url: str) -> bool:
+    """
+    Check if a URL is likely to be internal/non-public.
+
+    Args:
+    url (str): The URL to check.
+
+    Returns:
+    bool: True if the URL is likely internal, False otherwise.
+    """
+    try:
+        parsed_url = urllib.parse.urlparse(url)
+        hostname = parsed_url.hostname
+
+        # Check for localhost
+        if hostname in ["localhost", "127.0.0.1", "::1"]:
+            return True
+
+        # Check for IP addresses in private ranges
+        try:
+            ip = ipaddress.ip_address(hostname)
+            return ip.is_private
+        except ValueError:
+            pass  # Not an IP address, continue with other checks
+
+        # Check for common internal TLDs
+        internal_tlds = [".local", ".internal", ".private", ".corp", ".home", ".lan"]
+        if any(hostname.endswith(tld) for tld in internal_tlds):
+            return True
+
+        # Check for URLs without a TLD
+        if "." not in hostname:
+            return True
+
+        return False
+    except Exception:
+        # If we can't parse the URL or something else goes wrong, assume it's not internal
         return False
 
 

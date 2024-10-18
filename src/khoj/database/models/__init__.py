@@ -1,3 +1,4 @@
+import os
 import re
 import uuid
 from random import choice
@@ -10,8 +11,6 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from pgvector.django import VectorField
 from phonenumber_field.modelfields import PhoneNumberField
-
-from khoj.utils.helpers import ConversationCommand
 
 
 class BaseModel(models.Model):
@@ -244,12 +243,88 @@ class GithubRepoConfig(BaseModel):
     github_config = models.ForeignKey(GithubConfig, on_delete=models.CASCADE, related_name="githubrepoconfig")
 
 
+class WebScraper(BaseModel):
+    class WebScraperType(models.TextChoices):
+        FIRECRAWL = "Firecrawl"
+        OLOSTEP = "Olostep"
+        JINA = "Jina"
+        DIRECT = "Direct"
+
+    name = models.CharField(
+        max_length=200,
+        default=None,
+        null=True,
+        blank=True,
+        unique=True,
+        help_text="Friendly name. If not set, it will be set to the type of the scraper.",
+    )
+    type = models.CharField(max_length=20, choices=WebScraperType.choices, default=WebScraperType.JINA)
+    api_key = models.CharField(
+        max_length=200,
+        default=None,
+        null=True,
+        blank=True,
+        help_text="API key of the web scraper. Only set if scraper service requires an API key. Default is set from env var.",
+    )
+    api_url = models.URLField(
+        max_length=200,
+        default=None,
+        null=True,
+        blank=True,
+        help_text="API URL of the web scraper. Only set if scraper service on non-default URL.",
+    )
+    priority = models.IntegerField(
+        default=None,
+        null=True,
+        blank=True,
+        unique=True,
+        help_text="Priority of the web scraper. Lower numbers run first.",
+    )
+
+    def clean(self):
+        error = {}
+        if self.name is None:
+            self.name = self.type.capitalize()
+        if self.api_url is None:
+            if self.type == self.WebScraperType.FIRECRAWL:
+                self.api_url = os.getenv("FIRECRAWL_API_URL", "https://api.firecrawl.dev")
+            elif self.type == self.WebScraperType.OLOSTEP:
+                self.api_url = os.getenv("OLOSTEP_API_URL", "https://agent.olostep.com/olostep-p2p-incomingAPI")
+            elif self.type == self.WebScraperType.JINA:
+                self.api_url = os.getenv("JINA_READER_API_URL", "https://r.jina.ai/")
+        if self.api_key is None:
+            if self.type == self.WebScraperType.FIRECRAWL:
+                self.api_key = os.getenv("FIRECRAWL_API_KEY")
+                if not self.api_key and self.api_url == "https://api.firecrawl.dev":
+                    error["api_key"] = "Set API key to use default Firecrawl. Get API key from https://firecrawl.dev."
+            elif self.type == self.WebScraperType.OLOSTEP:
+                self.api_key = os.getenv("OLOSTEP_API_KEY")
+                if self.api_key is None:
+                    error["api_key"] = "Set API key to use Olostep. Get API key from https://olostep.com/."
+            elif self.type == self.WebScraperType.JINA:
+                self.api_key = os.getenv("JINA_API_KEY")
+        if error:
+            raise ValidationError(error)
+
+    def save(self, *args, **kwargs):
+        self.clean()
+
+        if self.priority is None:
+            max_priority = WebScraper.objects.aggregate(models.Max("priority"))["priority__max"]
+            self.priority = max_priority + 1 if max_priority else 1
+
+        super().save(*args, **kwargs)
+
+
 class ServerChatSettings(BaseModel):
     chat_default = models.ForeignKey(
         ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="chat_default"
     )
     chat_advanced = models.ForeignKey(
         ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="chat_advanced"
+    )
+    web_scraper = models.ForeignKey(
+        WebScraper, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="web_scraper"
     )
 
 
