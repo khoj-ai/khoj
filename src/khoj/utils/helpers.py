@@ -127,6 +127,8 @@ def get_file_type(file_type: str, file_content: bytes) -> tuple[str, str]:
         return "image", encoding
     elif file_type in ["image/png"]:
         return "image", encoding
+    elif file_type in ["image/webp"]:
+        return "image", encoding
     elif content_group in ["code", "text"]:
         return "plaintext", encoding
     else:

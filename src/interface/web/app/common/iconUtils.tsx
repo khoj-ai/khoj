@@ -241,6 +241,7 @@ function getIconFromFilename(
         case "jpg":
         case "jpeg":
         case "png":
+        case "webp":
             return <Image className={className} weight="fill" />;
         default:
             return <File className={className} weight="fill" />;

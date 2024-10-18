@@ -168,12 +168,12 @@ export default function ChatInputArea(props: ChatInputProps) {
 
     function uploadFiles(files: FileList) {
         if (!props.isLoggedIn) {
-            setLoginRedirectMessage("Whoa! You need to login to upload files");
+            setLoginRedirectMessage("Please login to chat with your files");
             setShowLoginPrompt(true);
             return;
         }
         // check for image file
-        const image_endings = ["jpg", "jpeg", "png"];
+        const image_endings = ["jpg", "jpeg", "png", "webp"];
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             const file_extension = file.name.split(".").pop();
