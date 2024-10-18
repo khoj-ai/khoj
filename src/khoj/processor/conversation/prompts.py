@@ -49,7 +49,7 @@ Instructions:\n{bio}
 # Prompt forked from https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models
 gemini_verbose_language_personality = """
 All questions should be answered comprehensively with details, unless the user requests a concise response specifically.
-Respond in the same language as the query.
+Respond in the same language as the query. Use markdown to format your responses.
 """.strip()
 
 ## General Conversation
