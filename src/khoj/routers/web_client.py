@@ -51,17 +51,6 @@ def chat_page(request: Request):
     )
 
 
-@web_client.get("/experimental", response_class=FileResponse)
-@requires(["authenticated"], redirect="login_page")
-def experimental_page(request: Request):
-    return templates.TemplateResponse(
-        "index.html",
-        context={
-            "request": request,
-        },
-    )
-
-
 @web_client.get("/factchecker", response_class=FileResponse)
 def fact_checker_page(request: Request):
     return templates.TemplateResponse(
