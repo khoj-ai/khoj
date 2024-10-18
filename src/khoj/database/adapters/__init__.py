@@ -1045,41 +1045,59 @@ class ConversationAdapters:
         return None
 
     @staticmethod
-    async def aget_enabled_webscrapers():
-        enabled_scrapers = []
+    async def aget_enabled_webscrapers() -> list[WebScraper]:
+        enabled_scrapers: list[WebScraper] = []
         server_webscraper = await ConversationAdapters.aget_server_webscraper()
         if server_webscraper:
             # Only use the webscraper set in the server chat settings
-            enabled_scrapers = [
-                (server_webscraper.type, server_webscraper.api_key, server_webscraper.api_url, server_webscraper.name)
-            ]
+            enabled_scrapers = [server_webscraper]
         if not enabled_scrapers:
             # Use the enabled web scrapers, ordered by priority, until get web page content
-            enabled_scrapers = [
-                (scraper.type, scraper.api_key, scraper.api_url, scraper.name)
-                async for scraper in WebScraper.objects.all().order_by("priority").aiterator()
-            ]
+            enabled_scrapers = [scraper async for scraper in WebScraper.objects.all().order_by("priority").aiterator()]
         if not enabled_scrapers:
             # Use scrapers enabled via environment variables
             if os.getenv("FIRECRAWL_API_KEY"):
                 api_url = os.getenv("FIRECRAWL_API_URL", "https://api.firecrawl.dev")
                 enabled_scrapers.append(
-                    (WebScraper.WebScraperType.FIRECRAWL, os.getenv("FIRECRAWL_API_KEY"), api_url, "Firecrawl")
+                    WebScraper(
+                        type=WebScraper.WebScraperType.FIRECRAWL,
+                        name=WebScraper.WebScraperType.FIRECRAWL.capitalize(),
+                        api_key=os.getenv("FIRECRAWL_API_KEY"),
+                        api_url=api_url,
+                    )
                 )
             if os.getenv("OLOSTEP_API_KEY"):
                 api_url = os.getenv("OLOSTEP_API_URL", "https://agent.olostep.com/olostep-p2p-incomingAPI")
                 enabled_scrapers.append(
-                    (WebScraper.WebScraperType.OLOSTEP, os.getenv("OLOSTEP_API_KEY"), api_url, "Olostep")
+                    WebScraper(
+                        type=WebScraper.WebScraperType.OLOSTEP,
+                        name=WebScraper.WebScraperType.OLOSTEP.capitalize(),
+                        api_key=os.getenv("OLOSTEP_API_KEY"),
+                        api_url=api_url,
+                    )
                 )
-
             # Jina is the default fallback scrapers to use as it does not require an API key
             api_url = os.getenv("JINA_READER_API_URL", "https://r.jina.ai/")
-            enabled_scrapers.append((WebScraper.WebScraperType.JINA, os.getenv("JINA_API_KEY"), api_url, "Jina"))
+            enabled_scrapers.append(
+                WebScraper(
+                    type=WebScraper.WebScraperType.JINA,
+                    name=WebScraper.WebScraperType.JINA.capitalize(),
+                    api_key=os.getenv("JINA_API_KEY"),
+                    api_url=api_url,
+                )
+            )
 
             # Only enable the direct web page scraper by default in self-hosted single user setups.
             # Useful for reading webpages on your intranet.
             if state.anonymous_mode or in_debug_mode():
-                enabled_scrapers.append((WebScraper.WebScraperType.DIRECT, None, None, "Direct"))
+                enabled_scrapers.append(
+                    WebScraper(
+                        type=WebScraper.WebScraperType.DIRECT,
+                        name=WebScraper.WebScraperType.DIRECT.capitalize(),
+                        api_key=None,
+                        api_url=None,
+                    )
+                )
 
         return enabled_scrapers
 

@@ -198,16 +198,18 @@ async def read_webpage_and_extract_content(
     web_scrapers = await ConversationAdapters.aget_enabled_webscrapers()
     # Only use the direct web scraper for internal URLs
     if is_internal_url(url):
-        web_scrapers = [scraper for scraper in web_scrapers if scraper[0] == WebScraper.WebScraperType.DIRECT]
+        web_scrapers = [scraper for scraper in web_scrapers if scraper.type == WebScraper.WebScraperType.DIRECT]
 
     # Fallback through enabled web scrapers until we successfully read the web page
     extracted_info = None
-    for scraper_type, api_key, api_url, api_name in web_scrapers:
+    for scraper in web_scrapers:
         try:
             # Read the web page
             if is_none_or_empty(content):
-                with timer(f"Reading web page with {scraper_type} at '{url}' took", logger, log_level=logging.INFO):
-                    content, extracted_info = await read_webpage(url, scraper_type, api_key, api_url, subqueries, agent)
+                with timer(f"Reading web page with {scraper.type} at '{url}' took", logger, log_level=logging.INFO):
+                    content, extracted_info = await read_webpage(
+                        url, scraper.type, scraper.api_key, scraper.api_url, subqueries, agent
+                    )
 
             # Extract relevant information from the web page
             if is_none_or_empty(extracted_info):
@@ -218,9 +220,9 @@ async def read_webpage_and_extract_content(
             if not is_none_or_empty(extracted_info):
                 break
         except Exception as e:
-            logger.warning(f"Failed to read web page with {scraper_type} at '{url}' with {e}")
+            logger.warning(f"Failed to read web page with {scraper.type} at '{url}' with {e}")
             # If this is the last web scraper in the list, log an error
-            if api_name == web_scrapers[-1][-1]:
+            if scraper.name == web_scrapers[-1].name:
                 logger.error(f"All web scrapers failed for '{url}'")
 
     return subqueries, url, extracted_info

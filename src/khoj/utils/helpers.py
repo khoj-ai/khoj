@@ -468,10 +468,6 @@ def is_internal_url(url: str) -> bool:
         if any(hostname.endswith(tld) for tld in internal_tlds):
             return True
 
-        # Check for non-standard ports
-        # if parsed_url.port and parsed_url.port not in [80, 443]:
-        #     return True
-
         # Check for URLs without a TLD
         if "." not in hostname:
             return True
