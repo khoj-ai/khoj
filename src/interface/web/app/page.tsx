@@ -44,7 +44,7 @@ function FisherYatesShuffle(array: any[]) {
 
 function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState("");
-    const [image, setImage] = useState<string | null>(null);
+    const [images, setImages] = useState<string[]>([]);
     const [processingMessage, setProcessingMessage] = useState(false);
     const [greeting, setGreeting] = useState("");
     const [shuffledOptions, setShuffledOptions] = useState<Suggestion[]>([]);
@@ -140,18 +140,19 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     onConversationIdChange?.(newConversationId);
                     window.location.href = `/chat?conversationId=${newConversationId}`;
                     localStorage.setItem("message", message);
-                    if (image) {
-                        localStorage.setItem("image", image);
+                    if (images.length > 0) {
+                        localStorage.setItem("images", JSON.stringify(images));
                     }
                 } catch (error) {
                     console.error("Error creating new conversation:", error);
                     setProcessingMessage(false);
                 }
                 setMessage("");
+                setImages([]);
             }
         };
         processMessage();
-        if (message) {
+        if (message || images.length > 0) {
             setProcessingMessage(true);
         }
     }, [selectedAgent, message, processingMessage, onConversationIdChange]);
@@ -232,7 +233,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         <ChatInputArea
                             isLoggedIn={props.isLoggedIn}
                             sendMessage={(message) => setMessage(message)}
-                            sendImage={(image) => setImage(image)}
+                            sendImage={(image) => setImages((prevImages) => [...prevImages, image])}
                             sendDisabled={processingMessage}
                             chatOptionsData={props.chatOptionsData}
                             conversationId={null}
@@ -313,7 +314,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         <ChatInputArea
                             isLoggedIn={props.isLoggedIn}
                             sendMessage={(message) => setMessage(message)}
-                            sendImage={(image) => setImage(image)}
+                            sendImage={(image) => setImages((prevImages) => [...prevImages, image])}
                             sendDisabled={processingMessage}
                             chatOptionsData={props.chatOptionsData}
                             conversationId={null}
