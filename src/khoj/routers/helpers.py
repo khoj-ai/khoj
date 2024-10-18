@@ -290,7 +290,7 @@ async def aget_relevant_information_sources(
     conversation_history: dict,
     is_task: bool,
     user: KhojUser,
-    uploaded_image_url: str = None,
+    query_images: List[str] = None,
     agent: Agent = None,
 ):
     """
@@ -309,8 +309,8 @@ async def aget_relevant_information_sources(
 
     chat_history = construct_chat_history(conversation_history)
 
-    if uploaded_image_url:
-        query = f"[placeholder for user attached image]\n{query}"
+    if query_images:
+        query = f"[placeholder for {len(query_images)} user attached images]\n{query}"
 
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
@@ -367,7 +367,7 @@ async def aget_relevant_output_modes(
     conversation_history: dict,
     is_task: bool = False,
     user: KhojUser = None,
-    uploaded_image_url: str = None,
+    query_images: List[str] = None,
     agent: Agent = None,
 ):
     """
@@ -389,8 +389,8 @@ async def aget_relevant_output_modes(
 
     chat_history = construct_chat_history(conversation_history)
 
-    if uploaded_image_url:
-        query = f"[placeholder for user attached image]\n{query}"
+    if query_images:
+        query = f"[placeholder for {len(query_images)} user attached images]\n{query}"
 
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
@@ -433,7 +433,7 @@ async def infer_webpage_urls(
     conversation_history: dict,
     location_data: LocationData,
     user: KhojUser,
-    uploaded_image_url: str = None,
+    query_images: List[str] = None,
     agent: Agent = None,
 ) -> List[str]:
     """
@@ -459,7 +459,7 @@ async def infer_webpage_urls(
 
     with timer("Chat actor: Infer webpage urls to read", logger):
         response = await send_message_to_model_wrapper(
-            online_queries_prompt, uploaded_image_url=uploaded_image_url, response_type="json_object", user=user
+            online_queries_prompt, query_images=query_images, response_type="json_object", user=user
         )
 
     # Validate that the response is a non-empty, JSON-serializable list of URLs
@@ -479,7 +479,7 @@ async def generate_online_subqueries(
     conversation_history: dict,
     location_data: LocationData,
     user: KhojUser,
-    uploaded_image_url: str = None,
+    query_images: List[str] = None,
     agent: Agent = None,
 ) -> List[str]:
     """
@@ -505,7 +505,7 @@ async def generate_online_subqueries(
 
     with timer("Chat actor: Generate online search subqueries", logger):
         response = await send_message_to_model_wrapper(
-            online_queries_prompt, uploaded_image_url=uploaded_image_url, response_type="json_object", user=user
+            online_queries_prompt, query_images=query_images, response_type="json_object", user=user
         )
 
     # Validate that the response is a non-empty, JSON-serializable list
@@ -524,7 +524,7 @@ async def generate_online_subqueries(
 
 
 async def schedule_query(
-    q: str, conversation_history: dict, user: KhojUser, uploaded_image_url: str = None
+    q: str, conversation_history: dict, user: KhojUser, query_images: List[str] = None
 ) -> Tuple[str, ...]:
     """
     Schedule the date, time to run the query. Assume the server timezone is UTC.
@@ -537,7 +537,7 @@ async def schedule_query(
     )
 
     raw_response = await send_message_to_model_wrapper(
-        crontime_prompt, uploaded_image_url=uploaded_image_url, response_type="json_object", user=user
+        crontime_prompt, query_images=query_images, response_type="json_object", user=user
     )
 
     # Validate that the response is a non-empty, JSON-serializable list
@@ -583,7 +583,7 @@ async def extract_relevant_summary(
     q: str,
     corpus: str,
     conversation_history: dict,
-    uploaded_image_url: str = None,
+    query_images: List[str] = None,
     user: KhojUser = None,
     agent: Agent = None,
 ) -> Union[str, None]:
@@ -612,7 +612,7 @@ async def extract_relevant_summary(
             extract_relevant_information,
             prompts.system_prompt_extract_relevant_summary,
             user=user,
-            uploaded_image_url=uploaded_image_url,
+            query_images=query_images,
         )
     return response.strip()
 
@@ -624,7 +624,7 @@ async def generate_better_image_prompt(
     note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
     model_type: Optional[str] = None,
-    uploaded_image_url: Optional[str] = None,
+    query_images: Optional[List[str]] = None,
     user: KhojUser = None,
     agent: Agent = None,
 ) -> str:
@@ -676,7 +676,7 @@ async def generate_better_image_prompt(
         )
 
     with timer("Chat actor: Generate contextual image prompt", logger):
-        response = await send_message_to_model_wrapper(image_prompt, uploaded_image_url=uploaded_image_url, user=user)
+        response = await send_message_to_model_wrapper(image_prompt, query_images=query_images, user=user)
         response = response.strip()
         if response.startswith(('"', "'")) and response.endswith(('"', "'")):
             response = response[1:-1]
@@ -689,11 +689,11 @@ async def send_message_to_model_wrapper(
     system_message: str = "",
     response_type: str = "text",
     user: KhojUser = None,
-    uploaded_image_url: str = None,
+    query_images: List[str] = None,
 ):
     conversation_config: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config(user)
     vision_available = conversation_config.vision_enabled
-    if not vision_available and uploaded_image_url:
+    if not vision_available and query_images:
         vision_enabled_config = await ConversationAdapters.aget_vision_enabled_config()
         if vision_enabled_config:
             conversation_config = vision_enabled_config
@@ -746,7 +746,7 @@ async def send_message_to_model_wrapper(
             max_prompt_size=max_tokens,
             tokenizer_name=tokenizer,
             vision_enabled=vision_available,
-            uploaded_image_url=uploaded_image_url,
+            query_images=query_images,
             model_type=conversation_config.model_type,
         )
 
@@ -766,7 +766,7 @@ async def send_message_to_model_wrapper(
             max_prompt_size=max_tokens,
             tokenizer_name=tokenizer,
             vision_enabled=vision_available,
-            uploaded_image_url=uploaded_image_url,
+            query_images=query_images,
             model_type=conversation_config.model_type,
         )
 
@@ -784,7 +784,8 @@ async def send_message_to_model_wrapper(
             max_prompt_size=max_tokens,
             tokenizer_name=tokenizer,
             vision_enabled=vision_available,
-            uploaded_image_url=uploaded_image_url,
+            query_images=query_images,
+            model_type=conversation_config.model_type,
         )
 
         return gemini_send_message_to_model(
@@ -875,6 +876,7 @@ def send_message_to_model_wrapper_sync(
             model_name=chat_model,
             max_prompt_size=max_tokens,
             vision_enabled=vision_available,
+            model_type=conversation_config.model_type,
         )
 
         return gemini_send_message_to_model(
@@ -900,7 +902,7 @@ def generate_chat_response(
     conversation_id: str = None,
     location_data: LocationData = None,
     user_name: Optional[str] = None,
-    uploaded_image_url: Optional[str] = None,
+    query_images: Optional[List[str]] = None,
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
     chat_response = None
@@ -919,12 +921,12 @@ def generate_chat_response(
             inferred_queries=inferred_queries,
             client_application=client_application,
             conversation_id=conversation_id,
-            uploaded_image_url=uploaded_image_url,
+            query_images=query_images,
         )
 
         conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)
         vision_available = conversation_config.vision_enabled
-        if not vision_available and uploaded_image_url:
+        if not vision_available and query_images:
             vision_enabled_config = ConversationAdapters.get_vision_enabled_config()
             if vision_enabled_config:
                 conversation_config = vision_enabled_config
@@ -955,7 +957,7 @@ def generate_chat_response(
             chat_response = converse(
                 compiled_references,
                 q,
-                image_url=uploaded_image_url,
+                query_images=query_images,
                 online_results=online_results,
                 conversation_log=meta_log,
                 model=chat_model,

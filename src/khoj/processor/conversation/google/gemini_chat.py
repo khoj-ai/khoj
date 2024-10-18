@@ -6,7 +6,7 @@ from typing import Dict, Optional
 
 from langchain.schema import ChatMessage
 
-from khoj.database.models import Agent, KhojUser
+from khoj.database.models import Agent, ChatModelOptions, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.google.utils import (
     format_messages_for_gemini,
@@ -187,6 +187,7 @@ def converse_gemini(
         model_name=model,
         max_prompt_size=max_prompt_size,
         tokenizer_name=tokenizer_name,
+        model_type=ChatModelOptions.ModelType.GOOGLE,
     )
 
     messages, system_prompt = format_messages_for_gemini(messages, system_prompt)

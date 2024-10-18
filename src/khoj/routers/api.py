@@ -340,7 +340,7 @@ async def extract_references_and_questions(
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     location_data: LocationData = None,
     send_status_func: Optional[Callable] = None,
-    uploaded_image_url: Optional[str] = None,
+    query_images: Optional[List[str]] = None,
     agent: Agent = None,
 ):
     user = request.user.object if request.user.is_authenticated else None
@@ -431,7 +431,7 @@ async def extract_references_and_questions(
                 conversation_log=meta_log,
                 location_data=location_data,
                 user=user,
-                uploaded_image_url=uploaded_image_url,
+                query_images=query_images,
                 vision_enabled=vision_enabled,
                 personality_context=personality_context,
             )
