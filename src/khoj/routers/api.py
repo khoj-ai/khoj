@@ -452,12 +452,14 @@ async def extract_references_and_questions(
             chat_model = conversation_config.chat_model
             inferred_queries = extract_questions_gemini(
                 defiltered_query,
+                query_images=query_images,
                 model=chat_model,
                 api_key=api_key,
                 conversation_log=meta_log,
                 location_data=location_data,
                 max_tokens=conversation_config.max_prompt_size,
                 user=user,
+                vision_enabled=vision_enabled,
                 personality_context=personality_context,
             )
 

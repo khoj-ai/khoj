@@ -995,8 +995,9 @@ def generate_chat_response(
             chat_response = converse_gemini(
                 compiled_references,
                 q,
-                online_results,
-                meta_log,
+                query_images=query_images,
+                online_results=online_results,
+                conversation_log=meta_log,
                 model=conversation_config.chat_model,
                 api_key=api_key,
                 completion_func=partial_completion,
@@ -1006,6 +1007,7 @@ def generate_chat_response(
                 location_data=location_data,
                 user_name=user_name,
                 agent=agent,
+                vision_available=vision_available,
             )
 
         metadata.update({"chat_model": conversation_config.chat_model})
