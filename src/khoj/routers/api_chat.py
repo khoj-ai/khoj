@@ -10,9 +10,8 @@ from urllib.parse import unquote
 
 from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.requests import Request
 from fastapi.responses import Response, StreamingResponse
-from starlette.authentication import has_required_scope, requires
+from starlette.authentication import requires
 
 from khoj.app.settings import ALLOWED_HOSTS
 from khoj.database.adapters import (
@@ -837,7 +836,7 @@ async def chat(
 
         # Gather Context
         ## Extract Document References
-        compiled_references, inferred_queries, defiltered_query = [], [], None
+        compiled_references, inferred_queries, defiltered_query = [], [], q
         try:
             async for result in extract_references_and_questions(
                 request,
@@ -960,7 +959,7 @@ async def chat(
         ## Generate Image Output
         if ConversationCommand.Image in conversation_commands:
             async for result in text_to_image(
-                q,
+                defiltered_query,
                 user,
                 meta_log,
                 location_data=location,
