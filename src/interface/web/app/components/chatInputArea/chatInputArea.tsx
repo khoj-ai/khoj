@@ -3,23 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 
 import DOMPurify from "dompurify";
 import "katex/dist/katex.min.css";
-import {
-    ArrowRight,
-    ArrowUp,
-    Browser,
-    ChatsTeardrop,
-    GlobeSimple,
-    Gps,
-    Image,
-    Microphone,
-    Notebook,
-    Paperclip,
-    X,
-    Question,
-    Robot,
-    Shapes,
-    Stop,
-} from "@phosphor-icons/react";
+import { ArrowUp, Microphone, Paperclip, X, Stop } from "@phosphor-icons/react";
 
 import {
     Command,
