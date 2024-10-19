@@ -420,32 +420,11 @@ export default function ChatInputArea(props: ChatInputProps) {
                 </div>
             )}
             <div
-                className={`${styles.actualInputArea} items-center justify-between dark:bg-neutral-700 relative ${isDragAndDropping && "animate-pulse"}`}
+                className={`${styles.actualInputArea} justify-between dark:bg-neutral-700 relative ${isDragAndDropping && "animate-pulse"}`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDragAndDropFiles}
             >
-                {imageUploaded && (
-                    <div className="absolute bottom-full left-0 right-0 px-12 py-2 dark:bg-neutral-700 bg-white w-full rounded-t-lg border dark:border-none flex items-center space-x-2 overflow-x-auto">
-                        {imagePaths.map((path, index) => (
-                            <div key={index} className="relative flex-shrink-0 group">
-                                <img
-                                    src={path}
-                                    alt={`img-${index}`}
-                                    className="w-auto h-16 object-cover rounded-xl"
-                                />
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-neutral-200 dark:bg-neutral-600 hover:bg-neutral-300 dark:hover:bg-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={() => removeImageUpload(index)}
-                                >
-                                    <X className="h-3 w-3" />
-                                </Button>
-                            </div>
-                        ))}
-                    </div>
-                )}
                 <input
                     type="file"
                     multiple={true}
@@ -453,15 +432,37 @@ export default function ChatInputArea(props: ChatInputProps) {
                     onChange={handleFileChange}
                     style={{ display: "none" }}
                 />
-                <Button
-                    variant={"ghost"}
-                    className="!bg-none p-0 m-2 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
-                    disabled={props.sendDisabled}
-                    onClick={handleFileButtonClick}
-                >
-                    <Paperclip className="w-8 h-8" />
-                </Button>
-                <div className="grid w-full gap-1.5 relative">
+                <div className="flex items-end pb-4">
+                    <Button
+                        variant={"ghost"}
+                        className="!bg-none p-0 m-2 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
+                        disabled={props.sendDisabled}
+                        onClick={handleFileButtonClick}
+                    >
+                        <Paperclip className="w-8 h-8" />
+                    </Button>
+                </div>
+                <div className="flex-grow flex flex-col w-full gap-1.5 relative pb-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                        {imageUploaded &&
+                            imagePaths.map((path, index) => (
+                                <div key={index} className="relative flex-shrink-0 group">
+                                    <img
+                                        src={path}
+                                        alt={`img-${index}`}
+                                        className="w-auto h-16 object-cover rounded-xl"
+                                    />
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-neutral-200 dark:bg-neutral-600 hover:bg-neutral-300 dark:hover:bg-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={() => removeImageUpload(index)}
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </Button>
+                                </div>
+                            ))}
+                    </div>
                     <Textarea
                         ref={chatInputRef}
                         className={`border-none w-full h-16 min-h-16 max-h-[128px] md:py-4 rounded-lg resize-none dark:bg-neutral-700 ${props.isMobileWidth ? "text-md" : "text-lg"}`}
@@ -481,57 +482,59 @@ export default function ChatInputArea(props: ChatInputProps) {
                         disabled={props.sendDisabled || recording}
                     />
                 </div>
-                {recording ? (
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="default"
-                                    className={`${!recording && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
-                                    onClick={() => {
-                                        setRecording(!recording);
-                                    }}
-                                    disabled={props.sendDisabled}
-                                >
-                                    <Stop weight="fill" className="w-6 h-6" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                Click to stop recording and transcribe your voice.
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                ) : mediaRecorder ? (
-                    <InlineLoading />
-                ) : (
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="default"
-                                    className={`${!message || recording || "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
-                                    onClick={() => {
-                                        setMessage("Listening...");
-                                        setRecording(!recording);
-                                    }}
-                                    disabled={props.sendDisabled}
-                                >
-                                    <Microphone weight="fill" className="w-6 h-6" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                Click to transcribe your message with voice.
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                )}
-                <Button
-                    className={`${(!message || recording) && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
-                    onClick={onSendMessage}
-                    disabled={props.sendDisabled}
-                >
-                    <ArrowUp className="w-6 h-6" weight="bold" />
-                </Button>
+                <div className="flex items-end pb-4">
+                    {recording ? (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="default"
+                                        className={`${!recording && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                                        onClick={() => {
+                                            setRecording(!recording);
+                                        }}
+                                        disabled={props.sendDisabled}
+                                    >
+                                        <Stop weight="fill" className="w-6 h-6" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    Click to stop recording and transcribe your voice.
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    ) : mediaRecorder ? (
+                        <InlineLoading />
+                    ) : (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="default"
+                                        className={`${!message || recording || "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                                        onClick={() => {
+                                            setMessage("Listening...");
+                                            setRecording(!recording);
+                                        }}
+                                        disabled={props.sendDisabled}
+                                    >
+                                        <Microphone weight="fill" className="w-6 h-6" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    Click to transcribe your message with voice.
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
+                    <Button
+                        className={`${(!message || recording) && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                        onClick={onSendMessage}
+                        disabled={props.sendDisabled}
+                    >
+                        <ArrowUp className="w-6 h-6" weight="bold" />
+                    </Button>
+                </div>
             </div>
         </>
     );
