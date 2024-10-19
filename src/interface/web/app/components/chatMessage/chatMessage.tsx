@@ -330,11 +330,11 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
         if (props.chatMessage.images && props.chatMessage.images.length > 0) {
             const imagesInMd = props.chatMessage.images
                 .map(
-                    (image) =>
-                        `![uploaded image](${image.startsWith("data%3Aimage") ? decodeURIComponent(image) : image})`,
+                    (image, index) =>
+                        `<div class="${styles.imageWrapper}"><img src="${image.startsWith("data%3Aimage") ? decodeURIComponent(image) : image}" alt="uploaded image ${index + 1}" /></div>`,
                 )
-                .join("\n\n");
-            message = `${imagesInMd}\n\n${message}`;
+                .join("");
+            message = `<div class="${styles.imagesContainer}">${imagesInMd}</div>${message}`;
         }
 
         if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image") {
