@@ -85,6 +85,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             props.streamedMessages[props.streamedMessages.length - 1].completed
         ) {
             setProcessingMessage(false);
+            setImages([]); // Reset images after processing
         } else {
             setMessage("");
         }
