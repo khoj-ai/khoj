@@ -1,5 +1,7 @@
 import json
 import logging
+import random
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from asgiref.sync import sync_to_async
@@ -9,8 +11,8 @@ from fastapi.responses import Response
 from pydantic import BaseModel
 from starlette.authentication import requires
 
-from khoj.database.adapters import AgentAdapters
-from khoj.database.models import Agent, KhojUser
+from khoj.database.adapters import AgentAdapters, ConversationAdapters
+from khoj.database.models import Agent, Conversation, KhojUser
 from khoj.routers.helpers import CommonQueryParams, acheck_if_safe_prompt
 from khoj.utils.helpers import (
     ConversationCommand,
@@ -45,30 +47,46 @@ async def all_agents(
 ) -> Response:
     user: KhojUser = request.user.object if request.user.is_authenticated else None
     agents = await AgentAdapters.aget_all_accessible_agents(user)
+    default_agent = await AgentAdapters.aget_default_agent()
+    default_agent_packet = None
     agents_packet = list()
     for agent in agents:
         files = agent.fileobject_set.all()
         file_names = [file.file_name for file in files]
-        agents_packet.append(
-            {
-                "slug": agent.slug,
-                "name": agent.name,
-                "persona": agent.personality,
-                "creator": agent.creator.username if agent.creator else None,
-                "managed_by_admin": agent.managed_by_admin,
-                "color": agent.style_color,
-                "icon": agent.style_icon,
-                "privacy_level": agent.privacy_level,
-                "chat_model": agent.chat_model.chat_model,
-                "files": file_names,
-                "input_tools": agent.input_tools,
-                "output_modes": agent.output_modes,
-            }
-        )
+        agent_packet = {
+            "slug": agent.slug,
+            "name": agent.name,
+            "persona": agent.personality,
+            "creator": agent.creator.username if agent.creator else None,
+            "managed_by_admin": agent.managed_by_admin,
+            "color": agent.style_color,
+            "icon": agent.style_icon,
+            "privacy_level": agent.privacy_level,
+            "chat_model": agent.chat_model.chat_model,
+            "files": file_names,
+            "input_tools": agent.input_tools,
+            "output_modes": agent.output_modes,
+        }
+        if agent.slug == default_agent.slug:
+            default_agent_packet = agent_packet
+        else:
+            agents_packet.append(agent_packet)
 
-    # Make sure that the agent named 'khoj' is first in the list. Everything else is sorted by name.
-    agents_packet.sort(key=lambda x: x["name"])
-    agents_packet.sort(key=lambda x: x["slug"] == "khoj", reverse=True)
+    # Load Conversation Sessions
+    min_date = datetime.min.replace(tzinfo=timezone.utc)
+    conversations = []
+    if user:
+        conversations = await sync_to_async(list[Conversation])(
+            ConversationAdapters.get_conversation_sessions(user, request.user.client_app).reverse()
+        )
+    conversation_times = {conv.agent.slug: conv.updated_at for conv in conversations}
+
+    # Put default agent first, then sort by mru and finally shuffle unused randomly
+    random.shuffle(agents_packet)
+    agents_packet.sort(key=lambda x: conversation_times.get(x["slug"]) or min_date, reverse=True)
+    if default_agent_packet:
+        agents_packet.insert(0, default_agent_packet)
+
     return Response(content=json.dumps(agents_packet), media_type="application/json", status_code=200)
 
 
