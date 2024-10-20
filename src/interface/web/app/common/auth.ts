@@ -69,6 +69,7 @@ export interface UserConfig {
     // user billing info
     subscription_state: SubscriptionStates;
     subscription_renewal_date: string;
+    subscription_enabled_trial_at: string;
     // server settings
     khoj_cloud_subscription_url: string | undefined;
     billing_enabled: boolean;

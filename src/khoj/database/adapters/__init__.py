@@ -70,6 +70,9 @@ from khoj.utils.helpers import (
 logger = logging.getLogger(__name__)
 
 
+LENGTH_OF_FREE_TRIAL = 7  #
+
+
 class SubscriptionState(Enum):
     TRIAL = "trial"
     SUBSCRIBED = "subscribed"
@@ -168,7 +171,7 @@ async def acreate_user_by_phone_number(phone_number: str) -> KhojUser:
     )
     await user.asave()
 
-    await Subscription.objects.acreate(user=user, type="trial")
+    await Subscription.objects.acreate(user=user, type="standard")
 
     return user
 
@@ -185,9 +188,27 @@ async def aget_or_create_user_by_email(email: str) -> tuple[KhojUser, bool]:
 
     user_subscription = await Subscription.objects.filter(user=user).afirst()
     if not user_subscription:
-        await Subscription.objects.acreate(user=user, type="trial")
+        await Subscription.objects.acreate(user=user, type="standard")
 
     return user, is_new
+
+
+async def astart_trial_subscription(user: KhojUser) -> Subscription:
+    subscription = await Subscription.objects.filter(user=user).afirst()
+    if not subscription:
+        raise HTTPException(status_code=400, detail="User does not have a subscription")
+
+    if subscription.type == Subscription.Type.TRIAL:
+        raise HTTPException(status_code=400, detail="User already has a trial subscription")
+
+    if subscription.enabled_trial_at:
+        raise HTTPException(status_code=400, detail="User already has a trial subscription")
+
+    subscription.type = Subscription.Type.TRIAL
+    subscription.enabled_trial_at = datetime.now(tz=timezone.utc)
+    subscription.renewal_date = datetime.now(tz=timezone.utc) + timedelta(days=LENGTH_OF_FREE_TRIAL)
+    await subscription.asave()
+    return subscription
 
 
 async def aget_user_validated_by_email_verification_code(code: str) -> KhojUser:
@@ -280,7 +301,7 @@ def subscription_to_state(subscription: Subscription) -> str:
         return SubscriptionState.INVALID.value
     elif subscription.type == Subscription.Type.TRIAL:
         # Trial subscription is valid for 7 days
-        if datetime.now(tz=timezone.utc) - subscription.created_at > timedelta(days=14):
+        if datetime.now(tz=timezone.utc) - subscription.enabled_trial_at > timedelta(days=LENGTH_OF_FREE_TRIAL):
             return SubscriptionState.EXPIRED.value
 
         return SubscriptionState.TRIAL.value

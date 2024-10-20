@@ -35,6 +35,7 @@ from starlette.requests import URL
 
 from khoj.database import adapters
 from khoj.database.adapters import (
+    LENGTH_OF_FREE_TRIAL,
     AgentAdapters,
     AutomationAdapters,
     ConversationAdapters,
@@ -1477,10 +1478,16 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
 
     user_subscription_state = get_user_subscription_state(user.email)
     user_subscription = adapters.get_user_subscription(user.email)
+
     subscription_renewal_date = (
         user_subscription.renewal_date.strftime("%d %b %Y")
         if user_subscription and user_subscription.renewal_date
-        else (user_subscription.created_at + timedelta(days=7)).strftime("%d %b %Y")
+        else None
+    )
+    subscription_enabled_trial_at = (
+        user_subscription.enabled_trial_at.strftime("%d %b %Y")
+        if user_subscription and user_subscription.enabled_trial_at
+        else None
     )
     given_name = get_user_name(user)
 
@@ -1553,6 +1560,7 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
         # user billing info
         "subscription_state": user_subscription_state,
         "subscription_renewal_date": subscription_renewal_date,
+        "subscription_enabled_trial_at": subscription_enabled_trial_at,
         # server settings
         "khoj_cloud_subscription_url": os.getenv("KHOJ_CLOUD_SUBSCRIPTION_URL"),
         "billing_enabled": state.billing_enabled,
