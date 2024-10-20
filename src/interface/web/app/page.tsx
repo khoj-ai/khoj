@@ -138,11 +138,11 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 try {
                     const newConversationId = await createNewConversation(selectedAgent || "khoj");
                     onConversationIdChange?.(newConversationId);
-                    window.location.href = `/chat?conversationId=${newConversationId}`;
                     localStorage.setItem("message", message);
                     if (images.length > 0) {
                         localStorage.setItem("images", JSON.stringify(images));
                     }
+                    window.location.href = `/chat?conversationId=${newConversationId}`;
                 } catch (error) {
                     console.error("Error creating new conversation:", error);
                     setProcessingMessage(false);
