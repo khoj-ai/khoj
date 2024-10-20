@@ -23,6 +23,7 @@ import { AgentData } from "@/app/agents/page";
 import { createNewConversation } from "./common/chatFunctions";
 import { useIsMobileWidth } from "./common/utils";
 import { useSearchParams } from "next/navigation";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -112,7 +113,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
         const shuffledAgents = agentsData ? [...agentsData].sort(() => 0.5 - Math.random()) : [];
         const agents = agentsData ? [agentsData[0]] : []; // Always add the first/default agent.
 
-        shuffledAgents.slice(0, nSlice - 1).forEach((agent) => {
+        shuffledAgents.forEach((agent) => {
             if (!agents.find((a) => a.slug === agent.slug)) {
                 agents.push(agent);
             }
@@ -194,34 +195,29 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     </h1>
                 </div>
                 {!props.isMobileWidth && (
-                    <div className="flex pb-6 gap-2 items-center justify-center">
-                        {agentIcons.map((icon, index) => (
-                            <Card
-                                key={`${index}-${agents[index].slug}`}
-                                className={`${
-                                    selectedAgent === agents[index].slug
-                                        ? convertColorToBorderClass(agents[index].color)
-                                        : "border-stone-100 dark:border-neutral-700 text-muted-foreground"
-                                }
-                                    hover:cursor-pointer rounded-lg px-2 py-2`}
-                            >
-                                <CardTitle
-                                    className="text-center text-md font-medium flex justify-center items-center"
-                                    onClick={() => setSelectedAgent(agents[index].slug)}
+                    <ScrollArea className="w-full max-w-[600px] mx-auto">
+                        <div className="flex pb-2 gap-2 items-center justify-center">
+                            {agentIcons.map((icon, index) => (
+                                <Card
+                                    key={`${index}-${agents[index].slug}`}
+                                    className={`${
+                                        selectedAgent === agents[index].slug
+                                            ? convertColorToBorderClass(agents[index].color)
+                                            : "border-stone-100 dark:border-neutral-700 text-muted-foreground"
+                                    }
+                                        hover:cursor-pointer rounded-lg px-2 py-2`}
                                 >
-                                    {icon} {agents[index].name}
-                                </CardTitle>
-                            </Card>
-                        ))}
-                        <Card
-                            className="border-none shadow-none flex justify-center items-center hover:cursor-pointer"
-                            onClick={() => (window.location.href = "/agents")}
-                        >
-                            <CardTitle className="text-center text-md font-normal flex justify-center items-center px-1.5 py-2">
-                                See All →
-                            </CardTitle>
-                        </Card>
-                    </div>
+                                    <CardTitle
+                                        className="text-center text-md font-medium flex justify-center items-center"
+                                        onClick={() => setSelectedAgent(agents[index].slug)}
+                                    >
+                                        {icon} {agents[index].name}
+                                    </CardTitle>
+                                </Card>
+                            ))}
+                        </div>
+                        <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
                 )}
             </div>
             <div className={`mx-auto ${props.isMobileWidth ? "w-full" : "w-fit"}`}>
@@ -285,31 +281,24 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     <div
                         className={`${styles.inputBox} pt-1 shadow-[0_-20px_25px_-5px_rgba(0,0,0,0.1)] dark:bg-neutral-700 bg-background align-middle items-center justify-center pb-3 mx-1 rounded-t-2xl rounded-b-none`}
                     >
-                        <div className="flex gap-2 items-center justify-left pt-1 pb-2 px-12">
-                            {agentIcons.map((icon, index) => (
-                                <Card
-                                    key={`${index}-${agents[index].slug}`}
-                                    className={`${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : "border-muted text-muted-foreground"} hover:cursor-pointer`}
-                                >
-                                    <CardTitle
-                                        className="text-center text-xs font-medium flex justify-center items-center px-1.5 py-1"
-                                        onClick={() => setSelectedAgent(agents[index].slug)}
+                        <ScrollArea className="w-full max-w-[85vw]">
+                            <div className="flex gap-2 items-center justify-left pt-1 pb-2 px-12">
+                                {agentIcons.map((icon, index) => (
+                                    <Card
+                                        key={`${index}-${agents[index].slug}`}
+                                        className={`${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : "border-muted text-muted-foreground"} hover:cursor-pointer`}
                                     >
-                                        {icon} {agents[index].name}
-                                    </CardTitle>
-                                </Card>
-                            ))}
-                            <Card
-                                className="border-none shadow-none flex justify-center items-center hover:cursor-pointer"
-                                onClick={() => (window.location.href = "/agents")}
-                            >
-                                <CardTitle
-                                    className={`text-center ${props.isMobileWidth ? "text-xs" : "text-md"} font-normal flex justify-center items-center px-1.5 py-2`}
-                                >
-                                    See All →
-                                </CardTitle>
-                            </Card>
-                        </div>
+                                        <CardTitle
+                                            className="text-center text-xs font-medium flex justify-center items-center px-1.5 py-1"
+                                            onClick={() => setSelectedAgent(agents[index].slug)}
+                                        >
+                                            {icon} {agents[index].name}
+                                        </CardTitle>
+                                    </Card>
+                                ))}
+                            </div>
+                            <ScrollBar orientation="horizontal" />
+                        </ScrollArea>
                         <ChatInputArea
                             isLoggedIn={props.isLoggedIn}
                             sendMessage={(message) => setMessage(message)}
