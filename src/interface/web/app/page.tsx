@@ -109,22 +109,13 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }, [props.chatOptionsData]);
 
     useEffect(() => {
-        const nSlice = props.isMobileWidth ? 2 : 4;
-        const shuffledAgents = agentsData ? [...agentsData].sort(() => 0.5 - Math.random()) : [];
-        const agents = agentsData ? [agentsData[0]] : []; // Always add the first/default agent.
-
-        shuffledAgents.forEach((agent) => {
-            if (!agents.find((a) => a.slug === agent.slug)) {
-                agents.push(agent);
-            }
-        });
-
+        const agents = (agentsData || []).filter((agent) => agent !== null && agent !== undefined);
         setAgents(agents);
+        // set the selected agent to the most recently used agent, first agent is always khoj
+        setSelectedAgent(agents.length > 1 ? agents[1].slug : "khoj");
 
-        //generate colored icons for the selected agents
-        const agentIcons = agents
-            .filter((agent) => agent !== null && agent !== undefined)
-            .map((agent) => getIconFromIconName(agent.icon, agent.color)!);
+        // generate colored icons for the available agents
+        const agentIcons = agents.map((agent) => getIconFromIconName(agent.icon, agent.color)!);
         setAgentIcons(agentIcons);
     }, [agentsData, props.isMobileWidth]);
 
