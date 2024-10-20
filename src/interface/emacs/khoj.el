@@ -127,6 +127,11 @@
                  (const "image")
                  (const "pdf")))
 
+(defcustom khoj-default-agent "khoj"
+  "The default agent to chat with. See https://app.khoj.dev/agents for available options."
+  :group 'khoj
+  :type 'string)
+
 
 ;; --------------------------
 ;; Khoj Dynamic Configuration
@@ -143,6 +148,9 @@
 
 (defconst khoj--chat-buffer-name "*🏮 Khoj Chat*"
   "Name of chat buffer for Khoj.")
+
+(defvar khoj--selected-agent khoj-default-agent
+  "Currently selected Khoj agent.")
 
 (defvar khoj--content-type "org"
   "The type of content to perform search on.")
@@ -913,14 +921,16 @@ Call CALLBACK func with response and CBARGS."
   (let ((selected-session-id (khoj--select-conversation-session "Open")))
     (khoj--load-chat-session khoj--chat-buffer-name selected-session-id)))
 
-(defun khoj--create-chat-session ()
-  "Create new chat session."
-  (khoj--call-api "/api/chat/sessions" "POST"))
+(defun khoj--create-chat-session (&optional agent)
+  "Create new chat session with AGENT."
+  (khoj--call-api "/api/chat/sessions"
+                  "POST"
+                  (when agent `(("agent_slug" ,agent)))))
 
-(defun khoj--new-conversation-session ()
-  "Create new Khoj conversation session."
+(defun khoj--new-conversation-session (&optional agent)
+  "Create new Khoj conversation session with AGENT."
   (thread-last
-    (khoj--create-chat-session)
+    (khoj--create-chat-session agent)
     (assoc 'conversation_id)
     (cdr)
     (khoj--chat)))
@@ -934,6 +944,15 @@ Call CALLBACK func with response and CBARGS."
   (thread-last
     (khoj--select-conversation-session "Delete")
     (khoj--delete-chat-session)))
+
+(defun khoj--get-agents ()
+  "Get list of available Khoj agents."
+  (let* ((response (khoj--call-api "/api/agents" "GET"))
+         (agents (mapcar (lambda (agent)
+                           (cons (cdr (assoc 'name agent))
+                                 (cdr (assoc 'slug agent))))
+                         response)))
+    agents))
 
 (defun khoj--render-chat-message (message sender &optional receive-date)
   "Render chat messages as `org-mode' list item.
@@ -1246,6 +1265,20 @@ Paragraph only starts at first text after blank line."
     ;; dynamically set choices to content types enabled on khoj backend
     :choices (or (ignore-errors (mapcar #'symbol-name (khoj--get-enabled-content-types))) '("all" "org" "markdown" "pdf" "image")))
 
+  (transient-define-argument khoj--agent-switch ()
+    :class 'transient-switches
+    :argument-format "--agent=%s"
+    :argument-regexp ".+"
+    :init-value (lambda (obj)
+                  (oset obj value (format "--agent=%s" khoj--selected-agent)))
+    :choices (or (ignore-errors (mapcar #'cdr (khoj--get-agents))) '("khoj"))
+    :reader (lambda (prompt initial-input history)
+              (let* ((agents (khoj--get-agents))
+                    (selected (completing-read prompt agents nil t initial-input history))
+                    (slug (cdr (assoc selected agents))))
+                (setq khoj--selected-agent slug)
+                slug)))
+
   (transient-define-suffix khoj--search-command (&optional args)
     (interactive (list (transient-args transient-current-command)))
     (progn
@@ -1287,10 +1320,11 @@ Paragraph only starts at first text after blank line."
     (interactive (list (transient-args transient-current-command)))
     (khoj--open-conversation-session))
 
-  (transient-define-suffix khoj--new-conversation-session-command (&optional _)
+  (transient-define-suffix khoj--new-conversation-session-command (&optional args)
     "Command to select Khoj conversation sessions to open."
     (interactive (list (transient-args transient-current-command)))
-    (khoj--new-conversation-session))
+    (let ((agent-slug (transient-arg-value "--agent=" args)))
+      (khoj--new-conversation-session agent-slug)))
 
   (transient-define-suffix khoj--delete-conversation-session-command (&optional _)
     "Command to select Khoj conversation sessions to delete."
@@ -1298,14 +1332,15 @@ Paragraph only starts at first text after blank line."
     (khoj--delete-conversation-session))
 
   (transient-define-prefix khoj--chat-menu ()
-    "Open the Khoj chat menu."
-    ["Act"
-     ("c" "Chat" khoj--chat-command)
-     ("o" "Open Conversation" khoj--open-conversation-session-command)
-     ("n" "New Conversation" khoj--new-conversation-session-command)
-     ("d" "Delete Conversation" khoj--delete-conversation-session-command)
-     ("q" "Quit" transient-quit-one)
-     ])
+    "Create the Khoj Chat Menu and Execute Commands."
+    [["Configure"
+      ("a" "Select Agent" khoj--agent-switch)]]
+    [["Act"
+      ("c" "Chat" khoj--chat-command)
+      ("o" "Open Conversation" khoj--open-conversation-session-command)
+      ("n" "New Conversation" khoj--new-conversation-session-command)
+      ("d" "Delete Conversation" khoj--delete-conversation-session-command)
+      ("q" "Quit" transient-quit-one)]])
 
   (transient-define-prefix khoj--menu ()
     "Create Khoj Menu to Configure and Execute Commands."
