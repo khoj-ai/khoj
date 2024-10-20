@@ -664,13 +664,15 @@ Simplified fork of `org-cycle-content' from Emacs 29.1 to work with >=27.1."
 ;; --------------
 ;; Query Khoj API
 ;; --------------
-(defun khoj--call-api (path &optional method params callback &rest cbargs)
-  "Sync call API at PATH with METHOD and query PARAMS as kv assoc list.
+(defun khoj--call-api (path &optional method params body callback &rest cbargs)
+  "Sync call API at PATH with METHOD, query PARAMS and BODY as kv assoc list.
 Optionally apply CALLBACK with JSON parsed response and CBARGS."
   (let* ((url-request-method (or method "GET"))
          (url-request-extra-headers `(("Authorization" . ,(format "Bearer %s" khoj-api-key))))
-         (param-string (if params (url-build-query-string params) ""))
-         (query-url (format "%s%s?%s&client=emacs" khoj-server-url path param-string))
+         (url-request-extra-headers `(("Authorization" . ,(format "Bearer %s" khoj-api-key)) ("Content-Type" . "application/json")))
+         (url-request-data (if body (json-encode body) nil))
+         (param-string (url-build-query-string (append params '((client "emacs")))))
+         (query-url (format "%s%s?%s" khoj-server-url path param-string))
          (cbargs (if (and (listp cbargs) (listp (car cbargs))) (car cbargs) cbargs))) ; normalize cbargs to (a b) from ((a b)) if required
     (with-temp-buffer
       (condition-case ex
@@ -690,8 +692,8 @@ Optionally apply CALLBACK with JSON parsed response and CBARGS."
          (url-request-extra-headers `(("Authorization" . ,(format "Bearer %s" khoj-api-key)) ("Content-Type" . "application/json")))
          (url-request-data (if body (json-encode body) nil))
          (param-string (url-build-query-string (append params '((client "emacs")))))
-         (cbargs (if (and (listp cbargs) (listp (car cbargs))) (car cbargs) cbargs)) ; normalize cbargs to (a b) from ((a b)) if required
-         (query-url (format "%s%s?%s" khoj-server-url path param-string)))
+         (query-url (format "%s%s?%s" khoj-server-url path param-string))
+         (cbargs (if (and (listp cbargs) (listp (car cbargs))) (car cbargs) cbargs))) ; normalize cbargs to (a b) from ((a b)) if required
     (url-retrieve query-url
                   (lambda (status)
                     (if (plist-get status :error)
@@ -707,7 +709,7 @@ Optionally apply CALLBACK with JSON parsed response and CBARGS."
 
 (defun khoj--get-enabled-content-types ()
   "Get content types enabled for search from API."
-  (khoj--call-api "/api/content/types" "GET" nil `(lambda (item) (mapcar #'intern item))))
+  (khoj--call-api "/api/content/types" "GET" nil nil `(lambda (item) (mapcar #'intern item))))
 
 (defun khoj--query-search-api-and-render-results (query content-type buffer-name &optional rerank is-find-similar)
   "Query Khoj Search API with QUERY, CONTENT-TYPE and RERANK as query params.
