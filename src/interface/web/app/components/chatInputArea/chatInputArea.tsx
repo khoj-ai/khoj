@@ -427,10 +427,10 @@ export default function ChatInputArea(props: ChatInputProps) {
                     </Button>
                 </div>
                 <div className="flex-grow flex flex-col w-full gap-1.5 relative pb-2">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-2 overflow-x-auto">
                         {imageUploaded &&
                             imagePaths.map((path, index) => (
-                                <div key={index} className="relative flex-shrink-0 group">
+                                <div key={index} className="relative flex-shrink-0 pb-3 pt-2 group">
                                     <img
                                         src={path}
                                         alt={`img-${index}`}
@@ -439,7 +439,7 @@ export default function ChatInputArea(props: ChatInputProps) {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-neutral-200 dark:bg-neutral-600 hover:bg-neutral-300 dark:hover:bg-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        className="absolute -top-0 -right-2 h-5 w-5 rounded-full bg-neutral-200 dark:bg-neutral-600 hover:bg-neutral-300 dark:hover:bg-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity"
                                         onClick={() => removeImageUpload(index)}
                                     >
                                         <X className="h-3 w-3" />
