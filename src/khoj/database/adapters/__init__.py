@@ -48,7 +48,6 @@ from khoj.database.models import (
     TextToImageModelConfig,
     UserConversationConfig,
     UserRequests,
-    UserSearchModelConfig,
     UserTextToImageModelConfig,
     UserVoiceModelConfig,
     VoiceModelOption,
@@ -446,12 +445,11 @@ async def set_user_github_config(user: KhojUser, pat_token: str, repos: list):
     return config
 
 
-def get_user_search_model_or_default(user=None):
-    if user and UserSearchModelConfig.objects.filter(user=user).exists():
-        return UserSearchModelConfig.objects.filter(user=user).first().setting
+def get_default_search_model() -> SearchModelConfig:
+    default_search_model = SearchModelConfig.objects.filter(name="default").first()
 
-    if SearchModelConfig.objects.filter(name="default").exists():
-        return SearchModelConfig.objects.filter(name="default").first()
+    if default_search_model:
+        return default_search_model
     else:
         SearchModelConfig.objects.create()
 
@@ -465,21 +463,6 @@ def get_or_create_search_models():
         search_models = SearchModelConfig.objects.all()
 
     return search_models
-
-
-async def aset_user_search_model(user: KhojUser, search_model_config_id: int):
-    config = await SearchModelConfig.objects.filter(id=search_model_config_id).afirst()
-    if not config:
-        return None
-    new_config, _ = await UserSearchModelConfig.objects.aupdate_or_create(user=user, defaults={"setting": config})
-    return new_config
-
-
-async def aget_user_search_model(user: KhojUser):
-    config = await UserSearchModelConfig.objects.filter(user=user).prefetch_related("setting").afirst()
-    if not config:
-        return None
-    return config.setting
 
 
 class ProcessLockAdapters:

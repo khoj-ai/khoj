@@ -8,7 +8,7 @@ import torch
 from asgiref.sync import sync_to_async
 from sentence_transformers import util
 
-from khoj.database.adapters import EntryAdapters, get_user_search_model_or_default
+from khoj.database.adapters import EntryAdapters, get_default_search_model
 from khoj.database.models import Agent
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import KhojUser
@@ -110,7 +110,7 @@ async def query(
     file_type = search_type_to_embeddings_type[type.value]
 
     query = raw_query
-    search_model = await sync_to_async(get_user_search_model_or_default)(user)
+    search_model = await sync_to_async(get_default_search_model)()
     if not max_distance:
         if search_model.bi_encoder_confidence_threshold:
             max_distance = search_model.bi_encoder_confidence_threshold

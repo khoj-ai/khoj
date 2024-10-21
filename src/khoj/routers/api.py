@@ -25,8 +25,8 @@ from khoj.database.adapters import (
     AutomationAdapters,
     ConversationAdapters,
     EntryAdapters,
+    get_default_search_model,
     get_user_photo,
-    get_user_search_model_or_default,
 )
 from khoj.database.models import (
     Agent,
@@ -149,7 +149,7 @@ async def execute_search(
     encoded_asymmetric_query = None
     if t != SearchType.Image:
         with timer("Encoding query took", logger=logger):
-            search_model = await sync_to_async(get_user_search_model_or_default)(user)
+            search_model = await sync_to_async(get_default_search_model)()
             encoded_asymmetric_query = state.embeddings_model[search_model.name].embed_query(defiltered_query)
 
     with concurrent.futures.ThreadPoolExecutor() as executor:

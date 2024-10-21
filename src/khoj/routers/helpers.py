@@ -1503,13 +1503,6 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
     for chat_model in chat_models:
         chat_model_options.append({"name": chat_model.chat_model, "id": chat_model.id})
 
-    search_model_options = adapters.get_or_create_search_models().all()
-    all_search_model_options = list()
-    for search_model_option in search_model_options:
-        all_search_model_options.append({"name": search_model_option.name, "id": search_model_option.id})
-
-    current_search_model_option = adapters.get_user_search_model_or_default(user)
-
     selected_paint_model_config = ConversationAdapters.get_user_text_to_image_model_config(user)
     paint_model_options = ConversationAdapters.get_text_to_image_model_options().all()
     all_paint_model_options = list()
@@ -1542,8 +1535,6 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
         "has_documents": has_documents,
         "notion_token": notion_token,
         # user model settings
-        "search_model_options": all_search_model_options,
-        "selected_search_model_config": current_search_model_option.id,
         "chat_model_options": chat_model_options,
         "selected_chat_model_config": selected_chat_model_config.id if selected_chat_model_config else None,
         "paint_model_options": all_paint_model_options,

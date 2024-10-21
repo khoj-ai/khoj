@@ -94,39 +94,6 @@ async def update_voice_model(
     return Response(status_code=202, content=json.dumps({"status": "ok"}))
 
 
-@api_model.post("/search", status_code=200)
-@requires(["authenticated"])
-async def update_search_model(
-    request: Request,
-    id: str,
-    client: Optional[str] = None,
-):
-    user = request.user.object
-
-    prev_config = await adapters.aget_user_search_model(user)
-    new_config = await adapters.aset_user_search_model(user, int(id))
-
-    if prev_config and int(id) != prev_config.id and new_config:
-        await EntryAdapters.adelete_all_entries(user)
-
-    if not prev_config:
-        # If the use was just using the default config, delete all the entries and set the new config.
-        await EntryAdapters.adelete_all_entries(user)
-
-    if new_config is None:
-        return {"status": "error", "message": "Model not found"}
-    else:
-        update_telemetry_state(
-            request=request,
-            telemetry_type="api",
-            api="set_search_model",
-            client=client,
-            metadata={"search_model": new_config.setting.name},
-        )
-
-    return {"status": "ok"}
-
-
 @api_model.post("/paint", status_code=200)
 @requires(["authenticated"])
 async def update_paint_model(

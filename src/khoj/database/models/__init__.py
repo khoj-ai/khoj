@@ -448,6 +448,7 @@ class UserVoiceModelConfig(BaseModel):
     setting = models.ForeignKey(VoiceModelOption, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
 
+# TODO Delete this model once all users have been migrated to the server's default settings
 class UserSearchModelConfig(BaseModel):
     user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
     setting = models.ForeignKey(SearchModelConfig, on_delete=models.CASCADE)
@@ -534,6 +535,7 @@ class Entry(BaseModel):
     url = models.URLField(max_length=400, default=None, null=True, blank=True)
     hashed_value = models.CharField(max_length=100)
     corpus_id = models.UUIDField(default=uuid.uuid4, editable=False)
+    search_model = models.ForeignKey(SearchModelConfig, on_delete=models.SET_NULL, default=None, null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if self.user and self.agent:
