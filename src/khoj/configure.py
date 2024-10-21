@@ -312,7 +312,7 @@ def configure_routes(app):
         logger.info("🔑 Enabled Authentication")
 
     if state.billing_enabled:
-        from khoj.routers.subscription import subscription_router
+        from khoj.routers.api_subscription import subscription_router
 
         app.include_router(subscription_router, prefix="/api/subscription")
         logger.info("💳 Enabled Billing")

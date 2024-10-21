@@ -12,7 +12,7 @@ Without any desktop clients, you can start chatting with Khoj on WhatsApp. Bear 
 
 In order to use Khoj on WhatsApp with your own data, you need to setup a Khoj Cloud account and connect your WhatsApp account to it. This is a one time setup and you can do it from the [Khoj Cloud config page](https://app.khoj.dev/settings).
 
-If you hit usage limits for the WhatsApp bot, upgrade to [a paid plan](https://khoj.dev/pricing) on Khoj Cloud.
+If you hit usage limits for the WhatsApp bot, upgrade to [a paid plan](https://khoj.dev/#pricing) on Khoj Cloud.
 
 <img src="https://khoj-web-bucket.s3.amazonaws.com/khojwhatsapp.png" alt="WhatsApp QR Code" width="300" height="300" />
 

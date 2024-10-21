@@ -73,9 +73,10 @@ class Subscription(BaseModel):
         STANDARD = "standard"
 
     user = models.OneToOneField(KhojUser, on_delete=models.CASCADE, related_name="subscription")
-    type = models.CharField(max_length=20, choices=Type.choices, default=Type.TRIAL)
+    type = models.CharField(max_length=20, choices=Type.choices, default=Type.STANDARD)
     is_recurring = models.BooleanField(default=False)
     renewal_date = models.DateTimeField(null=True, default=None, blank=True)
+    enabled_trial_at = models.DateTimeField(null=True, default=None, blank=True)
 
 
 class OpenAIProcessorConversationConfig(BaseModel):
