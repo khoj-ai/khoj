@@ -220,7 +220,7 @@ excalidraw_diagram_generation_prompt = PromptTemplate.from_template(
 You are a program manager with the ability to describe diagrams to compose in professional, fine detail.
 {personality_context}
 
-You need to create a declarative description of the diagram and relevant components, using this base schema. Use the `label` property to specify the text to be rendered in the respective elements. Always use light colors for the `backgroundColor` property.
+You need to create a declarative description of the diagram and relevant components, using this base schema. Use the `label` property to specify the text to be rendered in the respective elements. Always use light colors for the `backgroundColor` property, like white, or light blue, green, red. "type", "x", "y", "id", are required properties for all elements.
 
 {{
     type: string,
@@ -244,22 +244,21 @@ Valid types:
 - line
 - arrow
 
-
-For arrows and lines, you can use the `points` property to specify the start and end points of the arrow and the `start` and `end` properties to connect the linear elements to other elements. Lines and arrows can only start and end at rectangle, text, diamond, or ellipse elements. You may also use the `label` property to specify the text to be rendered.
+For arrows and lines, you can use the `points` property to specify the start and end points of the arrow. You may also use the `label` property to specify the text to be rendered. You may use the `start` and `end` properties to connect the linear elements to other elements. The start and end point can either be the ID to map to an existing object, or the `type` to create a new object. Mapping to an existing object is useful if you want to connect it to multiple objects. Lines and arrows can only start and end at rectangle, text, diamond, or ellipse elements.
 
 {{
     type: "arrow",
     id: string,
     x: number,
     y: number,
-    width: number,
-    height: number,
     strokeColor: string,
     start: {{
         id: string,
+        type: string,
     }},
     end: {{
         id: string,
+        type: string,
     }},
     label: {{
         text: string,
@@ -281,7 +280,7 @@ For text, you must use the `text` property to specify the text to be rendered. Y
     text: string,
 }}
 
-For frames, you can use the `children` property to specify the elements that are inside the frame by their ids.
+For frames, use the `children` property to specify the elements that are inside the frame by their ids.
 
 {{
     type: "frame",
@@ -307,9 +306,9 @@ Response:
     {{"type":"ellipse","x":-169,"y":113,"width":188,"height":202,"id":"design_ellipse", "label": {{"text": "Design"}}}},
     {{"type":"ellipse","x":62,"y":394,"width":186,"height":188,"id":"implement_ellipse", "label": {{"text": "Implement"}}}},
     {{"type":"ellipse","x":-348,"y":430,"width":184,"height":170,"id":"feedback_ellipse", "label": {{"text": "Feedback"}}}},
-    {{"type":"arrow","x":21,"y":273,"width":86,"height":105,"id":"design_to_implement_arrow","points":[[0,0],[86,105]],"start":{{"id":"design_ellipse"}}, "end":{{"id":"implement_ellipse"}}}},
-    {{"type":"arrow","x":50,"y":519,"width":198,"height":6,"id":"implement_to_feedback_arrow","points":[[0,0],[-198,-6]],"start":{{"id":"implement_ellipse"}}, "end":{{"id":"feedback_ellipse"}}}},
-    {{"type":"arrow","x":-228,"y":417,"width":85,"height":123,"id":"feedback_to_design_arrow","points":[[0,0],[85,-123]],"start":{{"id":"feedback_ellipse"}}, "end":{{"id":"design_ellipse"}}}},
+    {{"type":"arrow","x":21,"y":273,"id":"design_to_implement_arrow","points":[[0,0],[86,105]],"start":{{"id":"design_ellipse"}}, "end":{{"id":"implement_ellipse"}}}},
+    {{"type":"arrow","x":50,"y":519,"id":"implement_to_feedback_arrow","points":[[0,0],[-198,-6]],"start":{{"id":"implement_ellipse"}}, "end":{{"id":"feedback_ellipse"}}}},
+    {{"type":"arrow","x":-228,"y":417,"id":"feedback_to_design_arrow","points":[[0,0],[85,-123]],"start":{{"id":"feedback_ellipse"}}, "end":{{"id":"design_ellipse"}}}},
 ]
 
 Create a detailed diagram from the provided context and user prompt below. Return a valid JSON object:
