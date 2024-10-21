@@ -1,9 +1,16 @@
 from typing import List
 
 from django.core.management.base import BaseCommand
+from django.db.models import Count
 from tqdm import tqdm
 
-from khoj.database.models import Agent, Entry, SearchModelConfig, UserSearchModelConfig
+from khoj.database.models import (
+    Agent,
+    Entry,
+    KhojUser,
+    SearchModelConfig,
+    UserSearchModelConfig,
+)
 from khoj.processor.embeddings import EmbeddingsModel
 
 
@@ -13,9 +20,10 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         # Pass default SearchModelConfig ID
         parser.add_argument(
-            "--id",
+            "--search_model_id",
             action="store",
             help="ID of the SearchModelConfig object to set as the default search model for all existing Entry objects and UserSearchModelConfig objects.",
+            required=True,
         )
 
         # Set the apply flag to apply the new default Search model to all existing Entry objects and UserSearchModelConfig objects.
@@ -33,8 +41,11 @@ class Command(BaseCommand):
                 entry.embeddings = embeddings[i]
                 entry.save()
 
-        search_model_config_id = options.get("id")
+        search_model_config_id = options.get("search_model_id")
         apply = options.get("apply")
+
+        print(f"SearchModelConfig ID: {search_model_config_id}")
+        print(f"Apply: {apply}")
 
         embeddings_model = dict()
 
@@ -75,11 +86,34 @@ class Command(BaseCommand):
                 print(
                     f"Updated {relevant_entries.count()} Entry objects for user {affected_user} to use the new default Search model."
                 )
-            else:
-                print("Run the command with the --apply flag to apply the new default Search model.")
-                break
+
+        print("----")
+
+        # There are also plenty of users who have indexed documents without explicitly creating a UserSearchModelConfig object. You would have to migrate these users as well, if the default is different from search_model_config_id.
+
+        current_default = SearchModelConfig.objects.filter(name="default").first() or SearchModelConfig.objects.first()
+        if current_default.id != new_default_search_model_config.id:
+            users_without_user_search_model_config = KhojUser.objects.annotate(
+                user_search_model_config_count=Count("usersearchmodelconfig")
+            ).filter(user_search_model_config_count=0)
+
+            print(f"Number of User objects to update: {users_without_user_search_model_config.count()}")
+            for user in users_without_user_search_model_config:
+                relevant_entries = Entry.objects.filter(user=user).all()
+                print(f"Number of Entry objects to update for user {user}: {relevant_entries.count()}")
+
+                if apply:
+                    regenerate_entry(relevant_entries, embeddings_model[new_default_search_model_config.name])
+                    UserSearchModelConfig.objects.create(user=user, setting=new_default_search_model_config)
+                    print(f"Created UserSearchModelConfig object for user {user} to use the new default Search model.")
+                    print(
+                        f"Updated {relevant_entries.count()} Entry objects for user {user} to use the new default Search model."
+                    )
+        else:
+            print("Default is the same as search_model_config_id.")
 
         all_agents = Agent.objects.all()
+        print(f"Number of Agent objects to update: {all_agents.count()}")
         for agent in all_agents:
             relevant_entries = Entry.objects.filter(agent=agent).all()
             print(f"Number of Entry objects to update for agent {agent}: {relevant_entries.count()}")
@@ -89,6 +123,6 @@ class Command(BaseCommand):
                 print(
                     f"Updated {relevant_entries.count()} Entry objects for agent {agent} to use the new default Search model."
                 )
-            else:
-                print("Run the command with the --apply flag to apply the new default Search model.")
-                break
+
+        if not apply:
+            print("Run the command with the --apply flag to apply the new default Search model.")
