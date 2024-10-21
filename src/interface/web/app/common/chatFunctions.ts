@@ -5,10 +5,10 @@ export interface RawReferenceData {
     onlineContext?: OnlineContext;
 }
 
-export interface ResponseWithReferences {
-    context?: Context[];
-    online?: OnlineContext;
-    response?: string;
+export interface ResponseWithIntent {
+    intentType: string;
+    response: string;
+    inferredQueries?: string[];
 }
 
 interface MessageChunk {
@@ -49,10 +49,14 @@ export function convertMessageChunkToJson(chunk: string): MessageChunk {
 function handleJsonResponse(chunkData: any) {
     const jsonData = chunkData as any;
     if (jsonData.image || jsonData.detail) {
-        let responseWithReference = handleImageResponse(chunkData, true);
-        if (responseWithReference.response) return responseWithReference.response;
+        let responseWithIntent = handleImageResponse(chunkData, true);
+        return responseWithIntent;
     } else if (jsonData.response) {
-        return jsonData.response;
+        return {
+            response: jsonData.response,
+            intentType: "",
+            inferredQueries: [],
+        };
     } else {
         throw new Error("Invalid JSON response");
     }
@@ -80,8 +84,18 @@ export function processMessageChunk(
         return { context, onlineContext };
     } else if (chunk.type === "message") {
         const chunkData = chunk.data;
+        // Here, handle if the response is a JSON response with an image, but the intentType is excalidraw
         if (chunkData !== null && typeof chunkData === "object") {
-            currentMessage.rawResponse += handleJsonResponse(chunkData);
+            let responseWithIntent = handleJsonResponse(chunkData);
+
+            if (responseWithIntent.intentType && responseWithIntent.intentType === "excalidraw") {
+                currentMessage.rawResponse = responseWithIntent.response;
+            } else {
+                currentMessage.rawResponse += responseWithIntent.response;
+            }
+
+            currentMessage.intentType = responseWithIntent.intentType;
+            currentMessage.inferredQueries = responseWithIntent.inferredQueries;
         } else if (
             typeof chunkData === "string" &&
             chunkData.trim()?.startsWith("{") &&
@@ -89,7 +103,10 @@ export function processMessageChunk(
         ) {
             try {
                 const jsonData = JSON.parse(chunkData.trim());
-                currentMessage.rawResponse += handleJsonResponse(jsonData);
+                let responseWithIntent = handleJsonResponse(jsonData);
+                currentMessage.rawResponse += responseWithIntent.response;
+                currentMessage.intentType = responseWithIntent.intentType;
+                currentMessage.inferredQueries = responseWithIntent.inferredQueries;
             } catch (e) {
                 currentMessage.rawResponse += JSON.stringify(chunkData);
             }
@@ -111,42 +128,26 @@ export function processMessageChunk(
     return { context, onlineContext };
 }
 
-export function handleImageResponse(imageJson: any, liveStream: boolean): ResponseWithReferences {
+export function handleImageResponse(imageJson: any, liveStream: boolean): ResponseWithIntent {
     let rawResponse = "";
 
     if (imageJson.image) {
-        const inferredQuery = imageJson.inferredQueries?.[0] ?? "generated image";
-
-        // If response has image field, response is a generated image.
-        if (imageJson.intentType === "text-to-image") {
-            rawResponse += `![generated_image](data:image/png;base64,${imageJson.image})`;
-        } else if (imageJson.intentType === "text-to-image2") {
-            rawResponse += `![generated_image](${imageJson.image})`;
-        } else if (imageJson.intentType === "text-to-image-v3") {
-            rawResponse = `![](data:image/webp;base64,${imageJson.image})`;
-        }
-        if (inferredQuery && !liveStream) {
-            rawResponse += `\n\n${inferredQuery}`;
-        }
+        // If response has image field, response may be a generated image
+        rawResponse = imageJson.image;
     }
 
-    let reference: ResponseWithReferences = {};
+    let responseWithIntent: ResponseWithIntent = {
+        intentType: imageJson.intentType,
+        response: rawResponse,
+        inferredQueries: imageJson.inferredQueries,
+    };
 
-    if (imageJson.context && imageJson.context.length > 0) {
-        const rawReferenceAsJson = imageJson.context;
-        if (rawReferenceAsJson instanceof Array) {
-            reference.context = rawReferenceAsJson;
-        } else if (typeof rawReferenceAsJson === "object" && rawReferenceAsJson !== null) {
-            reference.online = rawReferenceAsJson;
-        }
-    }
     if (imageJson.detail) {
         // The detail field contains the improved image prompt
         rawResponse += imageJson.detail;
     }
 
-    reference.response = rawResponse;
-    return reference;
+    return responseWithIntent;
 }
 
 export function modifyFileFilterForConversation(
