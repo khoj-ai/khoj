@@ -2,7 +2,8 @@ import logging
 from typing import List
 
 from django.core.management.base import BaseCommand
-from django.db.models import Count
+from django.db import transaction
+from django.db.models import Count, Q
 from tqdm import tqdm
 
 from khoj.database.adapters import get_default_search_model
@@ -39,10 +40,11 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        def regenerate_entries(
-            entries: List[Entry], embeddings_model: EmbeddingsModel, search_model: SearchModelConfig
-        ):
+        @transaction.atomic
+        def regenerate_entries(entry_filter: Q, embeddings_model: EmbeddingsModel, search_model: SearchModelConfig):
+            entries = Entry.objects.filter(entry_filter).all()
             compiled_entries = [entry.compiled for entry in entries]
+            updated_entries: List[Entry] = []
             try:
                 embeddings = embeddings_model.embed_documents(compiled_entries)
 
@@ -52,8 +54,10 @@ class Command(BaseCommand):
 
             for i, entry in enumerate(tqdm(entries)):
                 entry.embeddings = embeddings[i]
-                entry.search_model = search_model
-                entry.save()
+                entry.search_model_id = search_model.id
+                updated_entries.append(entry)
+
+            Entry.objects.bulk_update(updated_entries, ["embeddings", "search_model_id", "file_path"])
 
         search_model_config_id = options.get("search_model_id")
         apply = options.get("apply")
@@ -79,6 +83,7 @@ class Command(BaseCommand):
             )
 
         new_default_search_model_config = SearchModelConfig.objects.get(id=search_model_config_id)
+        logger.info(f"New default Search model: {new_default_search_model_config}")
         user_search_model_configs_to_update = UserSearchModelConfig.objects.exclude(
             setting_id=search_model_config_id
         ).all()
@@ -86,13 +91,14 @@ class Command(BaseCommand):
 
         for user_config in user_search_model_configs_to_update:
             affected_user = user_config.user
-            relevant_entries = Entry.objects.filter(user=affected_user).all()
+            entry_filter = Q(user=affected_user)
+            relevant_entries = Entry.objects.filter(entry_filter).all()
             logger.info(f"Number of Entry objects to update for user {affected_user}: {relevant_entries.count()}")
 
             if apply:
                 try:
                     regenerate_entries(
-                        relevant_entries,
+                        entry_filter,
                         embeddings_model[new_default_search_model_config.name],
                         new_default_search_model_config,
                     )
@@ -112,7 +118,7 @@ class Command(BaseCommand):
         logger.info("----")
 
         # There are also plenty of users who have indexed documents without explicitly creating a UserSearchModelConfig object. You would have to migrate these users as well, if the default is different from search_model_config_id.
-        current_default = SearchModelConfig.objects.filter(name="default").first() or SearchModelConfig.objects.first()
+        current_default = get_default_search_model()
         if current_default.id != new_default_search_model_config.id:
             users_without_user_search_model_config = KhojUser.objects.annotate(
                 user_search_model_config_count=Count("usersearchmodelconfig")
@@ -120,13 +126,14 @@ class Command(BaseCommand):
 
             logger.info(f"Number of User objects to update: {users_without_user_search_model_config.count()}")
             for user in users_without_user_search_model_config:
-                relevant_entries = Entry.objects.filter(user=user).all()
+                entry_filter = Q(user=user)
+                relevant_entries = Entry.objects.filter(entry_filter).all()
                 logger.info(f"Number of Entry objects to update for user {user}: {relevant_entries.count()}")
 
                 if apply:
                     try:
                         regenerate_entries(
-                            relevant_entries,
+                            entry_filter,
                             embeddings_model[new_default_search_model_config.name],
                             new_default_search_model_config,
                         )
@@ -147,13 +154,14 @@ class Command(BaseCommand):
         all_agents = Agent.objects.all()
         logger.info(f"Number of Agent objects to update: {all_agents.count()}")
         for agent in all_agents:
-            relevant_entries = Entry.objects.filter(agent=agent).all()
+            entry_filter = Q(agent=agent)
+            relevant_entries = Entry.objects.filter(entry_filter).all()
             logger.info(f"Number of Entry objects to update for agent {agent}: {relevant_entries.count()}")
 
             if apply:
                 try:
                     regenerate_entries(
-                        relevant_entries,
+                        entry_filter,
                         embeddings_model[new_default_search_model_config.name],
                         new_default_search_model_config,
                     )
@@ -162,10 +170,9 @@ class Command(BaseCommand):
                     )
                 except Exception as e:
                     logger.error(f"Error embedding documents: {e}")
-        if apply:
+        if apply and current_default.id != new_default_search_model_config.id:
             # Get the existing default SearchModelConfig object and update its name
-            current_default = get_default_search_model()
-            current_default.name = f"default-before-{new_default_search_model_config.name}"
+            current_default.name = f"prev_default_{current_default.id}"
             current_default.save()
 
             # Update the new default SearchModelConfig object's name
