@@ -34,10 +34,10 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        def regenerate_entry(entry: List[Entry], embeddings_model: EmbeddingsModel):
-            compiled_entries = [entry.compiled for entry in entry]
+        def regenerate_entry(entries: List[Entry], embeddings_model: EmbeddingsModel):
+            compiled_entries = [entry.compiled for entry in entries]
             embeddings = embeddings_model.embed_documents(compiled_entries)
-            for i, entry in enumerate(tqdm(entry)):
+            for i, entry in enumerate(tqdm(entries)):
                 entry.embeddings = embeddings[i]
                 entry.save()
 
