@@ -251,6 +251,8 @@ For arrows and lines, you can use the `points` property to specify the start and
     id: string,
     x: number,
     y: number,
+    width: number,
+    height: number,
     strokeColor: string,
     start: {{
         id: string,
