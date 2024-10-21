@@ -11,7 +11,7 @@ import {
     UserProfile,
     ModelOptions,
     useUserConfig,
-    SubscriptionStates,
+    isUserSubscribed,
 } from "../common/auth";
 
 import { Lightning, Plus } from "@phosphor-icons/react";
@@ -267,14 +267,7 @@ export default function Agents() {
 
     const modelOptions: ModelOptions[] = userConfig?.chat_model_options || [];
     const selectedChatModelOption: number = userConfig?.selected_chat_model_config || 0;
-    const isSubscribed: boolean =
-        (userConfig?.subscription_state &&
-            [
-                SubscriptionStates.SUBSCRIBED.valueOf(),
-                SubscriptionStates.TRIAL.valueOf(),
-                SubscriptionStates.UNSUBSCRIBED.valueOf(),
-            ].includes(userConfig.subscription_state)) ||
-        false;
+    const isSubscribed: boolean = isUserSubscribed(userConfig);
 
     // The default model option should map to the item in the modelOptions array that has the same id as the selectedChatModelOption
     const defaultModelOption = modelOptions.find(
