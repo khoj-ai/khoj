@@ -13,7 +13,7 @@ import "katex/dist/katex.min.css";
 import { useIPLocationData, useIsMobileWidth, welcomeConsole } from "../../common/utils";
 import { useAuthenticatedData } from "@/app/common/auth";
 
-import ChatInputArea, { ChatOptions } from "@/app/components/chatInputArea/chatInputArea";
+import { ChatInputArea, ChatOptions } from "@/app/components/chatInputArea/chatInputArea";
 import { StreamMessage } from "@/app/components/chatMessage/chatMessage";
 import { processMessageChunk } from "@/app/common/chatFunctions";
 import { AgentData } from "@/app/agents/page";

@@ -1,25 +1,9 @@
 import styles from "./chatInputArea.module.css";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, forwardRef } from "react";
 
 import DOMPurify from "dompurify";
 import "katex/dist/katex.min.css";
-import {
-    ArrowRight,
-    ArrowUp,
-    Browser,
-    ChatsTeardrop,
-    GlobeSimple,
-    Gps,
-    Image,
-    Microphone,
-    Notebook,
-    Paperclip,
-    X,
-    Question,
-    Robot,
-    Shapes,
-    Stop,
-} from "@phosphor-icons/react";
+import { ArrowUp, Microphone, Paperclip, X, Stop } from "@phosphor-icons/react";
 
 import {
     Command,
@@ -68,7 +52,7 @@ interface ChatInputProps {
     agentColor?: string;
 }
 
-export default function ChatInputArea(props: ChatInputProps) {
+export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((props, ref) => {
     const [message, setMessage] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -270,7 +254,7 @@ export default function ChatInputArea(props: ChatInputProps) {
         }
     }, [recording, mediaRecorder]);
 
-    const chatInputRef = useRef<HTMLTextAreaElement>(null);
+    const chatInputRef = ref as React.MutableRefObject<HTMLTextAreaElement>;
     useEffect(() => {
         if (!chatInputRef.current) return;
         chatInputRef.current.style.height = "auto";
@@ -514,4 +498,6 @@ export default function ChatInputArea(props: ChatInputProps) {
             </div>
         </>
     );
-}
+});
+
+ChatInputArea.displayName = "ChatInputArea";

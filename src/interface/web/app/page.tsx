@@ -12,7 +12,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import SuggestionCard from "@/app/components/suggestions/suggestionCard";
 import SidePanel from "@/app/components/sidePanel/chatHistorySidePanel";
 import Loading from "@/app/components/loading/loading";
-import ChatInputArea, { ChatOptions } from "@/app/components/chatInputArea/chatInputArea";
+import { ChatInputArea, ChatOptions } from "@/app/components/chatInputArea/chatInputArea";
 import { Suggestion, suggestionsData } from "@/app/components/suggestions/suggestionsData";
 import LoginPrompt from "@/app/components/loginPrompt/loginPrompt";
 
