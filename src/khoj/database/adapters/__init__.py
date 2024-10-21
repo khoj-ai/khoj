@@ -641,6 +641,16 @@ class AgentAdapters:
         return await sync_to_async(list)(agents)
 
     @staticmethod
+    async def ais_agent_accessible(agent: Agent, user: KhojUser) -> bool:
+        if agent.privacy_level == Agent.PrivacyLevel.PUBLIC:
+            return True
+        if agent.creator == user:
+            return True
+        if agent.privacy_level == Agent.PrivacyLevel.PROTECTED:
+            return True
+        return False
+
+    @staticmethod
     def get_conversation_agent_by_id(agent_id: int):
         agent = Agent.objects.filter(id=agent_id).first()
         if agent == AgentAdapters.get_default_agent():
