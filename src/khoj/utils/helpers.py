@@ -350,9 +350,9 @@ tool_descriptions_for_llm = {
 }
 
 mode_descriptions_for_llm = {
-    ConversationCommand.Image: "Use this if the user is requesting you to generate a picture based on their description.",
+    ConversationCommand.Image: "Use this if the user is requesting you to create a new picture based on their description.",
     ConversationCommand.Automation: "Use this if you are confident the user is requesting a response at a scheduled date, time and frequency",
-    ConversationCommand.Text: "Use this if the other response modes don't seem to fit the query.",
+    ConversationCommand.Text: "Use this if a normal text response would be sufficient for accurately responding to the query.",
 }
 
 mode_descriptions_for_agent = {

@@ -535,7 +535,7 @@ class ChatRequestBody(BaseModel):
     country: Optional[str] = None
     country_code: Optional[str] = None
     timezone: Optional[str] = None
-    image: Optional[str] = None
+    images: Optional[list[str]] = None
     create_new: Optional[bool] = False
 
 
@@ -564,9 +564,9 @@ async def chat(
     country = body.country or get_country_name_from_timezone(body.timezone)
     country_code = body.country_code or get_country_code_from_timezone(body.timezone)
     timezone = body.timezone
-    image = body.image
+    raw_images = body.images
 
-    async def event_generator(q: str, image: str):
+    async def event_generator(q: str, images: list[str]):
         start_time = time.perf_counter()
         ttft = None
         chat_metadata: dict = {}
@@ -576,16 +576,16 @@ async def chat(
         q = unquote(q)
         nonlocal conversation_id
 
-        uploaded_image_url = None
-        if image:
-            decoded_string = unquote(image)
-            base64_data = decoded_string.split(",", 1)[1]
-            image_bytes = base64.b64decode(base64_data)
-            webp_image_bytes = convert_image_to_webp(image_bytes)
-            try:
-                uploaded_image_url = upload_image_to_bucket(webp_image_bytes, request.user.object.id)
-            except:
-                uploaded_image_url = None
+        uploaded_images: list[str] = []
+        if images:
+            for image in images:
+                decoded_string = unquote(image)
+                base64_data = decoded_string.split(",", 1)[1]
+                image_bytes = base64.b64decode(base64_data)
+                webp_image_bytes = convert_image_to_webp(image_bytes)
+                uploaded_image = upload_image_to_bucket(webp_image_bytes, request.user.object.id)
+                if uploaded_image:
+                    uploaded_images.append(uploaded_image)
 
         async def send_event(event_type: ChatEvent, data: str | dict):
             nonlocal connection_alive, ttft
@@ -692,7 +692,7 @@ async def chat(
                 meta_log,
                 is_automated_task,
                 user=user,
-                uploaded_image_url=uploaded_image_url,
+                query_images=uploaded_images,
                 agent=agent,
             )
             conversation_commands_str = ", ".join([cmd.value for cmd in conversation_commands])
@@ -701,7 +701,7 @@ async def chat(
             ):
                 yield result
 
-            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task, user, uploaded_image_url, agent)
+            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task, user, uploaded_images, agent)
             async for result in send_event(ChatEvent.STATUS, f"**Decided Response Mode:** {mode.value}"):
                 yield result
             if mode not in conversation_commands:
@@ -764,7 +764,7 @@ async def chat(
                         q,
                         contextual_data,
                         conversation_history=meta_log,
-                        uploaded_image_url=uploaded_image_url,
+                        query_images=uploaded_images,
                         user=user,
                         agent=agent,
                     )
@@ -785,7 +785,7 @@ async def chat(
                 intent_type="summarize",
                 client_application=request.user.client_app,
                 conversation_id=conversation_id,
-                uploaded_image_url=uploaded_image_url,
+                query_images=uploaded_images,
             )
             return
 
@@ -828,7 +828,7 @@ async def chat(
                 conversation_id=conversation_id,
                 inferred_queries=[query_to_run],
                 automation_id=automation.id,
-                uploaded_image_url=uploaded_image_url,
+                query_images=uploaded_images,
             )
             async for result in send_llm_response(llm_response):
                 yield result
@@ -848,7 +848,7 @@ async def chat(
                 conversation_commands,
                 location,
                 partial(send_event, ChatEvent.STATUS),
-                uploaded_image_url=uploaded_image_url,
+                query_images=uploaded_images,
                 agent=agent,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -892,7 +892,7 @@ async def chat(
                     user,
                     partial(send_event, ChatEvent.STATUS),
                     custom_filters,
-                    uploaded_image_url=uploaded_image_url,
+                    query_images=uploaded_images,
                     agent=agent,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -916,7 +916,7 @@ async def chat(
                     location,
                     user,
                     partial(send_event, ChatEvent.STATUS),
-                    uploaded_image_url=uploaded_image_url,
+                    query_images=uploaded_images,
                     agent=agent,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -966,20 +966,20 @@ async def chat(
                 references=compiled_references,
                 online_results=online_results,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
-                uploaded_image_url=uploaded_image_url,
+                query_images=uploaded_images,
                 agent=agent,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
                 else:
-                    image, status_code, improved_image_prompt, intent_type = result
+                    generated_image, status_code, improved_image_prompt, intent_type = result
 
-            if image is None or status_code != 200:
+            if generated_image is None or status_code != 200:
                 content_obj = {
                     "content-type": "application/json",
                     "intentType": intent_type,
                     "detail": improved_image_prompt,
-                    "image": image,
+                    "image": None,
                 }
                 async for result in send_llm_response(json.dumps(content_obj)):
                     yield result
@@ -987,7 +987,7 @@ async def chat(
 
             await sync_to_async(save_to_conversation_log)(
                 q,
-                image,
+                generated_image,
                 user,
                 meta_log,
                 user_message_time,
@@ -997,12 +997,12 @@ async def chat(
                 conversation_id=conversation_id,
                 compiled_references=compiled_references,
                 online_results=online_results,
-                uploaded_image_url=uploaded_image_url,
+                query_images=uploaded_images,
             )
             content_obj = {
                 "intentType": intent_type,
                 "inferredQueries": [improved_image_prompt],
-                "image": image,
+                "image": generated_image,
             }
             async for result in send_llm_response(json.dumps(content_obj)):
                 yield result
@@ -1024,7 +1024,7 @@ async def chat(
             conversation_id,
             location,
             user_name,
-            uploaded_image_url,
+            uploaded_images,
         )
 
         # Send Response
@@ -1050,9 +1050,9 @@ async def chat(
 
     ## Stream Text Response
     if stream:
-        return StreamingResponse(event_generator(q, image=image), media_type="text/plain")
+        return StreamingResponse(event_generator(q, images=raw_images), media_type="text/plain")
     ## Non-Streaming Text Response
     else:
-        response_iterator = event_generator(q, image=image)
+        response_iterator = event_generator(q, images=raw_images)
         response_data = await read_chat_stream(response_iterator)
         return Response(content=json.dumps(response_data), media_type="application/json", status_code=200)

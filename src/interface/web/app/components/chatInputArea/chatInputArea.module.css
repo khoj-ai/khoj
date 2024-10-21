@@ -1,4 +1,5 @@
 div.actualInputArea {
     display: grid;
     grid-template-columns: auto 1fr auto auto;
+    max-width: 700px;
 }

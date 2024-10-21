@@ -57,7 +57,26 @@ div.emptyChatMessage {
     display: none;
 }
 
-div.chatMessageContainer img {
+div.imagesContainer {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+}
+
+div.imageWrapper {
+    flex: 0 0 auto;
+    margin-right: 8px;
+}
+
+div.imageWrapper img {
+    width: auto;
+    height: 128px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+div.chatMessageContainer > img {
     width: auto;
     height: auto;
     max-width: 100%;

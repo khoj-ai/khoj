@@ -26,7 +26,7 @@ async def text_to_image(
     references: List[Dict[str, Any]],
     online_results: Dict[str, Any],
     send_status_func: Optional[Callable] = None,
-    uploaded_image_url: Optional[str] = None,
+    query_images: Optional[List[str]] = None,
     agent: Agent = None,
 ):
     status_code = 200
@@ -65,7 +65,7 @@ async def text_to_image(
         note_references=references,
         online_results=online_results,
         model_type=text_to_image_config.model_type,
-        uploaded_image_url=uploaded_image_url,
+        query_images=query_images,
         user=user,
         agent=agent,
     )

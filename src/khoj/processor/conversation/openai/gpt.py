@@ -30,7 +30,7 @@ def extract_questions(
     api_base_url=None,
     location_data: LocationData = None,
     user: KhojUser = None,
-    uploaded_image_url: Optional[str] = None,
+    query_images: Optional[list[str]] = None,
     vision_enabled: bool = False,
     personality_context: Optional[str] = None,
 ):
@@ -74,7 +74,7 @@ def extract_questions(
 
     prompt = construct_structured_message(
         message=prompt,
-        image_url=uploaded_image_url,
+        images=query_images,
         model_type=ChatModelOptions.ModelType.OPENAI,
         vision_enabled=vision_enabled,
     )
@@ -135,7 +135,7 @@ def converse(
     location_data: LocationData = None,
     user_name: str = None,
     agent: Agent = None,
-    image_url: Optional[str] = None,
+    query_images: Optional[list[str]] = None,
     vision_available: bool = False,
 ):
     """
@@ -191,7 +191,7 @@ def converse(
         model_name=model,
         max_prompt_size=max_prompt_size,
         tokenizer_name=tokenizer_name,
-        uploaded_image_url=image_url,
+        query_images=query_images,
         vision_enabled=vision_available,
         model_type=ChatModelOptions.ModelType.OPENAI,
     )

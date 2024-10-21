@@ -1,8 +1,11 @@
 import logging
 import random
+from io import BytesIO
 from threading import Thread
 
 import google.generativeai as genai
+import PIL.Image
+import requests
 from google.generativeai.types.answer_types import FinishReason
 from google.generativeai.types.generation_types import StopCandidateException
 from google.generativeai.types.safety_types import (
@@ -53,14 +56,14 @@ def gemini_completion_with_backoff(
         },
     )
 
-    formatted_messages = [{"role": message.role, "parts": [message.content]} for message in messages]
+    formatted_messages = [{"role": message.role, "parts": message.content} for message in messages]
 
     # Start chat session. All messages up to the last are considered to be part of the chat history
     chat_session = model.start_chat(history=formatted_messages[0:-1])
 
     try:
         # Generate the response. The last message is considered to be the current prompt
-        aggregated_response = chat_session.send_message(formatted_messages[-1]["parts"][0])
+        aggregated_response = chat_session.send_message(formatted_messages[-1]["parts"])
         return aggregated_response.text
     except StopCandidateException as e:
         response_message, _ = handle_gemini_response(e.args)
@@ -117,11 +120,11 @@ def gemini_llm_thread(g, messages, system_prompt, model_name, temperature, api_k
             },
         )
 
-        formatted_messages = [{"role": message.role, "parts": [message.content]} for message in messages]
+        formatted_messages = [{"role": message.role, "parts": message.content} for message in messages]
         # all messages up to the last are considered to be part of the chat history
         chat_session = model.start_chat(history=formatted_messages[0:-1])
         # the last message is considered to be the current prompt
-        for chunk in chat_session.send_message(formatted_messages[-1]["parts"][0], stream=True):
+        for chunk in chat_session.send_message(formatted_messages[-1]["parts"], stream=True):
             message, stopped = handle_gemini_response(chunk.candidates, chunk.prompt_feedback)
             message = message or chunk.text
             g.send(message)
@@ -191,14 +194,6 @@ def generate_safety_response(safety_ratings):
 
 
 def format_messages_for_gemini(messages: list[ChatMessage], system_prompt: str = None) -> tuple[list[str], str]:
-    if len(messages) == 1:
-        messages[0].role = "user"
-        return messages, system_prompt
-
-    for message in messages:
-        if message.role == "assistant":
-            message.role = "model"
-
     # Extract system message
     system_prompt = system_prompt or ""
     for message in messages.copy():
@@ -207,4 +202,31 @@ def format_messages_for_gemini(messages: list[ChatMessage], system_prompt: str =
             messages.remove(message)
     system_prompt = None if is_none_or_empty(system_prompt) else system_prompt
 
+    for message in messages:
+        # Convert message content to string list from chatml dictionary list
+        if isinstance(message.content, list):
+            # Convert image_urls to PIL.Image and place them at beginning of list (better for Gemini)
+            message.content = [
+                get_image_from_url(item["image_url"]["url"]) if item["type"] == "image_url" else item["text"]
+                for item in sorted(message.content, key=lambda x: 0 if x["type"] == "image_url" else 1)
+            ]
+        elif isinstance(message.content, str):
+            message.content = [message.content]
+
+        if message.role == "assistant":
+            message.role = "model"
+
+    if len(messages) == 1:
+        messages[0].role = "user"
+
     return messages, system_prompt
+
+
+def get_image_from_url(image_url: str) -> PIL.Image:
+    try:
+        response = requests.get(image_url)
+        response.raise_for_status()  # Check if the request was successful
+        return PIL.Image.open(BytesIO(response.content))
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Failed to get image from URL {image_url}: {e}")
+        return None
