@@ -148,6 +148,10 @@ def handle_gemini_response(candidates, prompt_feedback=None):
     elif candidates[0].finish_reason == FinishReason.SAFETY:
         message = generate_safety_response(candidates[0].safety_ratings)
         stopped = True
+    # Check if finish reason is empty, therefore generation is in progress
+    elif not candidates[0].finish_reason:
+        message = None
+        stopped = False
     # Check if the response was stopped due to reaching maximum token limit or other reasons
     elif candidates[0].finish_reason != FinishReason.STOP:
         message = f"\nI can't talk further about that because of **{candidates[0].finish_reason.name} issue.**"

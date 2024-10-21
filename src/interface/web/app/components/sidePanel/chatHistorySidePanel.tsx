@@ -98,7 +98,11 @@ import { KhojLogoType } from "@/app/components/logo/khojLogo";
 import NavMenu from "@/app/components/navMenu/navMenu";
 
 // Define a fetcher function
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = (url: string) =>
+    fetch(url).then((res) => {
+        if (!res.ok) throw new Error(`Failed to call API at ${url} with error ${res.statusText}`);
+        return res.json();
+    });
 
 interface GroupedChatHistory {
     [key: string]: ChatHistory[];
@@ -181,20 +185,15 @@ function FilesMenu(props: FilesMenuProps) {
     useEffect(() => {
         if (!files) return;
 
-        const uniqueFiles = Array.from(new Set(files));
+        let sortedUniqueFiles = Array.from(new Set(files)).sort();
 
-        // First, sort lexically
-        uniqueFiles.sort();
-
-        let sortedFiles = uniqueFiles;
-
-        if (addedFiles) {
-            sortedFiles = addedFiles.concat(
-                sortedFiles.filter((filename: string) => !addedFiles.includes(filename)),
+        if (Array.isArray(addedFiles)) {
+            sortedUniqueFiles = addedFiles.concat(
+                sortedUniqueFiles.filter((filename: string) => !addedFiles.includes(filename)),
             );
         }
 
-        setUnfilteredFiles(sortedFiles);
+        setUnfilteredFiles(sortedUniqueFiles);
     }, [files, addedFiles]);
 
     useEffect(() => {
@@ -204,8 +203,10 @@ function FilesMenu(props: FilesMenuProps) {
     }, [props.uploadedFiles]);
 
     useEffect(() => {
-        if (selectedFiles) {
+        if (Array.isArray(selectedFiles)) {
             setAddedFiles(selectedFiles);
+        } else {
+            setAddedFiles([]);
         }
     }, [selectedFiles]);
 
@@ -269,7 +270,7 @@ function FilesMenu(props: FilesMenuProps) {
                             </CommandItem>
                         )}
                         {unfilteredFiles.map((filename: string) =>
-                            addedFiles && addedFiles.includes(filename) ? (
+                            Array.isArray(addedFiles) && addedFiles.includes(filename) ? (
                                 <CommandItem
                                     key={filename}
                                     value={filename}

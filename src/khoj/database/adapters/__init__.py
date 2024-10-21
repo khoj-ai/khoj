@@ -1,6 +1,7 @@
 import json
 import logging
 import math
+import os
 import random
 import re
 import secrets
@@ -10,7 +11,6 @@ from enum import Enum
 from typing import Callable, Iterable, List, Optional, Type
 
 import cron_descriptor
-import django
 from apscheduler.job import Job
 from asgiref.sync import sync_to_async
 from django.contrib.sessions.backends.db import SessionStore
@@ -52,6 +52,7 @@ from khoj.database.models import (
     UserTextToImageModelConfig,
     UserVoiceModelConfig,
     VoiceModelOption,
+    WebScraper,
 )
 from khoj.processor.conversation import prompts
 from khoj.search_filter.date_filter import DateFilter
@@ -59,7 +60,12 @@ from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.utils import state
 from khoj.utils.config import OfflineChatProcessorModel
-from khoj.utils.helpers import generate_random_name, is_none_or_empty, timer
+from khoj.utils.helpers import (
+    generate_random_name,
+    in_debug_mode,
+    is_none_or_empty,
+    timer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -616,6 +622,8 @@ class AgentAdapters:
     @staticmethod
     def get_all_accessible_agents(user: KhojUser = None):
         public_query = Q(privacy_level=Agent.PrivacyLevel.PUBLIC)
+        # TODO Update this to allow any public agent that's officially approved once that experience is launched
+        public_query &= Q(managed_by_admin=True)
         if user:
             return (
                 Agent.objects.filter(public_query | Q(creator=user))
@@ -633,6 +641,16 @@ class AgentAdapters:
     async def aget_all_accessible_agents(user: KhojUser = None) -> List[Agent]:
         agents = await sync_to_async(AgentAdapters.get_all_accessible_agents)(user)
         return await sync_to_async(list)(agents)
+
+    @staticmethod
+    async def ais_agent_accessible(agent: Agent, user: KhojUser) -> bool:
+        if agent.privacy_level == Agent.PrivacyLevel.PUBLIC:
+            return True
+        if agent.creator == user:
+            return True
+        if agent.privacy_level == Agent.PrivacyLevel.PROTECTED:
+            return True
+        return False
 
     @staticmethod
     def get_conversation_agent_by_id(agent_id: int):
@@ -939,21 +957,21 @@ class ConversationAdapters:
     def get_conversation_config(user: KhojUser):
         subscribed = is_user_subscribed(user)
         if not subscribed:
-            return ConversationAdapters.get_default_conversation_config()
+            return ConversationAdapters.get_default_conversation_config(user)
         config = UserConversationConfig.objects.filter(user=user).first()
         if config:
             return config.setting
-        return ConversationAdapters.get_advanced_conversation_config()
+        return ConversationAdapters.get_advanced_conversation_config(user)
 
     @staticmethod
     async def aget_conversation_config(user: KhojUser):
         subscribed = await ais_user_subscribed(user)
         if not subscribed:
-            return await ConversationAdapters.aget_default_conversation_config()
+            return await ConversationAdapters.aget_default_conversation_config(user)
         config = await UserConversationConfig.objects.filter(user=user).prefetch_related("setting").afirst()
         if config:
             return config.setting
-        return ConversationAdapters.aget_advanced_conversation_config()
+        return ConversationAdapters.aget_advanced_conversation_config(user)
 
     @staticmethod
     async def aget_voice_model_config(user: KhojUser) -> Optional[VoiceModelOption]:
@@ -1014,22 +1032,86 @@ class ConversationAdapters:
         return await ChatModelOptions.objects.filter().prefetch_related("openai_config").afirst()
 
     @staticmethod
-    def get_advanced_conversation_config():
+    def get_advanced_conversation_config(user: KhojUser):
         server_chat_settings = ServerChatSettings.objects.first()
         if server_chat_settings is not None and server_chat_settings.chat_advanced is not None:
             return server_chat_settings.chat_advanced
-        return ConversationAdapters.get_default_conversation_config()
+        return ConversationAdapters.get_default_conversation_config(user)
 
     @staticmethod
-    async def aget_advanced_conversation_config():
+    async def aget_advanced_conversation_config(user: KhojUser = None):
         server_chat_settings: ServerChatSettings = (
             await ServerChatSettings.objects.filter()
             .prefetch_related("chat_advanced", "chat_advanced__openai_config")
             .afirst()
         )
-        if server_chat_settings is not None or server_chat_settings.chat_advanced is not None:
+        if server_chat_settings is not None and server_chat_settings.chat_advanced is not None:
             return server_chat_settings.chat_advanced
-        return await ConversationAdapters.aget_default_conversation_config()
+        return await ConversationAdapters.aget_default_conversation_config(user)
+
+    @staticmethod
+    async def aget_server_webscraper():
+        server_chat_settings = await ServerChatSettings.objects.filter().prefetch_related("web_scraper").afirst()
+        if server_chat_settings is not None and server_chat_settings.web_scraper is not None:
+            return server_chat_settings.web_scraper
+        return None
+
+    @staticmethod
+    async def aget_enabled_webscrapers() -> list[WebScraper]:
+        enabled_scrapers: list[WebScraper] = []
+        server_webscraper = await ConversationAdapters.aget_server_webscraper()
+        if server_webscraper:
+            # Only use the webscraper set in the server chat settings
+            enabled_scrapers = [server_webscraper]
+        if not enabled_scrapers:
+            # Use the enabled web scrapers, ordered by priority, until get web page content
+            enabled_scrapers = [scraper async for scraper in WebScraper.objects.all().order_by("priority").aiterator()]
+        if not enabled_scrapers:
+            # Use scrapers enabled via environment variables
+            if os.getenv("FIRECRAWL_API_KEY"):
+                api_url = os.getenv("FIRECRAWL_API_URL", "https://api.firecrawl.dev")
+                enabled_scrapers.append(
+                    WebScraper(
+                        type=WebScraper.WebScraperType.FIRECRAWL,
+                        name=WebScraper.WebScraperType.FIRECRAWL.capitalize(),
+                        api_key=os.getenv("FIRECRAWL_API_KEY"),
+                        api_url=api_url,
+                    )
+                )
+            if os.getenv("OLOSTEP_API_KEY"):
+                api_url = os.getenv("OLOSTEP_API_URL", "https://agent.olostep.com/olostep-p2p-incomingAPI")
+                enabled_scrapers.append(
+                    WebScraper(
+                        type=WebScraper.WebScraperType.OLOSTEP,
+                        name=WebScraper.WebScraperType.OLOSTEP.capitalize(),
+                        api_key=os.getenv("OLOSTEP_API_KEY"),
+                        api_url=api_url,
+                    )
+                )
+            # Jina is the default fallback scrapers to use as it does not require an API key
+            api_url = os.getenv("JINA_READER_API_URL", "https://r.jina.ai/")
+            enabled_scrapers.append(
+                WebScraper(
+                    type=WebScraper.WebScraperType.JINA,
+                    name=WebScraper.WebScraperType.JINA.capitalize(),
+                    api_key=os.getenv("JINA_API_KEY"),
+                    api_url=api_url,
+                )
+            )
+
+            # Only enable the direct web page scraper by default in self-hosted single user setups.
+            # Useful for reading webpages on your intranet.
+            if state.anonymous_mode or in_debug_mode():
+                enabled_scrapers.append(
+                    WebScraper(
+                        type=WebScraper.WebScraperType.DIRECT,
+                        name=WebScraper.WebScraperType.DIRECT.capitalize(),
+                        api_key=None,
+                        api_url=None,
+                    )
+                )
+
+        return enabled_scrapers
 
     @staticmethod
     def create_conversation_from_public_conversation(
@@ -1393,12 +1475,15 @@ class EntryAdapters:
         file_filters = EntryAdapters.file_filter.get_filter_terms(query)
         date_filters = EntryAdapters.date_filter.get_query_date_range(query)
 
-        user_or_agent = Q(user=user)
+        owner_filter = Q()
+
+        if user != None:
+            owner_filter = Q(user=user)
         if agent != None:
-            user_or_agent |= Q(agent=agent)
+            owner_filter |= Q(agent=agent)
 
         if len(word_filters) == 0 and len(file_filters) == 0 and len(date_filters) == 0:
-            return Entry.objects.filter(user_or_agent)
+            return Entry.objects.filter(owner_filter)
 
         for term in word_filters:
             if term.startswith("+"):
@@ -1434,7 +1519,7 @@ class EntryAdapters:
                 formatted_max_date = date.fromtimestamp(max_date).strftime("%Y-%m-%d")
                 q_filter_terms &= Q(embeddings_dates__date__lte=formatted_max_date)
 
-        relevant_entries = Entry.objects.filter(user_or_agent).filter(q_filter_terms)
+        relevant_entries = Entry.objects.filter(owner_filter).filter(q_filter_terms)
         if file_type_filter:
             relevant_entries = relevant_entries.filter(file_type=file_type_filter)
         return relevant_entries
@@ -1449,13 +1534,18 @@ class EntryAdapters:
         max_distance: float = math.inf,
         agent: Agent = None,
     ):
-        user_or_agent = Q(user=user)
+        owner_filter = Q()
 
+        if user != None:
+            owner_filter = Q(user=user)
         if agent != None:
-            user_or_agent |= Q(agent=agent)
+            owner_filter |= Q(agent=agent)
+
+        if owner_filter == Q():
+            return Entry.objects.none()
 
         relevant_entries = EntryAdapters.apply_filters(user, raw_query, file_type_filter, agent)
-        relevant_entries = relevant_entries.filter(user_or_agent).annotate(
+        relevant_entries = relevant_entries.filter(owner_filter).annotate(
             distance=CosineDistance("embeddings", embeddings)
         )
         relevant_entries = relevant_entries.filter(distance__lte=max_distance)

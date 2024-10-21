@@ -1481,7 +1481,13 @@ export default function Agents() {
                 // Search for the agent with the slug in the URL
                 if (agentSlug) {
                     setAgentSlug(agentSlug);
-                    const selectedAgent = data.find((agent) => agent.slug === agentSlug);
+                    let selectedAgent = data.find((agent) => agent.slug === agentSlug);
+
+                    // If the agent is not found in all the returned agents, check in the public agents. The code may be running 2x after either agent data or authenticated data is retrieved.
+                    if (!selectedAgent) {
+                        selectedAgent = publicAgents.find((agent) => agent.slug === agentSlug);
+                    }
+
                     if (!selectedAgent) {
                         // See if the agent is accessible as a protected agent.
                         fetch(`/api/agents/${agentSlug}`)
@@ -1500,7 +1506,7 @@ export default function Agents() {
                 }
             }
         }
-    }, [data]);
+    }, [data, authenticatedData]);
 
     if (error) {
         return (

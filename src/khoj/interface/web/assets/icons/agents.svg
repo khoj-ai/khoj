@@ -14,5 +14,6 @@
         clip-rule="evenodd"
         fill-rule="evenodd"
         fill="currentColor"
+        stroke="currentColor"
         stroke-width="0.95844" />
 </svg>

@@ -31,6 +31,7 @@ from khoj.database.models import (
     UserSearchModelConfig,
     UserVoiceModelConfig,
     VoiceModelOption,
+    WebScraper,
 )
 from khoj.utils.helpers import ImageIntentType
 
@@ -69,10 +70,11 @@ class KhojUserAdmin(UserAdmin):
         "id",
         "email",
         "username",
+        "phone_number",
         "is_active",
+        "uuid",
         "is_staff",
         "is_superuser",
-        "phone_number",
     )
     search_fields = ("email", "username", "phone_number", "uuid")
     filter_horizontal = ("groups", "user_permissions")
@@ -197,7 +199,22 @@ class ServerChatSettingsAdmin(admin.ModelAdmin):
     list_display = (
         "chat_default",
         "chat_advanced",
+        "web_scraper",
     )
+
+
+@admin.register(WebScraper)
+class WebScraperAdmin(admin.ModelAdmin):
+    list_display = (
+        "priority",
+        "name",
+        "type",
+        "api_key",
+        "api_url",
+        "created_at",
+    )
+    search_fields = ("name", "api_key", "api_url", "type")
+    ordering = ("priority",)
 
 
 @admin.register(Conversation)
