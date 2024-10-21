@@ -3,9 +3,8 @@ import "./globals.css";
 import styles from "./page.module.css";
 import "katex/dist/katex.min.css";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
-import Image from "next/image";
 import { ArrowCounterClockwise } from "@phosphor-icons/react";
 
 import { Card, CardTitle } from "@/components/ui/card";
@@ -16,14 +15,21 @@ import { ChatInputArea, ChatOptions } from "@/app/components/chatInputArea/chatI
 import { Suggestion, suggestionsData } from "@/app/components/suggestions/suggestionsData";
 import LoginPrompt from "@/app/components/loginPrompt/loginPrompt";
 
-import { useAuthenticatedData, UserConfig, useUserConfig } from "@/app/common/auth";
+import {
+    isUserSubscribed,
+    useAuthenticatedData,
+    UserConfig,
+    useUserConfig,
+} from "@/app/common/auth";
 import { convertColorToBorderClass } from "@/app/common/colorUtils";
 import { getIconFromIconName } from "@/app/common/iconUtils";
 import { AgentData } from "@/app/agents/page";
 import { createNewConversation } from "./common/chatFunctions";
-import { useIsMobileWidth } from "./common/utils";
-import { useSearchParams } from "next/navigation";
+import { useDebounce, useIsMobileWidth } from "./common/utils";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { AgentCard } from "@/app/components/agentCard/agentCard";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -49,10 +55,15 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [processingMessage, setProcessingMessage] = useState(false);
     const [greeting, setGreeting] = useState("");
     const [shuffledOptions, setShuffledOptions] = useState<Suggestion[]>([]);
+    const [hoveredAgent, setHoveredAgent] = useState<string | null>(null);
+    const debouncedHoveredAgent = useDebounce(hoveredAgent, 500);
+    const [isPopoverOpen, setIsPopoverOpen] = useState(false);
     const [selectedAgent, setSelectedAgent] = useState<string | null>("khoj");
     const [agentIcons, setAgentIcons] = useState<JSX.Element[]>([]);
     const [agents, setAgents] = useState<AgentData[]>([]);
+    const chatInputRef = useRef<HTMLTextAreaElement>(null);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+    const router = useRouter();
     const searchParams = useSearchParams();
     const queryParam = searchParams.get("q");
 
@@ -61,6 +72,12 @@ function ChatBodyData(props: ChatBodyDataProps) {
             setMessage(decodeURIComponent(queryParam));
         }
     }, [queryParam]);
+
+    useEffect(() => {
+        if (debouncedHoveredAgent) {
+            setIsPopoverOpen(true);
+        }
+    }, [debouncedHoveredAgent]);
 
     const onConversationIdChange = props.onConversationIdChange;
 
@@ -72,6 +89,10 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const { data: agentsData, error } = useSWR<AgentData[]>("agents", agentsFetcher, {
         revalidateOnFocus: false,
     });
+
+    const openAgentEditCard = (agentSlug: string) => {
+        router.push(`/agents?agent=${agentSlug}`);
+    };
 
     function shuffleAndSetOptions() {
         const shuffled = FisherYatesShuffle(suggestionsData);
@@ -188,23 +209,67 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 {!props.isMobileWidth && (
                     <ScrollArea className="w-full max-w-[600px] mx-auto">
                         <div className="flex pb-2 gap-2 items-center justify-center">
-                            {agentIcons.map((icon, index) => (
-                                <Card
-                                    key={`${index}-${agents[index].slug}`}
-                                    className={`${
-                                        selectedAgent === agents[index].slug
-                                            ? convertColorToBorderClass(agents[index].color)
-                                            : "border-stone-100 dark:border-neutral-700 text-muted-foreground"
-                                    }
-                                        hover:cursor-pointer rounded-lg px-2 py-2`}
+                            {agents.map((agent, index) => (
+                                <Popover
+                                    key={`${index}-${agent.slug}`}
+                                    open={isPopoverOpen && debouncedHoveredAgent === agent.slug}
+                                    onOpenChange={(open) => {
+                                        if (!open) {
+                                            setHoveredAgent(null);
+                                            setIsPopoverOpen(false);
+                                        }
+                                    }}
                                 >
-                                    <CardTitle
-                                        className="text-center text-md font-medium flex justify-center items-center"
-                                        onClick={() => setSelectedAgent(agents[index].slug)}
+                                    <PopoverTrigger asChild>
+                                        <Card
+                                            className={`${
+                                                selectedAgent === agent.slug
+                                                    ? convertColorToBorderClass(agent.color)
+                                                    : "border-stone-100 dark:border-neutral-700 text-muted-foreground"
+                                            }
+                                            hover:cursor-pointer rounded-lg px-2 py-2`}
+                                            onDoubleClick={() => openAgentEditCard(agent.slug)}
+                                            onClick={() => {
+                                                setSelectedAgent(agent.slug);
+                                                chatInputRef.current?.focus();
+                                                setHoveredAgent(null);
+                                                setIsPopoverOpen(false);
+                                            }}
+                                            onMouseEnter={() => setHoveredAgent(agent.slug)}
+                                            onMouseLeave={() => {
+                                                setHoveredAgent(null);
+                                                setIsPopoverOpen(false);
+                                            }}
+                                        >
+                                            <CardTitle className="text-center text-md font-medium flex justify-center items-center">
+                                                {agentIcons[index]} {agent.name}
+                                            </CardTitle>
+                                        </Card>
+                                    </PopoverTrigger>
+                                    <PopoverContent
+                                        className="w-80 p-0"
+                                        onMouseLeave={() => {
+                                            setHoveredAgent(null);
+                                            setIsPopoverOpen(false);
+                                        }}
                                     >
-                                        {icon} {agents[index].name}
-                                    </CardTitle>
-                                </Card>
+                                        <AgentCard
+                                            data={agent}
+                                            userProfile={null}
+                                            isMobileWidth={props.isMobileWidth || false}
+                                            showChatButton={false}
+                                            editCard={false}
+                                            filesOptions={[]}
+                                            selectedChatModelOption=""
+                                            agentSlug=""
+                                            isSubscribed={isUserSubscribed(props.userConfig)}
+                                            setAgentChangeTriggered={() => {}}
+                                            modelOptions={[]}
+                                            inputToolOptions={{}}
+                                            outputModeOptions={{}}
+                                        />
+                                    </PopoverContent>
+                                </Popover>
                             ))}
                         </div>
                         <ScrollBar orientation="horizontal" />
@@ -225,6 +290,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                             conversationId={null}
                             isMobileWidth={props.isMobileWidth}
                             setUploadedFiles={props.setUploadedFiles}
+                            ref={chatInputRef}
                         />
                     </div>
                 )}
@@ -281,7 +347,13 @@ function ChatBodyData(props: ChatBodyDataProps) {
                                     >
                                         <CardTitle
                                             className="text-center text-xs font-medium flex justify-center items-center px-1.5 py-1"
-                                            onClick={() => setSelectedAgent(agents[index].slug)}
+                                            onDoubleClick={() =>
+                                                openAgentEditCard(agents[index].slug)
+                                            }
+                                            onClick={() => {
+                                                setSelectedAgent(agents[index].slug);
+                                                chatInputRef.current?.focus();
+                                            }}
                                         >
                                             {icon} {agents[index].name}
                                         </CardTitle>
@@ -299,6 +371,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                             conversationId={null}
                             isMobileWidth={props.isMobileWidth}
                             setUploadedFiles={props.setUploadedFiles}
+                            ref={chatInputRef}
                         />
                     </div>
                 </>
