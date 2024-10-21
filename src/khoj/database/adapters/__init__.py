@@ -622,6 +622,8 @@ class AgentAdapters:
     @staticmethod
     def get_all_accessible_agents(user: KhojUser = None):
         public_query = Q(privacy_level=Agent.PrivacyLevel.PUBLIC)
+        # TODO Update this to allow any public agent that's officially approved once that experience is launched
+        public_query &= Q(managed_by_admin=True)
         if user:
             return (
                 Agent.objects.filter(public_query | Q(creator=user))
