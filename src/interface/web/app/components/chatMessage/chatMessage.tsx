@@ -26,6 +26,7 @@ import {
     Palette,
     ClipboardText,
     Check,
+    Shapes,
 } from "@phosphor-icons/react";
 
 import DOMPurify from "dompurify";
@@ -254,6 +255,10 @@ function chooseIconFromHeader(header: string, iconColor: string) {
         compareHeader.includes("enhanc")
     ) {
         return <Aperture className={`${classNames}`} />;
+    }
+
+    if (compareHeader.includes("diagram")) {
+        return <Shapes className={`${classNames}`} />;
     }
 
     if (compareHeader.includes("paint")) {

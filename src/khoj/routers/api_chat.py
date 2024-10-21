@@ -1010,7 +1010,7 @@ async def chat(
             return
 
         if ConversationCommand.Diagram in conversation_commands:
-            async for result in send_event(ChatEvent.STATUS, f"**Drawing**: {q}"):
+            async for result in send_event(ChatEvent.STATUS, f"Creating diagram"):
                 yield result
 
             intent_type = "excalidraw"
