@@ -1,0 +1,20 @@
+.agentPersonality p {
+    white-space: inherit;
+    overflow: hidden;
+    height: 77px;
+    line-height: 1.5;
+}
+
+div.agentPersonality {
+    text-align: left;
+    grid-column: span 3;
+    overflow: hidden;
+}
+
+button.infoButton {
+    border: none;
+    background-color: transparent !important;
+    text-align: left;
+    font-family: inherit;
+    font-size: medium;
+}

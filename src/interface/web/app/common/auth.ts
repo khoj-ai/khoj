@@ -93,3 +93,15 @@ export function useUserConfig(detailed: boolean = false) {
 
     return { userConfig, isLoadingUserConfig };
 }
+
+export function isUserSubscribed(userConfig: UserConfig | null): boolean {
+    return (
+        (userConfig?.subscription_state &&
+            [
+                SubscriptionStates.SUBSCRIBED.valueOf(),
+                SubscriptionStates.TRIAL.valueOf(),
+                SubscriptionStates.UNSUBSCRIBED.valueOf(),
+            ].includes(userConfig.subscription_state)) ||
+        false
+    );
+}
