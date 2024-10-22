@@ -8,7 +8,7 @@ from fastapi import APIRouter, Request, Response
 from starlette.authentication import requires
 
 from khoj.database import adapters
-from khoj.database.models import KhojUser
+from khoj.database.models import KhojUser, Subscription
 from khoj.routers.helpers import update_telemetry_state
 from khoj.utils import state
 
@@ -75,7 +75,7 @@ async def subscribe(request: Request):
     elif event_type in {"customer.subscription.deleted"}:
         # Reset the user to trial state
         user, is_new = await adapters.set_user_subscription(
-            customer_email, is_recurring=False, renewal_date=False, type="trial"
+            customer_email, is_recurring=False, renewal_date=False, type=Subscription.Type.TRIAL
         )
         success = user is not None
 

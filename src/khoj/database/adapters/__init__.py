@@ -171,7 +171,7 @@ async def acreate_user_by_phone_number(phone_number: str) -> KhojUser:
     )
     await user.asave()
 
-    await Subscription.objects.acreate(user=user, type="standard")
+    await Subscription.objects.acreate(user=user, type=Subscription.Type.STANDARD)
 
     return user
 
@@ -188,7 +188,7 @@ async def aget_or_create_user_by_email(email: str) -> tuple[KhojUser, bool]:
 
     user_subscription = await Subscription.objects.filter(user=user).afirst()
     if not user_subscription:
-        await Subscription.objects.acreate(user=user, type="standard")
+        await Subscription.objects.acreate(user=user, type=Subscription.Type.STANDARD)
 
     return user, is_new
 
@@ -242,7 +242,7 @@ async def create_user_by_google_token(token: dict) -> KhojUser:
         user=user,
     )
 
-    await Subscription.objects.acreate(user=user, type="trial")
+    await Subscription.objects.acreate(user=user, type=Subscription.Type.STANDARD)
 
     return user
 

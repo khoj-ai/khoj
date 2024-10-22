@@ -108,7 +108,7 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 password="default",
             )
             renewal_date = make_aware(datetime.strptime("2100-04-01", "%Y-%m-%d"))
-            Subscription.objects.create(user=default_user, type="standard", renewal_date=renewal_date)
+            Subscription.objects.create(user=default_user, type=Subscription.Type.STANDARD, renewal_date=renewal_date)
 
     async def authenticate(self, request: HTTPConnection):
         current_user = request.session.get("user")
