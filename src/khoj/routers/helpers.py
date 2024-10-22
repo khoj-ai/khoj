@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import hashlib
 import json
 import logging
@@ -21,7 +22,7 @@ from typing import (
     Tuple,
     Union,
 )
-from urllib.parse import parse_qs, quote, urljoin, urlparse
+from urllib.parse import parse_qs, quote, unquote, urljoin, urlparse
 
 import cron_descriptor
 import pytz
@@ -30,6 +31,7 @@ from apscheduler.job import Job
 from apscheduler.triggers.cron import CronTrigger
 from asgiref.sync import sync_to_async
 from fastapi import Depends, Header, HTTPException, Request, UploadFile
+from pydantic import BaseModel
 from starlette.authentication import has_required_scope
 from starlette.requests import URL
 
@@ -1019,6 +1021,22 @@ def generate_chat_response(
     return chat_response, metadata
 
 
+class ChatRequestBody(BaseModel):
+    q: str
+    n: Optional[int] = 7
+    d: Optional[float] = None
+    stream: Optional[bool] = False
+    title: Optional[str] = None
+    conversation_id: Optional[str] = None
+    city: Optional[str] = None
+    region: Optional[str] = None
+    country: Optional[str] = None
+    country_code: Optional[str] = None
+    timezone: Optional[str] = None
+    images: Optional[list[str]] = None
+    create_new: Optional[bool] = False
+
+
 class ApiUserRateLimiter:
     def __init__(self, requests: int, subscribed_requests: int, window: int, slug: str):
         self.requests = requests
@@ -1064,11 +1082,56 @@ class ApiUserRateLimiter:
             )
             raise HTTPException(
                 status_code=429,
-                detail="We're glad you're enjoying Khoj! You've exceeded your usage limit for today. Come back tomorrow or subscribe to increase your usage limit via [your settings](https://app.khoj.dev/settings).",
+                detail="I'm glad you're enjoying interacting with me! But you've exceeded your usage limit for today. Come back tomorrow or subscribe to increase your usage limit via [your settings](https://app.khoj.dev/settings).",
             )
 
         # Add the current request to the cache
         UserRequests.objects.create(user=user, slug=self.slug)
+
+
+class ApiImageRateLimiter:
+    def __init__(self, max_images: int = 10, max_combined_size_mb: float = 10):
+        self.max_images = max_images
+        self.max_combined_size_mb = max_combined_size_mb
+
+    def __call__(self, request: Request, body: ChatRequestBody):
+        if state.billing_enabled is False:
+            return
+
+        # Rate limiting is disabled if user unauthenticated.
+        # Other systems handle authentication
+        if not request.user.is_authenticated:
+            return
+
+        if not body.images:
+            return
+
+        # Check number of images
+        if len(body.images) > self.max_images:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Those are way too many images for me! I can handle up to {self.max_images} images per message.",
+            )
+
+        # Check total size of images
+        total_size_mb = 0.0
+        for image in body.images:
+            # Unquote the image in case it's URL encoded
+            image = unquote(image)
+            # Assuming the image is a base64 encoded string
+            # Remove the data:image/jpeg;base64, part if present
+            if "," in image:
+                image = image.split(",", 1)[1]
+
+            # Decode base64 to get the actual size
+            image_bytes = base64.b64decode(image)
+            total_size_mb += len(image_bytes) / (1024 * 1024)  # Convert bytes to MB
+
+        if total_size_mb > self.max_combined_size_mb:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Those images are way too large for me! I can handle up to {self.max_combined_size_mb}MB of images per message.",
+            )
 
 
 class ConversationCommandRateLimiter:

@@ -30,8 +30,10 @@ from khoj.processor.speech.text_to_speech import generate_text_to_speech
 from khoj.processor.tools.online_search import read_webpages, search_online
 from khoj.routers.api import extract_references_and_questions
 from khoj.routers.helpers import (
+    ApiImageRateLimiter,
     ApiUserRateLimiter,
     ChatEvent,
+    ChatRequestBody,
     CommonQueryParams,
     ConversationCommandRateLimiter,
     agenerate_chat_response,
@@ -523,22 +525,6 @@ async def set_conversation_title(
     )
 
 
-class ChatRequestBody(BaseModel):
-    q: str
-    n: Optional[int] = 7
-    d: Optional[float] = None
-    stream: Optional[bool] = False
-    title: Optional[str] = None
-    conversation_id: Optional[str] = None
-    city: Optional[str] = None
-    region: Optional[str] = None
-    country: Optional[str] = None
-    country_code: Optional[str] = None
-    timezone: Optional[str] = None
-    images: Optional[list[str]] = None
-    create_new: Optional[bool] = False
-
-
 @api_chat.post("")
 @requires(["authenticated"])
 async def chat(
@@ -551,6 +537,7 @@ async def chat(
     rate_limiter_per_day=Depends(
         ApiUserRateLimiter(requests=600, subscribed_requests=6000, window=60 * 60 * 24, slug="chat_day")
     ),
+    image_rate_limiter=Depends(ApiImageRateLimiter(max_images=10, max_combined_size_mb=10)),
 ):
     # Access the parameters from the body
     q = body.q

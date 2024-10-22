@@ -265,7 +265,8 @@ export default function Chat() {
         try {
             await readChatStream(response);
         } catch (err) {
-            console.error(err);
+            const apiError = await response.json();
+            console.error(apiError);
             // Retrieve latest message being processed
             const currentMessage = messages.find((message) => !message.completed);
             if (!currentMessage) return;
@@ -274,7 +275,11 @@ export default function Chat() {
             const errorMessage = (err as Error).message;
             if (errorMessage.includes("Error in input stream"))
                 currentMessage.rawResponse = `Woops! The connection broke while I was writing my thoughts down. Maybe try again in a bit or dislike this message if the issue persists?`;
-            else
+            else if (response.status === 429) {
+                "detail" in apiError
+                    ? (currentMessage.rawResponse = `${apiError.detail}`)
+                    : (currentMessage.rawResponse = `I'm a bit overwhelmed at the moment. Could you try again in a bit or dislike this message if the issue persists?`);
+            } else
                 currentMessage.rawResponse = `Umm, not sure what just happened. I see this error message: ${errorMessage}. Could you try again or dislike this message if the issue persists?`;
 
             // Complete message streaming teardown properly
