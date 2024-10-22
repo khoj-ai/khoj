@@ -1569,6 +1569,7 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
         "khoj_version": state.khoj_version,
         "anonymous_mode": state.anonymous_mode,
         "notion_oauth_url": notion_oauth_url,
+        "length_of_free_trial": LENGTH_OF_FREE_TRIAL,
     }
 
 

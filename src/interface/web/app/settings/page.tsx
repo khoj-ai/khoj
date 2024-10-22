@@ -641,7 +641,14 @@ export default function SettingsView() {
     };
 
     const enableFreeTrial = async () => {
-        const LENGTH_OF_FREE_TRIAL = 7;
+        const formatDate = (dateString: Date) => {
+            const date = new Date(dateString);
+            return new Intl.DateTimeFormat("en-US", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+            }).format(date);
+        };
 
         try {
             const response = await fetch(`/api/subscription/trial`, {
@@ -655,9 +662,10 @@ export default function SettingsView() {
             if (responseBody.trial_enabled && userConfig) {
                 let newUserConfig = userConfig;
                 newUserConfig.subscription_state = SubscriptionStates.TRIAL;
-                newUserConfig.subscription_renewal_date = new Date(
-                    Date.now() + LENGTH_OF_FREE_TRIAL * 24 * 60 * 60 * 1000,
-                ).toISOString();
+                const renewalDate = new Date(
+                    Date.now() + userConfig.length_of_free_trial * 24 * 60 * 60 * 1000,
+                );
+                newUserConfig.subscription_renewal_date = formatDate(renewalDate);
                 newUserConfig.subscription_enabled_trial_at = new Date().toISOString();
                 setUserConfig(newUserConfig);
 
@@ -903,8 +911,11 @@ export default function SettingsView() {
                                                         Futurist (Trial)
                                                     </p>
                                                     <p className="text-gray-400">
-                                                        You are on a 7 day trial of the Khoj
-                                                        Futurist plan. Check{" "}
+                                                        You are on a{" "}
+                                                        {userConfig.length_of_free_trial} day trial
+                                                        of the Khoj Futurist plan. Your trial ends
+                                                        on {userConfig.subscription_renewal_date}.
+                                                        Check{" "}
                                                         <a
                                                             href="https://khoj.dev/#pricing"
                                                             target="_blank"
