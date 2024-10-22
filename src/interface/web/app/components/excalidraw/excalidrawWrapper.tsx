@@ -135,6 +135,8 @@ export default function ExcalidrawWrapper(props: ExcalidrawWrapperProps) {
                             appState: { zenModeEnabled: true },
                             scrollToContent: true,
                         }}
+                        // TODO - Create a common function to detect if the theme is dark?
+                        theme={localStorage.getItem("theme") === "dark" ? "dark" : "light"}
                         validateEmbeddable={true}
                         renderTopRightUI={(isMobile, appState) => {
                             return <></>;
