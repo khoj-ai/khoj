@@ -40,7 +40,7 @@ from khoj.routers.helpers import (
     construct_automation_created_message,
     create_automation,
     extract_relevant_summary,
-    generate_excalidraw_diagram_description,
+    generate_excalidraw_diagram,
     get_conversation_command,
     is_query_empty,
     is_ready_to_chat,
@@ -1017,8 +1017,8 @@ async def chat(
             inferred_queries = []
             diagram_description = ""
 
-            async for result in generate_excalidraw_diagram_description(
-                q=q,
+            async for result in generate_excalidraw_diagram(
+                q=defiltered_query,
                 conversation_history=meta_log,
                 location_data=location,
                 note_references=compiled_references,

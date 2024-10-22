@@ -623,7 +623,7 @@ async def extract_relevant_summary(
     return response.strip()
 
 
-async def generate_excalidraw_diagram_description(
+async def generate_excalidraw_diagram(
     q: str,
     conversation_history: Dict[str, Any],
     location_data: LocationData,
@@ -653,7 +653,7 @@ async def generate_excalidraw_diagram_description(
         async for event in send_status_func(f"**Diagram to Create:**:\n{better_diagram_description_prompt}"):
             yield {ChatEvent.STATUS: event}
 
-    excalidraw_diagram_description = await generate_excalidraw_diagram(
+    excalidraw_diagram_description = await generate_excalidraw_diagram_from_description(
         q=better_diagram_description_prompt,
         user=user,
         agent=agent,
@@ -673,7 +673,7 @@ async def generate_better_diagram_description(
     agent: Agent = None,
 ) -> str:
     """
-    Generate a diagram from the given query
+    Generate a diagram description from the given query and context
     """
 
     today_date = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d, %A")
@@ -720,7 +720,7 @@ async def generate_better_diagram_description(
     return response
 
 
-async def generate_excalidraw_diagram(
+async def generate_excalidraw_diagram_from_description(
     q: str,
     user: KhojUser = None,
     agent: Agent = None,
