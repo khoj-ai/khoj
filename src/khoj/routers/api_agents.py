@@ -1,7 +1,7 @@
 import json
 import logging
 import random
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
 from asgiref.sync import sync_to_async
@@ -72,14 +72,17 @@ async def all_agents(
         else:
             agents_packet.append(agent_packet)
 
-    # Load Conversation Sessions
+    # Load recent conversation sessions
     min_date = datetime.min.replace(tzinfo=timezone.utc)
+    two_weeks_ago = datetime.today() - timedelta(weeks=2)
     conversations = []
     if user:
         conversations = await sync_to_async(list[Conversation])(
-            ConversationAdapters.get_conversation_sessions(user, request.user.client_app).reverse()
+            ConversationAdapters.get_conversation_sessions(user, request.user.client_app)
+            .filter(updated_at__gte=two_weeks_ago)
+            .order_by("-updated_at")[:50]
         )
-    conversation_times = {conv.agent.slug: conv.updated_at for conv in conversations}
+    conversation_times = {conv.agent.slug: conv.updated_at for conv in conversations if conv.agent}
 
     # Put default agent first, then sort by mru and finally shuffle unused randomly
     random.shuffle(agents_packet)
