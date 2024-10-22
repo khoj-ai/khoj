@@ -14,6 +14,7 @@ from typing import (
     Annotated,
     Any,
     AsyncGenerator,
+    Callable,
     Dict,
     Iterator,
     List,
@@ -215,6 +216,9 @@ def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="A
         elif chat["by"] == "khoj" and ("text-to-image" in chat["intent"].get("type")):
             chat_history += f"User: {chat['intent']['query']}\n"
             chat_history += f"{agent_name}: [generated image redacted for space]\n"
+        elif chat["by"] == "khoj" and ("excalidraw" in chat["intent"].get("type")):
+            chat_history += f"User: {chat['intent']['query']}\n"
+            chat_history += f"{agent_name}: {chat['intent']['inferred-queries'][0]}\n"
     return chat_history
 
 
@@ -235,6 +239,8 @@ def get_conversation_command(query: str, any_references: bool = False) -> Conver
         return ConversationCommand.AutomatedTask
     elif query.startswith("/summarize"):
         return ConversationCommand.Summarize
+    elif query.startswith("/diagram"):
+        return ConversationCommand.Diagram
     # If no relevant notes found for the given query
     elif not any_references:
         return ConversationCommand.General
@@ -615,6 +621,129 @@ async def extract_relevant_summary(
             uploaded_image_url=uploaded_image_url,
         )
     return response.strip()
+
+
+async def generate_excalidraw_diagram(
+    q: str,
+    conversation_history: Dict[str, Any],
+    location_data: LocationData,
+    note_references: List[Dict[str, Any]],
+    online_results: Optional[dict] = None,
+    uploaded_image_url: Optional[str] = None,
+    user: KhojUser = None,
+    agent: Agent = None,
+    send_status_func: Optional[Callable] = None,
+):
+    if send_status_func:
+        async for event in send_status_func("**Enhancing the Diagramming Prompt**"):
+            yield {ChatEvent.STATUS: event}
+
+    better_diagram_description_prompt = await generate_better_diagram_description(
+        q=q,
+        conversation_history=conversation_history,
+        location_data=location_data,
+        note_references=note_references,
+        online_results=online_results,
+        uploaded_image_url=uploaded_image_url,
+        user=user,
+        agent=agent,
+    )
+
+    if send_status_func:
+        async for event in send_status_func(f"**Diagram to Create:**:\n{better_diagram_description_prompt}"):
+            yield {ChatEvent.STATUS: event}
+
+    excalidraw_diagram_description = await generate_excalidraw_diagram_from_description(
+        q=better_diagram_description_prompt,
+        user=user,
+        agent=agent,
+    )
+
+    yield better_diagram_description_prompt, excalidraw_diagram_description
+
+
+async def generate_better_diagram_description(
+    q: str,
+    conversation_history: Dict[str, Any],
+    location_data: LocationData,
+    note_references: List[Dict[str, Any]],
+    online_results: Optional[dict] = None,
+    uploaded_image_url: Optional[str] = None,
+    user: KhojUser = None,
+    agent: Agent = None,
+) -> str:
+    """
+    Generate a diagram description from the given query and context
+    """
+
+    today_date = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d, %A")
+    personality_context = (
+        prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
+    )
+
+    if location_data:
+        location_prompt = prompts.user_location.format(location=f"{location_data}")
+    else:
+        location_prompt = "Unknown"
+
+    user_references = "\n\n".join([f"# {item['compiled']}" for item in note_references])
+
+    chat_history = construct_chat_history(conversation_history)
+
+    simplified_online_results = {}
+
+    if online_results:
+        for result in online_results:
+            if online_results[result].get("answerBox"):
+                simplified_online_results[result] = online_results[result]["answerBox"]
+            elif online_results[result].get("webpages"):
+                simplified_online_results[result] = online_results[result]["webpages"]
+
+    improve_diagram_description_prompt = prompts.improve_diagram_description_prompt.format(
+        query=q,
+        chat_history=chat_history,
+        location=location_prompt,
+        current_date=today_date,
+        references=user_references,
+        online_results=simplified_online_results,
+        personality_context=personality_context,
+    )
+
+    with timer("Chat actor: Generate better diagram description", logger):
+        response = await send_message_to_model_wrapper(
+            improve_diagram_description_prompt, uploaded_image_url=uploaded_image_url, user=user
+        )
+        response = response.strip()
+        if response.startswith(('"', "'")) and response.endswith(('"', "'")):
+            response = response[1:-1]
+
+    return response
+
+
+async def generate_excalidraw_diagram_from_description(
+    q: str,
+    user: KhojUser = None,
+    agent: Agent = None,
+) -> str:
+    personality_context = (
+        prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
+    )
+
+    excalidraw_diagram_generation = prompts.excalidraw_diagram_generation_prompt.format(
+        personality_context=personality_context,
+        query=q,
+    )
+
+    with timer("Chat actor: Generate excalidraw diagram", logger):
+        raw_response = await send_message_to_model_wrapper(message=excalidraw_diagram_generation, user=user)
+        raw_response = raw_response.strip()
+        raw_response = remove_json_codeblock(raw_response)
+        response: Dict[str, str] = json.loads(raw_response)
+        if not response or not isinstance(response, List) or not isinstance(response[0], Dict):
+            # TODO Some additional validation here that it's a valid Excalidraw diagram
+            raise AssertionError(f"Invalid response for improving diagram description: {response}")
+
+    return response
 
 
 async def generate_better_image_prompt(

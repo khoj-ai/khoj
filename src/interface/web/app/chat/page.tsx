@@ -17,8 +17,6 @@ import { useIPLocationData, useIsMobileWidth, welcomeConsole } from "../common/u
 import ChatInputArea, { ChatOptions } from "../components/chatInputArea/chatInputArea";
 import { useAuthenticatedData } from "../common/auth";
 import { AgentData } from "../agents/page";
-import { DotsThreeVertical } from "@phosphor-icons/react";
-import { Button } from "@/components/ui/button";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -42,6 +40,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
 
     const setQueryToProcess = props.setQueryToProcess;
     const onConversationIdChange = props.onConversationIdChange;
+
+    const chatHistoryCustomClassName = props.isMobileWidth ? "w-full" : "w-4/6";
 
     useEffect(() => {
         if (image) {
@@ -103,10 +103,11 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     setAgent={setAgentMetadata}
                     pendingMessage={processingMessage ? message : ""}
                     incomingMessages={props.streamedMessages}
+                    customClassName={chatHistoryCustomClassName}
                 />
             </div>
             <div
-                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-t-2xl rounded-b-none md:rounded-xl h-fit`}
+                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-t-2xl rounded-b-none md:rounded-xl h-fit ${chatHistoryCustomClassName} mr-auto ml-auto`}
             >
                 <ChatInputArea
                     agentColor={agentMetadata?.color}
