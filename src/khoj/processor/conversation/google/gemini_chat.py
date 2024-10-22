@@ -139,7 +139,6 @@ def converse_gemini(
     """
     # Initialize Variables
     current_date = datetime.now()
-    conversation_primer = prompts.query_prompt.format(query=user_query)
     compiled_references = "\n\n".join({f"# File: {item['file']}\n## {item['compiled']}\n" for item in references})
 
     if agent and agent.personality:
@@ -172,16 +171,16 @@ def converse_gemini(
         completion_func(chat_response=prompts.no_online_results_found.format())
         return iter([prompts.no_online_results_found.format()])
 
-    if ConversationCommand.Online in conversation_commands or ConversationCommand.Webpage in conversation_commands:
-        conversation_primer = (
-            f"{prompts.online_search_conversation.format(online_results=str(online_results))}\n{conversation_primer}"
-        )
+    context_message = ""
     if not is_none_or_empty(compiled_references):
-        conversation_primer = f"{prompts.notes_conversation.format(query=user_query, references=compiled_references)}\n\n{conversation_primer}"
+        context_message = f"{prompts.notes_conversation.format(query=user_query, references=compiled_references)}\n\n"
+    if ConversationCommand.Online in conversation_commands or ConversationCommand.Webpage in conversation_commands:
+        context_message += f"{prompts.online_search_conversation.format(online_results=str(online_results))}"
 
     # Setup Prompt with Primer or Conversation History
     messages = generate_chatml_messages_with_context(
-        conversation_primer,
+        user_query,
+        context_message=context_message,
         conversation_log=conversation_log,
         model_name=model,
         max_prompt_size=max_prompt_size,
