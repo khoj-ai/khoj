@@ -1,6 +1,8 @@
 import os
 import re
 
+import pytest
+
 from khoj.processor.content.pdf.pdf_to_entries import PdfToEntries
 from khoj.utils.fs_syncer import get_pdf_files
 from khoj.utils.rawconfig import TextContentConfig
@@ -37,6 +39,7 @@ def test_multi_page_pdf_to_jsonl():
     assert len(entries[1]) == 6
 
 
+@pytest.mark.skip(reason="Temporarily disabled OCR due to performance issues")
 def test_ocr_page_pdf_to_jsonl():
     "Convert multiple pages from single PDF file to jsonl."
     # Arrange

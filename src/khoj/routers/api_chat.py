@@ -859,7 +859,7 @@ async def chat(
                     defiltered_query = result[2]
         except Exception as e:
             error_message = f"Error searching knowledge base: {e}. Attempting to respond without document references."
-            logger.warning(error_message)
+            logger.error(error_message, exc_info=True)
             async for result in send_event(
                 ChatEvent.STATUS, "Document search failed. I'll try respond without document references"
             ):

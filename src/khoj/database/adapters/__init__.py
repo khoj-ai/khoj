@@ -643,6 +643,8 @@ class AgentAdapters:
     @staticmethod
     def get_all_accessible_agents(user: KhojUser = None):
         public_query = Q(privacy_level=Agent.PrivacyLevel.PUBLIC)
+        # TODO Update this to allow any public agent that's officially approved once that experience is launched
+        public_query &= Q(managed_by_admin=True)
         if user:
             return (
                 Agent.objects.filter(public_query | Q(creator=user))
@@ -660,6 +662,16 @@ class AgentAdapters:
     async def aget_all_accessible_agents(user: KhojUser = None) -> List[Agent]:
         agents = await sync_to_async(AgentAdapters.get_all_accessible_agents)(user)
         return await sync_to_async(list)(agents)
+
+    @staticmethod
+    async def ais_agent_accessible(agent: Agent, user: KhojUser) -> bool:
+        if agent.privacy_level == Agent.PrivacyLevel.PUBLIC:
+            return True
+        if agent.creator == user:
+            return True
+        if agent.privacy_level == Agent.PrivacyLevel.PROTECTED:
+            return True
+        return False
 
     @staticmethod
     def get_conversation_agent_by_id(agent_id: int):
@@ -1484,12 +1496,15 @@ class EntryAdapters:
         file_filters = EntryAdapters.file_filter.get_filter_terms(query)
         date_filters = EntryAdapters.date_filter.get_query_date_range(query)
 
-        user_or_agent = Q(user=user)
+        owner_filter = Q()
+
+        if user != None:
+            owner_filter = Q(user=user)
         if agent != None:
-            user_or_agent |= Q(agent=agent)
+            owner_filter |= Q(agent=agent)
 
         if len(word_filters) == 0 and len(file_filters) == 0 and len(date_filters) == 0:
-            return Entry.objects.filter(user_or_agent)
+            return Entry.objects.filter(owner_filter)
 
         for term in word_filters:
             if term.startswith("+"):
@@ -1525,7 +1540,7 @@ class EntryAdapters:
                 formatted_max_date = date.fromtimestamp(max_date).strftime("%Y-%m-%d")
                 q_filter_terms &= Q(embeddings_dates__date__lte=formatted_max_date)
 
-        relevant_entries = Entry.objects.filter(user_or_agent).filter(q_filter_terms)
+        relevant_entries = Entry.objects.filter(owner_filter).filter(q_filter_terms)
         if file_type_filter:
             relevant_entries = relevant_entries.filter(file_type=file_type_filter)
         return relevant_entries
@@ -1540,13 +1555,18 @@ class EntryAdapters:
         max_distance: float = math.inf,
         agent: Agent = None,
     ):
-        user_or_agent = Q(user=user)
+        owner_filter = Q()
 
+        if user != None:
+            owner_filter = Q(user=user)
         if agent != None:
-            user_or_agent |= Q(agent=agent)
+            owner_filter |= Q(agent=agent)
+
+        if owner_filter == Q():
+            return Entry.objects.none()
 
         relevant_entries = EntryAdapters.apply_filters(user, raw_query, file_type_filter, agent)
-        relevant_entries = relevant_entries.filter(user_or_agent).annotate(
+        relevant_entries = relevant_entries.filter(owner_filter).annotate(
             distance=CosineDistance("embeddings", embeddings)
         )
         relevant_entries = relevant_entries.filter(distance__lte=max_distance)

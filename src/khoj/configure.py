@@ -172,7 +172,7 @@ class UserAuthenticationBackend(AuthenticationBackend):
                         request=request,
                         telemetry_type="api",
                         api="create_user",
-                        metadata={"user_id": str(user.uuid)},
+                        metadata={"server_id": str(user.uuid)},
                     )
                     logger.log(logging.INFO, f"🥳 New User Created: {user.uuid}")
             else:
