@@ -241,13 +241,13 @@ function ChatBodyData(props: ChatBodyDataProps) {
                                                 setIsPopoverOpen(false);
                                             }}
                                         >
-                                            <CardTitle className="text-center text-md font-medium flex justify-center items-center">
+                                            <CardTitle className="text-center text-md font-medium flex justify-center items-center whitespace-nowrap">
                                                 {agentIcons[index]} {agent.name}
                                             </CardTitle>
                                         </Card>
                                     </PopoverTrigger>
                                     <PopoverContent
-                                        className="w-80 p-0"
+                                        className="w-80 p-0 border-none bg-transparent shadow-none"
                                         onMouseLeave={() => {
                                             setHoveredAgent(null);
                                             setIsPopoverOpen(false);

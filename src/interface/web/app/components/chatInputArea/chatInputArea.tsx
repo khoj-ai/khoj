@@ -256,7 +256,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
 
     const chatInputRef = ref as React.MutableRefObject<HTMLTextAreaElement>;
     useEffect(() => {
-        if (!chatInputRef.current) return;
+        if (!chatInputRef?.current) return;
         chatInputRef.current.style.height = "auto";
         chatInputRef.current.style.height =
             Math.max(chatInputRef.current.scrollHeight - 24, 64) + "px";
