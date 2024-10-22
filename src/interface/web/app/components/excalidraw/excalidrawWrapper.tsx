@@ -39,6 +39,20 @@ export default function ExcalidrawWrapper(props: ExcalidrawWrapperProps) {
     };
 
     useEffect(() => {
+        if (expanded) {
+            onkeydown = (e) => {
+                if (e.key === "Escape") {
+                    setExpanded(false);
+                    // Trigger a resize event to make Excalidraw adjust its size
+                    window.dispatchEvent(new Event("resize"));
+                }
+            };
+        } else {
+            onkeydown = null;
+        }
+    }, [expanded]);
+
+    useEffect(() => {
         // Do some basic validation
         const basicValidSkeletons: ExcalidrawElementSkeleton[] = [];
 
