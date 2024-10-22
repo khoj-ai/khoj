@@ -12,7 +12,7 @@ def set_enabled_trial_at(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("database", "0069_webscraper_serverchatsettings_web_scraper"),
+        ("database", "0070_alter_agent_input_tools_alter_agent_output_modes"),
     ]
 
     operations = [
