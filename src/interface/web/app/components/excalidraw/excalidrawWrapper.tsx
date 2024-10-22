@@ -67,7 +67,7 @@ export default function ExcalidrawWrapper(props: ExcalidrawWrapperProps) {
             if (element.type === "frame") {
                 continue;
             }
-            if (element.type === "arrow" || element.type === "line") {
+            if (element.type === "arrow") {
                 const start = basicValidSkeletons.find((child) => child.id === element.start?.id);
                 const end = basicValidSkeletons.find((child) => child.id === element.end?.id);
                 if (start && end) {
