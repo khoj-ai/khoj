@@ -195,11 +195,11 @@ function renderMessageWithReference(message, by, context=null, dt=null, onlineCo
         let imageMarkdown = generateImageMarkdown(message, intentType, inferredQueries);
         chatEl = renderMessage(imageMarkdown, by, dt, null, false, "return");
     } else if (intentType === "excalidraw") {
-        let domain = hostURL ?? "http://localhost:42110/";
+        let domain = hostURL ?? "https://app.khoj.dev/";
 
         if (!domain.endsWith("/")) domain += "/";
 
-        let excalidrawMessage = `Hey, I'm not ready to show you diagrams yet here. But you can view it in the web UI at ${domain}chat?conversationId=${conversationId}`;
+        let excalidrawMessage = `Hey, I'm not ready to show you diagrams yet here. But you can view it in the web app at ${domain}chat?conversationId=${conversationId}`;
 
         chatEl = renderMessage(excalidrawMessage, by, dt, null, false, "return");
     } else {
@@ -425,7 +425,7 @@ function handleImageResponse(imageJson, rawResponse) {
         } else if (imageJson.intentType === "text-to-image-v3") {
             rawResponse = `![](data:image/webp;base64,${imageJson.image})`;
         } else if (imageJson.intentType === "excalidraw") {
-            const redirectMessage = `Hey, I'm not ready to show you diagrams yet here. But you can view it in the web UI`;
+            const redirectMessage = `Hey, I'm not ready to show you diagrams yet here. But you can view it in the web app`;
             rawResponse += redirectMessage;
         }
 
