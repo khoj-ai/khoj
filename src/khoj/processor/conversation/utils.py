@@ -180,11 +180,15 @@ def generate_chatml_messages_with_context(
     # Extract Chat History for Context
     chatml_messages: List[ChatMessage] = []
     for chat in conversation_log.get("chat", []):
+        message_context = ""
         if not is_none_or_empty(chat.get("context")):
             references = "\n\n".join(
                 {f"# File: {item['file']}\n## {item['compiled']}\n" for item in chat.get("context") or []}
             )
             message_context = f"{prompts.notes_conversation.format(references=references)}\n\n"
+        if not is_none_or_empty(chat.get("onlineContext")):
+            message_context += f"{prompts.online_search_conversation.format(online_results=chat.get('onlineContext'))}"
+        if not is_none_or_empty(chat.get("context")) or not is_none_or_empty(chat.get("onlineContext")):
             reconstructed_context_message = ChatMessage(content=message_context, role="context")
             chatml_messages.insert(0, reconstructed_context_message)
 
