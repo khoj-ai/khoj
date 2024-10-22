@@ -300,16 +300,15 @@ def subscription_to_state(subscription: Subscription) -> str:
     if not subscription:
         return SubscriptionState.INVALID.value
     elif subscription.type == Subscription.Type.TRIAL:
-        # Trial subscription is valid for 7 days
-        if datetime.now(tz=timezone.utc) - subscription.enabled_trial_at > timedelta(days=LENGTH_OF_FREE_TRIAL):
+        # Check if the trial has expired
+        if datetime.now(tz=timezone.utc) > subscription.renewal_date:
             return SubscriptionState.EXPIRED.value
-
         return SubscriptionState.TRIAL.value
-    elif subscription.is_recurring and subscription.renewal_date >= datetime.now(tz=timezone.utc):
+    elif subscription.is_recurring and subscription.renewal_date > datetime.now(tz=timezone.utc):
         return SubscriptionState.SUBSCRIBED.value
     elif not subscription.is_recurring and subscription.renewal_date is None:
         return SubscriptionState.EXPIRED.value
-    elif not subscription.is_recurring and subscription.renewal_date >= datetime.now(tz=timezone.utc):
+    elif not subscription.is_recurring and subscription.renewal_date > datetime.now(tz=timezone.utc):
         return SubscriptionState.UNSUBSCRIBED.value
     elif not subscription.is_recurring and subscription.renewal_date < datetime.now(tz=timezone.utc):
         return SubscriptionState.EXPIRED.value
