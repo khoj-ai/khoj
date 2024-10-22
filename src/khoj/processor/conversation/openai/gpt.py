@@ -143,9 +143,8 @@ def converse(
     """
     # Initialize Variables
     current_date = datetime.now()
-    compiled_references = "\n\n".join({f"# {item['compiled']}" for item in references})
-
     conversation_primer = prompts.query_prompt.format(query=user_query)
+    compiled_references = "\n\n".join({f"# File: {item['file']}\n## {item['compiled']}\n" for item in references})
 
     if agent and agent.personality:
         system_prompt = prompts.custom_personality.format(

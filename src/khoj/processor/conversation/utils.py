@@ -178,7 +178,11 @@ def generate_chatml_messages_with_context(
     # Extract Chat History for Context
     chatml_messages: List[ChatMessage] = []
     for chat in conversation_log.get("chat", []):
-        message_notes = f'\n\n Notes:\n{chat.get("context")}' if chat.get("context") else "\n"
+        references = "\n\n".join(
+            {f"# File: {item['file']}\n## {item['compiled']}\n" for item in chat.get("context") or []}
+        )
+        message_notes = f"\n\n Notes:\n{references}" if chat.get("context") else "\n"
+
         role = "user" if chat["by"] == "you" else "assistant"
 
         message_content = chat["message"] + message_notes

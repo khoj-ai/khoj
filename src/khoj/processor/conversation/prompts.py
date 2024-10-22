@@ -118,6 +118,7 @@ Use my personal notes and our past conversations to inform your response.
 Ask crisp follow-up questions to get additional context, when a helpful response cannot be provided from the provided notes or past conversations.
 
 User's Notes:
+-----
 {references}
 """.strip()
 )
@@ -127,6 +128,7 @@ notes_conversation_offline = PromptTemplate.from_template(
 Use my personal notes and our past conversations to inform your response.
 
 User's Notes:
+-----
 {references}
 """.strip()
 )
@@ -184,6 +186,7 @@ Use this up-to-date information from the internet to inform your response.
 Ask crisp follow-up questions to get additional context, when a helpful response cannot be provided from the online data or past conversations.
 
 Information from the internet:
+-----
 {online_results}
 """.strip()
 )
@@ -193,6 +196,7 @@ online_search_conversation_offline = PromptTemplate.from_template(
 Use this up-to-date information from the internet to inform your response.
 
 Information from the internet:
+-----
 {online_results}
 """.strip()
 )
