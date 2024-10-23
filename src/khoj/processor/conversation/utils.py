@@ -110,7 +110,7 @@ def save_to_conversation_log(
     client_application: ClientApplication = None,
     conversation_id: str = None,
     automation_id: str = None,
-    uploaded_image_url: str = None,
+    query_images: List[str] = None,
 ):
     user_message_time = user_message_time or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     updated_conversation = message_to_log(
@@ -118,7 +118,7 @@ def save_to_conversation_log(
         chat_response=chat_response,
         user_message_metadata={
             "created": user_message_time,
-            "uploadedImageData": uploaded_image_url,
+            "images": query_images,
         },
         khoj_message_metadata={
             "context": compiled_references,
@@ -146,10 +146,18 @@ Khoj: "{inferred_queries if ("text-to-image" in intent_type) else chat_response}
     )
 
 
-# Format user and system messages to chatml format
-def construct_structured_message(message, image_url, model_type, vision_enabled):
-    if image_url and vision_enabled and model_type == ChatModelOptions.ModelType.OPENAI:
-        return [{"type": "text", "text": message}, {"type": "image_url", "image_url": {"url": image_url}}]
+def construct_structured_message(message: str, images: list[str], model_type: str, vision_enabled: bool):
+    """
+    Format messages into appropriate multimedia format for supported chat model types
+    """
+    if not images or not vision_enabled:
+        return message
+
+    if model_type in [ChatModelOptions.ModelType.OPENAI, ChatModelOptions.ModelType.GOOGLE]:
+        return [
+            {"type": "text", "text": message},
+            *[{"type": "image_url", "image_url": {"url": image}} for image in images],
+        ]
     return message
 
 
@@ -161,7 +169,7 @@ def generate_chatml_messages_with_context(
     loaded_model: Optional[Llama] = None,
     max_prompt_size=None,
     tokenizer_name=None,
-    uploaded_image_url=None,
+    query_images=None,
     vision_enabled=False,
     model_type="",
     context_message="",
@@ -181,21 +189,22 @@ def generate_chatml_messages_with_context(
     chatml_messages: List[ChatMessage] = []
     for chat in conversation_log.get("chat", []):
         message_context = ""
+        if chat["by"] == "khoj" and "excalidraw" in chat["intent"].get("type", ""):
+            message_context += chat.get("intent").get("inferred-queries")[0]
         if not is_none_or_empty(chat.get("context")):
             references = "\n\n".join(
                 {f"# File: {item['file']}\n## {item['compiled']}\n" for item in chat.get("context") or []}
             )
-            message_context = f"{prompts.notes_conversation.format(references=references)}\n\n"
+            message_context += f"{prompts.notes_conversation.format(references=references)}\n\n"
         if not is_none_or_empty(chat.get("onlineContext")):
             message_context += f"{prompts.online_search_conversation.format(online_results=chat.get('onlineContext'))}"
-        if not is_none_or_empty(chat.get("context")) or not is_none_or_empty(chat.get("onlineContext")):
+        if not is_none_or_empty(message_context):
             reconstructed_context_message = ChatMessage(content=message_context, role="context")
             chatml_messages.insert(0, reconstructed_context_message)
 
         role = "user" if chat["by"] == "you" else "assistant"
-        message_content = construct_structured_message(
-            chat["message"], chat.get("uploadedImageData"), model_type, vision_enabled
-        )
+        message_content = construct_structured_message(message_content, chat.get("images"), model_type, vision_enabled)
+
         reconstructed_message = ChatMessage(content=message_content, role=role)
         chatml_messages.insert(0, reconstructed_message)
 
@@ -206,7 +215,7 @@ def generate_chatml_messages_with_context(
     if not is_none_or_empty(user_message):
         messages.append(
             ChatMessage(
-                content=construct_structured_message(user_message, uploaded_image_url, model_type, vision_enabled),
+                content=construct_structured_message(user_message, query_images, model_type, vision_enabled),
                 role="user",
             )
         )
@@ -237,7 +246,6 @@ def truncate_messages(
     tokenizer_name=None,
 ) -> list[ChatMessage]:
     """Truncate messages to fit within max prompt size supported by model"""
-
     default_tokenizer = "gpt-4o"
 
     try:
@@ -267,6 +275,7 @@ def truncate_messages(
             system_message = messages.pop(idx)
             break
 
+    # TODO: Handle truncation of multi-part message.content, i.e when message.content is a list[dict] rather than a string
     system_message_tokens = (
         len(encoder.encode(system_message.content)) if system_message and type(system_message.content) == str else 0
     )

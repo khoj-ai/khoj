@@ -37,6 +37,7 @@ interface ChatHistoryProps {
     pendingMessage?: string;
     publicConversationSlug?: string;
     setAgent: (agent: AgentData) => void;
+    customClassName?: string;
 }
 
 function constructTrainOfThought(
@@ -255,7 +256,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
     return (
         <ScrollArea className={`h-[80vh] relative`} ref={scrollAreaRef}>
             <div>
-                <div className={styles.chatHistory}>
+                <div className={`${styles.chatHistory} ${props.customClassName}`}>
                     <div ref={sentinelRef} style={{ height: "1px" }}>
                         {fetchingData && (
                             <InlineLoading message="Loading Conversation" className="opacity-50" />
@@ -298,7 +299,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                             created: message.timestamp,
                                             by: "you",
                                             automationId: "",
-                                            uploadedImageData: message.uploadedImageData,
+                                            images: message.images,
                                         }}
                                         customClassName="fullHistory"
                                         borderLeftColor={`${data?.agent?.color}-500`}
@@ -322,6 +323,12 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                             by: "khoj",
                                             automationId: "",
                                             rawQuery: message.rawQuery,
+                                            intent: {
+                                                type: message.intentType || "",
+                                                query: message.rawQuery,
+                                                "memory-type": "",
+                                                "inferred-queries": message.inferredQueries || [],
+                                            },
                                         }}
                                         customClassName="fullHistory"
                                         borderLeftColor={`${data?.agent?.color}-500`}
@@ -341,7 +348,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                 created: new Date().getTime().toString(),
                                 by: "you",
                                 automationId: "",
-                                uploadedImageData: props.pendingMessage,
                             }}
                             customClassName="fullHistory"
                             borderLeftColor={`${data?.agent?.color}-500`}
@@ -366,18 +372,20 @@ export default function ChatHistory(props: ChatHistoryProps) {
                         </div>
                     )}
                 </div>
-                {!isNearBottom && (
-                    <button
-                        title="Scroll to bottom"
-                        className="absolute bottom-4 right-5 bg-white dark:bg-[hsl(var(--background))] text-neutral-500 dark:text-white p-2 rounded-full shadow-xl"
-                        onClick={() => {
-                            scrollToBottom();
-                            setIsNearBottom(true);
-                        }}
-                    >
-                        <ArrowDown size={24} />
-                    </button>
-                )}
+                <div className={`${props.customClassName} fixed bottom-[15%] z-10`}>
+                    {!isNearBottom && (
+                        <button
+                            title="Scroll to bottom"
+                            className="absolute bottom-0 right-0 bg-white dark:bg-[hsl(var(--background))] text-neutral-500 dark:text-white p-2 rounded-full shadow-xl"
+                            onClick={() => {
+                                scrollToBottom();
+                                setIsNearBottom(true);
+                            }}
+                        >
+                            <ArrowDown size={24} />
+                        </button>
+                    )}
+                </div>
             </div>
         </ScrollArea>
     );
