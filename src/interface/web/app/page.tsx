@@ -169,6 +169,20 @@ function ChatBodyData(props: ChatBodyDataProps) {
         }
     }, [selectedAgent, message, processingMessage, onConversationIdChange]);
 
+    // Close the agent detail hover card when scroll on agent pane
+    useEffect(() => {
+        const scrollAreaSelector = "[data-radix-scroll-area-viewport]";
+        const scrollAreaEl = document.querySelector<HTMLElement>(scrollAreaSelector);
+        const handleScroll = () => {
+            setHoveredAgent(null);
+            setIsPopoverOpen(false);
+        };
+
+        scrollAreaEl?.addEventListener("scroll", handleScroll);
+
+        return () => scrollAreaEl?.removeEventListener("scroll", handleScroll);
+    }, []);
+
     function fillArea(link: string, type: string, prompt: string) {
         if (!link) {
             let message_str = "";
