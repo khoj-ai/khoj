@@ -538,7 +538,7 @@ async def chat(
     rate_limiter_per_day=Depends(
         ApiUserRateLimiter(requests=600, subscribed_requests=6000, window=60 * 60 * 24, slug="chat_day")
     ),
-    image_rate_limiter=Depends(ApiImageRateLimiter(max_images=10, max_combined_size_mb=10)),
+    image_rate_limiter=Depends(ApiImageRateLimiter(max_images=10, max_combined_size_mb=20)),
 ):
     # Access the parameters from the body
     q = body.q

@@ -343,10 +343,13 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
 
         if (props.chatMessage.images && props.chatMessage.images.length > 0) {
             const imagesInMd = props.chatMessage.images
-                .map(
-                    (image, index) =>
-                        `<div class="${styles.imageWrapper}"><img src="${image.startsWith("data%3Aimage") ? decodeURIComponent(image) : image}" alt="uploaded image ${index + 1}" /></div>`,
-                )
+                .map((image, index) => {
+                    const decodedImage = image.startsWith("data%3Aimage")
+                        ? decodeURIComponent(image)
+                        : image;
+                    const sanitizedImage = DOMPurify.sanitize(decodedImage);
+                    return `<div class="${styles.imageWrapper}"><img src="${sanitizedImage}" alt="uploaded image ${index + 1}" /></div>`;
+                })
                 .join("");
             message = `<div class="${styles.imagesContainer}">${imagesInMd}</div>${message}`;
         }
