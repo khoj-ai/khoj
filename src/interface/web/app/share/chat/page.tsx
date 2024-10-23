@@ -36,6 +36,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [images, setImages] = useState<string[]>([]);
     const [processingMessage, setProcessingMessage] = useState(false);
     const [agentMetadata, setAgentMetadata] = useState<AgentData | null>(null);
+    const chatInputRef = useRef<HTMLTextAreaElement>(null);
+
     const setQueryToProcess = props.setQueryToProcess;
     const streamedMessages = props.streamedMessages;
 
@@ -114,6 +116,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     agentColor={agentMetadata?.color}
                     isMobileWidth={props.isMobileWidth}
                     setUploadedFiles={props.setUploadedFiles}
+                    ref={chatInputRef}
                 />
             </div>
         </>

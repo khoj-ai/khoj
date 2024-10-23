@@ -72,6 +72,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     const [progressValue, setProgressValue] = useState(0);
     const [isDragAndDropping, setIsDragAndDropping] = useState(false);
 
+    const chatInputRef = ref as React.MutableRefObject<HTMLTextAreaElement>;
     useEffect(() => {
         if (!uploading) {
             setProgressValue(0);
@@ -175,6 +176,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         if (newImagePaths.length > 0) {
             setImageUploaded(true);
             setImagePaths((prevPaths) => [...prevPaths, ...newImagePaths]);
+            // Set focus to the input for user message after uploading files
+            chatInputRef?.current?.focus();
             return;
         }
 
@@ -186,6 +189,9 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
             props.setUploadedFiles,
             props.conversationId,
         );
+
+        // Set focus to the input for user message after uploading files
+        chatInputRef?.current?.focus();
     }
 
     // Assuming this function is added within the same context as the provided excerpt
@@ -264,7 +270,6 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         }
     }, [recording, mediaRecorder]);
 
-    const chatInputRef = ref as React.MutableRefObject<HTMLTextAreaElement>;
     useEffect(() => {
         if (!chatInputRef?.current) return;
         chatInputRef.current.style.height = "auto";

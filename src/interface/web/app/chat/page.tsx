@@ -1,7 +1,7 @@
 "use client";
 
 import styles from "./chat.module.css";
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 
 import SidePanel, { ChatSessionActionMenu } from "../components/sidePanel/chatHistorySidePanel";
 import ChatHistory from "../components/chatHistory/chatHistory";
@@ -37,6 +37,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [images, setImages] = useState<string[]>([]);
     const [processingMessage, setProcessingMessage] = useState(false);
     const [agentMetadata, setAgentMetadata] = useState<AgentData | null>(null);
+    const chatInputRef = useRef<HTMLTextAreaElement>(null);
 
     const setQueryToProcess = props.setQueryToProcess;
     const onConversationIdChange = props.onConversationIdChange;
@@ -123,6 +124,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     conversationId={conversationId}
                     isMobileWidth={props.isMobileWidth}
                     setUploadedFiles={props.setUploadedFiles}
+                    ref={chatInputRef}
                 />
             </div>
         </>
