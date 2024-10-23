@@ -14,7 +14,7 @@ import "katex/dist/katex.min.css";
 
 import { Context, OnlineContext, StreamMessage } from "../components/chatMessage/chatMessage";
 import { useIPLocationData, useIsMobileWidth, welcomeConsole } from "../common/utils";
-import ChatInputArea, { ChatOptions } from "../components/chatInputArea/chatInputArea";
+import { ChatInputArea, ChatOptions } from "../components/chatInputArea/chatInputArea";
 import { useAuthenticatedData } from "../common/auth";
 import { AgentData } from "../agents/page";
 

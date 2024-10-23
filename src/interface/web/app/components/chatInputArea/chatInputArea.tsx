@@ -1,5 +1,5 @@
 import styles from "./chatInputArea.module.css";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, forwardRef } from "react";
 
 import DOMPurify from "dompurify";
 import "katex/dist/katex.min.css";
@@ -52,7 +52,7 @@ interface ChatInputProps {
     agentColor?: string;
 }
 
-export default function ChatInputArea(props: ChatInputProps) {
+export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((props, ref) => {
     const [message, setMessage] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -264,9 +264,9 @@ export default function ChatInputArea(props: ChatInputProps) {
         }
     }, [recording, mediaRecorder]);
 
-    const chatInputRef = useRef<HTMLTextAreaElement>(null);
+    const chatInputRef = ref as React.MutableRefObject<HTMLTextAreaElement>;
     useEffect(() => {
-        if (!chatInputRef.current) return;
+        if (!chatInputRef?.current) return;
         chatInputRef.current.style.height = "auto";
         chatInputRef.current.style.height =
             Math.max(chatInputRef.current.scrollHeight - 24, 64) + "px";
@@ -522,4 +522,6 @@ export default function ChatInputArea(props: ChatInputProps) {
             </div>
         </>
     );
-}
+});
+
+ChatInputArea.displayName = "ChatInputArea";
