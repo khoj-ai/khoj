@@ -327,6 +327,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
     }, [messageRef.current]);
 
     useEffect(() => {
+        // Prepare initial message for rendering
         let message = props.chatMessage.message;
 
         if (props.chatMessage.intent && props.chatMessage.intent.type == "excalidraw") {
@@ -341,29 +342,15 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             .replace(/\\\[/g, "LEFTBRACKET")
             .replace(/\\\]/g, "RIGHTBRACKET");
 
-        if (props.chatMessage.images && props.chatMessage.images.length > 0) {
-            const imagesInMd = props.chatMessage.images
-                .map((image, index) => {
-                    const decodedImage = image.startsWith("data%3Aimage")
-                        ? decodeURIComponent(image)
-                        : image;
-                    const sanitizedImage = DOMPurify.sanitize(decodedImage);
-                    return `<div class="${styles.imageWrapper}"><img src="${sanitizedImage}" alt="uploaded image ${index + 1}" /></div>`;
-                })
-                .join("");
-            message = `<div class="${styles.imagesContainer}">${imagesInMd}</div>${message}`;
-        }
-
         const intentTypeHandlers = {
             "text-to-image": (msg: string) => `![generated image](data:image/png;base64,${msg})`,
             "text-to-image2": (msg: string) => `![generated image](${msg})`,
             "text-to-image-v3": (msg: string) =>
                 `![generated image](data:image/webp;base64,${msg})`,
-            excalidraw: (msg: string) => {
-                return msg;
-            },
+            excalidraw: (msg: string) => msg,
         };
 
+        // Handle intent-specific rendering
         if (props.chatMessage.intent) {
             const { type, "inferred-queries": inferredQueries } = props.chatMessage.intent;
 
@@ -376,11 +363,36 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                 message += `\n\n${inferredQueries[0]}`;
             }
         }
+        // Handle user attached images rendering
+        let messageForClipboard = message;
+        let messageToRender = message;
+        if (props.chatMessage.images && props.chatMessage.images.length > 0) {
+            const sanitizedImages = props.chatMessage.images.map((image) => {
+                const decodedImage = image.startsWith("data%3Aimage")
+                    ? decodeURIComponent(image)
+                    : image;
+                return DOMPurify.sanitize(decodedImage);
+            });
+            const imagesInMd = sanitizedImages
+                .map((sanitizedImage, index) => {
+                    return `![uploaded image ${index + 1}](${sanitizedImage})`;
+                })
+                .join("\n");
+            const imagesInHtml = sanitizedImages
+                .map((sanitizedImage, index) => {
+                    return `<div class="${styles.imageWrapper}"><img src="${sanitizedImage}" alt="uploaded image ${index + 1}" /></div>`;
+                })
+                .join("");
+            const userImagesInHtml = `<div class="${styles.imagesContainer}">${imagesInHtml}</div>`;
+            messageForClipboard = `${imagesInMd}\n\n${messageForClipboard}`;
+            messageToRender = `${userImagesInHtml}${messageToRender}`;
+        }
 
-        setTextRendered(message);
+        // Set the message text
+        setTextRendered(messageForClipboard);
 
         // Render the markdown
-        let markdownRendered = md.render(message);
+        let markdownRendered = md.render(messageToRender);
 
         // Replace placeholders with LaTeX delimiters
         markdownRendered = markdownRendered
