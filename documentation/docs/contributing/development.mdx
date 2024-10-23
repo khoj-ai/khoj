@@ -102,7 +102,19 @@ sudo -u postgres createdb khoj --password
     </TabItem>
   </Tabs>
 
-#### 3. Run
+#### 3. Build the front-end assets
+
+```shell
+cd src/interface/web/
+yarn install
+yarn export
+```
+
+You can optionally use `yarn dev` to start a development server for the front-end which will be available at http://localhost:3000. This is especially useful if you're making changes to the front-end code, but not necessary for running Khoj. Note that streaming does not work on the dev server due to how it is handled with SSR in Next.js.
+
+Always run `yarn export` to test your front-end changes on http://localhost:42110 before creating a PR.
+
+#### 4. Run
 1. Start Khoj
    ```bash
    khoj -vv
