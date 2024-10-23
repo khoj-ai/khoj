@@ -484,12 +484,13 @@ export class KhojChatView extends KhojPaneView {
         dt?: Date,
         intentType?: string,
         inferredQueries?: string[],
+        conversationId?: string,
     ) {
         if (!message) return;
 
         let chatMessageEl;
-        if (intentType?.includes("text-to-image")) {
-            let imageMarkdown = this.generateImageMarkdown(message, intentType, inferredQueries);
+        if (intentType?.includes("text-to-image") || intentType === "excalidraw") {
+            let imageMarkdown = this.generateImageMarkdown(message, intentType, inferredQueries, conversationId);
             chatMessageEl = this.renderMessage(chatEl, imageMarkdown, sender, dt);
         } else {
             chatMessageEl = this.renderMessage(chatEl, message, sender, dt);
@@ -509,7 +510,7 @@ export class KhojChatView extends KhojPaneView {
         chatMessageBodyEl.appendChild(this.createReferenceSection(references));
     }
 
-    generateImageMarkdown(message: string, intentType: string, inferredQueries?: string[]) {
+    generateImageMarkdown(message: string, intentType: string, inferredQueries?: string[], conversationId?: string): string {
         let imageMarkdown = "";
         if (intentType === "text-to-image") {
             imageMarkdown = `![](data:image/png;base64,${message})`;
@@ -517,6 +518,10 @@ export class KhojChatView extends KhojPaneView {
             imageMarkdown = `![](${message})`;
         } else if (intentType === "text-to-image-v3") {
             imageMarkdown = `![](data:image/webp;base64,${message})`;
+        } else if (intentType === "excalidraw") {
+            const domain = this.setting.khojUrl.endsWith("/") ? this.setting.khojUrl : `${this.setting.khojUrl}/`;
+            const redirectMessage = `Hey, I'm not ready to show you diagrams yet here. But you can view it in ${domain}chat?conversationId=${conversationId}`;
+            imageMarkdown = redirectMessage;
         }
         if (inferredQueries) {
             imageMarkdown += "\n\n**Inferred Query**:";
@@ -884,6 +889,7 @@ export class KhojChatView extends KhojPaneView {
                         new Date(chatLog.created),
                         chatLog.intent?.type,
                         chatLog.intent?.["inferred-queries"],
+                        chatBodyEl.dataset.conversationId ?? "",
                     );
                     // push the user messages to the chat history
                     if(chatLog.by === "you"){
@@ -1354,6 +1360,10 @@ export class KhojChatView extends KhojPaneView {
                 rawResponse += `![generated_image](${imageJson.image})`;
             } else if (imageJson.intentType === "text-to-image-v3") {
                 rawResponse = `![](data:image/webp;base64,${imageJson.image})`;
+            } else if (imageJson.intentType === "excalidraw") {
+                const domain = this.setting.khojUrl.endsWith("/") ? this.setting.khojUrl : `${this.setting.khojUrl}/`;
+                const redirectMessage = `Hey, I'm not ready to show you diagrams yet here. But you can view it in ${domain}`;
+                rawResponse += redirectMessage;
             }
             if (inferredQuery) {
                 rawResponse += `\n\n**Inferred Query**:\n\n${inferredQuery}`;

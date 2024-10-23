@@ -27,7 +27,14 @@ export default function RootLayout({
                        child-src 'none';
                        object-src 'none';"
             ></meta>
-            <body className={inter.className}>{children}</body>
+            <body className={inter.className}>
+                {children}
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `window.EXCALIDRAW_ASSET_PATH = 'https://assets.khoj.dev/@excalidraw/excalidraw/dist/';`,
+                    }}
+                />
+            </body>
         </html>
     );
 }

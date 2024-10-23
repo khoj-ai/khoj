@@ -82,7 +82,7 @@ async def subscribe(request: Request):
             request=request,
             telemetry_type="api",
             api="create_user",
-            metadata={"user_id": str(user.user.uuid)},
+            metadata={"server_id": str(user.user.uuid)},
         )
         logger.log(logging.INFO, f"🥳 New User Created: {user.user.uuid}")
 

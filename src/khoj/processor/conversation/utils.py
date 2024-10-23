@@ -189,7 +189,10 @@ def generate_chatml_messages_with_context(
         message_notes = f'\n\n Notes:\n{chat.get("context")}' if chat.get("context") else "\n"
         role = "user" if chat["by"] == "you" else "assistant"
 
-        message_content = chat["message"] + message_notes
+        if chat["by"] == "khoj" and "excalidraw" in chat["intent"].get("type"):
+            message_content = chat.get("intent").get("inferred-queries")[0] + message_notes
+        else:
+            message_content = chat["message"] + message_notes
 
         message_content = construct_structured_message(message_content, chat.get("images"), model_type, vision_enabled)
 
