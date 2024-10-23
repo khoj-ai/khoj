@@ -6,7 +6,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("database", "0070_alter_agent_input_tools_alter_agent_output_modes"),
+        ("database", "0071_subscription_enabled_trial_at_and_more"),
     ]
 
     operations = [
