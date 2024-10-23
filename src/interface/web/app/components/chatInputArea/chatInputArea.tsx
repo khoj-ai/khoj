@@ -460,7 +460,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                         autoFocus={true}
                         value={message}
                         onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
+                            if (e.key === "Enter" && !e.shiftKey && !props.isMobileWidth) {
                                 setImageUploaded(false);
                                 setImagePaths([]);
                                 e.preventDefault();
