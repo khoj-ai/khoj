@@ -116,7 +116,7 @@ export interface SingleChatMessage {
     rawQuery?: string;
     intent?: Intent;
     agent?: AgentData;
-    uploadedImageData?: string;
+    images?: string[];
 }
 
 export interface StreamMessage {
@@ -128,10 +128,9 @@ export interface StreamMessage {
     rawQuery: string;
     timestamp: string;
     agent?: AgentData;
-    uploadedImageData?: string;
+    images?: string[];
     intentType?: string;
     inferredQueries?: string[];
-    image?: string;
 }
 
 export interface ChatHistoryData {
@@ -213,7 +212,6 @@ interface ChatMessageProps {
     borderLeftColor?: string;
     isLastMessage?: boolean;
     agent?: AgentData;
-    uploadedImageData?: string;
 }
 
 interface TrainOfThoughtProps {
@@ -343,8 +341,17 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             .replace(/\\\[/g, "LEFTBRACKET")
             .replace(/\\\]/g, "RIGHTBRACKET");
 
-        if (props.chatMessage.uploadedImageData) {
-            message = `![uploaded image](${props.chatMessage.uploadedImageData})\n\n${message}`;
+        if (props.chatMessage.images && props.chatMessage.images.length > 0) {
+            const imagesInMd = props.chatMessage.images
+                .map((image, index) => {
+                    const decodedImage = image.startsWith("data%3Aimage")
+                        ? decodeURIComponent(image)
+                        : image;
+                    const sanitizedImage = DOMPurify.sanitize(decodedImage);
+                    return `<div class="${styles.imageWrapper}"><img src="${sanitizedImage}" alt="uploaded image ${index + 1}" /></div>`;
+                })
+                .join("");
+            message = `<div class="${styles.imagesContainer}">${imagesInMd}</div>${message}`;
         }
 
         const intentTypeHandlers = {
@@ -384,7 +391,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
 
         // Sanitize and set the rendered markdown
         setMarkdownRendered(DOMPurify.sanitize(markdownRendered));
-    }, [props.chatMessage.message, props.chatMessage.intent]);
+    }, [props.chatMessage.message, props.chatMessage.images, props.chatMessage.intent]);
 
     useEffect(() => {
         if (copySuccess) {

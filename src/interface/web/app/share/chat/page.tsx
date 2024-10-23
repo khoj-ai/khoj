@@ -28,12 +28,12 @@ interface ChatBodyDataProps {
     isLoggedIn: boolean;
     conversationId?: string;
     setQueryToProcess: (query: string) => void;
-    setImage64: (image64: string) => void;
+    setImages: (images: string[]) => void;
 }
 
 function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState("");
-    const [image, setImage] = useState<string | null>(null);
+    const [images, setImages] = useState<string[]>([]);
     const [processingMessage, setProcessingMessage] = useState(false);
     const [agentMetadata, setAgentMetadata] = useState<AgentData | null>(null);
     const setQueryToProcess = props.setQueryToProcess;
@@ -42,10 +42,28 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const chatHistoryCustomClassName = props.isMobileWidth ? "w-full" : "w-4/6";
 
     useEffect(() => {
-        if (image) {
-            props.setImage64(encodeURIComponent(image));
+        if (images.length > 0) {
+            const encodedImages = images.map((image) => encodeURIComponent(image));
+            props.setImages(encodedImages);
         }
-    }, [image, props.setImage64]);
+    }, [images, props.setImages]);
+
+    useEffect(() => {
+        const storedImages = localStorage.getItem("images");
+        if (storedImages) {
+            const parsedImages: string[] = JSON.parse(storedImages);
+            setImages(parsedImages);
+            const encodedImages = parsedImages.map((img: string) => encodeURIComponent(img));
+            props.setImages(encodedImages);
+            localStorage.removeItem("images");
+        }
+
+        const storedMessage = localStorage.getItem("message");
+        if (storedMessage) {
+            setProcessingMessage(true);
+            setQueryToProcess(storedMessage);
+        }
+    }, [setQueryToProcess, props.setImages]);
 
     useEffect(() => {
         if (message) {
@@ -89,7 +107,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 <ChatInputArea
                     isLoggedIn={props.isLoggedIn}
                     sendMessage={(message) => setMessage(message)}
-                    sendImage={(image) => setImage(image)}
+                    sendImage={(image) => setImages((prevImages) => [...prevImages, image])}
                     sendDisabled={processingMessage}
                     chatOptionsData={props.chatOptionsData}
                     conversationId={props.conversationId}
@@ -112,7 +130,7 @@ export default function SharedChat() {
     const [processQuerySignal, setProcessQuerySignal] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
     const [paramSlug, setParamSlug] = useState<string | undefined>(undefined);
-    const [image64, setImage64] = useState<string>("");
+    const [images, setImages] = useState<string[]>([]);
 
     const locationData = useIPLocationData() || {
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -170,7 +188,7 @@ export default function SharedChat() {
                 completed: false,
                 timestamp: new Date().toISOString(),
                 rawQuery: queryToProcess || "",
-                uploadedImageData: decodeURIComponent(image64),
+                images: images,
             };
             setMessages((prevMessages) => [...prevMessages, newStreamMessage]);
             setProcessQuerySignal(true);
@@ -197,7 +215,7 @@ export default function SharedChat() {
             if (done) {
                 setQueryToProcess("");
                 setProcessQuerySignal(false);
-                setImage64("");
+                setImages([]);
                 break;
             }
 
@@ -239,7 +257,7 @@ export default function SharedChat() {
                 country_code: locationData.countryCode,
                 timezone: locationData.timezone,
             }),
-            ...(image64 && { image: image64 }),
+            ...(images.length > 0 && { image: images }),
         };
 
         const response = await fetch(chatAPI, {
@@ -302,7 +320,7 @@ export default function SharedChat() {
                             setTitle={setTitle}
                             setUploadedFiles={setUploadedFiles}
                             isMobileWidth={isMobileWidth}
-                            setImage64={setImage64}
+                            setImages={setImages}
                         />
                     </Suspense>
                 </div>
