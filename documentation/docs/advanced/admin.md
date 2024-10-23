@@ -1,6 +1,8 @@
 # Admin Panel
 > Describes the Khoj settings configurable via the admin panel
 
+By default, you admin panel is available at `http://localhost:42110/server/admin/`. You can access the admin panel by logging in with your admin credentials (this would be your `KHOJ_ADMIN_EMAIL` and `KHOJ_ADMIN_PASSWORD`). The admin panel allows you to configure various settings for your Khoj server.
+
 ## App Settings
 ### Agents
 Add all the agents you want to use for your different use-cases like Writer, Researcher, Therapist etc.

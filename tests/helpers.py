@@ -86,7 +86,7 @@ class SubscriptionFactory(factory.django.DjangoModelFactory):
         model = Subscription
 
     user = factory.SubFactory(UserFactory)
-    type = "standard"
+    type = Subscription.Type.STANDARD
     is_recurring = False
     renewal_date = make_aware(datetime.strptime("2100-04-01", "%Y-%m-%d"))
 

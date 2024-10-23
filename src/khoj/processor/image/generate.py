@@ -26,7 +26,7 @@ async def text_to_image(
     references: List[Dict[str, Any]],
     online_results: Dict[str, Any],
     send_status_func: Optional[Callable] = None,
-    uploaded_image_url: Optional[str] = None,
+    query_images: Optional[List[str]] = None,
     agent: Agent = None,
 ):
     status_code = 200
@@ -65,7 +65,7 @@ async def text_to_image(
         note_references=references,
         online_results=online_results,
         model_type=text_to_image_config.model_type,
-        uploaded_image_url=uploaded_image_url,
+        query_images=query_images,
         user=user,
         agent=agent,
     )
@@ -87,18 +87,18 @@ async def text_to_image(
             if "content_policy_violation" in e.message:
                 logger.error(f"Image Generation blocked by OpenAI: {e}")
                 status_code = e.status_code  # type: ignore
-                message = f"Image generation blocked by OpenAI: {e.message}"  # type: ignore
+                message = f"Image generation blocked by OpenAI due to policy violation"  # type: ignore
                 yield image_url or image, status_code, message, intent_type.value
                 return
             else:
                 logger.error(f"Image Generation failed with {e}", exc_info=True)
-                message = f"Image generation failed with OpenAI error: {e.message}"  # type: ignore
+                message = f"Image generation failed using OpenAI"  # type: ignore
                 status_code = e.status_code  # type: ignore
                 yield image_url or image, status_code, message, intent_type.value
                 return
         except requests.RequestException as e:
             logger.error(f"Image Generation failed with {e}", exc_info=True)
-            message = f"Image generation using {text2image_model} via {text_to_image_config.model_type} failed with error: {e}"
+            message = f"Image generation using {text2image_model} via {text_to_image_config.model_type} failed due to a network error."
             status_code = 502
             yield image_url or image, status_code, message, intent_type.value
             return
