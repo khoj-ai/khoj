@@ -48,6 +48,7 @@ from khoj.database.models import (
     TextToImageModelConfig,
     UserConversationConfig,
     UserRequests,
+    UserSearchModelConfig,
     UserTextToImageModelConfig,
     UserVoiceModelConfig,
     VoiceModelOption,
@@ -446,6 +447,22 @@ async def set_user_github_config(user: KhojUser, pat_token: str, repos: list):
 
 
 def get_default_search_model() -> SearchModelConfig:
+    default_search_model = SearchModelConfig.objects.filter(name="default").first()
+
+    if default_search_model:
+        return default_search_model
+    else:
+        SearchModelConfig.objects.create()
+
+    return SearchModelConfig.objects.first()
+
+
+def get_user_default_search_model(user: KhojUser = None) -> SearchModelConfig:
+    if user:
+        user_search_model = UserSearchModelConfig.objects.filter(user=user).first()
+        if user_search_model:
+            return user_search_model.setting
+
     default_search_model = SearchModelConfig.objects.filter(name="default").first()
 
     if default_search_model:
