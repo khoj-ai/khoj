@@ -203,7 +203,7 @@ def generate_chatml_messages_with_context(
             chatml_messages.insert(0, reconstructed_context_message)
 
         role = "user" if chat["by"] == "you" else "assistant"
-        message_content = construct_structured_message(message_content, chat.get("images"), model_type, vision_enabled)
+        message_content = construct_structured_message(chat["message"], chat.get("images"), model_type, vision_enabled)
 
         reconstructed_message = ChatMessage(content=message_content, role=role)
         chatml_messages.insert(0, reconstructed_message)
