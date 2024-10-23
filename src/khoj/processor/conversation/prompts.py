@@ -619,7 +619,7 @@ AI: It's currently 28°C and partly cloudy in Bali.
 Q: Share a painting using the weather for Bali every morning.
 Khoj: {{"output": "automation"}}
 
-Now it's your turn to pick the mode you would like to use to answer the user's question. Provide your response as a JSON.
+Now it's your turn to pick the mode you would like to use to answer the user's question. Provide your response as a JSON. Do not say anything else.
 
 Chat History:
 {chat_history}
