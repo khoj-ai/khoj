@@ -1,10 +1,15 @@
+import base64
 import logging
 import math
+import mimetypes
 import queue
 from datetime import datetime
+from io import BytesIO
 from time import perf_counter
 from typing import Any, Dict, List, Optional
 
+import PIL.Image
+import requests
 import tiktoken
 from langchain.schema import ChatMessage
 from llama_cpp.llama import Llama
@@ -306,3 +311,22 @@ def reciprocal_conversation_to_chatml(message_pair):
 def remove_json_codeblock(response: str):
     """Remove any markdown json codeblock formatting if present. Useful for non schema enforceable models"""
     return response.removeprefix("```json").removesuffix("```")
+
+
+def get_image_from_url(image_url: str, type="pil"):
+    try:
+        response = requests.get(image_url)
+        response.raise_for_status()  # Check if the request was successful
+
+        # Get content type from response or infer from URL
+        content_type = response.headers.get("content-type") or mimetypes.guess_type(image_url)[0] or "image/webp"
+
+        if type == "b64":
+            return base64.b64encode(response.content).decode("utf-8"), content_type
+        elif type == "pil":
+            return PIL.Image.open(BytesIO(response.content)), content_type
+        else:
+            raise ValueError(f"Invalid image type: {type}")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Failed to get image from URL {image_url}: {e}")
+        return None, None
