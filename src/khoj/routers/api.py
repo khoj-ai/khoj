@@ -21,6 +21,7 @@ from starlette.authentication import has_required_scope, requires
 from khoj.configure import initialize_content
 from khoj.database import adapters
 from khoj.database.adapters import (
+    AgentAdapters,
     AutomationAdapters,
     ConversationAdapters,
     EntryAdapters,
@@ -114,10 +115,16 @@ async def execute_search(
     dedupe: Optional[bool] = True,
     agent: Optional[Agent] = None,
 ):
-    start_time = time.time()
-
     # Run validation checks
     results: List[SearchResponse] = []
+
+    start_time = time.time()
+
+    # Ensure the agent, if present, is accessible by the user
+    if user and agent and not await AgentAdapters.ais_agent_accessible(agent, user):
+        logger.error(f"Agent {agent.slug} is not accessible by user {user}")
+        return results
+
     if q is None or q == "":
         logger.warning(f"No query param (q) passed in API call to initiate search")
         return results
@@ -340,7 +347,7 @@ async def extract_references_and_questions(
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     location_data: LocationData = None,
     send_status_func: Optional[Callable] = None,
-    uploaded_image_url: Optional[str] = None,
+    query_images: Optional[List[str]] = None,
     agent: Agent = None,
 ):
     user = request.user.object if request.user.is_authenticated else None
@@ -431,7 +438,7 @@ async def extract_references_and_questions(
                 conversation_log=meta_log,
                 location_data=location_data,
                 user=user,
-                uploaded_image_url=uploaded_image_url,
+                query_images=query_images,
                 vision_enabled=vision_enabled,
                 personality_context=personality_context,
             )
@@ -452,12 +459,14 @@ async def extract_references_and_questions(
             chat_model = conversation_config.chat_model
             inferred_queries = extract_questions_gemini(
                 defiltered_query,
+                query_images=query_images,
                 model=chat_model,
                 api_key=api_key,
                 conversation_log=meta_log,
                 location_data=location_data,
                 max_tokens=conversation_config.max_prompt_size,
                 user=user,
+                vision_enabled=vision_enabled,
                 personality_context=personality_context,
             )
 

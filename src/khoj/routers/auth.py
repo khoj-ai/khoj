@@ -90,7 +90,7 @@ async def login_magic_link(request: Request, form: MagicLinkForm):
                 request=request,
                 telemetry_type="api",
                 api="create_user",
-                metadata={"user_id": str(user.uuid)},
+                metadata={"server_id": str(user.uuid)},
             )
             logger.log(logging.INFO, f"🥳 New User Created: {user.uuid}")
 
@@ -175,7 +175,7 @@ async def auth(request: Request):
                 request=request,
                 telemetry_type="api",
                 api="create_user",
-                metadata={"user_id": str(khoj_user.uuid)},
+                metadata={"server_id": str(khoj_user.uuid)},
             )
             logger.log(logging.INFO, f"🥳 New User Created: {khoj_user.uuid}")
             return RedirectResponse(url=next_url, status_code=HTTP_302_FOUND)

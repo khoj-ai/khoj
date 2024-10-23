@@ -180,6 +180,13 @@ def api_user4(default_user4):
 
 @pytest.mark.django_db
 @pytest.fixture
+def default_openai_chat_model_option():
+    chat_model = ChatModelOptionsFactory(chat_model="gpt-4o-mini", model_type="openai")
+    return chat_model
+
+
+@pytest.mark.django_db
+@pytest.fixture
 def offline_agent():
     chat_model = ChatModelOptionsFactory()
     return Agent.objects.create(

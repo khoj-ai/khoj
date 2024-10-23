@@ -27,32 +27,37 @@ interface ChatBodyDataProps {
     setUploadedFiles: (files: string[]) => void;
     isMobileWidth?: boolean;
     isLoggedIn: boolean;
-    setImage64: (image64: string) => void;
+    setImages: (images: string[]) => void;
 }
 
 function ChatBodyData(props: ChatBodyDataProps) {
     const searchParams = useSearchParams();
     const conversationId = searchParams.get("conversationId");
     const [message, setMessage] = useState("");
-    const [image, setImage] = useState<string | null>(null);
+    const [images, setImages] = useState<string[]>([]);
     const [processingMessage, setProcessingMessage] = useState(false);
     const [agentMetadata, setAgentMetadata] = useState<AgentData | null>(null);
 
     const setQueryToProcess = props.setQueryToProcess;
     const onConversationIdChange = props.onConversationIdChange;
 
-    useEffect(() => {
-        if (image) {
-            props.setImage64(encodeURIComponent(image));
-        }
-    }, [image, props.setImage64]);
+    const chatHistoryCustomClassName = props.isMobileWidth ? "w-full" : "w-4/6";
 
     useEffect(() => {
-        const storedImage = localStorage.getItem("image");
-        if (storedImage) {
-            setImage(storedImage);
-            props.setImage64(encodeURIComponent(storedImage));
-            localStorage.removeItem("image");
+        if (images.length > 0) {
+            const encodedImages = images.map((image) => encodeURIComponent(image));
+            props.setImages(encodedImages);
+        }
+    }, [images, props.setImages]);
+
+    useEffect(() => {
+        const storedImages = localStorage.getItem("images");
+        if (storedImages) {
+            const parsedImages: string[] = JSON.parse(storedImages);
+            setImages(parsedImages);
+            const encodedImages = parsedImages.map((img: string) => encodeURIComponent(img));
+            props.setImages(encodedImages);
+            localStorage.removeItem("images");
         }
 
         const storedMessage = localStorage.getItem("message");
@@ -60,7 +65,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             setProcessingMessage(true);
             setQueryToProcess(storedMessage);
         }
-    }, [setQueryToProcess]);
+    }, [setQueryToProcess, props.setImages]);
 
     useEffect(() => {
         if (message) {
@@ -82,6 +87,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             props.streamedMessages[props.streamedMessages.length - 1].completed
         ) {
             setProcessingMessage(false);
+            setImages([]); // Reset images after processing
         } else {
             setMessage("");
         }
@@ -101,16 +107,17 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     setAgent={setAgentMetadata}
                     pendingMessage={processingMessage ? message : ""}
                     incomingMessages={props.streamedMessages}
+                    customClassName={chatHistoryCustomClassName}
                 />
             </div>
             <div
-                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-t-2xl rounded-b-none md:rounded-xl h-fit`}
+                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-t-2xl rounded-b-none md:rounded-xl h-fit ${chatHistoryCustomClassName} mr-auto ml-auto`}
             >
                 <ChatInputArea
                     agentColor={agentMetadata?.color}
                     isLoggedIn={props.isLoggedIn}
                     sendMessage={(message) => setMessage(message)}
-                    sendImage={(image) => setImage(image)}
+                    sendImage={(image) => setImages((prevImages) => [...prevImages, image])}
                     sendDisabled={processingMessage}
                     chatOptionsData={props.chatOptionsData}
                     conversationId={conversationId}
@@ -132,7 +139,7 @@ export default function Chat() {
     const [queryToProcess, setQueryToProcess] = useState<string>("");
     const [processQuerySignal, setProcessQuerySignal] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
-    const [image64, setImage64] = useState<string>("");
+    const [images, setImages] = useState<string[]>([]);
 
     const locationData = useIPLocationData() || {
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -168,7 +175,7 @@ export default function Chat() {
                 completed: false,
                 timestamp: new Date().toISOString(),
                 rawQuery: queryToProcess || "",
-                uploadedImageData: decodeURIComponent(image64),
+                images: images,
             };
             setMessages((prevMessages) => [...prevMessages, newStreamMessage]);
             setProcessQuerySignal(true);
@@ -199,7 +206,7 @@ export default function Chat() {
             if (done) {
                 setQueryToProcess("");
                 setProcessQuerySignal(false);
-                setImage64("");
+                setImages([]);
                 break;
             }
 
@@ -247,7 +254,7 @@ export default function Chat() {
                 country_code: locationData.countryCode,
                 timezone: locationData.timezone,
             }),
-            ...(image64 && { image: image64 }),
+            ...(images.length > 0 && { images: images }),
         };
 
         const response = await fetch(chatAPI, {
@@ -261,7 +268,8 @@ export default function Chat() {
         try {
             await readChatStream(response);
         } catch (err) {
-            console.error(err);
+            const apiError = await response.json();
+            console.error(apiError);
             // Retrieve latest message being processed
             const currentMessage = messages.find((message) => !message.completed);
             if (!currentMessage) return;
@@ -270,7 +278,11 @@ export default function Chat() {
             const errorMessage = (err as Error).message;
             if (errorMessage.includes("Error in input stream"))
                 currentMessage.rawResponse = `Woops! The connection broke while I was writing my thoughts down. Maybe try again in a bit or dislike this message if the issue persists?`;
-            else
+            else if (response.status === 429) {
+                "detail" in apiError
+                    ? (currentMessage.rawResponse = `${apiError.detail}`)
+                    : (currentMessage.rawResponse = `I'm a bit overwhelmed at the moment. Could you try again in a bit or dislike this message if the issue persists?`);
+            } else
                 currentMessage.rawResponse = `Umm, not sure what just happened. I see this error message: ${errorMessage}. Could you try again or dislike this message if the issue persists?`;
 
             // Complete message streaming teardown properly
@@ -329,7 +341,7 @@ export default function Chat() {
                             setUploadedFiles={setUploadedFiles}
                             isMobileWidth={isMobileWidth}
                             onConversationIdChange={handleConversationIdChange}
-                            setImage64={setImage64}
+                            setImages={setImages}
                         />
                     </Suspense>
                 </div>

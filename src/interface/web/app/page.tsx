@@ -51,7 +51,7 @@ function FisherYatesShuffle(array: any[]) {
 
 function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState("");
-    const [image, setImage] = useState<string | null>(null);
+    const [images, setImages] = useState<string[]>([]);
     const [processingMessage, setProcessingMessage] = useState(false);
     const [greeting, setGreeting] = useState("");
     const [shuffledOptions, setShuffledOptions] = useState<Suggestion[]>([]);
@@ -151,20 +151,21 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 try {
                     const newConversationId = await createNewConversation(selectedAgent || "khoj");
                     onConversationIdChange?.(newConversationId);
-                    window.location.href = `/chat?conversationId=${newConversationId}`;
                     localStorage.setItem("message", message);
-                    if (image) {
-                        localStorage.setItem("image", image);
+                    if (images.length > 0) {
+                        localStorage.setItem("images", JSON.stringify(images));
                     }
+                    window.location.href = `/chat?conversationId=${newConversationId}`;
                 } catch (error) {
                     console.error("Error creating new conversation:", error);
                     setProcessingMessage(false);
                 }
                 setMessage("");
+                setImages([]);
             }
         };
         processMessage();
-        if (message) {
+        if (message || images.length > 0) {
             setProcessingMessage(true);
         }
     }, [selectedAgent, message, processingMessage, onConversationIdChange]);
@@ -290,7 +291,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     </ScrollArea>
                 )}
             </div>
-            <div className={`mx-auto ${props.isMobileWidth ? "w-full" : "w-fit"}`}>
+            <div className={`mx-auto ${props.isMobileWidth ? "w-full" : "w-fit max-w-screen-md"}`}>
                 {!props.isMobileWidth && (
                     <div
                         className={`w-full ${styles.inputBox} shadow-lg bg-background align-middle items-center justify-center px-3 py-1 dark:bg-neutral-700 border-stone-100 dark:border-none dark:shadow-none rounded-2xl`}
@@ -298,7 +299,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         <ChatInputArea
                             isLoggedIn={props.isLoggedIn}
                             sendMessage={(message) => setMessage(message)}
-                            sendImage={(image) => setImage(image)}
+                            sendImage={(image) => setImages((prevImages) => [...prevImages, image])}
                             sendDisabled={processingMessage}
                             chatOptionsData={props.chatOptionsData}
                             conversationId={null}
@@ -379,7 +380,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         <ChatInputArea
                             isLoggedIn={props.isLoggedIn}
                             sendMessage={(message) => setMessage(message)}
-                            sendImage={(image) => setImage(image)}
+                            sendImage={(image) => setImages((prevImages) => [...prevImages, image])}
                             sendDisabled={processingMessage}
                             chatOptionsData={props.chatOptionsData}
                             conversationId={null}
