@@ -157,7 +157,11 @@ def construct_structured_message(message: str, images: list[str], model_type: st
     if not images or not vision_enabled:
         return message
 
-    if model_type in [ChatModelOptions.ModelType.OPENAI, ChatModelOptions.ModelType.GOOGLE]:
+    if model_type in [
+        ChatModelOptions.ModelType.OPENAI,
+        ChatModelOptions.ModelType.GOOGLE,
+        ChatModelOptions.ModelType.ANTHROPIC,
+    ]:
         return [
             {"type": "text", "text": message},
             *[{"type": "image_url", "image_url": {"url": image}} for image in images],

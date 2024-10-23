@@ -825,10 +825,13 @@ async def send_message_to_model_wrapper(
     conversation_config: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config(user)
     vision_available = conversation_config.vision_enabled
     if not vision_available and query_images:
+        logger.warning(f"Vision is not enabled for default model: {conversation_config.chat_model}.")
         vision_enabled_config = await ConversationAdapters.aget_vision_enabled_config()
         if vision_enabled_config:
             conversation_config = vision_enabled_config
             vision_available = True
+    if vision_available and query_images:
+        logger.info(f"Using {conversation_config.chat_model} model to understand {len(query_images)} images.")
 
     subscribed = await ais_user_subscribed(user)
     chat_model = conversation_config.chat_model
@@ -1109,8 +1112,9 @@ def generate_chat_response(
             chat_response = converse_anthropic(
                 compiled_references,
                 q,
-                online_results,
-                meta_log,
+                query_images=query_images,
+                online_results=online_results,
+                conversation_log=meta_log,
                 model=conversation_config.chat_model,
                 api_key=api_key,
                 completion_func=partial_completion,
@@ -1120,6 +1124,7 @@ def generate_chat_response(
                 location_data=location_data,
                 user_name=user_name,
                 agent=agent,
+                vision_available=vision_available,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
             api_key = conversation_config.openai_config.api_key

@@ -13,7 +13,10 @@ from khoj.processor.conversation.anthropic.utils import (
     anthropic_completion_with_backoff,
     format_messages_for_anthropic,
 )
-from khoj.processor.conversation.utils import generate_chatml_messages_with_context
+from khoj.processor.conversation.utils import (
+    construct_structured_message,
+    generate_chatml_messages_with_context,
+)
 from khoj.utils.helpers import ConversationCommand, is_none_or_empty
 from khoj.utils.rawconfig import LocationData
 
@@ -28,6 +31,8 @@ def extract_questions_anthropic(
     temperature=0.7,
     location_data: LocationData = None,
     user: KhojUser = None,
+    query_images: Optional[list[str]] = None,
+    vision_enabled: bool = False,
     personality_context: Optional[str] = None,
 ):
     """
@@ -67,6 +72,13 @@ def extract_questions_anthropic(
     prompt = prompts.extract_questions_anthropic_user_message.format(
         chat_history=chat_history,
         text=text,
+    )
+
+    prompt = construct_structured_message(
+        message=prompt,
+        images=query_images,
+        model_type=ChatModelOptions.ModelType.ANTHROPIC,
+        vision_enabled=vision_enabled,
     )
 
     messages = [ChatMessage(content=prompt, role="user")]
@@ -118,7 +130,7 @@ def converse_anthropic(
     user_query,
     online_results: Optional[Dict[str, Dict]] = None,
     conversation_log={},
-    model: Optional[str] = "claude-instant-1.2",
+    model: Optional[str] = "claude-3-5-sonnet-20241022",
     api_key: Optional[str] = None,
     completion_func=None,
     conversation_commands=[ConversationCommand.Default],
@@ -127,6 +139,8 @@ def converse_anthropic(
     location_data: LocationData = None,
     user_name: str = None,
     agent: Agent = None,
+    query_images: Optional[list[str]] = None,
+    vision_available: bool = False,
 ):
     """
     Converse with user using Anthropic's Claude
@@ -180,6 +194,8 @@ def converse_anthropic(
         model_name=model,
         max_prompt_size=max_prompt_size,
         tokenizer_name=tokenizer_name,
+        query_images=query_images,
+        vision_enabled=vision_available,
         model_type=ChatModelOptions.ModelType.ANTHROPIC,
     )
 
