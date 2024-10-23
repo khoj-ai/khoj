@@ -1,12 +1,14 @@
+import json
 import logging
 import os
 from datetime import datetime, timezone
 
 from asgiref.sync import sync_to_async
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Response
 from starlette.authentication import requires
 
 from khoj.database import adapters
+from khoj.database.models import KhojUser, Subscription
 from khoj.routers.helpers import update_telemetry_state
 from khoj.utils import state
 
@@ -73,7 +75,7 @@ async def subscribe(request: Request):
     elif event_type in {"customer.subscription.deleted"}:
         # Reset the user to trial state
         user, is_new = await adapters.set_user_subscription(
-            customer_email, is_recurring=False, renewal_date=False, type="trial"
+            customer_email, is_recurring=False, renewal_date=False, type=Subscription.Type.TRIAL
         )
         success = user is not None
 
@@ -116,3 +118,19 @@ async def update_subscription(request: Request, email: str, operation: str):
         return {"success": False, "message": "No subscription found that is set to cancel"}
 
     return {"success": False, "message": "Invalid operation"}
+
+
+@subscription_router.post("/trial", response_class=Response)
+@requires(["authenticated"])
+async def start_trial(request: Request) -> Response:
+    user: KhojUser = request.user.object
+
+    # Start a trial for the user
+    updated_subscription = await adapters.astart_trial_subscription(user)
+
+    # Return trial status as a JSON response
+    return Response(
+        content=json.dumps({"trial_enabled": updated_subscription is not None}),
+        media_type="application/json",
+        status_code=200,
+    )
