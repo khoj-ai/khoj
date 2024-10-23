@@ -463,14 +463,7 @@ def get_user_default_search_model(user: KhojUser = None) -> SearchModelConfig:
         if user_search_model:
             return user_search_model.setting
 
-    default_search_model = SearchModelConfig.objects.filter(name="default").first()
-
-    if default_search_model:
-        return default_search_model
-    else:
-        SearchModelConfig.objects.create()
-
-    return SearchModelConfig.objects.first()
+    return get_default_search_model()
 
 
 def get_or_create_search_models():
