@@ -778,12 +778,12 @@ async def chat(
                     query_images=uploaded_images,
                     agent=agent,
                     send_status_func=partial(send_event, ChatEvent.STATUS),
-                    send_response_func=partial(send_llm_response),
                 ):
                     if isinstance(response, dict) and ChatEvent.STATUS in response:
                         yield result[ChatEvent.STATUS]
                     else:
-                        response
+                        async for result in send_llm_response(response):
+                            yield result
 
             await sync_to_async(save_to_conversation_log)(
                 q,
