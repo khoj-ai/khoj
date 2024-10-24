@@ -17,7 +17,7 @@ from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import ChatModelOptions, ClientApplication, KhojUser
 from khoj.processor.conversation.offline.utils import download_model, infer_max_tokens
 from khoj.utils import state
-from khoj.utils.helpers import is_none_or_empty, merge_dicts
+from khoj.utils.helpers import in_debug_mode, is_none_or_empty, merge_dicts
 
 logger = logging.getLogger(__name__)
 model_to_prompt_size = {
@@ -113,6 +113,7 @@ def save_to_conversation_log(
     conversation_id: str = None,
     automation_id: str = None,
     query_images: List[str] = None,
+    tracer: Dict[str, Any] = {},
 ):
     user_message_time = user_message_time or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     updated_conversation = message_to_log(
@@ -137,6 +138,9 @@ def save_to_conversation_log(
         conversation_id=conversation_id,
         user_message=q,
     )
+
+    if in_debug_mode() or state.verbose > 1:
+        merge_message_into_conversation_trace(q, chat_response, tracer)
 
     logger.info(
         f"""
