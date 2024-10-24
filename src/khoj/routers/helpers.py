@@ -1116,7 +1116,6 @@ def generate_chat_response(
                 user_query=query_to_run,
                 references=compiled_references,
                 online_results=online_results,
-                user_query=query_to_run,
                 loaded_model=loaded_model,
                 conversation_log=meta_log,
                 completion_func=partial_completion,
