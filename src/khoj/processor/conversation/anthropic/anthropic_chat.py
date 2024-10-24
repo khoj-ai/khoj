@@ -28,6 +28,7 @@ def extract_questions_anthropic(
     location_data: LocationData = None,
     user: KhojUser = None,
     personality_context: Optional[str] = None,
+    tracer: dict = {},
 ):
     """
     Infer search queries to retrieve relevant notes to answer user query
@@ -76,6 +77,7 @@ def extract_questions_anthropic(
         model_name=model,
         temperature=temperature,
         api_key=api_key,
+        tracer=tracer,
     )
 
     # Extract, Clean Message from Claude's Response
@@ -97,7 +99,7 @@ def extract_questions_anthropic(
     return questions
 
 
-def anthropic_send_message_to_model(messages, api_key, model):
+def anthropic_send_message_to_model(messages, api_key, model, tracer={}):
     """
     Send message to model
     """
@@ -119,6 +121,7 @@ def anthropic_send_message_to_model(messages, api_key, model):
         system_prompt=system_prompt,
         model_name=model,
         api_key=api_key,
+        tracer=tracer,
     )
 
 
@@ -136,6 +139,7 @@ def converse_anthropic(
     location_data: LocationData = None,
     user_name: str = None,
     agent: Agent = None,
+    tracer: dict = {},
 ):
     """
     Converse with user using Anthropic's Claude
@@ -215,4 +219,5 @@ def converse_anthropic(
         system_prompt=system_prompt,
         completion_func=completion_func,
         max_prompt_size=max_prompt_size,
+        tracer=tracer,
     )
