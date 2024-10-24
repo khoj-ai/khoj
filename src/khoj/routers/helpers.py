@@ -623,7 +623,6 @@ async def generate_summary_from_files(
     query_images: List[str] = None,
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
-    send_response_func: Optional[Callable] = None,
 ):
     try:
         file_object = None
@@ -636,11 +635,8 @@ async def generate_summary_from_files(
             file_object = await FileObjectAdapters.async_get_file_objects_by_name(user, file_filters[0])
 
         if len(file_object) == 0:
-            response_log = (
-                "Sorry, I couldn't find the full text of this file. Please re-upload the document and try again."
-            )
-            async for result in send_response_func(response_log):
-                yield result
+            response_log = "Sorry, I couldn't find the full text of this file."
+            yield response_log
             return
         contextual_data = " ".join([file.raw_text for file in file_object])
         if not q:
@@ -657,13 +653,12 @@ async def generate_summary_from_files(
             agent=agent,
         )
         response_log = str(response)
-        async for result in send_response_func(response_log):
-            yield result
+
+        yield result
     except Exception as e:
         response_log = "Error summarizing file. Please try again, or contact support."
         logger.error(f"Error summarizing file for {user.email}: {e}", exc_info=True)
-        async for result in send_response_func(response_log):
-            yield result
+        yield result
 
 
 async def generate_excalidraw_diagram(

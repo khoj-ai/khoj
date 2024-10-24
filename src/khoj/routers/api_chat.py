@@ -704,7 +704,7 @@ async def chat(
                 location=location,
                 file_filters=conversation.file_filters if conversation else [],
             ):
-                if type(research_result) == InformationCollectionIteration:
+                if isinstance(research_result, InformationCollectionIteration):
                     if research_result.summarizedResult:
                         pending_research = False
                         if research_result.onlineContext:
@@ -778,12 +778,13 @@ async def chat(
                     query_images=uploaded_images,
                     agent=agent,
                     send_status_func=partial(send_event, ChatEvent.STATUS),
-                    send_response_func=partial(send_llm_response),
                 ):
                     if isinstance(response, dict) and ChatEvent.STATUS in response:
                         yield result[ChatEvent.STATUS]
                     else:
-                        response
+                        if isinstance(response, str):
+                            async for result in send_llm_response(response):
+                                yield result
 
             await sync_to_async(save_to_conversation_log)(
                 q,
