@@ -82,7 +82,6 @@ from khoj.processor.conversation.google.gemini_chat import (
     converse_gemini,
     gemini_send_message_to_model,
 )
-from khoj.processor.conversation.helpers import send_message_to_model_wrapper
 from khoj.processor.conversation.offline.chat_model import (
     converse_offline,
     send_message_to_model_offline,
@@ -212,21 +211,6 @@ def get_next_url(request: Request) -> str:
         next_path = next_url_param.path
     # Construct absolute url using current domain and next path from request
     return urljoin(str(request.base_url).rstrip("/"), next_path)
-
-
-def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:
-    chat_history = ""
-    for chat in conversation_history.get("chat", [])[-n:]:
-        if chat["by"] == "khoj" and chat["intent"].get("type") in ["remember", "reminder", "summarize"]:
-            chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += f"{agent_name}: {chat['message']}\n"
-        elif chat["by"] == "khoj" and ("text-to-image" in chat["intent"].get("type")):
-            chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += f"{agent_name}: [generated image redacted for space]\n"
-        elif chat["by"] == "khoj" and ("excalidraw" in chat["intent"].get("type")):
-            chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += f"{agent_name}: {chat['intent']['inferred-queries'][0]}\n"
-    return chat_history
 
 
 def get_conversation_command(query: str, any_references: bool = False) -> ConversationCommand:
@@ -1129,9 +1113,9 @@ def generate_chat_response(
         if conversation_config.model_type == "offline":
             loaded_model = state.offline_chat_processor_config.loaded_model
             chat_response = converse_offline(
+                user_query=query_to_run,
                 references=compiled_references,
                 online_results=online_results,
-                user_query=query_to_run,
                 loaded_model=loaded_model,
                 conversation_log=meta_log,
                 completion_func=partial_completion,
@@ -1151,7 +1135,6 @@ def generate_chat_response(
             chat_response = converse(
                 compiled_references,
                 query_to_run,
-                q,
                 query_images=query_images,
                 online_results=online_results,
                 code_results=code_results,
@@ -1195,10 +1178,6 @@ def generate_chat_response(
                 online_results,
                 code_results,
                 meta_log,
-                q,
-                query_images=query_images,
-                online_results=online_results,
-                conversation_log=meta_log,
                 model=conversation_config.chat_model,
                 api_key=api_key,
                 completion_func=partial_completion,

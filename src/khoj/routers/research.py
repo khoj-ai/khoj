@@ -87,14 +87,12 @@ async def apick_next_tool(
         max_iterations=max_iterations,
     )
 
-    chat_model_option = await ConversationAdapters.aget_advanced_conversation_config(user)
-
     with timer("Chat actor: Infer information sources to refer", logger):
         response = await send_message_to_model_wrapper(
             function_planning_prompt,
             response_type="json_object",
             user=user,
-            chat_model_option=chat_model_option,
+            query_images=query_images,
         )
 
     try:

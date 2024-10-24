@@ -4,7 +4,7 @@ import logging
 import os
 import urllib.parse
 from collections import defaultdict
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import aiohttp
 from bs4 import BeautifulSoup
@@ -94,11 +94,16 @@ async def search_online(
 
     # Gather distinct web pages from organic results for subqueries without an instant answer.
     # Content of web pages is directly available when Jina is used for search.
-    webpages = set()
+    webpages: Dict[str, Dict] = {}
     for subquery in response_dict:
+        if "answerBox" in response_dict[subquery]:
+            continue
         for organic in response_dict[subquery].get("organic", [])[:max_webpages_to_read]:
-            if "answerBox" not in response_dict[subquery]:
-                webpages.add(organic.get("link"), {"queries": {subquery}, "content": organic.get("content")})
+            link = organic.get("link")
+            if link in webpages:
+                webpages[link]["queries"].add(subquery)
+            else:
+                webpages[link] = {"queries": {subquery}, "content": organic.get("content")}
 
     # Read, extract relevant info from the retrieved web pages
     if webpages:
