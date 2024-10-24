@@ -286,7 +286,7 @@ async def execute_information_collection(
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
                     else:
-                        summarize_files = result
+                        summarize_files = result  # type: ignore
             except Exception as e:
                 logger.error(f"Error generating summary: {e}", exc_info=True)
 

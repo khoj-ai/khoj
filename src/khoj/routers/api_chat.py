@@ -782,8 +782,9 @@ async def chat(
                     if isinstance(response, dict) and ChatEvent.STATUS in response:
                         yield result[ChatEvent.STATUS]
                     else:
-                        async for result in send_llm_response(response):
-                            yield result
+                        if type(response) == str:
+                            async for result in send_llm_response(response):
+                                yield result
 
             await sync_to_async(save_to_conversation_log)(
                 q,
