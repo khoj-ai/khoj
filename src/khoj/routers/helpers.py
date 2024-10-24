@@ -232,6 +232,8 @@ def get_conversation_command(query: str, any_references: bool = False) -> Conver
         return ConversationCommand.Summarize
     elif query.startswith("/diagram"):
         return ConversationCommand.Diagram
+    elif query.startswith("/code"):
+        return ConversationCommand.Code
     # If no relevant notes found for the given query
     elif not any_references:
         return ConversationCommand.General

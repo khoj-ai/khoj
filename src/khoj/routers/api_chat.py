@@ -690,14 +690,14 @@ async def chat(
         inferred_queries: List[Any] = []
         defiltered_query = defilter_query(q)
 
-        if conversation_commands == [ConversationCommand.Default] or is_automated_task:
+        if conversation_commands == [ConversationCommand.Default]:
             async for research_result in execute_information_collection(
                 request=request,
                 user=user,
                 query=defiltered_query,
                 conversation_id=conversation_id,
                 conversation_history=meta_log,
-                query_images=raw_images,
+                query_images=uploaded_images,
                 agent=agent,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
                 user_name=user_name,
@@ -956,16 +956,17 @@ async def chat(
                     ):
                         yield result
 
-            ## Send Gathered References
-            async for result in send_event(
-                ChatEvent.REFERENCES,
-                {
-                    "inferredQueries": inferred_queries,
-                    "context": compiled_references,
-                    "onlineContext": online_results,
-                },
-            ):
-                yield result
+        ## Send Gathered References
+        async for result in send_event(
+            ChatEvent.REFERENCES,
+            {
+                "inferredQueries": inferred_queries,
+                "context": compiled_references,
+                "onlineContext": online_results,
+                "codeContext": code_results,
+            },
+        ):
+            yield result
 
         if pending_research:
             ## Gather Code Results

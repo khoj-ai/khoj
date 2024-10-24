@@ -301,6 +301,9 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
     const iconColor = props.primary ? convertColorToTextClass(props.agentColor) : "text-gray-500";
     const icon = chooseIconFromHeader(header, iconColor);
     let markdownRendered = DOMPurify.sanitize(md.render(props.message));
+
+    // Remove any header tags from markdownRendered
+    markdownRendered = markdownRendered.replace(/<h[1-6].*?<\/h[1-6]>/g, "");
     return (
         <div
             className={`${styles.trainOfThoughtElement} break-all items-center ${props.primary ? "text-gray-400" : "text-gray-300"} ${styles.trainOfThought} ${props.primary ? styles.primary : ""}`}
