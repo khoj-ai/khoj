@@ -684,10 +684,7 @@ async def generate_better_diagram_description(
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
     )
 
-    if location_data:
-        location_prompt = prompts.user_location.format(location=f"{location_data}")
-    else:
-        location_prompt = "Unknown"
+    location = f"{location_data}" if location_data else "Unknown"
 
     user_references = "\n\n".join([f"# {item['compiled']}" for item in note_references])
 
@@ -705,7 +702,7 @@ async def generate_better_diagram_description(
     improve_diagram_description_prompt = prompts.improve_diagram_description_prompt.format(
         query=q,
         chat_history=chat_history,
-        location=location_prompt,
+        location=location,
         current_date=today_date,
         references=user_references,
         online_results=simplified_online_results,
@@ -770,10 +767,7 @@ async def generate_better_image_prompt(
     )
     model_type = model_type or TextToImageModelConfig.ModelType.OPENAI
 
-    if location_data:
-        location_prompt = prompts.user_location.format(location=f"{location_data}")
-    else:
-        location_prompt = "Unknown"
+    location = f"{location_data}" if location_data else "Unknown"
 
     user_references = "\n\n".join([f"# {item['compiled']}" for item in note_references])
 
@@ -790,7 +784,7 @@ async def generate_better_image_prompt(
         image_prompt = prompts.image_generation_improve_prompt_dalle.format(
             query=q,
             chat_history=conversation_history,
-            location=location_prompt,
+            location=location,
             current_date=today_date,
             references=user_references,
             online_results=simplified_online_results,
@@ -800,7 +794,7 @@ async def generate_better_image_prompt(
         image_prompt = prompts.image_generation_improve_prompt_sd.format(
             query=q,
             chat_history=conversation_history,
-            location=location_prompt,
+            location=location,
             current_date=today_date,
             references=user_references,
             online_results=simplified_online_results,
