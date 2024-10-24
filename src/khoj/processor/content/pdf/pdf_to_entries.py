@@ -67,7 +67,7 @@ class PdfToEntries(TextToEntries):
                     bytes = pdf_files[pdf_file]
                     f.write(bytes)
                 try:
-                    loader = PyMuPDFLoader(f"{tmp_file}", extract_images=True)
+                    loader = PyMuPDFLoader(f"{tmp_file}", extract_images=False)
                     pdf_entries_per_file = [page.page_content for page in loader.load()]
                 except ImportError:
                     loader = PyMuPDFLoader(f"{tmp_file}")

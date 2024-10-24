@@ -28,6 +28,7 @@ import {
     ClipboardText,
     Check,
     Code,
+    Shapes,
 } from "@phosphor-icons/react";
 
 import DOMPurify from "dompurify";
@@ -37,6 +38,7 @@ import { AgentData } from "@/app/agents/page";
 
 import renderMathInElement from "katex/contrib/auto-render";
 import "katex/dist/katex.min.css";
+import ExcalidrawComponent from "../excalidraw/excalidraw";
 
 const md = new markdownIt({
     html: true,
@@ -137,7 +139,7 @@ export interface SingleChatMessage {
     rawQuery?: string;
     intent?: Intent;
     agent?: AgentData;
-    uploadedImageData?: string;
+    images?: string[];
 }
 
 export interface StreamMessage {
@@ -150,7 +152,9 @@ export interface StreamMessage {
     rawQuery: string;
     timestamp: string;
     agent?: AgentData;
-    uploadedImageData?: string;
+    images?: string[];
+    intentType?: string;
+    inferredQueries?: string[];
 }
 
 export interface ChatHistoryData {
@@ -232,7 +236,6 @@ interface ChatMessageProps {
     borderLeftColor?: string;
     isLastMessage?: boolean;
     agent?: AgentData;
-    uploadedImageData?: string;
 }
 
 interface TrainOfThoughtProps {
@@ -276,6 +279,10 @@ function chooseIconFromHeader(header: string, iconColor: string) {
         return <Aperture className={`${classNames}`} />;
     }
 
+    if (compareHeader.includes("diagram")) {
+        return <Shapes className={`${classNames}`} />;
+    }
+
     if (compareHeader.includes("paint")) {
         return <Palette className={`${classNames}`} />;
     }
@@ -311,6 +318,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
     const [markdownRendered, setMarkdownRendered] = useState<string>("");
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const [interrupted, setInterrupted] = useState<boolean>(false);
+    const [excalidrawData, setExcalidrawData] = useState<string>("");
 
     const interruptedRef = useRef<boolean>(false);
     const messageRef = useRef<HTMLDivElement>(null);
@@ -347,7 +355,13 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
     }, [messageRef.current]);
 
     useEffect(() => {
+        // Prepare initial message for rendering
         let message = props.chatMessage.message;
+
+        if (props.chatMessage.intent && props.chatMessage.intent.type == "excalidraw") {
+            message = props.chatMessage.intent["inferred-queries"][0];
+            setExcalidrawData(props.chatMessage.message);
+        }
 
         // Replace LaTeX delimiters with placeholders
         message = message
@@ -356,8 +370,50 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             .replace(/\\\[/g, "LEFTBRACKET")
             .replace(/\\\]/g, "RIGHTBRACKET");
 
-        if (props.chatMessage.uploadedImageData) {
-            message = `![uploaded image](${props.chatMessage.uploadedImageData})\n\n${message}`;
+        const intentTypeHandlers = {
+            "text-to-image": (msg: string) => `![generated image](data:image/png;base64,${msg})`,
+            "text-to-image2": (msg: string) => `![generated image](${msg})`,
+            "text-to-image-v3": (msg: string) =>
+                `![generated image](data:image/webp;base64,${msg})`,
+            excalidraw: (msg: string) => msg,
+        };
+
+        // Handle intent-specific rendering
+        if (props.chatMessage.intent) {
+            const { type, "inferred-queries": inferredQueries } = props.chatMessage.intent;
+
+            console.log("intent type", type);
+            if (type in intentTypeHandlers) {
+                message = intentTypeHandlers[type as keyof typeof intentTypeHandlers](message);
+            }
+
+            if (type.includes("text-to-image") && inferredQueries?.length > 0) {
+                message += `\n\n${inferredQueries[0]}`;
+            }
+        }
+        // Handle user attached images rendering
+        let messageForClipboard = message;
+        let messageToRender = message;
+        if (props.chatMessage.images && props.chatMessage.images.length > 0) {
+            const sanitizedImages = props.chatMessage.images.map((image) => {
+                const decodedImage = image.startsWith("data%3Aimage")
+                    ? decodeURIComponent(image)
+                    : image;
+                return DOMPurify.sanitize(decodedImage);
+            });
+            const imagesInMd = sanitizedImages
+                .map((sanitizedImage, index) => {
+                    return `![uploaded image ${index + 1}](${sanitizedImage})`;
+                })
+                .join("\n");
+            const imagesInHtml = sanitizedImages
+                .map((sanitizedImage, index) => {
+                    return `<div class="${styles.imageWrapper}"><img src="${sanitizedImage}" alt="uploaded image ${index + 1}" /></div>`;
+                })
+                .join("");
+            const userImagesInHtml = `<div class="${styles.imagesContainer}">${imagesInHtml}</div>`;
+            messageForClipboard = `${imagesInMd}\n\n${messageForClipboard}`;
+            messageToRender = `${userImagesInHtml}${messageToRender}`;
         }
 
         if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image") {
@@ -402,10 +458,11 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             });
         }
 
-        setTextRendered(message);
+        // Set the message text
+        setTextRendered(messageForClipboard);
 
         // Render the markdown
-        let markdownRendered = md.render(message);
+        let markdownRendered = md.render(messageToRender);
 
         // Replace placeholders with LaTeX delimiters
         markdownRendered = markdownRendered
@@ -416,7 +473,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
 
         // Sanitize and set the rendered markdown
         setMarkdownRendered(DOMPurify.sanitize(markdownRendered));
-    }, [props.chatMessage.message, props.chatMessage.intent]);
+    }, [props.chatMessage.message, props.chatMessage.images, props.chatMessage.intent]);
 
     useEffect(() => {
         if (copySuccess) {
@@ -607,6 +664,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                     className={styles.chatMessage}
                     dangerouslySetInnerHTML={{ __html: markdownRendered }}
                 />
+                {excalidrawData && <ExcalidrawComponent data={excalidrawData} />}
             </div>
             <div className={styles.teaserReferencesContainer}>
                 <TeaserReferencesSection

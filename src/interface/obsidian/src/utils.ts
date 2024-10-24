@@ -37,6 +37,8 @@ function filenameToMimeType (filename: TFile): string {
         case 'jpg':
         case 'jpeg':
             return 'image/jpeg';
+        case 'webp':
+            return 'image/webp';
         case 'md':
         case 'markdown':
             return 'text/markdown';
@@ -50,7 +52,7 @@ function filenameToMimeType (filename: TFile): string {
 
 export const fileTypeToExtension = {
     'pdf': ['pdf'],
-    'image': ['png', 'jpg', 'jpeg'],
+    'image': ['png', 'jpg', 'jpeg', 'webp'],
     'markdown': ['md', 'markdown'],
 };
 export const supportedImageFilesTypes = fileTypeToExtension.image;

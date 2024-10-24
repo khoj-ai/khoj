@@ -1,25 +1,9 @@
 import styles from "./chatInputArea.module.css";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, forwardRef } from "react";
 
 import DOMPurify from "dompurify";
 import "katex/dist/katex.min.css";
-import {
-    ArrowRight,
-    ArrowUp,
-    Browser,
-    ChatsTeardrop,
-    GlobeSimple,
-    Gps,
-    Image,
-    Microphone,
-    Notebook,
-    Paperclip,
-    X,
-    Question,
-    Robot,
-    Shapes,
-    Stop,
-} from "@phosphor-icons/react";
+import { ArrowUp, Microphone, Paperclip, X, Stop } from "@phosphor-icons/react";
 
 import {
     Command,
@@ -68,7 +52,7 @@ interface ChatInputProps {
     agentColor?: string;
 }
 
-export default function ChatInputArea(props: ChatInputProps) {
+export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((props, ref) => {
     const [message, setMessage] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -78,15 +62,17 @@ export default function ChatInputArea(props: ChatInputProps) {
     const [loginRedirectMessage, setLoginRedirectMessage] = useState<string | null>(null);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
-    const [recording, setRecording] = useState(false);
     const [imageUploaded, setImageUploaded] = useState(false);
-    const [imagePath, setImagePath] = useState<string>("");
-    const [imageData, setImageData] = useState<string | null>(null);
+    const [imagePaths, setImagePaths] = useState<string[]>([]);
+    const [imageData, setImageData] = useState<string[]>([]);
+
+    const [recording, setRecording] = useState(false);
     const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
     const [progressValue, setProgressValue] = useState(0);
     const [isDragAndDropping, setIsDragAndDropping] = useState(false);
 
+    const chatInputRef = ref as React.MutableRefObject<HTMLTextAreaElement>;
     useEffect(() => {
         if (!uploading) {
             setProgressValue(0);
@@ -106,27 +92,31 @@ export default function ChatInputArea(props: ChatInputProps) {
 
     useEffect(() => {
         async function fetchImageData() {
-            if (imagePath) {
-                const response = await fetch(imagePath);
-                const blob = await response.blob();
-                const reader = new FileReader();
-                reader.onload = function () {
-                    const base64data = reader.result;
-                    setImageData(base64data as string);
-                };
-                reader.readAsDataURL(blob);
+            if (imagePaths.length > 0) {
+                const newImageData = await Promise.all(
+                    imagePaths.map(async (path) => {
+                        const response = await fetch(path);
+                        const blob = await response.blob();
+                        return new Promise<string>((resolve) => {
+                            const reader = new FileReader();
+                            reader.onload = () => resolve(reader.result as string);
+                            reader.readAsDataURL(blob);
+                        });
+                    }),
+                );
+                setImageData(newImageData);
             }
             setUploading(false);
         }
         setUploading(true);
         fetchImageData();
-    }, [imagePath]);
+    }, [imagePaths]);
 
     function onSendMessage() {
         if (imageUploaded) {
             setImageUploaded(false);
-            setImagePath("");
-            props.sendImage(imageData || "");
+            setImagePaths([]);
+            imageData.forEach((data) => props.sendImage(data));
         }
         if (!message.trim()) return;
 
@@ -168,20 +158,27 @@ export default function ChatInputArea(props: ChatInputProps) {
 
     function uploadFiles(files: FileList) {
         if (!props.isLoggedIn) {
-            setLoginRedirectMessage("Whoa! You need to login to upload files");
+            setLoginRedirectMessage("Please login to chat with your files");
             setShowLoginPrompt(true);
             return;
         }
-        // check for image file
-        const image_endings = ["jpg", "jpeg", "png"];
+        // check for image files
+        const image_endings = ["jpg", "jpeg", "png", "webp"];
+        const newImagePaths: string[] = [];
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             const file_extension = file.name.split(".").pop();
             if (image_endings.includes(file_extension || "")) {
-                setImageUploaded(true);
-                setImagePath(DOMPurify.sanitize(URL.createObjectURL(file)));
-                return;
+                newImagePaths.push(DOMPurify.sanitize(URL.createObjectURL(file)));
             }
+        }
+
+        if (newImagePaths.length > 0) {
+            setImageUploaded(true);
+            setImagePaths((prevPaths) => [...prevPaths, ...newImagePaths]);
+            // Set focus to the input for user message after uploading files
+            chatInputRef?.current?.focus();
+            return;
         }
 
         uploadDataForIndexing(
@@ -192,6 +189,9 @@ export default function ChatInputArea(props: ChatInputProps) {
             props.setUploadedFiles,
             props.conversationId,
         );
+
+        // Set focus to the input for user message after uploading files
+        chatInputRef?.current?.focus();
     }
 
     // Assuming this function is added within the same context as the provided excerpt
@@ -270,9 +270,8 @@ export default function ChatInputArea(props: ChatInputProps) {
         }
     }, [recording, mediaRecorder]);
 
-    const chatInputRef = useRef<HTMLTextAreaElement>(null);
     useEffect(() => {
-        if (!chatInputRef.current) return;
+        if (!chatInputRef?.current) return;
         chatInputRef.current.style.height = "auto";
         chatInputRef.current.style.height =
             Math.max(chatInputRef.current.scrollHeight - 24, 64) + "px";
@@ -288,9 +287,12 @@ export default function ChatInputArea(props: ChatInputProps) {
         setIsDragAndDropping(false);
     }
 
-    function removeImageUpload() {
-        setImageUploaded(false);
-        setImagePath("");
+    function removeImageUpload(index: number) {
+        setImagePaths((prevPaths) => prevPaths.filter((_, i) => i !== index));
+        setImageData((prevData) => prevData.filter((_, i) => i !== index));
+        if (imagePaths.length === 1) {
+            setImageUploaded(false);
+        }
     }
 
     return (
@@ -407,24 +409,11 @@ export default function ChatInputArea(props: ChatInputProps) {
                 </div>
             )}
             <div
-                className={`${styles.actualInputArea} items-center justify-between dark:bg-neutral-700 relative ${isDragAndDropping && "animate-pulse"}`}
+                className={`${styles.actualInputArea} justify-between dark:bg-neutral-700 relative ${isDragAndDropping && "animate-pulse"}`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDragAndDropFiles}
             >
-                {imageUploaded && (
-                    <div className="absolute bottom-[80px] left-0 right-0 dark:bg-neutral-700 bg-white pt-5 pb-5 w-full rounded-lg border dark:border-none grid grid-cols-2">
-                        <div className="pl-4 pr-4">
-                            <img src={imagePath} alt="img" className="w-auto max-h-[100px]" />
-                        </div>
-                        <div className="pl-4 pr-4">
-                            <X
-                                className="w-6 h-6 float-right dark:hover:bg-[hsl(var(--background))] hover:bg-neutral-100 rounded-sm"
-                                onClick={removeImageUpload}
-                            />
-                        </div>
-                    </div>
-                )}
                 <input
                     type="file"
                     multiple={true}
@@ -432,15 +421,37 @@ export default function ChatInputArea(props: ChatInputProps) {
                     onChange={handleFileChange}
                     style={{ display: "none" }}
                 />
-                <Button
-                    variant={"ghost"}
-                    className="!bg-none p-0 m-2 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
-                    disabled={props.sendDisabled}
-                    onClick={handleFileButtonClick}
-                >
-                    <Paperclip className="w-8 h-8" />
-                </Button>
-                <div className="grid w-full gap-1.5 relative">
+                <div className="flex items-end pb-4">
+                    <Button
+                        variant={"ghost"}
+                        className="!bg-none p-0 m-2 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
+                        disabled={props.sendDisabled}
+                        onClick={handleFileButtonClick}
+                    >
+                        <Paperclip className="w-8 h-8" />
+                    </Button>
+                </div>
+                <div className="flex-grow flex flex-col w-full gap-1.5 relative pb-2">
+                    <div className="flex items-center gap-2 overflow-x-auto">
+                        {imageUploaded &&
+                            imagePaths.map((path, index) => (
+                                <div key={index} className="relative flex-shrink-0 pb-3 pt-2 group">
+                                    <img
+                                        src={path}
+                                        alt={`img-${index}`}
+                                        className="w-auto h-16 object-cover rounded-xl"
+                                    />
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute -top-0 -right-2 h-5 w-5 rounded-full bg-neutral-200 dark:bg-neutral-600 hover:bg-neutral-300 dark:hover:bg-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={() => removeImageUpload(index)}
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </Button>
+                                </div>
+                            ))}
+                    </div>
                     <Textarea
                         ref={chatInputRef}
                         className={`border-none w-full h-16 min-h-16 max-h-[128px] md:py-4 rounded-lg resize-none dark:bg-neutral-700 ${props.isMobileWidth ? "text-md" : "text-lg"}`}
@@ -449,9 +460,9 @@ export default function ChatInputArea(props: ChatInputProps) {
                         autoFocus={true}
                         value={message}
                         onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
+                            if (e.key === "Enter" && !e.shiftKey && !props.isMobileWidth) {
                                 setImageUploaded(false);
-                                setImagePath("");
+                                setImagePaths([]);
                                 e.preventDefault();
                                 onSendMessage();
                             }
@@ -460,58 +471,62 @@ export default function ChatInputArea(props: ChatInputProps) {
                         disabled={props.sendDisabled || recording}
                     />
                 </div>
-                {recording ? (
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="default"
-                                    className={`${!recording && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
-                                    onClick={() => {
-                                        setRecording(!recording);
-                                    }}
-                                    disabled={props.sendDisabled}
-                                >
-                                    <Stop weight="fill" className="w-6 h-6" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                Click to stop recording and transcribe your voice.
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                ) : mediaRecorder ? (
-                    <InlineLoading />
-                ) : (
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="default"
-                                    className={`${!message || recording || "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
-                                    onClick={() => {
-                                        setMessage("Listening...");
-                                        setRecording(!recording);
-                                    }}
-                                    disabled={props.sendDisabled}
-                                >
-                                    <Microphone weight="fill" className="w-6 h-6" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                Click to transcribe your message with voice.
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                )}
-                <Button
-                    className={`${(!message || recording) && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
-                    onClick={onSendMessage}
-                    disabled={props.sendDisabled}
-                >
-                    <ArrowUp className="w-6 h-6" weight="bold" />
-                </Button>
+                <div className="flex items-end pb-4">
+                    {recording ? (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="default"
+                                        className={`${!recording && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                                        onClick={() => {
+                                            setRecording(!recording);
+                                        }}
+                                        disabled={props.sendDisabled}
+                                    >
+                                        <Stop weight="fill" className="w-6 h-6" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    Click to stop recording and transcribe your voice.
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    ) : mediaRecorder ? (
+                        <InlineLoading />
+                    ) : (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="default"
+                                        className={`${!message || recording || "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                                        onClick={() => {
+                                            setMessage("Listening...");
+                                            setRecording(!recording);
+                                        }}
+                                        disabled={props.sendDisabled}
+                                    >
+                                        <Microphone weight="fill" className="w-6 h-6" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    Click to transcribe your message with voice.
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
+                    <Button
+                        className={`${(!message || recording) && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                        onClick={onSendMessage}
+                        disabled={props.sendDisabled}
+                    >
+                        <ArrowUp className="w-6 h-6" weight="bold" />
+                    </Button>
+                </div>
             </div>
         </>
     );
-}
+});
+
+ChatInputArea.displayName = "ChatInputArea";

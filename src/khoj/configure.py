@@ -108,7 +108,7 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 password="default",
             )
             renewal_date = make_aware(datetime.strptime("2100-04-01", "%Y-%m-%d"))
-            Subscription.objects.create(user=default_user, type="standard", renewal_date=renewal_date)
+            Subscription.objects.create(user=default_user, type=Subscription.Type.STANDARD, renewal_date=renewal_date)
 
     async def authenticate(self, request: HTTPConnection):
         current_user = request.session.get("user")
@@ -172,7 +172,7 @@ class UserAuthenticationBackend(AuthenticationBackend):
                         request=request,
                         telemetry_type="api",
                         api="create_user",
-                        metadata={"user_id": str(user.uuid)},
+                        metadata={"server_id": str(user.uuid)},
                     )
                     logger.log(logging.INFO, f"🥳 New User Created: {user.uuid}")
             else:
@@ -312,7 +312,7 @@ def configure_routes(app):
         logger.info("🔑 Enabled Authentication")
 
     if state.billing_enabled:
-        from khoj.routers.subscription import subscription_router
+        from khoj.routers.api_subscription import subscription_router
 
         app.include_router(subscription_router, prefix="/api/subscription")
         logger.info("💳 Enabled Billing")

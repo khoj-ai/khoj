@@ -6,14 +6,17 @@ from typing import Dict, Optional
 
 from langchain.schema import ChatMessage
 
-from khoj.database.models import Agent, KhojUser
+from khoj.database.models import Agent, ChatModelOptions, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.google.utils import (
     format_messages_for_gemini,
     gemini_chat_completion_with_backoff,
     gemini_completion_with_backoff,
 )
-from khoj.processor.conversation.utils import generate_chatml_messages_with_context
+from khoj.processor.conversation.utils import (
+    construct_structured_message,
+    generate_chatml_messages_with_context,
+)
 from khoj.utils.helpers import ConversationCommand, is_none_or_empty
 from khoj.utils.rawconfig import LocationData
 
@@ -29,6 +32,8 @@ def extract_questions_gemini(
     max_tokens=None,
     location_data: LocationData = None,
     user: KhojUser = None,
+    query_images: Optional[list[str]] = None,
+    vision_enabled: bool = False,
     personality_context: Optional[str] = None,
 ):
     """
@@ -70,17 +75,17 @@ def extract_questions_gemini(
         text=text,
     )
 
-    messages = [ChatMessage(content=prompt, role="user")]
+    prompt = construct_structured_message(
+        message=prompt,
+        images=query_images,
+        model_type=ChatModelOptions.ModelType.GOOGLE,
+        vision_enabled=vision_enabled,
+    )
 
-    model_kwargs = {"response_mime_type": "application/json"}
+    messages = [ChatMessage(content=prompt, role="user"), ChatMessage(content=system_prompt, role="system")]
 
-    response = gemini_completion_with_backoff(
-        messages=messages,
-        system_prompt=system_prompt,
-        model_name=model,
-        temperature=temperature,
-        api_key=api_key,
-        model_kwargs=model_kwargs,
+    response = gemini_send_message_to_model(
+        messages, api_key, model, response_type="json_object", temperature=temperature
     )
 
     # Extract, Clean Message from Gemini's Response
@@ -102,7 +107,7 @@ def extract_questions_gemini(
     return questions
 
 
-def gemini_send_message_to_model(messages, api_key, model, response_type="text"):
+def gemini_send_message_to_model(messages, api_key, model, response_type="text", temperature=0, model_kwargs=None):
     """
     Send message to model
     """
@@ -114,7 +119,12 @@ def gemini_send_message_to_model(messages, api_key, model, response_type="text")
 
     # Get Response from Gemini
     return gemini_completion_with_backoff(
-        messages=messages, system_prompt=system_prompt, model_name=model, api_key=api_key, model_kwargs=model_kwargs
+        messages=messages,
+        system_prompt=system_prompt,
+        model_name=model,
+        api_key=api_key,
+        temperature=temperature,
+        model_kwargs=model_kwargs,
     )
 
 
@@ -134,6 +144,8 @@ def converse_gemini(
     location_data: LocationData = None,
     user_name: str = None,
     agent: Agent = None,
+    query_images: Optional[list[str]] = None,
+    vision_available: bool = False,
 ):
     """
     Converse with user using Google's Gemini
@@ -192,6 +204,9 @@ def converse_gemini(
         model_name=model,
         max_prompt_size=max_prompt_size,
         tokenizer_name=tokenizer_name,
+        query_images=query_images,
+        vision_enabled=vision_available,
+        model_type=ChatModelOptions.ModelType.GOOGLE,
     )
 
     messages, system_prompt = format_messages_for_gemini(messages, system_prompt)

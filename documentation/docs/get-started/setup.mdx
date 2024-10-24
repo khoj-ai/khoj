@@ -40,7 +40,7 @@ If you want to use the offline chat model and you have a GPU, you should use Ins
       </TabItem>
       <TabItem value="linux" label="Linux">
         <h3>Prerequisites</h3>
-        Install [Docker Desktop](https://docs.docker.com/desktop/install/windows-install/).
+        Install [Docker Desktop](https://docs.docker.com/desktop/install/linux/).
         You can also use your package manager to install Docker Engine & Docker Compose.
       </TabItem>
     </Tabs>
@@ -240,7 +240,7 @@ Ensure you are using **localhost, not 127.0.0.1**, to access the admin panel to 
 
 :::info[DISALLOWED HOST or Bad Request (400) Error]
 You may hit this if you try access Khoj exposed on a custom domain (e.g. 192.168.12.3 or example.com) or over HTTP.
-Set the environment variables KHOJ_DOMAIN=your-domain and KHOJ_NO_HTTPS=false if required to avoid this error.
+Set the environment variables KHOJ_DOMAIN=your-domain and KHOJ_NO_HTTPS=True if required to avoid this error.
 :::
 
 :::tip[Note]

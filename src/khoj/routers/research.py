@@ -38,7 +38,7 @@ async def apick_next_tool(
     query: str,
     conversation_history: dict,
     user: KhojUser = None,
-    uploaded_image_url: str = None,
+    query_images: List[str] = [],
     location: LocationData = None,
     user_name: str = None,
     agent: Agent = None,
@@ -62,8 +62,8 @@ async def apick_next_tool(
 
     chat_history = construct_chat_history(conversation_history, agent_name=agent.name if agent else "Khoj")
 
-    if uploaded_image_url:
-        query = f"[placeholder for user attached image]\n{query}"
+    if query_images:
+        query = f"[placeholder for user attached images]\n{query}"
 
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
@@ -131,8 +131,7 @@ async def execute_information_collection(
     query: str,
     conversation_id: str,
     conversation_history: dict,
-    subscribed: bool,
-    uploaded_image_url: str = None,
+    query_images: List[str],
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
     user_name: str = None,
@@ -154,7 +153,7 @@ async def execute_information_collection(
             query,
             conversation_history,
             user,
-            uploaded_image_url,
+            query_images,
             location,
             user_name,
             agent,
@@ -180,7 +179,7 @@ async def execute_information_collection(
                 [ConversationCommand.Default],
                 location,
                 send_status_func,
-                uploaded_image_url=uploaded_image_url,
+                query_images,
                 agent=agent,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -208,11 +207,10 @@ async def execute_information_collection(
                 conversation_history,
                 location,
                 user,
-                subscribed,
                 send_status_func,
                 [],
                 max_webpages_to_read=0,
-                uploaded_image_url=uploaded_image_url,
+                query_images=query_images,
                 agent=agent,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -229,7 +227,7 @@ async def execute_information_collection(
                     location,
                     user,
                     send_status_func,
-                    uploaded_image_url=uploaded_image_url,
+                    query_images=query_images,
                     agent=agent,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -259,7 +257,7 @@ async def execute_information_collection(
                     location,
                     user,
                     send_status_func,
-                    uploaded_image_url=uploaded_image_url,
+                    query_images=query_images,
                     agent=agent,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:

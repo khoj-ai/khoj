@@ -64,6 +64,8 @@ class ImageToEntries(TextToEntries):
                     tmp_file = f"tmp_image_file_{timestamp_now}.png"
                 elif image_file.endswith(".jpg") or image_file.endswith(".jpeg"):
                     tmp_file = f"tmp_image_file_{timestamp_now}.jpg"
+                elif image_file.endswith(".webp"):
+                    tmp_file = f"tmp_image_file_{timestamp_now}.webp"
                 with open(tmp_file, "wb") as f:
                     bytes = image_files[image_file]
                     f.write(bytes)

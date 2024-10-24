@@ -2,10 +2,12 @@ from __future__ import annotations  # to avoid quoting type hints
 
 import datetime
 import io
+import ipaddress
 import logging
 import os
 import platform
 import random
+import urllib.parse
 import uuid
 from collections import OrderedDict
 from enum import Enum
@@ -125,6 +127,8 @@ def get_file_type(file_type: str, file_content: bytes) -> tuple[str, str]:
         return "image", encoding
     elif file_type in ["image/png"]:
         return "image", encoding
+    elif file_type in ["image/webp"]:
+        return "image", encoding
     elif content_group in ["code", "text"]:
         return "plaintext", encoding
     else:
@@ -164,9 +168,9 @@ def get_class_by_name(name: str) -> object:
 class timer:
     """Context manager to log time taken for a block of code to run"""
 
-    def __init__(self, message: str, logger: logging.Logger, device: torch.device = None):
+    def __init__(self, message: str, logger: logging.Logger, device: torch.device = None, log_level=logging.DEBUG):
         self.message = message
-        self.logger = logger
+        self.logger = logger.debug if log_level == logging.DEBUG else logger.info
         self.device = device
 
     def __enter__(self):
@@ -176,9 +180,9 @@ class timer:
     def __exit__(self, *_):
         elapsed = perf_counter() - self.start
         if self.device is None:
-            self.logger.debug(f"{self.message}: {elapsed:.3f} seconds")
+            self.logger(f"{self.message}: {elapsed:.3f} seconds")
         else:
-            self.logger.debug(f"{self.message}: {elapsed:.3f} seconds on device: {self.device}")
+            self.logger(f"{self.message}: {elapsed:.3f} seconds on device: {self.device}")
 
 
 class LRU(OrderedDict):
@@ -315,6 +319,7 @@ class ConversationCommand(str, Enum):
     Automation = "automation"
     AutomatedTask = "automated_task"
     Summarize = "summarize"
+    Diagram = "diagram"
 
 
 command_descriptions = {
@@ -324,10 +329,11 @@ command_descriptions = {
     ConversationCommand.Online: "Search for information on the internet.",
     ConversationCommand.Webpage: "Get information from webpage suggested by you.",
     ConversationCommand.Code: "Run Python code to parse information, run complex calculations, create documents and charts.",
-    ConversationCommand.Image: "Generate images by describing your imagination in words.",
+    ConversationCommand.Image: "Generate illustrative, creative images by describing your imagination in words.",
     ConversationCommand.Automation: "Automatically run your query at a specified time or interval.",
     ConversationCommand.Help: "Get help with how to use or setup Khoj from the documentation",
     ConversationCommand.Summarize: "Get help with a question pertaining to an entire document.",
+    ConversationCommand.Diagram: "Draw a flowchart, diagram, or any other visual representation best expressed with primitives like lines, rectangles, and text.",
 }
 
 command_descriptions_for_agent = {
@@ -359,11 +365,16 @@ mode_descriptions_for_llm = {
     ConversationCommand.Image: "Use this if the user is requesting you to generate images based on their description. This does not support generating charts or graphs.",
     ConversationCommand.Automation: "Use this if the user is requesting a response at a scheduled date or time.",
     ConversationCommand.Text: "Use this if the other response modes don't seem to fit the query.",
+    ConversationCommand.Automation: "Use this if you are confident the user is requesting a response at a scheduled date, time and frequency",
+    ConversationCommand.Text: "Use this if a normal text response would be sufficient for accurately responding to the query.",
+    ConversationCommand.Diagram: "Use this if the user is requesting a visual representation that requires primitives like lines, rectangles, and text.",
 }
 
 mode_descriptions_for_agent = {
     ConversationCommand.Image: "Agent can generate images in response. It cannot not use this to generate charts and graphs.",
+    ConversationCommand.Automation: "Agent can schedule a task to run at a scheduled date, time and frequency in response.",
     ConversationCommand.Text: "Agent can generate text in response.",
+    ConversationCommand.Diagram: "Agent can generate a visual representation that requires primitives like lines, rectangles, and text.",
 }
 
 
@@ -442,6 +453,46 @@ def is_internet_connected():
         response = requests.head("https://www.google.com")
         return response.status_code == 200
     except:
+        return False
+
+
+def is_internal_url(url: str) -> bool:
+    """
+    Check if a URL is likely to be internal/non-public.
+
+    Args:
+    url (str): The URL to check.
+
+    Returns:
+    bool: True if the URL is likely internal, False otherwise.
+    """
+    try:
+        parsed_url = urllib.parse.urlparse(url)
+        hostname = parsed_url.hostname
+
+        # Check for localhost
+        if hostname in ["localhost", "127.0.0.1", "::1"]:
+            return True
+
+        # Check for IP addresses in private ranges
+        try:
+            ip = ipaddress.ip_address(hostname)
+            return ip.is_private
+        except ValueError:
+            pass  # Not an IP address, continue with other checks
+
+        # Check for common internal TLDs
+        internal_tlds = [".local", ".internal", ".private", ".corp", ".home", ".lan"]
+        if any(hostname.endswith(tld) for tld in internal_tlds):
+            return True
+
+        # Check for URLs without a TLD
+        if "." not in hostname:
+            return True
+
+        return False
+    except Exception:
+        # If we can't parse the URL or something else goes wrong, assume it's not internal
         return False
 
 

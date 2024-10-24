@@ -10,15 +10,15 @@ from urllib.parse import unquote
 
 from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.requests import Request
 from fastapi.responses import Response, StreamingResponse
-from starlette.authentication import has_required_scope, requires
+from starlette.authentication import requires
 
 from khoj.app.settings import ALLOWED_HOSTS
 from khoj.database.adapters import (
     AgentAdapters,
     ConversationAdapters,
     EntryAdapters,
+    FileObjectAdapters,
     PublicConversationAdapters,
     aget_user_name,
 )
@@ -31,8 +31,10 @@ from khoj.processor.tools.online_search import read_webpages, search_online
 from khoj.processor.tools.run_code import run_code
 from khoj.routers.api import extract_references_and_questions
 from khoj.routers.helpers import (
+    ApiImageRateLimiter,
     ApiUserRateLimiter,
     ChatEvent,
+    ChatRequestBody,
     CommonQueryParams,
     ConversationCommandRateLimiter,
     agenerate_chat_response,
@@ -41,6 +43,8 @@ from khoj.routers.helpers import (
     construct_automation_created_message,
     create_automation,
     extract_relevant_info,
+    extract_relevant_summary,
+    generate_excalidraw_diagram,
     generate_summary_from_files,
     get_conversation_command,
     is_query_empty,
@@ -529,22 +533,6 @@ async def set_conversation_title(
     )
 
 
-class ChatRequestBody(BaseModel):
-    q: str
-    n: Optional[int] = 7
-    d: Optional[float] = None
-    stream: Optional[bool] = False
-    title: Optional[str] = None
-    conversation_id: Optional[str] = None
-    city: Optional[str] = None
-    region: Optional[str] = None
-    country: Optional[str] = None
-    country_code: Optional[str] = None
-    timezone: Optional[str] = None
-    image: Optional[str] = None
-    create_new: Optional[bool] = False
-
-
 @api_chat.post("")
 @requires(["authenticated"])
 async def chat(
@@ -557,6 +545,7 @@ async def chat(
     rate_limiter_per_day=Depends(
         ApiUserRateLimiter(requests=600, subscribed_requests=6000, window=60 * 60 * 24, slug="chat_day")
     ),
+    image_rate_limiter=Depends(ApiImageRateLimiter(max_images=10, max_combined_size_mb=20)),
 ):
     # Access the parameters from the body
     q = body.q
@@ -570,29 +559,28 @@ async def chat(
     country = body.country or get_country_name_from_timezone(body.timezone)
     country_code = body.country_code or get_country_code_from_timezone(body.timezone)
     timezone = body.timezone
-    image = body.image
+    raw_images = body.images
 
-    async def event_generator(q: str, image: str):
+    async def event_generator(q: str, images: list[str]):
         start_time = time.perf_counter()
         ttft = None
         chat_metadata: dict = {}
         connection_alive = True
         user: KhojUser = request.user.object
-        subscribed: bool = has_required_scope(request, ["premium"])
         event_delimiter = "␃🔚␗"
         q = unquote(q)
         nonlocal conversation_id
 
-        uploaded_image_url = None
-        if image:
-            decoded_string = unquote(image)
-            base64_data = decoded_string.split(",", 1)[1]
-            image_bytes = base64.b64decode(base64_data)
-            webp_image_bytes = convert_image_to_webp(image_bytes)
-            try:
-                uploaded_image_url = upload_image_to_bucket(webp_image_bytes, request.user.object.id)
-            except:
-                uploaded_image_url = None
+        uploaded_images: list[str] = []
+        if images:
+            for image in images:
+                decoded_string = unquote(image)
+                base64_data = decoded_string.split(",", 1)[1]
+                image_bytes = base64.b64decode(base64_data)
+                webp_image_bytes = convert_image_to_webp(image_bytes)
+                uploaded_image = upload_image_to_bucket(webp_image_bytes, request.user.object.id)
+                if uploaded_image:
+                    uploaded_images.append(uploaded_image)
 
         async def send_event(event_type: ChatEvent, data: str | dict):
             nonlocal connection_alive, ttft
@@ -645,7 +633,7 @@ async def chat(
                 request=request,
                 telemetry_type="api",
                 api="chat",
-                client=request.user.client_app,
+                client=common.client,
                 user_agent=request.headers.get("user-agent"),
                 host=request.headers.get("host"),
                 metadata=chat_metadata,
@@ -706,11 +694,10 @@ async def chat(
             async for research_result in execute_information_collection(
                 request=request,
                 user=user,
-                query=q,
+                query=defiltered_query,
                 conversation_id=conversation_id,
                 conversation_history=meta_log,
-                subscribed=subscribed,
-                uploaded_image_url=uploaded_image_url,
+                query_images=raw_images,
                 agent=agent,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
                 user_name=user_name,
@@ -743,11 +730,11 @@ async def chat(
                 meta_log,
                 is_automated_task,
                 user=user,
-                uploaded_image_url=uploaded_image_url,
+                query_images=uploaded_images,
                 agent=agent,
             )
 
-            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task, user, uploaded_image_url, agent)
+            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task, user, uploaded_images, agent)
             async for result in send_event(ChatEvent.STATUS, f"**Decided Response Mode:** {mode.value}"):
                 yield result
             if mode not in conversation_commands:
@@ -788,11 +775,15 @@ async def chat(
                     user=user,
                     file_filters=file_filters,
                     meta_log=meta_log,
-                    subscribed=subscribed,
+                    query_images=uploaded_images,
+                    agent=agent,
                     send_status_func=partial(send_event, ChatEvent.STATUS),
                     send_response_func=partial(send_llm_response),
                 ):
-                    yield response
+                    if isinstance(response, dict) and ChatEvent.STATUS in response:
+                        yield result[ChatEvent.STATUS]
+                    else:
+                        response
 
             await sync_to_async(save_to_conversation_log)(
                 q,
@@ -803,7 +794,7 @@ async def chat(
                 intent_type="summarize",
                 client_application=request.user.client_app,
                 conversation_id=conversation_id,
-                uploaded_image_url=uploaded_image_url,
+                query_images=uploaded_images,
             )
             return
 
@@ -846,189 +837,189 @@ async def chat(
                 conversation_id=conversation_id,
                 inferred_queries=[query_to_run],
                 automation_id=automation.id,
-                uploaded_image_url=uploaded_image_url,
+                query_images=uploaded_images,
             )
             async for result in send_llm_response(llm_response):
                 yield result
             return
 
-        # # Gather Context
-        # # Extract Document References
-        # try:
-        #     async for result in extract_references_and_questions(
-        #         request,
-        #         meta_log,
-        #         q,
-        #         (n or 7),
-        #         d,
-        #         conversation_id,
-        #         conversation_commands,
-        #         location,
-        #         partial(send_event, ChatEvent.STATUS),
-        #         uploaded_image_url=uploaded_image_url,
-        #         agent=agent,
-        #     ):
-        #         if isinstance(result, dict) and ChatEvent.STATUS in result:
-        #             yield result[ChatEvent.STATUS]
-        #         else:
-        #             compiled_references.extend(result[0])
-        #             inferred_queries.extend(result[1])
-        #             defiltered_query = result[2]
-        # except Exception as e:
-        #     error_message = f"Error searching knowledge base: {e}. Attempting to respond without document references."
-        #     logger.warning(error_message)
-        #     async for result in send_event(
-        #         ChatEvent.STATUS, "Document search failed. I'll try respond without document references"
-        #     ):
-        #         yield result
-        #
-        # # if not is_none_or_empty(compiled_references):
-        #     try:
-        #         headings = "\n- " + "\n- ".join(set([c.get("compiled", c).split("\n")[0] for c in compiled_references]))
-        #         # Strip only leading # from headings
-        #         headings = headings.replace("#", "")
-        #         async for result in send_event(ChatEvent.STATUS, f"**Found Relevant Notes**: {headings}"):
-        #             yield result
-        #     except Exception as e:
-        #         # TODO Get correct type for compiled across research notes extraction
-        #         logger.error(f"Error extracting references: {e}", exc_info=True)
+        # Gather Context
+        ## Extract Document References
+        if pending_research:
+            try:
+                async for result in extract_references_and_questions(
+                    request,
+                    meta_log,
+                    q,
+                    (n or 7),
+                    d,
+                    conversation_id,
+                    conversation_commands,
+                    location,
+                    partial(send_event, ChatEvent.STATUS),
+                    query_images=uploaded_images,
+                    agent=agent,
+                ):
+                    if isinstance(result, dict) and ChatEvent.STATUS in result:
+                        yield result[ChatEvent.STATUS]
+                    else:
+                        compiled_references.extend(result[0])
+                        inferred_queries.extend(result[1])
+                        defiltered_query = result[2]
+            except Exception as e:
+                error_message = (
+                    f"Error searching knowledge base: {e}. Attempting to respond without document references."
+                )
+                logger.error(error_message, exc_info=True)
+                async for result in send_event(
+                    ChatEvent.STATUS, "Document search failed. I'll try respond without document references"
+                ):
+                    yield result
 
-        if conversation_commands == [ConversationCommand.Notes] and not await EntryAdapters.auser_has_entries(user):
-            async for result in send_llm_response(f"{no_entries_found.format()}"):
-                yield result
-            return
+            if not is_none_or_empty(compiled_references):
+                headings = "\n- " + "\n- ".join(set([c.get("compiled", c).split("\n")[0] for c in compiled_references]))
+                # Strip only leading # from headings
+                headings = headings.replace("#", "")
+                async for result in send_event(ChatEvent.STATUS, f"**Found Relevant Notes**: {headings}"):
+                    yield result
+
+            if conversation_commands == [ConversationCommand.Notes] and not await EntryAdapters.auser_has_entries(user):
+                async for result in send_llm_response(f"{no_entries_found.format()}"):
+                    yield result
+                return
 
         if ConversationCommand.Notes in conversation_commands and is_none_or_empty(compiled_references):
             conversation_commands.remove(ConversationCommand.Notes)
 
-        ## Gather Online References
-        if ConversationCommand.Online in conversation_commands and pending_research:
-            try:
-                async for result in search_online(
-                    defiltered_query,
-                    meta_log,
-                    location,
-                    user,
-                    subscribed,
-                    partial(send_event, ChatEvent.STATUS),
-                    custom_filters,
-                    uploaded_image_url=uploaded_image_url,
-                    agent=agent,
-                ):
-                    if isinstance(result, dict) and ChatEvent.STATUS in result:
-                        yield result[ChatEvent.STATUS]
-                    else:
-                        online_results = result
-            except Exception as e:
-                error_message = f"Error searching online: {e}. Attempting to respond without online results"
-                logger.warning(error_message)
-                async for result in send_event(
-                    ChatEvent.STATUS, "Online search failed. I'll try respond without online references"
-                ):
-                    yield result
+        if pending_research:
+            ## Gather Online References
+            if ConversationCommand.Online in conversation_commands:
+                try:
+                    async for result in search_online(
+                        defiltered_query,
+                        meta_log,
+                        location,
+                        user,
+                        partial(send_event, ChatEvent.STATUS),
+                        custom_filters,
+                        query_images=uploaded_images,
+                        agent=agent,
+                    ):
+                        if isinstance(result, dict) and ChatEvent.STATUS in result:
+                            yield result[ChatEvent.STATUS]
+                        else:
+                            online_results = result
+                except Exception as e:
+                    error_message = f"Error searching online: {e}. Attempting to respond without online results"
+                    logger.warning(error_message)
+                    async for result in send_event(
+                        ChatEvent.STATUS, "Online search failed. I'll try respond without online references"
+                    ):
+                        yield result
 
-        ## Gather Webpage References
-        if ConversationCommand.Webpage in conversation_commands and pending_research:
-            try:
-                async for result in read_webpages(
-                    defiltered_query,
-                    meta_log,
-                    location,
-                    user,
-                    partial(send_event, ChatEvent.STATUS),
-                    uploaded_image_url=uploaded_image_url,
-                    agent=agent,
-                ):
-                    if isinstance(result, dict) and ChatEvent.STATUS in result:
-                        yield result[ChatEvent.STATUS]
-                    else:
-                        direct_web_pages = result
-                webpages = []
-                for query in direct_web_pages:
-                    if online_results.get(query):
-                        online_results[query]["webpages"] = direct_web_pages[query]["webpages"]
-                    else:
-                        online_results[query] = {"webpages": direct_web_pages[query]["webpages"]}
+        if pending_research:
+            ## Gather Webpage References
+            if ConversationCommand.Webpage in conversation_commands:
+                try:
+                    async for result in read_webpages(
+                        defiltered_query,
+                        meta_log,
+                        location,
+                        user,
+                        partial(send_event, ChatEvent.STATUS),
+                        query_images=uploaded_images,
+                        agent=agent,
+                    ):
+                        if isinstance(result, dict) and ChatEvent.STATUS in result:
+                            yield result[ChatEvent.STATUS]
+                        else:
+                            direct_web_pages = result
+                    webpages = []
+                    for query in direct_web_pages:
+                        if online_results.get(query):
+                            online_results[query]["webpages"] = direct_web_pages[query]["webpages"]
+                        else:
+                            online_results[query] = {"webpages": direct_web_pages[query]["webpages"]}
 
-                    for webpage in direct_web_pages[query]["webpages"]:
-                        webpages.append(webpage["link"])
-                async for result in send_event(ChatEvent.STATUS, f"**Read web pages**: {webpages}"):
-                    yield result
-            except Exception as e:
-                logger.warning(
-                    f"Error reading webpages: {e}. Attempting to respond without webpage results",
-                    exc_info=True,
-                )
-                async for result in send_event(
-                    ChatEvent.STATUS, "Webpage read failed. I'll try respond without webpage references"
-                ):
-                    yield result
+                        for webpage in direct_web_pages[query]["webpages"]:
+                            webpages.append(webpage["link"])
+                    async for result in send_event(ChatEvent.STATUS, f"**Read web pages**: {webpages}"):
+                        yield result
+                except Exception as e:
+                    logger.warning(
+                        f"Error reading webpages: {e}. Attempting to respond without webpage results",
+                        exc_info=True,
+                    )
+                    async for result in send_event(
+                        ChatEvent.STATUS, "Webpage read failed. I'll try respond without webpage references"
+                    ):
+                        yield result
 
-        ## Gather Code Results
-        if ConversationCommand.Code in conversation_commands and pending_research:
-            try:
-                previous_iteration_history = (
-                    f"# Iteration 1:\n#---\nNotes:\n{compiled_references}\n\nOnline Results:{online_results}"
-                )
-                async for result in run_code(
-                    defiltered_query,
-                    meta_log,
-                    previous_iteration_history,
-                    location,
-                    user,
-                    partial(send_event, ChatEvent.STATUS),
-                    uploaded_image_url=uploaded_image_url,
-                    agent=agent,
-                ):
-                    if isinstance(result, dict) and ChatEvent.STATUS in result:
-                        yield result[ChatEvent.STATUS]
-                    else:
-                        code_results = result
-                async for result in send_event(ChatEvent.STATUS, f"**Ran code snippets**: {len(code_results)}"):
-                    yield result
-            except ValueError as e:
-                logger.warning(
-                    f"Failed to use code tool: {e}. Attempting to respond without code results",
-                    exc_info=True,
-                )
+            ## Send Gathered References
+            async for result in send_event(
+                ChatEvent.REFERENCES,
+                {
+                    "inferredQueries": inferred_queries,
+                    "context": compiled_references,
+                    "onlineContext": online_results,
+                },
+            ):
+                yield result
 
-        ## Send Gathered References
-        async for result in send_event(
-            ChatEvent.REFERENCES,
-            {
-                "inferredQueries": inferred_queries,
-                "context": compiled_references,
-                "onlineContext": online_results,
-                "codeContext": code_results,
-            },
-        ):
-            yield result
+        if pending_research:
+            ## Gather Code Results
+            if ConversationCommand.Code in conversation_commands and pending_research:
+                try:
+                    previous_iteration_history = (
+                        f"# Iteration 1:\n#---\nNotes:\n{compiled_references}\n\nOnline Results:{online_results}"
+                    )
+                    async for result in run_code(
+                        defiltered_query,
+                        meta_log,
+                        previous_iteration_history,
+                        location,
+                        user,
+                        partial(send_event, ChatEvent.STATUS),
+                        query_images=uploaded_images,
+                        agent=agent,
+                    ):
+                        if isinstance(result, dict) and ChatEvent.STATUS in result:
+                            yield result[ChatEvent.STATUS]
+                        else:
+                            code_results = result
+                    async for result in send_event(ChatEvent.STATUS, f"**Ran code snippets**: {len(code_results)}"):
+                        yield result
+                except ValueError as e:
+                    logger.warning(
+                        f"Failed to use code tool: {e}. Attempting to respond without code results",
+                        exc_info=True,
+                    )
 
         # Generate Output
         ## Generate Image Output
-        if ConversationCommand.Image in conversation_commands and pending_research:
+        if ConversationCommand.Image in conversation_commands:
             async for result in text_to_image(
-                q,
+                defiltered_query,
                 user,
                 meta_log,
                 location_data=location,
                 references=compiled_references,
                 online_results=online_results,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
-                uploaded_image_url=uploaded_image_url,
+                query_images=uploaded_images,
                 agent=agent,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
                 else:
-                    image, status_code, improved_image_prompt, intent_type = result
+                    generated_image, status_code, improved_image_prompt, intent_type = result
 
-            if image is None or status_code != 200:
+            if generated_image is None or status_code != 200:
                 content_obj = {
                     "content-type": "application/json",
                     "intentType": intent_type,
                     "detail": improved_image_prompt,
-                    "image": image,
+                    "image": None,
                 }
                 async for result in send_llm_response(json.dumps(content_obj)):
                     yield result
@@ -1036,7 +1027,7 @@ async def chat(
 
             await sync_to_async(save_to_conversation_log)(
                 q,
-                image,
+                generated_image,
                 user,
                 meta_log,
                 user_message_time,
@@ -1046,13 +1037,64 @@ async def chat(
                 conversation_id=conversation_id,
                 compiled_references=compiled_references,
                 online_results=online_results,
-                uploaded_image_url=uploaded_image_url,
+                query_images=uploaded_images,
             )
             content_obj = {
                 "intentType": intent_type,
                 "inferredQueries": [improved_image_prompt],
-                "image": image,
+                "image": generated_image,
             }
+            async for result in send_llm_response(json.dumps(content_obj)):
+                yield result
+            return
+
+        if ConversationCommand.Diagram in conversation_commands:
+            async for result in send_event(ChatEvent.STATUS, f"Creating diagram"):
+                yield result
+
+            intent_type = "excalidraw"
+            inferred_queries = []
+            diagram_description = ""
+
+            async for result in generate_excalidraw_diagram(
+                q=defiltered_query,
+                conversation_history=meta_log,
+                location_data=location,
+                note_references=compiled_references,
+                online_results=online_results,
+                query_images=uploaded_images,
+                user=user,
+                agent=agent,
+                send_status_func=partial(send_event, ChatEvent.STATUS),
+            ):
+                if isinstance(result, dict) and ChatEvent.STATUS in result:
+                    yield result[ChatEvent.STATUS]
+                else:
+                    better_diagram_description_prompt, excalidraw_diagram_description = result
+                    inferred_queries.append(better_diagram_description_prompt)
+                    diagram_description = excalidraw_diagram_description
+
+            content_obj = {
+                "intentType": intent_type,
+                "inferredQueries": inferred_queries,
+                "image": diagram_description,
+            }
+
+            await sync_to_async(save_to_conversation_log)(
+                q,
+                excalidraw_diagram_description,
+                user,
+                meta_log,
+                user_message_time,
+                intent_type="excalidraw",
+                inferred_queries=[better_diagram_description_prompt],
+                client_application=request.user.client_app,
+                conversation_id=conversation_id,
+                compiled_references=compiled_references,
+                online_results=online_results,
+                query_images=uploaded_images,
+            )
+
             async for result in send_llm_response(json.dumps(content_obj)):
                 yield result
             return
@@ -1061,7 +1103,7 @@ async def chat(
         async for result in send_event(ChatEvent.STATUS, f"**Generating a well-informed response**"):
             yield result
         llm_response, chat_metadata = await agenerate_chat_response(
-            q,
+            defiltered_query,
             meta_log,
             conversation,
             compiled_references,
@@ -1074,8 +1116,8 @@ async def chat(
             conversation_id,
             location,
             user_name,
-            uploaded_image_url,
             researched_results,
+            uploaded_images,
         )
 
         # Send Response
@@ -1101,9 +1143,9 @@ async def chat(
 
     ## Stream Text Response
     if stream:
-        return StreamingResponse(event_generator(q, image=image), media_type="text/plain")
+        return StreamingResponse(event_generator(q, images=raw_images), media_type="text/plain")
     ## Non-Streaming Text Response
     else:
-        response_iterator = event_generator(q, image=image)
+        response_iterator = event_generator(q, images=raw_images)
         response_data = await read_chat_stream(response_iterator)
         return Response(content=json.dumps(response_data), media_type="application/json", status_code=200)

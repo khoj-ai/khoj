@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import hashlib
 import json
 import logging
@@ -22,7 +23,7 @@ from typing import (
     Tuple,
     Union,
 )
-from urllib.parse import parse_qs, quote, urljoin, urlparse
+from urllib.parse import parse_qs, quote, unquote, urljoin, urlparse
 
 import cron_descriptor
 import pytz
@@ -31,16 +32,19 @@ from apscheduler.job import Job
 from apscheduler.triggers.cron import CronTrigger
 from asgiref.sync import sync_to_async
 from fastapi import Depends, Header, HTTPException, Request, UploadFile
+from pydantic import BaseModel
 from starlette.authentication import has_required_scope
 from starlette.requests import URL
 
 from khoj.database import adapters
 from khoj.database.adapters import (
+    LENGTH_OF_FREE_TRIAL,
     AgentAdapters,
     AutomationAdapters,
     ConversationAdapters,
     EntryAdapters,
     FileObjectAdapters,
+    ais_user_subscribed,
     create_khoj_token,
     get_khoj_tokens,
     get_user_name,
@@ -210,6 +214,21 @@ def get_next_url(request: Request) -> str:
     return urljoin(str(request.base_url).rstrip("/"), next_path)
 
 
+def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:
+    chat_history = ""
+    for chat in conversation_history.get("chat", [])[-n:]:
+        if chat["by"] == "khoj" and chat["intent"].get("type") in ["remember", "reminder", "summarize"]:
+            chat_history += f"User: {chat['intent']['query']}\n"
+            chat_history += f"{agent_name}: {chat['message']}\n"
+        elif chat["by"] == "khoj" and ("text-to-image" in chat["intent"].get("type")):
+            chat_history += f"User: {chat['intent']['query']}\n"
+            chat_history += f"{agent_name}: [generated image redacted for space]\n"
+        elif chat["by"] == "khoj" and ("excalidraw" in chat["intent"].get("type")):
+            chat_history += f"User: {chat['intent']['query']}\n"
+            chat_history += f"{agent_name}: {chat['intent']['inferred-queries'][0]}\n"
+    return chat_history
+
+
 def get_conversation_command(query: str, any_references: bool = False) -> ConversationCommand:
     if query.startswith("/notes"):
         return ConversationCommand.Notes
@@ -227,6 +246,8 @@ def get_conversation_command(query: str, any_references: bool = False) -> Conver
         return ConversationCommand.AutomatedTask
     elif query.startswith("/summarize"):
         return ConversationCommand.Summarize
+    elif query.startswith("/diagram"):
+        return ConversationCommand.Diagram
     # If no relevant notes found for the given query
     elif not any_references:
         return ConversationCommand.General
@@ -282,7 +303,7 @@ async def aget_relevant_information_sources(
     conversation_history: dict,
     is_task: bool,
     user: KhojUser,
-    uploaded_image_url: str = None,
+    query_images: List[str] = None,
     agent: Agent = None,
 ):
     """
@@ -301,8 +322,8 @@ async def aget_relevant_information_sources(
 
     chat_history = construct_chat_history(conversation_history)
 
-    if uploaded_image_url:
-        query = f"[placeholder for user attached image]\n{query}"
+    if query_images:
+        query = f"[placeholder for {len(query_images)} user attached images]\n{query}"
 
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
@@ -359,7 +380,7 @@ async def aget_relevant_output_modes(
     conversation_history: dict,
     is_task: bool = False,
     user: KhojUser = None,
-    uploaded_image_url: str = None,
+    query_images: List[str] = None,
     agent: Agent = None,
 ):
     """
@@ -381,8 +402,8 @@ async def aget_relevant_output_modes(
 
     chat_history = construct_chat_history(conversation_history)
 
-    if uploaded_image_url:
-        query = f"[placeholder for user attached image]\n{query}"
+    if query_images:
+        query = f"[placeholder for {len(query_images)} user attached images]\n{query}"
 
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
@@ -425,7 +446,7 @@ async def infer_webpage_urls(
     conversation_history: dict,
     location_data: LocationData,
     user: KhojUser,
-    uploaded_image_url: str = None,
+    query_images: List[str] = None,
     agent: Agent = None,
 ) -> List[str]:
     """
@@ -451,7 +472,7 @@ async def infer_webpage_urls(
 
     with timer("Chat actor: Infer webpage urls to read", logger):
         response = await send_message_to_model_wrapper(
-            online_queries_prompt, uploaded_image_url=uploaded_image_url, response_type="json_object", user=user
+            online_queries_prompt, query_images=query_images, response_type="json_object", user=user
         )
 
     # Validate that the response is a non-empty, JSON-serializable list of URLs
@@ -472,7 +493,7 @@ async def generate_online_subqueries(
     conversation_history: dict,
     location_data: LocationData,
     user: KhojUser,
-    uploaded_image_url: str = None,
+    query_images: List[str] = None,
     agent: Agent = None,
 ) -> List[str]:
     """
@@ -498,7 +519,7 @@ async def generate_online_subqueries(
 
     with timer("Chat actor: Generate online search subqueries", logger):
         response = await send_message_to_model_wrapper(
-            online_queries_prompt, uploaded_image_url=uploaded_image_url, response_type="json_object", user=user
+            online_queries_prompt, query_images=query_images, response_type="json_object", user=user
         )
 
     # Validate that the response is a non-empty, JSON-serializable list
@@ -517,7 +538,7 @@ async def generate_online_subqueries(
 
 
 async def schedule_query(
-    q: str, conversation_history: dict, user: KhojUser, uploaded_image_url: str = None
+    q: str, conversation_history: dict, user: KhojUser, query_images: List[str] = None
 ) -> Tuple[str, ...]:
     """
     Schedule the date, time to run the query. Assume the server timezone is UTC.
@@ -530,7 +551,7 @@ async def schedule_query(
     )
 
     raw_response = await send_message_to_model_wrapper(
-        crontime_prompt, uploaded_image_url=uploaded_image_url, response_type="json_object", user=user
+        crontime_prompt, query_images=query_images, response_type="json_object", user=user
     )
 
     # Validate that the response is a non-empty, JSON-serializable list
@@ -544,12 +565,14 @@ async def schedule_query(
         raise AssertionError(f"Invalid response for scheduling query: {raw_response}")
 
 
-async def extract_relevant_info(q: str, corpus: str, user: KhojUser = None, agent: Agent = None) -> Union[str, None]:
+async def extract_relevant_info(
+    qs: set[str], corpus: str, user: KhojUser = None, agent: Agent = None
+) -> Union[str, None]:
     """
     Extract relevant information for a given query from the target corpus
     """
 
-    if is_none_or_empty(corpus) or is_none_or_empty(q):
+    if is_none_or_empty(corpus) or is_none_or_empty(qs):
         return None
 
     personality_context = (
@@ -557,17 +580,16 @@ async def extract_relevant_info(q: str, corpus: str, user: KhojUser = None, agen
     )
 
     extract_relevant_information = prompts.extract_relevant_information.format(
-        query=q,
+        query=", ".join(qs),
         corpus=corpus.strip(),
         personality_context=personality_context,
     )
 
-    with timer("Chat actor: Extract relevant information from data", logger):
-        response = await send_message_to_model_wrapper(
-            extract_relevant_information,
-            prompts.system_prompt_extract_relevant_information,
-            user=user,
-        )
+    response = await send_message_to_model_wrapper(
+        extract_relevant_information,
+        prompts.system_prompt_extract_relevant_information,
+        user=user,
+    )
     return response.strip()
 
 
@@ -575,7 +597,7 @@ async def extract_relevant_summary(
     q: str,
     corpus: str,
     conversation_history: dict,
-    uploaded_image_url: str = None,
+    query_images: List[str] = None,
     user: KhojUser = None,
     agent: Agent = None,
 ) -> Union[str, None]:
@@ -604,7 +626,7 @@ async def extract_relevant_summary(
             extract_relevant_information,
             prompts.system_prompt_extract_relevant_summary,
             user=user,
-            uploaded_image_url=uploaded_image_url,
+            query_images=query_images,
         )
     return response.strip()
 
@@ -614,8 +636,7 @@ async def generate_summary_from_files(
     user: KhojUser,
     file_filters: List[str],
     meta_log: dict,
-    subscribed: bool,
-    uploaded_image_url: str = None,
+    query_images: List[str] = None,
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
     send_response_func: Optional[Callable] = None,
@@ -647,7 +668,7 @@ async def generate_summary_from_files(
             q,
             contextual_data,
             conversation_history=meta_log,
-            uploaded_image_url=uploaded_image_url,
+            query_images=query_images,
             user=user,
             agent=agent,
         )
@@ -661,6 +682,129 @@ async def generate_summary_from_files(
             yield result
 
 
+async def generate_excalidraw_diagram(
+    q: str,
+    conversation_history: Dict[str, Any],
+    location_data: LocationData,
+    note_references: List[Dict[str, Any]],
+    online_results: Optional[dict] = None,
+    query_images: List[str] = None,
+    user: KhojUser = None,
+    agent: Agent = None,
+    send_status_func: Optional[Callable] = None,
+):
+    if send_status_func:
+        async for event in send_status_func("**Enhancing the Diagramming Prompt**"):
+            yield {ChatEvent.STATUS: event}
+
+    better_diagram_description_prompt = await generate_better_diagram_description(
+        q=q,
+        conversation_history=conversation_history,
+        location_data=location_data,
+        note_references=note_references,
+        online_results=online_results,
+        query_images=query_images,
+        user=user,
+        agent=agent,
+    )
+
+    if send_status_func:
+        async for event in send_status_func(f"**Diagram to Create:**:\n{better_diagram_description_prompt}"):
+            yield {ChatEvent.STATUS: event}
+
+    excalidraw_diagram_description = await generate_excalidraw_diagram_from_description(
+        q=better_diagram_description_prompt,
+        user=user,
+        agent=agent,
+    )
+
+    yield better_diagram_description_prompt, excalidraw_diagram_description
+
+
+async def generate_better_diagram_description(
+    q: str,
+    conversation_history: Dict[str, Any],
+    location_data: LocationData,
+    note_references: List[Dict[str, Any]],
+    online_results: Optional[dict] = None,
+    query_images: List[str] = None,
+    user: KhojUser = None,
+    agent: Agent = None,
+) -> str:
+    """
+    Generate a diagram description from the given query and context
+    """
+
+    today_date = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d, %A")
+    personality_context = (
+        prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
+    )
+
+    if location_data:
+        location_prompt = prompts.user_location.format(location=f"{location_data}")
+    else:
+        location_prompt = "Unknown"
+
+    user_references = "\n\n".join([f"# {item['compiled']}" for item in note_references])
+
+    chat_history = construct_chat_history(conversation_history)
+
+    simplified_online_results = {}
+
+    if online_results:
+        for result in online_results:
+            if online_results[result].get("answerBox"):
+                simplified_online_results[result] = online_results[result]["answerBox"]
+            elif online_results[result].get("webpages"):
+                simplified_online_results[result] = online_results[result]["webpages"]
+
+    improve_diagram_description_prompt = prompts.improve_diagram_description_prompt.format(
+        query=q,
+        chat_history=chat_history,
+        location=location_prompt,
+        current_date=today_date,
+        references=user_references,
+        online_results=simplified_online_results,
+        personality_context=personality_context,
+    )
+
+    with timer("Chat actor: Generate better diagram description", logger):
+        response = await send_message_to_model_wrapper(
+            improve_diagram_description_prompt, query_images=query_images, user=user
+        )
+        response = response.strip()
+        if response.startswith(('"', "'")) and response.endswith(('"', "'")):
+            response = response[1:-1]
+
+    return response
+
+
+async def generate_excalidraw_diagram_from_description(
+    q: str,
+    user: KhojUser = None,
+    agent: Agent = None,
+) -> str:
+    personality_context = (
+        prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
+    )
+
+    excalidraw_diagram_generation = prompts.excalidraw_diagram_generation_prompt.format(
+        personality_context=personality_context,
+        query=q,
+    )
+
+    with timer("Chat actor: Generate excalidraw diagram", logger):
+        raw_response = await send_message_to_model_wrapper(message=excalidraw_diagram_generation, user=user)
+        raw_response = raw_response.strip()
+        raw_response = remove_json_codeblock(raw_response)
+        response: Dict[str, str] = json.loads(raw_response)
+        if not response or not isinstance(response, List) or not isinstance(response[0], Dict):
+            # TODO Some additional validation here that it's a valid Excalidraw diagram
+            raise AssertionError(f"Invalid response for improving diagram description: {response}")
+
+    return response
+
+
 async def generate_better_image_prompt(
     q: str,
     conversation_history: str,
@@ -668,7 +812,7 @@ async def generate_better_image_prompt(
     note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
     model_type: Optional[str] = None,
-    uploaded_image_url: Optional[str] = None,
+    query_images: Optional[List[str]] = None,
     user: KhojUser = None,
     agent: Agent = None,
 ) -> str:
@@ -720,12 +864,123 @@ async def generate_better_image_prompt(
         )
 
     with timer("Chat actor: Generate contextual image prompt", logger):
-        response = await send_message_to_model_wrapper(image_prompt, uploaded_image_url=uploaded_image_url, user=user)
+        response = await send_message_to_model_wrapper(image_prompt, query_images=query_images, user=user)
         response = response.strip()
         if response.startswith(('"', "'")) and response.endswith(('"', "'")):
             response = response[1:-1]
 
     return response
+
+
+async def send_message_to_model_wrapper(
+    message: str,
+    system_message: str = "",
+    response_type: str = "text",
+    user: KhojUser = None,
+    query_images: List[str] = None,
+):
+    conversation_config: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config(user)
+    vision_available = conversation_config.vision_enabled
+    if not vision_available and query_images:
+        vision_enabled_config = await ConversationAdapters.aget_vision_enabled_config()
+        if vision_enabled_config:
+            conversation_config = vision_enabled_config
+            vision_available = True
+
+    subscribed = await ais_user_subscribed(user)
+    chat_model = conversation_config.chat_model
+    max_tokens = (
+        conversation_config.subscribed_max_prompt_size
+        if subscribed and conversation_config.subscribed_max_prompt_size
+        else conversation_config.max_prompt_size
+    )
+    tokenizer = conversation_config.tokenizer
+    model_type = conversation_config.model_type
+    vision_available = conversation_config.vision_enabled
+
+    if model_type == ChatModelOptions.ModelType.OFFLINE:
+        if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
+            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
+
+        loaded_model = state.offline_chat_processor_config.loaded_model
+        truncated_messages = generate_chatml_messages_with_context(
+            user_message=message,
+            system_message=system_message,
+            model_name=chat_model,
+            loaded_model=loaded_model,
+            tokenizer_name=tokenizer,
+            max_prompt_size=max_tokens,
+            vision_enabled=vision_available,
+            model_type=conversation_config.model_type,
+        )
+
+        return send_message_to_model_offline(
+            messages=truncated_messages,
+            loaded_model=loaded_model,
+            model=chat_model,
+            max_prompt_size=max_tokens,
+            streaming=False,
+            response_type=response_type,
+        )
+
+    elif model_type == ChatModelOptions.ModelType.OPENAI:
+        openai_chat_config = conversation_config.openai_config
+        api_key = openai_chat_config.api_key
+        api_base_url = openai_chat_config.api_base_url
+        truncated_messages = generate_chatml_messages_with_context(
+            user_message=message,
+            system_message=system_message,
+            model_name=chat_model,
+            max_prompt_size=max_tokens,
+            tokenizer_name=tokenizer,
+            vision_enabled=vision_available,
+            query_images=query_images,
+            model_type=conversation_config.model_type,
+        )
+
+        return send_message_to_model(
+            messages=truncated_messages,
+            api_key=api_key,
+            model=chat_model,
+            response_type=response_type,
+            api_base_url=api_base_url,
+        )
+    elif model_type == ChatModelOptions.ModelType.ANTHROPIC:
+        api_key = conversation_config.openai_config.api_key
+        truncated_messages = generate_chatml_messages_with_context(
+            user_message=message,
+            system_message=system_message,
+            model_name=chat_model,
+            max_prompt_size=max_tokens,
+            tokenizer_name=tokenizer,
+            vision_enabled=vision_available,
+            query_images=query_images,
+            model_type=conversation_config.model_type,
+        )
+
+        return anthropic_send_message_to_model(
+            messages=truncated_messages,
+            api_key=api_key,
+            model=chat_model,
+        )
+    elif model_type == ChatModelOptions.ModelType.GOOGLE:
+        api_key = conversation_config.openai_config.api_key
+        truncated_messages = generate_chatml_messages_with_context(
+            user_message=message,
+            system_message=system_message,
+            model_name=chat_model,
+            max_prompt_size=max_tokens,
+            tokenizer_name=tokenizer,
+            vision_enabled=vision_available,
+            query_images=query_images,
+            model_type=conversation_config.model_type,
+        )
+
+        return gemini_send_message_to_model(
+            messages=truncated_messages, api_key=api_key, model=chat_model, response_type=response_type
+        )
+    else:
+        raise HTTPException(status_code=500, detail="Invalid conversation config")
 
 
 def send_message_to_model_wrapper_sync(
@@ -809,12 +1064,14 @@ def send_message_to_model_wrapper_sync(
             model_name=chat_model,
             max_prompt_size=max_tokens,
             vision_enabled=vision_available,
+            model_type=conversation_config.model_type,
         )
 
         return gemini_send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
             model=chat_model,
+            response_type=response_type,
         )
     else:
         raise HTTPException(status_code=500, detail="Invalid conversation config")
@@ -834,8 +1091,8 @@ def generate_chat_response(
     conversation_id: str = None,
     location_data: LocationData = None,
     user_name: Optional[str] = None,
-    uploaded_image_url: Optional[str] = None,
     meta_research: str = "",
+    query_images: Optional[List[str]] = None,
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
     chat_response = None
@@ -858,12 +1115,12 @@ def generate_chat_response(
             inferred_queries=inferred_queries,
             client_application=client_application,
             conversation_id=conversation_id,
-            uploaded_image_url=uploaded_image_url,
+            query_images=query_images,
         )
 
         conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)
         vision_available = conversation_config.vision_enabled
-        if not vision_available and uploaded_image_url:
+        if not vision_available and query_images:
             vision_enabled_config = ConversationAdapters.get_vision_enabled_config()
             if vision_enabled_config:
                 conversation_config = vision_enabled_config
@@ -894,7 +1151,8 @@ def generate_chat_response(
             chat_response = converse(
                 compiled_references,
                 query_to_run,
-                image_url=uploaded_image_url,
+                q,
+                query_images=query_images,
                 online_results=online_results,
                 code_results=code_results,
                 conversation_log=meta_log,
@@ -937,6 +1195,10 @@ def generate_chat_response(
                 online_results,
                 code_results,
                 meta_log,
+                q,
+                query_images=query_images,
+                online_results=online_results,
+                conversation_log=meta_log,
                 model=conversation_config.chat_model,
                 api_key=api_key,
                 completion_func=partial_completion,
@@ -946,6 +1208,7 @@ def generate_chat_response(
                 location_data=location_data,
                 user_name=user_name,
                 agent=agent,
+                vision_available=vision_available,
             )
 
         metadata.update({"chat_model": conversation_config.chat_model})
@@ -955,6 +1218,22 @@ def generate_chat_response(
         raise HTTPException(status_code=500, detail=str(e))
 
     return chat_response, metadata
+
+
+class ChatRequestBody(BaseModel):
+    q: str
+    n: Optional[int] = 7
+    d: Optional[float] = None
+    stream: Optional[bool] = False
+    title: Optional[str] = None
+    conversation_id: Optional[str] = None
+    city: Optional[str] = None
+    region: Optional[str] = None
+    country: Optional[str] = None
+    country_code: Optional[str] = None
+    timezone: Optional[str] = None
+    images: Optional[list[str]] = None
+    create_new: Optional[bool] = False
 
 
 class ApiUserRateLimiter:
@@ -1002,11 +1281,56 @@ class ApiUserRateLimiter:
             )
             raise HTTPException(
                 status_code=429,
-                detail="We're glad you're enjoying Khoj! You've exceeded your usage limit for today. Come back tomorrow or subscribe to increase your usage limit via [your settings](https://app.khoj.dev/settings).",
+                detail="I'm glad you're enjoying interacting with me! But you've exceeded your usage limit for today. Come back tomorrow or subscribe to increase your usage limit via [your settings](https://app.khoj.dev/settings).",
             )
 
         # Add the current request to the cache
         UserRequests.objects.create(user=user, slug=self.slug)
+
+
+class ApiImageRateLimiter:
+    def __init__(self, max_images: int = 10, max_combined_size_mb: float = 10):
+        self.max_images = max_images
+        self.max_combined_size_mb = max_combined_size_mb
+
+    def __call__(self, request: Request, body: ChatRequestBody):
+        if state.billing_enabled is False:
+            return
+
+        # Rate limiting is disabled if user unauthenticated.
+        # Other systems handle authentication
+        if not request.user.is_authenticated:
+            return
+
+        if not body.images:
+            return
+
+        # Check number of images
+        if len(body.images) > self.max_images:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Those are way too many images for me! I can handle up to {self.max_images} images per message.",
+            )
+
+        # Check total size of images
+        total_size_mb = 0.0
+        for image in body.images:
+            # Unquote the image in case it's URL encoded
+            image = unquote(image)
+            # Assuming the image is a base64 encoded string
+            # Remove the data:image/jpeg;base64, part if present
+            if "," in image:
+                image = image.split(",", 1)[1]
+
+            # Decode base64 to get the actual size
+            image_bytes = base64.b64decode(image)
+            total_size_mb += len(image_bytes) / (1024 * 1024)  # Convert bytes to MB
+
+        if total_size_mb > self.max_combined_size_mb:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Those images are way too large for me! I can handle up to {self.max_combined_size_mb}MB of images per message.",
+            )
 
 
 class ConversationCommandRateLimiter:
@@ -1411,10 +1735,16 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
 
     user_subscription_state = get_user_subscription_state(user.email)
     user_subscription = adapters.get_user_subscription(user.email)
+
     subscription_renewal_date = (
         user_subscription.renewal_date.strftime("%d %b %Y")
         if user_subscription and user_subscription.renewal_date
-        else (user_subscription.created_at + timedelta(days=7)).strftime("%d %b %Y")
+        else None
+    )
+    subscription_enabled_trial_at = (
+        user_subscription.enabled_trial_at.strftime("%d %b %Y")
+        if user_subscription and user_subscription.enabled_trial_at
+        else None
     )
     given_name = get_user_name(user)
 
@@ -1436,13 +1766,6 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
     chat_model_options = list()
     for chat_model in chat_models:
         chat_model_options.append({"name": chat_model.chat_model, "id": chat_model.id})
-
-    search_model_options = adapters.get_or_create_search_models().all()
-    all_search_model_options = list()
-    for search_model_option in search_model_options:
-        all_search_model_options.append({"name": search_model_option.name, "id": search_model_option.id})
-
-    current_search_model_option = adapters.get_user_search_model_or_default(user)
 
     selected_paint_model_config = ConversationAdapters.get_user_text_to_image_model_config(user)
     paint_model_options = ConversationAdapters.get_text_to_image_model_options().all()
@@ -1476,8 +1799,6 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
         "has_documents": has_documents,
         "notion_token": notion_token,
         # user model settings
-        "search_model_options": all_search_model_options,
-        "selected_search_model_config": current_search_model_option.id,
         "chat_model_options": chat_model_options,
         "selected_chat_model_config": selected_chat_model_config.id if selected_chat_model_config else None,
         "paint_model_options": all_paint_model_options,
@@ -1487,6 +1808,7 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
         # user billing info
         "subscription_state": user_subscription_state,
         "subscription_renewal_date": subscription_renewal_date,
+        "subscription_enabled_trial_at": subscription_enabled_trial_at,
         # server settings
         "khoj_cloud_subscription_url": os.getenv("KHOJ_CLOUD_SUBSCRIPTION_URL"),
         "billing_enabled": state.billing_enabled,
@@ -1495,6 +1817,7 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
         "khoj_version": state.khoj_version,
         "anonymous_mode": state.anonymous_mode,
         "notion_oauth_url": notion_oauth_url,
+        "length_of_free_trial": LENGTH_OF_FREE_TRIAL,
     }
 
 

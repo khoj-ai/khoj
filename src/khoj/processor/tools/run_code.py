@@ -10,12 +10,12 @@ import aiohttp
 from khoj.database.adapters import ais_user_subscribed
 from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
-from khoj.processor.conversation.helpers import send_message_to_model_wrapper
 from khoj.processor.conversation.utils import (
     ChatEvent,
     construct_chat_history,
     remove_json_codeblock,
 )
+from khoj.routers.helpers import send_message_to_model_wrapper
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import LocationData
 
@@ -32,7 +32,7 @@ async def run_code(
     location_data: LocationData,
     user: KhojUser,
     send_status_func: Optional[Callable] = None,
-    uploaded_image_url: str = None,
+    query_images: List[str] = None,
     agent: Agent = None,
     sandbox_url: str = SANDBOX_URL,
 ):
@@ -43,7 +43,7 @@ async def run_code(
     try:
         with timer("Chat actor: Generate programs to execute", logger):
             codes = await generate_python_code(
-                query, conversation_history, previous_iterations_history, location_data, user, uploaded_image_url, agent
+                query, conversation_history, previous_iterations_history, location_data, user, query_images, agent
             )
     except Exception as e:
         raise ValueError(f"Failed to generate code for {query} with error: {e}")
@@ -70,7 +70,7 @@ async def generate_python_code(
     previous_iterations_history: str,
     location_data: LocationData,
     user: KhojUser,
-    uploaded_image_url: str = None,
+    query_images: List[str] = None,
     agent: Agent = None,
 ) -> List[str]:
     location = f"{location_data}" if location_data else "Unknown"
@@ -95,7 +95,7 @@ async def generate_python_code(
 
     response = await send_message_to_model_wrapper(
         code_generation_prompt,
-        uploaded_image_url=uploaded_image_url,
+        query_images=query_images,
         response_type="json_object",
         user=user,
     )

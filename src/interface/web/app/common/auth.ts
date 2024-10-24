@@ -68,7 +68,8 @@ export interface UserConfig {
     selected_voice_model_config: number;
     // user billing info
     subscription_state: SubscriptionStates;
-    subscription_renewal_date: string;
+    subscription_renewal_date: string | undefined;
+    subscription_enabled_trial_at: string | undefined;
     // server settings
     khoj_cloud_subscription_url: string | undefined;
     billing_enabled: boolean;
@@ -78,6 +79,7 @@ export interface UserConfig {
     anonymous_mode: boolean;
     notion_oauth_url: string;
     detail: string;
+    length_of_free_trial: number;
 }
 
 export function useUserConfig(detailed: boolean = false) {
@@ -92,4 +94,16 @@ export function useUserConfig(detailed: boolean = false) {
         return { userConfig: null, isLoadingUserConfig };
 
     return { userConfig, isLoadingUserConfig };
+}
+
+export function isUserSubscribed(userConfig: UserConfig | null): boolean {
+    return (
+        (userConfig?.subscription_state &&
+            [
+                SubscriptionStates.SUBSCRIBED.valueOf(),
+                SubscriptionStates.TRIAL.valueOf(),
+                SubscriptionStates.UNSUBSCRIBED.valueOf(),
+            ].includes(userConfig.subscription_state)) ||
+        false
+    );
 }
