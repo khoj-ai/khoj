@@ -126,6 +126,7 @@ class EntryAdmin(admin.ModelAdmin):
         "created_at",
         "updated_at",
         "user",
+        "agent",
         "file_source",
         "file_type",
         "file_name",
@@ -135,6 +136,7 @@ class EntryAdmin(admin.ModelAdmin):
     list_filter = (
         "file_type",
         "user__email",
+        "search_model__name",
     )
     ordering = ("-created_at",)
 

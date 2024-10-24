@@ -718,7 +718,7 @@ export default function SettingsView() {
     };
 
     const updateModel = (name: string) => async (id: string) => {
-        if (!userConfig?.is_active && name !== "search") {
+        if (!userConfig?.is_active) {
             toast({
                 title: `Model Update`,
                 description: `You need to be subscribed to update ${name} models`,
@@ -1231,27 +1231,6 @@ export default function SettingsView() {
                                                     </p>
                                                 )}
                                             </CardFooter>
-                                        </Card>
-                                    )}
-                                    {userConfig.search_model_options.length > 0 && (
-                                        <Card className={cardClassName}>
-                                            <CardHeader className="text-xl flex flex-row">
-                                                <FileMagnifyingGlass className="h-7 w-7 mr-2" />
-                                                Search
-                                            </CardHeader>
-                                            <CardContent className="overflow-hidden pb-12 grid gap-8 h-fit">
-                                                <p className="text-gray-400">
-                                                    Pick the search model to find your documents
-                                                </p>
-                                                <DropdownComponent
-                                                    items={userConfig.search_model_options}
-                                                    selected={
-                                                        userConfig.selected_search_model_config
-                                                    }
-                                                    callbackFunc={updateModel("search")}
-                                                />
-                                            </CardContent>
-                                            <CardFooter className="flex flex-wrap gap-4"></CardFooter>
                                         </Card>
                                     )}
                                     {userConfig.paint_model_options.length > 0 && (
