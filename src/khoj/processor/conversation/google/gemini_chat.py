@@ -35,6 +35,7 @@ def extract_questions_gemini(
     query_images: Optional[list[str]] = None,
     vision_enabled: bool = False,
     personality_context: Optional[str] = None,
+    tracer: dict = {},
 ):
     """
     Infer search queries to retrieve relevant notes to answer user query
@@ -85,7 +86,7 @@ def extract_questions_gemini(
     messages = [ChatMessage(content=prompt, role="user"), ChatMessage(content=system_prompt, role="system")]
 
     response = gemini_send_message_to_model(
-        messages, api_key, model, response_type="json_object", temperature=temperature
+        messages, api_key, model, response_type="json_object", temperature=temperature, tracer=tracer
     )
 
     # Extract, Clean Message from Gemini's Response
@@ -107,7 +108,9 @@ def extract_questions_gemini(
     return questions
 
 
-def gemini_send_message_to_model(messages, api_key, model, response_type="text", temperature=0, model_kwargs=None):
+def gemini_send_message_to_model(
+    messages, api_key, model, response_type="text", temperature=0, model_kwargs=None, tracer={}
+):
     """
     Send message to model
     """
@@ -125,6 +128,7 @@ def gemini_send_message_to_model(messages, api_key, model, response_type="text",
         api_key=api_key,
         temperature=temperature,
         model_kwargs=model_kwargs,
+        tracer=tracer,
     )
 
 
@@ -145,6 +149,7 @@ def converse_gemini(
     agent: Agent = None,
     query_images: Optional[list[str]] = None,
     vision_available: bool = False,
+    tracer={},
 ):
     """
     Converse with user using Google's Gemini
@@ -219,4 +224,5 @@ def converse_gemini(
         api_key=api_key,
         system_prompt=system_prompt,
         completion_func=completion_func,
+        tracer=tracer,
     )
