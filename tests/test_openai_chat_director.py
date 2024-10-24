@@ -307,7 +307,7 @@ def test_summarize_one_file(chat_client, default_user2: KhojUser):
         json={"filename": summarization_file, "conversation_id": str(conversation.id)},
     )
     query = "/summarize"
-    response = chat_client.post(f"/api/chat", json={"q": query, "conversation_id": conversation.id})
+    response = chat_client.post(f"/api/chat", json={"q": query, "conversation_id": str(conversation.id)})
     response_message = response.json()["response"]
     # Assert
     assert response_message != ""
@@ -339,7 +339,7 @@ def test_summarize_extra_text(chat_client, default_user2: KhojUser):
         json={"filename": summarization_file, "conversation_id": str(conversation.id)},
     )
     query = "/summarize tell me about Xiu"
-    response = chat_client.post(f"/api/chat", json={"q": query, "conversation_id": conversation.id})
+    response = chat_client.post(f"/api/chat", json={"q": query, "conversation_id": str(conversation.id)})
     response_message = response.json()["response"]
     # Assert
     assert response_message != ""
@@ -367,7 +367,7 @@ def test_summarize_multiple_files(chat_client, default_user2: KhojUser):
     )
 
     query = "/summarize"
-    response = chat_client.post(f"/api/chat", json={"q": query, "conversation_id": conversation.id})
+    response = chat_client.post(f"/api/chat", json={"q": query, "conversation_id": str(conversation.id)})
     response_message = response.json()["response"]
 
     # Assert
@@ -383,7 +383,7 @@ def test_summarize_no_files(chat_client, default_user2: KhojUser):
 
     # Act
     query = "/summarize"
-    response = chat_client.post(f"/api/chat", json={"q": query, "conversation_id": conversation.id})
+    response = chat_client.post(f"/api/chat", json={"q": query, "conversation_id": str(conversation.id)})
     response_message = response.json()["response"]
 
     # Assert
@@ -418,11 +418,11 @@ def test_summarize_different_conversation(chat_client, default_user2: KhojUser):
 
     # Act
     query = "/summarize"
-    response = chat_client.post(f"/api/chat", json={"q": query, "conversation_id": conversation2.id})
+    response = chat_client.post(f"/api/chat", json={"q": query, "conversation_id": str(conversation2.id)})
     response_message_conv2 = response.json()["response"]
 
     # now make sure that the file filter is still in conversation 1
-    response = chat_client.post(f"/api/chat", json={"q": query, "conversation_id": conversation1.id})
+    response = chat_client.post(f"/api/chat", json={"q": query, "conversation_id": str(conversation1.id)})
     response_message_conv1 = response.json()["response"]
 
     # Assert
@@ -449,7 +449,7 @@ def test_summarize_nonexistant_file(chat_client, default_user2: KhojUser):
         json={"filename": "imaginary.markdown", "conversation_id": str(conversation.id)},
     )
     query = urllib.parse.quote("/summarize")
-    response = chat_client.post(f"/api/chat", json={"q": query, "conversation_id": conversation.id})
+    response = chat_client.post(f"/api/chat", json={"q": query, "conversation_id": str(conversation.id)})
     response_message = response.json()["response"]
     # Assert
     assert response_message == "No files selected for summarization. Please add files using the section on the left."
@@ -481,7 +481,7 @@ def test_summarize_diff_user_file(chat_client, default_user: KhojUser, pdf_confi
 
     # Act
     query = "/summarize"
-    response = chat_client.post(f"/api/chat", json={"q": query, "conversation_id": conversation.id})
+    response = chat_client.post(f"/api/chat", json={"q": query, "conversation_id": str(conversation.id)})
     response_message = response.json()["response"]
 
     # Assert
