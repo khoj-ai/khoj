@@ -4,7 +4,7 @@ import logging
 import os
 import urllib.parse
 from collections import defaultdict
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import aiohttp
 from bs4 import BeautifulSoup
@@ -53,7 +53,7 @@ OLOSTEP_QUERY_PARAMS = {
     "expandHtml": "False",
 }
 
-DEFAULT_MAX_WEBPAGES_TO_READ = 1
+MAX_WEBPAGES_TO_READ = 1
 
 
 async def search_online(
@@ -63,7 +63,7 @@ async def search_online(
     user: KhojUser,
     send_status_func: Optional[Callable] = None,
     custom_filters: List[str] = [],
-    max_webpages_to_read: int = DEFAULT_MAX_WEBPAGES_TO_READ,
+    max_webpages_to_read: int = MAX_WEBPAGES_TO_READ,
     query_images: List[str] = None,
     agent: Agent = None,
 ):
@@ -94,11 +94,16 @@ async def search_online(
 
     # Gather distinct web pages from organic results for subqueries without an instant answer.
     # Content of web pages is directly available when Jina is used for search.
-    webpages = set()
+    webpages: Dict[str, Dict] = {}
     for subquery in response_dict:
+        if "answerBox" in response_dict[subquery]:
+            continue
         for organic in response_dict[subquery].get("organic", [])[:max_webpages_to_read]:
-            if "answerBox" not in response_dict[subquery]:
-                webpages.add(organic.get("link"), {"queries": {subquery}, "content": organic.get("content")})
+            link = organic.get("link")
+            if link in webpages:
+                webpages[link]["queries"].add(subquery)
+            else:
+                webpages[link] = {"queries": {subquery}, "content": organic.get("content")}
 
     # Read, extract relevant info from the retrieved web pages
     if webpages:
