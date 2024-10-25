@@ -119,6 +119,7 @@ dev = [
     "mypy >= 1.0.1",
     "black >= 23.1.0",
     "pre-commit >= 3.0.4",
+    "gitpython ~= 3.1.43",
 ]
 
 [tool.hatch.version]

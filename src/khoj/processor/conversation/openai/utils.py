@@ -12,7 +12,12 @@ from tenacity import (
     wait_random_exponential,
 )
 
-from khoj.processor.conversation.utils import ThreadedGenerator
+from khoj.processor.conversation.utils import (
+    ThreadedGenerator,
+    commit_conversation_trace,
+)
+from khoj.utils import state
+from khoj.utils.helpers import in_debug_mode
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +38,7 @@ openai_clients: Dict[str, openai.OpenAI] = {}
     reraise=True,
 )
 def completion_with_backoff(
-    messages, model, temperature=0, openai_api_key=None, api_base_url=None, model_kwargs=None
+    messages, model, temperature=0, openai_api_key=None, api_base_url=None, model_kwargs=None, tracer: dict = {}
 ) -> str:
     client_key = f"{openai_api_key}--{api_base_url}"
     client: openai.OpenAI | None = openai_clients.get(client_key)
@@ -77,6 +82,12 @@ def completion_with_backoff(
         elif delta_chunk.content:
             aggregated_response += delta_chunk.content
 
+    # Save conversation trace
+    tracer["chat_model"] = model
+    tracer["temperature"] = temperature
+    if in_debug_mode() or state.verbose > 1:
+        commit_conversation_trace(messages, aggregated_response, tracer)
+
     return aggregated_response
 
 
@@ -103,26 +114,37 @@ def chat_completion_with_backoff(
     api_base_url=None,
     completion_func=None,
     model_kwargs=None,
+    tracer: dict = {},
 ):
     g = ThreadedGenerator(compiled_references, online_results, completion_func=completion_func)
     t = Thread(
-        target=llm_thread, args=(g, messages, model_name, temperature, openai_api_key, api_base_url, model_kwargs)
+        target=llm_thread,
+        args=(g, messages, model_name, temperature, openai_api_key, api_base_url, model_kwargs, tracer),
     )
     t.start()
     return g
 
 
-def llm_thread(g, messages, model_name, temperature, openai_api_key=None, api_base_url=None, model_kwargs=None):
+def llm_thread(
+    g,
+    messages,
+    model_name,
+    temperature,
+    openai_api_key=None,
+    api_base_url=None,
+    model_kwargs=None,
+    tracer: dict = {},
+):
     try:
         client_key = f"{openai_api_key}--{api_base_url}"
         if client_key not in openai_clients:
-            client: openai.OpenAI = openai.OpenAI(
+            client = openai.OpenAI(
                 api_key=openai_api_key,
                 base_url=api_base_url,
             )
             openai_clients[client_key] = client
         else:
-            client: openai.OpenAI = openai_clients[client_key]
+            client = openai_clients[client_key]
 
         formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
         stream = True
@@ -144,17 +166,29 @@ def llm_thread(g, messages, model_name, temperature, openai_api_key=None, api_ba
             **(model_kwargs or dict()),
         )
 
+        aggregated_response = ""
         if not stream:
-            g.send(chat.choices[0].message.content)
+            aggregated_response = chat.choices[0].message.content
+            g.send(aggregated_response)
         else:
             for chunk in chat:
                 if len(chunk.choices) == 0:
                     continue
                 delta_chunk = chunk.choices[0].delta
+                text_chunk = ""
                 if isinstance(delta_chunk, str):
-                    g.send(delta_chunk)
+                    text_chunk = delta_chunk
                 elif delta_chunk.content:
-                    g.send(delta_chunk.content)
+                    text_chunk = delta_chunk.content
+                if text_chunk:
+                    aggregated_response += text_chunk
+                    g.send(text_chunk)
+
+        # Save conversation trace
+        tracer["chat_model"] = model_name
+        tracer["temperature"] = temperature
+        if in_debug_mode() or state.verbose > 1:
+            commit_conversation_trace(messages, aggregated_response, tracer)
     except Exception as e:
         logger.error(f"Error in llm_thread: {e}", exc_info=True)
     finally:
