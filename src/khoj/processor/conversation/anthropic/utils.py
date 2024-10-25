@@ -141,13 +141,15 @@ def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt=Non
     for message in messages:
         if isinstance(message.content, list):
             content = []
-            # Sort the content as preferred if text comes after images
+            # Sort the content. Anthropic models prefer that text comes after images.
             message.content.sort(key=lambda x: 0 if x["type"] == "image_url" else 1)
             for idx, part in enumerate(message.content):
                 if part["type"] == "text":
                     content.append({"type": "text", "text": part["text"]})
                 elif part["type"] == "image_url":
-                    b64_image, media_type = get_image_from_url(part["image_url"]["url"], type="b64")
+                    image = get_image_from_url(part["image_url"]["url"], type="b64")
+                    # Prefix each image with text block enumerating the image number
+                    # This helps the model reference the image in its response. Recommended by Anthropic
                     content.extend(
                         [
                             {
@@ -156,7 +158,7 @@ def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt=Non
                             },
                             {
                                 "type": "image",
-                                "source": {"type": "base64", "media_type": media_type, "data": b64_image},
+                                "source": {"type": "base64", "media_type": image.type, "data": image.content},
                             },
                         ]
                     )

@@ -3,6 +3,7 @@ import logging
 import math
 import mimetypes
 import queue
+from dataclasses import dataclass
 from datetime import datetime
 from io import BytesIO
 from time import perf_counter
@@ -317,6 +318,12 @@ def remove_json_codeblock(response: str):
     return response.removeprefix("```json").removesuffix("```")
 
 
+@dataclass
+class ImageWithType:
+    content: Any
+    type: str
+
+
 def get_image_from_url(image_url: str, type="pil"):
     try:
         response = requests.get(image_url)
@@ -325,12 +332,15 @@ def get_image_from_url(image_url: str, type="pil"):
         # Get content type from response or infer from URL
         content_type = response.headers.get("content-type") or mimetypes.guess_type(image_url)[0] or "image/webp"
 
+        # Convert image to desired format
         if type == "b64":
-            return base64.b64encode(response.content).decode("utf-8"), content_type
+            image_data = base64.b64encode(response.content).decode("utf-8")
         elif type == "pil":
-            return PIL.Image.open(BytesIO(response.content)), content_type
+            image_data = PIL.Image.open(BytesIO(response.content))
         else:
             raise ValueError(f"Invalid image type: {type}")
+
+        return ImageWithType(content=image_data, type=content_type)
     except requests.exceptions.RequestException as e:
         logger.error(f"Failed to get image from URL {image_url}: {e}")
-        return None, None
+        return ImageWithType(content=None, type=None)
