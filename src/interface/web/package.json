@@ -1,6 +1,6 @@
 {
     "name": "khoj-ai",
-    "version": "1.26.4",
+    "version": "1.27.0",
     "private": true,
     "scripts": {
         "dev": "next dev",
@@ -19,6 +19,7 @@
         "prepare": "husky"
     },
     "dependencies": {
+        "@excalidraw/excalidraw": "^0.17.6",
         "@hookform/resolvers": "^3.9.0",
         "@phosphor-icons/react": "^2.1.7",
         "@radix-ui/react-alert-dialog": "^1.1.1",
@@ -63,8 +64,7 @@
         "swr": "^2.2.5",
         "typescript": "^5",
         "vaul": "^0.9.1",
-        "zod": "^3.23.8",
-        "@excalidraw/excalidraw": "^0.17.6"
+        "zod": "^3.23.8"
     },
     "devDependencies": {
         "@types/dompurify": "^3.0.5",
