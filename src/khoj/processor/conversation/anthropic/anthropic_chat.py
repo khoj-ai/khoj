@@ -11,8 +11,12 @@ from khoj.processor.conversation import prompts
 from khoj.processor.conversation.anthropic.utils import (
     anthropic_chat_completion_with_backoff,
     anthropic_completion_with_backoff,
+    format_messages_for_anthropic,
 )
-from khoj.processor.conversation.utils import generate_chatml_messages_with_context
+from khoj.processor.conversation.utils import (
+    construct_structured_message,
+    generate_chatml_messages_with_context,
+)
 from khoj.utils.helpers import ConversationCommand, is_none_or_empty
 from khoj.utils.rawconfig import LocationData
 
@@ -27,6 +31,8 @@ def extract_questions_anthropic(
     temperature=0.7,
     location_data: LocationData = None,
     user: KhojUser = None,
+    query_images: Optional[list[str]] = None,
+    vision_enabled: bool = False,
     personality_context: Optional[str] = None,
 ):
     """
@@ -68,6 +74,13 @@ def extract_questions_anthropic(
         text=text,
     )
 
+    prompt = construct_structured_message(
+        message=prompt,
+        images=query_images,
+        model_type=ChatModelOptions.ModelType.ANTHROPIC,
+        vision_enabled=vision_enabled,
+    )
+
     messages = [ChatMessage(content=prompt, role="user")]
 
     response = anthropic_completion_with_backoff(
@@ -101,17 +114,7 @@ def anthropic_send_message_to_model(messages, api_key, model):
     """
     Send message to model
     """
-    # Anthropic requires the first message to be a 'user' message, and the system prompt is not to be sent in the messages parameter
-    system_prompt = None
-
-    if len(messages) == 1:
-        messages[0].role = "user"
-    else:
-        system_prompt = ""
-        for message in messages.copy():
-            if message.role == "system":
-                system_prompt += message.content
-                messages.remove(message)
+    messages, system_prompt = format_messages_for_anthropic(messages)
 
     # Get Response from GPT. Don't use response_type because Anthropic doesn't support it.
     return anthropic_completion_with_backoff(
@@ -127,7 +130,7 @@ def converse_anthropic(
     user_query,
     online_results: Optional[Dict[str, Dict]] = None,
     conversation_log={},
-    model: Optional[str] = "claude-instant-1.2",
+    model: Optional[str] = "claude-3-5-sonnet-20241022",
     api_key: Optional[str] = None,
     completion_func=None,
     conversation_commands=[ConversationCommand.Default],
@@ -136,6 +139,8 @@ def converse_anthropic(
     location_data: LocationData = None,
     user_name: str = None,
     agent: Agent = None,
+    query_images: Optional[list[str]] = None,
+    vision_available: bool = False,
 ):
     """
     Converse with user using Anthropic's Claude
@@ -189,17 +194,12 @@ def converse_anthropic(
         model_name=model,
         max_prompt_size=max_prompt_size,
         tokenizer_name=tokenizer_name,
+        query_images=query_images,
+        vision_enabled=vision_available,
         model_type=ChatModelOptions.ModelType.ANTHROPIC,
     )
 
-    if len(messages) > 1:
-        if messages[0].role == "assistant":
-            messages = messages[1:]
-
-    for message in messages.copy():
-        if message.role == "system":
-            system_prompt += message.content
-            messages.remove(message)
+    messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)
 
     truncated_messages = "\n".join({f"{message.content[:40]}..." for message in messages})
     logger.debug(f"Conversation Context for Claude: {truncated_messages}")
