@@ -1,11 +1,17 @@
+import base64
 import logging
 import math
+import mimetypes
 import queue
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
+from io import BytesIO
 from time import perf_counter
 from typing import Any, Dict, List, Optional
 
+import PIL.Image
+import requests
 import tiktoken
 from langchain.schema import ChatMessage
 from llama_cpp.llama import Llama
@@ -215,7 +221,11 @@ def construct_structured_message(message: str, images: list[str], model_type: st
     if not images or not vision_enabled:
         return message
 
-    if model_type in [ChatModelOptions.ModelType.OPENAI, ChatModelOptions.ModelType.GOOGLE]:
+    if model_type in [
+        ChatModelOptions.ModelType.OPENAI,
+        ChatModelOptions.ModelType.GOOGLE,
+        ChatModelOptions.ModelType.ANTHROPIC,
+    ]:
         return [
             {"type": "text", "text": message},
             *[{"type": "image_url", "image_url": {"url": image}} for image in images],
@@ -377,3 +387,31 @@ def defilter_query(query: str):
     for filter in [DateFilter(), WordFilter(), FileFilter()]:
         defiltered_query = filter.defilter(defiltered_query)
     return defiltered_query
+
+
+@dataclass
+class ImageWithType:
+    content: Any
+    type: str
+
+
+def get_image_from_url(image_url: str, type="pil"):
+    try:
+        response = requests.get(image_url)
+        response.raise_for_status()  # Check if the request was successful
+
+        # Get content type from response or infer from URL
+        content_type = response.headers.get("content-type") or mimetypes.guess_type(image_url)[0] or "image/webp"
+
+        # Convert image to desired format
+        if type == "b64":
+            image_data = base64.b64encode(response.content).decode("utf-8")
+        elif type == "pil":
+            image_data = PIL.Image.open(BytesIO(response.content))
+        else:
+            raise ValueError(f"Invalid image type: {type}")
+
+        return ImageWithType(content=image_data, type=content_type)
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Failed to get image from URL {image_url}: {e}")
+        return ImageWithType(content=None, type=None)

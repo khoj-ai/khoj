@@ -362,9 +362,7 @@ function_calling_description_for_llm = {
 }
 
 mode_descriptions_for_llm = {
-    ConversationCommand.Image: "Use this if the user is requesting you to generate images based on their description. This does not support generating charts or graphs.",
-    ConversationCommand.Automation: "Use this if the user is requesting a response at a scheduled date or time.",
-    ConversationCommand.Text: "Use this if the other response modes don't seem to fit the query.",
+    ConversationCommand.Image: "Use this if you are confident the user is requesting you to create a new picture based on their description. This does not support generating charts or graphs.",
     ConversationCommand.Automation: "Use this if you are confident the user is requesting a response at a scheduled date, time and frequency",
     ConversationCommand.Text: "Use this if a normal text response would be sufficient for accurately responding to the query.",
     ConversationCommand.Diagram: "Use this if the user is requesting a visual representation that requires primitives like lines, rectangles, and text.",

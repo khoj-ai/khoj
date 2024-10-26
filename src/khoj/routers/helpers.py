@@ -721,10 +721,7 @@ async def generate_better_diagram_description(
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
     )
 
-    if location_data:
-        location_prompt = prompts.user_location.format(location=f"{location_data}")
-    else:
-        location_prompt = "Unknown"
+    location = f"{location_data}" if location_data else "Unknown"
 
     user_references = "\n\n".join([f"# {item['compiled']}" for item in note_references])
 
@@ -742,7 +739,7 @@ async def generate_better_diagram_description(
     improve_diagram_description_prompt = prompts.improve_diagram_description_prompt.format(
         query=q,
         chat_history=chat_history,
-        location=location_prompt,
+        location=location,
         current_date=today_date,
         references=user_references,
         online_results=simplified_online_results,
@@ -807,10 +804,7 @@ async def generate_better_image_prompt(
     )
     model_type = model_type or TextToImageModelConfig.ModelType.OPENAI
 
-    if location_data:
-        location_prompt = prompts.user_location.format(location=f"{location_data}")
-    else:
-        location_prompt = "Unknown"
+    location = f"{location_data}" if location_data else "Unknown"
 
     user_references = "\n\n".join([f"# {item['compiled']}" for item in note_references])
 
@@ -827,7 +821,7 @@ async def generate_better_image_prompt(
         image_prompt = prompts.image_generation_improve_prompt_dalle.format(
             query=q,
             chat_history=conversation_history,
-            location=location_prompt,
+            location=location,
             current_date=today_date,
             references=user_references,
             online_results=simplified_online_results,
@@ -837,7 +831,7 @@ async def generate_better_image_prompt(
         image_prompt = prompts.image_generation_improve_prompt_sd.format(
             query=q,
             chat_history=conversation_history,
-            location=location_prompt,
+            location=location,
             current_date=today_date,
             references=user_references,
             online_results=simplified_online_results,
@@ -863,10 +857,13 @@ async def send_message_to_model_wrapper(
     conversation_config: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config(user)
     vision_available = conversation_config.vision_enabled
     if not vision_available and query_images:
+        logger.warning(f"Vision is not enabled for default model: {conversation_config.chat_model}.")
         vision_enabled_config = await ConversationAdapters.aget_vision_enabled_config()
         if vision_enabled_config:
             conversation_config = vision_enabled_config
             vision_available = True
+    if vision_available and query_images:
+        logger.info(f"Using {conversation_config.chat_model} model to understand {len(query_images)} images.")
 
     subscribed = await ais_user_subscribed(user)
     chat_model = conversation_config.chat_model
@@ -1154,9 +1151,10 @@ def generate_chat_response(
             chat_response = converse_anthropic(
                 compiled_references,
                 query_to_run,
-                online_results,
-                code_results,
-                meta_log,
+                query_images=query_images,
+                online_results=online_results,
+                code_results=code_results,
+                conversation_log=meta_log,
                 model=conversation_config.chat_model,
                 api_key=api_key,
                 completion_func=partial_completion,
@@ -1166,6 +1164,7 @@ def generate_chat_response(
                 location_data=location_data,
                 user_name=user_name,
                 agent=agent,
+                vision_available=vision_available,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
             api_key = conversation_config.openai_config.api_key

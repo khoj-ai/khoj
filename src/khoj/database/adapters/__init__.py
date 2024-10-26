@@ -301,7 +301,7 @@ def subscription_to_state(subscription: Subscription) -> str:
         return SubscriptionState.INVALID.value
     elif subscription.type == Subscription.Type.TRIAL:
         # Check if the trial has expired
-        if datetime.now(tz=timezone.utc) > subscription.renewal_date:
+        if subscription.renewal_date and datetime.now(tz=timezone.utc) > subscription.renewal_date:
             return SubscriptionState.EXPIRED.value
         return SubscriptionState.TRIAL.value
     elif subscription.is_recurring and subscription.renewal_date > datetime.now(tz=timezone.utc):

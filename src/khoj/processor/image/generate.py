@@ -204,9 +204,10 @@ def generate_image_with_replicate(
 
     # Raise exception if the image generation task fails
     if status != "succeeded":
+        error = get_prediction.get("error")
         if retry_count >= 10:
             raise requests.RequestException("Image generation timed out")
-        raise requests.RequestException(f"Image generation failed with status: {status}")
+        raise requests.RequestException(f"Image generation failed with status: {status}, message: {error}")
 
     # Get the generated image
     image_url = get_prediction["output"][0] if isinstance(get_prediction["output"], list) else get_prediction["output"]
