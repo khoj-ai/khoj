@@ -3,6 +3,7 @@ import base64
 import json
 import logging
 import time
+import uuid
 from datetime import datetime
 from functools import partial
 from typing import Any, Dict, List, Optional
@@ -570,6 +571,12 @@ async def chat(
         event_delimiter = "␃🔚␗"
         q = unquote(q)
         nonlocal conversation_id
+        tracer: dict = {
+            "mid": f"{uuid.uuid4()}",
+            "cid": conversation_id,
+            "uid": user.id,
+            "khoj_version": state.khoj_version,
+        }
 
         uploaded_images: list[str] = []
         if images:
@@ -703,6 +710,7 @@ async def chat(
                 user_name=user_name,
                 location=location,
                 file_filters=conversation.file_filters if conversation else [],
+                tracer=tracer,
             ):
                 if isinstance(research_result, InformationCollectionIteration):
                     if research_result.summarizedResult:
@@ -732,9 +740,12 @@ async def chat(
                 user=user,
                 query_images=uploaded_images,
                 agent=agent,
+                tracer=tracer,
             )
 
-            mode = await aget_relevant_output_modes(q, meta_log, is_automated_task, user, uploaded_images, agent)
+            mode = await aget_relevant_output_modes(
+                q, meta_log, is_automated_task, user, uploaded_images, agent, tracer=tracer
+            )
             async for result in send_event(ChatEvent.STATUS, f"**Decided Response Mode:** {mode.value}"):
                 yield result
             if mode not in conversation_commands:
@@ -778,6 +789,7 @@ async def chat(
                     query_images=uploaded_images,
                     agent=agent,
                     send_status_func=partial(send_event, ChatEvent.STATUS),
+                    tracer=tracer,
                 ):
                     if isinstance(response, dict) and ChatEvent.STATUS in response:
                         yield result[ChatEvent.STATUS]
@@ -796,6 +808,7 @@ async def chat(
                 client_application=request.user.client_app,
                 conversation_id=conversation_id,
                 query_images=uploaded_images,
+                tracer=tracer,
             )
             return
 
@@ -817,7 +830,7 @@ async def chat(
         if ConversationCommand.Automation in conversation_commands:
             try:
                 automation, crontime, query_to_run, subject = await create_automation(
-                    q, timezone, user, request.url, meta_log
+                    q, timezone, user, request.url, meta_log, tracer=tracer
                 )
             except Exception as e:
                 logger.error(f"Error scheduling task {q} for {user.email}: {e}")
@@ -839,6 +852,7 @@ async def chat(
                 inferred_queries=[query_to_run],
                 automation_id=automation.id,
                 query_images=uploaded_images,
+                tracer=tracer,
             )
             async for result in send_llm_response(llm_response):
                 yield result
@@ -860,6 +874,7 @@ async def chat(
                     partial(send_event, ChatEvent.STATUS),
                     query_images=uploaded_images,
                     agent=agent,
+                    tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -905,6 +920,7 @@ async def chat(
                         custom_filters,
                         query_images=uploaded_images,
                         agent=agent,
+                        tracer=tracer,
                     ):
                         if isinstance(result, dict) and ChatEvent.STATUS in result:
                             yield result[ChatEvent.STATUS]
@@ -930,6 +946,7 @@ async def chat(
                         partial(send_event, ChatEvent.STATUS),
                         query_images=uploaded_images,
                         agent=agent,
+                        tracer=tracer,
                     ):
                         if isinstance(result, dict) and ChatEvent.STATUS in result:
                             yield result[ChatEvent.STATUS]
@@ -984,6 +1001,7 @@ async def chat(
                         partial(send_event, ChatEvent.STATUS),
                         query_images=uploaded_images,
                         agent=agent,
+                        tracer=tracer,
                     ):
                         if isinstance(result, dict) and ChatEvent.STATUS in result:
                             yield result[ChatEvent.STATUS]
@@ -1010,6 +1028,7 @@ async def chat(
                 send_status_func=partial(send_event, ChatEvent.STATUS),
                 query_images=uploaded_images,
                 agent=agent,
+                tracer=tracer,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
@@ -1040,6 +1059,7 @@ async def chat(
                 compiled_references=compiled_references,
                 online_results=online_results,
                 query_images=uploaded_images,
+                tracer=tracer,
             )
             content_obj = {
                 "intentType": intent_type,
@@ -1068,6 +1088,7 @@ async def chat(
                 user=user,
                 agent=agent,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
+                tracer=tracer,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
@@ -1095,6 +1116,7 @@ async def chat(
                 compiled_references=compiled_references,
                 online_results=online_results,
                 query_images=uploaded_images,
+                tracer=tracer,
             )
 
             async for result in send_llm_response(json.dumps(content_obj)):
@@ -1120,6 +1142,7 @@ async def chat(
             user_name,
             researched_results,
             uploaded_images,
+            tracer,
         )
 
         # Send Response

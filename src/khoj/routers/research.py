@@ -45,6 +45,7 @@ async def apick_next_tool(
     previous_iterations_history: str = None,
     max_iterations: int = 5,
     send_status_func: Optional[Callable] = None,
+    tracer: dict = {},
 ):
     """
     Given a query, determine which of the available tools the agent should use in order to answer appropriately. One at a time, and it's able to use subsequent iterations to refine the answer.
@@ -93,6 +94,7 @@ async def apick_next_tool(
             response_type="json_object",
             user=user,
             query_images=query_images,
+            tracer=tracer,
         )
 
     try:
@@ -135,6 +137,7 @@ async def execute_information_collection(
     user_name: str = None,
     location: LocationData = None,
     file_filters: List[str] = [],
+    tracer: dict = {},
 ):
     current_iteration = 0
     MAX_ITERATIONS = 5
@@ -159,6 +162,7 @@ async def execute_information_collection(
             previous_iterations_history,
             MAX_ITERATIONS,
             send_status_func,
+            tracer=tracer,
         ):
             if isinstance(result, dict) and ChatEvent.STATUS in result:
                 yield result[ChatEvent.STATUS]
@@ -180,6 +184,7 @@ async def execute_information_collection(
                 send_status_func,
                 query_images,
                 agent=agent,
+                tracer=tracer,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
@@ -211,6 +216,7 @@ async def execute_information_collection(
                 max_webpages_to_read=0,
                 query_images=query_images,
                 agent=agent,
+                tracer=tracer,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
@@ -228,6 +234,7 @@ async def execute_information_collection(
                     send_status_func,
                     query_images=query_images,
                     agent=agent,
+                    tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -258,6 +265,7 @@ async def execute_information_collection(
                     send_status_func,
                     query_images=query_images,
                     agent=agent,
+                    tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]

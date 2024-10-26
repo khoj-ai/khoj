@@ -35,6 +35,7 @@ async def run_code(
     query_images: List[str] = None,
     agent: Agent = None,
     sandbox_url: str = SANDBOX_URL,
+    tracer: dict = {},
 ):
     # Generate Code
     if send_status_func:
@@ -43,7 +44,14 @@ async def run_code(
     try:
         with timer("Chat actor: Generate programs to execute", logger):
             codes = await generate_python_code(
-                query, conversation_history, previous_iterations_history, location_data, user, query_images, agent
+                query,
+                conversation_history,
+                previous_iterations_history,
+                location_data,
+                user,
+                query_images,
+                agent,
+                tracer,
             )
     except Exception as e:
         raise ValueError(f"Failed to generate code for {query} with error: {e}")
@@ -72,6 +80,7 @@ async def generate_python_code(
     user: KhojUser,
     query_images: List[str] = None,
     agent: Agent = None,
+    tracer: dict = {},
 ) -> List[str]:
     location = f"{location_data}" if location_data else "Unknown"
     username = prompts.user_name.format(name=user.get_full_name()) if user.get_full_name() else ""
@@ -98,6 +107,7 @@ async def generate_python_code(
         query_images=query_images,
         response_type="json_object",
         user=user,
+        tracer=tracer,
     )
 
     # Validate that the response is a non-empty, JSON-serializable list

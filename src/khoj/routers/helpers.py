@@ -291,6 +291,7 @@ async def aget_relevant_information_sources(
     user: KhojUser,
     query_images: List[str] = None,
     agent: Agent = None,
+    tracer: dict = {},
 ):
     """
     Given a query, determine which of the available tools the agent should use in order to answer appropriately.
@@ -327,6 +328,7 @@ async def aget_relevant_information_sources(
             relevant_tools_prompt,
             response_type="json_object",
             user=user,
+            tracer=tracer,
         )
 
     try:
@@ -368,6 +370,7 @@ async def aget_relevant_output_modes(
     user: KhojUser = None,
     query_images: List[str] = None,
     agent: Agent = None,
+    tracer: dict = {},
 ):
     """
     Given a query, determine which of the available tools the agent should use in order to answer appropriately.
@@ -403,7 +406,9 @@ async def aget_relevant_output_modes(
     )
 
     with timer("Chat actor: Infer output mode for chat response", logger):
-        response = await send_message_to_model_wrapper(relevant_mode_prompt, response_type="json_object", user=user)
+        response = await send_message_to_model_wrapper(
+            relevant_mode_prompt, response_type="json_object", user=user, tracer=tracer
+        )
 
     try:
         response = response.strip()
@@ -434,6 +439,7 @@ async def infer_webpage_urls(
     user: KhojUser,
     query_images: List[str] = None,
     agent: Agent = None,
+    tracer: dict = {},
 ) -> List[str]:
     """
     Infer webpage links from the given query
@@ -458,7 +464,11 @@ async def infer_webpage_urls(
 
     with timer("Chat actor: Infer webpage urls to read", logger):
         response = await send_message_to_model_wrapper(
-            online_queries_prompt, query_images=query_images, response_type="json_object", user=user
+            online_queries_prompt,
+            query_images=query_images,
+            response_type="json_object",
+            user=user,
+            tracer=tracer,
         )
 
     # Validate that the response is a non-empty, JSON-serializable list of URLs
@@ -481,6 +491,7 @@ async def generate_online_subqueries(
     user: KhojUser,
     query_images: List[str] = None,
     agent: Agent = None,
+    tracer: dict = {},
 ) -> List[str]:
     """
     Generate subqueries from the given query
@@ -505,7 +516,11 @@ async def generate_online_subqueries(
 
     with timer("Chat actor: Generate online search subqueries", logger):
         response = await send_message_to_model_wrapper(
-            online_queries_prompt, query_images=query_images, response_type="json_object", user=user
+            online_queries_prompt,
+            query_images=query_images,
+            response_type="json_object",
+            user=user,
+            tracer=tracer,
         )
 
     # Validate that the response is a non-empty, JSON-serializable list
@@ -524,7 +539,7 @@ async def generate_online_subqueries(
 
 
 async def schedule_query(
-    q: str, conversation_history: dict, user: KhojUser, query_images: List[str] = None
+    q: str, conversation_history: dict, user: KhojUser, query_images: List[str] = None, tracer: dict = {}
 ) -> Tuple[str, ...]:
     """
     Schedule the date, time to run the query. Assume the server timezone is UTC.
@@ -537,7 +552,7 @@ async def schedule_query(
     )
 
     raw_response = await send_message_to_model_wrapper(
-        crontime_prompt, query_images=query_images, response_type="json_object", user=user
+        crontime_prompt, query_images=query_images, response_type="json_object", user=user, tracer=tracer
     )
 
     # Validate that the response is a non-empty, JSON-serializable list
@@ -552,7 +567,7 @@ async def schedule_query(
 
 
 async def extract_relevant_info(
-    qs: set[str], corpus: str, user: KhojUser = None, agent: Agent = None
+    qs: set[str], corpus: str, user: KhojUser = None, agent: Agent = None, tracer: dict = {}
 ) -> Union[str, None]:
     """
     Extract relevant information for a given query from the target corpus
@@ -575,6 +590,7 @@ async def extract_relevant_info(
         extract_relevant_information,
         prompts.system_prompt_extract_relevant_information,
         user=user,
+        tracer=tracer,
     )
     return response.strip()
 
@@ -586,6 +602,7 @@ async def extract_relevant_summary(
     query_images: List[str] = None,
     user: KhojUser = None,
     agent: Agent = None,
+    tracer: dict = {},
 ) -> Union[str, None]:
     """
     Extract relevant information for a given query from the target corpus
@@ -613,6 +630,7 @@ async def extract_relevant_summary(
             prompts.system_prompt_extract_relevant_summary,
             user=user,
             query_images=query_images,
+            tracer=tracer,
         )
     return response.strip()
 
@@ -625,6 +643,7 @@ async def generate_summary_from_files(
     query_images: List[str] = None,
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
+    tracer: dict = {},
 ):
     try:
         file_object = None
@@ -653,6 +672,7 @@ async def generate_summary_from_files(
             query_images=query_images,
             user=user,
             agent=agent,
+            tracer=tracer,
         )
         response_log = str(response)
 
@@ -673,6 +693,7 @@ async def generate_excalidraw_diagram(
     user: KhojUser = None,
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
+    tracer: dict = {},
 ):
     if send_status_func:
         async for event in send_status_func("**Enhancing the Diagramming Prompt**"):
@@ -687,6 +708,7 @@ async def generate_excalidraw_diagram(
         query_images=query_images,
         user=user,
         agent=agent,
+        tracer=tracer,
     )
 
     if send_status_func:
@@ -697,6 +719,7 @@ async def generate_excalidraw_diagram(
         q=better_diagram_description_prompt,
         user=user,
         agent=agent,
+        tracer=tracer,
     )
 
     yield better_diagram_description_prompt, excalidraw_diagram_description
@@ -711,6 +734,7 @@ async def generate_better_diagram_description(
     query_images: List[str] = None,
     user: KhojUser = None,
     agent: Agent = None,
+    tracer: dict = {},
 ) -> str:
     """
     Generate a diagram description from the given query and context
@@ -748,7 +772,7 @@ async def generate_better_diagram_description(
 
     with timer("Chat actor: Generate better diagram description", logger):
         response = await send_message_to_model_wrapper(
-            improve_diagram_description_prompt, query_images=query_images, user=user
+            improve_diagram_description_prompt, query_images=query_images, user=user, tracer=tracer
         )
         response = response.strip()
         if response.startswith(('"', "'")) and response.endswith(('"', "'")):
@@ -761,6 +785,7 @@ async def generate_excalidraw_diagram_from_description(
     q: str,
     user: KhojUser = None,
     agent: Agent = None,
+    tracer: dict = {},
 ) -> str:
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
@@ -772,7 +797,9 @@ async def generate_excalidraw_diagram_from_description(
     )
 
     with timer("Chat actor: Generate excalidraw diagram", logger):
-        raw_response = await send_message_to_model_wrapper(message=excalidraw_diagram_generation, user=user)
+        raw_response = await send_message_to_model_wrapper(
+            message=excalidraw_diagram_generation, user=user, tracer=tracer
+        )
         raw_response = raw_response.strip()
         raw_response = remove_json_codeblock(raw_response)
         response: Dict[str, str] = json.loads(raw_response)
@@ -793,6 +820,7 @@ async def generate_better_image_prompt(
     query_images: Optional[List[str]] = None,
     user: KhojUser = None,
     agent: Agent = None,
+    tracer: dict = {},
 ) -> str:
     """
     Generate a better image prompt from the given query
@@ -839,7 +867,9 @@ async def generate_better_image_prompt(
         )
 
     with timer("Chat actor: Generate contextual image prompt", logger):
-        response = await send_message_to_model_wrapper(image_prompt, query_images=query_images, user=user)
+        response = await send_message_to_model_wrapper(
+            image_prompt, query_images=query_images, user=user, tracer=tracer
+        )
         response = response.strip()
         if response.startswith(('"', "'")) and response.endswith(('"', "'")):
             response = response[1:-1]
@@ -853,6 +883,7 @@ async def send_message_to_model_wrapper(
     response_type: str = "text",
     user: KhojUser = None,
     query_images: List[str] = None,
+    tracer: dict = {},
 ):
     conversation_config: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config(user)
     vision_available = conversation_config.vision_enabled
@@ -899,6 +930,7 @@ async def send_message_to_model_wrapper(
             max_prompt_size=max_tokens,
             streaming=False,
             response_type=response_type,
+            tracer=tracer,
         )
 
     elif model_type == ChatModelOptions.ModelType.OPENAI:
@@ -922,6 +954,7 @@ async def send_message_to_model_wrapper(
             model=chat_model,
             response_type=response_type,
             api_base_url=api_base_url,
+            tracer=tracer,
         )
     elif model_type == ChatModelOptions.ModelType.ANTHROPIC:
         api_key = conversation_config.openai_config.api_key
@@ -940,6 +973,7 @@ async def send_message_to_model_wrapper(
             messages=truncated_messages,
             api_key=api_key,
             model=chat_model,
+            tracer=tracer,
         )
     elif model_type == ChatModelOptions.ModelType.GOOGLE:
         api_key = conversation_config.openai_config.api_key
@@ -955,7 +989,7 @@ async def send_message_to_model_wrapper(
         )
 
         return gemini_send_message_to_model(
-            messages=truncated_messages, api_key=api_key, model=chat_model, response_type=response_type
+            messages=truncated_messages, api_key=api_key, model=chat_model, response_type=response_type, tracer=tracer
         )
     else:
         raise HTTPException(status_code=500, detail="Invalid conversation config")
@@ -966,6 +1000,7 @@ def send_message_to_model_wrapper_sync(
     system_message: str = "",
     response_type: str = "text",
     user: KhojUser = None,
+    tracer: dict = {},
 ):
     conversation_config: ChatModelOptions = ConversationAdapters.get_default_conversation_config(user)
 
@@ -998,6 +1033,7 @@ def send_message_to_model_wrapper_sync(
             max_prompt_size=max_tokens,
             streaming=False,
             response_type=response_type,
+            tracer=tracer,
         )
 
     elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
@@ -1012,7 +1048,11 @@ def send_message_to_model_wrapper_sync(
         )
 
         openai_response = send_message_to_model(
-            messages=truncated_messages, api_key=api_key, model=chat_model, response_type=response_type
+            messages=truncated_messages,
+            api_key=api_key,
+            model=chat_model,
+            response_type=response_type,
+            tracer=tracer,
         )
 
         return openai_response
@@ -1032,6 +1072,7 @@ def send_message_to_model_wrapper_sync(
             messages=truncated_messages,
             api_key=api_key,
             model=chat_model,
+            tracer=tracer,
         )
 
     elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
@@ -1050,6 +1091,7 @@ def send_message_to_model_wrapper_sync(
             api_key=api_key,
             model=chat_model,
             response_type=response_type,
+            tracer=tracer,
         )
     else:
         raise HTTPException(status_code=500, detail="Invalid conversation config")
@@ -1071,6 +1113,7 @@ def generate_chat_response(
     user_name: Optional[str] = None,
     meta_research: str = "",
     query_images: Optional[List[str]] = None,
+    tracer: dict = {},
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
     chat_response = None
@@ -1094,6 +1137,7 @@ def generate_chat_response(
             client_application=client_application,
             conversation_id=conversation_id,
             query_images=query_images,
+            tracer=tracer,
         )
 
         conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)
@@ -1120,6 +1164,7 @@ def generate_chat_response(
                 location_data=location_data,
                 user_name=user_name,
                 agent=agent,
+                tracer=tracer,
             )
 
         elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
@@ -1144,6 +1189,7 @@ def generate_chat_response(
                 user_name=user_name,
                 agent=agent,
                 vision_available=vision_available,
+                tracer=tracer,
             )
 
         elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
@@ -1165,6 +1211,7 @@ def generate_chat_response(
                 user_name=user_name,
                 agent=agent,
                 vision_available=vision_available,
+                tracer=tracer,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
             api_key = conversation_config.openai_config.api_key
@@ -1184,6 +1231,7 @@ def generate_chat_response(
                 user_name=user_name,
                 agent=agent,
                 vision_available=vision_available,
+                tracer=tracer,
             )
 
         metadata.update({"chat_model": conversation_config.chat_model})
@@ -1540,9 +1588,15 @@ def scheduled_chat(
 
 
 async def create_automation(
-    q: str, timezone: str, user: KhojUser, calling_url: URL, meta_log: dict = {}, conversation_id: str = None
+    q: str,
+    timezone: str,
+    user: KhojUser,
+    calling_url: URL,
+    meta_log: dict = {},
+    conversation_id: str = None,
+    tracer: dict = {},
 ):
-    crontime, query_to_run, subject = await schedule_query(q, meta_log, user)
+    crontime, query_to_run, subject = await schedule_query(q, meta_log, user, tracer=tracer)
     job = await schedule_automation(query_to_run, subject, crontime, timezone, q, user, calling_url, conversation_id)
     return job, crontime, query_to_run, subject
 
