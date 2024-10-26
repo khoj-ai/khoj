@@ -973,18 +973,6 @@ async def chat(
                     ):
                         yield result
 
-        ## Send Gathered References
-        async for result in send_event(
-            ChatEvent.REFERENCES,
-            {
-                "inferredQueries": inferred_queries,
-                "context": compiled_references,
-                "onlineContext": online_results,
-                "codeContext": code_results,
-            },
-        ):
-            yield result
-
         if pending_research:
             ## Gather Code Results
             if ConversationCommand.Code in conversation_commands and pending_research:
@@ -1014,6 +1002,18 @@ async def chat(
                         f"Failed to use code tool: {e}. Attempting to respond without code results",
                         exc_info=True,
                     )
+
+        ## Send Gathered References
+        async for result in send_event(
+            ChatEvent.REFERENCES,
+            {
+                "inferredQueries": inferred_queries,
+                "context": compiled_references,
+                "onlineContext": online_results,
+                "codeContext": code_results,
+            },
+        ):
+            yield result
 
         # Generate Output
         ## Generate Image Output
