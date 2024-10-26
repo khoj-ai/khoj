@@ -502,6 +502,8 @@ def commit_conversation_trace(
         # Write files and stage them
         for filename, content in files_to_commit.items():
             file_path = os.path.join(repo_path, filename)
+            # Unescape special characters in content for better readability
+            content = content.strip().replace("\\n", "\n").replace("\\t", "\t")
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(content)
             repo.index.add([filename])
