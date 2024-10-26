@@ -1009,8 +1009,15 @@ class ConversationAdapters:
         """Get default conversation config. Prefer chat model by server admin > user > first created chat model"""
         # Get the server chat settings
         server_chat_settings = ServerChatSettings.objects.first()
-        if server_chat_settings is not None and server_chat_settings.chat_default is not None:
-            return server_chat_settings.chat_default
+
+        is_subscribed = is_user_subscribed(user) if user else False
+        if server_chat_settings:
+            # If the user is subscribed and the advanced model is enabled, return the advanced model
+            if is_subscribed and server_chat_settings.chat_advanced:
+                return server_chat_settings.chat_advanced
+            # If the default model is set, return it
+            if server_chat_settings.chat_default:
+                return server_chat_settings.chat_default
 
         # Get the user's chat settings, if the server chat settings are not set
         user_chat_settings = UserConversationConfig.objects.filter(user=user).first() if user else None
@@ -1026,11 +1033,20 @@ class ConversationAdapters:
         # Get the server chat settings
         server_chat_settings: ServerChatSettings = (
             await ServerChatSettings.objects.filter()
-            .prefetch_related("chat_default", "chat_default__openai_config")
+            .prefetch_related(
+                "chat_default", "chat_default__openai_config", "chat_advanced", "chat_advanced__openai_config"
+            )
             .afirst()
         )
-        if server_chat_settings is not None and server_chat_settings.chat_default is not None:
-            return server_chat_settings.chat_default
+        is_subscribed = await ais_user_subscribed(user) if user else False
+
+        if server_chat_settings:
+            # If the user is subscribed and the advanced model is enabled, return the advanced model
+            if is_subscribed and server_chat_settings.chat_advanced:
+                return server_chat_settings.chat_advanced
+            # If the default model is set, return it
+            if server_chat_settings.chat_default:
+                return server_chat_settings.chat_default
 
         # Get the user's chat settings, if the server chat settings are not set
         user_chat_settings = (

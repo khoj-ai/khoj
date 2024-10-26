@@ -140,7 +140,7 @@ def validate_conversation_config(user: KhojUser):
 async def is_ready_to_chat(user: KhojUser):
     user_conversation_config = await ConversationAdapters.aget_user_conversation_config(user)
     if user_conversation_config == None:
-        user_conversation_config = await ConversationAdapters.aget_default_conversation_config()
+        user_conversation_config = await ConversationAdapters.aget_default_conversation_config(user)
 
     if user_conversation_config and user_conversation_config.model_type == ChatModelOptions.ModelType.OFFLINE:
         chat_model = user_conversation_config.chat_model

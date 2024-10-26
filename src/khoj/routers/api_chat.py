@@ -817,7 +817,7 @@ async def chat(
             if not q:
                 conversation_config = await ConversationAdapters.aget_user_conversation_config(user)
                 if conversation_config == None:
-                    conversation_config = await ConversationAdapters.aget_default_conversation_config()
+                    conversation_config = await ConversationAdapters.aget_default_conversation_config(user)
                 model_type = conversation_config.model_type
                 formatted_help = help_message.format(model=model_type, version=state.khoj_version, device=get_device())
                 async for result in send_llm_response(formatted_help):
