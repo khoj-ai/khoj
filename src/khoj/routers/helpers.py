@@ -650,7 +650,7 @@ async def generate_summary_from_files(
         if await EntryAdapters.aagent_has_entries(agent):
             file_names = await EntryAdapters.aget_agent_entry_filepaths(agent)
             if len(file_names) > 0:
-                file_object = await FileObjectAdapters.async_get_file_objects_by_name(None, file_names[0], agent)
+                file_object = await FileObjectAdapters.async_get_file_objects_by_name(None, file_names.pop(), agent)
 
         if len(file_filters) > 0:
             file_object = await FileObjectAdapters.async_get_file_objects_by_name(user, file_filters[0])
@@ -663,7 +663,7 @@ async def generate_summary_from_files(
         if not q:
             q = "Create a general summary of the file"
         async for result in send_status_func(f"**Constructing Summary Using:** {file_object[0].file_name}"):
-            yield result
+            yield {ChatEvent.STATUS: result}
 
         response = await extract_relevant_summary(
             q,
@@ -674,9 +674,8 @@ async def generate_summary_from_files(
             agent=agent,
             tracer=tracer,
         )
-        response_log = str(response)
 
-        yield result
+        yield str(response)
     except Exception as e:
         response_log = "Error summarizing file. Please try again, or contact support."
         logger.error(f"Error summarizing file for {user.email}: {e}", exc_info=True)

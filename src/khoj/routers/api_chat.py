@@ -792,9 +792,10 @@ async def chat(
                     tracer=tracer,
                 ):
                     if isinstance(response, dict) and ChatEvent.STATUS in response:
-                        yield result[ChatEvent.STATUS]
+                        yield response[ChatEvent.STATUS]
                     else:
                         if isinstance(response, str):
+                            response_log = response
                             async for result in send_llm_response(response):
                                 yield result
 

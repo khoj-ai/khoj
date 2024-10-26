@@ -1480,7 +1480,9 @@ class EntryAdapters:
 
     @staticmethod
     async def aget_agent_entry_filepaths(agent: Agent):
-        return await sync_to_async(list)(Entry.objects.filter(agent=agent).values_list("file_path", flat=True))
+        return await sync_to_async(set)(
+            Entry.objects.filter(agent=agent).distinct("file_path").values_list("file_path", flat=True)
+        )
 
     @staticmethod
     def get_all_filenames_by_source(user: KhojUser, file_source: str):
