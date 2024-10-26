@@ -429,7 +429,7 @@ def commit_conversation_trace(
     response: str | list[dict],
     tracer: dict,
     system_message: str | list[dict] = "",
-    repo_path: str = "/tmp/khoj_promptrace",
+    repo_path: str = "/tmp/promptrace",
 ) -> str:
     """
     Save trace of conversation step using git. Useful to visualize, compare and debug traces.
@@ -451,7 +451,7 @@ def commit_conversation_trace(
     uid, cid, mid = tracer.get("uid", "main"), tracer.get("cid", "main"), tracer.get("mid")
 
     # Infer repository path from environment variable or provided path
-    repo_path = os.getenv("PROMPTRACE_DIR", repo_path) or "/tmp/promptrace"
+    repo_path = os.getenv("PROMPTRACE_DIR", repo_path)
 
     try:
         # Prepare git repository
@@ -527,11 +527,11 @@ Metadata
         logger.debug(f"Saved conversation trace to repo at {repo_path}")
         return repo_path
     except Exception as e:
-        logger.error(f"Failed to add conversation trace to repo: {str(e)}")
+        logger.error(f"Failed to add conversation trace to repo: {str(e)}", exc_info=True)
         return None
 
 
-def merge_message_into_conversation_trace(query: str, response: str, tracer: dict, repo_path=None) -> bool:
+def merge_message_into_conversation_trace(query: str, response: str, tracer: dict, repo_path="/tmp/promptrace") -> bool:
     """
     Merge the message branch into its parent conversation branch.
 
@@ -545,13 +545,13 @@ def merge_message_into_conversation_trace(query: str, response: str, tracer: dic
         bool: True if merge was successful, False otherwise
     """
     try:
-        # Infer repository path from environment variable or provided path
-        repo_path = os.getenv("PROMPTRACE_DIR", repo_path) or "/tmp/promptrace"
-        repo = Repo(repo_path)
-
         # Extract branch names
         msg_branch = f"m_{tracer['mid']}"
         conv_branch = f"c_{tracer['cid']}"
+
+        # Infer repository path from environment variable or provided path
+        repo_path = os.getenv("PROMPTRACE_DIR", repo_path)
+        repo = Repo(repo_path)
 
         # Checkout conversation branch
         repo.heads[conv_branch].checkout()
@@ -579,5 +579,5 @@ Metadata
         logger.debug(f"Successfully merged {msg_branch} into {conv_branch}")
         return True
     except Exception as e:
-        logger.error(f"Failed to merge message {msg_branch} into conversation {conv_branch}: {str(e)}")
+        logger.error(f"Failed to merge message {msg_branch} into conversation {conv_branch}: {str(e)}", exc_info=True)
         return False
