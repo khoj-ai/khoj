@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional
 
+import yaml
 from fastapi import Request
 
 from khoj.database.adapters import ConversationAdapters, EntryAdapters
@@ -307,13 +308,13 @@ async def execute_information_collection(
         if compiled_references or online_results or code_results or summarize_files:
             results_data = f"**Results**:\n"
             if compiled_references:
-                results_data += f"**Document References**: {compiled_references}\n"
+                results_data += f"**Document References**: {yaml.dump(compiled_references, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n"
             if online_results:
-                results_data += f"**Online Results**: {online_results}\n"
+                results_data += f"**Online Results**: {yaml.dump(online_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n"
             if code_results:
-                results_data += f"**Code Results**: {code_results}\n"
+                results_data += f"**Code Results**: {yaml.dump(code_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n"
             if summarize_files:
-                results_data += f"**Summarized Files**: {summarize_files}\n"
+                results_data += f"**Summarized Files**: {yaml.dump(summarize_files, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n"
 
             # intermediate_result = await extract_relevant_info(this_iteration.query, results_data, agent)
             this_iteration.summarizedResult = results_data
