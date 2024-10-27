@@ -702,7 +702,26 @@ async def chat(
         inferred_queries: List[Any] = []
         defiltered_query = defilter_query(q)
 
-        if conversation_commands == [ConversationCommand.Default]:
+        if conversation_commands == [ConversationCommand.Default] or is_automated_task:
+            conversation_commands = await aget_relevant_information_sources(
+                q,
+                meta_log,
+                is_automated_task,
+                user=user,
+                query_images=uploaded_images,
+                agent=agent,
+                tracer=tracer,
+            )
+
+            mode = await aget_relevant_output_modes(
+                q, meta_log, is_automated_task, user, uploaded_images, agent, tracer=tracer
+            )
+            async for result in send_event(ChatEvent.STATUS, f"**Decided Response Mode:** {mode.value}"):
+                yield result
+            if mode not in conversation_commands:
+                conversation_commands.append(mode)
+
+        if conversation_commands == [ConversationCommand.Research]:
             async for research_result in execute_information_collection(
                 request=request,
                 user=user,
@@ -737,24 +756,6 @@ async def chat(
             logger.info(f"Researched Results: {researched_results}")
 
             pending_research = False
-
-            conversation_commands = await aget_relevant_information_sources(
-                q,
-                meta_log,
-                is_automated_task,
-                user=user,
-                query_images=uploaded_images,
-                agent=agent,
-                tracer=tracer,
-            )
-
-            mode = await aget_relevant_output_modes(
-                q, meta_log, is_automated_task, user, uploaded_images, agent, tracer=tracer
-            )
-            async for result in send_event(ChatEvent.STATUS, f"**Decided Response Mode:** {mode.value}"):
-                yield result
-            if mode not in conversation_commands:
-                conversation_commands.append(mode)
 
         for cmd in conversation_commands:
             await conversation_command_rate_limiter.update_and_check_if_valid(request, cmd)

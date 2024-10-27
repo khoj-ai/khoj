@@ -234,6 +234,8 @@ def get_conversation_command(query: str, any_references: bool = False) -> Conver
         return ConversationCommand.Diagram
     elif query.startswith("/code"):
         return ConversationCommand.Code
+    elif query.startswith("/research"):
+        return ConversationCommand.Research
     # If no relevant notes found for the given query
     elif not any_references:
         return ConversationCommand.General

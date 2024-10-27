@@ -320,6 +320,7 @@ class ConversationCommand(str, Enum):
     AutomatedTask = "automated_task"
     Summarize = "summarize"
     Diagram = "diagram"
+    Research = "research"
 
 
 command_descriptions = {
@@ -334,6 +335,7 @@ command_descriptions = {
     ConversationCommand.Help: "Get help with how to use or setup Khoj from the documentation",
     ConversationCommand.Summarize: "Get help with a question pertaining to an entire document.",
     ConversationCommand.Diagram: "Draw a flowchart, diagram, or any other visual representation best expressed with primitives like lines, rectangles, and text.",
+    ConversationCommand.Research: "Do deep research on a topic. This will take longer than usual, but give a more detailed, comprehensive answer.",
 }
 
 command_descriptions_for_agent = {
@@ -342,6 +344,7 @@ command_descriptions_for_agent = {
     ConversationCommand.Online: "Agent can search the internet for information.",
     ConversationCommand.Webpage: "Agent can read suggested web pages for information.",
     ConversationCommand.Summarize: "Agent can read an entire document. Agents knowledge base must be a single document.",
+    ConversationCommand.Research: "Agent can do deep research on a topic.",
 }
 
 tool_descriptions_for_llm = {
@@ -352,6 +355,7 @@ tool_descriptions_for_llm = {
     ConversationCommand.Webpage: "To use if the user has directly provided the webpage urls or you are certain of the webpage urls to read.",
     ConversationCommand.Code: "To run Python code in a Pyodide sandbox with no network access. Helpful when need to parse information, run complex calculations, create documents and charts for user. Matplotlib, bs4, pandas, numpy, etc. are available.",
     ConversationCommand.Summarize: "To retrieve an answer that depends on the entire document or a large text.",
+    ConversationCommand.Research: "To use when you need to do DEEP research on a topic. This will take longer than usual, but give a more detailed, comprehensive answer.",
 }
 
 function_calling_description_for_llm = {
