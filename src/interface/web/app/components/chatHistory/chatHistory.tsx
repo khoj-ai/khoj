@@ -54,29 +54,32 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
     const [collapsed, setCollapsed] = useState(props.completed);
 
     return (
-        <div className={`${!collapsed ? styles.trainOfThought : ""} shadow-sm`} key={props.key}>
+        <div
+            className={`${!collapsed ? styles.trainOfThought + " shadow-sm" : ""}`}
+            key={props.key}
+        >
             {!props.completed && <InlineLoading className="float-right" />}
-            {collapsed ? (
-                <Button
-                    className="w-fit text-left justify-start content-start text-xs"
-                    onClick={() => setCollapsed(false)}
-                    variant="ghost"
-                    size="sm"
-                >
-                    What was my train of thought?
-                </Button>
-            ) : (
-                <Button
-                    className="w-fit text-left justify-start content-start text-xs"
-                    onClick={() => setCollapsed(true)}
-                    variant="ghost"
-                    size="sm"
-                >
-                    <XCircle size={16} className="mr-1" />
-                    Close
-                </Button>
-            )}
-
+            {props.completed &&
+                (collapsed ? (
+                    <Button
+                        className="w-fit text-left justify-start content-start text-xs"
+                        onClick={() => setCollapsed(false)}
+                        variant="ghost"
+                        size="sm"
+                    >
+                        What was my train of thought?
+                    </Button>
+                ) : (
+                    <Button
+                        className="w-fit text-left justify-start content-start text-xs p-0"
+                        onClick={() => setCollapsed(true)}
+                        variant="ghost"
+                        size="sm"
+                    >
+                        <XCircle size={16} className="mr-1" />
+                        Close
+                    </Button>
+                ))}
             {!collapsed &&
                 props.trainOfThought.map((train, index) => (
                     <TrainOfThought
@@ -292,17 +295,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
                         data.chat &&
                         data.chat.map((chatMessage, index) => (
                             <>
-                                {chatMessage.trainOfThought && chatMessage.by === "khoj" && (
-                                    <TrainOfThoughtComponent
-                                        trainOfThought={chatMessage.trainOfThought?.map(
-                                            (train) => train.data,
-                                        )}
-                                        lastMessage={false}
-                                        agentColor={data?.agent?.color || "orange"}
-                                        key={`${index}trainOfThought`}
-                                        completed={true}
-                                    />
-                                )}
                                 <ChatMessage
                                     key={`${index}fullHistory`}
                                     ref={
@@ -323,6 +315,17 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                     borderLeftColor={`${data?.agent?.color}-500`}
                                     isLastMessage={index === data.chat.length - 1}
                                 />
+                                {chatMessage.trainOfThought && chatMessage.by === "khoj" && (
+                                    <TrainOfThoughtComponent
+                                        trainOfThought={chatMessage.trainOfThought?.map(
+                                            (train) => train.data,
+                                        )}
+                                        lastMessage={false}
+                                        agentColor={data?.agent?.color || "orange"}
+                                        key={`${index}trainOfThought`}
+                                        completed={true}
+                                    />
+                                )}
                             </>
                         ))}
                     {props.incomingMessages &&
