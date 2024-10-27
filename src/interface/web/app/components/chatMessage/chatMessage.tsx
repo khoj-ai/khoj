@@ -128,6 +128,11 @@ interface Intent {
     "inferred-queries": string[];
 }
 
+interface TrainOfThoughtObject {
+    type: string;
+    data: string;
+}
+
 export interface SingleChatMessage {
     automationId: string;
     by: string;
@@ -136,6 +141,7 @@ export interface SingleChatMessage {
     context: Context[];
     onlineContext: OnlineContext;
     codeContext: CodeContext;
+    trainOfThought?: TrainOfThoughtObject[];
     rawQuery?: string;
     intent?: Intent;
     agent?: AgentData;

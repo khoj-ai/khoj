@@ -1113,6 +1113,7 @@ def generate_chat_response(
     meta_research: str = "",
     query_images: Optional[List[str]] = None,
     tracer: dict = {},
+    train_of_thought: List[Any] = [],
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
     chat_response = None
@@ -1137,6 +1138,7 @@ def generate_chat_response(
             conversation_id=conversation_id,
             query_images=query_images,
             tracer=tracer,
+            train_of_thought=train_of_thought,
         )
 
         conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)

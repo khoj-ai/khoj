@@ -570,7 +570,9 @@ async def chat(
         user: KhojUser = request.user.object
         event_delimiter = "␃🔚␗"
         q = unquote(q)
+        train_of_thought = []
         nonlocal conversation_id
+
         tracer: dict = {
             "mid": f"{uuid.uuid4()}",
             "cid": conversation_id,
@@ -590,7 +592,7 @@ async def chat(
                     uploaded_images.append(uploaded_image)
 
         async def send_event(event_type: ChatEvent, data: str | dict):
-            nonlocal connection_alive, ttft
+            nonlocal connection_alive, ttft, train_of_thought
             if not connection_alive or await request.is_disconnected():
                 connection_alive = False
                 logger.warning(f"User {user} disconnected from {common.client} client")
@@ -598,8 +600,11 @@ async def chat(
             try:
                 if event_type == ChatEvent.END_LLM_RESPONSE:
                     collect_telemetry()
-                if event_type == ChatEvent.START_LLM_RESPONSE:
+                elif event_type == ChatEvent.START_LLM_RESPONSE:
                     ttft = time.perf_counter() - start_time
+                elif event_type == ChatEvent.STATUS:
+                    train_of_thought.append({"type": event_type.value, "data": data})
+
                 if event_type == ChatEvent.MESSAGE:
                     yield data
                 elif event_type == ChatEvent.REFERENCES or stream:
@@ -810,6 +815,7 @@ async def chat(
                 conversation_id=conversation_id,
                 query_images=uploaded_images,
                 tracer=tracer,
+                train_of_thought=train_of_thought,
             )
             return
 
@@ -854,6 +860,7 @@ async def chat(
                 automation_id=automation.id,
                 query_images=uploaded_images,
                 tracer=tracer,
+                train_of_thought=train_of_thought,
             )
             async for result in send_llm_response(llm_response):
                 yield result
@@ -1061,6 +1068,7 @@ async def chat(
                 online_results=online_results,
                 query_images=uploaded_images,
                 tracer=tracer,
+                train_of_thought=train_of_thought,
             )
             content_obj = {
                 "intentType": intent_type,
@@ -1118,6 +1126,7 @@ async def chat(
                 online_results=online_results,
                 query_images=uploaded_images,
                 tracer=tracer,
+                train_of_thought=train_of_thought,
             )
 
             async for result in send_llm_response(json.dumps(content_obj)):
@@ -1144,6 +1153,7 @@ async def chat(
             researched_results,
             uploaded_images,
             tracer,
+            train_of_thought,
         )
 
         # Send Response

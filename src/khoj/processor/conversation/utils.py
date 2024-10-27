@@ -146,7 +146,12 @@ class ChatEvent(Enum):
 
 
 def message_to_log(
-    user_message, chat_response, user_message_metadata={}, khoj_message_metadata={}, conversation_log=[]
+    user_message,
+    chat_response,
+    user_message_metadata={},
+    khoj_message_metadata={},
+    conversation_log=[],
+    train_of_thought=[],
 ):
     """Create json logs from messages, metadata for conversation log"""
     default_khoj_message_metadata = {
@@ -182,6 +187,7 @@ def save_to_conversation_log(
     automation_id: str = None,
     query_images: List[str] = None,
     tracer: Dict[str, Any] = {},
+    train_of_thought: List[Any] = [],
 ):
     user_message_time = user_message_time or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     updated_conversation = message_to_log(
@@ -197,8 +203,10 @@ def save_to_conversation_log(
             "onlineContext": online_results,
             "codeContext": code_results,
             "automationId": automation_id,
+            "trainOfThought": train_of_thought,
         },
         conversation_log=meta_log.get("chat", []),
+        train_of_thought=train_of_thought,
     )
     ConversationAdapters.save_conversation(
         user,
