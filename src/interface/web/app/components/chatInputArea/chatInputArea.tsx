@@ -72,6 +72,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     const [progressValue, setProgressValue] = useState(0);
     const [isDragAndDropping, setIsDragAndDropping] = useState(false);
 
+    const [showCommandList, setShowCommandList] = useState(false);
+
     const chatInputRef = ref as React.MutableRefObject<HTMLTextAreaElement>;
     useEffect(() => {
         if (!uploading) {
@@ -275,6 +277,12 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         chatInputRef.current.style.height = "auto";
         chatInputRef.current.style.height =
             Math.max(chatInputRef.current.scrollHeight - 24, 64) + "px";
+
+        if (message.startsWith("/") && message.split(" ").length === 1) {
+            setShowCommandList(true);
+        } else {
+            setShowCommandList(false);
+        }
     }, [message]);
 
     function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
@@ -360,9 +368,9 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                     </AlertDialogContent>
                 </AlertDialog>
             )}
-            {message.startsWith("/") && message.split(" ").length === 1 && (
+            {showCommandList && (
                 <div className="flex justify-center text-center">
-                    <Popover open={message.startsWith("/")}>
+                    <Popover open={showCommandList} onOpenChange={setShowCommandList}>
                         <PopoverTrigger className="flex justify-center text-center"></PopoverTrigger>
                         <PopoverContent
                             onOpenAutoFocus={(e) => e.preventDefault()}
