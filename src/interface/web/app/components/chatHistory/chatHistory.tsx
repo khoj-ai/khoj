@@ -419,7 +419,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                         </div>
                     )}
                 </div>
-                <div className={`${props.customClassName} fixed bottom-[15%] z-10`}>
+                <div className={`${props.customClassName} fixed bottom-[20%] z-10`}>
                     {!isNearBottom && (
                         <button
                             title="Scroll to bottom"

@@ -3,7 +3,15 @@ import React, { useEffect, useRef, useState, forwardRef } from "react";
 
 import DOMPurify from "dompurify";
 import "katex/dist/katex.min.css";
-import { ArrowUp, Microphone, Paperclip, X, Stop } from "@phosphor-icons/react";
+import {
+    ArrowUp,
+    Microphone,
+    Paperclip,
+    X,
+    Stop,
+    ToggleLeft,
+    ToggleRight,
+} from "@phosphor-icons/react";
 
 import {
     Command,
@@ -29,7 +37,7 @@ import { Popover, PopoverContent } from "@/components/ui/popover";
 import { PopoverTrigger } from "@radix-ui/react-popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { convertToBGClass } from "@/app/common/colorUtils";
+import { convertColorToTextClass, convertToBGClass } from "@/app/common/colorUtils";
 
 import LoginPrompt from "../loginPrompt/loginPrompt";
 import { uploadDataForIndexing } from "../../common/chatFunctions";
@@ -73,6 +81,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     const [isDragAndDropping, setIsDragAndDropping] = useState(false);
 
     const [showCommandList, setShowCommandList] = useState(false);
+    const [useResearchMode, setUseResearchMode] = useState(false);
 
     const chatInputRef = ref as React.MutableRefObject<HTMLTextAreaElement>;
     useEffect(() => {
@@ -130,7 +139,12 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
             return;
         }
 
-        props.sendMessage(message.trim());
+        let messageToSend = message.trim();
+        if (useResearchMode) {
+            messageToSend = `/research ${messageToSend}`;
+        }
+
+        props.sendMessage(messageToSend);
         setMessage("");
     }
 
@@ -416,122 +430,155 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                     </Popover>
                 </div>
             )}
-            <div
-                className={`${styles.actualInputArea} justify-between dark:bg-neutral-700 relative ${isDragAndDropping && "animate-pulse"}`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDragAndDropFiles}
-            >
-                <input
-                    type="file"
-                    multiple={true}
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    style={{ display: "none" }}
-                />
-                <div className="flex items-end pb-4">
-                    <Button
-                        variant={"ghost"}
-                        className="!bg-none p-0 m-2 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
-                        disabled={props.sendDisabled}
-                        onClick={handleFileButtonClick}
-                    >
-                        <Paperclip className="w-8 h-8" />
-                    </Button>
-                </div>
-                <div className="flex-grow flex flex-col w-full gap-1.5 relative pb-2">
-                    <div className="flex items-center gap-2 overflow-x-auto">
-                        {imageUploaded &&
-                            imagePaths.map((path, index) => (
-                                <div key={index} className="relative flex-shrink-0 pb-3 pt-2 group">
-                                    <img
-                                        src={path}
-                                        alt={`img-${index}`}
-                                        className="w-auto h-16 object-cover rounded-xl"
-                                    />
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="absolute -top-0 -right-2 h-5 w-5 rounded-full bg-neutral-200 dark:bg-neutral-600 hover:bg-neutral-300 dark:hover:bg-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        onClick={() => removeImageUpload(index)}
-                                    >
-                                        <X className="h-3 w-3" />
-                                    </Button>
-                                </div>
-                            ))}
-                    </div>
-                    <Textarea
-                        ref={chatInputRef}
-                        className={`border-none w-full h-16 min-h-16 max-h-[128px] md:py-4 rounded-lg resize-none dark:bg-neutral-700 ${props.isMobileWidth ? "text-md" : "text-lg"}`}
-                        placeholder="Type / to see a list of commands"
-                        id="message"
-                        autoFocus={true}
-                        value={message}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey && !props.isMobileWidth) {
-                                setImageUploaded(false);
-                                setImagePaths([]);
-                                e.preventDefault();
-                                onSendMessage();
-                            }
-                        }}
-                        onChange={(e) => setMessage(e.target.value)}
-                        disabled={props.sendDisabled || recording}
+            <div>
+                <div
+                    className={`${styles.actualInputArea} justify-between dark:bg-neutral-700 relative ${isDragAndDropping && "animate-pulse"}`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDragAndDropFiles}
+                >
+                    <input
+                        type="file"
+                        multiple={true}
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        style={{ display: "none" }}
                     />
-                </div>
-                <div className="flex items-end pb-4">
-                    {recording ? (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="default"
-                                        className={`${!recording && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
-                                        onClick={() => {
-                                            setRecording(!recording);
-                                        }}
-                                        disabled={props.sendDisabled}
+                    <div className="flex items-end pb-4">
+                        <Button
+                            variant={"ghost"}
+                            className="!bg-none p-0 m-2 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
+                            disabled={props.sendDisabled}
+                            onClick={handleFileButtonClick}
+                        >
+                            <Paperclip className="w-8 h-8" />
+                        </Button>
+                    </div>
+                    <div className="flex-grow flex flex-col w-full gap-1.5 relative pb-2">
+                        <div className="flex items-center gap-2 overflow-x-auto">
+                            {imageUploaded &&
+                                imagePaths.map((path, index) => (
+                                    <div
+                                        key={index}
+                                        className="relative flex-shrink-0 pb-3 pt-2 group"
                                     >
-                                        <Stop weight="fill" className="w-6 h-6" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    Click to stop recording and transcribe your voice.
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    ) : mediaRecorder ? (
-                        <InlineLoading />
-                    ) : (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="default"
-                                        className={`${!message || recording || "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
-                                        onClick={() => {
-                                            setMessage("Listening...");
-                                            setRecording(!recording);
-                                        }}
-                                        disabled={props.sendDisabled}
-                                    >
-                                        <Microphone weight="fill" className="w-6 h-6" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    Click to transcribe your message with voice.
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    )}
-                    <Button
-                        className={`${(!message || recording) && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
-                        onClick={onSendMessage}
-                        disabled={props.sendDisabled}
-                    >
-                        <ArrowUp className="w-6 h-6" weight="bold" />
-                    </Button>
+                                        <img
+                                            src={path}
+                                            alt={`img-${index}`}
+                                            className="w-auto h-16 object-cover rounded-xl"
+                                        />
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="absolute -top-0 -right-2 h-5 w-5 rounded-full bg-neutral-200 dark:bg-neutral-600 hover:bg-neutral-300 dark:hover:bg-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={() => removeImageUpload(index)}
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                ))}
+                        </div>
+                        <Textarea
+                            ref={chatInputRef}
+                            className={`border-none w-full h-16 min-h-16 max-h-[128px] md:py-4 rounded-lg resize-none dark:bg-neutral-700 ${props.isMobileWidth ? "text-md" : "text-lg"}`}
+                            placeholder="Type / to see a list of commands"
+                            id="message"
+                            autoFocus={true}
+                            value={message}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey && !props.isMobileWidth) {
+                                    setImageUploaded(false);
+                                    setImagePaths([]);
+                                    e.preventDefault();
+                                    onSendMessage();
+                                }
+                            }}
+                            onChange={(e) => setMessage(e.target.value)}
+                            disabled={props.sendDisabled || recording}
+                        />
+                    </div>
+                    <div className="flex items-end pb-4">
+                        {recording ? (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="default"
+                                            className={`${!recording && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                                            onClick={() => {
+                                                setRecording(!recording);
+                                            }}
+                                            disabled={props.sendDisabled}
+                                        >
+                                            <Stop weight="fill" className="w-6 h-6" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        Click to stop recording and transcribe your voice.
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        ) : mediaRecorder ? (
+                            <InlineLoading />
+                        ) : (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="default"
+                                            className={`${!message || recording || "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                                            onClick={() => {
+                                                setMessage("Listening...");
+                                                setRecording(!recording);
+                                            }}
+                                            disabled={props.sendDisabled}
+                                        >
+                                            <Microphone weight="fill" className="w-6 h-6" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        Click to transcribe your message with voice.
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
+                        <Button
+                            className={`${(!message || recording) && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                            onClick={onSendMessage}
+                            disabled={props.sendDisabled}
+                        >
+                            <ArrowUp className="w-6 h-6" weight="bold" />
+                        </Button>
+                    </div>
                 </div>
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                className="float-right justify-center flex items-center p-0"
+                                onClick={() => setUseResearchMode(!useResearchMode)}
+                            >
+                                <span className="text-muted-foreground text-sm mr-1">
+                                    Research Mode
+                                </span>
+                                {useResearchMode ? (
+                                    <ToggleRight
+                                        className={`w-6 h-6 inline-block mr-1 ${props.agentColor ? convertColorToTextClass(props.agentColor) : convertColorToTextClass("orange")} rounded-full`}
+                                    />
+                                ) : (
+                                    <ToggleLeft
+                                        className={`w-6 h-6 inline-block mr-1 rounded-full`}
+                                    />
+                                )}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            Research Mode allows you to get more deeply researched, detailed
+                            responses. Response times may be longer.
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
             </div>
         </>
     );
