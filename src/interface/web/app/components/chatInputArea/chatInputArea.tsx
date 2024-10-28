@@ -367,6 +367,11 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                         <PopoverContent
                             onOpenAutoFocus={(e) => e.preventDefault()}
                             className={`${props.isMobileWidth ? "w-[100vw]" : "w-full"} rounded-md`}
+                            side="top"
+                            align="center"
+                            /* Offset below text area on home page (i.e where conversationId is unset) */
+                            sideOffset={props.conversationId ? 0 : 80}
+                            alignOffset={0}
                         >
                             <Command className="max-w-full">
                                 <CommandInput
