@@ -556,20 +556,19 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                         <TooltipTrigger asChild>
                             <Button
                                 variant="ghost"
-                                className="float-right justify-center flex items-center p-0"
-                                onClick={() => setUseResearchMode(!useResearchMode)}
+                                className="float-right justify-center gap-1 flex items-center p-0 mr-2"
+                                onClick={() => {
+                                    setUseResearchMode(!useResearchMode);
+                                    chatInputRef?.current?.focus();
+                                }}
                             >
-                                <span className="text-muted-foreground text-sm mr-1">
-                                    Research Mode
-                                </span>
+                                <span className="text-muted-foreground text-sm">Research Mode</span>
                                 {useResearchMode ? (
                                     <ToggleRight
-                                        className={`w-6 h-6 inline-block mr-1 ${props.agentColor ? convertColorToTextClass(props.agentColor) : convertColorToTextClass("orange")} rounded-full`}
+                                        className={`w-6 h-6 inline-block ${props.agentColor ? convertColorToTextClass(props.agentColor) : convertColorToTextClass("orange")} rounded-full`}
                                     />
                                 ) : (
-                                    <ToggleLeft
-                                        className={`w-6 h-6 inline-block mr-1 rounded-full`}
-                                    />
+                                    <ToggleLeft className={`w-6 h-6 inline-block rounded-full`} />
                                 )}
                             </Button>
                         </TooltipTrigger>
