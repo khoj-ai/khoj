@@ -312,10 +312,10 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
     markdownRendered = markdownRendered.replace(/<h[1-6].*?<\/h[1-6]>/g, "");
     return (
         <div
-            className={`${styles.trainOfThoughtElement} break-all items-center ${props.primary ? "text-gray-400" : "text-gray-300"} ${styles.trainOfThought} ${props.primary ? styles.primary : ""}`}
+            className={`${styles.trainOfThoughtElement} break-words items-center ${props.primary ? "text-gray-400" : "text-gray-300"} ${styles.trainOfThought} ${props.primary ? styles.primary : ""}`}
         >
             {icon}
-            <div dangerouslySetInnerHTML={{ __html: markdownRendered }} />
+            <div dangerouslySetInnerHTML={{ __html: markdownRendered }} className="break-words" />
         </div>
     );
 }
