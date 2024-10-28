@@ -305,6 +305,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                             conversationId={null}
                             isMobileWidth={props.isMobileWidth}
                             setUploadedFiles={props.setUploadedFiles}
+                            agentColor={agents.find((agent) => agent.slug === selectedAgent)?.color}
                             ref={chatInputRef}
                         />
                     </div>
@@ -386,6 +387,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                             conversationId={null}
                             isMobileWidth={props.isMobileWidth}
                             setUploadedFiles={props.setUploadedFiles}
+                            agentColor={agents.find((agent) => agent.slug === selectedAgent)?.color}
                             ref={chatInputRef}
                         />
                     </div>
