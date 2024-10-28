@@ -174,7 +174,7 @@ def generate_chatml_messages_with_context(
     model_type="",
     context_message="",
 ):
-    """Generate messages for ChatGPT with context from previous conversation"""
+    """Generate chat messages with appropriate context from previous conversation to send to the chat model"""
     # Set max prompt size from user config or based on pre-configured for model and machine specs
     if not max_prompt_size:
         if loaded_model:
@@ -199,7 +199,7 @@ def generate_chatml_messages_with_context(
         if not is_none_or_empty(chat.get("onlineContext")):
             message_context += f"{prompts.online_search_conversation.format(online_results=chat.get('onlineContext'))}"
         if not is_none_or_empty(message_context):
-            reconstructed_context_message = ChatMessage(content=message_context, role="context")
+            reconstructed_context_message = ChatMessage(content=message_context, role="user")
             chatml_messages.insert(0, reconstructed_context_message)
 
         role = "user" if chat["by"] == "you" else "assistant"
@@ -220,7 +220,7 @@ def generate_chatml_messages_with_context(
             )
         )
     if not is_none_or_empty(context_message):
-        messages.append(ChatMessage(content=context_message, role="context"))
+        messages.append(ChatMessage(content=context_message, role="user"))
     if len(chatml_messages) > 0:
         messages += chatml_messages
     if not is_none_or_empty(system_message):
@@ -228,11 +228,6 @@ def generate_chatml_messages_with_context(
 
     # Truncate oldest messages from conversation history until under max supported prompt size by model
     messages = truncate_messages(messages, max_prompt_size, model_name, loaded_model, tokenizer_name)
-
-    # Reset context message role to assistant
-    for message in messages:
-        if message.role == "context":
-            message.role = "user"
 
     # Return message in chronological order
     return messages[::-1]
