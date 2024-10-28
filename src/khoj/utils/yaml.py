@@ -41,3 +41,7 @@ def parse_config_from_string(yaml_config: dict) -> FullConfig:
 def parse_config_from_file(yaml_config_file):
     "Parse and validate config in YML file"
     return parse_config_from_string(load_config_from_file(yaml_config_file))
+
+
+def yaml_dump(data):
+    return yaml.dump(data, allow_unicode=True, sort_keys=False, default_flow_style=False)
