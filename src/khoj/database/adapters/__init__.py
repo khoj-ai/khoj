@@ -657,6 +657,8 @@ class AgentAdapters:
 
     @staticmethod
     async def ais_agent_accessible(agent: Agent, user: KhojUser) -> bool:
+        agent = await Agent.objects.select_related("creator").aget(pk=agent.pk)
+
         if agent.privacy_level == Agent.PrivacyLevel.PUBLIC:
             return True
         if agent.creator == user:
@@ -866,9 +868,13 @@ class ConversationAdapters:
             agent = await AgentAdapters.aget_readonly_agent_by_slug(agent_slug, user)
             if agent is None:
                 raise HTTPException(status_code=400, detail="No such agent currently exists.")
-            return await Conversation.objects.acreate(user=user, client=client_application, agent=agent, title=title)
+            return await Conversation.objects.select_related("agent", "agent__creator", "agent__chat_model").acreate(
+                user=user, client=client_application, agent=agent, title=title
+            )
         agent = await AgentAdapters.aget_default_agent()
-        return await Conversation.objects.acreate(user=user, client=client_application, agent=agent, title=title)
+        return await Conversation.objects.select_related("agent", "agent__creator", "agent__chat_model").acreate(
+            user=user, client=client_application, agent=agent, title=title
+        )
 
     @staticmethod
     def create_conversation_session(

@@ -37,12 +37,7 @@ import { Popover, PopoverContent } from "@/components/ui/popover";
 import { PopoverTrigger } from "@radix-ui/react-popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import {
-    convertColorToTextClass,
-    convertToBGClass,
-    convertColorToBorderClass,
-    convertColorToRingClass,
-} from "@/app/common/colorUtils";
+import { convertColorToTextClass, convertToBGClass } from "@/app/common/colorUtils";
 
 import LoginPrompt from "../loginPrompt/loginPrompt";
 import { uploadDataForIndexing } from "../../common/chatFunctions";
@@ -63,6 +58,7 @@ interface ChatInputProps {
     isMobileWidth?: boolean;
     isLoggedIn: boolean;
     agentColor?: string;
+    isResearchModeEnabled?: boolean;
 }
 
 export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((props, ref) => {
@@ -86,7 +82,9 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     const [isDragAndDropping, setIsDragAndDropping] = useState(false);
 
     const [showCommandList, setShowCommandList] = useState(false);
-    const [useResearchMode, setUseResearchMode] = useState(false);
+    const [useResearchMode, setUseResearchMode] = useState<boolean>(
+        props.isResearchModeEnabled || false,
+    );
 
     const chatInputRef = ref as React.MutableRefObject<HTMLTextAreaElement>;
     useEffect(() => {
@@ -127,6 +125,12 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         setUploading(true);
         fetchImageData();
     }, [imagePaths]);
+
+    useEffect(() => {
+        if (props.isResearchModeEnabled) {
+            setUseResearchMode(props.isResearchModeEnabled);
+        }
+    }, [props.isResearchModeEnabled]);
 
     function onSendMessage() {
         if (imageUploaded) {
@@ -454,7 +458,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                         onChange={handleFileChange}
                         style={{ display: "none" }}
                     />
-                    <div className="flex items-end pb-4">
+                    <div className="flex items-center">
                         <Button
                             variant={"ghost"}
                             className="!bg-none p-0 m-2 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
@@ -464,7 +468,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             <Paperclip className="w-8 h-8" />
                         </Button>
                     </div>
-                    <div className="flex-grow flex flex-col w-full gap-1.5 relative pb-2">
+                    <div className="flex-grow flex flex-col w-full gap-1.5 relative">
                         <div className="flex items-center gap-2 overflow-x-auto">
                             {imageUploaded &&
                                 imagePaths.map((path, index) => (
@@ -490,8 +494,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                         </div>
                         <Textarea
                             ref={chatInputRef}
-                            className={`border ${props.agentColor ? convertColorToBorderClass(props.agentColor) : "border-orange-300"} focus:border-none
-                                focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${convertColorToRingClass(props.agentColor)}
+                            className={`border-none focus:border-none
+                                focus:outline-none focus-visible:ring-transparent
                                 w-full h-16 min-h-16 max-h-[128px] md:py-4 rounded-lg resize-none dark:bg-neutral-700
                                 ${props.isMobileWidth ? "text-md" : "text-lg"}`}
                             placeholder="Type / to see a list of commands"
@@ -510,7 +514,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             disabled={props.sendDisabled || recording}
                         />
                     </div>
-                    <div className="flex items-end pb-4">
+                    <div className="flex items-center">
                         {recording ? (
                             <TooltipProvider>
                                 <Tooltip>
@@ -569,7 +573,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                         <TooltipTrigger asChild>
                             <Button
                                 variant="ghost"
-                                className="float-right justify-center gap-1 flex items-center p-0 mr-2"
+                                className="float-right justify-center gap-1 flex items-center p-1.5 mr-2 h-fit"
                                 onClick={() => {
                                     setUseResearchMode(!useResearchMode);
                                     chatInputRef?.current?.focus();
@@ -585,7 +589,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                 )}
                             </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
+                        <TooltipContent className="text-xs">
                             Research Mode allows you to get more deeply researched, detailed
                             responses. Response times may be longer.
                         </TooltipContent>

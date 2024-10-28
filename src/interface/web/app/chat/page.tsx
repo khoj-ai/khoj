@@ -42,6 +42,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [images, setImages] = useState<string[]>([]);
     const [processingMessage, setProcessingMessage] = useState(false);
     const [agentMetadata, setAgentMetadata] = useState<AgentData | null>(null);
+    const [isInResearchMode, setIsInResearchMode] = useState(false);
     const chatInputRef = useRef<HTMLTextAreaElement>(null);
 
     const setQueryToProcess = props.setQueryToProcess;
@@ -70,6 +71,10 @@ function ChatBodyData(props: ChatBodyDataProps) {
         if (storedMessage) {
             setProcessingMessage(true);
             setQueryToProcess(storedMessage);
+
+            if (storedMessage.trim().startsWith("/research")) {
+                setIsInResearchMode(true);
+            }
         }
     }, [setQueryToProcess, props.setImages]);
 
@@ -130,6 +135,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     isMobileWidth={props.isMobileWidth}
                     setUploadedFiles={props.setUploadedFiles}
                     ref={chatInputRef}
+                    isResearchModeEnabled={isInResearchMode}
                 />
             </div>
         </>

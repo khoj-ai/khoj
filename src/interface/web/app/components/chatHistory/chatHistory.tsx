@@ -71,7 +71,7 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
                     </Button>
                 ) : (
                     <Button
-                        className="w-fit text-left justify-start content-start text-xs p-0"
+                        className="w-fit text-left justify-start content-start text-xs p-0 h-fit"
                         onClick={() => setCollapsed(true)}
                         variant="ghost"
                         size="sm"
@@ -283,13 +283,11 @@ export default function ChatHistory(props: ChatHistoryProps) {
     }
 
     return (
-        <ScrollArea className={`h-[80vh] relative`} ref={scrollAreaRef}>
+        <ScrollArea className={`h-[73vh] relative`} ref={scrollAreaRef}>
             <div>
                 <div className={`${styles.chatHistory} ${props.customClassName}`}>
                     <div ref={sentinelRef} style={{ height: "1px" }}>
-                        {fetchingData && (
-                            <InlineLoading message="Loading Conversation" className="opacity-50" />
-                        )}
+                        {fetchingData && <InlineLoading className="opacity-50" />}
                     </div>
                     {data &&
                         data.chat &&
