@@ -18,6 +18,7 @@ from transformers import AutoTokenizer
 
 from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import ChatModelOptions, ClientApplication, KhojUser
+from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.utils import download_model, infer_max_tokens
 from khoj.utils import state
 from khoj.utils.helpers import is_none_or_empty, merge_dicts
@@ -181,8 +182,9 @@ def generate_chatml_messages_with_context(
     query_images=None,
     vision_enabled=False,
     model_type="",
+    context_message="",
 ):
-    """Generate messages for ChatGPT with context from previous conversation"""
+    """Generate chat messages with appropriate context from previous conversation to send to the chat model"""
     # Set max prompt size from user config or based on pre-configured for model and machine specs
     if not max_prompt_size:
         if loaded_model:
@@ -196,21 +198,27 @@ def generate_chatml_messages_with_context(
     # Extract Chat History for Context
     chatml_messages: List[ChatMessage] = []
     for chat in conversation_log.get("chat", []):
-        message_notes = f'\n\n Notes:\n{chat.get("context")}' if chat.get("context") else "\n"
+        message_context = ""
+        if chat["by"] == "khoj" and "excalidraw" in chat["intent"].get("type", ""):
+            message_context += chat.get("intent").get("inferred-queries")[0]
+        if not is_none_or_empty(chat.get("context")):
+            references = "\n\n".join(
+                {f"# File: {item['file']}\n## {item['compiled']}\n" for item in chat.get("context") or []}
+            )
+            message_context += f"{prompts.notes_conversation.format(references=references)}\n\n"
+        if not is_none_or_empty(chat.get("onlineContext")):
+            message_context += f"{prompts.online_search_conversation.format(online_results=chat.get('onlineContext'))}"
+        if not is_none_or_empty(message_context):
+            reconstructed_context_message = ChatMessage(content=message_context, role="user")
+            chatml_messages.insert(0, reconstructed_context_message)
+
         role = "user" if chat["by"] == "you" else "assistant"
-
-        if chat["by"] == "khoj" and "excalidraw" in chat["intent"].get("type"):
-            message_content = chat.get("intent").get("inferred-queries")[0] + message_notes
-        else:
-            message_content = chat["message"] + message_notes
-
-        message_content = construct_structured_message(message_content, chat.get("images"), model_type, vision_enabled)
+        message_content = construct_structured_message(chat["message"], chat.get("images"), model_type, vision_enabled)
 
         reconstructed_message = ChatMessage(content=message_content, role=role)
-
         chatml_messages.insert(0, reconstructed_message)
 
-        if len(chatml_messages) >= 2 * lookback_turns:
+        if len(chatml_messages) >= 3 * lookback_turns:
             break
 
     messages = []
@@ -221,6 +229,8 @@ def generate_chatml_messages_with_context(
                 role="user",
             )
         )
+    if not is_none_or_empty(context_message):
+        messages.append(ChatMessage(content=context_message, role="user"))
     if len(chatml_messages) > 0:
         messages += chatml_messages
     if not is_none_or_empty(system_message):

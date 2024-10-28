@@ -143,9 +143,7 @@ def converse(
     """
     # Initialize Variables
     current_date = datetime.now()
-    compiled_references = "\n\n".join({f"# {item['compiled']}" for item in references})
-
-    conversation_primer = prompts.query_prompt.format(query=user_query)
+    compiled_references = "\n\n".join({f"# File: {item['file']}\n## {item['compiled']}\n" for item in references})
 
     if agent and agent.personality:
         system_prompt = prompts.custom_personality.format(
@@ -176,18 +174,18 @@ def converse(
         completion_func(chat_response=prompts.no_online_results_found.format())
         return iter([prompts.no_online_results_found.format()])
 
-    if not is_none_or_empty(online_results):
-        conversation_primer = (
-            f"{prompts.online_search_conversation.format(online_results=str(online_results))}\n{conversation_primer}"
-        )
+    context_message = ""
     if not is_none_or_empty(compiled_references):
-        conversation_primer = f"{prompts.notes_conversation.format(query=user_query, references=compiled_references)}\n\n{conversation_primer}"
+        context_message = f"{prompts.notes_conversation.format(references=compiled_references)}\n\n"
+    if not is_none_or_empty(online_results):
+        context_message += f"{prompts.online_search_conversation.format(online_results=str(online_results))}"
 
     # Setup Prompt with Primer or Conversation History
     messages = generate_chatml_messages_with_context(
-        conversation_primer,
+        user_query,
         system_prompt,
         conversation_log,
+        context_message=context_message,
         model_name=model,
         max_prompt_size=max_prompt_size,
         tokenizer_name=tokenizer_name,
