@@ -673,10 +673,7 @@ Which of the tool AIs listed below would you use to answer my question? You **on
 
 Return the next tool AI to use and the query to ask it. Your response should always be a valid JSON object. Do not say anything else.
 Response format:
-{{"scratchpad": "<your_scratchpad_to_reason_about_which_tool_to_use>", "tool": "<name_of_tool_ai>", "query": "<your_query_for_the_tool_ai>"}}
-
-User: {query}
-Khoj:
+{{"scratchpad": "<your_scratchpad_to_reason_about_which_tool_to_use>", "tool": "<name_of_tool_ai>", "query": "<your_detailed_query_for_the_tool_ai>"}}
 """.strip()
 )
 

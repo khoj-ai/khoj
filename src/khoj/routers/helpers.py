@@ -799,7 +799,7 @@ async def generate_excalidraw_diagram_from_description(
 
     with timer("Chat actor: Generate excalidraw diagram", logger):
         raw_response = await send_message_to_model_wrapper(
-            message=excalidraw_diagram_generation, user=user, tracer=tracer
+            query=excalidraw_diagram_generation, user=user, tracer=tracer
         )
         raw_response = raw_response.strip()
         raw_response = remove_json_codeblock(raw_response)
@@ -879,11 +879,12 @@ async def generate_better_image_prompt(
 
 
 async def send_message_to_model_wrapper(
-    message: str,
+    query: str,
     system_message: str = "",
     response_type: str = "text",
     user: KhojUser = None,
     query_images: List[str] = None,
+    context: str = "",
     tracer: dict = {},
 ):
     conversation_config: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config(user)
@@ -914,7 +915,8 @@ async def send_message_to_model_wrapper(
 
         loaded_model = state.offline_chat_processor_config.loaded_model
         truncated_messages = generate_chatml_messages_with_context(
-            user_message=message,
+            user_message=query,
+            context_message=context,
             system_message=system_message,
             model_name=chat_model,
             loaded_model=loaded_model,
@@ -939,7 +941,8 @@ async def send_message_to_model_wrapper(
         api_key = openai_chat_config.api_key
         api_base_url = openai_chat_config.api_base_url
         truncated_messages = generate_chatml_messages_with_context(
-            user_message=message,
+            user_message=query,
+            context_message=context,
             system_message=system_message,
             model_name=chat_model,
             max_prompt_size=max_tokens,
@@ -960,7 +963,8 @@ async def send_message_to_model_wrapper(
     elif model_type == ChatModelOptions.ModelType.ANTHROPIC:
         api_key = conversation_config.openai_config.api_key
         truncated_messages = generate_chatml_messages_with_context(
-            user_message=message,
+            user_message=query,
+            context_message=context,
             system_message=system_message,
             model_name=chat_model,
             max_prompt_size=max_tokens,
@@ -979,7 +983,8 @@ async def send_message_to_model_wrapper(
     elif model_type == ChatModelOptions.ModelType.GOOGLE:
         api_key = conversation_config.openai_config.api_key
         truncated_messages = generate_chatml_messages_with_context(
-            user_message=message,
+            user_message=query,
+            context_message=context,
             system_message=system_message,
             model_name=chat_model,
             max_prompt_size=max_tokens,

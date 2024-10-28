@@ -77,7 +77,6 @@ async def apick_next_tool(
     username = prompts.user_name.format(name=user_name) if user_name else ""
 
     function_planning_prompt = prompts.plan_function_execution.format(
-        query=query,
         tools=tool_options_str,
         chat_history=chat_history,
         personality_context=personality_context,
@@ -91,7 +90,8 @@ async def apick_next_tool(
 
     with timer("Chat actor: Infer information sources to refer", logger):
         response = await send_message_to_model_wrapper(
-            function_planning_prompt,
+            query=query,
+            context=function_planning_prompt,
             response_type="json_object",
             user=user,
             query_images=query_images,
