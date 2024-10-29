@@ -24,6 +24,7 @@ from khoj.database.adapters import ConversationAdapters, ais_user_subscribed
 from khoj.database.models import ChatModelOptions, ClientApplication, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.utils import download_model, infer_max_tokens
+from khoj.search_filter.base_filter import BaseFilter
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
@@ -409,7 +410,8 @@ def remove_json_codeblock(response: str):
 def defilter_query(query: str):
     """Remove any query filters in query"""
     defiltered_query = query
-    for filter in [DateFilter(), WordFilter(), FileFilter()]:
+    filters: List[BaseFilter] = [WordFilter(), FileFilter(), DateFilter()]
+    for filter in filters:
         defiltered_query = filter.defilter(defiltered_query)
     return defiltered_query
 

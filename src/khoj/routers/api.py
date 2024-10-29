@@ -356,7 +356,7 @@ async def extract_references_and_questions(
     user = request.user.object if request.user.is_authenticated else None
 
     # Initialize Variables
-    compiled_references: List[Any] = []
+    compiled_references: List[dict[str, str]] = []
     inferred_queries: List[str] = []
 
     agent_has_entries = False
@@ -501,7 +501,8 @@ async def extract_references_and_questions(
             )
         search_results = text_search.deduplicated_search_responses(search_results)
         compiled_references = [
-            {"compiled": item.additional["compiled"], "file": item.additional["file"]} for item in search_results
+            {"query": q, "compiled": item.additional["compiled"], "file": item.additional["file"]}
+            for q, item in zip(inferred_queries, search_results)
         ]
 
     yield compiled_references, inferred_queries, defiltered_query
