@@ -28,7 +28,7 @@ SANDBOX_URL = os.getenv("KHOJ_TERRARIUM_URL", "http://localhost:8080")
 async def run_code(
     query: str,
     conversation_history: dict,
-    previous_iterations_history: str,
+    context: str,
     location_data: LocationData,
     user: KhojUser,
     send_status_func: Optional[Callable] = None,
@@ -46,7 +46,7 @@ async def run_code(
             codes = await generate_python_code(
                 query,
                 conversation_history,
-                previous_iterations_history,
+                context,
                 location_data,
                 user,
                 query_images,
@@ -75,7 +75,7 @@ async def run_code(
 async def generate_python_code(
     q: str,
     conversation_history: dict,
-    previous_iterations_history: str,
+    context: str,
     location_data: LocationData,
     user: KhojUser,
     query_images: List[str] = None,
@@ -96,7 +96,7 @@ async def generate_python_code(
         current_date=utc_date,
         query=q,
         chat_history=chat_history,
-        previous_iterations_history=previous_iterations_history,
+        context=context,
         location=location,
         username=username,
         personality_context=personality_context,
