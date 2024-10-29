@@ -37,11 +37,7 @@ import { Popover, PopoverContent } from "@/components/ui/popover";
 import { PopoverTrigger } from "@radix-ui/react-popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import {
-    convertColorToCaretClass,
-    convertColorToTextClass,
-    convertToBGClass,
-} from "@/app/common/colorUtils";
+import { convertColorToTextClass, convertToBGClass } from "@/app/common/colorUtils";
 
 import LoginPrompt from "../loginPrompt/loginPrompt";
 import { uploadDataForIndexing } from "../../common/chatFunctions";
@@ -498,8 +494,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                         </div>
                         <Textarea
                             ref={chatInputRef}
-                            className={`border-none focus:border-none focus:outline-none focus-visible:ring-transparent
-                                animate-carate-blink ${convertColorToCaretClass(props.agentColor)}
+                            className={`border-none focus:border-none
+                                focus:outline-none focus-visible:ring-transparent
                                 w-full h-16 min-h-16 max-h-[128px] md:py-4 rounded-lg resize-none dark:bg-neutral-700
                                 ${props.isMobileWidth ? "text-md" : "text-lg"}`}
                             placeholder="Type / to see a list of commands"
