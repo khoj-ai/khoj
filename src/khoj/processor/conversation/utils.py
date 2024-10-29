@@ -423,7 +423,8 @@ def commit_conversation_trace(
         msg_branch = f"m_{mid}" if mid else None
         if msg_branch and msg_branch not in repo.branches:
             repo.create_head(msg_branch)
-        repo.heads[msg_branch].checkout()
+        if msg_branch:
+            repo.heads[msg_branch].checkout()
 
         # Include file with content to commit
         files_to_commit = {"query": session_yaml, "response": response_yaml, "system_prompt": system_message_yaml}
