@@ -663,7 +663,7 @@ Assuming you can search my notes and the internet.
 # Background Context
 - Current Date: {day_of_week}, {current_date}
 - My Location: {location}
-- My {username}
+- My Name: {username}
 
 # Available Tool AIs
 Which of the tool AIs listed below would you use to answer my question? You **only** have access to the following tool AIs:

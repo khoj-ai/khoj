@@ -74,7 +74,6 @@ async def apick_next_tool(
     # Extract Past User Message and Inferred Questions from Conversation Log
     today = datetime.today()
     location_data = f"{location}" if location else "Unknown"
-    username = prompts.user_name.format(name=user_name) if user_name else ""
 
     function_planning_prompt = prompts.plan_function_execution.format(
         tools=tool_options_str,
@@ -82,7 +81,7 @@ async def apick_next_tool(
         personality_context=personality_context,
         current_date=today.strftime("%Y-%m-%d"),
         day_of_week=today.strftime("%A"),
-        username=username,
+        username=user_name or "Unknown",
         location=location_data,
         previous_iterations=previous_iterations_history,
         max_iterations=max_iterations,
