@@ -9,7 +9,7 @@ from datetime import datetime
 from enum import Enum
 from io import BytesIO
 from time import perf_counter
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import PIL.Image
 import requests
@@ -29,7 +29,12 @@ from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.utils import state
-from khoj.utils.helpers import in_debug_mode, is_none_or_empty, merge_dicts
+from khoj.utils.helpers import (
+    ConversationCommand,
+    in_debug_mode,
+    is_none_or_empty,
+    merge_dicts,
+)
 
 logger = logging.getLogger(__name__)
 model_to_prompt_size = {
@@ -137,6 +142,41 @@ def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="A
             chat_history += f"User: {chat['intent']['query']}\n"
             chat_history += f"{agent_name}: {chat['intent']['inferred-queries'][0]}\n"
     return chat_history
+
+
+def construct_tool_chat_history(
+    previous_iterations: List[InformationCollectionIteration], tool: ConversationCommand = None
+) -> Dict[str, list]:
+    chat_history: list = []
+    inferred_query_extractor: Callable[[InformationCollectionIteration], List[str]] = lambda x: []
+    if tool == ConversationCommand.Notes:
+        inferred_query_extractor = (
+            lambda iteration: [c["query"] for c in iteration.context] if iteration.context else []
+        )
+    elif tool == ConversationCommand.Online:
+        inferred_query_extractor = (
+            lambda iteration: list(iteration.onlineContext.keys()) if iteration.onlineContext else []
+        )
+    elif tool == ConversationCommand.Code:
+        inferred_query_extractor = lambda iteration: list(iteration.codeContext.keys()) if iteration.codeContext else []
+    for iteration in previous_iterations:
+        chat_history += [
+            {
+                "by": "you",
+                "message": iteration.query,
+            },
+            {
+                "by": "khoj",
+                "intent": {
+                    "type": "remember",
+                    "inferred-queries": inferred_query_extractor(iteration),
+                    "query": iteration.query,
+                },
+                "message": iteration.summarizedResult,
+            },
+        ]
+
+    return {"chat": chat_history}
 
 
 class ChatEvent(Enum):

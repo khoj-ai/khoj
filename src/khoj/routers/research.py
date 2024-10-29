@@ -12,6 +12,7 @@ from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
     InformationCollectionIteration,
     construct_iteration_history,
+    construct_tool_chat_history,
     remove_json_codeblock,
 )
 from khoj.processor.tools.online_search import read_webpages, search_online
@@ -147,7 +148,6 @@ async def execute_information_collection(
         code_results: Dict = dict()
         document_results: List[Dict[str, str]] = []
         summarize_files: str = ""
-        inferred_queries: List[Any] = []
         this_iteration = InformationCollectionIteration(tool=None, query=query)
         previous_iterations_history = construct_iteration_history(previous_iterations, prompts.previous_iteration)
 
@@ -174,7 +174,7 @@ async def execute_information_collection(
             document_results = []
             async for result in extract_references_and_questions(
                 request,
-                conversation_history,
+                construct_tool_chat_history(previous_iterations, ConversationCommand.Notes),
                 this_iteration.query,
                 7,
                 None,
@@ -208,7 +208,7 @@ async def execute_information_collection(
         elif this_iteration.tool == ConversationCommand.Online:
             async for result in search_online(
                 this_iteration.query,
-                conversation_history,
+                construct_tool_chat_history(previous_iterations, ConversationCommand.Online),
                 location,
                 user,
                 send_status_func,
@@ -228,7 +228,7 @@ async def execute_information_collection(
             try:
                 async for result in read_webpages(
                     this_iteration.query,
-                    conversation_history,
+                    construct_tool_chat_history(previous_iterations, ConversationCommand.Webpage),
                     location,
                     user,
                     send_status_func,
@@ -258,8 +258,8 @@ async def execute_information_collection(
             try:
                 async for result in run_code(
                     this_iteration.query,
-                    conversation_history,
-                    previous_iterations_history,
+                    construct_tool_chat_history(previous_iterations, ConversationCommand.Webpage),
+                    "",
                     location,
                     user,
                     send_status_func,
@@ -286,7 +286,7 @@ async def execute_information_collection(
                     this_iteration.query,
                     user,
                     file_filters,
-                    conversation_history,
+                    construct_tool_chat_history(previous_iterations),
                     query_images=query_images,
                     agent=agent,
                     send_status_func=send_status_func,
