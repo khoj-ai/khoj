@@ -14,9 +14,9 @@ from khoj.processor.conversation.anthropic.utils import (
     format_messages_for_anthropic,
 )
 from khoj.processor.conversation.utils import (
+    clean_json,
     construct_structured_message,
     generate_chatml_messages_with_context,
-    remove_json_codeblock,
 )
 from khoj.utils.helpers import ConversationCommand, is_none_or_empty
 from khoj.utils.rawconfig import LocationData
@@ -98,7 +98,7 @@ def extract_questions_anthropic(
 
     # Extract, Clean Message from Claude's Response
     try:
-        response = remove_json_codeblock(response)
+        response = clean_json(response)
         response = json.loads(response)
         response = [q.strip() for q in response["queries"] if q.strip()]
         if not isinstance(response, list) or not response:

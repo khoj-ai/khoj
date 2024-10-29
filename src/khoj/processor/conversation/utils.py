@@ -442,9 +442,9 @@ def reciprocal_conversation_to_chatml(message_pair):
     return [ChatMessage(content=message, role=role) for message, role in zip(message_pair, ["user", "assistant"])]
 
 
-def remove_json_codeblock(response: str):
-    """Remove any markdown json codeblock formatting if present. Useful for non schema enforceable models"""
-    return response.removeprefix("```json").removesuffix("```")
+def clean_json(response: str):
+    """Remove any markdown json codeblock and newline formatting if present. Useful for non schema enforceable models"""
+    return response.strip().replace("\n", "").removeprefix("```json").removesuffix("```")
 
 
 def defilter_query(query: str):
