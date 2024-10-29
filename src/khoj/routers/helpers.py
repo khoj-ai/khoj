@@ -978,6 +978,7 @@ async def send_message_to_model_wrapper(
             messages=truncated_messages,
             api_key=api_key,
             model=chat_model,
+            response_type=response_type,
             tracer=tracer,
         )
     elif model_type == ChatModelOptions.ModelType.GOOGLE:
@@ -1078,6 +1079,7 @@ def send_message_to_model_wrapper_sync(
             messages=truncated_messages,
             api_key=api_key,
             model=chat_model,
+            response_type=response_type,
             tracer=tracer,
         )
 

@@ -16,6 +16,7 @@ from khoj.processor.conversation.anthropic.utils import (
 from khoj.processor.conversation.utils import (
     construct_structured_message,
     generate_chatml_messages_with_context,
+    remove_json_codeblock,
 )
 from khoj.utils.helpers import ConversationCommand, is_none_or_empty
 from khoj.utils.rawconfig import LocationData
@@ -91,15 +92,13 @@ def extract_questions_anthropic(
         model_name=model,
         temperature=temperature,
         api_key=api_key,
+        response_type="json_object",
         tracer=tracer,
     )
 
     # Extract, Clean Message from Claude's Response
     try:
-        response = response.strip()
-        match = re.search(r"\{.*?\}", response)
-        if match:
-            response = match.group()
+        response = remove_json_codeblock(response)
         response = json.loads(response)
         response = [q.strip() for q in response["queries"] if q.strip()]
         if not isinstance(response, list) or not response:
@@ -113,7 +112,7 @@ def extract_questions_anthropic(
     return questions
 
 
-def anthropic_send_message_to_model(messages, api_key, model, tracer={}):
+def anthropic_send_message_to_model(messages, api_key, model, response_type="text", tracer={}):
     """
     Send message to model
     """
@@ -125,6 +124,7 @@ def anthropic_send_message_to_model(messages, api_key, model, tracer={}):
         system_prompt=system_prompt,
         model_name=model,
         api_key=api_key,
+        response_type=response_type,
         tracer=tracer,
     )
 
