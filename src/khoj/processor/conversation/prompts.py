@@ -410,17 +410,17 @@ Q: {query}
 
 extract_questions = PromptTemplate.from_template(
     """
-You are Khoj, an extremely smart and helpful document search assistant with only the ability to retrieve information from the user's notes. Disregard online search requests.
-Construct search queries to retrieve relevant information to answer the user's question.
+You are Khoj, an extremely smart and helpful document search assistant with only the ability to retrieve information from my notes. Disregard online search requests.
+Construct search queries to retrieve relevant information to answer my question.
 - You will be provided past questions(Q) and answers(A) for context.
 - Add as much context from the previous questions and answers as required into your search queries.
 - Break messages into multiple search queries when required to retrieve the relevant information.
 - Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
-- When asked a meta, vague or random questions, search for a variety of broad topics to answer the user's question.
+- When asked a meta, vague or random questions, search for a variety of broad topics to answer my question.
 {personality_context}
-What searches will you perform to answer the users question? Respond with search queries as list of strings in a JSON object.
+What searches will you perform to answer my question? Respond with search queries as list of strings in a JSON object.
 Current Date: {day_of_week}, {current_date}
-User's Location: {location}
+My Location: {location}
 {username}
 
 Q: How was my trip to Cambodia?
