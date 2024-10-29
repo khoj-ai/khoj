@@ -101,6 +101,15 @@ def merge_dicts(priority_dict: dict, default_dict: dict):
     return merged_dict
 
 
+def fix_json_dict(json_dict: dict) -> dict:
+    for k, v in json_dict.items():
+        if v == "True" or v == "False":
+            json_dict[k] = v == "True"
+        if isinstance(v, dict):
+            json_dict[k] = fix_json_dict(v)
+    return json_dict
+
+
 def get_file_type(file_type: str, file_content: bytes) -> tuple[str, str]:
     "Get file type from file mime type"
 
