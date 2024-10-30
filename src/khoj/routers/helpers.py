@@ -1264,6 +1264,11 @@ class ChatRequestBody(BaseModel):
     create_new: Optional[bool] = False
 
 
+class DeleteMessageRequestBody(BaseModel):
+    conversation_id: str
+    turn_id: str
+
+
 class ApiUserRateLimiter:
     def __init__(self, requests: int, subscribed_requests: int, window: int, slug: str):
         self.requests = requests

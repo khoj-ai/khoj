@@ -4,6 +4,7 @@ import math
 import mimetypes
 import os
 import queue
+import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -232,12 +233,14 @@ def save_to_conversation_log(
     train_of_thought: List[Any] = [],
 ):
     user_message_time = user_message_time or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    turn_id = tracer.get("mid") or str(uuid.uuid4())
     updated_conversation = message_to_log(
         user_message=q,
         chat_response=chat_response,
         user_message_metadata={
             "created": user_message_time,
             "images": query_images,
+            "turnId": turn_id,
         },
         khoj_message_metadata={
             "context": compiled_references,
@@ -246,6 +249,7 @@ def save_to_conversation_log(
             "codeContext": code_results,
             "automationId": automation_id,
             "trainOfThought": train_of_thought,
+            "turnId": turn_id,
         },
         conversation_log=meta_log.get("chat", []),
         train_of_thought=train_of_thought,

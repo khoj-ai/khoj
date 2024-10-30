@@ -38,6 +38,7 @@ from khoj.routers.helpers import (
     ChatRequestBody,
     CommonQueryParams,
     ConversationCommandRateLimiter,
+    DeleteMessageRequestBody,
     agenerate_chat_response,
     aget_relevant_information_sources,
     aget_relevant_output_modes,
@@ -532,6 +533,19 @@ async def set_conversation_title(
     return Response(
         content=json.dumps({"status": "ok", "success": success}), media_type="application/json", status_code=200
     )
+
+
+@api_chat.delete("/conversation/message", response_class=Response)
+@requires(["authenticated"])
+def delete_message(request: Request, delete_request: DeleteMessageRequestBody) -> Response:
+    user = request.user.object
+    success = ConversationAdapters.delete_message_by_turn_id(
+        user, delete_request.conversation_id, delete_request.turn_id
+    )
+    if success:
+        return Response(content=json.dumps({"status": "ok"}), media_type="application/json", status_code=200)
+    else:
+        return Response(content=json.dumps({"status": "error", "message": "Message not found"}), status_code=404)
 
 
 @api_chat.post("")
