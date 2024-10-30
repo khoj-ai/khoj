@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from datetime import datetime, timedelta
 from threading import Thread
 from typing import Any, Iterator, List, Optional, Union
@@ -265,8 +266,14 @@ def send_message_to_model_offline(
     assert loaded_model is None or isinstance(loaded_model, Llama), "loaded_model must be of type Llama, if configured"
     offline_chat_model = loaded_model or download_model(model, max_tokens=max_prompt_size)
     messages_dict = [{"role": message.role, "content": message.content} for message in messages]
+    seed = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
     response = offline_chat_model.create_chat_completion(
-        messages_dict, stop=stop, stream=streaming, temperature=temperature, response_format={"type": response_type}
+        messages_dict,
+        stop=stop,
+        stream=streaming,
+        temperature=temperature,
+        response_format={"type": response_type},
+        seed=seed,
     )
 
     if streaming:

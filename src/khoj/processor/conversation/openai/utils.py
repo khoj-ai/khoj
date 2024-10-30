@@ -1,4 +1,5 @@
 import logging
+import os
 from threading import Thread
 from typing import Dict
 
@@ -59,6 +60,9 @@ def completion_with_backoff(
         temperature = 1
         model_kwargs.pop("stop", None)
         model_kwargs.pop("response_format", None)
+
+    if os.getenv("KHOJ_LLM_SEED"):
+        model_kwargs["seed"] = int(os.getenv("KHOJ_LLM_SEED"))
 
     chat = client.chat.completions.create(
         stream=stream,
@@ -156,6 +160,9 @@ def llm_thread(
             temperature = 1
             model_kwargs.pop("stop", None)
             model_kwargs.pop("response_format", None)
+
+        if os.getenv("KHOJ_LLM_SEED"):
+            model_kwargs["seed"] = int(os.getenv("KHOJ_LLM_SEED"))
 
         chat = client.chat.completions.create(
             stream=stream,

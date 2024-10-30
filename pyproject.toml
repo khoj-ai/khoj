@@ -87,7 +87,7 @@ dependencies = [
     "django_apscheduler == 0.6.2",
     "anthropic == 0.26.1",
     "docx2txt == 0.8",
-    "google-generativeai == 0.7.2"
+    "google-generativeai == 0.8.3"
 ]
 dynamic = ["version"]
 
