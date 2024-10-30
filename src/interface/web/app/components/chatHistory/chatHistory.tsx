@@ -45,7 +45,7 @@ interface TrainOfThoughtComponentProps {
     trainOfThought: string[];
     lastMessage: boolean;
     agentColor: string;
-    key: string;
+    keyId: string;
     completed?: boolean;
 }
 
@@ -56,7 +56,7 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
     return (
         <div
             className={`${!collapsed ? styles.trainOfThought + " shadow-sm" : ""}`}
-            key={props.key}
+            key={props.keyId}
         >
             {!props.completed && <InlineLoading className="float-right" />}
             {props.completed &&
@@ -333,6 +333,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         lastMessage={false}
                                         agentColor={data?.agent?.color || "orange"}
                                         key={`${index}trainOfThought`}
+                                        keyId={`${index}trainOfThought`}
                                         completed={true}
                                     />
                                 )}
@@ -369,6 +370,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                             lastMessage={index === incompleteIncomingMessageIndex}
                                             agentColor={data?.agent?.color || "orange"}
                                             key={`${index}trainOfThought`}
+                                            keyId={`${index}trainOfThought`}
                                             completed={message.completed}
                                         />
                                     )}
