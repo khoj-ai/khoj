@@ -29,6 +29,7 @@ import {
     Check,
     Code,
     Shapes,
+    Trash,
 } from "@phosphor-icons/react";
 
 import DOMPurify from "dompurify";
@@ -146,6 +147,9 @@ export interface SingleChatMessage {
     intent?: Intent;
     agent?: AgentData;
     images?: string[];
+    conversationId: string;
+    turnId?: string;
+    onDeleteMessage: (turnId: string) => void;
 }
 
 export interface StreamMessage {
@@ -161,6 +165,7 @@ export interface StreamMessage {
     images?: string[];
     intentType?: string;
     inferredQueries?: string[];
+    turnId?: string;
 }
 
 export interface ChatHistoryData {
@@ -242,6 +247,8 @@ interface ChatMessageProps {
     borderLeftColor?: string;
     isLastMessage?: boolean;
     agent?: AgentData;
+    onDeleteMessage: (turnId?: string) => void;
+    conversationId: string;
 }
 
 interface TrainOfThoughtProps {
@@ -654,6 +661,26 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
         });
     }
 
+    const deleteMessage = async (message: SingleChatMessage) => {
+        const response = await fetch("/api/chat/conversation/message", {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                conversation_id: props.conversationId,
+                turn_id: message.turnId,
+            }),
+        });
+
+        if (response.ok) {
+            // Update the UI after successful deletion
+            props.onDeleteMessage(message.turnId);
+        } else {
+            console.error("Failed to delete message");
+        }
+    };
+
     const allReferences = constructAllReferences(
         props.chatMessage.context,
         props.chatMessage.onlineContext,
@@ -736,6 +763,16 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                                         className="hsl(var(--muted-foreground)) hover:text-green-500"
                                     />
                                 )}
+                            </button>
+                            <button
+                                title="Delete"
+                                className={`${styles.deleteButton}`}
+                                onClick={() => deleteMessage(props.chatMessage)}
+                            >
+                                <Trash
+                                    alt="Delete Message"
+                                    className="hsl(var(--muted-foreground)) hover:text-red-500"
+                                />
                             </button>
                             {props.chatMessage.by === "khoj" &&
                                 (props.chatMessage.intent ? (

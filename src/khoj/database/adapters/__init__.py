@@ -1351,11 +1351,11 @@ class ConversationAdapters:
     @staticmethod
     def delete_message_by_turn_id(user: KhojUser, conversation_id: str, turn_id: str):
         conversation = ConversationAdapters.get_conversation_by_user(user, conversation_id=conversation_id)
-        if not conversation:
+        if not conversation or not conversation.conversation_log or not conversation.conversation_log.get("chat"):
             return False
         conversation_log = conversation.conversation_log
-        updated_log = [msg for msg in conversation_log if msg.get("turnId") != turn_id]
-        conversation.conversation_log = updated_log
+        updated_log = [msg for msg in conversation_log["chat"] if msg.get("turnId") != turn_id]
+        conversation.conversation_log["chat"] = updated_log
         conversation.save()
         return True
 

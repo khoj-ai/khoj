@@ -195,8 +195,13 @@ function ReferenceVerification(props: ReferenceVerificationProps) {
                     created: new Date().toISOString(),
                     onlineContext: {},
                     codeContext: {},
+                    conversationId: props.conversationId,
+                    turnId: "",
+                    onDeleteMessage: (turnId?: string) => {},
                 }}
                 isMobileWidth={isMobileWidth}
+                onDeleteMessage={(turnId?: string) => {}}
+                conversationId={props.conversationId}
             />
         </div>
     );
@@ -626,7 +631,12 @@ export default function FactChecker() {
                                         created: new Date().toISOString(),
                                         onlineContext: {},
                                         codeContext: {},
+                                        conversationId: conversationID,
+                                        turnId: "",
+                                        onDeleteMessage: (turnId?: string) => {},
                                     }}
+                                    conversationId={conversationID}
+                                    onDeleteMessage={(turnId?: string) => {}}
                                     isMobileWidth={isMobileWidth}
                                 />
                             </div>

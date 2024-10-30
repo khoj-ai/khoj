@@ -278,6 +278,16 @@ export default function ChatHistory(props: ChatHistoryProps) {
         return data.agent?.persona;
     }
 
+    const handleDeleteMessage = (turnId?: string) => {
+        setData((prevData) => {
+            if (!prevData || !turnId) return prevData;
+            return {
+                ...prevData,
+                chat: prevData.chat.filter((msg) => msg.turnId !== turnId),
+            };
+        });
+    };
+
     if (!props.conversationId && !props.publicConversationSlug) {
         return null;
     }
@@ -312,6 +322,8 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                     customClassName="fullHistory"
                                     borderLeftColor={`${data?.agent?.color}-500`}
                                     isLastMessage={index === data.chat.length - 1}
+                                    onDeleteMessage={handleDeleteMessage}
+                                    conversationId={props.conversationId}
                                 />
                                 {chatMessage.trainOfThought && chatMessage.by === "khoj" && (
                                     <TrainOfThoughtComponent
@@ -342,9 +354,14 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                             by: "you",
                                             automationId: "",
                                             images: message.images,
+                                            conversationId: props.conversationId,
+                                            turnId: message.turnId,
+                                            onDeleteMessage: handleDeleteMessage,
                                         }}
                                         customClassName="fullHistory"
                                         borderLeftColor={`${data?.agent?.color}-500`}
+                                        onDeleteMessage={handleDeleteMessage}
+                                        conversationId={props.conversationId}
                                     />
                                     {message.trainOfThought && (
                                         <TrainOfThoughtComponent
@@ -373,7 +390,12 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                                 "memory-type": "",
                                                 "inferred-queries": message.inferredQueries || [],
                                             },
+                                            conversationId: props.conversationId,
+                                            turnId: message.turnId,
+                                            onDeleteMessage: handleDeleteMessage,
                                         }}
+                                        conversationId={props.conversationId}
+                                        onDeleteMessage={handleDeleteMessage}
                                         customClassName="fullHistory"
                                         borderLeftColor={`${data?.agent?.color}-500`}
                                         isLastMessage={true}
@@ -393,7 +415,11 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                 created: new Date().getTime().toString(),
                                 by: "you",
                                 automationId: "",
+                                conversationId: props.conversationId,
+                                onDeleteMessage: handleDeleteMessage,
                             }}
+                            conversationId={props.conversationId}
+                            onDeleteMessage={handleDeleteMessage}
                             customClassName="fullHistory"
                             borderLeftColor={`${data?.agent?.color}-500`}
                             isLastMessage={true}
