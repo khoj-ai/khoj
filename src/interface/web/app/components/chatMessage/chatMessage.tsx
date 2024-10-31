@@ -744,16 +744,18 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                                         />
                                     </button>
                                 ))}
-                            <button
-                                title="Delete"
-                                className={`${styles.deleteButton}`}
-                                onClick={() => deleteMessage(props.chatMessage)}
-                            >
-                                <Trash
-                                    alt="Delete Message"
-                                    className="hsl(var(--muted-foreground)) hover:text-red-500"
-                                />
-                            </button>
+                            {props.chatMessage.turnId && (
+                                <button
+                                    title="Delete"
+                                    className={`${styles.deleteButton}`}
+                                    onClick={() => deleteMessage(props.chatMessage)}
+                                >
+                                    <Trash
+                                        alt="Delete Message"
+                                        className="hsl(var(--muted-foreground)) hover:text-red-500"
+                                    />
+                                </button>
+                            )}
                             <button
                                 title="Copy"
                                 className={`${styles.copyButton}`}
