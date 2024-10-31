@@ -186,6 +186,7 @@ class ChatEvent(Enum):
     MESSAGE = "message"
     REFERENCES = "references"
     STATUS = "status"
+    METADATA = "metadata"
 
 
 def message_to_log(

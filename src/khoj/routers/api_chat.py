@@ -569,6 +569,7 @@ async def chat(
     stream = body.stream
     title = body.title
     conversation_id = body.conversation_id
+    turn_id = str(body.turn_id or uuid.uuid4())
     city = body.city
     region = body.region
     country = body.country or get_country_name_from_timezone(body.timezone)
@@ -588,7 +589,7 @@ async def chat(
         nonlocal conversation_id
 
         tracer: dict = {
-            "mid": f"{uuid.uuid4()}",
+            "mid": turn_id,
             "cid": conversation_id,
             "uid": user.id,
             "khoj_version": state.khoj_version,
@@ -621,7 +622,7 @@ async def chat(
 
                 if event_type == ChatEvent.MESSAGE:
                     yield data
-                elif event_type == ChatEvent.REFERENCES or stream:
+                elif event_type == ChatEvent.REFERENCES or ChatEvent.METADATA or stream:
                     yield json.dumps({"type": event_type.value, "data": data}, ensure_ascii=False)
             except asyncio.CancelledError as e:
                 connection_alive = False
@@ -665,6 +666,11 @@ async def chat(
                 metadata=chat_metadata,
             )
 
+        if is_query_empty(q):
+            async for result in send_llm_response("Please ask your query to get started."):
+                yield result
+            return
+
         conversation_commands = [get_conversation_command(query=q, any_references=True)]
 
         conversation = await ConversationAdapters.aget_conversation_by_user(
@@ -680,6 +686,9 @@ async def chat(
             return
         conversation_id = conversation.id
 
+        async for event in send_event(ChatEvent.METADATA, {"conversationId": str(conversation_id), "turnId": turn_id}):
+            yield event
+
         agent: Agent | None = None
         default_agent = await AgentAdapters.aget_default_agent()
         if conversation.agent and conversation.agent != default_agent:
@@ -691,16 +700,10 @@ async def chat(
             agent = default_agent
 
         await is_ready_to_chat(user)
-
         user_name = await aget_user_name(user)
         location = None
         if city or region or country or country_code:
             location = LocationData(city=city, region=region, country=country, country_code=country_code)
-
-        if is_query_empty(q):
-            async for result in send_llm_response("Please ask your query to get started."):
-                yield result
-            return
 
         user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 

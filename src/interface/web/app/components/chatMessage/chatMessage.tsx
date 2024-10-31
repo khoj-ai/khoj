@@ -149,7 +149,6 @@ export interface SingleChatMessage {
     images?: string[];
     conversationId: string;
     turnId?: string;
-    onDeleteMessage: (turnId: string) => void;
 }
 
 export interface StreamMessage {
@@ -249,6 +248,7 @@ interface ChatMessageProps {
     agent?: AgentData;
     onDeleteMessage: (turnId?: string) => void;
     conversationId: string;
+    turnId?: string;
 }
 
 interface TrainOfThoughtProps {
@@ -662,6 +662,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
     }
 
     const deleteMessage = async (message: SingleChatMessage) => {
+        const turnId = message.turnId || props.turnId;
         const response = await fetch("/api/chat/conversation/message", {
             method: "DELETE",
             headers: {
@@ -669,13 +670,13 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             },
             body: JSON.stringify({
                 conversation_id: props.conversationId,
-                turn_id: message.turnId,
+                turn_id: turnId,
             }),
         });
 
         if (response.ok) {
             // Update the UI after successful deletion
-            props.onDeleteMessage(message.turnId);
+            props.onDeleteMessage(turnId);
         } else {
             console.error("Failed to delete message");
         }
@@ -744,6 +745,16 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                                     </button>
                                 ))}
                             <button
+                                title="Delete"
+                                className={`${styles.deleteButton}`}
+                                onClick={() => deleteMessage(props.chatMessage)}
+                            >
+                                <Trash
+                                    alt="Delete Message"
+                                    className="hsl(var(--muted-foreground)) hover:text-red-500"
+                                />
+                            </button>
+                            <button
                                 title="Copy"
                                 className={`${styles.copyButton}`}
                                 onClick={() => {
@@ -763,16 +774,6 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                                         className="hsl(var(--muted-foreground)) hover:text-green-500"
                                     />
                                 )}
-                            </button>
-                            <button
-                                title="Delete"
-                                className={`${styles.deleteButton}`}
-                                onClick={() => deleteMessage(props.chatMessage)}
-                            >
-                                <Trash
-                                    alt="Delete Message"
-                                    className="hsl(var(--muted-foreground)) hover:text-red-500"
-                                />
                             </button>
                             {props.chatMessage.by === "khoj" &&
                                 (props.chatMessage.intent ? (

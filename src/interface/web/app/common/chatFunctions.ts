@@ -11,6 +11,11 @@ export interface RawReferenceData {
     codeContext?: CodeContext;
 }
 
+export interface MessageMetadata {
+    conversationId: string;
+    turnId: string;
+}
+
 export interface ResponseWithIntent {
     intentType: string;
     response: string;
@@ -90,6 +95,9 @@ export function processMessageChunk(
         if (references.onlineContext) onlineContext = references.onlineContext;
         if (references.codeContext) codeContext = references.codeContext;
         return { context, onlineContext, codeContext };
+    } else if (chunk.type === "metadata") {
+        const messageMetadata = chunk.data as MessageMetadata;
+        currentMessage.turnId = messageMetadata.turnId;
     } else if (chunk.type === "message") {
         const chunkData = chunk.data;
         // Here, handle if the response is a JSON response with an image, but the intentType is excalidraw

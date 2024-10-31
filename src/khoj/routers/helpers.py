@@ -1255,6 +1255,7 @@ class ChatRequestBody(BaseModel):
     stream: Optional[bool] = False
     title: Optional[str] = None
     conversation_id: Optional[str] = None
+    turn_id: Optional[str] = None
     city: Optional[str] = None
     region: Optional[str] = None
     country: Optional[str] = None

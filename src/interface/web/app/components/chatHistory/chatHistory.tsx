@@ -34,8 +34,9 @@ interface ChatHistory {
 interface ChatHistoryProps {
     conversationId: string;
     setTitle: (title: string) => void;
-    incomingMessages?: StreamMessage[];
     pendingMessage?: string;
+    incomingMessages?: StreamMessage[];
+    setIncomingMessages?: (incomingMessages: StreamMessage[]) => void;
     publicConversationSlug?: string;
     setAgent: (agent: AgentData) => void;
     customClassName?: string;
@@ -97,6 +98,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
     const [data, setData] = useState<ChatHistoryData | null>(null);
     const [currentPage, setCurrentPage] = useState(0);
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
+    const [currentTurnId, setCurrentTurnId] = useState<string | null>(null);
     const sentinelRef = useRef<HTMLDivElement | null>(null);
     const scrollAreaRef = useRef<HTMLDivElement | null>(null);
     const latestUserMessageRef = useRef<HTMLDivElement | null>(null);
@@ -177,6 +179,10 @@ export default function ChatHistory(props: ChatHistoryProps) {
             if (lastMessage && !lastMessage.completed) {
                 setIncompleteIncomingMessageIndex(props.incomingMessages.length - 1);
                 props.setTitle(lastMessage.rawQuery);
+                // Store the turnId when we get it
+                if (lastMessage.turnId) {
+                    setCurrentTurnId(lastMessage.turnId);
+                }
             }
         }
     }, [props.incomingMessages]);
@@ -279,6 +285,8 @@ export default function ChatHistory(props: ChatHistoryProps) {
     }
 
     const handleDeleteMessage = (turnId?: string) => {
+        if (!turnId) return;
+
         setData((prevData) => {
             if (!prevData || !turnId) return prevData;
             return {
@@ -286,6 +294,13 @@ export default function ChatHistory(props: ChatHistoryProps) {
                 chat: prevData.chat.filter((msg) => msg.turnId !== turnId),
             };
         });
+
+        // Update incoming messages if they exist
+        if (props.incomingMessages && props.setIncomingMessages) {
+            props.setIncomingMessages(
+                props.incomingMessages.filter((msg) => msg.turnId !== turnId),
+            );
+        }
     };
 
     if (!props.conversationId && !props.publicConversationSlug) {
@@ -341,6 +356,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                         ))}
                     {props.incomingMessages &&
                         props.incomingMessages.map((message, index) => {
+                            const messageTurnId = message.turnId ?? currentTurnId ?? undefined;
                             return (
                                 <React.Fragment key={`incomingMessage${index}`}>
                                     <ChatMessage
@@ -356,13 +372,13 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                             automationId: "",
                                             images: message.images,
                                             conversationId: props.conversationId,
-                                            turnId: message.turnId,
-                                            onDeleteMessage: handleDeleteMessage,
+                                            turnId: messageTurnId,
                                         }}
                                         customClassName="fullHistory"
                                         borderLeftColor={`${data?.agent?.color}-500`}
                                         onDeleteMessage={handleDeleteMessage}
                                         conversationId={props.conversationId}
+                                        turnId={messageTurnId}
                                     />
                                     {message.trainOfThought && (
                                         <TrainOfThoughtComponent
@@ -393,10 +409,10 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                                 "inferred-queries": message.inferredQueries || [],
                                             },
                                             conversationId: props.conversationId,
-                                            turnId: message.turnId,
-                                            onDeleteMessage: handleDeleteMessage,
+                                            turnId: messageTurnId,
                                         }}
                                         conversationId={props.conversationId}
+                                        turnId={messageTurnId}
                                         onDeleteMessage={handleDeleteMessage}
                                         customClassName="fullHistory"
                                         borderLeftColor={`${data?.agent?.color}-500`}
@@ -418,7 +434,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                 by: "you",
                                 automationId: "",
                                 conversationId: props.conversationId,
-                                onDeleteMessage: handleDeleteMessage,
+                                turnId: undefined,
                             }}
                             conversationId={props.conversationId}
                             onDeleteMessage={handleDeleteMessage}

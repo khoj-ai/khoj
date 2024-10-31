@@ -197,7 +197,6 @@ function ReferenceVerification(props: ReferenceVerificationProps) {
                     codeContext: {},
                     conversationId: props.conversationId,
                     turnId: "",
-                    onDeleteMessage: (turnId?: string) => {},
                 }}
                 isMobileWidth={isMobileWidth}
                 onDeleteMessage={(turnId?: string) => {}}
@@ -633,7 +632,6 @@ export default function FactChecker() {
                                         codeContext: {},
                                         conversationId: conversationID,
                                         turnId: "",
-                                        onDeleteMessage: (turnId?: string) => {},
                                     }}
                                     conversationId={conversationID}
                                     onDeleteMessage={(turnId?: string) => {}}
