@@ -318,6 +318,18 @@ export default function ChatHistory(props: ChatHistoryProps) {
                         data.chat &&
                         data.chat.map((chatMessage, index) => (
                             <>
+                                {chatMessage.trainOfThought && chatMessage.by === "khoj" && (
+                                    <TrainOfThoughtComponent
+                                        trainOfThought={chatMessage.trainOfThought?.map(
+                                            (train) => train.data,
+                                        )}
+                                        lastMessage={false}
+                                        agentColor={data?.agent?.color || "orange"}
+                                        key={`${index}trainOfThought`}
+                                        keyId={`${index}trainOfThought`}
+                                        completed={true}
+                                    />
+                                )}
                                 <ChatMessage
                                     key={`${index}fullHistory`}
                                     ref={
@@ -340,18 +352,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                     onDeleteMessage={handleDeleteMessage}
                                     conversationId={props.conversationId}
                                 />
-                                {chatMessage.trainOfThought && chatMessage.by === "khoj" && (
-                                    <TrainOfThoughtComponent
-                                        trainOfThought={chatMessage.trainOfThought?.map(
-                                            (train) => train.data,
-                                        )}
-                                        lastMessage={false}
-                                        agentColor={data?.agent?.color || "orange"}
-                                        key={`${index}trainOfThought`}
-                                        keyId={`${index}trainOfThought`}
-                                        completed={true}
-                                    />
-                                )}
                             </>
                         ))}
                     {props.incomingMessages &&
