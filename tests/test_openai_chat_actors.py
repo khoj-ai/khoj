@@ -214,7 +214,7 @@ def test_answer_from_chat_history_and_previously_retrieved_content():
         (
             "When was I born?",
             "You were born on 1st April 1984.",
-            ["Testatron was born on 1st April 1984 in Testville."],
+            [{"compiled": "Testatron was born on 1st April 1984 in Testville.", "file": "birth.org"}],
         ),
     ]
 
@@ -415,15 +415,18 @@ def test_ask_for_clarification_if_not_enough_context_in_question():
     context = [
         {
             "compiled": f"""# Ramya
-My sister, Ramya, is married to Kali Devi. They have 2 kids, Ravi and Rani."""
+My sister, Ramya, is married to Kali Devi. They have 2 kids, Ravi and Rani.""",
+            "file": "Family.md",
         },
         {
             "compiled": f"""# Fang
-My sister, Fang Liu is married to Xi Li. They have 1 kid, Xiao Li."""
+My sister, Fang Liu is married to Xi Li. They have 1 kid, Xiao Li.""",
+            "file": "Family.md",
         },
         {
             "compiled": f"""# Aiyla
-My sister, Aiyla is married to Tolga. They have 3 kids, Yildiz, Ali and Ahmet."""
+My sister, Aiyla is married to Tolga. They have 3 kids, Yildiz, Ali and Ahmet.""",
+            "file": "Family.md",
         },
     ]
 
@@ -608,9 +611,11 @@ async def test_infer_webpage_urls_actor_extracts_correct_links(chat_client, defa
         ),
     ],
 )
-async def test_infer_task_scheduling_request(chat_client, user_query, expected_crontime, expected_qs, unexpected_qs):
+async def test_infer_task_scheduling_request(
+    chat_client, user_query, expected_crontime, expected_qs, unexpected_qs, default_user2
+):
     # Act
-    crontime, inferred_query, _ = await schedule_query(user_query, {})
+    crontime, inferred_query, _ = await schedule_query(user_query, {}, default_user2)
     inferred_query = inferred_query.lower()
 
     # Assert
@@ -630,7 +635,7 @@ async def test_infer_task_scheduling_request(chat_client, user_query, expected_c
     "scheduling_query, executing_query, generated_response, expected_should_notify",
     [
         (
-            "Notify me if it is going to rain tomorrow?",
+            "Notify me only if it is going to rain tomorrow?",
             "What's the weather forecast for tomorrow?",
             "It is sunny and warm tomorrow.",
             False,
@@ -656,10 +661,10 @@ async def test_infer_task_scheduling_request(chat_client, user_query, expected_c
     ],
 )
 def test_decision_on_when_to_notify_scheduled_task_results(
-    chat_client, scheduling_query, executing_query, generated_response, expected_should_notify
+    chat_client, default_user2, scheduling_query, executing_query, generated_response, expected_should_notify
 ):
     # Act
-    generated_should_notify = should_notify(scheduling_query, executing_query, generated_response)
+    generated_should_notify = should_notify(scheduling_query, executing_query, generated_response, default_user2)
 
     # Assert
     assert generated_should_notify == expected_should_notify

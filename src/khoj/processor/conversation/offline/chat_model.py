@@ -157,9 +157,9 @@ def converse_offline(
     # Initialize Variables
     assert loaded_model is None or isinstance(loaded_model, Llama), "loaded_model must be of type Llama, if configured"
     offline_chat_model = loaded_model or download_model(model, max_tokens=max_prompt_size)
-    compiled_references_message = "\n\n".join({f"{item['compiled']}" for item in references})
     tracer["chat_model"] = model
 
+    compiled_references = "\n\n".join({f"# File: {item['file']}\n## {item['compiled']}\n" for item in references})
     current_date = datetime.now()
 
     if agent and agent.personality:
@@ -175,8 +175,6 @@ def converse_offline(
             day_of_week=current_date.strftime("%A"),
         )
 
-    conversation_primer = prompts.query_prompt.format(query=user_query)
-
     if location_data:
         location_prompt = prompts.user_location.format(location=f"{location_data}")
         system_prompt = f"{system_prompt}\n{location_prompt}"
@@ -186,27 +184,31 @@ def converse_offline(
         system_prompt = f"{system_prompt}\n{user_name_prompt}"
 
     # Get Conversation Primer appropriate to Conversation Type
-    if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(compiled_references_message):
+    if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(compiled_references):
         return iter([prompts.no_notes_found.format()])
     elif conversation_commands == [ConversationCommand.Online] and is_none_or_empty(online_results):
         completion_func(chat_response=prompts.no_online_results_found.format())
         return iter([prompts.no_online_results_found.format()])
 
-    if ConversationCommand.Online in conversation_commands:
+    context_message = ""
+    if not is_none_or_empty(compiled_references):
+        context_message += f"{prompts.notes_conversation_offline.format(references=compiled_references)}\n\n"
+    if ConversationCommand.Online in conversation_commands or ConversationCommand.Webpage in conversation_commands:
         simplified_online_results = online_results.copy()
         for result in online_results:
             if online_results[result].get("webpages"):
                 simplified_online_results[result] = online_results[result]["webpages"]
 
-        conversation_primer = f"{prompts.online_search_conversation_offline.format(online_results=str(simplified_online_results))}\n{conversation_primer}"
-    if not is_none_or_empty(compiled_references_message):
-        conversation_primer = f"{prompts.notes_conversation_offline.format(references=compiled_references_message)}\n\n{conversation_primer}"
+        context_message += (
+            f"{prompts.online_search_conversation_offline.format(online_results=str(simplified_online_results))}"
+        )
 
     # Setup Prompt with Primer or Conversation History
     messages = generate_chatml_messages_with_context(
-        conversation_primer,
+        user_query,
         system_prompt,
         conversation_log,
+        context_message=context_message,
         model_name=model,
         loaded_model=offline_chat_model,
         max_prompt_size=max_prompt_size,

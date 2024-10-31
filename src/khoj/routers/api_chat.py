@@ -113,7 +113,7 @@ def add_files_filter(request: Request, filter: FilesFilterRequest):
         file_filters = ConversationAdapters.add_files_to_filter(request.user.object, conversation_id, files_filter)
         return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
     except Exception as e:
-        logger.error(f"Error adding file filter {filter.filename}: {e}", exc_info=True)
+        logger.error(f"Error adding file filter {filter.filenames}: {e}", exc_info=True)
         raise HTTPException(status_code=422, detail=str(e))
 
 

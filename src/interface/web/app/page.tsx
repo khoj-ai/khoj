@@ -361,7 +361,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                                         className={`${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : "border-muted text-muted-foreground"} hover:cursor-pointer`}
                                     >
                                         <CardTitle
-                                            className="text-center text-xs font-medium flex justify-center items-center px-1.5 py-1"
+                                            className="text-center text-xs font-medium flex justify-center items-center whitespace-nowrap px-1.5 py-1"
                                             onDoubleClick={() =>
                                                 openAgentEditCard(agents[index].slug)
                                             }
