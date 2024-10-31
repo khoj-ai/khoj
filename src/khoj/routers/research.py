@@ -191,18 +191,18 @@ async def execute_information_collection(
                     document_results = result[0]
                     this_iteration.context += document_results
 
-        if not is_none_or_empty(document_results):
-            try:
-                distinct_files = {d["file"] for d in document_results}
-                distinct_headings = set([d["compiled"].split("\n")[0] for d in document_results if "compiled" in d])
-                # Strip only leading # from headings
-                headings_str = "\n- " + "\n- ".join(distinct_headings).replace("#", "")
-                async for result in send_status_func(
-                    f"**Found {len(distinct_headings)} Notes Across {len(distinct_files)} Files**: {headings_str}"
-                ):
-                    yield result
-            except Exception as e:
-                logger.error(f"Error extracting document references: {e}", exc_info=True)
+            if not is_none_or_empty(document_results):
+                try:
+                    distinct_files = {d["file"] for d in document_results}
+                    distinct_headings = set([d["compiled"].split("\n")[0] for d in document_results if "compiled" in d])
+                    # Strip only leading # from headings
+                    headings_str = "\n- " + "\n- ".join(distinct_headings).replace("#", "")
+                    async for result in send_status_func(
+                        f"**Found {len(distinct_headings)} Notes Across {len(distinct_files)} Files**: {headings_str}"
+                    ):
+                        yield result
+                except Exception as e:
+                    logger.error(f"Error extracting document references: {e}", exc_info=True)
 
         elif this_iteration.tool == ConversationCommand.Online:
             async for result in search_online(
