@@ -1,4 +1,5 @@
 import base64
+import json
 import logging
 import math
 import mimetypes
@@ -501,15 +502,12 @@ def commit_conversation_trace(
     Returns the path to the repository.
     """
     # Serialize session, system message and response to yaml
-    system_message_yaml = yaml.dump(system_message, allow_unicode=True, sort_keys=False, default_flow_style=False)
-    response_yaml = yaml.dump(response, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    system_message_yaml = json.dumps(system_message, ensure_ascii=False, sort_keys=False)
+    response_yaml = json.dumps(response, ensure_ascii=False, sort_keys=False)
     formatted_session = [{"role": message.role, "content": message.content} for message in session]
-    session_yaml = yaml.dump(formatted_session, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    session_yaml = json.dumps(formatted_session, ensure_ascii=False, sort_keys=False)
     query = (
-        yaml.dump(session[-1].content, allow_unicode=True, sort_keys=False, default_flow_style=False)
-        .strip()
-        .removeprefix("'")
-        .removesuffix("'")
+        json.dumps(session[-1].content, ensure_ascii=False, sort_keys=False).strip().removeprefix("'").removesuffix("'")
     )  # Extract serialized query from chat session
 
     # Extract chat metadata for session
