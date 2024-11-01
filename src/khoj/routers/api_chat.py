@@ -738,6 +738,10 @@ async def chat(
             if mode not in conversation_commands:
                 conversation_commands.append(mode)
 
+        for cmd in conversation_commands:
+            await conversation_command_rate_limiter.update_and_check_if_valid(request, cmd)
+            q = q.replace(f"/{cmd.value}", "").strip()
+
         if conversation_commands == [ConversationCommand.Research]:
             async for research_result in execute_information_collection(
                 request=request,
@@ -773,10 +777,6 @@ async def chat(
             logger.info(f"Researched Results: {researched_results}")
 
             pending_research = False
-
-        for cmd in conversation_commands:
-            await conversation_command_rate_limiter.update_and_check_if_valid(request, cmd)
-            q = q.replace(f"/{cmd.value}", "").strip()
 
         used_slash_summarize = conversation_commands == [ConversationCommand.Summarize]
         file_filters = conversation.file_filters if conversation else []

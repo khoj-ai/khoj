@@ -174,7 +174,8 @@ def construct_tool_chat_history(
                 "by": "khoj",
                 "intent": {
                     "type": "remember",
-                    "inferred-queries": inferred_query_extractor(iteration),
+                    # Only include inferred-queries for the specific tool that's being used in this iteration.
+                    "inferred-queries": inferred_query_extractor(iteration) if iteration.tool == tool else [],
                     "query": iteration.query,
                 },
                 "message": iteration.summarizedResult,
