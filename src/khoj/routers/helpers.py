@@ -478,6 +478,9 @@ async def infer_webpage_urls(
         valid_unique_urls = {str(url).strip() for url in urls["links"] if is_valid_url(url)}
         if is_none_or_empty(valid_unique_urls):
             raise ValueError(f"Invalid list of urls: {response}")
+        if len(valid_unique_urls) == 0:
+            logger.error(f"No valid URLs found in response: {response}")
+            return []
         return list(valid_unique_urls)
     except Exception:
         raise ValueError(f"Invalid list of urls: {response}")
