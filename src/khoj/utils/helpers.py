@@ -355,7 +355,6 @@ tool_descriptions_for_llm = {
     ConversationCommand.Webpage: "To use if the user has directly provided the webpage urls or you are certain of the webpage urls to read.",
     ConversationCommand.Code: "To run Python code in a Pyodide sandbox with no network access. Helpful when need to parse information, run complex calculations, create documents and charts for user. Matplotlib, bs4, pandas, numpy, etc. are available.",
     ConversationCommand.Summarize: "To retrieve an answer that depends on the entire document or a large text.",
-    ConversationCommand.Research: "To use when you need to do DEEP research on a topic. This will take longer than usual, but give a more detailed, comprehensive answer.",
 }
 
 function_calling_description_for_llm = {
