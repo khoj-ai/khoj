@@ -159,9 +159,9 @@ def converse_offline(
     # Initialize Variables
     assert loaded_model is None or isinstance(loaded_model, Llama), "loaded_model must be of type Llama, if configured"
     offline_chat_model = loaded_model or download_model(model, max_tokens=max_prompt_size)
-    compiled_references = "\n\n".join({f"# File: {item['file']}\n## {item['compiled']}\n" for item in references})
     tracer["chat_model"] = model
 
+    compiled_references = "\n\n".join({f"# File: {item['file']}\n## {item['compiled']}\n" for item in references})
     current_date = datetime.now()
 
     if agent and agent.personality:
