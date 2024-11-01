@@ -149,7 +149,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         }
 
         let messageToSend = message.trim();
-        if (useResearchMode) {
+        if (useResearchMode && !messageToSend.startsWith("/research")) {
             messageToSend = `/research ${messageToSend}`;
         }
 
