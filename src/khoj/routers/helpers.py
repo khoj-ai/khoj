@@ -1372,7 +1372,7 @@ class ConversationCommandRateLimiter:
         self.slug = slug
         self.trial_rate_limit = trial_rate_limit
         self.subscribed_rate_limit = subscribed_rate_limit
-        self.restricted_commands = [ConversationCommand.Online, ConversationCommand.Image]
+        self.restricted_commands = [ConversationCommand.Research]
 
     async def update_and_check_if_valid(self, request: Request, conversation_command: ConversationCommand):
         if state.billing_enabled is False:

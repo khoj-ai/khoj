@@ -76,7 +76,7 @@ from khoj.utils.rawconfig import FileFilterRequest, FilesFilterRequest, Location
 # Initialize Router
 logger = logging.getLogger(__name__)
 conversation_command_rate_limiter = ConversationCommandRateLimiter(
-    trial_rate_limit=100, subscribed_rate_limit=6000, slug="command"
+    trial_rate_limit=20, subscribed_rate_limit=75, slug="command"
 )
 
 
@@ -555,10 +555,10 @@ async def chat(
     common: CommonQueryParams,
     body: ChatRequestBody,
     rate_limiter_per_minute=Depends(
-        ApiUserRateLimiter(requests=60, subscribed_requests=200, window=60, slug="chat_minute")
+        ApiUserRateLimiter(requests=5, subscribed_requests=20, window=60, slug="chat_minute")
     ),
     rate_limiter_per_day=Depends(
-        ApiUserRateLimiter(requests=600, subscribed_requests=6000, window=60 * 60 * 24, slug="chat_day")
+        ApiUserRateLimiter(requests=100, subscribed_requests=600, window=60 * 60 * 24, slug="chat_day")
     ),
     image_rate_limiter=Depends(ApiImageRateLimiter(max_images=10, max_combined_size_mb=20)),
 ):
