@@ -710,7 +710,6 @@ async def chat(
         meta_log = conversation.conversation_log
         is_automated_task = conversation_commands == [ConversationCommand.AutomatedTask]
 
-        pending_research = True
         researched_results = ""
         online_results: Dict = dict()
         code_results: Dict = dict()
@@ -729,6 +728,16 @@ async def chat(
                 agent=agent,
                 tracer=tracer,
             )
+
+            # If we're doing research, we don't want to do anything else
+            if ConversationCommand.Research in conversation_commands:
+                conversation_commands = [ConversationCommand.Research]
+
+            conversation_commands_str = ", ".join([cmd.value for cmd in conversation_commands])
+            async for result in send_event(
+                ChatEvent.STATUS, f"**Chose Data Sources to Search:** {conversation_commands_str}"
+            ):
+                yield result
 
             mode = await aget_relevant_output_modes(
                 q, meta_log, is_automated_task, user, uploaded_images, agent, tracer=tracer
@@ -759,7 +768,6 @@ async def chat(
             ):
                 if isinstance(research_result, InformationCollectionIteration):
                     if research_result.summarizedResult:
-                        pending_research = False
                         if research_result.onlineContext:
                             online_results.update(research_result.onlineContext)
                         if research_result.codeContext:
@@ -773,10 +781,11 @@ async def chat(
                     yield research_result
 
             # researched_results = await extract_relevant_info(q, researched_results, agent)
-
             logger.info(f"Researched Results: {researched_results}")
 
-            pending_research = False
+        for cmd in conversation_commands:
+            await conversation_command_rate_limiter.update_and_check_if_valid(request, cmd)
+            q = q.replace(f"/{cmd.value}", "").strip()
 
         used_slash_summarize = conversation_commands == [ConversationCommand.Summarize]
         file_filters = conversation.file_filters if conversation else []
@@ -788,11 +797,9 @@ async def chat(
             and not used_slash_summarize
             # but we can't actually summarize
             and len(file_filters) != 1
-            # not pending research
-            and not pending_research
         ):
             conversation_commands.remove(ConversationCommand.Summarize)
-        elif ConversationCommand.Summarize in conversation_commands and pending_research:
+        elif ConversationCommand.Summarize in conversation_commands:
             response_log = ""
             agent_has_entries = await EntryAdapters.aagent_has_entries(agent)
             if len(file_filters) == 0 and not agent_has_entries:
@@ -886,7 +893,7 @@ async def chat(
 
         # Gather Context
         ## Extract Document References
-        if pending_research:
+        if not ConversationCommand.Research in conversation_commands:
             try:
                 async for result in extract_references_and_questions(
                     request,
@@ -933,99 +940,96 @@ async def chat(
         if ConversationCommand.Notes in conversation_commands and is_none_or_empty(compiled_references):
             conversation_commands.remove(ConversationCommand.Notes)
 
-        if pending_research:
-            ## Gather Online References
-            if ConversationCommand.Online in conversation_commands:
-                try:
-                    async for result in search_online(
-                        defiltered_query,
-                        meta_log,
-                        location,
-                        user,
-                        partial(send_event, ChatEvent.STATUS),
-                        custom_filters,
-                        query_images=uploaded_images,
-                        agent=agent,
-                        tracer=tracer,
-                    ):
-                        if isinstance(result, dict) and ChatEvent.STATUS in result:
-                            yield result[ChatEvent.STATUS]
-                        else:
-                            online_results = result
-                except Exception as e:
-                    error_message = f"Error searching online: {e}. Attempting to respond without online results"
-                    logger.warning(error_message)
-                    async for result in send_event(
-                        ChatEvent.STATUS, "Online search failed. I'll try respond without online references"
-                    ):
-                        yield result
+        ## Gather Online References
+        if ConversationCommand.Online in conversation_commands:
+            try:
+                async for result in search_online(
+                    defiltered_query,
+                    meta_log,
+                    location,
+                    user,
+                    partial(send_event, ChatEvent.STATUS),
+                    custom_filters,
+                    query_images=uploaded_images,
+                    agent=agent,
+                    tracer=tracer,
+                ):
+                    if isinstance(result, dict) and ChatEvent.STATUS in result:
+                        yield result[ChatEvent.STATUS]
+                    else:
+                        online_results = result
+            except Exception as e:
+                error_message = f"Error searching online: {e}. Attempting to respond without online results"
+                logger.warning(error_message)
+                async for result in send_event(
+                    ChatEvent.STATUS, "Online search failed. I'll try respond without online references"
+                ):
+                    yield result
 
-        if pending_research:
-            ## Gather Webpage References
-            if ConversationCommand.Webpage in conversation_commands:
-                try:
-                    async for result in read_webpages(
-                        defiltered_query,
-                        meta_log,
-                        location,
-                        user,
-                        partial(send_event, ChatEvent.STATUS),
-                        query_images=uploaded_images,
-                        agent=agent,
-                        tracer=tracer,
-                    ):
-                        if isinstance(result, dict) and ChatEvent.STATUS in result:
-                            yield result[ChatEvent.STATUS]
-                        else:
-                            direct_web_pages = result
-                    webpages = []
-                    for query in direct_web_pages:
-                        if online_results.get(query):
-                            online_results[query]["webpages"] = direct_web_pages[query]["webpages"]
-                        else:
-                            online_results[query] = {"webpages": direct_web_pages[query]["webpages"]}
+        ## Gather Webpage References
+        if ConversationCommand.Webpage in conversation_commands:
+            try:
+                async for result in read_webpages(
+                    defiltered_query,
+                    meta_log,
+                    location,
+                    user,
+                    partial(send_event, ChatEvent.STATUS),
+                    query_images=uploaded_images,
+                    agent=agent,
+                    tracer=tracer,
+                ):
+                    if isinstance(result, dict) and ChatEvent.STATUS in result:
+                        yield result[ChatEvent.STATUS]
+                    else:
+                        direct_web_pages = result
+                webpages = []
+                for query in direct_web_pages:
+                    if online_results.get(query):
+                        online_results[query]["webpages"] = direct_web_pages[query]["webpages"]
+                    else:
+                        online_results[query] = {"webpages": direct_web_pages[query]["webpages"]}
 
-                        for webpage in direct_web_pages[query]["webpages"]:
-                            webpages.append(webpage["link"])
-                    async for result in send_event(ChatEvent.STATUS, f"**Read web pages**: {webpages}"):
-                        yield result
-                except Exception as e:
-                    logger.warning(
-                        f"Error reading webpages: {e}. Attempting to respond without webpage results",
-                        exc_info=True,
-                    )
-                    async for result in send_event(
-                        ChatEvent.STATUS, "Webpage read failed. I'll try respond without webpage references"
-                    ):
-                        yield result
+                    for webpage in direct_web_pages[query]["webpages"]:
+                        webpages.append(webpage["link"])
+                async for result in send_event(ChatEvent.STATUS, f"**Read web pages**: {webpages}"):
+                    yield result
+            except Exception as e:
+                logger.warning(
+                    f"Error reading webpages: {e}. Attempting to respond without webpage results",
+                    exc_info=True,
+                )
+                async for result in send_event(
+                    ChatEvent.STATUS, "Webpage read failed. I'll try respond without webpage references"
+                ):
+                    yield result
 
-        if pending_research:
-            ## Gather Code Results
-            if ConversationCommand.Code in conversation_commands and pending_research:
-                try:
-                    context = f"# Iteration 1:\n#---\nNotes:\n{compiled_references}\n\nOnline Results:{online_results}"
-                    async for result in run_code(
-                        defiltered_query,
-                        meta_log,
-                        context,
-                        location,
-                        user,
-                        partial(send_event, ChatEvent.STATUS),
-                        query_images=uploaded_images,
-                        agent=agent,
-                        tracer=tracer,
-                    ):
-                        if isinstance(result, dict) and ChatEvent.STATUS in result:
-                            yield result[ChatEvent.STATUS]
-                        else:
-                            code_results = result
-                    async for result in send_event(ChatEvent.STATUS, f"**Ran code snippets**: {len(code_results)}"):
-                        yield result
-                except ValueError as e:
-                    logger.warning(
-                        f"Failed to use code tool: {e}. Attempting to respond without code results",
-                        exc_info=True,
-                    )
+        ## Gather Code Results
+        if ConversationCommand.Code in conversation_commands:
+            try:
+                context = f"# Iteration 1:\n#---\nNotes:\n{compiled_references}\n\nOnline Results:{online_results}"
+                async for result in run_code(
+                    defiltered_query,
+                    meta_log,
+                    context,
+                    location,
+                    user,
+                    partial(send_event, ChatEvent.STATUS),
+                    query_images=uploaded_images,
+                    agent=agent,
+                    tracer=tracer,
+                ):
+                    if isinstance(result, dict) and ChatEvent.STATUS in result:
+                        yield result[ChatEvent.STATUS]
+                    else:
+                        code_results = result
+                async for result in send_event(ChatEvent.STATUS, f"**Ran code snippets**: {len(code_results)}"):
+                    yield result
+            except ValueError as e:
+                logger.warning(
+                    f"Failed to use code tool: {e}. Attempting to respond without code results",
+                    exc_info=True,
+                )
 
         ## Send Gathered References
         async for result in send_event(
