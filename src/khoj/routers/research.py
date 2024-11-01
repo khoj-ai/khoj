@@ -1,12 +1,11 @@
 import json
 import logging
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 import yaml
 from fastapi import Request
 
-from khoj.database.adapters import ConversationAdapters, EntryAdapters
 from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
