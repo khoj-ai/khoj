@@ -160,8 +160,6 @@ def converse_offline(
     assert loaded_model is None or isinstance(loaded_model, Llama), "loaded_model must be of type Llama, if configured"
     offline_chat_model = loaded_model or download_model(model, max_tokens=max_prompt_size)
     tracer["chat_model"] = model
-
-    compiled_references = "\n\n".join({f"# File: {item['file']}\n## {item['compiled']}\n" for item in references})
     current_date = datetime.now()
 
     if agent and agent.personality:
@@ -203,7 +201,7 @@ def converse_offline(
 
         context_message += f"{prompts.online_search_conversation_offline.format(online_results=yaml_dump(simplified_online_results))}\n\n"
     if ConversationCommand.Code in conversation_commands and not is_none_or_empty(code_results):
-        context_message += f"{prompts.code_executed_context.format(code_results=yaml_dump(code_results))}\n\n"
+        context_message += f"{prompts.code_executed_context.format(code_results=str(code_results))}\n\n"
     context_message = context_message.strip()
 
     # Setup Prompt with Primer or Conversation History

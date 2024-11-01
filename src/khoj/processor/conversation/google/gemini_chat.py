@@ -193,7 +193,7 @@ def converse_gemini(
     if ConversationCommand.Online in conversation_commands or ConversationCommand.Webpage in conversation_commands:
         context_message += f"{prompts.online_search_conversation.format(online_results=yaml_dump(online_results))}\n\n"
     if ConversationCommand.Code in conversation_commands and not is_none_or_empty(code_results):
-        context_message += f"{prompts.code_executed_context.format(code_results=yaml_dump(code_results))}\n\n"
+        context_message += f"{prompts.code_executed_context.format(code_results=str(code_results))}\n\n"
     context_message = context_message.strip()
 
     # Setup Prompt with Primer or Conversation History
