@@ -12,6 +12,7 @@ from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
     ChatEvent,
+    clean_code_python,
     clean_json,
     construct_chat_history,
 )
@@ -126,13 +127,18 @@ async def execute_sandboxed_python(code: str, sandbox_url: str = SANDBOX_URL) ->
     Returns the result of the code execution as a dictionary.
     """
     headers = {"Content-Type": "application/json"}
-    data = {"code": code}
+    cleaned_code = clean_code_python(code)
+    data = {"code": cleaned_code}
 
     async with aiohttp.ClientSession() as session:
         async with session.post(sandbox_url, json=data, headers=headers) as response:
             if response.status == 200:
                 result: dict[str, Any] = await response.json()
-                result["code"] = code
+                result["code"] = cleaned_code
                 return result
             else:
-                return {"code": code, "success": False, "std_err": f"Failed to execute code with {response.status}"}
+                return {
+                    "code": cleaned_code,
+                    "success": False,
+                    "std_err": f"Failed to execute code with {response.status}",
+                }

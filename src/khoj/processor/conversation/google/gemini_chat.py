@@ -116,8 +116,10 @@ def gemini_send_message_to_model(
     messages, system_prompt = format_messages_for_gemini(messages)
 
     model_kwargs = {}
-    if response_type == "json_object":
-        model_kwargs["response_mime_type"] = "application/json"
+
+    # Sometimes, this causes unwanted behavior and terminates response early. Disable for now while it's flaky.
+    # if response_type == "json_object":
+    #     model_kwargs["response_mime_type"] = "application/json"
 
     # Get Response from Gemini
     return gemini_completion_with_backoff(

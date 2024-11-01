@@ -447,6 +447,11 @@ def clean_json(response: str):
     return response.strip().replace("\n", "").removeprefix("```json").removesuffix("```")
 
 
+def clean_code_python(code: str):
+    """Remove any markdown codeblock and newline formatting if present. Useful for non schema enforceable models"""
+    return code.strip().removeprefix("```python").removesuffix("```")
+
+
 def defilter_query(query: str):
     """Remove any query filters in query"""
     defiltered_query = query
