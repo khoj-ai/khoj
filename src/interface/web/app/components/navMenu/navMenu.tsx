@@ -26,6 +26,17 @@ import { Moon, Sun, UserCircle, Question, GearFine, ArrowRight } from "@phosphor
 import { KhojAgentLogo, KhojAutomationLogo, KhojSearchLogo } from "../logo/khojLogo";
 import { useIsMobileWidth } from "@/app/common/utils";
 
+function SubscriptionBadge({ is_active }: { is_active: boolean }) {
+    return (
+        <div className="flex flex-row items-center">
+            <div
+                className={`w-3 h-3 rounded-full ${is_active ? "bg-yellow-500" : "bg-muted"} mr-1`}
+            ></div>
+            <p className="text-xs">{is_active ? "Futurist" : "Free"}</p>
+        </div>
+    );
+}
+
 export default function NavMenu() {
     const userData = useAuthenticatedData();
     const [darkMode, setDarkMode] = useState(false);
@@ -85,8 +96,9 @@ export default function NavMenu() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="gap-2">
                         <DropdownMenuItem className="w-full">
-                            <div className="flex flex-rows">
+                            <div className="flex flex-col">
                                 <p className="font-semibold">{userData?.email}</p>
+                                <SubscriptionBadge is_active={userData?.is_active ?? false} />
                             </div>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -192,8 +204,9 @@ export default function NavMenu() {
                         </MenubarTrigger>
                         <MenubarContent align="end" className="rounded-xl gap-2">
                             <MenubarItem className="w-full">
-                                <div className="flex flex-rows">
+                                <div className="flex flex-col">
                                     <p className="font-semibold">{userData?.email}</p>
+                                    <SubscriptionBadge is_active={userData?.is_active ?? false} />
                                 </div>
                             </MenubarItem>
                             <MenubarSeparator className="dark:bg-white height-[2px] bg-black" />
