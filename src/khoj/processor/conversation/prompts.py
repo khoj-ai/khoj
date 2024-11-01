@@ -193,7 +193,6 @@ you need to convert the user's query to a description format that the novice art
 - ellipse
 - line
 - arrow
-- frame
 
 use these primitives to describe what sort of diagram the drawer should create. the artist must recreate the diagram every time, so include all relevant prior information in your description.
 
@@ -282,21 +281,6 @@ For text, you must use the `text` property to specify the text to be rendered. Y
     y: number,
     fontSize: number,
     text: string,
-}}
-
-For frames, use the `children` property to specify the elements that are inside the frame by their ids.
-
-{{
-    type: "frame",
-    id: string,
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    name: string,
-    children: [
-        string
-    ]
 }}
 
 Here's an example of a valid diagram:
