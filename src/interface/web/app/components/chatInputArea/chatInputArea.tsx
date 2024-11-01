@@ -590,8 +590,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent className="text-xs">
-                            Research Mode allows you to get more deeply researched, detailed
-                            responses. Response times may be longer.
+                            (Experimental) Research Mode allows you to get more deeply researched,
+                            detailed responses. Response times may be longer.
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
