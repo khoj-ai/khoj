@@ -13,13 +13,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { InlineLoading } from "../loading/loading";
 
-import { Lightbulb, ArrowDown } from "@phosphor-icons/react";
+import { Lightbulb, ArrowDown, XCircle } from "@phosphor-icons/react";
 
 import AgentProfileCard from "../profileCard/profileCard";
 import { getIconFromIconName } from "@/app/common/iconUtils";
 import { AgentData } from "@/app/agents/page";
 import React from "react";
 import { useIsMobileWidth } from "@/app/common/utils";
+import { Button } from "@/components/ui/button";
 
 interface ChatResponse {
     status: string;
@@ -40,26 +41,54 @@ interface ChatHistoryProps {
     customClassName?: string;
 }
 
-function constructTrainOfThought(
-    trainOfThought: string[],
-    lastMessage: boolean,
-    agentColor: string,
-    key: string,
-    completed: boolean = false,
-) {
-    const lastIndex = trainOfThought.length - 1;
-    return (
-        <div className={`${styles.trainOfThought} shadow-sm`} key={key}>
-            {!completed && <InlineLoading className="float-right" />}
+interface TrainOfThoughtComponentProps {
+    trainOfThought: string[];
+    lastMessage: boolean;
+    agentColor: string;
+    key: string;
+    completed?: boolean;
+}
 
-            {trainOfThought.map((train, index) => (
-                <TrainOfThought
-                    key={`train-${index}`}
-                    message={train}
-                    primary={index === lastIndex && lastMessage && !completed}
-                    agentColor={agentColor}
-                />
-            ))}
+function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
+    const lastIndex = props.trainOfThought.length - 1;
+    const [collapsed, setCollapsed] = useState(props.completed);
+
+    return (
+        <div
+            className={`${!collapsed ? styles.trainOfThought + " shadow-sm" : ""}`}
+            key={props.key}
+        >
+            {!props.completed && <InlineLoading className="float-right" />}
+            {props.completed &&
+                (collapsed ? (
+                    <Button
+                        className="w-fit text-left justify-start content-start text-xs"
+                        onClick={() => setCollapsed(false)}
+                        variant="ghost"
+                        size="sm"
+                    >
+                        What was my train of thought?
+                    </Button>
+                ) : (
+                    <Button
+                        className="w-fit text-left justify-start content-start text-xs p-0 h-fit"
+                        onClick={() => setCollapsed(true)}
+                        variant="ghost"
+                        size="sm"
+                    >
+                        <XCircle size={16} className="mr-1" />
+                        Close
+                    </Button>
+                ))}
+            {!collapsed &&
+                props.trainOfThought.map((train, index) => (
+                    <TrainOfThought
+                        key={`train-${index}`}
+                        message={train}
+                        primary={index === lastIndex && props.lastMessage && !props.completed}
+                        agentColor={props.agentColor}
+                    />
+                ))}
         </div>
     );
 }
@@ -254,36 +283,48 @@ export default function ChatHistory(props: ChatHistoryProps) {
     }
 
     return (
-        <ScrollArea className={`h-[80vh] relative`} ref={scrollAreaRef}>
+        <ScrollArea className={`h-[73vh] relative`} ref={scrollAreaRef}>
             <div>
                 <div className={`${styles.chatHistory} ${props.customClassName}`}>
                     <div ref={sentinelRef} style={{ height: "1px" }}>
-                        {fetchingData && (
-                            <InlineLoading message="Loading Conversation" className="opacity-50" />
-                        )}
+                        {fetchingData && <InlineLoading className="opacity-50" />}
                     </div>
                     {data &&
                         data.chat &&
                         data.chat.map((chatMessage, index) => (
-                            <ChatMessage
-                                key={`${index}fullHistory`}
-                                ref={
-                                    // attach ref to the second last message to handle scroll on page load
-                                    index === data.chat.length - 2
-                                        ? latestUserMessageRef
-                                        : // attach ref to the newest fetched message to handle scroll on fetch
-                                          // note: stabilize index selection against last page having less messages than fetchMessageCount
-                                          index ===
-                                            data.chat.length - (currentPage - 1) * fetchMessageCount
-                                          ? latestFetchedMessageRef
-                                          : null
-                                }
-                                isMobileWidth={isMobileWidth}
-                                chatMessage={chatMessage}
-                                customClassName="fullHistory"
-                                borderLeftColor={`${data?.agent?.color}-500`}
-                                isLastMessage={index === data.chat.length - 1}
-                            />
+                            <>
+                                <ChatMessage
+                                    key={`${index}fullHistory`}
+                                    ref={
+                                        // attach ref to the second last message to handle scroll on page load
+                                        index === data.chat.length - 2
+                                            ? latestUserMessageRef
+                                            : // attach ref to the newest fetched message to handle scroll on fetch
+                                              // note: stabilize index selection against last page having less messages than fetchMessageCount
+                                              index ===
+                                                data.chat.length -
+                                                    (currentPage - 1) * fetchMessageCount
+                                              ? latestFetchedMessageRef
+                                              : null
+                                    }
+                                    isMobileWidth={isMobileWidth}
+                                    chatMessage={chatMessage}
+                                    customClassName="fullHistory"
+                                    borderLeftColor={`${data?.agent?.color}-500`}
+                                    isLastMessage={index === data.chat.length - 1}
+                                />
+                                {chatMessage.trainOfThought && chatMessage.by === "khoj" && (
+                                    <TrainOfThoughtComponent
+                                        trainOfThought={chatMessage.trainOfThought?.map(
+                                            (train) => train.data,
+                                        )}
+                                        lastMessage={false}
+                                        agentColor={data?.agent?.color || "orange"}
+                                        key={`${index}trainOfThought`}
+                                        completed={true}
+                                    />
+                                )}
+                            </>
                         ))}
                     {props.incomingMessages &&
                         props.incomingMessages.map((message, index) => {
@@ -296,6 +337,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                             message: message.rawQuery,
                                             context: [],
                                             onlineContext: {},
+                                            codeContext: {},
                                             created: message.timestamp,
                                             by: "you",
                                             automationId: "",
@@ -304,14 +346,15 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         customClassName="fullHistory"
                                         borderLeftColor={`${data?.agent?.color}-500`}
                                     />
-                                    {message.trainOfThought &&
-                                        constructTrainOfThought(
-                                            message.trainOfThought,
-                                            index === incompleteIncomingMessageIndex,
-                                            data?.agent?.color || "orange",
-                                            `${index}trainOfThought`,
-                                            message.completed,
-                                        )}
+                                    {message.trainOfThought && (
+                                        <TrainOfThoughtComponent
+                                            trainOfThought={message.trainOfThought}
+                                            lastMessage={index === incompleteIncomingMessageIndex}
+                                            agentColor={data?.agent?.color || "orange"}
+                                            key={`${index}trainOfThought`}
+                                            completed={message.completed}
+                                        />
+                                    )}
                                     <ChatMessage
                                         key={`${index}incoming`}
                                         isMobileWidth={isMobileWidth}
@@ -319,6 +362,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                             message: message.rawResponse,
                                             context: message.context,
                                             onlineContext: message.onlineContext,
+                                            codeContext: message.codeContext,
                                             created: message.timestamp,
                                             by: "khoj",
                                             automationId: "",
@@ -345,6 +389,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                 message: props.pendingMessage,
                                 context: [],
                                 onlineContext: {},
+                                codeContext: {},
                                 created: new Date().getTime().toString(),
                                 by: "you",
                                 automationId: "",
@@ -372,7 +417,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                         </div>
                     )}
                 </div>
-                <div className={`${props.customClassName} fixed bottom-[15%] z-10`}>
+                <div className={`${props.customClassName} fixed bottom-[20%] z-10`}>
                     {!isNearBottom && (
                         <button
                             title="Scroll to bottom"

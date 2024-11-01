@@ -19,6 +19,7 @@ from khoj.utils import state
 from khoj.utils.constants import empty_escape_sequences
 from khoj.utils.helpers import ConversationCommand, in_debug_mode, is_none_or_empty
 from khoj.utils.rawconfig import LocationData
+from khoj.utils.yaml import yaml_dump
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +139,8 @@ def filter_questions(questions: List[str]):
 def converse_offline(
     user_query,
     references=[],
-    online_results=[],
+    online_results={},
+    code_results={},
     conversation_log={},
     model: str = "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
     loaded_model: Union[Any, None] = None,
@@ -158,8 +160,6 @@ def converse_offline(
     assert loaded_model is None or isinstance(loaded_model, Llama), "loaded_model must be of type Llama, if configured"
     offline_chat_model = loaded_model or download_model(model, max_tokens=max_prompt_size)
     tracer["chat_model"] = model
-
-    compiled_references = "\n\n".join({f"# File: {item['file']}\n## {item['compiled']}\n" for item in references})
     current_date = datetime.now()
 
     if agent and agent.personality:
@@ -184,24 +184,25 @@ def converse_offline(
         system_prompt = f"{system_prompt}\n{user_name_prompt}"
 
     # Get Conversation Primer appropriate to Conversation Type
-    if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(compiled_references):
+    if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(references):
         return iter([prompts.no_notes_found.format()])
     elif conversation_commands == [ConversationCommand.Online] and is_none_or_empty(online_results):
         completion_func(chat_response=prompts.no_online_results_found.format())
         return iter([prompts.no_online_results_found.format()])
 
     context_message = ""
-    if not is_none_or_empty(compiled_references):
-        context_message += f"{prompts.notes_conversation_offline.format(references=compiled_references)}\n\n"
+    if not is_none_or_empty(references):
+        context_message = f"{prompts.notes_conversation_offline.format(references=yaml_dump(references))}\n\n"
     if ConversationCommand.Online in conversation_commands or ConversationCommand.Webpage in conversation_commands:
         simplified_online_results = online_results.copy()
         for result in online_results:
             if online_results[result].get("webpages"):
                 simplified_online_results[result] = online_results[result]["webpages"]
 
-        context_message += (
-            f"{prompts.online_search_conversation_offline.format(online_results=str(simplified_online_results))}"
-        )
+        context_message += f"{prompts.online_search_conversation_offline.format(online_results=yaml_dump(simplified_online_results))}\n\n"
+    if ConversationCommand.Code in conversation_commands and not is_none_or_empty(code_results):
+        context_message += f"{prompts.code_executed_context.format(code_results=str(code_results))}\n\n"
+    context_message = context_message.strip()
 
     # Setup Prompt with Primer or Conversation History
     messages = generate_chatml_messages_with_context(

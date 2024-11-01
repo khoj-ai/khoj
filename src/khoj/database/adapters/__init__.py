@@ -662,6 +662,8 @@ class AgentAdapters:
 
     @staticmethod
     async def ais_agent_accessible(agent: Agent, user: KhojUser) -> bool:
+        agent = await Agent.objects.select_related("creator").aget(pk=agent.pk)
+
         if agent.privacy_level == Agent.PrivacyLevel.PUBLIC:
             return True
         if agent.creator == user:
@@ -871,9 +873,13 @@ class ConversationAdapters:
             agent = await AgentAdapters.aget_readonly_agent_by_slug(agent_slug, user)
             if agent is None:
                 raise HTTPException(status_code=400, detail="No such agent currently exists.")
-            return await Conversation.objects.acreate(user=user, client=client_application, agent=agent, title=title)
+            return await Conversation.objects.select_related("agent", "agent__creator", "agent__chat_model").acreate(
+                user=user, client=client_application, agent=agent, title=title
+            )
         agent = await AgentAdapters.aget_default_agent()
-        return await Conversation.objects.acreate(user=user, client=client_application, agent=agent, title=title)
+        return await Conversation.objects.select_related("agent", "agent__creator", "agent__chat_model").acreate(
+            user=user, client=client_application, agent=agent, title=title
+        )
 
     @staticmethod
     def create_conversation_session(
@@ -1014,8 +1020,15 @@ class ConversationAdapters:
         """Get default conversation config. Prefer chat model by server admin > user > first created chat model"""
         # Get the server chat settings
         server_chat_settings = ServerChatSettings.objects.first()
-        if server_chat_settings is not None and server_chat_settings.chat_default is not None:
-            return server_chat_settings.chat_default
+
+        is_subscribed = is_user_subscribed(user) if user else False
+        if server_chat_settings:
+            # If the user is subscribed and the advanced model is enabled, return the advanced model
+            if is_subscribed and server_chat_settings.chat_advanced:
+                return server_chat_settings.chat_advanced
+            # If the default model is set, return it
+            if server_chat_settings.chat_default:
+                return server_chat_settings.chat_default
 
         # Get the user's chat settings, if the server chat settings are not set
         user_chat_settings = UserConversationConfig.objects.filter(user=user).first() if user else None
@@ -1031,11 +1044,20 @@ class ConversationAdapters:
         # Get the server chat settings
         server_chat_settings: ServerChatSettings = (
             await ServerChatSettings.objects.filter()
-            .prefetch_related("chat_default", "chat_default__openai_config")
+            .prefetch_related(
+                "chat_default", "chat_default__openai_config", "chat_advanced", "chat_advanced__openai_config"
+            )
             .afirst()
         )
-        if server_chat_settings is not None and server_chat_settings.chat_default is not None:
-            return server_chat_settings.chat_default
+        is_subscribed = await ais_user_subscribed(user) if user else False
+
+        if server_chat_settings:
+            # If the user is subscribed and the advanced model is enabled, return the advanced model
+            if is_subscribed and server_chat_settings.chat_advanced:
+                return server_chat_settings.chat_advanced
+            # If the default model is set, return it
+            if server_chat_settings.chat_default:
+                return server_chat_settings.chat_default
 
         # Get the user's chat settings, if the server chat settings are not set
         user_chat_settings = (
@@ -1469,7 +1491,9 @@ class EntryAdapters:
 
     @staticmethod
     async def aget_agent_entry_filepaths(agent: Agent):
-        return await sync_to_async(list)(Entry.objects.filter(agent=agent).values_list("file_path", flat=True))
+        return await sync_to_async(set)(
+            Entry.objects.filter(agent=agent).distinct("file_path").values_list("file_path", flat=True)
+        )
 
     @staticmethod
     def get_all_filenames_by_source(user: KhojUser, file_source: str):
@@ -1544,11 +1568,11 @@ class EntryAdapters:
 
     @staticmethod
     def search_with_embeddings(
-        user: KhojUser,
+        raw_query: str,
         embeddings: Tensor,
+        user: KhojUser,
         max_results: int = 10,
         file_type_filter: str = None,
-        raw_query: str = None,
         max_distance: float = math.inf,
         agent: Agent = None,
     ):

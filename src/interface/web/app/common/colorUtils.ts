@@ -42,6 +42,13 @@ export function converColorToBgGradient(color: string) {
     return `${convertToBGGradientClass(color)} dark:border dark:border-neutral-700`;
 }
 
+export function convertColorToRingClass(color: string | undefined) {
+    if (color && tailwindColors.includes(color)) {
+        return `focus-visible:ring-${color}-500`;
+    }
+    return `focus-visible:ring-orange-500`;
+}
+
 export function convertColorToBorderClass(color: string) {
     if (tailwindColors.includes(color)) {
         return `border-${color}-500`;

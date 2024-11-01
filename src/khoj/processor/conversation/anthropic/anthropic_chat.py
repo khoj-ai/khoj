@@ -14,11 +14,13 @@ from khoj.processor.conversation.anthropic.utils import (
     format_messages_for_anthropic,
 )
 from khoj.processor.conversation.utils import (
+    clean_json,
     construct_structured_message,
     generate_chatml_messages_with_context,
 )
 from khoj.utils.helpers import ConversationCommand, is_none_or_empty
 from khoj.utils.rawconfig import LocationData
+from khoj.utils.yaml import yaml_dump
 
 logger = logging.getLogger(__name__)
 
@@ -90,15 +92,13 @@ def extract_questions_anthropic(
         model_name=model,
         temperature=temperature,
         api_key=api_key,
+        response_type="json_object",
         tracer=tracer,
     )
 
     # Extract, Clean Message from Claude's Response
     try:
-        response = response.strip()
-        match = re.search(r"\{.*?\}", response)
-        if match:
-            response = match.group()
+        response = clean_json(response)
         response = json.loads(response)
         response = [q.strip() for q in response["queries"] if q.strip()]
         if not isinstance(response, list) or not response:
@@ -112,7 +112,7 @@ def extract_questions_anthropic(
     return questions
 
 
-def anthropic_send_message_to_model(messages, api_key, model, tracer={}):
+def anthropic_send_message_to_model(messages, api_key, model, response_type="text", tracer={}):
     """
     Send message to model
     """
@@ -124,6 +124,7 @@ def anthropic_send_message_to_model(messages, api_key, model, tracer={}):
         system_prompt=system_prompt,
         model_name=model,
         api_key=api_key,
+        response_type=response_type,
         tracer=tracer,
     )
 
@@ -132,6 +133,7 @@ def converse_anthropic(
     references,
     user_query,
     online_results: Optional[Dict[str, Dict]] = None,
+    code_results: Optional[Dict[str, Dict]] = None,
     conversation_log={},
     model: Optional[str] = "claude-3-5-sonnet-20241022",
     api_key: Optional[str] = None,
@@ -151,7 +153,6 @@ def converse_anthropic(
     """
     # Initialize Variables
     current_date = datetime.now()
-    compiled_references = "\n\n".join({f"# File: {item['file']}\n## {item['compiled']}\n" for item in references})
 
     if agent and agent.personality:
         system_prompt = prompts.custom_personality.format(
@@ -175,7 +176,7 @@ def converse_anthropic(
         system_prompt = f"{system_prompt}\n{user_name_prompt}"
 
     # Get Conversation Primer appropriate to Conversation Type
-    if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(compiled_references):
+    if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(references):
         completion_func(chat_response=prompts.no_notes_found.format())
         return iter([prompts.no_notes_found.format()])
     elif conversation_commands == [ConversationCommand.Online] and is_none_or_empty(online_results):
@@ -183,10 +184,13 @@ def converse_anthropic(
         return iter([prompts.no_online_results_found.format()])
 
     context_message = ""
-    if not is_none_or_empty(compiled_references):
-        context_message = f"{prompts.notes_conversation.format(query=user_query, references=compiled_references)}\n\n"
+    if not is_none_or_empty(references):
+        context_message = f"{prompts.notes_conversation.format(query=user_query, references=yaml_dump(references))}\n\n"
     if ConversationCommand.Online in conversation_commands or ConversationCommand.Webpage in conversation_commands:
-        context_message += f"{prompts.online_search_conversation.format(online_results=str(online_results))}"
+        context_message += f"{prompts.online_search_conversation.format(online_results=yaml_dump(online_results))}\n\n"
+    if ConversationCommand.Code in conversation_commands and not is_none_or_empty(code_results):
+        context_message += f"{prompts.code_executed_context.format(code_results=str(code_results))}\n\n"
+    context_message = context_message.strip()
 
     # Setup Prompt with Primer or Conversation History
     messages = generate_chatml_messages_with_context(

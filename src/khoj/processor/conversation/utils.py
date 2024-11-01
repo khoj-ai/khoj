@@ -6,9 +6,10 @@ import os
 import queue
 from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
 from io import BytesIO
 from time import perf_counter
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import PIL.Image
 import requests
@@ -23,8 +24,17 @@ from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import ChatModelOptions, ClientApplication, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.utils import download_model, infer_max_tokens
+from khoj.search_filter.base_filter import BaseFilter
+from khoj.search_filter.date_filter import DateFilter
+from khoj.search_filter.file_filter import FileFilter
+from khoj.search_filter.word_filter import WordFilter
 from khoj.utils import state
-from khoj.utils.helpers import in_debug_mode, is_none_or_empty, merge_dicts
+from khoj.utils.helpers import (
+    ConversationCommand,
+    in_debug_mode,
+    is_none_or_empty,
+    merge_dicts,
+)
 
 logger = logging.getLogger(__name__)
 model_to_prompt_size = {
@@ -85,8 +95,105 @@ class ThreadedGenerator:
         self.queue.put(StopIteration)
 
 
+class InformationCollectionIteration:
+    def __init__(
+        self,
+        tool: str,
+        query: str,
+        context: list = None,
+        onlineContext: dict = None,
+        codeContext: dict = None,
+        summarizedResult: str = None,
+    ):
+        self.tool = tool
+        self.query = query
+        self.context = context
+        self.onlineContext = onlineContext
+        self.codeContext = codeContext
+        self.summarizedResult = summarizedResult
+
+
+def construct_iteration_history(
+    previous_iterations: List[InformationCollectionIteration], previous_iteration_prompt: str
+) -> str:
+    previous_iterations_history = ""
+    for idx, iteration in enumerate(previous_iterations):
+        iteration_data = previous_iteration_prompt.format(
+            tool=iteration.tool,
+            query=iteration.query,
+            result=iteration.summarizedResult,
+            index=idx + 1,
+        )
+
+        previous_iterations_history += iteration_data
+    return previous_iterations_history
+
+
+def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:
+    chat_history = ""
+    for chat in conversation_history.get("chat", [])[-n:]:
+        if chat["by"] == "khoj" and chat["intent"].get("type") in ["remember", "reminder", "summarize"]:
+            chat_history += f"User: {chat['intent']['query']}\n"
+            chat_history += f"{agent_name}: {chat['message']}\n"
+        elif chat["by"] == "khoj" and ("text-to-image" in chat["intent"].get("type")):
+            chat_history += f"User: {chat['intent']['query']}\n"
+            chat_history += f"{agent_name}: [generated image redacted for space]\n"
+        elif chat["by"] == "khoj" and ("excalidraw" in chat["intent"].get("type")):
+            chat_history += f"User: {chat['intent']['query']}\n"
+            chat_history += f"{agent_name}: {chat['intent']['inferred-queries'][0]}\n"
+    return chat_history
+
+
+def construct_tool_chat_history(
+    previous_iterations: List[InformationCollectionIteration], tool: ConversationCommand = None
+) -> Dict[str, list]:
+    chat_history: list = []
+    inferred_query_extractor: Callable[[InformationCollectionIteration], List[str]] = lambda x: []
+    if tool == ConversationCommand.Notes:
+        inferred_query_extractor = (
+            lambda iteration: [c["query"] for c in iteration.context] if iteration.context else []
+        )
+    elif tool == ConversationCommand.Online:
+        inferred_query_extractor = (
+            lambda iteration: list(iteration.onlineContext.keys()) if iteration.onlineContext else []
+        )
+    elif tool == ConversationCommand.Code:
+        inferred_query_extractor = lambda iteration: list(iteration.codeContext.keys()) if iteration.codeContext else []
+    for iteration in previous_iterations:
+        chat_history += [
+            {
+                "by": "you",
+                "message": iteration.query,
+            },
+            {
+                "by": "khoj",
+                "intent": {
+                    "type": "remember",
+                    "inferred-queries": inferred_query_extractor(iteration),
+                    "query": iteration.query,
+                },
+                "message": iteration.summarizedResult,
+            },
+        ]
+
+    return {"chat": chat_history}
+
+
+class ChatEvent(Enum):
+    START_LLM_RESPONSE = "start_llm_response"
+    END_LLM_RESPONSE = "end_llm_response"
+    MESSAGE = "message"
+    REFERENCES = "references"
+    STATUS = "status"
+
+
 def message_to_log(
-    user_message, chat_response, user_message_metadata={}, khoj_message_metadata={}, conversation_log=[]
+    user_message,
+    chat_response,
+    user_message_metadata={},
+    khoj_message_metadata={},
+    conversation_log=[],
+    train_of_thought=[],
 ):
     """Create json logs from messages, metadata for conversation log"""
     default_khoj_message_metadata = {
@@ -114,6 +221,7 @@ def save_to_conversation_log(
     user_message_time: str = None,
     compiled_references: List[Dict[str, Any]] = [],
     online_results: Dict[str, Any] = {},
+    code_results: Dict[str, Any] = {},
     inferred_queries: List[str] = [],
     intent_type: str = "remember",
     client_application: ClientApplication = None,
@@ -121,6 +229,7 @@ def save_to_conversation_log(
     automation_id: str = None,
     query_images: List[str] = None,
     tracer: Dict[str, Any] = {},
+    train_of_thought: List[Any] = [],
 ):
     user_message_time = user_message_time or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     updated_conversation = message_to_log(
@@ -134,9 +243,12 @@ def save_to_conversation_log(
             "context": compiled_references,
             "intent": {"inferred-queries": inferred_queries, "type": intent_type},
             "onlineContext": online_results,
+            "codeContext": code_results,
             "automationId": automation_id,
+            "trainOfThought": train_of_thought,
         },
         conversation_log=meta_log.get("chat", []),
+        train_of_thought=train_of_thought,
     )
     ConversationAdapters.save_conversation(
         user,
@@ -330,9 +442,23 @@ def reciprocal_conversation_to_chatml(message_pair):
     return [ChatMessage(content=message, role=role) for message, role in zip(message_pair, ["user", "assistant"])]
 
 
-def remove_json_codeblock(response: str):
-    """Remove any markdown json codeblock formatting if present. Useful for non schema enforceable models"""
-    return response.removeprefix("```json").removesuffix("```")
+def clean_json(response: str):
+    """Remove any markdown json codeblock and newline formatting if present. Useful for non schema enforceable models"""
+    return response.strip().replace("\n", "").removeprefix("```json").removesuffix("```")
+
+
+def clean_code_python(code: str):
+    """Remove any markdown codeblock and newline formatting if present. Useful for non schema enforceable models"""
+    return code.strip().removeprefix("```python").removesuffix("```")
+
+
+def defilter_query(query: str):
+    """Remove any query filters in query"""
+    defiltered_query = query
+    filters: List[BaseFilter] = [WordFilter(), FileFilter(), DateFilter()]
+    for filter in filters:
+        defiltered_query = filter.defilter(defiltered_query)
+    return defiltered_query
 
 
 @dataclass

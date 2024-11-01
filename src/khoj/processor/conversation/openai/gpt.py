@@ -12,12 +12,13 @@ from khoj.processor.conversation.openai.utils import (
     completion_with_backoff,
 )
 from khoj.processor.conversation.utils import (
+    clean_json,
     construct_structured_message,
     generate_chatml_messages_with_context,
-    remove_json_codeblock,
 )
 from khoj.utils.helpers import ConversationCommand, is_none_or_empty
 from khoj.utils.rawconfig import LocationData
+from khoj.utils.yaml import yaml_dump
 
 logger = logging.getLogger(__name__)
 
@@ -94,8 +95,7 @@ def extract_questions(
 
     # Extract, Clean Message from GPT's Response
     try:
-        response = response.strip()
-        response = remove_json_codeblock(response)
+        response = clean_json(response)
         response = json.loads(response)
         response = [q.strip() for q in response["queries"] if q.strip()]
         if not isinstance(response, list) or not response:
@@ -133,6 +133,7 @@ def converse(
     references,
     user_query,
     online_results: Optional[Dict[str, Dict]] = None,
+    code_results: Optional[Dict[str, Dict]] = None,
     conversation_log={},
     model: str = "gpt-4o-mini",
     api_key: Optional[str] = None,
@@ -154,7 +155,6 @@ def converse(
     """
     # Initialize Variables
     current_date = datetime.now()
-    compiled_references = "\n\n".join({f"# File: {item['file']}\n## {item['compiled']}\n" for item in references})
 
     if agent and agent.personality:
         system_prompt = prompts.custom_personality.format(
@@ -178,7 +178,7 @@ def converse(
         system_prompt = f"{system_prompt}\n{user_name_prompt}"
 
     # Get Conversation Primer appropriate to Conversation Type
-    if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(compiled_references):
+    if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(references):
         completion_func(chat_response=prompts.no_notes_found.format())
         return iter([prompts.no_notes_found.format()])
     elif conversation_commands == [ConversationCommand.Online] and is_none_or_empty(online_results):
@@ -186,10 +186,13 @@ def converse(
         return iter([prompts.no_online_results_found.format()])
 
     context_message = ""
-    if not is_none_or_empty(compiled_references):
-        context_message = f"{prompts.notes_conversation.format(references=compiled_references)}\n\n"
+    if not is_none_or_empty(references):
+        context_message = f"{prompts.notes_conversation.format(references=yaml_dump(references))}\n\n"
     if not is_none_or_empty(online_results):
-        context_message += f"{prompts.online_search_conversation.format(online_results=str(online_results))}"
+        context_message += f"{prompts.online_search_conversation.format(online_results=yaml_dump(online_results))}\n\n"
+    if not is_none_or_empty(code_results):
+        context_message += f"{prompts.code_executed_context.format(code_results=str(code_results))}\n\n"
+    context_message = context_message.strip()
 
     # Setup Prompt with Primer or Conversation History
     messages = generate_chatml_messages_with_context(

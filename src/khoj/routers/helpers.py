@@ -43,6 +43,7 @@ from khoj.database.adapters import (
     AutomationAdapters,
     ConversationAdapters,
     EntryAdapters,
+    FileObjectAdapters,
     ais_user_subscribed,
     create_khoj_token,
     get_khoj_tokens,
@@ -87,9 +88,11 @@ from khoj.processor.conversation.offline.chat_model import (
 )
 from khoj.processor.conversation.openai.gpt import converse, send_message_to_model
 from khoj.processor.conversation.utils import (
+    ChatEvent,
     ThreadedGenerator,
+    clean_json,
+    construct_chat_history,
     generate_chatml_messages_with_context,
-    remove_json_codeblock,
     save_to_conversation_log,
 )
 from khoj.processor.speech.text_to_speech import is_eleven_labs_enabled
@@ -137,7 +140,7 @@ def validate_conversation_config(user: KhojUser):
 async def is_ready_to_chat(user: KhojUser):
     user_conversation_config = await ConversationAdapters.aget_user_conversation_config(user)
     if user_conversation_config == None:
-        user_conversation_config = await ConversationAdapters.aget_default_conversation_config()
+        user_conversation_config = await ConversationAdapters.aget_default_conversation_config(user)
 
     if user_conversation_config and user_conversation_config.model_type == ChatModelOptions.ModelType.OFFLINE:
         chat_model = user_conversation_config.chat_model
@@ -210,21 +213,6 @@ def get_next_url(request: Request) -> str:
     return urljoin(str(request.base_url).rstrip("/"), next_path)
 
 
-def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:
-    chat_history = ""
-    for chat in conversation_history.get("chat", [])[-n:]:
-        if chat["by"] == "khoj" and chat["intent"].get("type") in ["remember", "reminder", "summarize"]:
-            chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += f"{agent_name}: {chat['message']}\n"
-        elif chat["by"] == "khoj" and ("text-to-image" in chat["intent"].get("type")):
-            chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += f"{agent_name}: [generated image redacted for space]\n"
-        elif chat["by"] == "khoj" and ("excalidraw" in chat["intent"].get("type")):
-            chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += f"{agent_name}: {chat['intent']['inferred-queries'][0]}\n"
-    return chat_history
-
-
 def get_conversation_command(query: str, any_references: bool = False) -> ConversationCommand:
     if query.startswith("/notes"):
         return ConversationCommand.Notes
@@ -244,6 +232,10 @@ def get_conversation_command(query: str, any_references: bool = False) -> Conver
         return ConversationCommand.Summarize
     elif query.startswith("/diagram"):
         return ConversationCommand.Diagram
+    elif query.startswith("/code"):
+        return ConversationCommand.Code
+    elif query.startswith("/research"):
+        return ConversationCommand.Research
     # If no relevant notes found for the given query
     elif not any_references:
         return ConversationCommand.General
@@ -342,8 +334,7 @@ async def aget_relevant_information_sources(
         )
 
     try:
-        response = response.strip()
-        response = remove_json_codeblock(response)
+        response = clean_json(response)
         response = json.loads(response)
         response = [q.strip() for q in response["source"] if q.strip()]
         if not isinstance(response, list) or not response or len(response) == 0:
@@ -421,8 +412,7 @@ async def aget_relevant_output_modes(
         )
 
     try:
-        response = response.strip()
-        response = remove_json_codeblock(response)
+        response = clean_json(response)
         response = json.loads(response)
 
         if is_none_or_empty(response):
@@ -483,7 +473,7 @@ async def infer_webpage_urls(
 
     # Validate that the response is a non-empty, JSON-serializable list of URLs
     try:
-        response = response.strip()
+        response = clean_json(response)
         urls = json.loads(response)
         valid_unique_urls = {str(url).strip() for url in urls["links"] if is_valid_url(url)}
         if is_none_or_empty(valid_unique_urls):
@@ -534,8 +524,7 @@ async def generate_online_subqueries(
 
     # Validate that the response is a non-empty, JSON-serializable list
     try:
-        response = response.strip()
-        response = remove_json_codeblock(response)
+        response = clean_json(response)
         response = json.loads(response)
         response = [q.strip() for q in response["queries"] if q.strip()]
         if not isinstance(response, list) or not response or len(response) == 0:
@@ -642,6 +631,53 @@ async def extract_relevant_summary(
             tracer=tracer,
         )
     return response.strip()
+
+
+async def generate_summary_from_files(
+    q: str,
+    user: KhojUser,
+    file_filters: List[str],
+    meta_log: dict,
+    query_images: List[str] = None,
+    agent: Agent = None,
+    send_status_func: Optional[Callable] = None,
+    tracer: dict = {},
+):
+    try:
+        file_object = None
+        if await EntryAdapters.aagent_has_entries(agent):
+            file_names = await EntryAdapters.aget_agent_entry_filepaths(agent)
+            if len(file_names) > 0:
+                file_object = await FileObjectAdapters.async_get_file_objects_by_name(None, file_names.pop(), agent)
+
+        if len(file_filters) > 0:
+            file_object = await FileObjectAdapters.async_get_file_objects_by_name(user, file_filters[0])
+
+        if len(file_object) == 0:
+            response_log = "Sorry, I couldn't find the full text of this file."
+            yield response_log
+            return
+        contextual_data = " ".join([file.raw_text for file in file_object])
+        if not q:
+            q = "Create a general summary of the file"
+        async for result in send_status_func(f"**Constructing Summary Using:** {file_object[0].file_name}"):
+            yield {ChatEvent.STATUS: result}
+
+        response = await extract_relevant_summary(
+            q,
+            contextual_data,
+            conversation_history=meta_log,
+            query_images=query_images,
+            user=user,
+            agent=agent,
+            tracer=tracer,
+        )
+
+        yield str(response)
+    except Exception as e:
+        response_log = "Error summarizing file. Please try again, or contact support."
+        logger.error(f"Error summarizing file for {user.email}: {e}", exc_info=True)
+        yield result
 
 
 async def generate_excalidraw_diagram(
@@ -759,10 +795,9 @@ async def generate_excalidraw_diagram_from_description(
 
     with timer("Chat actor: Generate excalidraw diagram", logger):
         raw_response = await send_message_to_model_wrapper(
-            message=excalidraw_diagram_generation, user=user, tracer=tracer
+            query=excalidraw_diagram_generation, user=user, tracer=tracer
         )
-        raw_response = raw_response.strip()
-        raw_response = remove_json_codeblock(raw_response)
+        raw_response = clean_json(raw_response)
         response: Dict[str, str] = json.loads(raw_response)
         if not response or not isinstance(response, List) or not isinstance(response[0], Dict):
             # TODO Some additional validation here that it's a valid Excalidraw diagram
@@ -839,11 +874,12 @@ async def generate_better_image_prompt(
 
 
 async def send_message_to_model_wrapper(
-    message: str,
+    query: str,
     system_message: str = "",
     response_type: str = "text",
     user: KhojUser = None,
     query_images: List[str] = None,
+    context: str = "",
     tracer: dict = {},
 ):
     conversation_config: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config(user)
@@ -874,7 +910,8 @@ async def send_message_to_model_wrapper(
 
         loaded_model = state.offline_chat_processor_config.loaded_model
         truncated_messages = generate_chatml_messages_with_context(
-            user_message=message,
+            user_message=query,
+            context_message=context,
             system_message=system_message,
             model_name=chat_model,
             loaded_model=loaded_model,
@@ -899,7 +936,8 @@ async def send_message_to_model_wrapper(
         api_key = openai_chat_config.api_key
         api_base_url = openai_chat_config.api_base_url
         truncated_messages = generate_chatml_messages_with_context(
-            user_message=message,
+            user_message=query,
+            context_message=context,
             system_message=system_message,
             model_name=chat_model,
             max_prompt_size=max_tokens,
@@ -920,7 +958,8 @@ async def send_message_to_model_wrapper(
     elif model_type == ChatModelOptions.ModelType.ANTHROPIC:
         api_key = conversation_config.openai_config.api_key
         truncated_messages = generate_chatml_messages_with_context(
-            user_message=message,
+            user_message=query,
+            context_message=context,
             system_message=system_message,
             model_name=chat_model,
             max_prompt_size=max_tokens,
@@ -934,12 +973,14 @@ async def send_message_to_model_wrapper(
             messages=truncated_messages,
             api_key=api_key,
             model=chat_model,
+            response_type=response_type,
             tracer=tracer,
         )
     elif model_type == ChatModelOptions.ModelType.GOOGLE:
         api_key = conversation_config.openai_config.api_key
         truncated_messages = generate_chatml_messages_with_context(
-            user_message=message,
+            user_message=query,
+            context_message=context,
             system_message=system_message,
             model_name=chat_model,
             max_prompt_size=max_tokens,
@@ -1033,6 +1074,7 @@ def send_message_to_model_wrapper_sync(
             messages=truncated_messages,
             api_key=api_key,
             model=chat_model,
+            response_type=response_type,
             tracer=tracer,
         )
 
@@ -1064,6 +1106,7 @@ def generate_chat_response(
     conversation: Conversation,
     compiled_references: List[Dict] = [],
     online_results: Dict[str, Dict] = {},
+    code_results: Dict[str, Dict] = {},
     inferred_queries: List[str] = [],
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     user: KhojUser = None,
@@ -1071,8 +1114,10 @@ def generate_chat_response(
     conversation_id: str = None,
     location_data: LocationData = None,
     user_name: Optional[str] = None,
+    meta_research: str = "",
     query_images: Optional[List[str]] = None,
     tracer: dict = {},
+    train_of_thought: List[Any] = [],
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
     chat_response = None
@@ -1080,6 +1125,9 @@ def generate_chat_response(
 
     metadata = {}
     agent = AgentAdapters.get_conversation_agent_by_id(conversation.agent.id) if conversation.agent else None
+    query_to_run = q
+    if meta_research:
+        query_to_run = f"AI Research: {meta_research} {q}"
     try:
         partial_completion = partial(
             save_to_conversation_log,
@@ -1088,11 +1136,13 @@ def generate_chat_response(
             meta_log=meta_log,
             compiled_references=compiled_references,
             online_results=online_results,
+            code_results=code_results,
             inferred_queries=inferred_queries,
             client_application=client_application,
             conversation_id=conversation_id,
             query_images=query_images,
             tracer=tracer,
+            train_of_thought=train_of_thought,
         )
 
         conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)
@@ -1106,9 +1156,9 @@ def generate_chat_response(
         if conversation_config.model_type == "offline":
             loaded_model = state.offline_chat_processor_config.loaded_model
             chat_response = converse_offline(
+                user_query=query_to_run,
                 references=compiled_references,
                 online_results=online_results,
-                user_query=q,
                 loaded_model=loaded_model,
                 conversation_log=meta_log,
                 completion_func=partial_completion,
@@ -1128,9 +1178,10 @@ def generate_chat_response(
             chat_model = conversation_config.chat_model
             chat_response = converse(
                 compiled_references,
-                q,
+                query_to_run,
                 query_images=query_images,
                 online_results=online_results,
+                code_results=code_results,
                 conversation_log=meta_log,
                 model=chat_model,
                 api_key=api_key,
@@ -1150,9 +1201,10 @@ def generate_chat_response(
             api_key = conversation_config.openai_config.api_key
             chat_response = converse_anthropic(
                 compiled_references,
-                q,
+                query_to_run,
                 query_images=query_images,
                 online_results=online_results,
+                code_results=code_results,
                 conversation_log=meta_log,
                 model=conversation_config.chat_model,
                 api_key=api_key,
@@ -1170,10 +1222,10 @@ def generate_chat_response(
             api_key = conversation_config.openai_config.api_key
             chat_response = converse_gemini(
                 compiled_references,
-                q,
-                query_images=query_images,
-                online_results=online_results,
-                conversation_log=meta_log,
+                query_to_run,
+                online_results,
+                code_results,
+                meta_log,
                 model=conversation_config.chat_model,
                 api_key=api_key,
                 completion_func=partial_completion,
@@ -1625,14 +1677,6 @@ def construct_automation_created_message(automation: Job, crontime: str, query_t
 
 Manage your automations [here](/automations).
     """.strip()
-
-
-class ChatEvent(Enum):
-    START_LLM_RESPONSE = "start_llm_response"
-    END_LLM_RESPONSE = "end_llm_response"
-    MESSAGE = "message"
-    REFERENCES = "references"
-    STATUS = "status"
 
 
 class MessageProcessor:

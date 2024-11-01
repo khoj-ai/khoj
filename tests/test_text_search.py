@@ -164,7 +164,7 @@ async def test_text_search(search_config: SearchConfig):
     query = "Load Khoj on Emacs?"
 
     # Act
-    hits = await text_search.query(default_user, query)
+    hits = await text_search.query(query, default_user)
     results = text_search.collate_results(hits)
     results = sorted(results, key=lambda x: float(x.score))[:1]
 

@@ -10,6 +10,7 @@ import { createRoot } from "react-dom/client";
 import "katex/dist/katex.min.css";
 
 import { TeaserReferencesSection, constructAllReferences } from "../referencePanel/referencePanel";
+import { renderCodeGenImageInline } from "@/app/common/chatFunctions";
 
 import {
     ThumbsUp,
@@ -26,6 +27,7 @@ import {
     Palette,
     ClipboardText,
     Check,
+    Code,
     Shapes,
 } from "@phosphor-icons/react";
 
@@ -99,11 +101,36 @@ export interface OnlineContextData {
     peopleAlsoAsk: PeopleAlsoAsk[];
 }
 
+export interface CodeContext {
+    [key: string]: CodeContextData;
+}
+
+export interface CodeContextData {
+    code: string;
+    results: {
+        success: boolean;
+        output_files: CodeContextFile[];
+        std_out: string;
+        std_err: string;
+        code_runtime: number;
+    };
+}
+
+export interface CodeContextFile {
+    filename: string;
+    b64_data: string;
+}
+
 interface Intent {
     type: string;
     query: string;
     "memory-type": string;
     "inferred-queries": string[];
+}
+
+interface TrainOfThoughtObject {
+    type: string;
+    data: string;
 }
 
 export interface SingleChatMessage {
@@ -113,6 +140,8 @@ export interface SingleChatMessage {
     created: string;
     context: Context[];
     onlineContext: OnlineContext;
+    codeContext: CodeContext;
+    trainOfThought?: TrainOfThoughtObject[];
     rawQuery?: string;
     intent?: Intent;
     agent?: AgentData;
@@ -124,6 +153,7 @@ export interface StreamMessage {
     trainOfThought: string[];
     context: Context[];
     onlineContext: OnlineContext;
+    codeContext: CodeContext;
     completed: boolean;
     rawQuery: string;
     timestamp: string;
@@ -263,6 +293,10 @@ function chooseIconFromHeader(header: string, iconColor: string) {
         return <Palette className={`${classNames}`} />;
     }
 
+    if (compareHeader.includes("code")) {
+        return <Code className={`${classNames}`} />;
+    }
+
     return <Brain className={`${classNames}`} />;
 }
 
@@ -273,12 +307,15 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
     const iconColor = props.primary ? convertColorToTextClass(props.agentColor) : "text-gray-500";
     const icon = chooseIconFromHeader(header, iconColor);
     let markdownRendered = DOMPurify.sanitize(md.render(props.message));
+
+    // Remove any header tags from markdownRendered
+    markdownRendered = markdownRendered.replace(/<h[1-6].*?<\/h[1-6]>/g, "");
     return (
         <div
-            className={`${styles.trainOfThoughtElement} break-all items-center ${props.primary ? "text-gray-400" : "text-gray-300"} ${styles.trainOfThought} ${props.primary ? styles.primary : ""}`}
+            className={`${styles.trainOfThoughtElement} break-words items-center ${props.primary ? "text-gray-400" : "text-gray-300"} ${styles.trainOfThought} ${props.primary ? styles.primary : ""}`}
         >
             {icon}
-            <div dangerouslySetInnerHTML={{ __html: markdownRendered }} />
+            <div dangerouslySetInnerHTML={{ __html: markdownRendered }} className="break-words" />
         </div>
     );
 }
@@ -386,6 +423,48 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             const userImagesInHtml = `<div class="${styles.imagesContainer}">${imagesInHtml}</div>`;
             messageForClipboard = `${imagesInMd}\n\n${messageForClipboard}`;
             messageToRender = `${userImagesInHtml}${messageToRender}`;
+        }
+
+        if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image") {
+            message = `![generated image](data:image/png;base64,${message})`;
+        } else if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image2") {
+            message = `![generated image](${message})`;
+        } else if (
+            props.chatMessage.intent &&
+            props.chatMessage.intent.type == "text-to-image-v3"
+        ) {
+            message = `![generated image](data:image/webp;base64,${message})`;
+        }
+        if (
+            props.chatMessage.intent &&
+            props.chatMessage.intent.type.includes("text-to-image") &&
+            props.chatMessage.intent["inferred-queries"]?.length > 0
+        ) {
+            message += `\n\n${props.chatMessage.intent["inferred-queries"][0]}`;
+        }
+
+        // Replace file links with base64 data
+        message = renderCodeGenImageInline(message, props.chatMessage.codeContext);
+
+        // Add code context files to the message
+        if (props.chatMessage.codeContext) {
+            Object.entries(props.chatMessage.codeContext).forEach(([key, value]) => {
+                value.results.output_files?.forEach((file) => {
+                    if (file.filename.endsWith(".png") || file.filename.endsWith(".jpg")) {
+                        // Don't add the image again if it's already in the message!
+                        if (!message.includes(`![${file.filename}](`)) {
+                            message += `\n\n![${file.filename}](data:image/png;base64,${file.b64_data})`;
+                        }
+                    } else if (
+                        file.filename.endsWith(".txt") ||
+                        file.filename.endsWith(".org") ||
+                        file.filename.endsWith(".md")
+                    ) {
+                        const decodedText = atob(file.b64_data);
+                        message += `\n\n\`\`\`\n${decodedText}\n\`\`\``;
+                    }
+                });
+            });
         }
 
         // Set the message text
@@ -578,6 +657,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
     const allReferences = constructAllReferences(
         props.chatMessage.context,
         props.chatMessage.onlineContext,
+        props.chatMessage.codeContext,
     );
 
     return (
@@ -600,6 +680,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                     isMobileWidth={props.isMobileWidth}
                     notesReferenceCardData={allReferences.notesReferenceCardData}
                     onlineReferenceCardData={allReferences.onlineReferenceCardData}
+                    codeReferenceCardData={allReferences.codeReferenceCardData}
                 />
             </div>
             <div className={styles.chatFooter}>

@@ -4,7 +4,7 @@ import logging
 import os
 import urllib.parse
 from collections import defaultdict
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import aiohttp
 from bs4 import BeautifulSoup
@@ -52,7 +52,8 @@ OLOSTEP_QUERY_PARAMS = {
     "expandMarkdown": "True",
     "expandHtml": "False",
 }
-MAX_WEBPAGES_TO_READ = 1
+
+DEFAULT_MAX_WEBPAGES_TO_READ = 1
 
 
 async def search_online(
@@ -62,6 +63,7 @@ async def search_online(
     user: KhojUser,
     send_status_func: Optional[Callable] = None,
     custom_filters: List[str] = [],
+    max_webpages_to_read: int = DEFAULT_MAX_WEBPAGES_TO_READ,
     query_images: List[str] = None,
     agent: Agent = None,
     tracer: dict = {},
@@ -97,7 +99,7 @@ async def search_online(
     for subquery in response_dict:
         if "answerBox" in response_dict[subquery]:
             continue
-        for organic in response_dict[subquery].get("organic", [])[:MAX_WEBPAGES_TO_READ]:
+        for organic in response_dict[subquery].get("organic", [])[:max_webpages_to_read]:
             link = organic.get("link")
             if link in webpages:
                 webpages[link]["queries"].add(subquery)

@@ -116,8 +116,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
             `What would you like to get done${nameSuffix}?`,
             `Hey${nameSuffix}! How can I help?`,
             `Good ${timeOfDay}${nameSuffix}! What's on your mind?`,
-            `Ready to breeze through your ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][day]}?`,
-            `Want help navigating your ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][day]} workload?`,
+            `Ready to breeze through ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][day]}?`,
+            `Let's navigate your ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][day]} workload`,
         ];
         const greeting = greetings[Math.floor(Math.random() * greetings.length)];
         setGreeting(greeting);
@@ -305,6 +305,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                             conversationId={null}
                             isMobileWidth={props.isMobileWidth}
                             setUploadedFiles={props.setUploadedFiles}
+                            agentColor={agents.find((agent) => agent.slug === selectedAgent)?.color}
                             ref={chatInputRef}
                         />
                     </div>
@@ -386,6 +387,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                             conversationId={null}
                             isMobileWidth={props.isMobileWidth}
                             setUploadedFiles={props.setUploadedFiles}
+                            agentColor={agents.find((agent) => agent.slug === selectedAgent)?.color}
                             ref={chatInputRef}
                         />
                     </div>

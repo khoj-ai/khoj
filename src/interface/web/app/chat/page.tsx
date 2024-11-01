@@ -12,7 +12,12 @@ import { processMessageChunk } from "../common/chatFunctions";
 
 import "katex/dist/katex.min.css";
 
-import { Context, OnlineContext, StreamMessage } from "../components/chatMessage/chatMessage";
+import {
+    CodeContext,
+    Context,
+    OnlineContext,
+    StreamMessage,
+} from "../components/chatMessage/chatMessage";
 import { useIPLocationData, useIsMobileWidth, welcomeConsole } from "../common/utils";
 import { ChatInputArea, ChatOptions } from "../components/chatInputArea/chatInputArea";
 import { useAuthenticatedData } from "../common/auth";
@@ -37,6 +42,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [images, setImages] = useState<string[]>([]);
     const [processingMessage, setProcessingMessage] = useState(false);
     const [agentMetadata, setAgentMetadata] = useState<AgentData | null>(null);
+    const [isInResearchMode, setIsInResearchMode] = useState(false);
     const chatInputRef = useRef<HTMLTextAreaElement>(null);
 
     const setQueryToProcess = props.setQueryToProcess;
@@ -65,6 +71,10 @@ function ChatBodyData(props: ChatBodyDataProps) {
         if (storedMessage) {
             setProcessingMessage(true);
             setQueryToProcess(storedMessage);
+
+            if (storedMessage.trim().startsWith("/research")) {
+                setIsInResearchMode(true);
+            }
         }
     }, [setQueryToProcess, props.setImages]);
 
@@ -125,6 +135,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     isMobileWidth={props.isMobileWidth}
                     setUploadedFiles={props.setUploadedFiles}
                     ref={chatInputRef}
+                    isResearchModeEnabled={isInResearchMode}
                 />
             </div>
         </>
@@ -174,6 +185,7 @@ export default function Chat() {
                 trainOfThought: [],
                 context: [],
                 onlineContext: {},
+                codeContext: {},
                 completed: false,
                 timestamp: new Date().toISOString(),
                 rawQuery: queryToProcess || "",
@@ -202,6 +214,7 @@ export default function Chat() {
         // Track context used for chat response
         let context: Context[] = [];
         let onlineContext: OnlineContext = {};
+        let codeContext: CodeContext = {};
 
         while (true) {
             const { done, value } = await reader.read();
@@ -228,11 +241,12 @@ export default function Chat() {
                     }
 
                     // Track context used for chat response. References are rendered at the end of the chat
-                    ({ context, onlineContext } = processMessageChunk(
+                    ({ context, onlineContext, codeContext } = processMessageChunk(
                         event,
                         currentMessage,
                         context,
                         onlineContext,
+                        codeContext,
                     ));
 
                     setMessages([...messages]);

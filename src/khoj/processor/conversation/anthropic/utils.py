@@ -35,7 +35,15 @@ DEFAULT_MAX_TOKENS_ANTHROPIC = 3000
     reraise=True,
 )
 def anthropic_completion_with_backoff(
-    messages, system_prompt, model_name, temperature=0, api_key=None, model_kwargs=None, max_tokens=None, tracer={}
+    messages,
+    system_prompt,
+    model_name,
+    temperature=0,
+    api_key=None,
+    model_kwargs=None,
+    max_tokens=None,
+    response_type="text",
+    tracer={},
 ) -> str:
     if api_key not in anthropic_clients:
         client: anthropic.Anthropic = anthropic.Anthropic(api_key=api_key)
@@ -44,8 +52,11 @@ def anthropic_completion_with_backoff(
         client = anthropic_clients[api_key]
 
     formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
+    if response_type == "json_object":
+        # Prefill model response with '{' to make it output a valid JSON object
+        formatted_messages += [{"role": "assistant", "content": "{"}]
 
-    aggregated_response = ""
+    aggregated_response = "{" if response_type == "json_object" else ""
     max_tokens = max_tokens or DEFAULT_MAX_TOKENS_ANTHROPIC
 
     model_kwargs = model_kwargs or dict()

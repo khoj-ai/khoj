@@ -1,11 +1,10 @@
-import fnmatch
 import logging
 import re
 from collections import defaultdict
 from typing import List
 
 from khoj.search_filter.base_filter import BaseFilter
-from khoj.utils.helpers import LRU, timer
+from khoj.utils.helpers import LRU
 
 logger = logging.getLogger(__name__)
 

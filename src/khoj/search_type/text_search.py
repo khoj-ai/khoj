@@ -102,8 +102,8 @@ def load_embeddings(
 
 
 async def query(
-    user: KhojUser,
     raw_query: str,
+    user: KhojUser,
     type: SearchType = SearchType.All,
     question_embedding: Union[torch.Tensor, None] = None,
     max_distance: float = None,
@@ -130,12 +130,12 @@ async def query(
     top_k = 10
     with timer("Search Time", logger, state.device):
         hits = EntryAdapters.search_with_embeddings(
-            user=user,
+            raw_query=raw_query,
             embeddings=question_embedding,
             max_results=top_k,
             file_type_filter=file_type,
-            raw_query=raw_query,
             max_distance=max_distance,
+            user=user,
             agent=agent,
         ).all()
         hits = await sync_to_async(list)(hits)  # type: ignore[call-arg]

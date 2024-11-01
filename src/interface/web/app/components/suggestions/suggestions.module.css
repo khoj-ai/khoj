@@ -1,12 +1,9 @@
-
 .card {
-    padding: 0.5rem;
-    margin: 0.05rem;
     border-radius: 0.5rem;
 }
 
 .title {
-    font-size: 1.0rem;
+    font-size: 1rem;
 }
 
 .text {

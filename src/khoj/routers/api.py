@@ -44,6 +44,7 @@ from khoj.processor.conversation.offline.chat_model import extract_questions_off
 from khoj.processor.conversation.offline.whisper import transcribe_audio_offline
 from khoj.processor.conversation.openai.gpt import extract_questions
 from khoj.processor.conversation.openai.whisper import transcribe_audio
+from khoj.processor.conversation.utils import defilter_query
 from khoj.routers.helpers import (
     ApiUserRateLimiter,
     ChatEvent,
@@ -167,8 +168,8 @@ async def execute_search(
             search_futures += [
                 executor.submit(
                     text_search.query,
-                    user,
                     user_query,
+                    user,
                     t,
                     question_embedding=encoded_asymmetric_query,
                     max_distance=max_distance,
@@ -355,7 +356,7 @@ async def extract_references_and_questions(
     user = request.user.object if request.user.is_authenticated else None
 
     # Initialize Variables
-    compiled_references: List[Any] = []
+    compiled_references: List[dict[str, str]] = []
     inferred_queries: List[str] = []
 
     agent_has_entries = False
@@ -384,9 +385,7 @@ async def extract_references_and_questions(
             return
 
     # Extract filter terms from user message
-    defiltered_query = q
-    for filter in [DateFilter(), WordFilter(), FileFilter()]:
-        defiltered_query = filter.defilter(defiltered_query)
+    defiltered_query = defilter_query(q)
     filters_in_query = q.replace(defiltered_query, "").strip()
     conversation = await sync_to_async(ConversationAdapters.get_conversation_by_id)(conversation_id)
 
@@ -502,7 +501,8 @@ async def extract_references_and_questions(
             )
         search_results = text_search.deduplicated_search_responses(search_results)
         compiled_references = [
-            {"compiled": item.additional["compiled"], "file": item.additional["file"]} for item in search_results
+            {"query": q, "compiled": item.additional["compiled"], "file": item.additional["file"]}
+            for q, item in zip(inferred_queries, search_results)
         ]
 
     yield compiled_references, inferred_queries, defiltered_query
