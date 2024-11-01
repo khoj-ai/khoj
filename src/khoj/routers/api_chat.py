@@ -167,10 +167,10 @@ async def text_to_speech(
     common: CommonQueryParams,
     text: str,
     rate_limiter_per_minute=Depends(
-        ApiUserRateLimiter(requests=20, subscribed_requests=20, window=60, slug="chat_minute")
+        ApiUserRateLimiter(requests=10, subscribed_requests=60, window=60, slug="chat_minute")
     ),
     rate_limiter_per_day=Depends(
-        ApiUserRateLimiter(requests=50, subscribed_requests=300, window=60 * 60 * 24, slug="chat_day")
+        ApiUserRateLimiter(requests=100, subscribed_requests=600, window=60 * 60 * 24, slug="chat_day")
     ),
 ) -> Response:
     voice_model = await ConversationAdapters.aget_voice_model_config(request.user.object)
