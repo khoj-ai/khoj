@@ -716,7 +716,6 @@ async def chat(
         ## Extract Document References
         compiled_references: List[Any] = []
         inferred_queries: List[Any] = []
-        defiltered_query = defilter_query(q)
 
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
             conversation_commands = await aget_relevant_information_sources(
@@ -750,6 +749,8 @@ async def chat(
         for cmd in conversation_commands:
             await conversation_command_rate_limiter.update_and_check_if_valid(request, cmd)
             q = q.replace(f"/{cmd.value}", "").strip()
+
+        defiltered_query = defilter_query(q)
 
         if conversation_commands == [ConversationCommand.Research]:
             async for research_result in execute_information_collection(
