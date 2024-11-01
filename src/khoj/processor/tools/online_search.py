@@ -64,6 +64,7 @@ async def search_online(
     custom_filters: List[str] = [],
     query_images: List[str] = None,
     agent: Agent = None,
+    tracer: dict = {},
 ):
     query += " ".join(custom_filters)
     if not is_internet_connected():
@@ -73,7 +74,7 @@ async def search_online(
 
     # Breakdown the query into subqueries to get the correct answer
     subqueries = await generate_online_subqueries(
-        query, conversation_history, location, user, query_images=query_images, agent=agent
+        query, conversation_history, location, user, query_images=query_images, agent=agent, tracer=tracer
     )
     response_dict = {}
 
@@ -111,7 +112,7 @@ async def search_online(
             async for event in send_status_func(f"**Reading web pages**: {webpage_links_str}"):
                 yield {ChatEvent.STATUS: event}
     tasks = [
-        read_webpage_and_extract_content(data["queries"], link, data["content"], user=user, agent=agent)
+        read_webpage_and_extract_content(data["queries"], link, data["content"], user=user, agent=agent, tracer=tracer)
         for link, data in webpages.items()
     ]
     results = await asyncio.gather(*tasks)
@@ -153,6 +154,7 @@ async def read_webpages(
     send_status_func: Optional[Callable] = None,
     query_images: List[str] = None,
     agent: Agent = None,
+    tracer: dict = {},
 ):
     "Infer web pages to read from the query and extract relevant information from them"
     logger.info(f"Inferring web pages to read")
@@ -166,7 +168,7 @@ async def read_webpages(
         webpage_links_str = "\n- " + "\n- ".join(list(urls))
         async for event in send_status_func(f"**Reading web pages**: {webpage_links_str}"):
             yield {ChatEvent.STATUS: event}
-    tasks = [read_webpage_and_extract_content({query}, url, user=user, agent=agent) for url in urls]
+    tasks = [read_webpage_and_extract_content({query}, url, user=user, agent=agent, tracer=tracer) for url in urls]
     results = await asyncio.gather(*tasks)
 
     response: Dict[str, Dict] = defaultdict(dict)
@@ -192,7 +194,12 @@ async def read_webpage(
 
 
 async def read_webpage_and_extract_content(
-    subqueries: set[str], url: str, content: str = None, user: KhojUser = None, agent: Agent = None
+    subqueries: set[str],
+    url: str,
+    content: str = None,
+    user: KhojUser = None,
+    agent: Agent = None,
+    tracer: dict = {},
 ) -> Tuple[set[str], str, Union[None, str]]:
     # Select the web scrapers to use for reading the web page
     web_scrapers = await ConversationAdapters.aget_enabled_webscrapers()
@@ -214,7 +221,9 @@ async def read_webpage_and_extract_content(
             # Extract relevant information from the web page
             if is_none_or_empty(extracted_info):
                 with timer(f"Extracting relevant information from web page at '{url}' took", logger):
-                    extracted_info = await extract_relevant_info(subqueries, content, user=user, agent=agent)
+                    extracted_info = await extract_relevant_info(
+                        subqueries, content, user=user, agent=agent, tracer=tracer
+                    )
 
             # If we successfully extracted information, break the loop
             if not is_none_or_empty(extracted_info):

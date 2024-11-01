@@ -33,6 +33,7 @@ def extract_questions(
     query_images: Optional[list[str]] = None,
     vision_enabled: bool = False,
     personality_context: Optional[str] = None,
+    tracer: dict = {},
 ):
     """
     Infer search queries to retrieve relevant notes to answer user query
@@ -82,7 +83,13 @@ def extract_questions(
     messages = [ChatMessage(content=prompt, role="user")]
 
     response = send_message_to_model(
-        messages, api_key, model, response_type="json_object", api_base_url=api_base_url, temperature=temperature
+        messages,
+        api_key,
+        model,
+        response_type="json_object",
+        api_base_url=api_base_url,
+        temperature=temperature,
+        tracer=tracer,
     )
 
     # Extract, Clean Message from GPT's Response
@@ -103,7 +110,9 @@ def extract_questions(
     return questions
 
 
-def send_message_to_model(messages, api_key, model, response_type="text", api_base_url=None, temperature=0):
+def send_message_to_model(
+    messages, api_key, model, response_type="text", api_base_url=None, temperature=0, tracer: dict = {}
+):
     """
     Send message to model
     """
@@ -116,6 +125,7 @@ def send_message_to_model(messages, api_key, model, response_type="text", api_ba
         temperature=temperature,
         api_base_url=api_base_url,
         model_kwargs={"response_format": {"type": response_type}},
+        tracer=tracer,
     )
 
 
@@ -137,6 +147,7 @@ def converse(
     agent: Agent = None,
     query_images: Optional[list[str]] = None,
     vision_available: bool = False,
+    tracer: dict = {},
 ):
     """
     Converse with user using OpenAI's ChatGPT
@@ -207,4 +218,5 @@ def converse(
         api_base_url=api_base_url,
         completion_func=completion_func,
         model_kwargs={"stop": ["Notes:\n["]},
+        tracer=tracer,
     )
