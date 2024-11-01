@@ -757,7 +757,6 @@ async def chat(
                     yield research_result
 
             # researched_results = await extract_relevant_info(q, researched_results, agent)
-            in_research_mode = False
             logger.info(f"Researched Results: {researched_results}")
 
         for cmd in conversation_commands:
@@ -1022,7 +1021,7 @@ async def chat(
 
         # Generate Output
         ## Generate Image Output
-        if ConversationCommand.Image in conversation_commands:
+        if ConversationCommand.Image in conversation_commands and not in_research_mode:
             async for result in text_to_image(
                 defiltered_query,
                 user,
