@@ -136,9 +136,10 @@ def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="A
     for chat in conversation_history.get("chat", [])[-n:]:
         if chat["by"] == "khoj" and chat["intent"].get("type") in ["remember", "reminder", "summarize"]:
             chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += (
-                f'Khoj: {{"queries": {chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}}}\n'
-            )
+
+            if chat["intent"].get("inferred-queries"):
+                chat_history += f'Khoj: {{"queries": {chat["intent"].get("inferred-queries")}}}\n'
+
             chat_history += f"{agent_name}: {chat['message']}\n\n"
         elif chat["by"] == "khoj" and ("text-to-image" in chat["intent"].get("type")):
             chat_history += f"User: {chat['intent']['query']}\n"
@@ -174,8 +175,7 @@ def construct_tool_chat_history(
                 "by": "khoj",
                 "intent": {
                     "type": "remember",
-                    # Only include inferred-queries for the specific tool that's being used in this iteration.
-                    "inferred-queries": inferred_query_extractor(iteration) if iteration.tool == tool else [],
+                    "inferred-queries": inferred_query_extractor(iteration),
                     "query": iteration.query,
                 },
                 "message": iteration.summarizedResult,
