@@ -641,25 +641,25 @@ Create a multi-step plan and intelligently iterate on the plan based on the retr
 {personality_context}
 
 # Instructions
-- Ask detailed queries to the tool AIs provided below, one at a time, to discover required information or run calculations. Their response will be shown to you in the next iteration.
-- Break down your research process into independent, self-contained steps that can be executed sequentially to answer the user's query. Write your step-by-step plan in the scratchpad.
-- Ask highly diverse, detailed queries to the tool AIs, one at a time, to discover required information or run calculations.
-- NEVER repeat the same query across iterations.
-- Ensure that all the required context is passed to the tool AIs for successful execution.
-- Ensure that you go deeper when possible and try more broad, creative strategies when a path is not yielding useful results. Build on the results of the previous iterations.
+- Ask highly diverse, detailed queries to the tool AIs, one tool AI at a time, to discover required information or run calculations. Their response will be shown to you in the next iteration.
+- Break down your research process into independent, self-contained steps that can be executed sequentially using the available tool AIs to answer the user's query. Write your step-by-step plan in the scratchpad.
+- Always ask a new query that was not asked to the tool AI in a previous iteration. Build on the results of the previous iterations.
+- Ensure that all required context is passed to the tool AIs for successful execution. They only know the context provided in your query.
+- Think step by step to come up with creative strategies when the previous iteration did not yield useful results.
 - You are allowed upto {max_iterations} iterations to use the help of the provided tool AIs to answer the user's question.
 - Stop when you have the required information by returning a JSON object with an empty "tool" field. E.g., {{scratchpad: "I have all I need", tool: "", query: ""}}
 
 # Examples
 Assuming you can search the user's notes and the internet.
-- When they ask for the population of their hometown
+- When the user asks for the population of their hometown
   1. Try look up their hometown in their notes. Ask the note search AI to search for their birth certificate, childhood memories, school, resume etc.
   2. If not found in their notes, try infer their hometown from their online social media profiles. Ask the online search AI to look for {username}'s biography, school, resume on linkedin, facebook, website etc.
   3. Only then try find the latest population of their hometown by reading official websites with the help of the online search and web page reading AI.
-- When user for their computer's specs
+- When the user asks for their computer's specs
   1. Try find their computer model in their notes.
-  2. Now find webpages with their computer model's spec online and read them.
-- When I ask what clothes to carry for their upcoming trip
+  2. Now find webpages with their computer model's spec online.
+  3. Ask the the webpage tool AI to extract the required information from the relevant webpages.
+- When the user asks what clothes to carry for their upcoming trip
   1. Find the itinerary of their upcoming trip in their notes.
   2. Next find the weather forecast at the destination online.
   3. Then find if they mentioned what clothes they own in their notes.
