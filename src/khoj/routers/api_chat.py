@@ -167,7 +167,7 @@ async def text_to_speech(
     common: CommonQueryParams,
     text: str,
     rate_limiter_per_minute=Depends(
-        ApiUserRateLimiter(requests=10, subscribed_requests=60, window=60, slug="chat_minute")
+        ApiUserRateLimiter(requests=30, subscribed_requests=30, window=60, slug="chat_minute")
     ),
     rate_limiter_per_day=Depends(
         ApiUserRateLimiter(requests=100, subscribed_requests=600, window=60 * 60 * 24, slug="chat_day")
@@ -555,7 +555,7 @@ async def chat(
     common: CommonQueryParams,
     body: ChatRequestBody,
     rate_limiter_per_minute=Depends(
-        ApiUserRateLimiter(requests=5, subscribed_requests=20, window=60, slug="chat_minute")
+        ApiUserRateLimiter(requests=20, subscribed_requests=20, window=60, slug="chat_minute")
     ),
     rate_limiter_per_day=Depends(
         ApiUserRateLimiter(requests=100, subscribed_requests=600, window=60 * 60 * 24, slug="chat_day")
