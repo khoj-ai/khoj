@@ -693,7 +693,6 @@ async def chat(
         meta_log = conversation.conversation_log
         is_automated_task = conversation_commands == [ConversationCommand.AutomatedTask]
 
-        in_research_mode = False
         researched_results = ""
         online_results: Dict = dict()
         code_results: Dict = dict()
@@ -712,6 +711,11 @@ async def chat(
                 agent=agent,
                 tracer=tracer,
             )
+
+            # If we're doing research, we don't want to do anything else
+            if ConversationCommand.Research in conversation_commands:
+                conversation_commands = [ConversationCommand.Research]
+
             conversation_commands_str = ", ".join([cmd.value for cmd in conversation_commands])
             async for result in send_event(
                 ChatEvent.STATUS, f"**Chose Data Sources to Search:** {conversation_commands_str}"
@@ -743,7 +747,6 @@ async def chat(
             ):
                 if isinstance(research_result, InformationCollectionIteration):
                     if research_result.summarizedResult:
-                        in_research_mode = True
                         if research_result.onlineContext:
                             online_results.update(research_result.onlineContext)
                         if research_result.codeContext:
@@ -775,7 +778,7 @@ async def chat(
             and len(file_filters) != 1
         ):
             conversation_commands.remove(ConversationCommand.Summarize)
-        elif ConversationCommand.Summarize in conversation_commands and not in_research_mode:
+        elif ConversationCommand.Summarize in conversation_commands:
             response_log = ""
             agent_has_entries = await EntryAdapters.aagent_has_entries(agent)
             if len(file_filters) == 0 and not agent_has_entries:
@@ -869,7 +872,7 @@ async def chat(
 
         # Gather Context
         ## Extract Document References
-        if not in_research_mode:
+        if not ConversationCommand.Research in conversation_commands:
             try:
                 async for result in extract_references_and_questions(
                     request,
@@ -917,7 +920,7 @@ async def chat(
             conversation_commands.remove(ConversationCommand.Notes)
 
         ## Gather Online References
-        if ConversationCommand.Online in conversation_commands and not in_research_mode:
+        if ConversationCommand.Online in conversation_commands:
             try:
                 async for result in search_online(
                     defiltered_query,
@@ -943,7 +946,7 @@ async def chat(
                     yield result
 
         ## Gather Webpage References
-        if ConversationCommand.Webpage in conversation_commands and not in_research_mode:
+        if ConversationCommand.Webpage in conversation_commands:
             try:
                 async for result in read_webpages(
                     defiltered_query,
@@ -981,7 +984,7 @@ async def chat(
                     yield result
 
         ## Gather Code Results
-        if ConversationCommand.Code in conversation_commands and not in_research_mode:
+        if ConversationCommand.Code in conversation_commands:
             try:
                 context = f"# Iteration 1:\n#---\nNotes:\n{compiled_references}\n\nOnline Results:{online_results}"
                 async for result in run_code(
@@ -1021,7 +1024,7 @@ async def chat(
 
         # Generate Output
         ## Generate Image Output
-        if ConversationCommand.Image in conversation_commands and not in_research_mode:
+        if ConversationCommand.Image in conversation_commands:
             async for result in text_to_image(
                 defiltered_query,
                 user,
