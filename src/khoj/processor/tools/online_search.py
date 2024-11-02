@@ -162,10 +162,9 @@ async def read_webpages(
 ):
     "Infer web pages to read from the query and extract relevant information from them"
     logger.info(f"Inferring web pages to read")
-    if send_status_func:
-        async for event in send_status_func(f"**Inferring web pages to read**"):
-            yield {ChatEvent.STATUS: event}
-    urls = await infer_webpage_urls(query, conversation_history, location, user, query_images)
+    urls = await infer_webpage_urls(
+        query, conversation_history, location, user, query_images, agent=agent, tracer=tracer
+    )
 
     # Get the top 10 web pages to read
     urls = urls[:max_webpages_to_read]
