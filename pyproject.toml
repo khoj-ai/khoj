@@ -87,7 +87,8 @@ dependencies = [
     "django_apscheduler == 0.6.2",
     "anthropic == 0.26.1",
     "docx2txt == 0.8",
-    "google-generativeai == 0.8.3"
+    "google-generativeai == 0.8.3",
+    "gitpython ~= 3.1.43",
 ]
 dynamic = ["version"]
 
@@ -119,7 +120,6 @@ dev = [
     "mypy >= 1.0.1",
     "black >= 23.1.0",
     "pre-commit >= 3.0.4",
-    "gitpython ~= 3.1.43",
 ]
 
 [tool.hatch.version]
