@@ -333,7 +333,7 @@ async def aget_user_subscription_state(user: KhojUser) -> str:
     Valid state transitions: trial -> subscribed <-> unsubscribed OR expired
     """
     user_subscription = await Subscription.objects.filter(user=user).afirst()
-    return subscription_to_state(user_subscription)
+    return await sync_to_async(subscription_to_state)(user_subscription)
 
 
 async def ais_user_subscribed(user: KhojUser) -> bool:
