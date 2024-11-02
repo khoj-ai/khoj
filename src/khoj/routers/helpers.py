@@ -1273,6 +1273,12 @@ class DeleteMessageRequestBody(BaseModel):
     turn_id: str
 
 
+class FeedbackData(BaseModel):
+    uquery: str
+    kquery: str
+    sentiment: str
+
+
 class ApiUserRateLimiter:
     def __init__(self, requests: int, subscribed_requests: int, window: int, slug: str):
         self.requests = requests

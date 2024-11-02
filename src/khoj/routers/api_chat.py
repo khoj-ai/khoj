@@ -31,6 +31,7 @@ from khoj.processor.speech.text_to_speech import generate_text_to_speech
 from khoj.processor.tools.online_search import read_webpages, search_online
 from khoj.processor.tools.run_code import run_code
 from khoj.routers.api import extract_references_and_questions
+from khoj.routers.email import send_query_feedback
 from khoj.routers.helpers import (
     ApiImageRateLimiter,
     ApiUserRateLimiter,
@@ -39,13 +40,13 @@ from khoj.routers.helpers import (
     CommonQueryParams,
     ConversationCommandRateLimiter,
     DeleteMessageRequestBody,
+    FeedbackData,
     agenerate_chat_response,
     aget_relevant_information_sources,
     aget_relevant_output_modes,
     construct_automation_created_message,
     create_automation,
     extract_relevant_info,
-    extract_relevant_summary,
     generate_excalidraw_diagram,
     generate_summary_from_files,
     get_conversation_command,
@@ -81,10 +82,6 @@ conversation_command_rate_limiter = ConversationCommandRateLimiter(
 
 
 api_chat = APIRouter()
-
-from pydantic import BaseModel
-
-from khoj.routers.email import send_query_feedback
 
 
 @api_chat.get("/conversation/file-filters/{conversation_id}", response_class=Response)
@@ -145,12 +142,6 @@ def remove_file_filter(request: Request, filter: FileFilterRequest) -> Response:
     files_filter = [filter.filename]
     file_filters = ConversationAdapters.remove_files_from_filter(request.user.object, conversation_id, files_filter)
     return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
-
-
-class FeedbackData(BaseModel):
-    uquery: str
-    kquery: str
-    sentiment: str
 
 
 @api_chat.post("/feedback")
