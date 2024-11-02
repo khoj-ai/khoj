@@ -149,7 +149,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         }
 
         let messageToSend = message.trim();
-        if (useResearchMode) {
+        if (useResearchMode && !messageToSend.startsWith("/research")) {
             messageToSend = `/research ${messageToSend}`;
         }
 
@@ -398,7 +398,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                         <PopoverContent
                             onOpenAutoFocus={(e) => e.preventDefault()}
                             className={`${props.isMobileWidth ? "w-[100vw]" : "w-full"} rounded-md`}
-                            side="top"
+                            side="bottom"
                             align="center"
                             /* Offset below text area on home page (i.e where conversationId is unset) */
                             sideOffset={props.conversationId ? 0 : 80}
@@ -590,8 +590,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent className="text-xs">
-                            Research Mode allows you to get more deeply researched, detailed
-                            responses. Response times may be longer.
+                            (Experimental) Research Mode allows you to get more deeply researched,
+                            detailed responses. Response times may be longer.
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>

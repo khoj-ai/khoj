@@ -32,6 +32,11 @@ const config = {
                 /ring-(blue|yellow|green|pink|purple|orange|red|slate|gray|zinc|neutral|stone|amber|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|fuchsia|rose)-(50|100|200|400|500|950)/,
             variants: ["focus-visible", "dark"],
         },
+        {
+            pattern:
+                /caret-(blue|yellow|green|pink|purple|orange|red|slate|gray|zinc|neutral|stone|amber|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|fuchsia|rose)-(50|100|200|400|500|950)/,
+            variants: ["focus", "dark"],
+        },
     ],
     darkMode: ["class"],
     content: [

@@ -34,8 +34,9 @@ interface ChatHistory {
 interface ChatHistoryProps {
     conversationId: string;
     setTitle: (title: string) => void;
-    incomingMessages?: StreamMessage[];
     pendingMessage?: string;
+    incomingMessages?: StreamMessage[];
+    setIncomingMessages?: (incomingMessages: StreamMessage[]) => void;
     publicConversationSlug?: string;
     setAgent: (agent: AgentData) => void;
     customClassName?: string;
@@ -45,7 +46,7 @@ interface TrainOfThoughtComponentProps {
     trainOfThought: string[];
     lastMessage: boolean;
     agentColor: string;
-    key: string;
+    keyId: string;
     completed?: boolean;
 }
 
@@ -56,7 +57,7 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
     return (
         <div
             className={`${!collapsed ? styles.trainOfThought + " shadow-sm" : ""}`}
-            key={props.key}
+            key={props.keyId}
         >
             {!props.completed && <InlineLoading className="float-right" />}
             {props.completed &&
@@ -97,6 +98,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
     const [data, setData] = useState<ChatHistoryData | null>(null);
     const [currentPage, setCurrentPage] = useState(0);
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
+    const [currentTurnId, setCurrentTurnId] = useState<string | null>(null);
     const sentinelRef = useRef<HTMLDivElement | null>(null);
     const scrollAreaRef = useRef<HTMLDivElement | null>(null);
     const latestUserMessageRef = useRef<HTMLDivElement | null>(null);
@@ -177,6 +179,10 @@ export default function ChatHistory(props: ChatHistoryProps) {
             if (lastMessage && !lastMessage.completed) {
                 setIncompleteIncomingMessageIndex(props.incomingMessages.length - 1);
                 props.setTitle(lastMessage.rawQuery);
+                // Store the turnId when we get it
+                if (lastMessage.turnId) {
+                    setCurrentTurnId(lastMessage.turnId);
+                }
             }
         }
     }, [props.incomingMessages]);
@@ -278,6 +284,25 @@ export default function ChatHistory(props: ChatHistoryProps) {
         return data.agent?.persona;
     }
 
+    const handleDeleteMessage = (turnId?: string) => {
+        if (!turnId) return;
+
+        setData((prevData) => {
+            if (!prevData || !turnId) return prevData;
+            return {
+                ...prevData,
+                chat: prevData.chat.filter((msg) => msg.turnId !== turnId),
+            };
+        });
+
+        // Update incoming messages if they exist
+        if (props.incomingMessages && props.setIncomingMessages) {
+            props.setIncomingMessages(
+                props.incomingMessages.filter((msg) => msg.turnId !== turnId),
+            );
+        }
+    };
+
     if (!props.conversationId && !props.publicConversationSlug) {
         return null;
     }
@@ -293,6 +318,18 @@ export default function ChatHistory(props: ChatHistoryProps) {
                         data.chat &&
                         data.chat.map((chatMessage, index) => (
                             <>
+                                {chatMessage.trainOfThought && chatMessage.by === "khoj" && (
+                                    <TrainOfThoughtComponent
+                                        trainOfThought={chatMessage.trainOfThought?.map(
+                                            (train) => train.data,
+                                        )}
+                                        lastMessage={false}
+                                        agentColor={data?.agent?.color || "orange"}
+                                        key={`${index}trainOfThought`}
+                                        keyId={`${index}trainOfThought`}
+                                        completed={true}
+                                    />
+                                )}
                                 <ChatMessage
                                     key={`${index}fullHistory`}
                                     ref={
@@ -312,22 +349,14 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                     customClassName="fullHistory"
                                     borderLeftColor={`${data?.agent?.color}-500`}
                                     isLastMessage={index === data.chat.length - 1}
+                                    onDeleteMessage={handleDeleteMessage}
+                                    conversationId={props.conversationId}
                                 />
-                                {chatMessage.trainOfThought && chatMessage.by === "khoj" && (
-                                    <TrainOfThoughtComponent
-                                        trainOfThought={chatMessage.trainOfThought?.map(
-                                            (train) => train.data,
-                                        )}
-                                        lastMessage={false}
-                                        agentColor={data?.agent?.color || "orange"}
-                                        key={`${index}trainOfThought`}
-                                        completed={true}
-                                    />
-                                )}
                             </>
                         ))}
                     {props.incomingMessages &&
                         props.incomingMessages.map((message, index) => {
+                            const messageTurnId = message.turnId ?? currentTurnId ?? undefined;
                             return (
                                 <React.Fragment key={`incomingMessage${index}`}>
                                     <ChatMessage
@@ -342,9 +371,14 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                             by: "you",
                                             automationId: "",
                                             images: message.images,
+                                            conversationId: props.conversationId,
+                                            turnId: messageTurnId,
                                         }}
                                         customClassName="fullHistory"
                                         borderLeftColor={`${data?.agent?.color}-500`}
+                                        onDeleteMessage={handleDeleteMessage}
+                                        conversationId={props.conversationId}
+                                        turnId={messageTurnId}
                                     />
                                     {message.trainOfThought && (
                                         <TrainOfThoughtComponent
@@ -352,6 +386,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                             lastMessage={index === incompleteIncomingMessageIndex}
                                             agentColor={data?.agent?.color || "orange"}
                                             key={`${index}trainOfThought`}
+                                            keyId={`${index}trainOfThought`}
                                             completed={message.completed}
                                         />
                                     )}
@@ -373,7 +408,12 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                                 "memory-type": "",
                                                 "inferred-queries": message.inferredQueries || [],
                                             },
+                                            conversationId: props.conversationId,
+                                            turnId: messageTurnId,
                                         }}
+                                        conversationId={props.conversationId}
+                                        turnId={messageTurnId}
+                                        onDeleteMessage={handleDeleteMessage}
                                         customClassName="fullHistory"
                                         borderLeftColor={`${data?.agent?.color}-500`}
                                         isLastMessage={true}
@@ -393,7 +433,11 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                 created: new Date().getTime().toString(),
                                 by: "you",
                                 automationId: "",
+                                conversationId: props.conversationId,
+                                turnId: undefined,
                             }}
+                            conversationId={props.conversationId}
+                            onDeleteMessage={handleDeleteMessage}
                             customClassName="fullHistory"
                             borderLeftColor={`${data?.agent?.color}-500`}
                             isLastMessage={true}

@@ -262,7 +262,7 @@ def configure_server(
             initialize_content(regenerate, search_type, user)
 
     except Exception as e:
-        raise e
+        logger.error(f"Failed to load some search models: {e}", exc_info=True)
 
 
 def setup_default_agent(user: KhojUser):

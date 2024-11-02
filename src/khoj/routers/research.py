@@ -1,12 +1,11 @@
 import json
 import logging
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 import yaml
 from fastapi import Request
 
-from khoj.database.adapters import ConversationAdapters, EntryAdapters
 from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
@@ -191,18 +190,18 @@ async def execute_information_collection(
                     document_results = result[0]
                     this_iteration.context += document_results
 
-        if not is_none_or_empty(document_results):
-            try:
-                distinct_files = {d["file"] for d in document_results}
-                distinct_headings = set([d["compiled"].split("\n")[0] for d in document_results if "compiled" in d])
-                # Strip only leading # from headings
-                headings_str = "\n- " + "\n- ".join(distinct_headings).replace("#", "")
-                async for result in send_status_func(
-                    f"**Found {len(distinct_headings)} Notes Across {len(distinct_files)} Files**: {headings_str}"
-                ):
-                    yield result
-            except Exception as e:
-                logger.error(f"Error extracting document references: {e}", exc_info=True)
+            if not is_none_or_empty(document_results):
+                try:
+                    distinct_files = {d["file"] for d in document_results}
+                    distinct_headings = set([d["compiled"].split("\n")[0] for d in document_results if "compiled" in d])
+                    # Strip only leading # from headings
+                    headings_str = "\n- " + "\n- ".join(distinct_headings).replace("#", "")
+                    async for result in send_status_func(
+                        f"**Found {len(distinct_headings)} Notes Across {len(distinct_files)} Files**: {headings_str}"
+                    ):
+                        yield result
+                except Exception as e:
+                    logger.error(f"Error extracting document references: {e}", exc_info=True)
 
         elif this_iteration.tool == ConversationCommand.Online:
             async for result in search_online(
@@ -306,13 +305,13 @@ async def execute_information_collection(
         if document_results or online_results or code_results or summarize_files:
             results_data = f"**Results**:\n"
             if document_results:
-                results_data += f"**Document References**: {yaml.dump(document_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n"
+                results_data += f"**Document References**:\n{yaml.dump(document_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n"
             if online_results:
-                results_data += f"**Online Results**: {yaml.dump(online_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n"
+                results_data += f"**Online Results**:\n{yaml.dump(online_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n"
             if code_results:
-                results_data += f"**Code Results**: {yaml.dump(code_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n"
+                results_data += f"**Code Results**:\n{yaml.dump(code_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n"
             if summarize_files:
-                results_data += f"**Summarized Files**: {yaml.dump(summarize_files, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n"
+                results_data += f"**Summarized Files**:\n{yaml.dump(summarize_files, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n"
 
             # intermediate_result = await extract_relevant_info(this_iteration.query, results_data, agent)
             this_iteration.summarizedResult = results_data

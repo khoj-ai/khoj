@@ -13,7 +13,7 @@ from tenacity import (
 )
 from torch import nn
 
-from khoj.utils.helpers import get_device, merge_dicts, timer
+from khoj.utils.helpers import fix_json_dict, get_device, merge_dicts, timer
 from khoj.utils.rawconfig import SearchResponse
 
 logger = logging.getLogger(__name__)
@@ -31,9 +31,9 @@ class EmbeddingsModel:
     ):
         default_query_encode_kwargs = {"show_progress_bar": False, "normalize_embeddings": True}
         default_docs_encode_kwargs = {"show_progress_bar": True, "normalize_embeddings": True}
-        self.query_encode_kwargs = merge_dicts(query_encode_kwargs, default_query_encode_kwargs)
-        self.docs_encode_kwargs = merge_dicts(docs_encode_kwargs, default_docs_encode_kwargs)
-        self.model_kwargs = merge_dicts(model_kwargs, {"device": get_device()})
+        self.query_encode_kwargs = merge_dicts(fix_json_dict(query_encode_kwargs), default_query_encode_kwargs)
+        self.docs_encode_kwargs = merge_dicts(fix_json_dict(docs_encode_kwargs), default_docs_encode_kwargs)
+        self.model_kwargs = merge_dicts(fix_json_dict(model_kwargs), {"device": get_device()})
         self.model_name = model_name
         self.inference_endpoint = embeddings_inference_endpoint
         self.api_key = embeddings_inference_endpoint_api_key

@@ -476,9 +476,8 @@ def get_default_search_model() -> SearchModelConfig:
 
     if default_search_model:
         return default_search_model
-    else:
+    elif SearchModelConfig.objects.count() == 0:
         SearchModelConfig.objects.create()
-
     return SearchModelConfig.objects.first()
 
 
@@ -1319,6 +1318,8 @@ class ConversationAdapters:
     def add_files_to_filter(user: KhojUser, conversation_id: str, files: List[str]):
         conversation = ConversationAdapters.get_conversation_by_user(user, conversation_id=conversation_id)
         file_list = EntryAdapters.get_all_filenames_by_source(user, "computer")
+        if not conversation:
+            return []
         for filename in files:
             if filename in file_list and filename not in conversation.file_filters:
                 conversation.file_filters.append(filename)
@@ -1332,6 +1333,8 @@ class ConversationAdapters:
     @staticmethod
     def remove_files_from_filter(user: KhojUser, conversation_id: str, files: List[str]):
         conversation = ConversationAdapters.get_conversation_by_user(user, conversation_id=conversation_id)
+        if not conversation:
+            return []
         for filename in files:
             if filename in conversation.file_filters:
                 conversation.file_filters.remove(filename)
@@ -1342,6 +1345,17 @@ class ConversationAdapters:
         conversation.file_filters = [file for file in conversation.file_filters if file in file_list]
         conversation.save()
         return conversation.file_filters
+
+    @staticmethod
+    def delete_message_by_turn_id(user: KhojUser, conversation_id: str, turn_id: str):
+        conversation = ConversationAdapters.get_conversation_by_user(user, conversation_id=conversation_id)
+        if not conversation or not conversation.conversation_log or not conversation.conversation_log.get("chat"):
+            return False
+        conversation_log = conversation.conversation_log
+        updated_log = [msg for msg in conversation_log["chat"] if msg.get("turnId") != turn_id]
+        conversation.conversation_log["chat"] = updated_log
+        conversation.save()
+        return True
 
 
 class FileObjectAdapters:

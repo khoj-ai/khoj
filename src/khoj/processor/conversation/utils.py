@@ -1,9 +1,11 @@
 import base64
+import json
 import logging
 import math
 import mimetypes
 import os
 import queue
+import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -134,7 +136,11 @@ def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="A
     for chat in conversation_history.get("chat", [])[-n:]:
         if chat["by"] == "khoj" and chat["intent"].get("type") in ["remember", "reminder", "summarize"]:
             chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += f"{agent_name}: {chat['message']}\n"
+
+            if chat["intent"].get("inferred-queries"):
+                chat_history += f'Khoj: {{"queries": {chat["intent"].get("inferred-queries")}}}\n'
+
+            chat_history += f"{agent_name}: {chat['message']}\n\n"
         elif chat["by"] == "khoj" and ("text-to-image" in chat["intent"].get("type")):
             chat_history += f"User: {chat['intent']['query']}\n"
             chat_history += f"{agent_name}: [generated image redacted for space]\n"
@@ -185,6 +191,7 @@ class ChatEvent(Enum):
     MESSAGE = "message"
     REFERENCES = "references"
     STATUS = "status"
+    METADATA = "metadata"
 
 
 def message_to_log(
@@ -232,12 +239,14 @@ def save_to_conversation_log(
     train_of_thought: List[Any] = [],
 ):
     user_message_time = user_message_time or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    turn_id = tracer.get("mid") or str(uuid.uuid4())
     updated_conversation = message_to_log(
         user_message=q,
         chat_response=chat_response,
         user_message_metadata={
             "created": user_message_time,
             "images": query_images,
+            "turnId": turn_id,
         },
         khoj_message_metadata={
             "context": compiled_references,
@@ -246,6 +255,7 @@ def save_to_conversation_log(
             "codeContext": code_results,
             "automationId": automation_id,
             "trainOfThought": train_of_thought,
+            "turnId": turn_id,
         },
         conversation_log=meta_log.get("chat", []),
         train_of_thought=train_of_thought,
@@ -501,15 +511,12 @@ def commit_conversation_trace(
     Returns the path to the repository.
     """
     # Serialize session, system message and response to yaml
-    system_message_yaml = yaml.dump(system_message, allow_unicode=True, sort_keys=False, default_flow_style=False)
-    response_yaml = yaml.dump(response, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    system_message_yaml = json.dumps(system_message, ensure_ascii=False, sort_keys=False)
+    response_yaml = json.dumps(response, ensure_ascii=False, sort_keys=False)
     formatted_session = [{"role": message.role, "content": message.content} for message in session]
-    session_yaml = yaml.dump(formatted_session, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    session_yaml = json.dumps(formatted_session, ensure_ascii=False, sort_keys=False)
     query = (
-        yaml.dump(session[-1].content, allow_unicode=True, sort_keys=False, default_flow_style=False)
-        .strip()
-        .removeprefix("'")
-        .removesuffix("'")
+        json.dumps(session[-1].content, ensure_ascii=False, sort_keys=False).strip().removeprefix("'").removesuffix("'")
     )  # Extract serialized query from chat session
 
     # Extract chat metadata for session

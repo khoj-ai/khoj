@@ -31,6 +31,7 @@ from khoj.processor.speech.text_to_speech import generate_text_to_speech
 from khoj.processor.tools.online_search import read_webpages, search_online
 from khoj.processor.tools.run_code import run_code
 from khoj.routers.api import extract_references_and_questions
+from khoj.routers.email import send_query_feedback
 from khoj.routers.helpers import (
     ApiImageRateLimiter,
     ApiUserRateLimiter,
@@ -38,13 +39,14 @@ from khoj.routers.helpers import (
     ChatRequestBody,
     CommonQueryParams,
     ConversationCommandRateLimiter,
+    DeleteMessageRequestBody,
+    FeedbackData,
     agenerate_chat_response,
     aget_relevant_information_sources,
     aget_relevant_output_modes,
     construct_automation_created_message,
     create_automation,
     extract_relevant_info,
-    extract_relevant_summary,
     generate_excalidraw_diagram,
     generate_summary_from_files,
     get_conversation_command,
@@ -75,15 +77,11 @@ from khoj.utils.rawconfig import FileFilterRequest, FilesFilterRequest, Location
 # Initialize Router
 logger = logging.getLogger(__name__)
 conversation_command_rate_limiter = ConversationCommandRateLimiter(
-    trial_rate_limit=100, subscribed_rate_limit=6000, slug="command"
+    trial_rate_limit=20, subscribed_rate_limit=75, slug="command"
 )
 
 
 api_chat = APIRouter()
-
-from pydantic import BaseModel
-
-from khoj.routers.email import send_query_feedback
 
 
 @api_chat.get("/conversation/file-filters/{conversation_id}", response_class=Response)
@@ -146,12 +144,6 @@ def remove_file_filter(request: Request, filter: FileFilterRequest) -> Response:
     return Response(content=json.dumps(file_filters), media_type="application/json", status_code=200)
 
 
-class FeedbackData(BaseModel):
-    uquery: str
-    kquery: str
-    sentiment: str
-
-
 @api_chat.post("/feedback")
 @requires(["authenticated"])
 async def sendfeedback(request: Request, data: FeedbackData):
@@ -166,10 +158,10 @@ async def text_to_speech(
     common: CommonQueryParams,
     text: str,
     rate_limiter_per_minute=Depends(
-        ApiUserRateLimiter(requests=20, subscribed_requests=20, window=60, slug="chat_minute")
+        ApiUserRateLimiter(requests=30, subscribed_requests=30, window=60, slug="chat_minute")
     ),
     rate_limiter_per_day=Depends(
-        ApiUserRateLimiter(requests=50, subscribed_requests=300, window=60 * 60 * 24, slug="chat_day")
+        ApiUserRateLimiter(requests=100, subscribed_requests=600, window=60 * 60 * 24, slug="chat_day")
     ),
 ) -> Response:
     voice_model = await ConversationAdapters.aget_voice_model_config(request.user.object)
@@ -534,6 +526,19 @@ async def set_conversation_title(
     )
 
 
+@api_chat.delete("/conversation/message", response_class=Response)
+@requires(["authenticated"])
+def delete_message(request: Request, delete_request: DeleteMessageRequestBody) -> Response:
+    user = request.user.object
+    success = ConversationAdapters.delete_message_by_turn_id(
+        user, delete_request.conversation_id, delete_request.turn_id
+    )
+    if success:
+        return Response(content=json.dumps({"status": "ok"}), media_type="application/json", status_code=200)
+    else:
+        return Response(content=json.dumps({"status": "error", "message": "Message not found"}), status_code=404)
+
+
 @api_chat.post("")
 @requires(["authenticated"])
 async def chat(
@@ -541,10 +546,10 @@ async def chat(
     common: CommonQueryParams,
     body: ChatRequestBody,
     rate_limiter_per_minute=Depends(
-        ApiUserRateLimiter(requests=60, subscribed_requests=200, window=60, slug="chat_minute")
+        ApiUserRateLimiter(requests=20, subscribed_requests=20, window=60, slug="chat_minute")
     ),
     rate_limiter_per_day=Depends(
-        ApiUserRateLimiter(requests=600, subscribed_requests=6000, window=60 * 60 * 24, slug="chat_day")
+        ApiUserRateLimiter(requests=100, subscribed_requests=600, window=60 * 60 * 24, slug="chat_day")
     ),
     image_rate_limiter=Depends(ApiImageRateLimiter(max_images=10, max_combined_size_mb=20)),
 ):
@@ -555,6 +560,7 @@ async def chat(
     stream = body.stream
     title = body.title
     conversation_id = body.conversation_id
+    turn_id = str(body.turn_id or uuid.uuid4())
     city = body.city
     region = body.region
     country = body.country or get_country_name_from_timezone(body.timezone)
@@ -574,7 +580,7 @@ async def chat(
         nonlocal conversation_id
 
         tracer: dict = {
-            "mid": f"{uuid.uuid4()}",
+            "mid": turn_id,
             "cid": conversation_id,
             "uid": user.id,
             "khoj_version": state.khoj_version,
@@ -607,7 +613,7 @@ async def chat(
 
                 if event_type == ChatEvent.MESSAGE:
                     yield data
-                elif event_type == ChatEvent.REFERENCES or stream:
+                elif event_type == ChatEvent.REFERENCES or ChatEvent.METADATA or stream:
                     yield json.dumps({"type": event_type.value, "data": data}, ensure_ascii=False)
             except asyncio.CancelledError as e:
                 connection_alive = False
@@ -651,6 +657,11 @@ async def chat(
                 metadata=chat_metadata,
             )
 
+        if is_query_empty(q):
+            async for result in send_llm_response("Please ask your query to get started."):
+                yield result
+            return
+
         conversation_commands = [get_conversation_command(query=q, any_references=True)]
 
         conversation = await ConversationAdapters.aget_conversation_by_user(
@@ -666,6 +677,9 @@ async def chat(
             return
         conversation_id = conversation.id
 
+        async for event in send_event(ChatEvent.METADATA, {"conversationId": str(conversation_id), "turnId": turn_id}):
+            yield event
+
         agent: Agent | None = None
         default_agent = await AgentAdapters.aget_default_agent()
         if conversation.agent and conversation.agent != default_agent:
@@ -677,16 +691,10 @@ async def chat(
             agent = default_agent
 
         await is_ready_to_chat(user)
-
         user_name = await aget_user_name(user)
         location = None
         if city or region or country or country_code:
             location = LocationData(city=city, region=region, country=country, country_code=country_code)
-
-        if is_query_empty(q):
-            async for result in send_llm_response("Please ask your query to get started."):
-                yield result
-            return
 
         user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -699,7 +707,6 @@ async def chat(
         ## Extract Document References
         compiled_references: List[Any] = []
         inferred_queries: List[Any] = []
-        defiltered_query = defilter_query(q)
 
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
             conversation_commands = await aget_relevant_information_sources(
@@ -729,6 +736,12 @@ async def chat(
                 yield result
             if mode not in conversation_commands:
                 conversation_commands.append(mode)
+
+        for cmd in conversation_commands:
+            await conversation_command_rate_limiter.update_and_check_if_valid(request, cmd)
+            q = q.replace(f"/{cmd.value}", "").strip()
+
+        defiltered_query = defilter_query(q)
 
         if conversation_commands == [ConversationCommand.Research]:
             async for research_result in execute_information_collection(

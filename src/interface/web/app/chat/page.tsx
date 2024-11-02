@@ -29,6 +29,7 @@ interface ChatBodyDataProps {
     onConversationIdChange?: (conversationId: string) => void;
     setQueryToProcess: (query: string) => void;
     streamedMessages: StreamMessage[];
+    setStreamedMessages: (messages: StreamMessage[]) => void;
     setUploadedFiles: (files: string[]) => void;
     isMobileWidth?: boolean;
     isLoggedIn: boolean;
@@ -118,6 +119,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     setAgent={setAgentMetadata}
                     pendingMessage={processingMessage ? message : ""}
                     incomingMessages={props.streamedMessages}
+                    setIncomingMessages={props.setStreamedMessages}
                     customClassName={chatHistoryCustomClassName}
                 />
             </div>
@@ -351,6 +353,7 @@ export default function Chat() {
                         <ChatBodyData
                             isLoggedIn={authenticatedData !== null}
                             streamedMessages={messages}
+                            setStreamedMessages={setMessages}
                             chatOptionsData={chatOptionsData}
                             setTitle={setTitle}
                             setQueryToProcess={setQueryToProcess}

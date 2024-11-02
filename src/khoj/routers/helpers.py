@@ -478,6 +478,9 @@ async def infer_webpage_urls(
         valid_unique_urls = {str(url).strip() for url in urls["links"] if is_valid_url(url)}
         if is_none_or_empty(valid_unique_urls):
             raise ValueError(f"Invalid list of urls: {response}")
+        if len(valid_unique_urls) == 0:
+            logger.error(f"No valid URLs found in response: {response}")
+            return []
         return list(valid_unique_urls)
     except Exception:
         raise ValueError(f"Invalid list of urls: {response}")
@@ -1255,6 +1258,7 @@ class ChatRequestBody(BaseModel):
     stream: Optional[bool] = False
     title: Optional[str] = None
     conversation_id: Optional[str] = None
+    turn_id: Optional[str] = None
     city: Optional[str] = None
     region: Optional[str] = None
     country: Optional[str] = None
@@ -1262,6 +1266,17 @@ class ChatRequestBody(BaseModel):
     timezone: Optional[str] = None
     images: Optional[list[str]] = None
     create_new: Optional[bool] = False
+
+
+class DeleteMessageRequestBody(BaseModel):
+    conversation_id: str
+    turn_id: str
+
+
+class FeedbackData(BaseModel):
+    uquery: str
+    kquery: str
+    sentiment: str
 
 
 class ApiUserRateLimiter:
@@ -1366,7 +1381,7 @@ class ConversationCommandRateLimiter:
         self.slug = slug
         self.trial_rate_limit = trial_rate_limit
         self.subscribed_rate_limit = subscribed_rate_limit
-        self.restricted_commands = [ConversationCommand.Online, ConversationCommand.Image]
+        self.restricted_commands = [ConversationCommand.Research]
 
     async def update_and_check_if_valid(self, request: Request, conversation_command: ConversationCommand):
         if state.billing_enabled is False:
