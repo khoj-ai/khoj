@@ -17,7 +17,6 @@ import PIL.Image
 import requests
 import tiktoken
 import yaml
-from git import Repo
 from langchain.schema import ChatMessage
 from llama_cpp.llama import Llama
 from transformers import AutoTokenizer
@@ -39,6 +38,13 @@ from khoj.utils.helpers import (
 )
 
 logger = logging.getLogger(__name__)
+
+try:
+    from git import Repo
+except ImportError:
+    if in_debug_mode():
+        logger.warning("GitPython not installed. `pip install gitpython` to enable prompt tracer.")
+
 model_to_prompt_size = {
     # OpenAI Models
     "gpt-3.5-turbo": 12000,
@@ -510,6 +516,11 @@ def commit_conversation_trace(
     Save trace of conversation step using git. Useful to visualize, compare and debug traces.
     Returns the path to the repository.
     """
+    try:
+        from git import Repo
+    except ImportError:
+        return None
+
     # Serialize session, system message and response to yaml
     system_message_yaml = json.dumps(system_message, ensure_ascii=False, sort_keys=False)
     response_yaml = json.dumps(response, ensure_ascii=False, sort_keys=False)
@@ -617,6 +628,10 @@ def merge_message_into_conversation_trace(query: str, response: str, tracer: dic
     Returns:
         bool: True if merge was successful, False otherwise
     """
+    try:
+        from git import Repo
+    except ImportError:
+        return False
     try:
         # Extract branch names
         msg_branch = f"m_{tracer['mid']}"
