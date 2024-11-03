@@ -203,6 +203,15 @@ const suggestedAutomationsMetadata: AutomationsData[] = [
         scheduling_request: "",
     },
     {
+        subject: "Market Crash Notification",
+        query_to_run: "Notify me if the stock market fell by more than 5% today.",
+        schedule: "5PM every evening",
+        next: "Next run at 5PM today",
+        crontime: "0 17 * * *",
+        id: timestamp + 5,
+        scheduling_request: "",
+    },
+    {
         subject: "Round-up of research papers about AI in healthcare",
         query_to_run:
             "Summarize the top 3 research papers about AI in healthcare that were published in the last week. Include links to the full papers.",
@@ -518,12 +527,14 @@ function EditCard(props: EditCardProps) {
             updateQueryUrl += `&subject=${encodeURIComponent(values.subject)}`;
         }
         updateQueryUrl += `&crontime=${encodeURIComponent(cronFrequency)}`;
-        if (props.locationData) {
+        if (props.locationData && props.locationData.city)
             updateQueryUrl += `&city=${encodeURIComponent(props.locationData.city)}`;
+        if (props.locationData && props.locationData.region)
             updateQueryUrl += `&region=${encodeURIComponent(props.locationData.region)}`;
+        if (props.locationData && props.locationData.country)
             updateQueryUrl += `&country=${encodeURIComponent(props.locationData.country)}`;
+        if (props.locationData && props.locationData.timezone)
             updateQueryUrl += `&timezone=${encodeURIComponent(props.locationData.timezone)}`;
-        }
 
         let method = props.createNew ? "POST" : "PUT";
 

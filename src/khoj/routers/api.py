@@ -21,13 +21,21 @@ from starlette.authentication import has_required_scope, requires
 from khoj.configure import initialize_content
 from khoj.database import adapters
 from khoj.database.adapters import (
+    AgentAdapters,
     AutomationAdapters,
     ConversationAdapters,
     EntryAdapters,
+    get_default_search_model,
+    get_user_default_search_model,
     get_user_photo,
-    get_user_search_model_or_default,
 )
-from khoj.database.models import ChatModelOptions, KhojUser, SpeechToTextModelOptions
+from khoj.database.models import (
+    Agent,
+    ChatModelOptions,
+    KhojUser,
+    SpeechToTextModelOptions,
+)
+from khoj.processor.conversation import prompts
 from khoj.processor.conversation.anthropic.anthropic_chat import (
     extract_questions_anthropic,
 )
@@ -36,6 +44,7 @@ from khoj.processor.conversation.offline.chat_model import extract_questions_off
 from khoj.processor.conversation.offline.whisper import transcribe_audio_offline
 from khoj.processor.conversation.openai.gpt import extract_questions
 from khoj.processor.conversation.openai.whisper import transcribe_audio
+from khoj.processor.conversation.utils import defilter_query
 from khoj.routers.helpers import (
     ApiUserRateLimiter,
     ChatEvent,
@@ -106,11 +115,18 @@ async def execute_search(
     r: Optional[bool] = False,
     max_distance: Optional[Union[float, None]] = None,
     dedupe: Optional[bool] = True,
+    agent: Optional[Agent] = None,
 ):
-    start_time = time.time()
-
     # Run validation checks
     results: List[SearchResponse] = []
+
+    start_time = time.time()
+
+    # Ensure the agent, if present, is accessible by the user
+    if user and agent and not await AgentAdapters.ais_agent_accessible(agent, user):
+        logger.error(f"Agent {agent.slug} is not accessible by user {user}")
+        return results
+
     if q is None or q == "":
         logger.warning(f"No query param (q) passed in API call to initiate search")
         return results
@@ -135,7 +151,7 @@ async def execute_search(
     encoded_asymmetric_query = None
     if t != SearchType.Image:
         with timer("Encoding query took", logger=logger):
-            search_model = await sync_to_async(get_user_search_model_or_default)(user)
+            search_model = await sync_to_async(get_user_default_search_model)(user)
             encoded_asymmetric_query = state.embeddings_model[search_model.name].embed_query(defiltered_query)
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -152,11 +168,12 @@ async def execute_search(
             search_futures += [
                 executor.submit(
                     text_search.query,
-                    user,
                     user_query,
+                    user,
                     t,
                     question_embedding=encoded_asymmetric_query,
                     max_distance=max_distance,
+                    agent=agent,
                 )
             ]
 
@@ -328,34 +345,47 @@ async def extract_references_and_questions(
     q: str,
     n: int,
     d: float,
-    conversation_id: int,
+    conversation_id: str,
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     location_data: LocationData = None,
     send_status_func: Optional[Callable] = None,
-    uploaded_image_url: Optional[str] = None,
+    query_images: Optional[List[str]] = None,
+    agent: Agent = None,
+    tracer: dict = {},
 ):
     user = request.user.object if request.user.is_authenticated else None
 
     # Initialize Variables
-    compiled_references: List[Any] = []
+    compiled_references: List[dict[str, str]] = []
     inferred_queries: List[str] = []
+
+    agent_has_entries = False
+
+    if agent:
+        agent_has_entries = await sync_to_async(EntryAdapters.agent_has_entries)(agent=agent)
 
     if (
         not ConversationCommand.Notes in conversation_commands
         and not ConversationCommand.Default in conversation_commands
+        and not agent_has_entries
     ):
         yield compiled_references, inferred_queries, q
         return
 
+    # If Notes or Default is not in the conversation command, then the search should be restricted to the agent's knowledge base
+    should_limit_to_agent_knowledge = (
+        ConversationCommand.Notes not in conversation_commands
+        and ConversationCommand.Default not in conversation_commands
+    )
+
     if not await sync_to_async(EntryAdapters.user_has_entries)(user=user):
-        logger.debug("No documents in knowledge base. Use a Khoj client to sync and chat with your docs.")
-        yield compiled_references, inferred_queries, q
-        return
+        if not agent_has_entries:
+            logger.debug("No documents in knowledge base. Use a Khoj client to sync and chat with your docs.")
+            yield compiled_references, inferred_queries, q
+            return
 
     # Extract filter terms from user message
-    defiltered_query = q
-    for filter in [DateFilter(), WordFilter(), FileFilter()]:
-        defiltered_query = filter.defilter(defiltered_query)
+    defiltered_query = defilter_query(q)
     filters_in_query = q.replace(defiltered_query, "").strip()
     conversation = await sync_to_async(ConversationAdapters.get_conversation_by_id)(conversation_id)
 
@@ -368,10 +398,12 @@ async def extract_references_and_questions(
     using_offline_chat = False
     logger.debug(f"Filters in query: {filters_in_query}")
 
+    personality_context = prompts.personality_context.format(personality=agent.personality) if agent else ""
+
     # Infer search queries from user message
     with timer("Extracting search queries took", logger):
         # If we've reached here, either the user has enabled offline chat or the openai model is enabled.
-        conversation_config = await ConversationAdapters.aget_default_conversation_config()
+        conversation_config = await ConversationAdapters.aget_default_conversation_config(user)
         vision_enabled = conversation_config.vision_enabled
 
         if conversation_config.model_type == ChatModelOptions.ModelType.OFFLINE:
@@ -392,6 +424,8 @@ async def extract_references_and_questions(
                 location_data=location_data,
                 user=user,
                 max_prompt_size=conversation_config.max_prompt_size,
+                personality_context=personality_context,
+                tracer=tracer,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
             openai_chat_config = conversation_config.openai_config
@@ -406,31 +440,41 @@ async def extract_references_and_questions(
                 conversation_log=meta_log,
                 location_data=location_data,
                 user=user,
-                uploaded_image_url=uploaded_image_url,
+                query_images=query_images,
                 vision_enabled=vision_enabled,
+                personality_context=personality_context,
+                tracer=tracer,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
             api_key = conversation_config.openai_config.api_key
             chat_model = conversation_config.chat_model
             inferred_queries = extract_questions_anthropic(
                 defiltered_query,
+                query_images=query_images,
                 model=chat_model,
                 api_key=api_key,
                 conversation_log=meta_log,
                 location_data=location_data,
                 user=user,
+                vision_enabled=vision_enabled,
+                personality_context=personality_context,
+                tracer=tracer,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
             api_key = conversation_config.openai_config.api_key
             chat_model = conversation_config.chat_model
             inferred_queries = extract_questions_gemini(
                 defiltered_query,
+                query_images=query_images,
                 model=chat_model,
                 api_key=api_key,
                 conversation_log=meta_log,
                 location_data=location_data,
                 max_tokens=conversation_config.max_prompt_size,
                 user=user,
+                vision_enabled=vision_enabled,
+                personality_context=personality_context,
+                tracer=tracer,
             )
 
     # Collate search results as context for GPT
@@ -445,18 +489,20 @@ async def extract_references_and_questions(
             n_items = min(n, 3) if using_offline_chat else n
             search_results.extend(
                 await execute_search(
-                    user,
+                    user if not should_limit_to_agent_knowledge else None,
                     f"{query} {filters_in_query}",
                     n=n_items,
                     t=SearchType.All,
                     r=True,
                     max_distance=d,
                     dedupe=False,
+                    agent=agent,
                 )
             )
         search_results = text_search.deduplicated_search_responses(search_results)
         compiled_references = [
-            {"compiled": item.additional["compiled"], "file": item.additional["file"]} for item in search_results
+            {"query": q, "compiled": item.additional["compiled"], "file": item.additional["file"]}
+            for q, item in zip(inferred_queries, search_results)
         ]
 
     yield compiled_references, inferred_queries, defiltered_query
@@ -574,7 +620,7 @@ async def post_automation(
     try:
         # Use the query to run as the scheduling request if the scheduling request is unset
         automation = await schedule_automation(
-            query_to_run, subject, crontime, timezone, q, user, calling_url, conversation.id
+            query_to_run, subject, crontime, timezone, q, user, calling_url, str(conversation.id)
         )
     except Exception as e:
         logger.error(f"Error creating automation {q} for {user.email}: {e}", exc_info=True)
@@ -679,7 +725,7 @@ def edit_job(
         # Create new Conversation Session associated with this new task
         conversation = ConversationAdapters.create_conversation_session(user, request.user.client_app, title=title)
 
-        conversation_id = conversation.id
+        conversation_id = str(conversation.id)
         automation_metadata["conversation_id"] = conversation_id
 
     # Modify automation with updated query, subject

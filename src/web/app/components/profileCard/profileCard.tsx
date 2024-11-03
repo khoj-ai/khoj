@@ -11,11 +11,11 @@ interface ProfileCardProps {
     description?: string; // Optional description field
 }
 
-const ProfileCard: React.FC<ProfileCardProps> = ({ name, avatar, link, description }) => {
+const AgentProfileCard: React.FC<ProfileCardProps> = ({ name, avatar, link, description }) => {
     return (
         <div className="relative group flex">
             <TooltipProvider>
-                <Tooltip>
+                <Tooltip delayDuration={0}>
                     <TooltipTrigger asChild>
                         <Button variant="ghost" className="flex items-center justify-center">
                             {avatar}
@@ -24,7 +24,6 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ name, avatar, link, descripti
                     </TooltipTrigger>
                     <TooltipContent>
                         <div className="w-80 h-30">
-                            {/* <div className="absolute left-0 bottom-full w-80 h-30 p-2 pb-4 bg-white border border-gray-300 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"> */}
                             <a
                                 href={link}
                                 target="_blank"
@@ -52,4 +51,4 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ name, avatar, link, descripti
     );
 };
 
-export default ProfileCard;
+export default AgentProfileCard;

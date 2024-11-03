@@ -1,9 +1,9 @@
 "use client";
 
 import styles from "./chat.module.css";
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 
-import SidePanel from "../components/sidePanel/chatHistorySidePanel";
+import SidePanel, { ChatSessionActionMenu } from "../components/sidePanel/chatHistorySidePanel";
 import ChatHistory from "../components/chatHistory/chatHistory";
 import { useSearchParams } from "next/navigation";
 import Loading from "../components/loading/loading";
@@ -12,9 +12,14 @@ import { processMessageChunk } from "../common/chatFunctions";
 
 import "katex/dist/katex.min.css";
 
-import { Context, OnlineContext, StreamMessage } from "../components/chatMessage/chatMessage";
+import {
+    CodeContext,
+    Context,
+    OnlineContext,
+    StreamMessage,
+} from "../components/chatMessage/chatMessage";
 import { useIPLocationData, useIsMobileWidth, welcomeConsole } from "../common/utils";
-import ChatInputArea, { ChatOptions } from "../components/chatInputArea/chatInputArea";
+import { ChatInputArea, ChatOptions } from "../components/chatInputArea/chatInputArea";
 import { useAuthenticatedData } from "../common/auth";
 import { AgentData } from "../agents/page";
 
@@ -24,43 +29,55 @@ interface ChatBodyDataProps {
     onConversationIdChange?: (conversationId: string) => void;
     setQueryToProcess: (query: string) => void;
     streamedMessages: StreamMessage[];
+    setStreamedMessages: (messages: StreamMessage[]) => void;
     setUploadedFiles: (files: string[]) => void;
     isMobileWidth?: boolean;
     isLoggedIn: boolean;
-    setImage64: (image64: string) => void;
+    setImages: (images: string[]) => void;
 }
 
 function ChatBodyData(props: ChatBodyDataProps) {
     const searchParams = useSearchParams();
     const conversationId = searchParams.get("conversationId");
     const [message, setMessage] = useState("");
-    const [image, setImage] = useState<string | null>(null);
+    const [images, setImages] = useState<string[]>([]);
     const [processingMessage, setProcessingMessage] = useState(false);
     const [agentMetadata, setAgentMetadata] = useState<AgentData | null>(null);
+    const [isInResearchMode, setIsInResearchMode] = useState(false);
+    const chatInputRef = useRef<HTMLTextAreaElement>(null);
 
     const setQueryToProcess = props.setQueryToProcess;
     const onConversationIdChange = props.onConversationIdChange;
 
-    useEffect(() => {
-        if (image) {
-            props.setImage64(encodeURIComponent(image));
-        }
-    }, [image, props.setImage64]);
+    const chatHistoryCustomClassName = props.isMobileWidth ? "w-full" : "w-4/6";
 
     useEffect(() => {
-        const storedImage = localStorage.getItem("image");
-        if (storedImage) {
-            setImage(storedImage);
-            props.setImage64(encodeURIComponent(storedImage));
-            localStorage.removeItem("image");
+        if (images.length > 0) {
+            const encodedImages = images.map((image) => encodeURIComponent(image));
+            props.setImages(encodedImages);
+        }
+    }, [images, props.setImages]);
+
+    useEffect(() => {
+        const storedImages = localStorage.getItem("images");
+        if (storedImages) {
+            const parsedImages: string[] = JSON.parse(storedImages);
+            setImages(parsedImages);
+            const encodedImages = parsedImages.map((img: string) => encodeURIComponent(img));
+            props.setImages(encodedImages);
+            localStorage.removeItem("images");
         }
 
         const storedMessage = localStorage.getItem("message");
         if (storedMessage) {
             setProcessingMessage(true);
             setQueryToProcess(storedMessage);
+
+            if (storedMessage.trim().startsWith("/research")) {
+                setIsInResearchMode(true);
+            }
         }
-    }, [setQueryToProcess]);
+    }, [setQueryToProcess, props.setImages]);
 
     useEffect(() => {
         if (message) {
@@ -82,6 +99,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             props.streamedMessages[props.streamedMessages.length - 1].completed
         ) {
             setProcessingMessage(false);
+            setImages([]); // Reset images after processing
         } else {
             setMessage("");
         }
@@ -101,21 +119,25 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     setAgent={setAgentMetadata}
                     pendingMessage={processingMessage ? message : ""}
                     incomingMessages={props.streamedMessages}
+                    setIncomingMessages={props.setStreamedMessages}
+                    customClassName={chatHistoryCustomClassName}
                 />
             </div>
             <div
-                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-t-2xl rounded-b-none md:rounded-xl`}
+                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-t-2xl rounded-b-none md:rounded-xl h-fit ${chatHistoryCustomClassName} mr-auto ml-auto`}
             >
                 <ChatInputArea
                     agentColor={agentMetadata?.color}
                     isLoggedIn={props.isLoggedIn}
                     sendMessage={(message) => setMessage(message)}
-                    sendImage={(image) => setImage(image)}
+                    sendImage={(image) => setImages((prevImages) => [...prevImages, image])}
                     sendDisabled={processingMessage}
                     chatOptionsData={props.chatOptionsData}
                     conversationId={conversationId}
                     isMobileWidth={props.isMobileWidth}
                     setUploadedFiles={props.setUploadedFiles}
+                    ref={chatInputRef}
+                    isResearchModeEnabled={isInResearchMode}
                 />
             </div>
         </>
@@ -132,8 +154,11 @@ export default function Chat() {
     const [queryToProcess, setQueryToProcess] = useState<string>("");
     const [processQuerySignal, setProcessQuerySignal] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
-    const [image64, setImage64] = useState<string>("");
-    const locationData = useIPLocationData();
+    const [images, setImages] = useState<string[]>([]);
+
+    const locationData = useIPLocationData() || {
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    };
     const authenticatedData = useAuthenticatedData();
     const isMobileWidth = useIsMobileWidth();
 
@@ -162,10 +187,11 @@ export default function Chat() {
                 trainOfThought: [],
                 context: [],
                 onlineContext: {},
+                codeContext: {},
                 completed: false,
                 timestamp: new Date().toISOString(),
                 rawQuery: queryToProcess || "",
-                uploadedImageData: decodeURIComponent(image64),
+                images: images,
             };
             setMessages((prevMessages) => [...prevMessages, newStreamMessage]);
             setProcessQuerySignal(true);
@@ -190,13 +216,14 @@ export default function Chat() {
         // Track context used for chat response
         let context: Context[] = [];
         let onlineContext: OnlineContext = {};
+        let codeContext: CodeContext = {};
 
         while (true) {
             const { done, value } = await reader.read();
             if (done) {
                 setQueryToProcess("");
                 setProcessQuerySignal(false);
-                setImage64("");
+                setImages([]);
                 break;
             }
 
@@ -216,11 +243,12 @@ export default function Chat() {
                     }
 
                     // Track context used for chat response. References are rendered at the end of the chat
-                    ({ context, onlineContext } = processMessageChunk(
+                    ({ context, onlineContext, codeContext } = processMessageChunk(
                         event,
                         currentMessage,
                         context,
                         onlineContext,
+                        codeContext,
                     ));
 
                     setMessages([...messages]);
@@ -235,15 +263,16 @@ export default function Chat() {
         const chatAPI = "/api/chat?client=web";
         const chatAPIBody = {
             q: queryToProcess,
-            conversation_id: parseInt(conversationId),
+            conversation_id: conversationId,
             stream: true,
             ...(locationData && {
+                city: locationData.city,
                 region: locationData.region,
                 country: locationData.country,
-                city: locationData.city,
+                country_code: locationData.countryCode,
                 timezone: locationData.timezone,
             }),
-            ...(image64 && { image: image64 }),
+            ...(images.length > 0 && { images: images }),
         };
 
         const response = await fetch(chatAPI, {
@@ -257,14 +286,22 @@ export default function Chat() {
         try {
             await readChatStream(response);
         } catch (err) {
-            console.error(err);
+            const apiError = await response.json();
+            console.error(apiError);
             // Retrieve latest message being processed
             const currentMessage = messages.find((message) => !message.completed);
             if (!currentMessage) return;
 
             // Render error message as current message
             const errorMessage = (err as Error).message;
-            currentMessage.rawResponse = `Encountered Error: ${errorMessage}. Please try again later.`;
+            if (errorMessage.includes("Error in input stream"))
+                currentMessage.rawResponse = `Woops! The connection broke while I was writing my thoughts down. Maybe try again in a bit or dislike this message if the issue persists?`;
+            else if (response.status === 429) {
+                "detail" in apiError
+                    ? (currentMessage.rawResponse = `${apiError.detail}`)
+                    : (currentMessage.rawResponse = `I'm a bit overwhelmed at the moment. Could you try again in a bit or dislike this message if the issue persists?`);
+            } else
+                currentMessage.rawResponse = `Umm, not sure what just happened. I see this error message: ${errorMessage}. Could you try again or dislike this message if the issue persists?`;
 
             // Complete message streaming teardown properly
             currentMessage.completed = true;
@@ -294,30 +331,36 @@ export default function Chat() {
             </div>
             <div className={styles.chatBox}>
                 <div className={styles.chatBoxBody}>
-                    {!isMobileWidth && (
+                    {!isMobileWidth && conversationId && (
                         <div
-                            className={`text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mr-8`}
+                            className={`${styles.chatTitleWrapper} text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mr-8 pt-6 col-auto h-fit`}
                         >
                             {title && (
                                 <h2
-                                    className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden pt-6`}
+                                    className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden`}
                                 >
                                     {title}
                                 </h2>
                             )}
+                            <ChatSessionActionMenu
+                                conversationId={conversationId}
+                                setTitle={setTitle}
+                                sizing="md"
+                            />
                         </div>
                     )}
                     <Suspense fallback={<Loading />}>
                         <ChatBodyData
                             isLoggedIn={authenticatedData !== null}
                             streamedMessages={messages}
+                            setStreamedMessages={setMessages}
                             chatOptionsData={chatOptionsData}
                             setTitle={setTitle}
                             setQueryToProcess={setQueryToProcess}
                             setUploadedFiles={setUploadedFiles}
                             isMobileWidth={isMobileWidth}
                             onConversationIdChange={handleConversationIdChange}
-                            setImage64={setImage64}
+                            setImages={setImages}
                         />
                     </Suspense>
                 </div>

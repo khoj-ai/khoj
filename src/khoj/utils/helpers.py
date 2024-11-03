@@ -2,13 +2,16 @@ from __future__ import annotations  # to avoid quoting type hints
 
 import datetime
 import io
+import ipaddress
 import logging
 import os
 import platform
 import random
+import urllib.parse
 import uuid
 from collections import OrderedDict
 from enum import Enum
+from functools import lru_cache
 from importlib import import_module
 from importlib.metadata import version
 from itertools import islice
@@ -24,6 +27,7 @@ import torch
 from asgiref.sync import sync_to_async
 from magika import Magika
 from PIL import Image
+from pytz import country_names, country_timezones
 
 from khoj.utils import constants
 
@@ -97,6 +101,15 @@ def merge_dicts(priority_dict: dict, default_dict: dict):
     return merged_dict
 
 
+def fix_json_dict(json_dict: dict) -> dict:
+    for k, v in json_dict.items():
+        if v == "True" or v == "False":
+            json_dict[k] = v == "True"
+        if isinstance(v, dict):
+            json_dict[k] = fix_json_dict(v)
+    return json_dict
+
+
 def get_file_type(file_type: str, file_content: bytes) -> tuple[str, str]:
     "Get file type from file mime type"
 
@@ -122,6 +135,8 @@ def get_file_type(file_type: str, file_content: bytes) -> tuple[str, str]:
     elif file_type in ["image/jpeg"]:
         return "image", encoding
     elif file_type in ["image/png"]:
+        return "image", encoding
+    elif file_type in ["image/webp"]:
         return "image", encoding
     elif content_group in ["code", "text"]:
         return "plaintext", encoding
@@ -162,9 +177,9 @@ def get_class_by_name(name: str) -> object:
 class timer:
     """Context manager to log time taken for a block of code to run"""
 
-    def __init__(self, message: str, logger: logging.Logger, device: torch.device = None):
+    def __init__(self, message: str, logger: logging.Logger, device: torch.device = None, log_level=logging.DEBUG):
         self.message = message
-        self.logger = logger
+        self.logger = logger.debug if log_level == logging.DEBUG else logger.info
         self.device = device
 
     def __enter__(self):
@@ -174,9 +189,9 @@ class timer:
     def __exit__(self, *_):
         elapsed = perf_counter() - self.start
         if self.device is None:
-            self.logger.debug(f"{self.message}: {elapsed:.3f} seconds")
+            self.logger(f"{self.message}: {elapsed:.3f} seconds")
         else:
-            self.logger.debug(f"{self.message}: {elapsed:.3f} seconds on device: {self.device}")
+            self.logger(f"{self.message}: {elapsed:.3f} seconds on device: {self.device}")
 
 
 class LRU(OrderedDict):
@@ -307,11 +322,14 @@ class ConversationCommand(str, Enum):
     Help = "help"
     Online = "online"
     Webpage = "webpage"
+    Code = "code"
     Image = "image"
     Text = "text"
     Automation = "automation"
     AutomatedTask = "automated_task"
     Summarize = "summarize"
+    Diagram = "diagram"
+    Research = "research"
 
 
 command_descriptions = {
@@ -319,11 +337,23 @@ command_descriptions = {
     ConversationCommand.Notes: "Only talk about information that is available in your knowledge base.",
     ConversationCommand.Default: "The default command when no command specified. It intelligently auto-switches between general and notes mode.",
     ConversationCommand.Online: "Search for information on the internet.",
-    ConversationCommand.Webpage: "Get information from webpage links provided by you.",
-    ConversationCommand.Image: "Generate images by describing your imagination in words.",
+    ConversationCommand.Webpage: "Get information from webpage suggested by you.",
+    ConversationCommand.Code: "Run Python code to parse information, run complex calculations, create documents and charts.",
+    ConversationCommand.Image: "Generate illustrative, creative images by describing your imagination in words.",
     ConversationCommand.Automation: "Automatically run your query at a specified time or interval.",
     ConversationCommand.Help: "Get help with how to use or setup Khoj from the documentation",
-    ConversationCommand.Summarize: "Create an appropriate summary using provided documents.",
+    ConversationCommand.Summarize: "Get help with a question pertaining to an entire document.",
+    ConversationCommand.Diagram: "Draw a flowchart, diagram, or any other visual representation best expressed with primitives like lines, rectangles, and text.",
+    ConversationCommand.Research: "Do deep research on a topic. This will take longer than usual, but give a more detailed, comprehensive answer.",
+}
+
+command_descriptions_for_agent = {
+    ConversationCommand.General: "Agent can use the agents knowledge base and general knowledge.",
+    ConversationCommand.Notes: "Agent can search the users knowledge base for information.",
+    ConversationCommand.Online: "Agent can search the internet for information.",
+    ConversationCommand.Webpage: "Agent can read suggested web pages for information.",
+    ConversationCommand.Summarize: "Agent can read an entire document. Agents knowledge base must be a single document.",
+    ConversationCommand.Research: "Agent can do deep research on a topic.",
 }
 
 tool_descriptions_for_llm = {
@@ -332,13 +362,29 @@ tool_descriptions_for_llm = {
     ConversationCommand.Notes: "To search the user's personal knowledge base. Especially helpful if the question expects context from the user's notes or documents.",
     ConversationCommand.Online: "To search for the latest, up-to-date information from the internet. Note: **Questions about Khoj should always use this data source**",
     ConversationCommand.Webpage: "To use if the user has directly provided the webpage urls or you are certain of the webpage urls to read.",
-    ConversationCommand.Summarize: "To create a summary of the document provided by the user.",
+    ConversationCommand.Code: "To run Python code in a Pyodide sandbox with no network access. Helpful when need to parse information, run complex calculations, create documents and charts for user. Matplotlib, bs4, pandas, numpy, etc. are available.",
+    ConversationCommand.Summarize: "To retrieve an answer that depends on the entire document or a large text.",
+}
+
+function_calling_description_for_llm = {
+    ConversationCommand.Notes: "To search the user's personal knowledge base. Especially helpful if the question expects context from the user's notes or documents.",
+    ConversationCommand.Online: "To search the internet for information. Useful to get a quick, broad overview from the internet. Provide all relevant context to ensure new searches, not in previous iterations, are performed.",
+    ConversationCommand.Webpage: "To extract information from webpages. Useful for more detailed research from the internet. Usually used when you know the webpage links to refer to. Share the webpage links and information to extract in your query.",
+    ConversationCommand.Code: "To run Python code in a Pyodide sandbox with no network access. Helpful when need to parse information, run complex calculations, create charts for user. Matplotlib, bs4, pandas, numpy, etc. are available.",
 }
 
 mode_descriptions_for_llm = {
-    ConversationCommand.Image: "Use this if the user is requesting an image or visual response to their query.",
-    ConversationCommand.Automation: "Use this if the user is requesting a response at a scheduled date or time.",
-    ConversationCommand.Text: "Use this if the other response modes don't seem to fit the query.",
+    ConversationCommand.Image: "Use this if you are confident the user is requesting you to create a new picture based on their description. This does not support generating charts or graphs.",
+    ConversationCommand.Automation: "Use this if you are confident the user is requesting a response at a scheduled date, time and frequency",
+    ConversationCommand.Text: "Use this if a normal text response would be sufficient for accurately responding to the query.",
+    ConversationCommand.Diagram: "Use this if the user is requesting a diagram or visual representation that requires primitives like lines, rectangles, and text.",
+}
+
+mode_descriptions_for_agent = {
+    ConversationCommand.Image: "Agent can generate images in response. It cannot not use this to generate charts and graphs.",
+    ConversationCommand.Automation: "Agent can schedule a task to run at a scheduled date, time and frequency in response.",
+    ConversationCommand.Text: "Agent can generate text in response.",
+    ConversationCommand.Diagram: "Agent can generate a visual representation that requires primitives like lines, rectangles, and text.",
 }
 
 
@@ -420,6 +466,46 @@ def is_internet_connected():
         return False
 
 
+def is_internal_url(url: str) -> bool:
+    """
+    Check if a URL is likely to be internal/non-public.
+
+    Args:
+    url (str): The URL to check.
+
+    Returns:
+    bool: True if the URL is likely internal, False otherwise.
+    """
+    try:
+        parsed_url = urllib.parse.urlparse(url)
+        hostname = parsed_url.hostname
+
+        # Check for localhost
+        if hostname in ["localhost", "127.0.0.1", "::1"]:
+            return True
+
+        # Check for IP addresses in private ranges
+        try:
+            ip = ipaddress.ip_address(hostname)
+            return ip.is_private
+        except ValueError:
+            pass  # Not an IP address, continue with other checks
+
+        # Check for common internal TLDs
+        internal_tlds = [".local", ".internal", ".private", ".corp", ".home", ".lan"]
+        if any(hostname.endswith(tld) for tld in internal_tlds):
+            return True
+
+        # Check for URLs without a TLD
+        if "." not in hostname:
+            return True
+
+        return False
+    except Exception:
+        # If we can't parse the URL or something else goes wrong, assume it's not internal
+        return False
+
+
 def convert_image_to_webp(image_bytes):
     """Convert image bytes to webp format for faster loading"""
     image_io = io.BytesIO(image_bytes)
@@ -431,3 +517,24 @@ def convert_image_to_webp(image_bytes):
         webp_image_bytes = webp_image_io.getvalue()
         webp_image_io.close()
         return webp_image_bytes
+
+
+@lru_cache
+def tz_to_cc_map() -> dict[str, str]:
+    """Create a mapping of timezone to country code"""
+    timezone_country = {}
+    for countrycode in country_timezones:
+        timezones = country_timezones[countrycode]
+        for timezone in timezones:
+            timezone_country[timezone] = countrycode
+    return timezone_country
+
+
+def get_country_code_from_timezone(tz: str) -> str:
+    """Get country code from timezone"""
+    return tz_to_cc_map().get(tz, "US")
+
+
+def get_country_name_from_timezone(tz: str) -> str:
+    """Get country name from timezone"""
+    return country_names.get(get_country_code_from_timezone(tz), "United States")

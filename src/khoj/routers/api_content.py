@@ -2,11 +2,13 @@ import asyncio
 import json
 import logging
 import math
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional, Union
 
 from asgiref.sync import sync_to_async
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     Header,
     HTTPException,
@@ -58,6 +60,8 @@ logger = logging.getLogger(__name__)
 
 api_content = APIRouter()
 
+executor = ThreadPoolExecutor()
+
 
 class File(BaseModel):
     path: str
@@ -75,6 +79,11 @@ class IndexerInput(BaseModel):
     plaintext: Optional[dict[str, str]] = None
     image: Optional[dict[str, bytes]] = None
     docx: Optional[dict[str, bytes]] = None
+
+
+async def run_in_executor(func, *args):
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(executor, func, *args)
 
 
 @api_content.put("")
@@ -154,6 +163,91 @@ def get_content_github(request: Request) -> Response:
     # Return config data as a JSON response
     return Response(content=json.dumps(user_config), media_type="application/json", status_code=200)
 
+
+@api_content.get("/notion", response_class=Response)
+@requires(["authenticated"])
+def get_content_notion(request: Request) -> Response:
+    user = request.user.object
+    user_config = get_user_config(user, request)
+    del user_config["request"]
+
+    current_notion_config = get_user_notion_config(user)
+    token = current_notion_config.token if current_notion_config else ""
+    current_config = NotionContentConfig(token=token)
+    current_config = json.loads(current_config.model_dump_json())
+
+    user_config["current_config"] = current_config
+
+    # Return config data as a JSON response
+    return Response(content=json.dumps(user_config), media_type="application/json", status_code=200)
+
+
+@api_content.post("/github", status_code=200)
+@requires(["authenticated"])
+async def set_content_github(
+    request: Request,
+    updated_config: Union[GithubContentConfig, None],
+    client: Optional[str] = None,
+):
+    _initialize_config()
+
+    user = request.user.object
+
+    try:
+        await adapters.set_user_github_config(
+            user=user,
+            pat_token=updated_config.pat_token,
+            repos=updated_config.repos,
+        )
+    except Exception as e:
+        logger.error(e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to set Github config")
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="set_content_config",
+        client=client,
+        metadata={"content_type": "github"},
+    )
+
+    return {"status": "ok"}
+
+
+@api_content.post("/notion", status_code=200)
+@requires(["authenticated"])
+async def set_content_notion(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    updated_config: Union[NotionContentConfig, None],
+    client: Optional[str] = None,
+):
+    _initialize_config()
+
+    user = request.user.object
+
+    try:
+        await adapters.set_notion_config(
+            user=user,
+            token=updated_config.token,
+        )
+    except Exception as e:
+        logger.error(e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to set Notion config")
+
+    if updated_config.token:
+        # Trigger an async job to configure_content. Let it run without blocking the response.
+        background_tasks.add_task(run_in_executor, configure_content, {}, False, SearchType.Notion, user)
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="set_content_config",
+        client=client,
+        metadata={"content_type": "notion"},
+    )
+
+    return {"status": "ok"}
 
 
 @api_content.delete("/file", status_code=201)
@@ -406,7 +500,15 @@ def map_config_to_object(content_source: str):
 
 
 async def map_config_to_db(config: FullConfig, user: KhojUser):
-    if config.content_type:        
+    if config.content_type:
+        if config.content_type.org:
+            await LocalOrgConfig.objects.filter(user=user).adelete()
+            await LocalOrgConfig.objects.acreate(
+                input_files=config.content_type.org.input_files,
+                input_filter=config.content_type.org.input_filter,
+                index_heading_entries=config.content_type.org.index_heading_entries,
+                user=user,
+            )
         if config.content_type.markdown:
             await LocalMarkdownConfig.objects.filter(user=user).adelete()
             await LocalMarkdownConfig.objects.acreate(
@@ -430,7 +532,19 @@ async def map_config_to_db(config: FullConfig, user: KhojUser):
                 input_filter=config.content_type.plaintext.input_filter,
                 index_heading_entries=config.content_type.plaintext.index_heading_entries,
                 user=user,
-            )        
+            )
+        if config.content_type.github:
+            await adapters.set_user_github_config(
+                user=user,
+                pat_token=config.content_type.github.pat_token,
+                repos=config.content_type.github.repos,
+            )
+        if config.content_type.notion:
+            await adapters.set_notion_config(
+                user=user,
+                token=config.content_type.notion.token,
+            )
+
 
 def _initialize_config():
     if state.config is None:

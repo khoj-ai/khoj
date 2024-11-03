@@ -58,13 +58,12 @@ dependencies = [
     "uvicorn == 0.30.6",
     "aiohttp ~= 3.9.0",
     "langchain == 0.2.5",
-    "langchain-openai == 0.1.7",
     "langchain-community == 0.2.5",
     "requests >= 2.26.0",
     "tenacity == 8.3.0",
     "anyio == 3.7.1",
-    "pymupdf >= 1.23.5",
-    "django == 5.0.8",
+    "pymupdf == 1.24.11",
+    "django == 5.0.9",
     "authlib == 1.2.1",
     "llama-cpp-python == 0.2.88",
     "itsdangerous == 2.1.2",
@@ -73,7 +72,7 @@ dependencies = [
     "psycopg2-binary == 2.9.9",
     "lxml == 4.9.3",
     "tzdata == 2023.3",
-    "rapidocr-onnxruntime == 1.3.22",
+    "rapidocr-onnxruntime == 1.3.24",
     "openai-whisper >= 20231117",
     "django-phonenumber-field == 7.3.0",
     "phonenumbers == 8.13.27",
@@ -88,7 +87,7 @@ dependencies = [
     "django_apscheduler == 0.6.2",
     "anthropic == 0.26.1",
     "docx2txt == 0.8",
-    "google-generativeai == 0.7.2"
+    "google-generativeai == 0.8.3",
 ]
 dynamic = ["version"]
 
@@ -120,6 +119,7 @@ dev = [
     "mypy >= 1.0.1",
     "black >= 23.1.0",
     "pre-commit >= 3.0.4",
+    "gitpython ~= 3.1.43",
 ]
 
 [tool.hatch.version]

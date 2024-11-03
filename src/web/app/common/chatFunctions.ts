@@ -1,14 +1,25 @@
-import { Context, OnlineContext, StreamMessage } from "../components/chatMessage/chatMessage";
+import {
+    CodeContext,
+    Context,
+    OnlineContext,
+    StreamMessage,
+} from "../components/chatMessage/chatMessage";
 
 export interface RawReferenceData {
     context?: Context[];
     onlineContext?: OnlineContext;
+    codeContext?: CodeContext;
 }
 
-export interface ResponseWithReferences {
-    context?: Context[];
-    online?: OnlineContext;
-    response?: string;
+export interface MessageMetadata {
+    conversationId: string;
+    turnId: string;
+}
+
+export interface ResponseWithIntent {
+    intentType: string;
+    response: string;
+    inferredQueries?: string[];
 }
 
 interface MessageChunk {
@@ -49,10 +60,14 @@ export function convertMessageChunkToJson(chunk: string): MessageChunk {
 function handleJsonResponse(chunkData: any) {
     const jsonData = chunkData as any;
     if (jsonData.image || jsonData.detail) {
-        let responseWithReference = handleImageResponse(chunkData, true);
-        if (responseWithReference.response) return responseWithReference.response;
+        let responseWithIntent = handleImageResponse(chunkData, true);
+        return responseWithIntent;
     } else if (jsonData.response) {
-        return jsonData.response;
+        return {
+            response: jsonData.response,
+            intentType: "",
+            inferredQueries: [],
+        };
     } else {
         throw new Error("Invalid JSON response");
     }
@@ -63,10 +78,11 @@ export function processMessageChunk(
     currentMessage: StreamMessage,
     context: Context[] = [],
     onlineContext: OnlineContext = {},
-): { context: Context[]; onlineContext: OnlineContext } {
+    codeContext: CodeContext = {},
+): { context: Context[]; onlineContext: OnlineContext; codeContext: CodeContext } {
     const chunk = convertMessageChunkToJson(rawChunk);
 
-    if (!currentMessage || !chunk || !chunk.type) return { context, onlineContext };
+    if (!currentMessage || !chunk || !chunk.type) return { context, onlineContext, codeContext };
 
     if (chunk.type === "status") {
         console.log(`status: ${chunk.data}`);
@@ -77,11 +93,25 @@ export function processMessageChunk(
 
         if (references.context) context = references.context;
         if (references.onlineContext) onlineContext = references.onlineContext;
-        return { context, onlineContext };
+        if (references.codeContext) codeContext = references.codeContext;
+        return { context, onlineContext, codeContext };
+    } else if (chunk.type === "metadata") {
+        const messageMetadata = chunk.data as MessageMetadata;
+        currentMessage.turnId = messageMetadata.turnId;
     } else if (chunk.type === "message") {
         const chunkData = chunk.data;
+        // Here, handle if the response is a JSON response with an image, but the intentType is excalidraw
         if (chunkData !== null && typeof chunkData === "object") {
-            currentMessage.rawResponse += handleJsonResponse(chunkData);
+            let responseWithIntent = handleJsonResponse(chunkData);
+
+            if (responseWithIntent.intentType && responseWithIntent.intentType === "excalidraw") {
+                currentMessage.rawResponse = responseWithIntent.response;
+            } else {
+                currentMessage.rawResponse += responseWithIntent.response;
+            }
+
+            currentMessage.intentType = responseWithIntent.intentType;
+            currentMessage.inferredQueries = responseWithIntent.inferredQueries;
         } else if (
             typeof chunkData === "string" &&
             chunkData.trim()?.startsWith("{") &&
@@ -89,7 +119,10 @@ export function processMessageChunk(
         ) {
             try {
                 const jsonData = JSON.parse(chunkData.trim());
-                currentMessage.rawResponse += handleJsonResponse(jsonData);
+                let responseWithIntent = handleJsonResponse(jsonData);
+                currentMessage.rawResponse += responseWithIntent.response;
+                currentMessage.intentType = responseWithIntent.intentType;
+                currentMessage.inferredQueries = responseWithIntent.inferredQueries;
             } catch (e) {
                 currentMessage.rawResponse += JSON.stringify(chunkData);
             }
@@ -102,51 +135,79 @@ export function processMessageChunk(
         console.log(`Completed streaming: ${new Date()}`);
 
         // Append any references after all the data has been streamed
+        if (codeContext) currentMessage.codeContext = codeContext;
         if (onlineContext) currentMessage.onlineContext = onlineContext;
         if (context) currentMessage.context = context;
+
+        // Replace file links with base64 data
+        currentMessage.rawResponse = renderCodeGenImageInline(
+            currentMessage.rawResponse,
+            codeContext,
+        );
+
+        // Add code context files to the message
+        if (codeContext) {
+            Object.entries(codeContext).forEach(([key, value]) => {
+                value.results.output_files?.forEach((file) => {
+                    if (file.filename.endsWith(".png") || file.filename.endsWith(".jpg")) {
+                        // Don't add the image again if it's already in the message!
+                        if (!currentMessage.rawResponse.includes(`![${file.filename}](`)) {
+                            currentMessage.rawResponse += `\n\n![${file.filename}](data:image/png;base64,${file.b64_data})`;
+                        }
+                    } else if (
+                        file.filename.endsWith(".txt") ||
+                        file.filename.endsWith(".org") ||
+                        file.filename.endsWith(".md")
+                    ) {
+                        const decodedText = atob(file.b64_data);
+                        currentMessage.rawResponse += `\n\n\`\`\`\n${decodedText}\n\`\`\``;
+                    }
+                });
+            });
+        }
 
         // Mark current message streaming as completed
         currentMessage.completed = true;
     }
-    return { context, onlineContext };
+    return { context, onlineContext, codeContext };
 }
 
-export function handleImageResponse(imageJson: any, liveStream: boolean): ResponseWithReferences {
+export function handleImageResponse(imageJson: any, liveStream: boolean): ResponseWithIntent {
     let rawResponse = "";
 
     if (imageJson.image) {
-        const inferredQuery = imageJson.inferredQueries?.[0] ?? "generated image";
-
-        // If response has image field, response is a generated image.
-        if (imageJson.intentType === "text-to-image") {
-            rawResponse += `![generated_image](data:image/png;base64,${imageJson.image})`;
-        } else if (imageJson.intentType === "text-to-image2") {
-            rawResponse += `![generated_image](${imageJson.image})`;
-        } else if (imageJson.intentType === "text-to-image-v3") {
-            rawResponse = `![](data:image/webp;base64,${imageJson.image})`;
-        }
-        if (inferredQuery && !liveStream) {
-            rawResponse += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
-        }
+        // If response has image field, response may be a generated image
+        rawResponse = imageJson.image;
     }
 
-    let reference: ResponseWithReferences = {};
+    let responseWithIntent: ResponseWithIntent = {
+        intentType: imageJson.intentType,
+        response: rawResponse,
+        inferredQueries: imageJson.inferredQueries,
+    };
 
-    if (imageJson.context && imageJson.context.length > 0) {
-        const rawReferenceAsJson = imageJson.context;
-        if (rawReferenceAsJson instanceof Array) {
-            reference.context = rawReferenceAsJson;
-        } else if (typeof rawReferenceAsJson === "object" && rawReferenceAsJson !== null) {
-            reference.online = rawReferenceAsJson;
-        }
-    }
     if (imageJson.detail) {
         // The detail field contains the improved image prompt
         rawResponse += imageJson.detail;
     }
 
-    reference.response = rawResponse;
-    return reference;
+    return responseWithIntent;
+}
+
+export function renderCodeGenImageInline(message: string, codeContext: CodeContext) {
+    if (!codeContext) return message;
+
+    Object.values(codeContext).forEach((contextData) => {
+        contextData.results.output_files?.forEach((file) => {
+            const regex = new RegExp(`!?\\[.*?\\]\\(.*${file.filename}\\)`, "g");
+            if (file.filename.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
+                const replacement = `![${file.filename}](data:image/${file.filename.split(".").pop()};base64,${file.b64_data})`;
+                message = message.replace(regex, replacement);
+            }
+        });
+    });
+
+    return message;
 }
 
 export function modifyFileFilterForConversation(
@@ -175,9 +236,12 @@ export function modifyFileFilterForConversation(
         },
         body: JSON.stringify(body),
     })
-        .then((response) => response.json())
+        .then((res) => {
+            if (!res.ok)
+                throw new Error(`Failed to call API at ${addUrl} with error ${res.statusText}`);
+            return res.json();
+        })
         .then((data) => {
-            console.log("ADDEDFILES DATA: ", data);
             setAddedFiles(data);
         })
         .catch((err) => {

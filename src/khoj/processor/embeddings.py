@@ -13,7 +13,7 @@ from tenacity import (
 )
 from torch import nn
 
-from khoj.utils.helpers import get_device, merge_dicts
+from khoj.utils.helpers import fix_json_dict, get_device, merge_dicts, timer
 from khoj.utils.rawconfig import SearchResponse
 
 logger = logging.getLogger(__name__)
@@ -31,13 +31,14 @@ class EmbeddingsModel:
     ):
         default_query_encode_kwargs = {"show_progress_bar": False, "normalize_embeddings": True}
         default_docs_encode_kwargs = {"show_progress_bar": True, "normalize_embeddings": True}
-        self.query_encode_kwargs = merge_dicts(query_encode_kwargs, default_query_encode_kwargs)
-        self.docs_encode_kwargs = merge_dicts(docs_encode_kwargs, default_docs_encode_kwargs)
-        self.model_kwargs = merge_dicts(model_kwargs, {"device": get_device()})
+        self.query_encode_kwargs = merge_dicts(fix_json_dict(query_encode_kwargs), default_query_encode_kwargs)
+        self.docs_encode_kwargs = merge_dicts(fix_json_dict(docs_encode_kwargs), default_docs_encode_kwargs)
+        self.model_kwargs = merge_dicts(fix_json_dict(model_kwargs), {"device": get_device()})
         self.model_name = model_name
         self.inference_endpoint = embeddings_inference_endpoint
         self.api_key = embeddings_inference_endpoint_api_key
-        self.embeddings_model = SentenceTransformer(self.model_name, **self.model_kwargs)
+        with timer(f"Loaded embedding model {self.model_name}", logger):
+            self.embeddings_model = SentenceTransformer(self.model_name, **self.model_kwargs)
 
     def inference_server_enabled(self) -> bool:
         return self.api_key is not None and self.inference_endpoint is not None
@@ -101,7 +102,8 @@ class CrossEncoderModel:
         self.inference_endpoint = cross_encoder_inference_endpoint
         self.api_key = cross_encoder_inference_endpoint_api_key
         self.model_kwargs = merge_dicts(model_kwargs, {"device": get_device()})
-        self.cross_encoder_model = CrossEncoder(model_name=self.model_name, **self.model_kwargs)
+        with timer(f"Loaded cross-encoder model {self.model_name}", logger):
+            self.cross_encoder_model = CrossEncoder(model_name=self.model_name, **self.model_kwargs)
 
     def inference_server_enabled(self) -> bool:
         return self.api_key is not None and self.inference_endpoint is not None
@@ -112,6 +114,7 @@ class CrossEncoderModel:
             payload = {"inputs": {"query": query, "passages": [hit.additional[key] for hit in hits]}}
             headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
             response = requests.post(target_url, json=payload, headers=headers)
+            response.raise_for_status()
             return response.json()["scores"]
 
         cross_inp = [[query, hit.additional[key]] for hit in hits]

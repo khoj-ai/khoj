@@ -3,25 +3,33 @@ import "./globals.css";
 import styles from "./page.module.css";
 import "katex/dist/katex.min.css";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
-import Image from "next/image";
 import { ArrowCounterClockwise } from "@phosphor-icons/react";
 
 import { Card, CardTitle } from "@/components/ui/card";
 import SuggestionCard from "@/app/components/suggestions/suggestionCard";
 import SidePanel from "@/app/components/sidePanel/chatHistorySidePanel";
 import Loading from "@/app/components/loading/loading";
-import ChatInputArea, { ChatOptions } from "@/app/components/chatInputArea/chatInputArea";
+import { ChatInputArea, ChatOptions } from "@/app/components/chatInputArea/chatInputArea";
 import { Suggestion, suggestionsData } from "@/app/components/suggestions/suggestionsData";
 import LoginPrompt from "@/app/components/loginPrompt/loginPrompt";
 
-import { useAuthenticatedData, UserConfig, useUserConfig } from "@/app/common/auth";
+import {
+    isUserSubscribed,
+    useAuthenticatedData,
+    UserConfig,
+    useUserConfig,
+} from "@/app/common/auth";
 import { convertColorToBorderClass } from "@/app/common/colorUtils";
 import { getIconFromIconName } from "@/app/common/iconUtils";
 import { AgentData } from "@/app/agents/page";
 import { createNewConversation } from "./common/chatFunctions";
-import { useIsMobileWidth } from "./common/utils";
+import { useDebounce, useIsMobileWidth } from "./common/utils";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { AgentCard } from "@/app/components/agentCard/agentCard";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -43,14 +51,33 @@ function FisherYatesShuffle(array: any[]) {
 
 function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState("");
-    const [image, setImage] = useState<string | null>(null);
+    const [images, setImages] = useState<string[]>([]);
     const [processingMessage, setProcessingMessage] = useState(false);
     const [greeting, setGreeting] = useState("");
     const [shuffledOptions, setShuffledOptions] = useState<Suggestion[]>([]);
+    const [hoveredAgent, setHoveredAgent] = useState<string | null>(null);
+    const debouncedHoveredAgent = useDebounce(hoveredAgent, 500);
+    const [isPopoverOpen, setIsPopoverOpen] = useState(false);
     const [selectedAgent, setSelectedAgent] = useState<string | null>("khoj");
     const [agentIcons, setAgentIcons] = useState<JSX.Element[]>([]);
     const [agents, setAgents] = useState<AgentData[]>([]);
+    const chatInputRef = useRef<HTMLTextAreaElement>(null);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const queryParam = searchParams.get("q");
+
+    useEffect(() => {
+        if (queryParam) {
+            setMessage(decodeURIComponent(queryParam));
+        }
+    }, [queryParam]);
+
+    useEffect(() => {
+        if (debouncedHoveredAgent) {
+            setIsPopoverOpen(true);
+        }
+    }, [debouncedHoveredAgent]);
 
     const onConversationIdChange = props.onConversationIdChange;
 
@@ -62,6 +89,10 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const { data: agentsData, error } = useSWR<AgentData[]>("agents", agentsFetcher, {
         revalidateOnFocus: false,
     });
+
+    const openAgentEditCard = (agentSlug: string) => {
+        router.push(`/agents?agent=${agentSlug}`);
+    };
 
     function shuffleAndSetOptions() {
         const shuffled = FisherYatesShuffle(suggestionsData);
@@ -85,8 +116,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
             `What would you like to get done${nameSuffix}?`,
             `Hey${nameSuffix}! How can I help?`,
             `Good ${timeOfDay}${nameSuffix}! What's on your mind?`,
-            `Ready to breeze through your ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][day]}?`,
-            `Want help navigating your ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][day]} workload?`,
+            `Ready to breeze through ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][day]}?`,
+            `Let's navigate your ${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][day]} workload`,
         ];
         const greeting = greetings[Math.floor(Math.random() * greetings.length)];
         setGreeting(greeting);
@@ -99,33 +130,13 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }, [props.chatOptionsData]);
 
     useEffect(() => {
-        const nSlice = props.isMobileWidth ? 2 : 4;
-        const shuffledAgents = agentsData ? [...agentsData].sort(() => 0.5 - Math.random()) : [];
-        const agents = agentsData ? [agentsData[0]] : []; // Always add the first/default agent.
-
-        shuffledAgents.slice(0, nSlice - 1).forEach((agent) => {
-            if (!agents.find((a) => a.slug === agent.slug)) {
-                agents.push(agent);
-            }
-        });
-
+        const agents = (agentsData || []).filter((agent) => agent !== null && agent !== undefined);
         setAgents(agents);
+        // set the first agent, which is always the default agent, as the default for chat
+        setSelectedAgent(agents.length > 1 ? agents[0].slug : "khoj");
 
-        //generate colored icons for the selected agents
-        const agentIcons = agents
-            .filter((agent) => agent !== null && agent !== undefined)
-            .map(
-                (agent) =>
-                    getIconFromIconName(agent.icon, agent.color) || (
-                        <Image
-                            key={agent.name}
-                            src={agent.avatar}
-                            alt={agent.name}
-                            width={50}
-                            height={50}
-                        />
-                    ),
-            );
+        // generate colored icons for the available agents
+        const agentIcons = agents.map((agent) => getIconFromIconName(agent.icon, agent.color)!);
         setAgentIcons(agentIcons);
     }, [agentsData, props.isMobileWidth]);
 
@@ -140,23 +151,38 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 try {
                     const newConversationId = await createNewConversation(selectedAgent || "khoj");
                     onConversationIdChange?.(newConversationId);
-                    window.location.href = `/chat?conversationId=${newConversationId}`;
                     localStorage.setItem("message", message);
-                    if (image) {
-                        localStorage.setItem("image", image);
+                    if (images.length > 0) {
+                        localStorage.setItem("images", JSON.stringify(images));
                     }
+                    window.location.href = `/chat?conversationId=${newConversationId}`;
                 } catch (error) {
                     console.error("Error creating new conversation:", error);
                     setProcessingMessage(false);
                 }
                 setMessage("");
+                setImages([]);
             }
         };
         processMessage();
-        if (message) {
+        if (message || images.length > 0) {
             setProcessingMessage(true);
         }
     }, [selectedAgent, message, processingMessage, onConversationIdChange]);
+
+    // Close the agent detail hover card when scroll on agent pane
+    useEffect(() => {
+        const scrollAreaSelector = "[data-radix-scroll-area-viewport]";
+        const scrollAreaEl = document.querySelector<HTMLElement>(scrollAreaSelector);
+        const handleScroll = () => {
+            setHoveredAgent(null);
+            setIsPopoverOpen(false);
+        };
+
+        scrollAreaEl?.addEventListener("scroll", handleScroll);
+
+        return () => scrollAreaEl?.removeEventListener("scroll", handleScroll);
+    }, []);
 
     function fillArea(link: string, type: string, prompt: string) {
         if (!link) {
@@ -196,37 +222,76 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     </h1>
                 </div>
                 {!props.isMobileWidth && (
-                    <div className="flex pb-6 gap-2 items-center justify-center">
-                        {agentIcons.map((icon, index) => (
-                            <Card
-                                key={`${index}-${agents[index].slug}`}
-                                className={`${
-                                    selectedAgent === agents[index].slug
-                                        ? convertColorToBorderClass(agents[index].color)
-                                        : "border-stone-100 dark:border-neutral-700 text-muted-foreground"
-                                }
-                                    hover:cursor-pointer rounded-lg px-2 py-2`}
-                            >
-                                <CardTitle
-                                    className="text-center text-md font-medium flex justify-center items-center"
-                                    onClick={() => setSelectedAgent(agents[index].slug)}
+                    <ScrollArea className="w-full max-w-[600px] mx-auto">
+                        <div className="flex pb-2 gap-2 items-center justify-center">
+                            {agents.map((agent, index) => (
+                                <Popover
+                                    key={`${index}-${agent.slug}`}
+                                    open={isPopoverOpen && debouncedHoveredAgent === agent.slug}
+                                    onOpenChange={(open) => {
+                                        if (!open) {
+                                            setHoveredAgent(null);
+                                            setIsPopoverOpen(false);
+                                        }
+                                    }}
                                 >
-                                    {icon} {agents[index].name}
-                                </CardTitle>
-                            </Card>
-                        ))}
-                        <Card
-                            className="border-none shadow-none flex justify-center items-center hover:cursor-pointer"
-                            onClick={() => (window.location.href = "/agents")}
-                        >
-                            <CardTitle className="text-center text-md font-normal flex justify-center items-center px-1.5 py-2">
-                                See All →
-                            </CardTitle>
-                        </Card>
-                    </div>
+                                    <PopoverTrigger asChild>
+                                        <Card
+                                            className={`${
+                                                selectedAgent === agent.slug
+                                                    ? convertColorToBorderClass(agent.color)
+                                                    : "border-stone-100 dark:border-neutral-700 text-muted-foreground"
+                                            }
+                                            hover:cursor-pointer rounded-lg px-2 py-2`}
+                                            onDoubleClick={() => openAgentEditCard(agent.slug)}
+                                            onClick={() => {
+                                                setSelectedAgent(agent.slug);
+                                                chatInputRef.current?.focus();
+                                                setHoveredAgent(null);
+                                                setIsPopoverOpen(false);
+                                            }}
+                                            onMouseEnter={() => setHoveredAgent(agent.slug)}
+                                            onMouseLeave={() => {
+                                                setHoveredAgent(null);
+                                                setIsPopoverOpen(false);
+                                            }}
+                                        >
+                                            <CardTitle className="text-center text-md font-medium flex justify-center items-center whitespace-nowrap">
+                                                {agentIcons[index]} {agent.name}
+                                            </CardTitle>
+                                        </Card>
+                                    </PopoverTrigger>
+                                    <PopoverContent
+                                        className="w-80 p-0 border-none bg-transparent shadow-none"
+                                        onMouseLeave={() => {
+                                            setHoveredAgent(null);
+                                            setIsPopoverOpen(false);
+                                        }}
+                                    >
+                                        <AgentCard
+                                            data={agent}
+                                            userProfile={null}
+                                            isMobileWidth={props.isMobileWidth || false}
+                                            showChatButton={false}
+                                            editCard={false}
+                                            filesOptions={[]}
+                                            selectedChatModelOption=""
+                                            agentSlug=""
+                                            isSubscribed={isUserSubscribed(props.userConfig)}
+                                            setAgentChangeTriggered={() => {}}
+                                            modelOptions={[]}
+                                            inputToolOptions={{}}
+                                            outputModeOptions={{}}
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                            ))}
+                        </div>
+                        <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
                 )}
             </div>
-            <div className={`mx-auto ${props.isMobileWidth ? "w-full" : "w-fit"}`}>
+            <div className={`mx-auto ${props.isMobileWidth ? "w-full" : "w-fit max-w-screen-md"}`}>
                 {!props.isMobileWidth && (
                     <div
                         className={`w-full ${styles.inputBox} shadow-lg bg-background align-middle items-center justify-center px-3 py-1 dark:bg-neutral-700 border-stone-100 dark:border-none dark:shadow-none rounded-2xl`}
@@ -234,12 +299,14 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         <ChatInputArea
                             isLoggedIn={props.isLoggedIn}
                             sendMessage={(message) => setMessage(message)}
-                            sendImage={(image) => setImage(image)}
+                            sendImage={(image) => setImages((prevImages) => [...prevImages, image])}
                             sendDisabled={processingMessage}
                             chatOptionsData={props.chatOptionsData}
                             conversationId={null}
                             isMobileWidth={props.isMobileWidth}
                             setUploadedFiles={props.setUploadedFiles}
+                            agentColor={agents.find((agent) => agent.slug === selectedAgent)?.color}
+                            ref={chatInputRef}
                         />
                     </div>
                 )}
@@ -287,40 +354,41 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     <div
                         className={`${styles.inputBox} pt-1 shadow-[0_-20px_25px_-5px_rgba(0,0,0,0.1)] dark:bg-neutral-700 bg-background align-middle items-center justify-center pb-3 mx-1 rounded-t-2xl rounded-b-none`}
                     >
-                        <div className="flex gap-2 items-center justify-left pt-1 pb-2 px-12">
-                            {agentIcons.map((icon, index) => (
-                                <Card
-                                    key={`${index}-${agents[index].slug}`}
-                                    className={`${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : "border-muted text-muted-foreground"} hover:cursor-pointer`}
-                                >
-                                    <CardTitle
-                                        className="text-center text-xs font-medium flex justify-center items-center px-1.5 py-1"
-                                        onClick={() => setSelectedAgent(agents[index].slug)}
+                        <ScrollArea className="w-full max-w-[85vw]">
+                            <div className="flex gap-2 items-center justify-left pt-1 pb-2 px-12">
+                                {agentIcons.map((icon, index) => (
+                                    <Card
+                                        key={`${index}-${agents[index].slug}`}
+                                        className={`${selectedAgent === agents[index].slug ? convertColorToBorderClass(agents[index].color) : "border-muted text-muted-foreground"} hover:cursor-pointer`}
                                     >
-                                        {icon} {agents[index].name}
-                                    </CardTitle>
-                                </Card>
-                            ))}
-                            <Card
-                                className="border-none shadow-none flex justify-center items-center hover:cursor-pointer"
-                                onClick={() => (window.location.href = "/agents")}
-                            >
-                                <CardTitle
-                                    className={`text-center ${props.isMobileWidth ? "text-xs" : "text-md"} font-normal flex justify-center items-center px-1.5 py-2`}
-                                >
-                                    See All →
-                                </CardTitle>
-                            </Card>
-                        </div>
+                                        <CardTitle
+                                            className="text-center text-xs font-medium flex justify-center items-center whitespace-nowrap px-1.5 py-1"
+                                            onDoubleClick={() =>
+                                                openAgentEditCard(agents[index].slug)
+                                            }
+                                            onClick={() => {
+                                                setSelectedAgent(agents[index].slug);
+                                                chatInputRef.current?.focus();
+                                            }}
+                                        >
+                                            {icon} {agents[index].name}
+                                        </CardTitle>
+                                    </Card>
+                                ))}
+                            </div>
+                            <ScrollBar orientation="horizontal" />
+                        </ScrollArea>
                         <ChatInputArea
                             isLoggedIn={props.isLoggedIn}
                             sendMessage={(message) => setMessage(message)}
-                            sendImage={(image) => setImage(image)}
+                            sendImage={(image) => setImages((prevImages) => [...prevImages, image])}
                             sendDisabled={processingMessage}
                             chatOptionsData={props.chatOptionsData}
                             conversationId={null}
                             isMobileWidth={props.isMobileWidth}
                             setUploadedFiles={props.setUploadedFiles}
+                            agentColor={agents.find((agent) => agent.slug === selectedAgent)?.color}
+                            ref={chatInputRef}
                         />
                     </div>
                 </>

@@ -5,6 +5,7 @@ import { useAuthenticatedData } from "@/app/common/auth";
 import { useState, useEffect } from "react";
 
 import ChatMessage, {
+    CodeContext,
     Context,
     OnlineContext,
     OnlineContextData,
@@ -46,6 +47,7 @@ interface SupplementReferences {
 interface ResponseWithReferences {
     context?: Context[];
     online?: OnlineContext;
+    code?: CodeContext;
     response?: string;
 }
 
@@ -192,8 +194,13 @@ function ReferenceVerification(props: ReferenceVerificationProps) {
                     context: [],
                     created: new Date().toISOString(),
                     onlineContext: {},
+                    codeContext: {},
+                    conversationId: props.conversationId,
+                    turnId: "",
                 }}
                 isMobileWidth={isMobileWidth}
+                onDeleteMessage={(turnId?: string) => {}}
+                conversationId={props.conversationId}
             />
         </div>
     );
@@ -622,7 +629,12 @@ export default function FactChecker() {
                                         context: [],
                                         created: new Date().toISOString(),
                                         onlineContext: {},
+                                        codeContext: {},
+                                        conversationId: conversationID,
+                                        turnId: "",
                                     }}
+                                    conversationId={conversationID}
+                                    onDeleteMessage={(turnId?: string) => {}}
                                     isMobileWidth={isMobileWidth}
                                 />
                             </div>

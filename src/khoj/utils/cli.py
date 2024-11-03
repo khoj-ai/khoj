@@ -50,6 +50,12 @@ def cli(args=None):
         default=False,
         help="Run Khoj in anonymous mode. This does not require any login for connecting users.",
     )
+    parser.add_argument(
+        "--non-interactive",
+        action="store_true",
+        default=False,
+        help="Start Khoj in non-interactive mode. Assumes interactive shell unavailable for config. E.g when run via Docker.",
+    )
 
     args, remaining_args = parser.parse_known_args(args)
 

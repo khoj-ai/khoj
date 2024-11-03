@@ -63,7 +63,6 @@ interface ChatHistory {
     conversation_id: string;
     slug: string;
     agent_name: string;
-    agent_avatar: string;
     compressed: boolean;
     created: string;
     updated: string;
@@ -99,7 +98,11 @@ import { KhojLogoType } from "@/app/components/logo/khojLogo";
 import NavMenu from "@/app/components/navMenu/navMenu";
 
 // Define a fetcher function
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = (url: string) =>
+    fetch(url).then((res) => {
+        if (!res.ok) throw new Error(`Failed to call API at ${url} with error ${res.statusText}`);
+        return res.json();
+    });
 
 interface GroupedChatHistory {
     [key: string]: ChatHistory[];
@@ -182,17 +185,15 @@ function FilesMenu(props: FilesMenuProps) {
     useEffect(() => {
         if (!files) return;
 
-        // First, sort lexically
-        files.sort();
-        let sortedFiles = files;
+        let sortedUniqueFiles = Array.from(new Set(files)).sort();
 
-        if (addedFiles) {
-            sortedFiles = addedFiles.concat(
-                sortedFiles.filter((filename: string) => !addedFiles.includes(filename)),
+        if (Array.isArray(addedFiles)) {
+            sortedUniqueFiles = addedFiles.concat(
+                sortedUniqueFiles.filter((filename: string) => !addedFiles.includes(filename)),
             );
         }
 
-        setUnfilteredFiles(sortedFiles);
+        setUnfilteredFiles(sortedUniqueFiles);
     }, [files, addedFiles]);
 
     useEffect(() => {
@@ -202,8 +203,10 @@ function FilesMenu(props: FilesMenuProps) {
     }, [props.uploadedFiles]);
 
     useEffect(() => {
-        if (selectedFiles) {
+        if (Array.isArray(selectedFiles)) {
             setAddedFiles(selectedFiles);
+        } else {
+            setAddedFiles([]);
         }
     }, [selectedFiles]);
 
@@ -267,7 +270,7 @@ function FilesMenu(props: FilesMenuProps) {
                             </CommandItem>
                         )}
                         {unfilteredFiles.map((filename: string) =>
-                            addedFiles && addedFiles.includes(filename) ? (
+                            Array.isArray(addedFiles) && addedFiles.includes(filename) ? (
                                 <CommandItem
                                     key={filename}
                                     value={filename}
@@ -349,7 +352,7 @@ function FilesMenu(props: FilesMenuProps) {
                     <div className="w-auto bg-background border border-muted p-4 drop-shadow-sm rounded-2xl my-8">
                         <div className="flex items-center justify-between space-x-4">
                             <h4 className="text-sm font-semibold">
-                                {usingConversationContext ? "Mange Context" : "Files"}
+                                {usingConversationContext ? "Manage Context" : "Files"}
                                 <p>
                                     {usingConversationContext ? (
                                         <span className="text-muted-foreground text-xs">
@@ -432,7 +435,6 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                                                             chatHistory.conversation_id
                                                         }
                                                         slug={chatHistory.slug}
-                                                        agent_avatar={chatHistory.agent_avatar}
                                                         agent_name={chatHistory.agent_name}
                                                         showSidePanel={props.setEnabled}
                                                     />
@@ -458,12 +460,13 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
     );
 }
 
-interface ChatSessionActionMenuProps {
+export interface ChatSessionActionMenuProps {
     conversationId: string;
     setTitle: (title: string) => void;
+    sizing?: "sm" | "md" | "lg";
 }
 
-function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
+export function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
     const [renamedTitle, setRenamedTitle] = useState("");
     const [isRenaming, setIsRenaming] = useState(false);
     const [isSharing, setIsSharing] = useState(false);
@@ -596,10 +599,25 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
         );
     }
 
+    function sizeClass() {
+        switch (props.sizing) {
+            case "sm":
+                return "h-4 w-4";
+            case "md":
+                return "h-6 w-6";
+            case "lg":
+                return "h-8 w-8";
+            default:
+                return "h-4 w-4";
+        }
+    }
+
+    const size = sizeClass();
+
     return (
         <DropdownMenu onOpenChange={(open) => setIsOpen(open)} open={isOpen}>
             <DropdownMenuTrigger>
-                <DotsThreeVertical className="h-4 w-4" />
+                <DotsThreeVertical className={`${size}`} />
             </DropdownMenuTrigger>
             <DropdownMenuContent>
                 <DropdownMenuItem>
@@ -608,7 +626,7 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
                         variant={"ghost"}
                         onClick={() => setIsRenaming(true)}
                     >
-                        <Pencil className="mr-2 h-4 w-4" />
+                        <Pencil className={`mr-2 ${size}`} />
                         Rename
                     </Button>
                 </DropdownMenuItem>
@@ -618,7 +636,7 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
                         variant={"ghost"}
                         onClick={() => setIsSharing(true)}
                     >
-                        <Share className="mr-2 h-4 w-4" />
+                        <Share className={`mr-2 ${size}`} />
                         Share
                     </Button>
                 </DropdownMenuItem>
@@ -628,7 +646,7 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
                         variant={"ghost"}
                         onClick={() => setIsDeleting(true)}
                     >
-                        <Trash className="mr-2 h-4 w-4" />
+                        <Trash className={`mr-2 ${size}`} />
                         Delete
                     </Button>
                 </DropdownMenuItem>
@@ -640,15 +658,14 @@ function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
 function ChatSession(props: ChatHistory) {
     const [isHovered, setIsHovered] = useState(false);
     const [title, setTitle] = useState(props.slug || "New Conversation 🌱");
-    var currConversationId = parseInt(
-        new URLSearchParams(window.location.search).get("conversationId") || "-1",
-    );
+    var currConversationId =
+        new URLSearchParams(window.location.search).get("conversationId") || "-1";
     return (
         <div
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             key={props.conversation_id}
-            className={`${styles.session} ${props.compressed ? styles.compressed : "!max-w-full"} ${isHovered ? `${styles.sessionHover}` : ""} ${currConversationId === parseInt(props.conversation_id) && currConversationId != -1 ? "dark:bg-neutral-800 bg-white" : ""}`}
+            className={`${styles.session} ${props.compressed ? styles.compressed : "!max-w-full"} ${isHovered ? `${styles.sessionHover}` : ""} ${currConversationId === props.conversation_id && currConversationId != "-1" ? "dark:bg-neutral-800 bg-white" : ""}`}
         >
             <Link
                 href={`/chat?conversationId=${props.conversation_id}`}
@@ -695,7 +712,6 @@ function ChatSessionsModal({ data, showSidePanel }: ChatSessionsModalProps) {
                                                 key={chatHistory.conversation_id}
                                                 conversation_id={chatHistory.conversation_id}
                                                 slug={chatHistory.slug}
-                                                agent_avatar={chatHistory.agent_avatar}
                                                 agent_name={chatHistory.agent_name}
                                                 showSidePanel={showSidePanel}
                                             />

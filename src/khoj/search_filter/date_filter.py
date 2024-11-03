@@ -7,8 +7,6 @@ from math import inf
 from typing import List, Tuple
 
 import dateparser as dtparse
-from dateparser.search import search_dates
-from dateparser_data.settings import default_parsers
 from dateutil.relativedelta import relativedelta
 
 from khoj.search_filter.base_filter import BaseFilter
@@ -23,7 +21,7 @@ class DateFilter(BaseFilter):
     # - dt>="yesterday" dt<"tomorrow"
     # - dt>="last week"
     # - dt:"2 years ago"
-    date_regex = r"dt([:><=]{1,2})[\"'](.*?)[\"']"
+    date_regex = r"dt([:><=]{1,2})[\"'‘’](.*?)[\"'‘’]"
 
     def __init__(self, entry_key="compiled"):
         self.entry_key = entry_key

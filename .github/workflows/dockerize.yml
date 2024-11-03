@@ -52,6 +52,9 @@ jobs:
           # Get all history to correctly infer Khoj version using hatch
           fetch-depth: 0
 
+      - name: 🧹 Delete huge unnecessary tools folder
+        run: rm -rf /opt/hostedtoolcache
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 

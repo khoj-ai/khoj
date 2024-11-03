@@ -53,17 +53,42 @@ div.khojChatMessage {
     padding-left: 16px;
 }
 
-div.chatMessageContainer img {
-    width: 50%;
+div.emptyChatMessage {
+    display: none;
+}
+
+div.imagesContainer {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+}
+
+div.imageWrapper {
+    flex: 0 0 auto;
+    margin-right: 8px;
+}
+
+div.imageWrapper img {
+    width: auto;
+    height: 128px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+div.chatMessageContainer > img {
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 80vh;
+    object-fit: contain;
+    display: block;
+    margin-top: 0.25rem;
+    margin-right: auto;
 }
 
 div.chatMessageContainer h3 img {
     width: 24px;
-}
-
-div.you img {
-    height: 16rem;
-    width: auto;
 }
 
 div.you {

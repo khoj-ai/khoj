@@ -4,11 +4,13 @@ import styles from "./chatMessage.module.css";
 
 import markdownIt from "markdown-it";
 import mditHljs from "markdown-it-highlightjs";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, forwardRef } from "react";
+import { createRoot } from "react-dom/client";
 
 import "katex/dist/katex.min.css";
 
 import { TeaserReferencesSection, constructAllReferences } from "../referencePanel/referencePanel";
+import { renderCodeGenImageInline } from "@/app/common/chatFunctions";
 
 import {
     ThumbsUp,
@@ -23,6 +25,11 @@ import {
     MagnifyingGlass,
     Pause,
     Palette,
+    ClipboardText,
+    Check,
+    Code,
+    Shapes,
+    Trash,
 } from "@phosphor-icons/react";
 
 import DOMPurify from "dompurify";
@@ -32,6 +39,7 @@ import { AgentData } from "@/app/agents/page";
 
 import renderMathInElement from "katex/contrib/auto-render";
 import "katex/dist/katex.min.css";
+import ExcalidrawComponent from "../excalidraw/excalidraw";
 
 const md = new markdownIt({
     html: true,
@@ -94,11 +102,36 @@ export interface OnlineContextData {
     peopleAlsoAsk: PeopleAlsoAsk[];
 }
 
+export interface CodeContext {
+    [key: string]: CodeContextData;
+}
+
+export interface CodeContextData {
+    code: string;
+    results: {
+        success: boolean;
+        output_files: CodeContextFile[];
+        std_out: string;
+        std_err: string;
+        code_runtime: number;
+    };
+}
+
+export interface CodeContextFile {
+    filename: string;
+    b64_data: string;
+}
+
 interface Intent {
     type: string;
     query: string;
     "memory-type": string;
     "inferred-queries": string[];
+}
+
+interface TrainOfThoughtObject {
+    type: string;
+    data: string;
 }
 
 export interface SingleChatMessage {
@@ -108,10 +141,14 @@ export interface SingleChatMessage {
     created: string;
     context: Context[];
     onlineContext: OnlineContext;
+    codeContext: CodeContext;
+    trainOfThought?: TrainOfThoughtObject[];
     rawQuery?: string;
     intent?: Intent;
     agent?: AgentData;
-    uploadedImageData?: string;
+    images?: string[];
+    conversationId: string;
+    turnId?: string;
 }
 
 export interface StreamMessage {
@@ -119,11 +156,15 @@ export interface StreamMessage {
     trainOfThought: string[];
     context: Context[];
     onlineContext: OnlineContext;
+    codeContext: CodeContext;
     completed: boolean;
     rawQuery: string;
     timestamp: string;
     agent?: AgentData;
-    uploadedImageData?: string;
+    images?: string[];
+    intentType?: string;
+    inferredQueries?: string[];
+    turnId?: string;
 }
 
 export interface ChatHistoryData {
@@ -205,7 +246,9 @@ interface ChatMessageProps {
     borderLeftColor?: string;
     isLastMessage?: boolean;
     agent?: AgentData;
-    uploadedImageData?: string;
+    onDeleteMessage: (turnId?: string) => void;
+    conversationId: string;
+    turnId?: string;
 }
 
 interface TrainOfThoughtProps {
@@ -249,8 +292,16 @@ function chooseIconFromHeader(header: string, iconColor: string) {
         return <Aperture className={`${classNames}`} />;
     }
 
+    if (compareHeader.includes("diagram")) {
+        return <Shapes className={`${classNames}`} />;
+    }
+
     if (compareHeader.includes("paint")) {
         return <Palette className={`${classNames}`} />;
+    }
+
+    if (compareHeader.includes("code")) {
+        return <Code className={`${classNames}`} />;
     }
 
     return <Brain className={`${classNames}`} />;
@@ -263,23 +314,27 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
     const iconColor = props.primary ? convertColorToTextClass(props.agentColor) : "text-gray-500";
     const icon = chooseIconFromHeader(header, iconColor);
     let markdownRendered = DOMPurify.sanitize(md.render(props.message));
+
+    // Remove any header tags from markdownRendered
+    markdownRendered = markdownRendered.replace(/<h[1-6].*?<\/h[1-6]>/g, "");
     return (
         <div
-            className={`${styles.trainOfThoughtElement} break-all items-center ${props.primary ? "text-gray-400" : "text-gray-300"} ${styles.trainOfThought} ${props.primary ? styles.primary : ""}`}
+            className={`${styles.trainOfThoughtElement} break-words items-center ${props.primary ? "text-gray-400" : "text-gray-300"} ${styles.trainOfThought} ${props.primary ? styles.primary : ""}`}
         >
             {icon}
-            <div dangerouslySetInnerHTML={{ __html: markdownRendered }} />
+            <div dangerouslySetInnerHTML={{ __html: markdownRendered }} className="break-words" />
         </div>
     );
 }
 
-export default function ChatMessage(props: ChatMessageProps) {
+const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) => {
     const [copySuccess, setCopySuccess] = useState<boolean>(false);
     const [isHovering, setIsHovering] = useState<boolean>(false);
     const [textRendered, setTextRendered] = useState<string>("");
     const [markdownRendered, setMarkdownRendered] = useState<string>("");
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const [interrupted, setInterrupted] = useState<boolean>(false);
+    const [excalidrawData, setExcalidrawData] = useState<string>("");
 
     const interruptedRef = useRef<boolean>(false);
     const messageRef = useRef<HTMLDivElement>(null);
@@ -299,7 +354,6 @@ export default function ChatMessage(props: ChatMessageProps) {
                             delimiters: [
                                 { left: "$$", right: "$$", display: true },
                                 { left: "\\[", right: "\\]", display: true },
-                                { left: "$", right: "$", display: false },
                                 { left: "\\(", right: "\\)", display: false },
                             ],
                         });
@@ -317,7 +371,13 @@ export default function ChatMessage(props: ChatMessageProps) {
     }, [messageRef.current]);
 
     useEffect(() => {
+        // Prepare initial message for rendering
         let message = props.chatMessage.message;
+
+        if (props.chatMessage.intent && props.chatMessage.intent.type == "excalidraw") {
+            message = props.chatMessage.intent["inferred-queries"][0];
+            setExcalidrawData(props.chatMessage.message);
+        }
 
         // Replace LaTeX delimiters with placeholders
         message = message
@@ -326,8 +386,50 @@ export default function ChatMessage(props: ChatMessageProps) {
             .replace(/\\\[/g, "LEFTBRACKET")
             .replace(/\\\]/g, "RIGHTBRACKET");
 
-        if (props.chatMessage.uploadedImageData) {
-            message = `![uploaded image](${props.chatMessage.uploadedImageData})\n\n${message}`;
+        const intentTypeHandlers = {
+            "text-to-image": (msg: string) => `![generated image](data:image/png;base64,${msg})`,
+            "text-to-image2": (msg: string) => `![generated image](${msg})`,
+            "text-to-image-v3": (msg: string) =>
+                `![generated image](data:image/webp;base64,${msg})`,
+            excalidraw: (msg: string) => msg,
+        };
+
+        // Handle intent-specific rendering
+        if (props.chatMessage.intent) {
+            const { type, "inferred-queries": inferredQueries } = props.chatMessage.intent;
+
+            console.log("intent type", type);
+            if (type in intentTypeHandlers) {
+                message = intentTypeHandlers[type as keyof typeof intentTypeHandlers](message);
+            }
+
+            if (type.includes("text-to-image") && inferredQueries?.length > 0) {
+                message += `\n\n${inferredQueries[0]}`;
+            }
+        }
+        // Handle user attached images rendering
+        let messageForClipboard = message;
+        let messageToRender = message;
+        if (props.chatMessage.images && props.chatMessage.images.length > 0) {
+            const sanitizedImages = props.chatMessage.images.map((image) => {
+                const decodedImage = image.startsWith("data%3Aimage")
+                    ? decodeURIComponent(image)
+                    : image;
+                return DOMPurify.sanitize(decodedImage);
+            });
+            const imagesInMd = sanitizedImages
+                .map((sanitizedImage, index) => {
+                    return `![uploaded image ${index + 1}](${sanitizedImage})`;
+                })
+                .join("\n");
+            const imagesInHtml = sanitizedImages
+                .map((sanitizedImage, index) => {
+                    return `<div class="${styles.imageWrapper}"><img src="${sanitizedImage}" alt="uploaded image ${index + 1}" /></div>`;
+                })
+                .join("");
+            const userImagesInHtml = `<div class="${styles.imagesContainer}">${imagesInHtml}</div>`;
+            messageForClipboard = `${imagesInMd}\n\n${messageForClipboard}`;
+            messageToRender = `${userImagesInHtml}${messageToRender}`;
         }
 
         if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image") {
@@ -345,13 +447,38 @@ export default function ChatMessage(props: ChatMessageProps) {
             props.chatMessage.intent.type.includes("text-to-image") &&
             props.chatMessage.intent["inferred-queries"]?.length > 0
         ) {
-            message += `\n\n**Inferred Query**\n\n${props.chatMessage.intent["inferred-queries"][0]}`;
+            message += `\n\n${props.chatMessage.intent["inferred-queries"][0]}`;
         }
 
-        setTextRendered(message);
+        // Replace file links with base64 data
+        message = renderCodeGenImageInline(message, props.chatMessage.codeContext);
+
+        // Add code context files to the message
+        if (props.chatMessage.codeContext) {
+            Object.entries(props.chatMessage.codeContext).forEach(([key, value]) => {
+                value.results.output_files?.forEach((file) => {
+                    if (file.filename.endsWith(".png") || file.filename.endsWith(".jpg")) {
+                        // Don't add the image again if it's already in the message!
+                        if (!message.includes(`![${file.filename}](`)) {
+                            message += `\n\n![${file.filename}](data:image/png;base64,${file.b64_data})`;
+                        }
+                    } else if (
+                        file.filename.endsWith(".txt") ||
+                        file.filename.endsWith(".org") ||
+                        file.filename.endsWith(".md")
+                    ) {
+                        const decodedText = atob(file.b64_data);
+                        message += `\n\n\`\`\`\n${decodedText}\n\`\`\``;
+                    }
+                });
+            });
+        }
+
+        // Set the message text
+        setTextRendered(messageForClipboard);
 
         // Render the markdown
-        let markdownRendered = md.render(message);
+        let markdownRendered = md.render(messageToRender);
 
         // Replace placeholders with LaTeX delimiters
         markdownRendered = markdownRendered
@@ -362,7 +489,7 @@ export default function ChatMessage(props: ChatMessageProps) {
 
         // Sanitize and set the rendered markdown
         setMarkdownRendered(DOMPurify.sanitize(markdownRendered));
-    }, [props.chatMessage.message, props.chatMessage.intent]);
+    }, [props.chatMessage.message, props.chatMessage.images, props.chatMessage.intent]);
 
     useEffect(() => {
         if (copySuccess) {
@@ -376,41 +503,38 @@ export default function ChatMessage(props: ChatMessageProps) {
         if (messageRef.current) {
             const preElements = messageRef.current.querySelectorAll("pre > .hljs");
             preElements.forEach((preElement) => {
-                const copyButton = document.createElement("button");
-                const copyImage = document.createElement("img");
-                copyImage.src = "/static/copy-button.svg";
-                copyImage.alt = "Copy";
-                copyImage.width = 24;
-                copyImage.height = 24;
-                copyButton.appendChild(copyImage);
-                copyButton.className = `hljs ${styles.codeCopyButton}`;
-                copyButton.addEventListener("click", () => {
-                    let textContent = preElement.textContent || "";
-                    // Strip any leading $ characters
-                    textContent = textContent.replace(/^\$+/, "");
-                    // Remove 'Copy' if it's at the start of the string
-                    textContent = textContent.replace(/^Copy/, "");
-                    textContent = textContent.trim();
-                    navigator.clipboard.writeText(textContent);
-                    copyImage.src = "/static/copy-button-success.svg";
-                });
-                preElement.prepend(copyButton);
+                if (!preElement.querySelector(`${styles.codeCopyButton}`)) {
+                    const copyButton = document.createElement("button");
+                    const copyIcon = <ClipboardText size={24} />;
+                    createRoot(copyButton).render(copyIcon);
+
+                    copyButton.className = `hljs ${styles.codeCopyButton}`;
+                    copyButton.addEventListener("click", () => {
+                        let textContent = preElement.textContent || "";
+                        // Strip any leading $ characters
+                        textContent = textContent.replace(/^\$+/, "");
+                        // Remove 'Copy' if it's at the start of the string
+                        textContent = textContent.replace(/^Copy/, "");
+                        textContent = textContent.trim();
+                        navigator.clipboard.writeText(textContent);
+
+                        // Replace the copy icon with a checkmark
+                        const copiedIcon = <Check size={24} />;
+                        createRoot(copyButton).render(copiedIcon);
+                    });
+                    preElement.prepend(copyButton);
+                }
             });
 
             renderMathInElement(messageRef.current, {
                 delimiters: [
                     { left: "$$", right: "$$", display: true },
                     { left: "\\[", right: "\\]", display: true },
-                    { left: "$", right: "$", display: false },
                     { left: "\\(", right: "\\)", display: false },
                 ],
             });
         }
     }, [markdownRendered, isHovering, messageRef]);
-
-    if (!props.chatMessage.message) {
-        return null;
-    }
 
     function formatDate(timestamp: string) {
         // Format date in HH:MM, DD MMM YYYY format
@@ -451,6 +575,9 @@ export default function ChatMessage(props: ChatMessageProps) {
     function constructClasses(chatMessage: SingleChatMessage) {
         let classes = [styles.chatMessageContainer, "shadow-md"];
         classes.push(styles[chatMessage.by]);
+        if (!chatMessage.message) {
+            classes.push(styles.emptyChatMessage);
+        }
 
         if (props.customClassName) {
             classes.push(styles[`${chatMessage.by}${props.customClassName}`]);
@@ -480,17 +607,8 @@ export default function ChatMessage(props: ChatMessageProps) {
         const sentenceRegex = /[^.!?]+[.!?]*/g;
         const chunks = props.chatMessage.message.match(sentenceRegex) || [];
 
-        if (!chunks) {
-            return;
-        }
+        if (!chunks || chunks.length === 0 || !chunks[0]) return;
 
-        if (chunks.length === 0) {
-            return;
-        }
-
-        if (!chunks[0]) {
-            return;
-        }
         setIsPlaying(true);
 
         let nextBlobPromise = fetchBlob(chunks[0]);
@@ -543,13 +661,36 @@ export default function ChatMessage(props: ChatMessageProps) {
         });
     }
 
+    const deleteMessage = async (message: SingleChatMessage) => {
+        const turnId = message.turnId || props.turnId;
+        const response = await fetch("/api/chat/conversation/message", {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                conversation_id: props.conversationId,
+                turn_id: turnId,
+            }),
+        });
+
+        if (response.ok) {
+            // Update the UI after successful deletion
+            props.onDeleteMessage(turnId);
+        } else {
+            console.error("Failed to delete message");
+        }
+    };
+
     const allReferences = constructAllReferences(
         props.chatMessage.context,
         props.chatMessage.onlineContext,
+        props.chatMessage.codeContext,
     );
 
     return (
         <div
+            ref={ref}
             className={constructClasses(props.chatMessage)}
             onMouseLeave={(event) => setIsHovering(false)}
             onMouseEnter={(event) => setIsHovering(true)}
@@ -560,12 +701,14 @@ export default function ChatMessage(props: ChatMessageProps) {
                     className={styles.chatMessage}
                     dangerouslySetInnerHTML={{ __html: markdownRendered }}
                 />
+                {excalidrawData && <ExcalidrawComponent data={excalidrawData} />}
             </div>
             <div className={styles.teaserReferencesContainer}>
                 <TeaserReferencesSection
                     isMobileWidth={props.isMobileWidth}
                     notesReferenceCardData={allReferences.notesReferenceCardData}
                     onlineReferenceCardData={allReferences.onlineReferenceCardData}
+                    codeReferenceCardData={allReferences.codeReferenceCardData}
                 />
             </div>
             <div className={styles.chatFooter}>
@@ -601,6 +744,18 @@ export default function ChatMessage(props: ChatMessageProps) {
                                         />
                                     </button>
                                 ))}
+                            {props.chatMessage.turnId && (
+                                <button
+                                    title="Delete"
+                                    className={`${styles.deleteButton}`}
+                                    onClick={() => deleteMessage(props.chatMessage)}
+                                >
+                                    <Trash
+                                        alt="Delete Message"
+                                        className="hsl(var(--muted-foreground)) hover:text-red-500"
+                                    />
+                                </button>
+                            )}
                             <button
                                 title="Copy"
                                 className={`${styles.copyButton}`}
@@ -642,4 +797,8 @@ export default function ChatMessage(props: ChatMessageProps) {
             </div>
         </div>
     );
-}
+});
+
+ChatMessage.displayName = "ChatMessage";
+
+export default ChatMessage;

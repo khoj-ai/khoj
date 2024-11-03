@@ -1,4 +1,4 @@
-const tailwindColors = [
+export const tailwindColors = [
     "red",
     "yellow",
     "green",
@@ -40,6 +40,20 @@ export function convertToBGClass(color: string) {
 
 export function converColorToBgGradient(color: string) {
     return `${convertToBGGradientClass(color)} dark:border dark:border-neutral-700`;
+}
+
+export function convertColorToCaretClass(color: string | undefined) {
+    if (color && tailwindColors.includes(color)) {
+        return `caret-${color}-500`;
+    }
+    return `caret-orange-500`;
+}
+
+export function convertColorToRingClass(color: string | undefined) {
+    if (color && tailwindColors.includes(color)) {
+        return `focus-visible:ring-${color}-500`;
+    }
+    return `focus-visible:ring-orange-500`;
 }
 
 export function convertColorToBorderClass(color: string) {

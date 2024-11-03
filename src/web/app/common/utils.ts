@@ -2,13 +2,10 @@ import { useEffect, useState } from "react";
 import useSWR from "swr";
 
 export interface LocationData {
-    ip: string;
-    city: string;
-    region: string;
-    country: string;
-    postal: string;
-    latitude: number;
-    longitude: number;
+    city?: string;
+    region?: string;
+    country?: string;
+    countryCode?: string;
     timezone: string;
 }
 
@@ -50,9 +47,7 @@ export function useIPLocationData() {
         { revalidateOnFocus: false },
     );
 
-    if (locationDataError) return null;
-    if (!locationData) return null;
-
+    if (locationDataError || !locationData) return;
     return locationData;
 }
 
@@ -74,4 +69,20 @@ export function useIsMobileWidth() {
     }, []);
 
     return isMobileWidth;
+}
+
+export function useDebounce<T>(value: T, delay: number): T {
+    const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [value, delay]);
+
+    return debouncedValue;
 }

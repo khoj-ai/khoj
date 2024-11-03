@@ -1,6 +1,6 @@
 {
     "name": "khoj-ai",
-    "version": "1.23.1",
+    "version": "1.28.3",
     "private": true,
     "scripts": {
         "dev": "next dev",
@@ -11,7 +11,7 @@
         "cicollectstatic": "bash -c 'pushd ../../../ && python3 src/khoj/manage.py collectstatic --noinput && popd'",
         "export": "yarn build && cp -r out/ ../../khoj/interface/built && yarn collectstatic",
         "ciexport": "yarn build && cp -r out/ ../../khoj/interface/built && yarn cicollectstatic",
-        "pypiciexport": "yarn build && cp -r out/ /opt/hostedtoolcache/Python/3.11.9/x64/lib/python3.11/site-packages/khoj/interface/compiled && yarn cicollectstatic",
+        "pypiciexport": "yarn build && cp -r out/ /opt/hostedtoolcache/Python/3.11.10/x64/lib/python3.11/site-packages/khoj/interface/compiled && yarn cicollectstatic",
         "watch": "nodemon --watch . --ext js,jsx,ts,tsx,css --ignore 'out/**/*' --exec 'yarn export'",
         "windowswatch": "nodemon --watch . --ext js,jsx,ts,tsx,css --ignore 'out/**/*' --exec 'yarn windowsexport'",
         "windowscollectstatic": "cd ..\\..\\.. && .\\.venv\\Scripts\\Activate.bat && py .\\src\\khoj\\manage.py collectstatic --noinput && .\\.venv\\Scripts\\deactivate.bat && cd ..",
@@ -19,6 +19,7 @@
         "prepare": "husky"
     },
     "dependencies": {
+        "@excalidraw/excalidraw": "^0.17.6",
         "@hookform/resolvers": "^3.9.0",
         "@phosphor-icons/react": "^2.1.7",
         "@radix-ui/react-alert-dialog": "^1.1.1",
@@ -53,7 +54,7 @@
         "lucide-react": "^0.397.0",
         "markdown-it": "^14.1.0",
         "markdown-it-highlightjs": "^4.1.0",
-        "next": "14.2.3",
+        "next": "14.2.10",
         "nodemon": "^3.1.3",
         "postcss": "^8.4.38",
         "react": "^18",

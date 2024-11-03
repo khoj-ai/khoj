@@ -1,12 +1,15 @@
+import json
 import logging
 import os
 from datetime import datetime, timezone
 
 from asgiref.sync import sync_to_async
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Response
 from starlette.authentication import requires
 
 from khoj.database import adapters
+from khoj.database.models import KhojUser, Subscription
+from khoj.routers.helpers import update_telemetry_state
 from khoj.utils import state
 
 # Stripe integration for Khoj Cloud Subscription
@@ -48,6 +51,8 @@ async def subscribe(request: Request):
     customer_id = subscription["customer"]
     customer = stripe.Customer.retrieve(customer_id)
     customer_email = customer["email"]
+    user = None
+    is_new = False
 
     # Handle valid stripe webhook events
     success = True
@@ -55,7 +60,9 @@ async def subscribe(request: Request):
         # Mark the user as subscribed and update the next renewal date on payment
         subscription = stripe.Subscription.list(customer=customer_id).data[0]
         renewal_date = datetime.fromtimestamp(subscription["current_period_end"], tz=timezone.utc)
-        user = await adapters.set_user_subscription(customer_email, is_recurring=True, renewal_date=renewal_date)
+        user, is_new = await adapters.set_user_subscription(
+            customer_email, is_recurring=True, renewal_date=renewal_date
+        )
         success = user is not None
     elif event_type in {"customer.subscription.updated"}:
         user_subscription = await sync_to_async(adapters.get_user_subscription)(customer_email)
@@ -63,14 +70,23 @@ async def subscribe(request: Request):
         if user_subscription and user_subscription.renewal_date:
             # Mark user as unsubscribed or resubscribed
             is_recurring = not subscription["cancel_at_period_end"]
-            updated_user = await adapters.set_user_subscription(customer_email, is_recurring=is_recurring)
-            success = updated_user is not None
+            user, is_new = await adapters.set_user_subscription(customer_email, is_recurring=is_recurring)
+            success = user is not None
     elif event_type in {"customer.subscription.deleted"}:
         # Reset the user to trial state
-        user = await adapters.set_user_subscription(
-            customer_email, is_recurring=False, renewal_date=False, type="trial"
+        user, is_new = await adapters.set_user_subscription(
+            customer_email, is_recurring=False, renewal_date=False, type=Subscription.Type.TRIAL
         )
         success = user is not None
+
+    if user and is_new:
+        update_telemetry_state(
+            request=request,
+            telemetry_type="api",
+            api="create_user",
+            metadata={"server_id": str(user.user.uuid)},
+        )
+        logger.log(logging.INFO, f"🥳 New User Created: {user.user.uuid}")
 
     logger.info(f'Stripe subscription {event["type"]} for {customer_email}')
     return {"success": success}
@@ -102,3 +118,19 @@ async def update_subscription(request: Request, email: str, operation: str):
         return {"success": False, "message": "No subscription found that is set to cancel"}
 
     return {"success": False, "message": "Invalid operation"}
+
+
+@subscription_router.post("/trial", response_class=Response)
+@requires(["authenticated"])
+async def start_trial(request: Request) -> Response:
+    user: KhojUser = request.user.object
+
+    # Start a trial for the user
+    updated_subscription = await adapters.astart_trial_subscription(user)
+
+    # Return trial status as a JSON response
+    return Response(
+        content=json.dumps({"trial_enabled": updated_subscription is not None}),
+        media_type="application/json",
+        status_code=200,
+    )

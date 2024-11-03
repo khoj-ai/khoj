@@ -6,7 +6,7 @@ import "intl-tel-input/styles";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 
-import { useUserConfig, ModelOptions, UserConfig } from "../common/auth";
+import { useUserConfig, ModelOptions, UserConfig, SubscriptionStates } from "../common/auth";
 import { toTitleCase, useIsMobileWidth } from "../common/utils";
 
 import { isValidPhoneNumber } from "libphonenumber-js";
@@ -276,7 +276,7 @@ const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     )}
                 </div>
                 <div
-                    className={`flex-none p-4 bg-secondary border-b ${isDragAndDropping ? "animate-pulse" : ""}`}
+                    className={`flex-none p-4 bg-secondary border-b ${isDragAndDropping ? "animate-pulse" : ""} rounded-lg`}
                 >
                     <div className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg">
                         {isDragAndDropping ? (
@@ -294,7 +294,6 @@ const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 </div>
             </div>
             <div className="flex flex-col h-full">
-                <div className="flex-none p-4">Synced files</div>
                 <div className="flex-none p-4 bg-background border-b">
                     <CommandInput
                         placeholder="Find synced files"
@@ -514,7 +513,7 @@ export default function SettingsView() {
     const isMobileWidth = useIsMobileWidth();
 
     const cardClassName =
-        "w-full lg:w-1/3 grid grid-flow-column border border-gray-300 shadow-md rounded-lg bg-gradient-to-b from-background to-gray-50 dark:to-gray-950";
+        "w-full lg:w-1/3 grid grid-flow-column border border-gray-300 shadow-md rounded-lg bg-gradient-to-b from-background to-gray-50 dark:to-gray-950 border border-opacity-50";
 
     useEffect(() => {
         setUserConfig(initialUserConfig);
@@ -615,7 +614,9 @@ export default function SettingsView() {
             if (userConfig) {
                 let newUserConfig = userConfig;
                 newUserConfig.subscription_state =
-                    state === "cancel" ? "unsubscribed" : "subscribed";
+                    state === "cancel"
+                        ? SubscriptionStates.UNSUBSCRIBED
+                        : SubscriptionStates.SUBSCRIBED;
                 setUserConfig(newUserConfig);
             }
 
@@ -635,6 +636,51 @@ export default function SettingsView() {
                     state === "cancel"
                         ? "Failed to cancel subscription. Try again or contact us at team@khoj.dev"
                         : "Failed to renew subscription. Try again or contact us at team@khoj.dev",
+            });
+        }
+    };
+
+    const enableFreeTrial = async () => {
+        const formatDate = (dateString: Date) => {
+            const date = new Date(dateString);
+            return new Intl.DateTimeFormat("en-US", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+            }).format(date);
+        };
+
+        try {
+            const response = await fetch(`/api/subscription/trial`, {
+                method: "POST",
+            });
+            if (!response.ok) throw new Error("Failed to enable free trial");
+
+            const responseBody = await response.json();
+
+            // Set updated user settings
+            if (responseBody.trial_enabled && userConfig) {
+                let newUserConfig = userConfig;
+                newUserConfig.subscription_state = SubscriptionStates.TRIAL;
+                const renewalDate = new Date(
+                    Date.now() + userConfig.length_of_free_trial * 24 * 60 * 60 * 1000,
+                );
+                newUserConfig.subscription_renewal_date = formatDate(renewalDate);
+                newUserConfig.subscription_enabled_trial_at = new Date().toISOString();
+                setUserConfig(newUserConfig);
+
+                // Notify user of free trial
+                toast({
+                    title: "🎉 Trial Enabled",
+                    description: `Your free trial will end on ${newUserConfig.subscription_renewal_date}`,
+                });
+            }
+        } catch (error) {
+            console.error("Error enabling free trial:", error);
+            toast({
+                title: "⚠️ Failed to Enable Free Trial",
+                description:
+                    "Failed to enable free trial. Try again or contact us at team@khoj.dev",
             });
         }
     };
@@ -672,7 +718,7 @@ export default function SettingsView() {
     };
 
     const updateModel = (name: string) => async (id: string) => {
-        if (!userConfig?.is_active && name !== "search") {
+        if (!userConfig?.is_active) {
             toast({
                 title: `Model Update`,
                 description: `You need to be subscribed to update ${name} models`,
@@ -865,10 +911,13 @@ export default function SettingsView() {
                                                         Futurist (Trial)
                                                     </p>
                                                     <p className="text-gray-400">
-                                                        You are on a 14 day trial of the Khoj
-                                                        Futurist plan. Check{" "}
+                                                        You are on a{" "}
+                                                        {userConfig.length_of_free_trial} day trial
+                                                        of the Khoj Futurist plan. Your trial ends
+                                                        on {userConfig.subscription_renewal_date}.
+                                                        Check{" "}
                                                         <a
-                                                            href="https://khoj.dev/pricing"
+                                                            href="https://khoj.dev/#pricing"
                                                             target="_blank"
                                                         >
                                                             pricing page
@@ -908,7 +957,7 @@ export default function SettingsView() {
                                                 )) ||
                                                 (userConfig.subscription_state === "expired" && (
                                                     <>
-                                                        <p className="text-xl">Free Plan</p>
+                                                        <p className="text-xl">Humanist</p>
                                                         {(userConfig.subscription_renewal_date && (
                                                             <p className="text-gray-400">
                                                                 Subscription <b>expired</b> on{" "}
@@ -922,7 +971,7 @@ export default function SettingsView() {
                                                             <p className="text-gray-400">
                                                                 Check{" "}
                                                                 <a
-                                                                    href="https://khoj.dev/pricing"
+                                                                    href="https://khoj.dev/#pricing"
                                                                     target="_blank"
                                                                 >
                                                                     pricing page
@@ -959,7 +1008,8 @@ export default function SettingsView() {
                                                         />
                                                         Resubscribe
                                                     </Button>
-                                                )) || (
+                                                )) ||
+                                                (userConfig.subscription_enabled_trial_at && (
                                                     <Button
                                                         variant="outline"
                                                         className="text-primary/80 hover:text-primary"
@@ -976,6 +1026,18 @@ export default function SettingsView() {
                                                             className="h-5 w-5 mr-2"
                                                         />
                                                         Subscribe
+                                                    </Button>
+                                                )) || (
+                                                    <Button
+                                                        variant="outline"
+                                                        className="text-primary/80 hover:text-primary"
+                                                        onClick={enableFreeTrial}
+                                                    >
+                                                        <ArrowCircleUp
+                                                            weight="bold"
+                                                            className="h-5 w-5 mr-2"
+                                                        />
+                                                        Enable Trial
                                                     </Button>
                                                 )}
                                         </CardFooter>
@@ -1169,27 +1231,6 @@ export default function SettingsView() {
                                                     </p>
                                                 )}
                                             </CardFooter>
-                                        </Card>
-                                    )}
-                                    {userConfig.search_model_options.length > 0 && (
-                                        <Card className={cardClassName}>
-                                            <CardHeader className="text-xl flex flex-row">
-                                                <FileMagnifyingGlass className="h-7 w-7 mr-2" />
-                                                Search
-                                            </CardHeader>
-                                            <CardContent className="overflow-hidden pb-12 grid gap-8 h-fit">
-                                                <p className="text-gray-400">
-                                                    Pick the search model to find your documents
-                                                </p>
-                                                <DropdownComponent
-                                                    items={userConfig.search_model_options}
-                                                    selected={
-                                                        userConfig.selected_search_model_config
-                                                    }
-                                                    callbackFunc={updateModel("search")}
-                                                />
-                                            </CardContent>
-                                            <CardFooter className="flex flex-wrap gap-4"></CardFooter>
                                         </Card>
                                     )}
                                     {userConfig.paint_model_options.length > 0 && (

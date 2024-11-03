@@ -8,7 +8,7 @@ import openai
 import requests
 
 from khoj.database.adapters import ConversationAdapters
-from khoj.database.models import KhojUser, TextToImageModelConfig
+from khoj.database.models import Agent, KhojUser, TextToImageModelConfig
 from khoj.routers.helpers import ChatEvent, generate_better_image_prompt
 from khoj.routers.storage import upload_image
 from khoj.utils import state
@@ -25,9 +25,10 @@ async def text_to_image(
     location_data: LocationData,
     references: List[Dict[str, Any]],
     online_results: Dict[str, Any],
-    subscribed: bool = False,
     send_status_func: Optional[Callable] = None,
-    uploaded_image_url: Optional[str] = None,
+    query_images: Optional[List[str]] = None,
+    agent: Agent = None,
+    tracer: dict = {},
 ):
     status_code = 200
     image = None
@@ -65,8 +66,10 @@ async def text_to_image(
         note_references=references,
         online_results=online_results,
         model_type=text_to_image_config.model_type,
-        subscribed=subscribed,
-        uploaded_image_url=uploaded_image_url,
+        query_images=query_images,
+        user=user,
+        agent=agent,
+        tracer=tracer,
     )
 
     if send_status_func:
@@ -86,18 +89,18 @@ async def text_to_image(
             if "content_policy_violation" in e.message:
                 logger.error(f"Image Generation blocked by OpenAI: {e}")
                 status_code = e.status_code  # type: ignore
-                message = f"Image generation blocked by OpenAI: {e.message}"  # type: ignore
+                message = f"Image generation blocked by OpenAI due to policy violation"  # type: ignore
                 yield image_url or image, status_code, message, intent_type.value
                 return
             else:
                 logger.error(f"Image Generation failed with {e}", exc_info=True)
-                message = f"Image generation failed with OpenAI error: {e.message}"  # type: ignore
+                message = f"Image generation failed using OpenAI"  # type: ignore
                 status_code = e.status_code  # type: ignore
                 yield image_url or image, status_code, message, intent_type.value
                 return
         except requests.RequestException as e:
             logger.error(f"Image Generation failed with {e}", exc_info=True)
-            message = f"Image generation using {text2image_model} via {text_to_image_config.model_type} failed with error: {e}"
+            message = f"Image generation using {text2image_model} via {text_to_image_config.model_type} failed due to a network error."
             status_code = 502
             yield image_url or image, status_code, message, intent_type.value
             return
@@ -203,9 +206,10 @@ def generate_image_with_replicate(
 
     # Raise exception if the image generation task fails
     if status != "succeeded":
+        error = get_prediction.get("error")
         if retry_count >= 10:
             raise requests.RequestException("Image generation timed out")
-        raise requests.RequestException(f"Image generation failed with status: {status}")
+        raise requests.RequestException(f"Image generation failed with status: {status}, message: {error}")
 
     # Get the generated image
     image_url = get_prediction["output"][0] if isinstance(get_prediction["output"], list) else get_prediction["output"]

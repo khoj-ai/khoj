@@ -42,6 +42,7 @@ from khoj.database.adapters import (
 from khoj.database.models import ClientApplication, KhojUser, ProcessLock, Subscription
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
 from khoj.routers.api_content import configure_content, configure_search
+from khoj.routers.helpers import update_telemetry_state
 from khoj.routers.twilio import is_twilio_enabled
 from khoj.utils import constants, state
 from khoj.utils.config import SearchType
@@ -107,7 +108,7 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 password="default",
             )
             renewal_date = make_aware(datetime.strptime("2100-04-01", "%Y-%m-%d"))
-            Subscription.objects.create(user=default_user, type="standard", renewal_date=renewal_date)
+            Subscription.objects.create(user=default_user, type=Subscription.Type.STANDARD, renewal_date=renewal_date)
 
     async def authenticate(self, request: HTTPConnection):
         current_user = request.session.get("user")
@@ -165,7 +166,15 @@ class UserAuthenticationBackend(AuthenticationBackend):
 
             create_if_not_exists = request.query_params.get("create_if_not_exists")
             if create_if_not_exists:
-                user = await aget_or_create_user_by_phone_number(phone_number)
+                user, is_new = await aget_or_create_user_by_phone_number(phone_number)
+                if user and is_new:
+                    update_telemetry_state(
+                        request=request,
+                        telemetry_type="api",
+                        api="create_user",
+                        metadata={"server_id": str(user.uuid)},
+                    )
+                    logger.log(logging.INFO, f"🥳 New User Created: {user.uuid}")
             else:
                 user = await aget_user_by_phone_number(phone_number)
 
@@ -192,6 +201,7 @@ def initialize_server(config: Optional[FullConfig]):
         configure_server(config, init=True)
     except Exception as e:
         logger.error(f"🚨 Failed to configure server on app load: {e}", exc_info=True)
+        raise e
 
 
 def configure_server(
@@ -243,7 +253,7 @@ def configure_server(
 
         state.SearchType = configure_search_types()
         state.search_models = configure_search(state.search_models, state.config.search_type)
-        setup_default_agent()
+        setup_default_agent(user)
 
         message = "📡 Telemetry disabled" if telemetry_disabled(state.config.app) else "📡 Telemetry enabled"
         logger.info(message)
@@ -252,11 +262,11 @@ def configure_server(
             initialize_content(regenerate, search_type, user)
 
     except Exception as e:
-        raise e
+        logger.error(f"Failed to load some search models: {e}", exc_info=True)
 
 
-def setup_default_agent():
-    AgentAdapters.create_default_agent()
+def setup_default_agent(user: KhojUser):
+    AgentAdapters.create_default_agent(user)
 
 
 def initialize_content(regenerate: bool, search_type: Optional[SearchType] = None, user: KhojUser = None):
@@ -302,7 +312,7 @@ def configure_routes(app):
         logger.info("🔑 Enabled Authentication")
 
     if state.billing_enabled:
-        from khoj.routers.subscription import subscription_router
+        from khoj.routers.api_subscription import subscription_router
 
         app.include_router(subscription_router, prefix="/api/subscription")
         logger.info("💳 Enabled Billing")

@@ -12,12 +12,13 @@ from khoj.processor.conversation.openai.utils import (
     completion_with_backoff,
 )
 from khoj.processor.conversation.utils import (
+    clean_json,
     construct_structured_message,
     generate_chatml_messages_with_context,
-    remove_json_codeblock,
 )
 from khoj.utils.helpers import ConversationCommand, is_none_or_empty
 from khoj.utils.rawconfig import LocationData
+from khoj.utils.yaml import yaml_dump
 
 logger = logging.getLogger(__name__)
 
@@ -30,13 +31,15 @@ def extract_questions(
     api_base_url=None,
     location_data: LocationData = None,
     user: KhojUser = None,
-    uploaded_image_url: Optional[str] = None,
+    query_images: Optional[list[str]] = None,
     vision_enabled: bool = False,
+    personality_context: Optional[str] = None,
+    tracer: dict = {},
 ):
     """
     Infer search queries to retrieve relevant notes to answer user query
     """
-    location = f"{location_data.city}, {location_data.region}, {location_data.country}" if location_data else "Unknown"
+    location = f"{location_data}" if location_data else "Unknown"
     username = prompts.user_name.format(name=user.get_full_name()) if user and user.get_full_name() else ""
 
     # Extract Past User Message and Inferred Questions from Conversation Log
@@ -68,11 +71,12 @@ def extract_questions(
         yesterday_date=(today - timedelta(days=1)).strftime("%Y-%m-%d"),
         location=location,
         username=username,
+        personality_context=personality_context,
     )
 
     prompt = construct_structured_message(
         message=prompt,
-        image_url=uploaded_image_url,
+        images=query_images,
         model_type=ChatModelOptions.ModelType.OPENAI,
         vision_enabled=vision_enabled,
     )
@@ -80,13 +84,18 @@ def extract_questions(
     messages = [ChatMessage(content=prompt, role="user")]
 
     response = send_message_to_model(
-        messages, api_key, model, response_type="json_object", api_base_url=api_base_url, temperature=temperature
+        messages,
+        api_key,
+        model,
+        response_type="json_object",
+        api_base_url=api_base_url,
+        temperature=temperature,
+        tracer=tracer,
     )
 
     # Extract, Clean Message from GPT's Response
     try:
-        response = response.strip()
-        response = remove_json_codeblock(response)
+        response = clean_json(response)
         response = json.loads(response)
         response = [q.strip() for q in response["queries"] if q.strip()]
         if not isinstance(response, list) or not response:
@@ -101,7 +110,9 @@ def extract_questions(
     return questions
 
 
-def send_message_to_model(messages, api_key, model, response_type="text", api_base_url=None, temperature=0):
+def send_message_to_model(
+    messages, api_key, model, response_type="text", api_base_url=None, temperature=0, tracer: dict = {}
+):
     """
     Send message to model
     """
@@ -114,6 +125,7 @@ def send_message_to_model(messages, api_key, model, response_type="text", api_ba
         temperature=temperature,
         api_base_url=api_base_url,
         model_kwargs={"response_format": {"type": response_type}},
+        tracer=tracer,
     )
 
 
@@ -121,6 +133,7 @@ def converse(
     references,
     user_query,
     online_results: Optional[Dict[str, Dict]] = None,
+    code_results: Optional[Dict[str, Dict]] = None,
     conversation_log={},
     model: str = "gpt-4o-mini",
     api_key: Optional[str] = None,
@@ -133,17 +146,15 @@ def converse(
     location_data: LocationData = None,
     user_name: str = None,
     agent: Agent = None,
-    image_url: Optional[str] = None,
+    query_images: Optional[list[str]] = None,
     vision_available: bool = False,
+    tracer: dict = {},
 ):
     """
     Converse with user using OpenAI's ChatGPT
     """
     # Initialize Variables
     current_date = datetime.now()
-    compiled_references = "\n\n".join({f"# {item['compiled']}" for item in references})
-
-    conversation_primer = prompts.query_prompt.format(query=user_query)
 
     if agent and agent.personality:
         system_prompt = prompts.custom_personality.format(
@@ -159,8 +170,7 @@ def converse(
         )
 
     if location_data:
-        location = f"{location_data.city}, {location_data.region}, {location_data.country}"
-        location_prompt = prompts.user_location.format(location=location)
+        location_prompt = prompts.user_location.format(location=f"{location_data}")
         system_prompt = f"{system_prompt}\n{location_prompt}"
 
     if user_name:
@@ -168,29 +178,32 @@ def converse(
         system_prompt = f"{system_prompt}\n{user_name_prompt}"
 
     # Get Conversation Primer appropriate to Conversation Type
-    if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(compiled_references):
+    if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(references):
         completion_func(chat_response=prompts.no_notes_found.format())
         return iter([prompts.no_notes_found.format()])
     elif conversation_commands == [ConversationCommand.Online] and is_none_or_empty(online_results):
         completion_func(chat_response=prompts.no_online_results_found.format())
         return iter([prompts.no_online_results_found.format()])
 
+    context_message = ""
+    if not is_none_or_empty(references):
+        context_message = f"{prompts.notes_conversation.format(references=yaml_dump(references))}\n\n"
     if not is_none_or_empty(online_results):
-        conversation_primer = (
-            f"{prompts.online_search_conversation.format(online_results=str(online_results))}\n{conversation_primer}"
-        )
-    if not is_none_or_empty(compiled_references):
-        conversation_primer = f"{prompts.notes_conversation.format(query=user_query, references=compiled_references)}\n\n{conversation_primer}"
+        context_message += f"{prompts.online_search_conversation.format(online_results=yaml_dump(online_results))}\n\n"
+    if not is_none_or_empty(code_results):
+        context_message += f"{prompts.code_executed_context.format(code_results=str(code_results))}\n\n"
+    context_message = context_message.strip()
 
     # Setup Prompt with Primer or Conversation History
     messages = generate_chatml_messages_with_context(
-        conversation_primer,
+        user_query,
         system_prompt,
         conversation_log,
+        context_message=context_message,
         model_name=model,
         max_prompt_size=max_prompt_size,
         tokenizer_name=tokenizer_name,
-        uploaded_image_url=image_url,
+        query_images=query_images,
         vision_enabled=vision_available,
         model_type=ChatModelOptions.ModelType.OPENAI,
     )
@@ -208,4 +221,5 @@ def converse(
         api_base_url=api_base_url,
         completion_func=completion_func,
         model_kwargs={"stop": ["Notes:\n["]},
+        tracer=tracer,
     )

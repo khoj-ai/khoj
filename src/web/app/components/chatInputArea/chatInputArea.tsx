@@ -1,24 +1,16 @@
 import styles from "./chatInputArea.module.css";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, forwardRef } from "react";
 
 import DOMPurify from "dompurify";
 import "katex/dist/katex.min.css";
 import {
-    ArrowRight,
     ArrowUp,
-    Browser,
-    ChatsTeardrop,
-    GlobeSimple,
-    Gps,
-    Image,
     Microphone,
-    Notebook,
     Paperclip,
     X,
-    Question,
-    Robot,
-    Shapes,
     Stop,
+    ToggleLeft,
+    ToggleRight,
 } from "@phosphor-icons/react";
 
 import {
@@ -45,11 +37,12 @@ import { Popover, PopoverContent } from "@/components/ui/popover";
 import { PopoverTrigger } from "@radix-ui/react-popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { convertToBGClass } from "@/app/common/colorUtils";
+import { convertColorToTextClass, convertToBGClass } from "@/app/common/colorUtils";
 
 import LoginPrompt from "../loginPrompt/loginPrompt";
 import { uploadDataForIndexing } from "../../common/chatFunctions";
 import { InlineLoading } from "../loading/loading";
+import { getIconForSlashCommand } from "@/app/common/iconUtils";
 
 export interface ChatOptions {
     [key: string]: string;
@@ -65,9 +58,10 @@ interface ChatInputProps {
     isMobileWidth?: boolean;
     isLoggedIn: boolean;
     agentColor?: string;
+    isResearchModeEnabled?: boolean;
 }
 
-export default function ChatInputArea(props: ChatInputProps) {
+export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((props, ref) => {
     const [message, setMessage] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -77,15 +71,22 @@ export default function ChatInputArea(props: ChatInputProps) {
     const [loginRedirectMessage, setLoginRedirectMessage] = useState<string | null>(null);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
-    const [recording, setRecording] = useState(false);
     const [imageUploaded, setImageUploaded] = useState(false);
-    const [imagePath, setImagePath] = useState<string>("");
-    const [imageData, setImageData] = useState<string | null>(null);
+    const [imagePaths, setImagePaths] = useState<string[]>([]);
+    const [imageData, setImageData] = useState<string[]>([]);
+
+    const [recording, setRecording] = useState(false);
     const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
     const [progressValue, setProgressValue] = useState(0);
     const [isDragAndDropping, setIsDragAndDropping] = useState(false);
 
+    const [showCommandList, setShowCommandList] = useState(false);
+    const [useResearchMode, setUseResearchMode] = useState<boolean>(
+        props.isResearchModeEnabled || false,
+    );
+
+    const chatInputRef = ref as React.MutableRefObject<HTMLTextAreaElement>;
     useEffect(() => {
         if (!uploading) {
             setProgressValue(0);
@@ -105,27 +106,37 @@ export default function ChatInputArea(props: ChatInputProps) {
 
     useEffect(() => {
         async function fetchImageData() {
-            if (imagePath) {
-                const response = await fetch(imagePath);
-                const blob = await response.blob();
-                const reader = new FileReader();
-                reader.onload = function () {
-                    const base64data = reader.result;
-                    setImageData(base64data as string);
-                };
-                reader.readAsDataURL(blob);
+            if (imagePaths.length > 0) {
+                const newImageData = await Promise.all(
+                    imagePaths.map(async (path) => {
+                        const response = await fetch(path);
+                        const blob = await response.blob();
+                        return new Promise<string>((resolve) => {
+                            const reader = new FileReader();
+                            reader.onload = () => resolve(reader.result as string);
+                            reader.readAsDataURL(blob);
+                        });
+                    }),
+                );
+                setImageData(newImageData);
             }
             setUploading(false);
         }
         setUploading(true);
         fetchImageData();
-    }, [imagePath]);
+    }, [imagePaths]);
+
+    useEffect(() => {
+        if (props.isResearchModeEnabled) {
+            setUseResearchMode(props.isResearchModeEnabled);
+        }
+    }, [props.isResearchModeEnabled]);
 
     function onSendMessage() {
         if (imageUploaded) {
             setImageUploaded(false);
-            setImagePath("");
-            props.sendImage(imageData || "");
+            setImagePaths([]);
+            imageData.forEach((data) => props.sendImage(data));
         }
         if (!message.trim()) return;
 
@@ -137,7 +148,12 @@ export default function ChatInputArea(props: ChatInputProps) {
             return;
         }
 
-        props.sendMessage(message.trim());
+        let messageToSend = message.trim();
+        if (useResearchMode && !messageToSend.startsWith("/research")) {
+            messageToSend = `/research ${messageToSend}`;
+        }
+
+        props.sendMessage(messageToSend);
         setMessage("");
     }
 
@@ -167,20 +183,27 @@ export default function ChatInputArea(props: ChatInputProps) {
 
     function uploadFiles(files: FileList) {
         if (!props.isLoggedIn) {
-            setLoginRedirectMessage("Whoa! You need to login to upload files");
+            setLoginRedirectMessage("Please login to chat with your files");
             setShowLoginPrompt(true);
             return;
         }
-        // check for image file
-        const image_endings = ["jpg", "jpeg", "png"];
+        // check for image files
+        const image_endings = ["jpg", "jpeg", "png", "webp"];
+        const newImagePaths: string[] = [];
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             const file_extension = file.name.split(".").pop();
             if (image_endings.includes(file_extension || "")) {
-                setImageUploaded(true);
-                setImagePath(DOMPurify.sanitize(URL.createObjectURL(file)));
-                return;
+                newImagePaths.push(DOMPurify.sanitize(URL.createObjectURL(file)));
             }
+        }
+
+        if (newImagePaths.length > 0) {
+            setImageUploaded(true);
+            setImagePaths((prevPaths) => [...prevPaths, ...newImagePaths]);
+            // Set focus to the input for user message after uploading files
+            chatInputRef?.current?.focus();
+            return;
         }
 
         uploadDataForIndexing(
@@ -191,46 +214,9 @@ export default function ChatInputArea(props: ChatInputProps) {
             props.setUploadedFiles,
             props.conversationId,
         );
-    }
 
-    function getIconForSlashCommand(command: string) {
-        const className = "h-4 w-4 mr-2";
-        if (command.includes("summarize")) {
-            return <Gps className={className} />;
-        }
-
-        if (command.includes("help")) {
-            return <Question className={className} />;
-        }
-
-        if (command.includes("automation")) {
-            return <Robot className={className} />;
-        }
-
-        if (command.includes("webpage")) {
-            return <Browser className={className} />;
-        }
-
-        if (command.includes("notes")) {
-            return <Notebook className={className} />;
-        }
-
-        if (command.includes("image")) {
-            return <Image className={className} />;
-        }
-
-        if (command.includes("default")) {
-            return <Shapes className={className} />;
-        }
-
-        if (command.includes("general")) {
-            return <ChatsTeardrop className={className} />;
-        }
-
-        if (command.includes("online")) {
-            return <GlobeSimple className={className} />;
-        }
-        return <ArrowRight className={className} />;
+        // Set focus to the input for user message after uploading files
+        chatInputRef?.current?.focus();
     }
 
     // Assuming this function is added within the same context as the provided excerpt
@@ -309,12 +295,17 @@ export default function ChatInputArea(props: ChatInputProps) {
         }
     }, [recording, mediaRecorder]);
 
-    const chatInputRef = useRef<HTMLTextAreaElement>(null);
     useEffect(() => {
-        if (!chatInputRef.current) return;
+        if (!chatInputRef?.current) return;
         chatInputRef.current.style.height = "auto";
         chatInputRef.current.style.height =
             Math.max(chatInputRef.current.scrollHeight - 24, 64) + "px";
+
+        if (message.startsWith("/") && message.split(" ").length === 1) {
+            setShowCommandList(true);
+        } else {
+            setShowCommandList(false);
+        }
     }, [message]);
 
     function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
@@ -327,9 +318,12 @@ export default function ChatInputArea(props: ChatInputProps) {
         setIsDragAndDropping(false);
     }
 
-    function removeImageUpload() {
-        setImageUploaded(false);
-        setImagePath("");
+    function removeImageUpload(index: number) {
+        setImagePaths((prevPaths) => prevPaths.filter((_, i) => i !== index));
+        setImageData((prevData) => prevData.filter((_, i) => i !== index));
+        if (imagePaths.length === 1) {
+            setImageUploaded(false);
+        }
     }
 
     return (
@@ -397,13 +391,18 @@ export default function ChatInputArea(props: ChatInputProps) {
                     </AlertDialogContent>
                 </AlertDialog>
             )}
-            {message.startsWith("/") && message.split(" ").length === 1 && (
+            {showCommandList && (
                 <div className="flex justify-center text-center">
-                    <Popover open={message.startsWith("/")}>
+                    <Popover open={showCommandList} onOpenChange={setShowCommandList}>
                         <PopoverTrigger className="flex justify-center text-center"></PopoverTrigger>
                         <PopoverContent
                             onOpenAutoFocus={(e) => e.preventDefault()}
                             className={`${props.isMobileWidth ? "w-[100vw]" : "w-full"} rounded-md`}
+                            side="bottom"
+                            align="center"
+                            /* Offset below text area on home page (i.e where conversationId is unset) */
+                            sideOffset={props.conversationId ? 0 : 80}
+                            alignOffset={0}
                         >
                             <Command className="max-w-full">
                                 <CommandInput
@@ -426,7 +425,11 @@ export default function ChatInputArea(props: ChatInputProps) {
                                                     >
                                                         <div className="grid grid-cols-1 gap-1">
                                                             <div className="font-bold flex items-center">
-                                                                {getIconForSlashCommand(key)}/{key}
+                                                                {getIconForSlashCommand(
+                                                                    key,
+                                                                    "h-4 w-4 mr-2",
+                                                                )}
+                                                                /{key}
                                                             </div>
                                                             <div>{value}</div>
                                                         </div>
@@ -441,113 +444,160 @@ export default function ChatInputArea(props: ChatInputProps) {
                     </Popover>
                 </div>
             )}
-            <div
-                className={`${styles.actualInputArea} items-center justify-between dark:bg-neutral-700 relative`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDragAndDropFiles}
-            >
-                {imageUploaded && (
-                    <div className="absolute bottom-[80px] left-0 right-0 dark:bg-neutral-700 bg-white pt-5 pb-5 w-full rounded-lg border dark:border-none grid grid-cols-2">
-                        <div className="pl-4 pr-4">
-                            <img src={imagePath} alt="img" className="w-auto max-h-[100px]" />
-                        </div>
-                        <div className="pl-4 pr-4">
-                            <X
-                                className="w-6 h-6 float-right dark:hover:bg-[hsl(var(--background))] hover:bg-neutral-100 rounded-sm"
-                                onClick={removeImageUpload}
-                            />
-                        </div>
-                    </div>
-                )}
-                <input
-                    type="file"
-                    multiple={true}
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    style={{ display: "none" }}
-                />
-                <Button
-                    variant={"ghost"}
-                    className="!bg-none p-0 m-2 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
-                    disabled={props.sendDisabled}
-                    onClick={handleFileButtonClick}
+            <div>
+                <div
+                    className={`${styles.actualInputArea} justify-between dark:bg-neutral-700 relative ${isDragAndDropping && "animate-pulse"}`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDragAndDropFiles}
                 >
-                    <Paperclip className="w-8 h-8" />
-                </Button>
-                <div className="grid w-full gap-1.5 relative">
-                    <Textarea
-                        ref={chatInputRef}
-                        className={`border-none w-full h-16 min-h-16 max-h-[128px] md:py-4 rounded-lg resize-none dark:bg-neutral-700 ${props.isMobileWidth ? "text-md" : "text-lg"}`}
-                        placeholder="Type / to see a list of commands"
-                        id="message"
-                        autoFocus={true}
-                        value={message}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                                setImageUploaded(false);
-                                setImagePath("");
-                                e.preventDefault();
-                                onSendMessage();
-                            }
-                        }}
-                        onChange={(e) => setMessage(e.target.value)}
-                        disabled={props.sendDisabled || recording}
+                    <input
+                        type="file"
+                        multiple={true}
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        style={{ display: "none" }}
                     />
+                    <div className="flex items-center">
+                        <Button
+                            variant={"ghost"}
+                            className="!bg-none p-0 m-2 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
+                            disabled={props.sendDisabled}
+                            onClick={handleFileButtonClick}
+                        >
+                            <Paperclip className="w-8 h-8" />
+                        </Button>
+                    </div>
+                    <div className="flex-grow flex flex-col w-full gap-1.5 relative">
+                        <div className="flex items-center gap-2 overflow-x-auto">
+                            {imageUploaded &&
+                                imagePaths.map((path, index) => (
+                                    <div
+                                        key={index}
+                                        className="relative flex-shrink-0 pb-3 pt-2 group"
+                                    >
+                                        <img
+                                            src={path}
+                                            alt={`img-${index}`}
+                                            className="w-auto h-16 object-cover rounded-xl"
+                                        />
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="absolute -top-0 -right-2 h-5 w-5 rounded-full bg-neutral-200 dark:bg-neutral-600 hover:bg-neutral-300 dark:hover:bg-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={() => removeImageUpload(index)}
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                ))}
+                        </div>
+                        <Textarea
+                            ref={chatInputRef}
+                            className={`border-none focus:border-none
+                                focus:outline-none focus-visible:ring-transparent
+                                w-full h-16 min-h-16 max-h-[128px] md:py-4 rounded-lg resize-none dark:bg-neutral-700
+                                ${props.isMobileWidth ? "text-md" : "text-lg"}`}
+                            placeholder="Type / to see a list of commands"
+                            id="message"
+                            autoFocus={true}
+                            value={message}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey && !props.isMobileWidth) {
+                                    setImageUploaded(false);
+                                    setImagePaths([]);
+                                    e.preventDefault();
+                                    onSendMessage();
+                                }
+                            }}
+                            onChange={(e) => setMessage(e.target.value)}
+                            disabled={props.sendDisabled || recording}
+                        />
+                    </div>
+                    <div className="flex items-center">
+                        {recording ? (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="default"
+                                            className={`${!recording && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                                            onClick={() => {
+                                                setRecording(!recording);
+                                            }}
+                                            disabled={props.sendDisabled}
+                                        >
+                                            <Stop weight="fill" className="w-6 h-6" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        Click to stop recording and transcribe your voice.
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        ) : mediaRecorder ? (
+                            <InlineLoading />
+                        ) : (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="default"
+                                            className={`${!message || recording || "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                                            onClick={() => {
+                                                setMessage("Listening...");
+                                                setRecording(!recording);
+                                            }}
+                                            disabled={props.sendDisabled}
+                                        >
+                                            <Microphone weight="fill" className="w-6 h-6" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        Click to transcribe your message with voice.
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
+                        <Button
+                            className={`${(!message || recording) && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                            onClick={onSendMessage}
+                            disabled={props.sendDisabled}
+                        >
+                            <ArrowUp className="w-6 h-6" weight="bold" />
+                        </Button>
+                    </div>
                 </div>
-                {recording ? (
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="default"
-                                    className={`${!recording && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
-                                    onClick={() => {
-                                        setRecording(!recording);
-                                    }}
-                                    disabled={props.sendDisabled}
-                                >
-                                    <Stop weight="fill" className="w-6 h-6" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                Click to stop recording and transcribe your voice.
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                ) : mediaRecorder ? (
-                    <InlineLoading />
-                ) : (
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant="default"
-                                    className={`${!message || recording || "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
-                                    onClick={() => {
-                                        setMessage("Listening...");
-                                        setRecording(!recording);
-                                    }}
-                                    disabled={props.sendDisabled}
-                                >
-                                    <Microphone weight="fill" className="w-6 h-6" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                Click to transcribe your message with voice.
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                )}
-                <Button
-                    className={`${(!message || recording) && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
-                    onClick={onSendMessage}
-                    disabled={props.sendDisabled}
-                >
-                    <ArrowUp className="w-6 h-6" weight="bold" />
-                </Button>
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                className="float-right justify-center gap-1 flex items-center p-1.5 mr-2 h-fit"
+                                onClick={() => {
+                                    setUseResearchMode(!useResearchMode);
+                                    chatInputRef?.current?.focus();
+                                }}
+                            >
+                                <span className="text-muted-foreground text-sm">Research Mode</span>
+                                {useResearchMode ? (
+                                    <ToggleRight
+                                        className={`w-6 h-6 inline-block ${props.agentColor ? convertColorToTextClass(props.agentColor) : convertColorToTextClass("orange")} rounded-full`}
+                                    />
+                                ) : (
+                                    <ToggleLeft className={`w-6 h-6 inline-block rounded-full`} />
+                                )}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent className="text-xs">
+                            (Experimental) Research Mode allows you to get more deeply researched,
+                            detailed responses. Response times may be longer.
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
             </div>
-            {isDragAndDropping && <div className="text-muted-foreground">Drop file to upload</div>}
         </>
     );
-}
+});
+
+ChatInputArea.displayName = "ChatInputArea";

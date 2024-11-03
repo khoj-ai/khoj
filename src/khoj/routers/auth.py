@@ -80,11 +80,19 @@ async def login_magic_link(request: Request, form: MagicLinkForm):
         request.session.pop("user", None)
 
     email = form.email
-    user = await aget_or_create_user_by_email(email)
+    user, is_new = await aget_or_create_user_by_email(email)
     unique_id = user.email_verification_code
 
     if user:
         await send_magic_link_email(email, unique_id, request.base_url)
+        if is_new:
+            update_telemetry_state(
+                request=request,
+                telemetry_type="api",
+                api="create_user",
+                metadata={"server_id": str(user.uuid)},
+            )
+            logger.log(logging.INFO, f"🥳 New User Created: {user.uuid}")
 
     return Response(status_code=200)
 
@@ -167,7 +175,7 @@ async def auth(request: Request):
                 request=request,
                 telemetry_type="api",
                 api="create_user",
-                metadata={"user_id": str(khoj_user.uuid)},
+                metadata={"server_id": str(khoj_user.uuid)},
             )
             logger.log(logging.INFO, f"🥳 New User Created: {khoj_user.uuid}")
             return RedirectResponse(url=next_url, status_code=HTTP_302_FOUND)

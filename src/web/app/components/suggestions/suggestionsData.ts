@@ -47,24 +47,24 @@ const DEFAULT_COLOR = "orange";
 
 export function convertSuggestionTitleToIconClass(title: string, color: string) {
     if (title === SuggestionType.Automation)
-        return getIconFromIconName("Robot", color, "w-8", "h-8");
-    if (title === SuggestionType.Paint) return getIconFromIconName("Palette", color, "w-8", "h-8");
+        return getIconFromIconName("Robot", color, "w-6", "h-6");
+    if (title === SuggestionType.Paint) return getIconFromIconName("Palette", color, "w-6", "h-6");
     if (title === SuggestionType.PopCulture)
-        return getIconFromIconName("Confetti", color, "w-8", "h-8");
-    if (title === SuggestionType.Travel) return getIconFromIconName("Jeep", color, "w-8", "h-8");
-    if (title === SuggestionType.Learning) return getIconFromIconName("Book", color, "w-8", "h-8");
+        return getIconFromIconName("Confetti", color, "w-6", "h-6");
+    if (title === SuggestionType.Travel) return getIconFromIconName("Jeep", color, "w-6", "h-6");
+    if (title === SuggestionType.Learning) return getIconFromIconName("Book", color, "w-6", "h-6");
     if (title === SuggestionType.Health)
-        return getIconFromIconName("Asclepius", color, "w-8", "h-8");
-    if (title === SuggestionType.Fun) return getIconFromIconName("Island", color, "w-8", "h-8");
-    if (title === SuggestionType.Home) return getIconFromIconName("House", color, "w-8", "h-8");
+        return getIconFromIconName("Asclepius", color, "w-6", "h-6");
+    if (title === SuggestionType.Fun) return getIconFromIconName("Island", color, "w-6", "h-6");
+    if (title === SuggestionType.Home) return getIconFromIconName("House", color, "w-6", "h-6");
     if (title === SuggestionType.Language)
-        return getIconFromIconName("Translate", color, "w-8", "h-8");
-    if (title === SuggestionType.Code) return getIconFromIconName("Code", color, "w-8", "h-8");
-    if (title === SuggestionType.Food) return getIconFromIconName("BowlFood", color, "w-8", "h-8");
+        return getIconFromIconName("Translate", color, "w-6", "h-6");
+    if (title === SuggestionType.Code) return getIconFromIconName("Code", color, "w-6", "h-6");
+    if (title === SuggestionType.Food) return getIconFromIconName("BowlFood", color, "w-6", "h-6");
     if (title === SuggestionType.Interviewing)
-        return getIconFromIconName("Lectern", color, "w-8", "h-8");
-    if (title === SuggestionType.Finance) return getIconFromIconName("Wallet", color, "w-8", "h-8");
-    else return getIconFromIconName("Lightbulb", color, "w-8", "h-8");
+        return getIconFromIconName("Lectern", color, "w-6", "h-6");
+    if (title === SuggestionType.Finance) return getIconFromIconName("Wallet", color, "w-6", "h-6");
+    else return getIconFromIconName("Lightbulb", color, "w-6", "h-6");
 }
 
 export const suggestionsData: Suggestion[] = [

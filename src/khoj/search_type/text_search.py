@@ -1,13 +1,19 @@
 import logging
 import math
 from pathlib import Path
-from typing import List, Tuple, Type, Union
+from typing import List, Optional, Tuple, Type, Union
 
+import requests
 import torch
 from asgiref.sync import sync_to_async
 from sentence_transformers import util
 
-from khoj.database.adapters import EntryAdapters, get_user_search_model_or_default
+from khoj.database.adapters import (
+    EntryAdapters,
+    get_default_search_model,
+    get_user_default_search_model,
+)
+from khoj.database.models import Agent
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import KhojUser
 from khoj.processor.content.text_to_entries import TextToEntries
@@ -96,18 +102,19 @@ def load_embeddings(
 
 
 async def query(
-    user: KhojUser,
     raw_query: str,
+    user: KhojUser,
     type: SearchType = SearchType.All,
     question_embedding: Union[torch.Tensor, None] = None,
     max_distance: float = None,
+    agent: Optional[Agent] = None,
 ) -> Tuple[List[dict], List[Entry]]:
     "Search for entries that answer the query"
 
     file_type = search_type_to_embeddings_type[type.value]
 
     query = raw_query
-    search_model = await sync_to_async(get_user_search_model_or_default)(user)
+    search_model = await sync_to_async(get_user_default_search_model)(user)
     if not max_distance:
         if search_model.bi_encoder_confidence_threshold:
             max_distance = search_model.bi_encoder_confidence_threshold
@@ -123,12 +130,13 @@ async def query(
     top_k = 10
     with timer("Search Time", logger, state.device):
         hits = EntryAdapters.search_with_embeddings(
-            user=user,
+            raw_query=raw_query,
             embeddings=question_embedding,
             max_results=top_k,
             file_type_filter=file_type,
-            raw_query=raw_query,
             max_distance=max_distance,
+            user=user,
+            agent=agent,
         ).all()
         hits = await sync_to_async(list)(hits)  # type: ignore[call-arg]
 
@@ -228,8 +236,12 @@ def setup(
 
 def cross_encoder_score(query: str, hits: List[SearchResponse], search_model_name: str) -> List[SearchResponse]:
     """Score all retrieved entries using the cross-encoder"""
-    with timer("Cross-Encoder Predict Time", logger, state.device):
-        cross_scores = state.cross_encoder_model[search_model_name].predict(query, hits)
+    try:
+        with timer("Cross-Encoder Predict Time", logger, state.device):
+            cross_scores = state.cross_encoder_model[search_model_name].predict(query, hits)
+    except requests.exceptions.HTTPError as e:
+        logger.error(f"Failed to rerank documents using the inference endpoint. Error: {e}.", exc_info=True)
+        cross_scores = [0.0] * len(hits)
 
     # Convert cross-encoder scores to distances and pass in hits for reranking
     for idx in range(len(cross_scores)):
