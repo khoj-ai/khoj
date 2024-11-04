@@ -28,7 +28,6 @@ from khoj.database.models import (
     TextToImageModelConfig,
     UserConversationConfig,
     UserRequests,
-    UserSearchModelConfig,
     UserVoiceModelConfig,
     VoiceModelOption,
     WebScraper,
@@ -99,7 +98,6 @@ admin.site.register(KhojUser, KhojUserAdmin)
 admin.site.register(ProcessLock)
 admin.site.register(SpeechToTextModelOptions)
 admin.site.register(ReflectiveQuestion)
-admin.site.register(UserSearchModelConfig)
 admin.site.register(ClientApplication)
 admin.site.register(GithubConfig)
 admin.site.register(NotionConfig)

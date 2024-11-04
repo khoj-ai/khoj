@@ -7,13 +7,7 @@ from django.db.models import Count, Q
 from tqdm import tqdm
 
 from khoj.database.adapters import get_default_search_model
-from khoj.database.models import (
-    Agent,
-    Entry,
-    KhojUser,
-    SearchModelConfig,
-    UserSearchModelConfig,
-)
+from khoj.database.models import Agent, Entry, KhojUser, SearchModelConfig
 from khoj.processor.embeddings import EmbeddingsModel
 
 logging.basicConfig(level=logging.INFO)
@@ -30,15 +24,15 @@ class Command(BaseCommand):
         parser.add_argument(
             "--search_model_id",
             action="store",
-            help="ID of the SearchModelConfig object to set as the default search model for all existing Entry objects and UserSearchModelConfig objects.",
+            help="ID of the SearchModelConfig object to set as the default search model for all existing Entry objects.",
             required=True,
         )
 
-        # Set the apply flag to apply the new default Search model to all existing Entry objects and UserSearchModelConfig objects.
+        # Set the apply flag to apply the new default Search model to all existing Entry objects.
         parser.add_argument(
             "--apply",
             action="store_true",
-            help="Apply the new default Search model to all existing Entry objects and UserSearchModelConfig objects. Otherwise, only display the number of Entry objects and UserSearchModelConfig objects that will be affected.",
+            help="Apply the new default Search model to all existing Entry objects. Otherwise, only display the number of Entry objects that will be affected.",
         )
 
     def handle(self, *args, **options):
@@ -88,72 +82,12 @@ class Command(BaseCommand):
 
         new_default_search_model_config = SearchModelConfig.objects.get(id=search_model_config_id)
         logger.info(f"New default Search model: {new_default_search_model_config}")
-        user_search_model_configs_to_update = UserSearchModelConfig.objects.exclude(
-            setting_id=search_model_config_id
-        ).all()
-        logger.info(f"Number of UserSearchModelConfig objects to update: {user_search_model_configs_to_update.count()}")
-
-        for user_config in user_search_model_configs_to_update:
-            affected_user = user_config.user
-            entry_filter = Q(user=affected_user)
-            relevant_entries = Entry.objects.filter(entry_filter).all()
-            logger.info(f"Number of Entry objects to update for user {affected_user}: {relevant_entries.count()}")
-
-            if apply:
-                try:
-                    regenerate_entries(
-                        entry_filter,
-                        embeddings_model[new_default_search_model_config.name],
-                        new_default_search_model_config,
-                    )
-                    user_config.setting = new_default_search_model_config
-                    user_config.save()
-
-                    logger.info(
-                        f"Updated UserSearchModelConfig object for user {affected_user} to use the new default Search model."
-                    )
-                    logger.info(
-                        f"Updated {relevant_entries.count()} Entry objects for user {affected_user} to use the new default Search model."
-                    )
-
-                except Exception as e:
-                    logger.error(f"Error embedding documents: {e}")
 
         logger.info("----")
 
-        # There are also plenty of users who have indexed documents without explicitly creating a UserSearchModelConfig object. You would have to migrate these users as well, if the default is different from search_model_config_id.
         current_default = get_default_search_model()
-        if current_default.id != new_default_search_model_config.id:
-            users_without_user_search_model_config = KhojUser.objects.annotate(
-                user_search_model_config_count=Count("usersearchmodelconfig")
-            ).filter(user_search_model_config_count=0)
 
-            logger.info(f"Number of User objects to update: {users_without_user_search_model_config.count()}")
-            for user in users_without_user_search_model_config:
-                entry_filter = Q(user=user)
-                relevant_entries = Entry.objects.filter(entry_filter).all()
-                logger.info(f"Number of Entry objects to update for user {user}: {relevant_entries.count()}")
-
-                if apply:
-                    try:
-                        regenerate_entries(
-                            entry_filter,
-                            embeddings_model[new_default_search_model_config.name],
-                            new_default_search_model_config,
-                        )
-
-                        UserSearchModelConfig.objects.create(user=user, setting=new_default_search_model_config)
-
-                        logger.info(
-                            f"Created UserSearchModelConfig object for user {user} to use the new default Search model."
-                        )
-                        logger.info(
-                            f"Updated {relevant_entries.count()} Entry objects for user {user} to use the new default Search model."
-                        )
-                    except Exception as e:
-                        logger.error(f"Error embedding documents: {e}")
-        else:
-            logger.info("Default is the same as search_model_config_id.")
+        # TODO: Migrate all Entry objects to use the new default Search model
 
         all_agents = Agent.objects.all()
         logger.info(f"Number of Agent objects to update: {all_agents.count()}")
@@ -174,6 +108,7 @@ class Command(BaseCommand):
                     )
                 except Exception as e:
                     logger.error(f"Error embedding documents: {e}")
+
         if apply and current_default.id != new_default_search_model_config.id:
             # Get the existing default SearchModelConfig object and update its name
             current_default.name = f"prev_default_{current_default.id}"

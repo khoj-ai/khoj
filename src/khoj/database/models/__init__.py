@@ -449,12 +449,6 @@ class UserVoiceModelConfig(BaseModel):
     setting = models.ForeignKey(VoiceModelOption, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
 
-# TODO Delete this model once all users have been migrated to the server's default settings
-class UserSearchModelConfig(BaseModel):
-    user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
-    setting = models.ForeignKey(SearchModelConfig, on_delete=models.CASCADE)
-
-
 class UserTextToImageModelConfig(BaseModel):
     user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
     setting = models.ForeignKey(TextToImageModelConfig, on_delete=models.CASCADE)

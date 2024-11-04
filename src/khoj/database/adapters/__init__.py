@@ -48,7 +48,6 @@ from khoj.database.models import (
     TextToImageModelConfig,
     UserConversationConfig,
     UserRequests,
-    UserSearchModelConfig,
     UserTextToImageModelConfig,
     UserVoiceModelConfig,
     VoiceModelOption,
@@ -479,15 +478,6 @@ def get_default_search_model() -> SearchModelConfig:
     elif SearchModelConfig.objects.count() == 0:
         SearchModelConfig.objects.create()
     return SearchModelConfig.objects.first()
-
-
-def get_user_default_search_model(user: KhojUser = None) -> SearchModelConfig:
-    if user:
-        user_search_model = UserSearchModelConfig.objects.filter(user=user).first()
-        if user_search_model:
-            return user_search_model.setting
-
-    return get_default_search_model()
 
 
 def get_or_create_search_models():
