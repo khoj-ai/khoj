@@ -30,6 +30,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { AgentCard } from "@/app/components/agentCard/agentCard";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { modifyFileFilterForConversation } from "./common/chatFunctions";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -150,12 +151,26 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 setProcessingMessage(true);
                 try {
                     const newConversationId = await createNewConversation(selectedAgent || "khoj");
+                    const uploadedFiles = localStorage.getItem("uploadedFiles");
                     onConversationIdChange?.(newConversationId);
                     localStorage.setItem("message", message);
                     if (images.length > 0) {
                         localStorage.setItem("images", JSON.stringify(images));
                     }
-                    window.location.href = `/chat?conversationId=${newConversationId}`;
+
+                    if (uploadedFiles) {
+                        modifyFileFilterForConversation(
+                            newConversationId,
+                            JSON.parse(uploadedFiles),
+                            () => {
+                                window.location.href = `/chat?conversationId=${newConversationId}`;
+                            },
+                            "add",
+                        );
+                        localStorage.removeItem("uploadedFiles");
+                    } else {
+                        window.location.href = `/chat?conversationId=${newConversationId}`;
+                    }
                 } catch (error) {
                     console.error("Error creating new conversation:", error);
                     setProcessingMessage(false);
@@ -416,6 +431,10 @@ export default function Home() {
     useEffect(() => {
         setUserConfig(initialUserConfig);
     }, [initialUserConfig]);
+
+    useEffect(() => {
+        localStorage.setItem("uploadedFiles", JSON.stringify(uploadedFiles));
+    }, [uploadedFiles]);
 
     useEffect(() => {
         fetch("/api/chat/options")
