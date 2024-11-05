@@ -801,10 +801,6 @@ async def chat(
                 response_log = "No files selected for summarization. Please add files using the section on the left."
                 async for result in send_llm_response(response_log):
                     yield result
-            elif len(file_filters) > 1 and not agent_has_entries:
-                response_log = "Only one file can be selected for summarization."
-                async for result in send_llm_response(response_log):
-                    yield result
             else:
                 async for response in generate_summary_from_files(
                     q=q,
