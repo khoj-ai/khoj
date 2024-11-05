@@ -458,7 +458,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                         onChange={handleFileChange}
                         style={{ display: "none" }}
                     />
-                    <div className="flex items-center">
+                    <div className="flex items-end pb-2">
                         <Button
                             variant={"ghost"}
                             className="!bg-none p-0 m-2 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
@@ -514,7 +514,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             disabled={props.sendDisabled || recording}
                         />
                     </div>
-                    <div className="flex items-center">
+                    <div className="flex items-end pb-2">
                         {recording ? (
                             <TooltipProvider>
                                 <Tooltip>
