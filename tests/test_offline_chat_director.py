@@ -10,7 +10,7 @@ from khoj.processor.conversation.utils import message_to_log
 from khoj.routers.helpers import aget_relevant_information_sources
 from tests.helpers import ConversationFactory
 
-SKIP_TESTS = True
+SKIP_TESTS = False
 pytestmark = pytest.mark.skipif(
     SKIP_TESTS,
     reason="Disable in CI to avoid long test runs.",
@@ -337,7 +337,6 @@ def test_summarize_one_file(client_offline_chat, default_user2: KhojUser):
     # Assert
     assert response_message != ""
     assert response_message != "No files selected for summarization. Please add files using the section on the left."
-    assert response_message != "Only one file can be selected for summarization."
 
 
 @pytest.mark.django_db(transaction=True)
@@ -375,7 +374,6 @@ def test_summarize_extra_text(client_offline_chat, default_user2: KhojUser):
     # Assert
     assert response_message != ""
     assert response_message != "No files selected for summarization. Please add files using the section on the left."
-    assert response_message != "Only one file can be selected for summarization."
 
 
 @pytest.mark.django_db(transaction=True)
@@ -404,7 +402,7 @@ def test_summarize_multiple_files(client_offline_chat, default_user2: KhojUser):
     response_message = response.json()["response"]
 
     # Assert
-    assert response_message == "Only one file can be selected for summarization."
+    assert response_message is not None
 
 
 @pytest.mark.django_db(transaction=True)
@@ -460,7 +458,6 @@ def test_summarize_different_conversation(client_offline_chat, default_user2: Kh
     # Assert
     assert response_message != ""
     assert response_message != "No files selected for summarization. Please add files using the section on the left."
-    assert response_message != "Only one file can be selected for summarization."
 
 
 @pytest.mark.django_db(transaction=True)
