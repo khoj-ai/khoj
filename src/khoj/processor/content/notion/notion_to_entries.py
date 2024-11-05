@@ -79,7 +79,7 @@ class NotionToEntries(TextToEntries):
 
         self.body_params = {"page_size": 100}
 
-    def process(self, files: dict[str, str] = None, user: KhojUser = None, regenerate: bool = False) -> Tuple[int, int]:
+    def process(self, files: dict[str, str], user: KhojUser, regenerate: bool = False) -> Tuple[int, int]:
         current_entries = []
 
         # Get all pages
@@ -248,12 +248,12 @@ class NotionToEntries(TextToEntries):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
             num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
+                user,
                 current_entries,
                 DbEntry.EntryType.NOTION,
                 DbEntry.EntrySource.NOTION,
                 key="compiled",
                 logger=logger,
-                user=user,
             )
 
         return num_new_embeddings, num_deleted_embeddings

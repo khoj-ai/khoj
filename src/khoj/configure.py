@@ -253,7 +253,7 @@ def configure_server(
         logger.info(message)
 
         if not init:
-            initialize_content(regenerate, search_type, user)
+            initialize_content(user, regenerate, search_type)
 
     except Exception as e:
         logger.error(f"Failed to load some search models: {e}", exc_info=True)
@@ -263,17 +263,17 @@ def setup_default_agent(user: KhojUser):
     AgentAdapters.create_default_agent(user)
 
 
-def initialize_content(regenerate: bool, search_type: Optional[SearchType] = None, user: KhojUser = None):
+def initialize_content(user: KhojUser, regenerate: bool, search_type: Optional[SearchType] = None):
     # Initialize Content from Config
     if state.search_models:
         try:
             logger.info("📬 Updating content index...")
             all_files = collect_files(user=user)
             status = configure_content(
+                user,
                 all_files,
                 regenerate,
                 search_type,
-                user=user,
             )
             if not status:
                 raise RuntimeError("Failed to update content index")
@@ -338,9 +338,7 @@ def configure_middleware(app):
 def update_content_index():
     for user in get_all_users():
         all_files = collect_files(user=user)
-        success = configure_content(all_files, user=user)
-    all_files = collect_files(user=None)
-    success = configure_content(all_files, user=None)
+        success = configure_content(user, all_files)
     if not success:
         raise RuntimeError("Failed to update content index")
     logger.info("📪 Content index updated via Scheduler")

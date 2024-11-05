@@ -239,7 +239,7 @@ async def set_content_notion(
 
     if updated_config.token:
         # Trigger an async job to configure_content. Let it run without blocking the response.
-        background_tasks.add_task(run_in_executor, configure_content, {}, False, SearchType.Notion, user)
+        background_tasks.add_task(run_in_executor, configure_content, user, {}, False, SearchType.Notion)
 
     update_telemetry_state(
         request=request,
@@ -512,10 +512,10 @@ async def indexer(
         success = await loop.run_in_executor(
             None,
             configure_content,
+            user,
             indexer_input.model_dump(),
             regenerate,
             t,
-            user,
         )
         if not success:
             raise RuntimeError(f"Failed to {method} {t} data sent by {client} client into content index")

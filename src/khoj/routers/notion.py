@@ -80,6 +80,6 @@ async def notion_auth_callback(request: Request, background_tasks: BackgroundTas
     notion_redirect = str(request.app.url_path_for("config_page"))
 
     # Trigger an async job to configure_content. Let it run without blocking the response.
-    background_tasks.add_task(run_in_executor, configure_content, {}, False, SearchType.Notion, user)
+    background_tasks.add_task(run_in_executor, configure_content, user, {}, False, SearchType.Notion)
 
     return RedirectResponse(notion_redirect)

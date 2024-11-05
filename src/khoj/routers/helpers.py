@@ -703,7 +703,7 @@ async def generate_summary_from_files(
         if await EntryAdapters.aagent_has_entries(agent):
             file_names = await EntryAdapters.aget_agent_entry_filepaths(agent)
             if len(file_names) > 0:
-                file_objects = await FileObjectAdapters.async_get_file_objects_by_name(None, file_names.pop(), agent)
+                file_objects = await FileObjectAdapters.aget_file_objects_by_name(None, file_names.pop(), agent)
 
         if (file_objects and len(file_objects) == 0 and not query_files) or (not file_objects and not query_files):
             response_log = "Sorry, I couldn't find anything to summarize."
@@ -1975,10 +1975,10 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
 
 
 def configure_content(
+    user: KhojUser,
     files: Optional[dict[str, dict[str, str]]],
     regenerate: bool = False,
     t: Optional[state.SearchType] = state.SearchType.All,
-    user: KhojUser = None,
 ) -> bool:
     success = True
     if t == None:
