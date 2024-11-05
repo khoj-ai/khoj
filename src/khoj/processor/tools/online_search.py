@@ -68,6 +68,7 @@ async def search_online(
     query_images: List[str] = None,
     agent: Agent = None,
     tracer: dict = {},
+    attached_files: str = None,
 ):
     query += " ".join(custom_filters)
     if not is_internet_connected():
@@ -77,7 +78,14 @@ async def search_online(
 
     # Breakdown the query into subqueries to get the correct answer
     subqueries = await generate_online_subqueries(
-        query, conversation_history, location, user, query_images=query_images, agent=agent, tracer=tracer
+        query,
+        conversation_history,
+        location,
+        user,
+        query_images=query_images,
+        agent=agent,
+        tracer=tracer,
+        attached_files=attached_files,
     )
     response_dict = {}
 
@@ -159,11 +167,19 @@ async def read_webpages(
     agent: Agent = None,
     tracer: dict = {},
     max_webpages_to_read: int = DEFAULT_MAX_WEBPAGES_TO_READ,
+    attached_files: str = None,
 ):
     "Infer web pages to read from the query and extract relevant information from them"
     logger.info(f"Inferring web pages to read")
     urls = await infer_webpage_urls(
-        query, conversation_history, location, user, query_images, agent=agent, tracer=tracer
+        query,
+        conversation_history,
+        location,
+        user,
+        query_images,
+        agent=agent,
+        tracer=tracer,
+        attached_files=attached_files,
     )
 
     # Get the top 10 web pages to read

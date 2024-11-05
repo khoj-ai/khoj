@@ -149,6 +149,7 @@ def converse(
     query_images: Optional[list[str]] = None,
     vision_available: bool = False,
     tracer: dict = {},
+    attached_files: str = None,
 ):
     """
     Converse with user using OpenAI's ChatGPT
@@ -206,6 +207,7 @@ def converse(
         query_images=query_images,
         vision_enabled=vision_available,
         model_type=ChatModelOptions.ModelType.OPENAI,
+        attached_files=attached_files,
     )
     truncated_messages = "\n".join({f"{message.content[:70]}..." for message in messages})
     logger.debug(f"Conversation Context for GPT: {truncated_messages}")

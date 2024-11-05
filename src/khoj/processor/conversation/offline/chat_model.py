@@ -38,6 +38,7 @@ def extract_questions_offline(
     temperature: float = 0.7,
     personality_context: Optional[str] = None,
     tracer: dict = {},
+    attached_files: str = None,
 ) -> List[str]:
     """
     Infer search queries to retrieve relevant notes to answer user query
@@ -87,6 +88,7 @@ def extract_questions_offline(
         loaded_model=offline_chat_model,
         max_prompt_size=max_prompt_size,
         model_type=ChatModelOptions.ModelType.OFFLINE,
+        attached_files=attached_files,
     )
 
     state.chat_lock.acquire()
@@ -153,6 +155,7 @@ def converse_offline(
     user_name: str = None,
     agent: Agent = None,
     tracer: dict = {},
+    attached_files: str = None,
 ) -> Union[ThreadedGenerator, Iterator[str]]:
     """
     Converse with user using Llama
@@ -216,6 +219,7 @@ def converse_offline(
         max_prompt_size=max_prompt_size,
         tokenizer_name=tokenizer_name,
         model_type=ChatModelOptions.ModelType.OFFLINE,
+        attached_files=attached_files,
     )
 
     truncated_messages = "\n".join({f"{message.content[:70]}..." for message in messages})

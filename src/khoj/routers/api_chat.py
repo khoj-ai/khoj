@@ -19,7 +19,6 @@ from khoj.database.adapters import (
     AgentAdapters,
     ConversationAdapters,
     EntryAdapters,
-    FileObjectAdapters,
     PublicConversationAdapters,
     aget_user_name,
 )
@@ -46,7 +45,7 @@ from khoj.routers.helpers import (
     aget_relevant_output_modes,
     construct_automation_created_message,
     create_automation,
-    extract_relevant_info,
+    gather_attached_files,
     generate_excalidraw_diagram,
     generate_summary_from_files,
     get_conversation_command,
@@ -707,6 +706,8 @@ async def chat(
         ## Extract Document References
         compiled_references: List[Any] = []
         inferred_queries: List[Any] = []
+        file_filters = conversation.file_filters if conversation and conversation.file_filters else []
+        attached_file_context = await gather_attached_files(user, file_filters)
 
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
             conversation_commands = await aget_relevant_information_sources(
@@ -717,6 +718,7 @@ async def chat(
                 query_images=uploaded_images,
                 agent=agent,
                 tracer=tracer,
+                attached_files=attached_file_context,
             )
 
             # If we're doing research, we don't want to do anything else
@@ -757,6 +759,7 @@ async def chat(
                 location=location,
                 file_filters=conversation.file_filters if conversation else [],
                 tracer=tracer,
+                attached_files=attached_file_context,
             ):
                 if isinstance(research_result, InformationCollectionIteration):
                     if research_result.summarizedResult:
@@ -812,6 +815,7 @@ async def chat(
                     agent=agent,
                     send_status_func=partial(send_event, ChatEvent.STATUS),
                     tracer=tracer,
+                    attached_files=attached_file_context,
                 ):
                     if isinstance(response, dict) and ChatEvent.STATUS in response:
                         yield response[ChatEvent.STATUS]
@@ -945,6 +949,7 @@ async def chat(
                     query_images=uploaded_images,
                     agent=agent,
                     tracer=tracer,
+                    attached_files=attached_file_context,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -970,6 +975,7 @@ async def chat(
                     query_images=uploaded_images,
                     agent=agent,
                     tracer=tracer,
+                    attached_files=attached_file_context,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -1010,6 +1016,7 @@ async def chat(
                     query_images=uploaded_images,
                     agent=agent,
                     tracer=tracer,
+                    attached_files=attached_file_context,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -1049,6 +1056,7 @@ async def chat(
                 query_images=uploaded_images,
                 agent=agent,
                 tracer=tracer,
+                attached_files=attached_file_context,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
@@ -1110,6 +1118,7 @@ async def chat(
                 agent=agent,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
                 tracer=tracer,
+                attached_files=attached_file_context,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
@@ -1166,6 +1175,7 @@ async def chat(
             uploaded_images,
             tracer,
             train_of_thought,
+            attached_file_context,
         )
 
         # Send Response

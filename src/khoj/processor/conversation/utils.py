@@ -318,6 +318,7 @@ def generate_chatml_messages_with_context(
     vision_enabled=False,
     model_type="",
     context_message="",
+    attached_files: str = None,
 ):
     """Generate chat messages with appropriate context from previous conversation to send to the chat model"""
     # Set max prompt size from user config or based on pre-configured for model and machine specs
@@ -341,8 +342,10 @@ def generate_chatml_messages_with_context(
                 {f"# File: {item['file']}\n## {item['compiled']}\n" for item in chat.get("context") or []}
             )
             message_context += f"{prompts.notes_conversation.format(references=references)}\n\n"
+
         if not is_none_or_empty(chat.get("onlineContext")):
             message_context += f"{prompts.online_search_conversation.format(online_results=chat.get('onlineContext'))}"
+
         if not is_none_or_empty(message_context):
             reconstructed_context_message = ChatMessage(content=message_context, role="user")
             chatml_messages.insert(0, reconstructed_context_message)
@@ -366,8 +369,13 @@ def generate_chatml_messages_with_context(
         )
     if not is_none_or_empty(context_message):
         messages.append(ChatMessage(content=context_message, role="user"))
+
+    if not is_none_or_empty(attached_files):
+        messages.append(ChatMessage(content=attached_files, role="user"))
+
     if len(chatml_messages) > 0:
         messages += chatml_messages
+
     if not is_none_or_empty(system_message):
         messages.append(ChatMessage(content=system_message, role="system"))
 

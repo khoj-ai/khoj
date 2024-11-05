@@ -147,6 +147,7 @@ def converse_anthropic(
     query_images: Optional[list[str]] = None,
     vision_available: bool = False,
     tracer: dict = {},
+    attached_files: str = None,
 ):
     """
     Converse with user using Anthropic's Claude
@@ -203,6 +204,7 @@ def converse_anthropic(
         query_images=query_images,
         vision_enabled=vision_available,
         model_type=ChatModelOptions.ModelType.ANTHROPIC,
+        attached_files=attached_files,
     )
 
     messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)

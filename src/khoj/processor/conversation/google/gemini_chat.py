@@ -108,7 +108,14 @@ def extract_questions_gemini(
 
 
 def gemini_send_message_to_model(
-    messages, api_key, model, response_type="text", temperature=0, model_kwargs=None, tracer={}
+    messages,
+    api_key,
+    model,
+    response_type="text",
+    temperature=0,
+    model_kwargs=None,
+    tracer={},
+    attached_files: str = None,
 ):
     """
     Send message to model
@@ -152,6 +159,7 @@ def converse_gemini(
     query_images: Optional[list[str]] = None,
     vision_available: bool = False,
     tracer={},
+    attached_files: str = None,
 ):
     """
     Converse with user using Google's Gemini
@@ -209,6 +217,7 @@ def converse_gemini(
         query_images=query_images,
         vision_enabled=vision_available,
         model_type=ChatModelOptions.ModelType.GOOGLE,
+        attached_files=attached_files,
     )
 
     messages, system_prompt = format_messages_for_gemini(messages, system_prompt)

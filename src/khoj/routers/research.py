@@ -47,6 +47,7 @@ async def apick_next_tool(
     max_iterations: int = 5,
     send_status_func: Optional[Callable] = None,
     tracer: dict = {},
+    attached_files: str = None,
 ):
     """
     Given a query, determine which of the available tools the agent should use in order to answer appropriately. One at a time, and it's able to use subsequent iterations to refine the answer.
@@ -95,6 +96,7 @@ async def apick_next_tool(
             user=user,
             query_images=query_images,
             tracer=tracer,
+            attached_files=attached_files,
         )
 
     try:
@@ -137,6 +139,7 @@ async def execute_information_collection(
     location: LocationData = None,
     file_filters: List[str] = [],
     tracer: dict = {},
+    attached_files: str = None,
 ):
     current_iteration = 0
     MAX_ITERATIONS = 5
@@ -161,6 +164,7 @@ async def execute_information_collection(
             MAX_ITERATIONS,
             send_status_func,
             tracer=tracer,
+            attached_files=attached_files,
         ):
             if isinstance(result, dict) and ChatEvent.STATUS in result:
                 yield result[ChatEvent.STATUS]
@@ -233,6 +237,7 @@ async def execute_information_collection(
                     query_images=query_images,
                     agent=agent,
                     tracer=tracer,
+                    attached_files=attached_files,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -264,6 +269,7 @@ async def execute_information_collection(
                     query_images=query_images,
                     agent=agent,
                     tracer=tracer,
+                    attached_files=attached_files,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -288,6 +294,7 @@ async def execute_information_collection(
                     query_images=query_images,
                     agent=agent,
                     send_status_func=send_status_func,
+                    attached_files=attached_files,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]

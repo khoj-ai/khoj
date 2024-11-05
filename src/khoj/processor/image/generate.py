@@ -29,6 +29,7 @@ async def text_to_image(
     query_images: Optional[List[str]] = None,
     agent: Agent = None,
     tracer: dict = {},
+    attached_files: str = None,
 ):
     status_code = 200
     image = None
@@ -70,6 +71,7 @@ async def text_to_image(
         user=user,
         agent=agent,
         tracer=tracer,
+        attached_files=attached_files,
     )
 
     if send_status_func:
