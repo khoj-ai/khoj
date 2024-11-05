@@ -86,6 +86,8 @@ def extract_questions_anthropic(
 
     messages = [ChatMessage(content=prompt, role="user")]
 
+    messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)
+
     response = anthropic_completion_with_backoff(
         messages=messages,
         system_prompt=system_prompt,
