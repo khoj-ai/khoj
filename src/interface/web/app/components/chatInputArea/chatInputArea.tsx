@@ -582,6 +582,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                 <span className="text-muted-foreground text-sm">Research Mode</span>
                                 {useResearchMode ? (
                                     <ToggleRight
+                                        weight="fill"
                                         className={`w-6 h-6 inline-block ${props.agentColor ? convertColorToTextClass(props.agentColor) : convertColorToTextClass("orange")} rounded-full`}
                                     />
                                 ) : (
