@@ -1481,6 +1481,8 @@ class EntryAdapters:
 
     @staticmethod
     async def aagent_has_entries(agent: Agent):
+        if agent is None:
+            return False
         return await Entry.objects.filter(agent=agent).aexists()
 
     @staticmethod
@@ -1499,6 +1501,8 @@ class EntryAdapters:
 
     @staticmethod
     async def aget_agent_entry_filepaths(agent: Agent):
+        if agent is None:
+            return []
         return await sync_to_async(set)(
             Entry.objects.filter(agent=agent).distinct("file_path").values_list("file_path", flat=True)
         )
