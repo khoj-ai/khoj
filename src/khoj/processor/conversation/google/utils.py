@@ -228,7 +228,9 @@ def format_messages_for_gemini(messages: list[ChatMessage], system_prompt: str =
         if isinstance(message.content, list):
             # Convert image_urls to PIL.Image and place them at beginning of list (better for Gemini)
             message.content = [
-                get_image_from_url(item["image_url"]["url"]).content if item["type"] == "image_url" else item["text"]
+                get_image_from_url(item["image_url"]["url"]).content
+                if item["type"] == "image_url"
+                else item.get("text", "")
                 for item in sorted(message.content, key=lambda x: 0 if x["type"] == "image_url" else 1)
             ]
         elif isinstance(message.content, str):
