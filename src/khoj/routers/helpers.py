@@ -673,18 +673,20 @@ async def generate_summary_from_files(
     attached_files: str = None,
 ):
     try:
-        file_object = None
+        file_objects = None
         if await EntryAdapters.aagent_has_entries(agent):
             file_names = await EntryAdapters.aget_agent_entry_filepaths(agent)
             if len(file_names) > 0:
-                file_object = await FileObjectAdapters.async_get_file_objects_by_name(None, file_names.pop(), agent)
+                file_objects = await FileObjectAdapters.async_get_file_objects_by_name(None, file_names.pop(), agent)
 
-        if len(file_object) == 0 and not attached_files:
-            response_log = "Sorry, I couldn't find the full text of this file."
+        if (file_objects and len(file_objects) == 0 and not attached_files) or (
+            not file_objects and not attached_files
+        ):
+            response_log = "Sorry, I couldn't find anything to summarize."
             yield response_log
             return
 
-        contextual_data = " ".join([f"File: {file.file_name}\n\n{file.raw_text}" for file in file_object])
+        contextual_data = " ".join([f"File: {file.file_name}\n\n{file.raw_text}" for file in file_objects])
 
         if attached_files:
             contextual_data += f"\n\n{attached_files}"
@@ -692,7 +694,7 @@ async def generate_summary_from_files(
         if not q:
             q = "Create a general summary of the file"
 
-        file_names = [file.file_name for file in file_object]
+        file_names = [file.file_name for file in file_objects]
         file_names.extend(file_filters)
 
         all_file_names = ""
