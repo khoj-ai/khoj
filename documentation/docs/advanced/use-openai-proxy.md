@@ -31,7 +31,4 @@ For specific integrations, see our [Ollama](/advanced/ollama), [LMStudio](/advan
    - Openai Config: `<the proxy config you created in step 2>`
    - Max prompt size: `2000` (replace with the max prompt size of your model)
    - Tokenizer: *Do not set for OpenAI, mistral, llama3 based models*
-4. Create a new [Server Chat Setting](http://localhost:42110/server/admin/database/serverchatsettings/add/) on your Khoj admin panel
-   - Default model: `<name of chat model option you created in step 3>`
-   - Summarizer model: `<name of chat model option you created in step 3>`
-5. Go to [your config](http://localhost:42110/settings) and select the model you just created in the chat model dropdown.
+4. Go to [your config](http://localhost:42110/settings) and select the model you just created in the chat model dropdown.
