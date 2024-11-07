@@ -351,6 +351,7 @@ async def extract_references_and_questions(
     query_images: Optional[List[str]] = None,
     agent: Agent = None,
     tracer: dict = {},
+    attached_files: str = None,
 ):
     user = request.user.object if request.user.is_authenticated else None
 
@@ -425,6 +426,7 @@ async def extract_references_and_questions(
                 max_prompt_size=conversation_config.max_prompt_size,
                 personality_context=personality_context,
                 tracer=tracer,
+                attached_files=attached_files,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
             openai_chat_config = conversation_config.openai_config
@@ -443,6 +445,7 @@ async def extract_references_and_questions(
                 vision_enabled=vision_enabled,
                 personality_context=personality_context,
                 tracer=tracer,
+                attached_files=attached_files,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
             api_key = conversation_config.openai_config.api_key
@@ -458,6 +461,7 @@ async def extract_references_and_questions(
                 vision_enabled=vision_enabled,
                 personality_context=personality_context,
                 tracer=tracer,
+                attached_files=attached_files,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
             api_key = conversation_config.openai_config.api_key
@@ -474,6 +478,7 @@ async def extract_references_and_questions(
                 vision_enabled=vision_enabled,
                 personality_context=personality_context,
                 tracer=tracer,
+                attached_files=attached_files,
             )
 
     # Collate search results as context for GPT
