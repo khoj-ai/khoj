@@ -36,6 +36,7 @@ from khoj.utils.helpers import (
     is_none_or_empty,
     merge_dicts,
 )
+from khoj.utils.rawconfig import FileAttachment
 
 logger = logging.getLogger(__name__)
 
@@ -137,25 +138,6 @@ def construct_iteration_history(
     return previous_iterations_history
 
 
-def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:
-    chat_history = ""
-    for chat in conversation_history.get("chat", [])[-n:]:
-        if chat["by"] == "khoj" and chat["intent"].get("type") in ["remember", "reminder", "summarize"]:
-            chat_history += f"User: {chat['intent']['query']}\n"
-
-            if chat["intent"].get("inferred-queries"):
-                chat_history += f'Khoj: {{"queries": {chat["intent"].get("inferred-queries")}}}\n'
-
-            chat_history += f"{agent_name}: {chat['message']}\n\n"
-        elif chat["by"] == "khoj" and ("text-to-image" in chat["intent"].get("type")):
-            chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += f"{agent_name}: [generated image redacted for space]\n"
-        elif chat["by"] == "khoj" and ("excalidraw" in chat["intent"].get("type")):
-            chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += f"{agent_name}: {chat['intent']['inferred-queries'][0]}\n"
-    return chat_history
-
-
 def construct_tool_chat_history(
     previous_iterations: List[InformationCollectionIteration], tool: ConversationCommand = None
 ) -> Dict[str, list]:
@@ -241,6 +223,7 @@ def save_to_conversation_log(
     conversation_id: str = None,
     automation_id: str = None,
     query_images: List[str] = None,
+    raw_attached_files: List[FileAttachment] = [],
     tracer: Dict[str, Any] = {},
     train_of_thought: List[Any] = [],
 ):
@@ -253,6 +236,7 @@ def save_to_conversation_log(
             "created": user_message_time,
             "images": query_images,
             "turnId": turn_id,
+            "attachedFiles": [file.model_dump(mode="json") for file in raw_attached_files],
         },
         khoj_message_metadata={
             "context": compiled_references,
@@ -306,6 +290,22 @@ def construct_structured_message(message: str, images: list[str], model_type: st
     return message
 
 
+def gather_raw_attached_files(
+    attached_files: Dict[str, str],
+):
+    """_summary_
+    Gather contextual data from the given (raw) files
+    """
+
+    if len(attached_files) == 0:
+        return ""
+
+    contextual_data = " ".join(
+        [f"File: {file_name}\n\n{file_content}\n\n" for file_name, file_content in attached_files.items()]
+    )
+    return f"I have attached the following files:\n\n{contextual_data}"
+
+
 def generate_chatml_messages_with_context(
     user_message,
     system_message=None,
@@ -335,6 +335,8 @@ def generate_chatml_messages_with_context(
     chatml_messages: List[ChatMessage] = []
     for chat in conversation_log.get("chat", []):
         message_context = ""
+        message_attached_files = ""
+
         if chat["by"] == "khoj" and "excalidraw" in chat["intent"].get("type", ""):
             message_context += chat.get("intent").get("inferred-queries")[0]
         if not is_none_or_empty(chat.get("context")):
@@ -342,6 +344,15 @@ def generate_chatml_messages_with_context(
                 {f"# File: {item['file']}\n## {item['compiled']}\n" for item in chat.get("context") or []}
             )
             message_context += f"{prompts.notes_conversation.format(references=references)}\n\n"
+
+        if chat.get("attachedFiles"):
+            raw_attached_files = chat.get("attachedFiles")
+            attached_files_dict = dict()
+            for file in raw_attached_files:
+                attached_files_dict[file["name"]] = file["content"]
+
+            message_attached_files = gather_raw_attached_files(attached_files_dict)
+            chatml_messages.append(ChatMessage(content=message_attached_files, role="user"))
 
         if not is_none_or_empty(chat.get("onlineContext")):
             message_context += f"{prompts.online_search_conversation.format(online_results=chat.get('onlineContext'))}"

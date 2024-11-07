@@ -138,6 +138,38 @@ class SearchResponse(ConfigBase):
     corpus_id: str
 
 
+class FileData(BaseModel):
+    name: str
+    content: bytes
+    file_type: str
+    encoding: str | None = None
+
+
+class FileAttachment(BaseModel):
+    name: str
+    content: str
+    file_type: str
+    size: int
+
+
+class ChatRequestBody(BaseModel):
+    q: str
+    n: Optional[int] = 7
+    d: Optional[float] = None
+    stream: Optional[bool] = False
+    title: Optional[str] = None
+    conversation_id: Optional[str] = None
+    turn_id: Optional[str] = None
+    city: Optional[str] = None
+    region: Optional[str] = None
+    country: Optional[str] = None
+    country_code: Optional[str] = None
+    timezone: Optional[str] = None
+    images: Optional[list[str]] = None
+    files: Optional[list[FileAttachment]] = None
+    create_new: Optional[bool] = False
+
+
 class Entry:
     raw: str
     compiled: str

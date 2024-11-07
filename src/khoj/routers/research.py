@@ -20,7 +20,6 @@ from khoj.routers.api import extract_references_and_questions
 from khoj.routers.helpers import (
     ChatEvent,
     construct_chat_history,
-    extract_relevant_info,
     generate_summary_from_files,
     send_message_to_model_wrapper,
 )
@@ -187,6 +186,7 @@ async def execute_information_collection(
                 query_images,
                 agent=agent,
                 tracer=tracer,
+                attached_files=attached_files,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]

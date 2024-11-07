@@ -38,6 +38,7 @@ def extract_questions_gemini(
     vision_enabled: bool = False,
     personality_context: Optional[str] = None,
     tracer: dict = {},
+    attached_files: str = None,
 ):
     """
     Infer search queries to retrieve relevant notes to answer user query
@@ -85,7 +86,13 @@ def extract_questions_gemini(
         vision_enabled=vision_enabled,
     )
 
-    messages = [ChatMessage(content=prompt, role="user"), ChatMessage(content=system_prompt, role="system")]
+    messages = []
+
+    if attached_files:
+        messages.append(ChatMessage(content=attached_files, role="user"))
+
+    messages.append(ChatMessage(content=prompt, role="user"))
+    messages.append(ChatMessage(content=system_prompt, role="system"))
 
     response = gemini_send_message_to_model(
         messages, api_key, model, response_type="json_object", temperature=temperature, tracer=tracer

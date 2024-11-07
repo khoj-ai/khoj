@@ -91,7 +91,6 @@ from khoj.processor.conversation.utils import (
     ChatEvent,
     ThreadedGenerator,
     clean_json,
-    construct_chat_history,
     generate_chatml_messages_with_context,
     save_to_conversation_log,
 )
@@ -104,6 +103,7 @@ from khoj.utils.config import OfflineChatProcessorModel
 from khoj.utils.helpers import (
     LRU,
     ConversationCommand,
+    get_file_type,
     is_none_or_empty,
     is_valid_url,
     log_telemetry,
@@ -111,7 +111,7 @@ from khoj.utils.helpers import (
     timer,
     tool_descriptions_for_llm,
 )
-from khoj.utils.rawconfig import LocationData
+from khoj.utils.rawconfig import ChatRequestBody, FileAttachment, FileData, LocationData
 
 logger = logging.getLogger(__name__)
 
@@ -165,6 +165,12 @@ async def is_ready_to_chat(user: KhojUser):
         return True
 
     raise HTTPException(status_code=500, detail="Set your OpenAI API key or enable Local LLM via Khoj settings.")
+
+
+def get_file_content(file: UploadFile):
+    file_content = file.file.read()
+    file_type, encoding = get_file_type(file.content_type, file_content)
+    return FileData(name=file.filename, content=file_content, file_type=file_type, encoding=encoding)
 
 
 def update_telemetry_state(
@@ -248,23 +254,49 @@ async def agenerate_chat_response(*args):
     return await loop.run_in_executor(executor, generate_chat_response, *args)
 
 
-async def gather_attached_files(
-    user: KhojUser,
-    file_filters: List[str],
-) -> str:
+def gather_raw_attached_files(
+    attached_files: Dict[str, str],
+):
+    """_summary_
+    Gather contextual data from the given (raw) files
     """
-    Gather contextual data from the given files
-    """
-    if len(file_filters) == 0:
+
+    if len(attached_files) == 0:
         return ""
 
-    file_objects = await FileObjectAdapters.async_get_file_objects_by_names(user, file_filters)
+    contextual_data = " ".join(
+        [f"File: {file_name}\n\n{file_content}\n\n" for file_name, file_content in attached_files.items()]
+    )
+    return f"I have attached the following files:\n\n{contextual_data}"
 
-    if len(file_objects) == 0:
-        return ""
 
-    contextual_data = " ".join([f"File: {file.file_name}\n\n{file.raw_text}" for file in file_objects])
-    return contextual_data
+def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:
+    chat_history = ""
+    for chat in conversation_history.get("chat", [])[-n:]:
+        if chat["by"] == "khoj" and chat["intent"].get("type") in ["remember", "reminder", "summarize"]:
+            chat_history += f"User: {chat['intent']['query']}\n"
+
+            if chat["intent"].get("inferred-queries"):
+                chat_history += f'{agent_name}: {{"queries": {chat["intent"].get("inferred-queries")}}}\n'
+
+            chat_history += f"{agent_name}: {chat['message']}\n\n"
+        elif chat["by"] == "khoj" and ("text-to-image" in chat["intent"].get("type")):
+            chat_history += f"User: {chat['intent']['query']}\n"
+            chat_history += f"{agent_name}: [generated image redacted for space]\n"
+        elif chat["by"] == "khoj" and ("excalidraw" in chat["intent"].get("type")):
+            chat_history += f"User: {chat['intent']['query']}\n"
+            chat_history += f"{agent_name}: {chat['intent']['inferred-queries'][0]}\n"
+        elif chat["by"] == "you":
+            raw_attached_files = chat.get("attachedFiles")
+            if raw_attached_files:
+                attached_files: Dict[str, str] = {}
+                for file in raw_attached_files:
+                    attached_files[file["name"]] = file["content"]
+
+                attached_file_context = gather_raw_attached_files(attached_files)
+                chat_history += f"User: {attached_file_context}\n"
+
+    return chat_history
 
 
 async def acreate_title_from_query(query: str, user: KhojUser = None) -> str:
@@ -1179,6 +1211,7 @@ def generate_chat_response(
     tracer: dict = {},
     train_of_thought: List[Any] = [],
     attached_files: str = None,
+    raw_attached_files: List[FileAttachment] = None,
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
     chat_response = None
@@ -1204,6 +1237,7 @@ def generate_chat_response(
             query_images=query_images,
             tracer=tracer,
             train_of_thought=train_of_thought,
+            raw_attached_files=raw_attached_files,
         )
 
         conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)
@@ -1299,6 +1333,7 @@ def generate_chat_response(
                 location_data=location_data,
                 user_name=user_name,
                 agent=agent,
+                query_images=query_images,
                 vision_available=vision_available,
                 tracer=tracer,
                 attached_files=attached_files,
@@ -1311,23 +1346,6 @@ def generate_chat_response(
         raise HTTPException(status_code=500, detail=str(e))
 
     return chat_response, metadata
-
-
-class ChatRequestBody(BaseModel):
-    q: str
-    n: Optional[int] = 7
-    d: Optional[float] = None
-    stream: Optional[bool] = False
-    title: Optional[str] = None
-    conversation_id: Optional[str] = None
-    turn_id: Optional[str] = None
-    city: Optional[str] = None
-    region: Optional[str] = None
-    country: Optional[str] = None
-    country_code: Optional[str] = None
-    timezone: Optional[str] = None
-    images: Optional[list[str]] = None
-    create_new: Optional[bool] = False
 
 
 class DeleteMessageRequestBody(BaseModel):

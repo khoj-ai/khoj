@@ -6,18 +6,12 @@ import os
 from typing import Any, Callable, List, Optional
 
 import aiohttp
-import requests
 
 from khoj.database.adapters import ais_user_subscribed
 from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
-from khoj.processor.conversation.utils import (
-    ChatEvent,
-    clean_code_python,
-    clean_json,
-    construct_chat_history,
-)
-from khoj.routers.helpers import send_message_to_model_wrapper
+from khoj.processor.conversation.utils import ChatEvent, clean_code_python, clean_json
+from khoj.routers.helpers import construct_chat_history, send_message_to_model_wrapper
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import LocationData
 

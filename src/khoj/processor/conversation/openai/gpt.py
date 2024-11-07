@@ -35,6 +35,7 @@ def extract_questions(
     vision_enabled: bool = False,
     personality_context: Optional[str] = None,
     tracer: dict = {},
+    attached_files: str = None,
 ):
     """
     Infer search queries to retrieve relevant notes to answer user query
@@ -81,7 +82,12 @@ def extract_questions(
         vision_enabled=vision_enabled,
     )
 
-    messages = [ChatMessage(content=prompt, role="user")]
+    messages = []
+
+    if attached_files:
+        messages.append(ChatMessage(content=attached_files, role="user"))
+
+    messages.append(ChatMessage(content=prompt, role="user"))
 
     response = send_message_to_model(
         messages,
