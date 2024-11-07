@@ -30,6 +30,7 @@ import {
     Code,
     Shapes,
     Trash,
+    ArrowClockwise,
 } from "@phosphor-icons/react";
 
 import DOMPurify from "dompurify";
@@ -682,6 +683,32 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
         }
     };
 
+    const regenerateMessage = async (message: SingleChatMessage) => {
+        const turnId = message.turnId || props.turnId;
+        if (!message.rawQuery) return;
+
+        const response = await fetch("/api/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                q: message.rawQuery,
+                conversation_id: props.conversationId,
+                turn_id: turnId,
+                stream: false,
+            }),
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            // Update the UI after successful regeneration
+            props.onDeleteMessage(turnId);
+        } else {
+            console.error("Failed to regenerate message");
+        }
+    };
+
     const allReferences = constructAllReferences(
         props.chatMessage.context,
         props.chatMessage.onlineContext,
@@ -744,7 +771,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                                         />
                                     </button>
                                 ))}
-                            {props.chatMessage.turnId && (
+                            {props.chatMessage.by === "you" && props.chatMessage.turnId && (
                                 <button
                                     title="Delete"
                                     className={`${styles.deleteButton}`}
@@ -753,6 +780,18 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                                     <Trash
                                         alt="Delete Message"
                                         className="hsl(var(--muted-foreground)) hover:text-red-500"
+                                    />
+                                </button>
+                            )}
+                            {props.chatMessage.by === "khoj" && props.chatMessage.turnId && (
+                                <button
+                                    title="Regenerate"
+                                    className={`${styles.regenerateButton}`}
+                                    onClick={() => regenerateMessage(props.chatMessage)}
+                                >
+                                    <ArrowClockwise
+                                        alt="Regenerate Message"
+                                        className="hsl(var(--muted-foreground)) hover:text-blue-500"
                                     />
                                 </button>
                             )}
