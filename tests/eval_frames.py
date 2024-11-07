@@ -113,7 +113,11 @@ def process_batch(batch, counter, results, dataset_length):
         agent_response = get_agent_response(prompt)
 
         # Evaluate response
-        evaluation = evaluate_response(prompt, agent_response, answer)
+        if agent_response is None or agent_response.strip() == "":
+            evaluation["decision"] = False
+            evaluation["explanation"] = "Agent response is empty. This maybe due to a service error."
+        else:
+            evaluation = evaluate_response(prompt, agent_response, answer)
 
         # Store results
         results.append(
