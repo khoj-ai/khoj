@@ -4,6 +4,7 @@ div.chatMessageContainer {
     margin: 12px;
     border-radius: 16px;
     padding: 8px 16px 0 16px;
+    word-break: break-word;
 }
 
 div.chatMessageWrapper {
@@ -170,6 +171,7 @@ div.trainOfThoughtElement {
 div.trainOfThoughtElement ol,
 div.trainOfThoughtElement ul {
     margin: auto;
+    word-break: break-word;
 }
 
 @media screen and (max-width: 768px) {

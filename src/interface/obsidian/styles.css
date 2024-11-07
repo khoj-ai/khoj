@@ -78,6 +78,7 @@ If your plugin does not need CSS, delete this file.
     user-select: text;
     color: var(--text-normal);
     background-color: var(--active-bg);
+    word-break: break-word;
 }
 /* color chat bubble by khoj blue */
 .khoj-chat-message-text.khoj {
