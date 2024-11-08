@@ -95,7 +95,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             });
         }
         props.setUploadedFiles(uploadedFiles);
-    }, [setQueryToProcess, props.setImages]);
+    }, [setQueryToProcess, props.setImages, conversationId]);
 
     useEffect(() => {
         if (message) {
