@@ -450,11 +450,11 @@ async def indexer(
         for file in files:
             file_data = get_file_content(file)
             if file_data.file_type in index_files:
-                index_files[file_data.file_type][file_data.filename] = (
+                index_files[file_data.file_type][file_data.name] = (
                     file_data.content.decode(file_data.encoding) if file_data.encoding else file_data.content
                 )
             else:
-                logger.warning(f"Skipped indexing unsupported file type sent by {client} client: {file.filename}")
+                logger.warning(f"Skipped indexing unsupported file type sent by {client} client: {file_data.name}")
 
         indexer_input = IndexerInput(
             org=index_files["org"],

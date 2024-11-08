@@ -59,9 +59,14 @@ class PdfToEntries(TextToEntries):
         entries: List[str] = []
         entry_to_location_map: List[Tuple[str, str]] = []
         for pdf_file in pdf_files:
-            pdf_entries_per_file = PdfToEntries.extract_text(pdf_file)
-            entries.extend(pdf_entries_per_file)
-            file_to_text_map[pdf_file] = pdf_entries_per_file
+            try:
+                pdf_entries_per_file = PdfToEntries.extract_text(pdf_files[pdf_file])
+                entry_to_location_map += zip(pdf_entries_per_file, [pdf_file] * len(pdf_entries_per_file))
+                entries.extend(pdf_entries_per_file)
+                file_to_text_map[pdf_file] = pdf_entries_per_file
+            except Exception as e:
+                logger.warning(f"Unable to extract entries from file: {pdf_file}")
+                logger.warning(e, exc_info=True)
 
         return file_to_text_map, PdfToEntries.convert_pdf_entries_to_maps(entries, dict(entry_to_location_map))
 
