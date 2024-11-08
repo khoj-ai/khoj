@@ -166,7 +166,7 @@ class ChatRequestBody(BaseModel):
     country_code: Optional[str] = None
     timezone: Optional[str] = None
     images: Optional[list[str]] = None
-    files: Optional[list[FileAttachment]] = None
+    files: Optional[list[FileAttachment]] = []
     create_new: Optional[bool] = False
 
 
