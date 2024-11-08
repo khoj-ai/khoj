@@ -374,7 +374,7 @@ def fork_public_conversation(
             {
                 "status": "ok",
                 "next_url": redirect_uri,
-                "conversation_id": new_conversation.id,
+                "conversation_id": str(new_conversation.id),
             }
         ),
     )
