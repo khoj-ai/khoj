@@ -396,11 +396,17 @@ async def convert_documents(
 
             if file_data.file_type == "docx":
                 entries_per_page = DocxToEntries.extract_text(file_data.content)
-                extracted_content = "\n".join(entries_per_page)
+                annotated_pages = [
+                    f"Page {index} of {file_data.name}:\n\n{entry}" for index, entry in enumerate(entries_per_page)
+                ]
+                extracted_content = "\n".join(annotated_pages)
 
             elif file_data.file_type == "pdf":
                 entries_per_page = PdfToEntries.extract_text(file_data.content)
-                extracted_content = "\n".join(entries_per_page)
+                annotated_pages = [
+                    f"Page {index} of {file_data.name}:\n\n{entry}" for index, entry in enumerate(entries_per_page)
+                ]
+                extracted_content = "\n".join(annotated_pages)
 
             size_in_bytes = len(extracted_content.encode("utf-8"))
 

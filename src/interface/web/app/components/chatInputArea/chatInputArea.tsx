@@ -262,6 +262,11 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
 
             return await response.json();
         } catch (error) {
+            setError(
+                "Error converting files. " +
+                    error +
+                    ". Please try again, or contact team@khoj.dev if the issue persists.",
+            );
             console.error("Error converting files:", error);
             return [];
         }

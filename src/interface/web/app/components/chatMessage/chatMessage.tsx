@@ -728,7 +728,9 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                                     <DialogTitle>{file.name}</DialogTitle>
                                 </DialogHeader>
                                 <DialogDescription>
-                                    <ScrollArea className="max-h-96">{file.content}</ScrollArea>
+                                    <ScrollArea className="h-72 w-full rounded-md">
+                                        {file.content}
+                                    </ScrollArea>
                                 </DialogDescription>
                             </DialogContent>
                         </Dialog>
