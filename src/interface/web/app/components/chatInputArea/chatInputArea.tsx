@@ -607,7 +607,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             disabled={props.sendDisabled || recording}
                         />
                     </div>
-                    <div className="flex items-center">
+                    <div className="flex items-end pb-2">
                         {recording ? (
                             <TooltipProvider>
                                 <Tooltip>
