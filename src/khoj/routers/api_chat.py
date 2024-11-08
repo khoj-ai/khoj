@@ -28,7 +28,11 @@ from khoj.processor.conversation.prompts import help_message, no_entries_found
 from khoj.processor.conversation.utils import defilter_query, save_to_conversation_log
 from khoj.processor.image.generate import text_to_image
 from khoj.processor.speech.text_to_speech import generate_text_to_speech
-from khoj.processor.tools.online_search import read_webpages, search_online
+from khoj.processor.tools.online_search import (
+    deduplicate_organic_results,
+    read_webpages,
+    search_online,
+)
 from khoj.processor.tools.run_code import run_code
 from khoj.routers.api import extract_references_and_questions
 from khoj.routers.email import send_query_feedback
@@ -1024,12 +1028,13 @@ async def chat(
                 )
 
         ## Send Gathered References
+        unique_online_results = deduplicate_organic_results(online_results)
         async for result in send_event(
             ChatEvent.REFERENCES,
             {
                 "inferredQueries": inferred_queries,
                 "context": compiled_references,
-                "onlineContext": online_results,
+                "onlineContext": unique_online_results,
                 "codeContext": code_results,
             },
         ):
