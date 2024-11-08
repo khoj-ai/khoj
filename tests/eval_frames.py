@@ -101,10 +101,10 @@ def evaluate_response(query: str, agent_response: str, ground_truth: str) -> Dic
         return {"decision": "FALSE", "explanation": f"Evaluation failed: {str(e)}"}
 
 
-def process_batch(batch, counter, results, dataset_length):
-    for prompt, answer, reasoning_type in batch:
-        counter += 1
-        logger.info(f"Processing example: {counter}/{dataset_length}")
+def process_batch(batch, batch_start, results, dataset_length):
+    for idx, (prompt, answer, reasoning_type) in enumerate(batch):
+        current_index = batch_start + idx
+        logger.info(f"Processing example: {current_index}/{dataset_length}")
 
         # Trigger research mode if enabled
         prompt = f"/{KHOJ_MODE} {prompt}" if KHOJ_MODE else prompt
@@ -122,7 +122,7 @@ def process_batch(batch, counter, results, dataset_length):
         # Store results
         results.append(
             {
-                "index": counter,
+                "index": current_index,
                 "prompt": prompt,
                 "ground_truth": answer,
                 "agent_response": agent_response,
@@ -169,12 +169,13 @@ def main():
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
         for i in range(0, dataset_length, BATCH_SIZE):
+            batch_start = i
             batch = zip(
                 dataset["Prompt"][i : i + BATCH_SIZE],
                 dataset["Answer"][i : i + BATCH_SIZE],
                 dataset["reasoning_types"][i : i + BATCH_SIZE],
             )
-            futures.append(executor.submit(process_batch, batch, counter, results, dataset_length))
+            futures.append(executor.submit(process_batch, batch, batch_start, results, dataset_length))
 
         # Wait for all futures to complete
         concurrent.futures.wait(futures)
