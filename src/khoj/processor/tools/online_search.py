@@ -367,3 +367,25 @@ async def search_with_jina(query: str, location: LocationData) -> Tuple[str, Dic
                 for item in response_json["data"]
             ]
             return query, {"organic": parsed_response}
+
+
+def deduplicate_organic_results(online_results: dict) -> dict:
+    """Deduplicate organic search results based on links across all queries."""
+    # Keep track of seen links to filter out duplicates across queries
+    seen_links = set()
+    deduplicated_results = {}
+
+    # Process each query's results
+    for query, results in online_results.items():
+        # Filter organic results keeping only first occurrence of each link
+        filtered_organic = []
+        for result in results.get("organic", []):
+            link = result.get("link")
+            if link and link not in seen_links:
+                seen_links.add(link)
+                filtered_organic.append(result)
+
+        # Update results with deduplicated organic entries
+        deduplicated_results[query] = {**results, "organic": filtered_organic}
+
+    return deduplicated_results
