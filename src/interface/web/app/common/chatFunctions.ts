@@ -267,6 +267,58 @@ export async function createNewConversation(slug: string) {
     }
 }
 
+export async function packageFilesForUpload(files: FileList): Promise<FormData> {
+    const formData = new FormData();
+
+    const fileReadPromises = Array.from(files).map((file) => {
+        return new Promise<void>((resolve, reject) => {
+            let reader = new FileReader();
+            reader.onload = function (event) {
+                if (event.target === null) {
+                    reject();
+                    return;
+                }
+
+                let fileContents = event.target.result;
+                let fileType = file.type;
+                let fileName = file.name;
+                if (fileType === "") {
+                    let fileExtension = fileName.split(".").pop();
+                    if (fileExtension === "org") {
+                        fileType = "text/org";
+                    } else if (fileExtension === "md") {
+                        fileType = "text/markdown";
+                    } else if (fileExtension === "txt") {
+                        fileType = "text/plain";
+                    } else if (fileExtension === "html") {
+                        fileType = "text/html";
+                    } else if (fileExtension === "pdf") {
+                        fileType = "application/pdf";
+                    } else {
+                        // Skip this file if its type is not supported
+                        resolve();
+                        return;
+                    }
+                }
+
+                if (fileContents === null) {
+                    reject();
+                    return;
+                }
+
+                let fileObj = new Blob([fileContents], { type: fileType });
+                formData.append("files", fileObj, file.name);
+                resolve();
+            };
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(file);
+        });
+    });
+
+    await Promise.all(fileReadPromises);
+    return formData;
+}
+
 export function uploadDataForIndexing(
     files: FileList,
     setWarning: (warning: string) => void,

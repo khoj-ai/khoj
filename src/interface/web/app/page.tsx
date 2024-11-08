@@ -11,7 +11,11 @@ import { Card, CardTitle } from "@/components/ui/card";
 import SuggestionCard from "@/app/components/suggestions/suggestionCard";
 import SidePanel from "@/app/components/sidePanel/chatHistorySidePanel";
 import Loading from "@/app/components/loading/loading";
-import { ChatInputArea, ChatOptions } from "@/app/components/chatInputArea/chatInputArea";
+import {
+    AttachedFileText,
+    ChatInputArea,
+    ChatOptions,
+} from "@/app/components/chatInputArea/chatInputArea";
 import { Suggestion, suggestionsData } from "@/app/components/suggestions/suggestionsData";
 import LoginPrompt from "@/app/components/loginPrompt/loginPrompt";
 
@@ -30,12 +34,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { AgentCard } from "@/app/components/agentCard/agentCard";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { modifyFileFilterForConversation } from "./common/chatFunctions";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
     onConversationIdChange?: (conversationId: string) => void;
-    setUploadedFiles: (files: string[]) => void;
+    setUploadedFiles: (files: AttachedFileText[]) => void;
     isMobileWidth?: boolean;
     isLoggedIn: boolean;
     userConfig: UserConfig | null;
@@ -151,26 +154,13 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 setProcessingMessage(true);
                 try {
                     const newConversationId = await createNewConversation(selectedAgent || "khoj");
-                    const uploadedFiles = localStorage.getItem("uploadedFiles");
                     onConversationIdChange?.(newConversationId);
                     localStorage.setItem("message", message);
                     if (images.length > 0) {
                         localStorage.setItem("images", JSON.stringify(images));
                     }
 
-                    if (uploadedFiles) {
-                        modifyFileFilterForConversation(
-                            newConversationId,
-                            JSON.parse(uploadedFiles),
-                            () => {
-                                window.location.href = `/chat?conversationId=${newConversationId}`;
-                            },
-                            "add",
-                        );
-                        localStorage.removeItem("uploadedFiles");
-                    } else {
-                        window.location.href = `/chat?conversationId=${newConversationId}`;
-                    }
+                    window.location.href = `/chat?conversationId=${newConversationId}`;
                 } catch (error) {
                     console.error("Error creating new conversation:", error);
                     setProcessingMessage(false);
@@ -416,7 +406,7 @@ export default function Home() {
     const [chatOptionsData, setChatOptionsData] = useState<ChatOptions | null>(null);
     const [isLoading, setLoading] = useState(true);
     const [conversationId, setConversationID] = useState<string | null>(null);
-    const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+    const [uploadedFiles, setUploadedFiles] = useState<AttachedFileText[] | null>(null);
     const isMobileWidth = useIsMobileWidth();
 
     const { userConfig: initialUserConfig, isLoadingUserConfig } = useUserConfig(true);
@@ -433,7 +423,9 @@ export default function Home() {
     }, [initialUserConfig]);
 
     useEffect(() => {
-        localStorage.setItem("uploadedFiles", JSON.stringify(uploadedFiles));
+        if (uploadedFiles) {
+            localStorage.setItem("uploadedFiles", JSON.stringify(uploadedFiles));
+        }
     }, [uploadedFiles]);
 
     useEffect(() => {
@@ -461,7 +453,7 @@ export default function Home() {
             <div className={`${styles.sidePanel}`}>
                 <SidePanel
                     conversationId={conversationId}
-                    uploadedFiles={uploadedFiles}
+                    uploadedFiles={[]}
                     isMobileWidth={isMobileWidth}
                 />
             </div>

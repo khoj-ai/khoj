@@ -19,7 +19,11 @@ import {
     StreamMessage,
 } from "../components/chatMessage/chatMessage";
 import { useIPLocationData, useIsMobileWidth, welcomeConsole } from "../common/utils";
-import { ChatInputArea, ChatOptions } from "../components/chatInputArea/chatInputArea";
+import {
+    AttachedFileText,
+    ChatInputArea,
+    ChatOptions,
+} from "../components/chatInputArea/chatInputArea";
 import { useAuthenticatedData } from "../common/auth";
 import { AgentData } from "../agents/page";
 
@@ -30,7 +34,7 @@ interface ChatBodyDataProps {
     setQueryToProcess: (query: string) => void;
     streamedMessages: StreamMessage[];
     setStreamedMessages: (messages: StreamMessage[]) => void;
-    setUploadedFiles: (files: string[]) => void;
+    setUploadedFiles: (files: AttachedFileText[] | undefined) => void;
     isMobileWidth?: boolean;
     isLoggedIn: boolean;
     setImages: (images: string[]) => void;
@@ -77,6 +81,20 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 setIsInResearchMode(true);
             }
         }
+
+        const storedUploadedFiles = localStorage.getItem("uploadedFiles");
+        const parsedFiles = storedUploadedFiles ? JSON.parse(storedUploadedFiles) : [];
+
+        const uploadedFiles: AttachedFileText[] = [];
+        for (const file of parsedFiles) {
+            uploadedFiles.push({
+                name: file.name,
+                file_type: file.file_type,
+                content: file.content,
+                size: file.size,
+            });
+        }
+        props.setUploadedFiles(uploadedFiles);
     }, [setQueryToProcess, props.setImages]);
 
     useEffect(() => {
@@ -100,6 +118,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
         ) {
             setProcessingMessage(false);
             setImages([]); // Reset images after processing
+            props.setUploadedFiles(undefined); // Reset uploaded files after processing
         } else {
             setMessage("");
         }
@@ -153,7 +172,7 @@ export default function Chat() {
     const [messages, setMessages] = useState<StreamMessage[]>([]);
     const [queryToProcess, setQueryToProcess] = useState<string>("");
     const [processQuerySignal, setProcessQuerySignal] = useState(false);
-    const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+    const [uploadedFiles, setUploadedFiles] = useState<AttachedFileText[] | undefined>(undefined);
     const [images, setImages] = useState<string[]>([]);
 
     const locationData = useIPLocationData() || {
@@ -192,6 +211,7 @@ export default function Chat() {
                 timestamp: new Date().toISOString(),
                 rawQuery: queryToProcess || "",
                 images: images,
+                attachedFiles: uploadedFiles,
             };
             setMessages((prevMessages) => [...prevMessages, newStreamMessage]);
             setProcessQuerySignal(true);
@@ -273,6 +293,7 @@ export default function Chat() {
                 timezone: locationData.timezone,
             }),
             ...(images.length > 0 && { images: images }),
+            ...(uploadedFiles && { files: uploadedFiles }),
         };
 
         const response = await fetch(chatAPI, {
@@ -325,7 +346,7 @@ export default function Chat() {
             <div>
                 <SidePanel
                     conversationId={conversationId}
-                    uploadedFiles={uploadedFiles}
+                    uploadedFiles={[]}
                     isMobileWidth={isMobileWidth}
                 />
             </div>

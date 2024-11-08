@@ -71,6 +71,16 @@ export function useIsMobileWidth() {
     return isMobileWidth;
 }
 
+export const convertBytesToText = (fileSize: number) => {
+    if (fileSize < 1024) {
+        return `${fileSize} B`;
+    } else if (fileSize < 1024 * 1024) {
+        return `${(fileSize / 1024).toFixed(2)} KB`;
+    } else {
+        return `${(fileSize / (1024 * 1024)).toFixed(2)} MB`;
+    }
+};
+
 export function useDebounce<T>(value: T, delay: number): T {
     const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
