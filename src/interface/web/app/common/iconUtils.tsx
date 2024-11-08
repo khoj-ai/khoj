@@ -49,6 +49,7 @@ import {
     Gavel,
     Broadcast,
     KeyReturn,
+    FilePdf,
 } from "@phosphor-icons/react";
 import { Markdown, OrgMode, Pdf, Word } from "@/app/components/logo/fileLogo";
 
@@ -214,6 +215,13 @@ export function getIconForSlashCommand(command: string, customClassName: string 
     }
 
     return <ArrowRight className={className} />;
+}
+
+export function getIconFromFileType(fileType: string) {
+    if (fileType == "pdf") {
+        return <FilePdf className="w-6 h-6 text-muted-foreground inline-flex mr-1" />;
+    }
+    return <File className="w-6 h-6 text-muted-foreground inline-flex mr-1" />;
 }
 
 function getIconFromIconName(
