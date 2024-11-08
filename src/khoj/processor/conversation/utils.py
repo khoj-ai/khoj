@@ -112,6 +112,7 @@ class InformationCollectionIteration:
         onlineContext: dict = None,
         codeContext: dict = None,
         summarizedResult: str = None,
+        warning: str = None,
     ):
         self.tool = tool
         self.query = query
@@ -119,6 +120,7 @@ class InformationCollectionIteration:
         self.onlineContext = onlineContext
         self.codeContext = codeContext
         self.summarizedResult = summarizedResult
+        self.warning = warning
 
 
 def construct_iteration_history(

@@ -778,7 +778,8 @@ async def chat(
                     yield research_result
 
             # researched_results = await extract_relevant_info(q, researched_results, agent)
-            logger.info(f"Researched Results: {researched_results}")
+            if state.verbose > 1:
+                logger.debug(f"Researched Results: {researched_results}")
 
         used_slash_summarize = conversation_commands == [ConversationCommand.Summarize]
         file_filters = conversation.file_filters if conversation else []

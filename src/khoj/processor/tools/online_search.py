@@ -4,7 +4,7 @@ import logging
 import os
 import urllib.parse
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import aiohttp
 from bs4 import BeautifulSoup
@@ -66,6 +66,7 @@ async def search_online(
     custom_filters: List[str] = [],
     max_webpages_to_read: int = DEFAULT_MAX_WEBPAGES_TO_READ,
     query_images: List[str] = None,
+    previous_subqueries: Set = set(),
     agent: Agent = None,
     tracer: dict = {},
 ):
@@ -76,19 +77,24 @@ async def search_online(
         return
 
     # Breakdown the query into subqueries to get the correct answer
-    subqueries = await generate_online_subqueries(
+    new_subqueries = await generate_online_subqueries(
         query, conversation_history, location, user, query_images=query_images, agent=agent, tracer=tracer
     )
-    response_dict = {}
+    subqueries = list(new_subqueries - previous_subqueries)
+    response_dict: Dict[str, Dict[str, List[Dict] | Dict]] = {}
 
-    if subqueries:
-        logger.info(f"🌐 Searching the Internet for {list(subqueries)}")
-        if send_status_func:
-            subqueries_str = "\n- " + "\n- ".join(list(subqueries))
-            async for event in send_status_func(f"**Searching the Internet for**: {subqueries_str}"):
-                yield {ChatEvent.STATUS: event}
+    if is_none_or_empty(subqueries):
+        logger.info("No new subqueries to search online")
+        yield response_dict
+        return
 
-    with timer(f"Internet searches for {list(subqueries)} took", logger):
+    logger.info(f"🌐 Searching the Internet for {subqueries}")
+    if send_status_func:
+        subqueries_str = "\n- " + "\n- ".join(subqueries)
+        async for event in send_status_func(f"**Searching the Internet for**: {subqueries_str}"):
+            yield {ChatEvent.STATUS: event}
+
+    with timer(f"Internet searches for {subqueries} took", logger):
         search_func = search_with_google if SERPER_DEV_API_KEY else search_with_jina
         search_tasks = [search_func(subquery, location) for subquery in subqueries]
         search_results = await asyncio.gather(*search_tasks)
@@ -119,7 +125,9 @@ async def search_online(
             async for event in send_status_func(f"**Reading web pages**: {webpage_links_str}"):
                 yield {ChatEvent.STATUS: event}
     tasks = [
-        read_webpage_and_extract_content(data["queries"], link, data["content"], user=user, agent=agent, tracer=tracer)
+        read_webpage_and_extract_content(
+            data["queries"], link, data.get("content"), user=user, agent=agent, tracer=tracer
+        )
         for link, data in webpages.items()
     ]
     results = await asyncio.gather(*tasks)

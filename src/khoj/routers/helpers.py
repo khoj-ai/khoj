@@ -20,6 +20,7 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Set,
     Tuple,
     Union,
 )
@@ -494,7 +495,7 @@ async def generate_online_subqueries(
     query_images: List[str] = None,
     agent: Agent = None,
     tracer: dict = {},
-) -> List[str]:
+) -> Set[str]:
     """
     Generate subqueries from the given query
     """
@@ -529,14 +530,14 @@ async def generate_online_subqueries(
     try:
         response = clean_json(response)
         response = json.loads(response)
-        response = [q.strip() for q in response["queries"] if q.strip()]
-        if not isinstance(response, list) or not response or len(response) == 0:
+        response = {q.strip() for q in response["queries"] if q.strip()}
+        if not isinstance(response, set) or not response or len(response) == 0:
             logger.error(f"Invalid response for constructing subqueries: {response}. Returning original query: {q}")
-            return [q]
+            return {q}
         return response
     except Exception as e:
         logger.error(f"Invalid response for constructing subqueries: {response}. Returning original query: {q}")
-        return [q]
+        return {q}
 
 
 async def schedule_query(
@@ -1128,9 +1129,6 @@ def generate_chat_response(
 
     metadata = {}
     agent = AgentAdapters.get_conversation_agent_by_id(conversation.agent.id) if conversation.agent else None
-    query_to_run = q
-    if meta_research:
-        query_to_run = f"AI Research: {meta_research} {q}"
     try:
         partial_completion = partial(
             save_to_conversation_log,
@@ -1147,6 +1145,13 @@ def generate_chat_response(
             tracer=tracer,
             train_of_thought=train_of_thought,
         )
+
+        query_to_run = q
+        if meta_research:
+            query_to_run = f"<query>{q}</query>\n<collected_research>\n{meta_research}\n</collected_research>"
+            compiled_references = []
+            online_results = {}
+            code_results = {}
 
         conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)
         vision_available = conversation_config.vision_enabled
