@@ -59,32 +59,9 @@ class PdfToEntries(TextToEntries):
         entries: List[str] = []
         entry_to_location_map: List[Tuple[str, str]] = []
         for pdf_file in pdf_files:
-            try:
-                # Write the PDF file to a temporary file, as it is stored in byte format in the pdf_file object and the PDF Loader expects a file path
-                timestamp_now = datetime.utcnow().timestamp()
-                tmp_file = f"tmp_pdf_file_{timestamp_now}.pdf"
-                with open(f"{tmp_file}", "wb") as f:
-                    bytes = pdf_files[pdf_file]
-                    f.write(bytes)
-                try:
-                    loader = PyMuPDFLoader(f"{tmp_file}", extract_images=False)
-                    pdf_entries_per_file = [page.page_content for page in loader.load()]
-                except ImportError:
-                    loader = PyMuPDFLoader(f"{tmp_file}")
-                    pdf_entries_per_file = [
-                        page.page_content for page in loader.load()
-                    ]  # page_content items list for a given pdf.
-                entry_to_location_map += zip(
-                    pdf_entries_per_file, [pdf_file] * len(pdf_entries_per_file)
-                )  # this is an indexed map of pdf_entries for the pdf.
-                entries.extend(pdf_entries_per_file)
-                file_to_text_map[pdf_file] = pdf_entries_per_file
-            except Exception as e:
-                logger.warning(f"Unable to process file: {pdf_file}. This file will not be indexed.")
-                logger.warning(e, exc_info=True)
-            finally:
-                if os.path.exists(f"{tmp_file}"):
-                    os.remove(f"{tmp_file}")
+            pdf_entries_per_file = PdfToEntries.extract_text(pdf_file)
+            entries.extend(pdf_entries_per_file)
+            file_to_text_map[pdf_file] = pdf_entries_per_file
 
         return file_to_text_map, PdfToEntries.convert_pdf_entries_to_maps(entries, dict(entry_to_location_map))
 
@@ -109,3 +86,30 @@ class PdfToEntries(TextToEntries):
         logger.debug(f"Converted {len(parsed_entries)} PDF entries to dictionaries")
 
         return entries
+
+    @staticmethod
+    def extract_text(pdf_file):
+        """Extract text from specified PDF files"""
+        try:
+            # Write the PDF file to a temporary file, as it is stored in byte format in the pdf_file object and the PDF Loader expects a file path
+            timestamp_now = datetime.utcnow().timestamp()
+            tmp_file = f"tmp_pdf_file_{timestamp_now}.pdf"
+            pdf_entry_by_pages = []
+            with open(f"{tmp_file}", "wb") as f:
+                f.write(pdf_file)
+            try:
+                loader = PyMuPDFLoader(f"{tmp_file}", extract_images=False)
+                pdf_entry_by_pages = [page.page_content for page in loader.load()]
+            except ImportError:
+                loader = PyMuPDFLoader(f"{tmp_file}")
+                pdf_entry_by_pages = [
+                    page.page_content for page in loader.load()
+                ]  # page_content items list for a given pdf.
+        except Exception as e:
+            logger.warning(f"Unable to process file: {pdf_file}. This file will not be indexed.")
+            logger.warning(e, exc_info=True)
+        finally:
+            if os.path.exists(f"{tmp_file}"):
+                os.remove(f"{tmp_file}")
+
+        return pdf_entry_by_pages
