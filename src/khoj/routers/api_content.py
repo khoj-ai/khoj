@@ -36,16 +36,18 @@ from khoj.database.models import (
     LocalPlaintextConfig,
     NotionConfig,
 )
+from khoj.processor.content.docx.docx_to_entries import DocxToEntries
+from khoj.processor.content.pdf.pdf_to_entries import PdfToEntries
 from khoj.routers.helpers import (
     ApiIndexedDataLimiter,
     CommonQueryParams,
     configure_content,
+    get_file_content,
     get_user_config,
     update_telemetry_state,
 )
 from khoj.utils import constants, state
 from khoj.utils.config import SearchModels
-from khoj.utils.helpers import get_file_type
 from khoj.utils.rawconfig import (
     ContentConfig,
     FullConfig,
@@ -375,6 +377,54 @@ async def delete_content_source(
     return {"status": "ok"}
 
 
+@api_content.post("/convert", status_code=200)
+@requires(["authenticated"])
+async def convert_documents(
+    request: Request,
+    files: List[UploadFile],
+    client: Optional[str] = None,
+):
+    converted_files = []
+    supported_files = ["org", "markdown", "pdf", "plaintext", "docx"]
+
+    for file in files:
+        file_data = get_file_content(file)
+        if file_data.file_type in supported_files:
+            extracted_content = (
+                file_data.content.decode(file_data.encoding) if file_data.encoding else file_data.content
+            )
+
+            if file_data.file_type == "docx":
+                entries_per_page = DocxToEntries.extract_text(file_data.content)
+                extracted_content = "\n".join(entries_per_page)
+
+            elif file_data.file_type == "pdf":
+                entries_per_page = PdfToEntries.extract_text(file_data.content)
+                extracted_content = "\n".join(entries_per_page)
+
+            size_in_bytes = len(extracted_content.encode("utf-8"))
+
+            converted_files.append(
+                {
+                    "name": file_data.name,
+                    "content": extracted_content,
+                    "file_type": file_data.file_type,
+                    "size": size_in_bytes,
+                }
+            )
+        else:
+            logger.warning(f"Skipped converting unsupported file type sent by {client} client: {file.filename}")
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="convert_documents",
+        client=client,
+    )
+
+    return Response(content=json.dumps(converted_files), media_type="application/json", status_code=200)
+
+
 async def indexer(
     request: Request,
     files: list[UploadFile],
@@ -398,10 +448,11 @@ async def indexer(
     try:
         logger.info(f"📬 Updating content index via API call by {client} client")
         for file in files:
-            file_content = file.file.read()
-            file_type, encoding = get_file_type(file.content_type, file_content)
-            if file_type in index_files:
-                index_files[file_type][file.filename] = file_content.decode(encoding) if encoding else file_content
+            file_data = get_file_content(file)
+            if file_data.file_type in index_files:
+                index_files[file_data.file_type][file_data.filename] = (
+                    file_data.content.decode(file_data.encoding) if file_data.encoding else file_data.content
+                )
             else:
                 logger.warning(f"Skipped indexing unsupported file type sent by {client} client: {file.filename}")
 
