@@ -146,6 +146,7 @@ async def execute_information_collection(
         code_results: Dict = dict()
         document_results: List[Dict[str, str]] = []
         summarize_files: str = ""
+        warning_results: str = ""
         this_iteration = InformationCollectionIteration(tool=None, query=query)
         previous_iterations_history = construct_iteration_history(previous_iterations, prompts.previous_iteration)
 
@@ -167,9 +168,15 @@ async def execute_information_collection(
             elif isinstance(result, InformationCollectionIteration):
                 this_iteration = result
 
+        # Detect, skip running query, tool combinations already executed during a previous iteration.
+        previous_tool_query_combinations = {(i.tool, i.query) for i in previous_iterations}
+        if (this_iteration.tool, this_iteration.query) in previous_tool_query_combinations:
+            warning_results = f"Repeated tool, query combination detected. Skipping."
+
         if this_iteration.tool == ConversationCommand.Notes:
             this_iteration.context = []
             document_results = []
+            previous_inferred_queries = {iteration.context for iteration in previous_iterations}
             async for result in extract_references_and_questions(
                 request,
                 construct_tool_chat_history(previous_iterations, ConversationCommand.Notes),
@@ -181,6 +188,7 @@ async def execute_information_collection(
                 location,
                 send_status_func,
                 query_images,
+                previous_inferred_queries=previous_inferred_queries,
                 agent=agent,
                 tracer=tracer,
             ):
@@ -204,6 +212,12 @@ async def execute_information_collection(
                     logger.error(f"Error extracting document references: {e}", exc_info=True)
 
         elif this_iteration.tool == ConversationCommand.Online:
+            previous_subqueries = {
+                q
+                for iteration in previous_iterations
+                for q in iteration.onlineContext.keys()
+                if iteration.onlineContext
+            }
             async for result in search_online(
                 this_iteration.query,
                 construct_tool_chat_history(previous_iterations, ConversationCommand.Online),
@@ -213,6 +227,7 @@ async def execute_information_collection(
                 [],
                 max_webpages_to_read=0,
                 query_images=query_images,
+                previous_subqueries=previous_subqueries,
                 agent=agent,
                 tracer=tracer,
             ):
@@ -302,16 +317,19 @@ async def execute_information_collection(
 
         current_iteration += 1
 
-        if document_results or online_results or code_results or summarize_files:
-            results_data = f"**Results**:\n"
+        if document_results or online_results or code_results or summarize_files or warning_results:
+            results_data = f"\n<iteration>{current_iteration}\n<tool>{this_iteration.tool}</tool>\n<query>{this_iteration.query}</query>\n<results>"
             if document_results:
-                results_data += f"**Document References**:\n{yaml.dump(document_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n"
+                results_data += f"\n<document_references>\n{yaml.dump(document_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</document_references>"
             if online_results:
-                results_data += f"**Online Results**:\n{yaml.dump(online_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n"
+                results_data += f"\n<online_results>\n{yaml.dump(online_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</online_results>"
             if code_results:
-                results_data += f"**Code Results**:\n{yaml.dump(code_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n"
+                results_data += f"\n<code_results>\n{yaml.dump(code_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</code_results>"
             if summarize_files:
-                results_data += f"**Summarized Files**:\n{yaml.dump(summarize_files, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n"
+                results_data += f"\n<summarized_files>\n{yaml.dump(summarize_files, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</summarized_files>"
+            if warning_results:
+                results_data += f"\n<warning>\n{warning_results}\n</warning>"
+            results_data += "\n</results>\n</iteration>"
 
             # intermediate_result = await extract_relevant_info(this_iteration.query, results_data, agent)
             this_iteration.summarizedResult = results_data
