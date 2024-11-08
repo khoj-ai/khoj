@@ -237,6 +237,16 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
             ? Array.from(nonImageFiles).concat(Array.from(attachedFiles || []))
             : Array.from(attachedFiles || []);
 
+        // Ensure files are below size limit (10 MB)
+        for (let i = 0; i < newFiles.length; i++) {
+            if (newFiles[i].size > 10 * 1024 * 1024) {
+                setWarning(
+                    `File ${newFiles[i].name} is too large. Please upload files smaller than 10 MB.`,
+                );
+                return;
+            }
+        }
+
         const dataTransfer = new DataTransfer();
         newFiles.forEach((file) => dataTransfer.items.add(file));
         setAttachedFiles(dataTransfer.files);

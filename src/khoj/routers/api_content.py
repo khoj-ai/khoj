@@ -384,10 +384,25 @@ async def convert_documents(
     files: List[UploadFile],
     client: Optional[str] = None,
 ):
+    MAX_FILE_SIZE_MB = 10  # 10MB limit
+    MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
+
     converted_files = []
     supported_files = ["org", "markdown", "pdf", "plaintext", "docx"]
 
     for file in files:
+        # Check file size first
+        file_size = 0
+        content = await file.read()
+        file_size = len(content)
+        await file.seek(0)  # Reset file pointer
+
+        if file_size > MAX_FILE_SIZE_BYTES:
+            logger.warning(
+                f"Skipped converting oversized file ({file_size / 1024 / 1024:.1f}MB) sent by {client} client: {file.filename}"
+            )
+            continue
+
         file_data = get_file_content(file)
         if file_data.file_type in supported_files:
             extracted_content = (
