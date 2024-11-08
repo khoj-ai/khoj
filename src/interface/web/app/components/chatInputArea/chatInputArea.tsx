@@ -44,6 +44,15 @@ import { InlineLoading } from "../loading/loading";
 import { getIconForSlashCommand, getIconFromFileType } from "@/app/common/iconUtils";
 import { packageFilesForUpload } from "@/app/common/chatFunctions";
 import { convertBytesToText } from "@/app/common/utils";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export interface ChatOptions {
     [key: string]: string;
@@ -519,50 +528,70 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                         ))}
                     {convertedAttachedFiles &&
                         Array.from(convertedAttachedFiles).map((file, index) => (
-                            <div key={index} className="relative flex-shrink-0 p-2 group">
-                                <div
-                                    className={`w-auto h-16 object-cover rounded-xl ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} bg-opacity-15`}
-                                >
-                                    <div className="flex p-2 flex-col justify-start items-start h-full">
-                                        <span className="text-sm font-bold text-neutral-500 dark:text-neutral-400 text-ellipsis truncate max-w-[200px] break-words">
-                                            {file.name}
-                                        </span>
-                                        <span className="flex items-center gap-1">
-                                            {getIconFromFileType(file.file_type)}
-                                            <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                                                {convertBytesToText(file.size)}
-                                            </span>
-                                        </span>
+                            <Dialog key={index}>
+                                <DialogTrigger asChild>
+                                    <div key={index} className="relative flex-shrink-0 p-2 group">
+                                        <div
+                                            className={`w-auto h-16 object-cover rounded-xl ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} bg-opacity-15`}
+                                        >
+                                            <div className="flex p-2 flex-col justify-start items-start h-full">
+                                                <span className="text-sm font-bold text-neutral-500 dark:text-neutral-400 text-ellipsis truncate max-w-[200px] break-words">
+                                                    {file.name}
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    {getIconFromFileType(file.file_type)}
+                                                    <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                                                        {convertBytesToText(file.size)}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="absolute -top-0 -right-2 h-5 w-5 rounded-full bg-neutral-200 dark:bg-neutral-600 hover:bg-neutral-300 dark:hover:bg-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={() => {
+                                                setAttachedFiles((prevFiles) => {
+                                                    const removeFile = file.name;
+                                                    if (!prevFiles) return null;
+                                                    const updatedFiles = Array.from(
+                                                        prevFiles,
+                                                    ).filter((file) => file.name !== removeFile);
+                                                    const dataTransfer = new DataTransfer();
+                                                    updatedFiles.forEach((file) =>
+                                                        dataTransfer.items.add(file),
+                                                    );
+
+                                                    const filteredConvertedAttachedFiles =
+                                                        convertedAttachedFiles.filter(
+                                                            (file) => file.name !== removeFile,
+                                                        );
+
+                                                    props.setUploadedFiles(
+                                                        filteredConvertedAttachedFiles,
+                                                    );
+                                                    setConvertedAttachedFiles(
+                                                        filteredConvertedAttachedFiles,
+                                                    );
+                                                    return dataTransfer.files;
+                                                });
+                                            }}
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </Button>
                                     </div>
-                                </div>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute -top-0 -right-2 h-5 w-5 rounded-full bg-neutral-200 dark:bg-neutral-600 hover:bg-neutral-300 dark:hover:bg-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={() => {
-                                        setAttachedFiles((prevFiles) => {
-                                            const removeFile = file.name;
-                                            if (!prevFiles) return null;
-                                            const updatedFiles = Array.from(prevFiles).filter(
-                                                (file) => file.name !== removeFile,
-                                            );
-                                            const dataTransfer = new DataTransfer();
-                                            updatedFiles.forEach((file) =>
-                                                dataTransfer.items.add(file),
-                                            );
-                                            extractTextFromFiles(dataTransfer.files).then(
-                                                (data) => {
-                                                    props.setUploadedFiles(data);
-                                                    setConvertedAttachedFiles(data);
-                                                },
-                                            );
-                                            return dataTransfer.files;
-                                        });
-                                    }}
-                                >
-                                    <X className="h-3 w-3" />
-                                </Button>
-                            </div>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>{file.name}</DialogTitle>
+                                    </DialogHeader>
+                                    <DialogDescription>
+                                        <ScrollArea className="h-72 w-full rounded-md">
+                                            {file.content}
+                                        </ScrollArea>
+                                    </DialogDescription>
+                                </DialogContent>
+                            </Dialog>
                         ))}
                 </div>
                 <div
