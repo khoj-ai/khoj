@@ -168,12 +168,6 @@ class UserAuthenticationBackend(AuthenticationBackend):
             if create_if_not_exists:
                 user, is_new = await aget_or_create_user_by_phone_number(phone_number)
                 if user and is_new:
-                    update_telemetry_state(
-                        request=request,
-                        telemetry_type="api",
-                        api="create_user",
-                        metadata={"server_id": str(user.uuid)},
-                    )
                     logger.log(logging.INFO, f"🥳 New User Created: {user.uuid}")
             else:
                 user = await aget_user_by_phone_number(phone_number)
