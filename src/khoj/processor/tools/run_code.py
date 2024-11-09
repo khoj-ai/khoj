@@ -2,7 +2,9 @@ import base64
 import datetime
 import json
 import logging
+import mimetypes
 import os
+from pathlib import Path
 from typing import Any, Callable, List, NamedTuple, Optional
 
 import aiohttp
@@ -160,6 +162,13 @@ async def execute_sandboxed_python(code: str, input_data: list[dict], sandbox_ur
             if response.status == 200:
                 result: dict[str, Any] = await response.json()
                 result["code"] = cleaned_code
+                # Store decoded output files
+                for output_file in result.get("output_files", []):
+                    # Decode text files as UTF-8
+                    if mimetypes.guess_type(output_file["filename"])[0].startswith("text/") or Path(
+                        output_file["filename"]
+                    ).suffix in [".org", ".md", ".json"]:
+                        output_file["b64_data"] = base64.b64decode(output_file["b64_data"]).decode("utf-8")
                 return result
             else:
                 return {

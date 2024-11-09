@@ -420,6 +420,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                 message += `\n\n${inferredQueries[0]}`;
             }
         }
+
         // Handle user attached images rendering
         let messageForClipboard = message;
         let messageToRender = message;
@@ -480,8 +481,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                         file.filename.endsWith(".org") ||
                         file.filename.endsWith(".md")
                     ) {
-                        const decodedText = atob(file.b64_data);
-                        message += `\n\n\`\`\`\n${decodedText}\n\`\`\``;
+                        message += `\n\n## ${file.filename}\n\`\`\`\n${file.b64_data}\n\`\`\`\n`;
                     }
                 });
             });
