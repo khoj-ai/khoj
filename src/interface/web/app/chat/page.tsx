@@ -94,6 +94,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 size: file.size,
             });
         }
+        localStorage.removeItem("uploadedFiles");
         props.setUploadedFiles(uploadedFiles);
     }, [setQueryToProcess, props.setImages, conversationId]);
 
