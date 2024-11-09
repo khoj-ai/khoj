@@ -299,6 +299,23 @@ def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="A
     return chat_history
 
 
+async def acreate_title_from_history(
+    user: KhojUser,
+    conversation: Conversation,
+):
+    """
+    Create a title from the given conversation history
+    """
+    chat_history = construct_chat_history(conversation.conversation_log)
+
+    title_generation_prompt = prompts.conversation_title_generation.format(chat_history=chat_history)
+
+    with timer("Chat actor: Generate title from conversation history", logger):
+        response = await send_message_to_model_wrapper(title_generation_prompt, user=user)
+
+    return response.strip()
+
+
 async def acreate_title_from_query(query: str, user: KhojUser = None) -> str:
     """
     Create a title from the given query

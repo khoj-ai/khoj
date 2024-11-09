@@ -458,7 +458,11 @@ class Conversation(BaseModel):
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
     conversation_log = models.JSONField(default=dict)
     client = models.ForeignKey(ClientApplication, on_delete=models.CASCADE, default=None, null=True, blank=True)
+
+    # Slug is an app-generated conversation identifier. Need not be unique. Used as display title essentially.
     slug = models.CharField(max_length=200, default=None, null=True, blank=True)
+
+    # The title field is explicitly set by the user.
     title = models.CharField(max_length=200, default=None, null=True, blank=True)
     agent = models.ForeignKey(Agent, on_delete=models.SET_NULL, default=None, null=True, blank=True)
     file_filters = models.JSONField(default=list)

@@ -40,6 +40,7 @@ from khoj.routers.helpers import (
     ConversationCommandRateLimiter,
     DeleteMessageRequestBody,
     FeedbackData,
+    acreate_title_from_history,
     agenerate_chat_response,
     aget_relevant_information_sources,
     aget_relevant_output_modes,
@@ -528,6 +529,32 @@ async def set_conversation_title(
     return Response(
         content=json.dumps({"status": "ok", "success": success}), media_type="application/json", status_code=200
     )
+
+
+@api_chat.post("/title")
+@requires(["authenticated"])
+async def generate_chat_title(
+    request: Request,
+    common: CommonQueryParams,
+    conversation_id: str,
+):
+    user: KhojUser = request.user.object
+    conversation = await ConversationAdapters.aget_conversation_by_user(user=user, conversation_id=conversation_id)
+
+    # Conversation.title is explicitly set by the user. Do not override.
+    if conversation.title:
+        return {"status": "ok", "title": conversation.title}
+
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    new_title = await acreate_title_from_history(request.user.object, conversation=conversation)
+
+    conversation.slug = new_title
+
+    conversation.asave()
+
+    return {"status": "ok", "title": new_title}
 
 
 @api_chat.delete("/conversation/message", response_class=Response)

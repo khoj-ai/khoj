@@ -8,7 +8,7 @@ import ChatHistory from "../components/chatHistory/chatHistory";
 import { useSearchParams } from "next/navigation";
 import Loading from "../components/loading/loading";
 
-import { processMessageChunk } from "../common/chatFunctions";
+import { generateNewTitle, processMessageChunk } from "../common/chatFunctions";
 
 import "katex/dist/katex.min.css";
 
@@ -244,6 +244,9 @@ export default function Chat() {
                 setQueryToProcess("");
                 setProcessQuerySignal(false);
                 setImages([]);
+
+                if (conversationId) generateNewTitle(conversationId, setTitle);
+
                 break;
             }
 

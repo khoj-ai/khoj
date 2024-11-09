@@ -319,6 +319,23 @@ export async function packageFilesForUpload(files: FileList): Promise<FormData> 
     return formData;
 }
 
+export function generateNewTitle(conversationId: string, setTitle: (title: string) => void) {
+    fetch(`/api/chat/title?conversation_id=${conversationId}`, {
+        method: "POST",
+    })
+        .then((res) => {
+            if (!res.ok) throw new Error(`Failed to call API with error ${res.statusText}`);
+            return res.json();
+        })
+        .then((data) => {
+            setTitle(data.title);
+        })
+        .catch((err) => {
+            console.error(err);
+            return;
+        });
+}
+
 export function uploadDataForIndexing(
     files: FileList,
     setWarning: (warning: string) => void,
