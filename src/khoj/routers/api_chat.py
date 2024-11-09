@@ -738,8 +738,13 @@ async def chat(
                 conversation_commands.append(mode)
 
         for cmd in conversation_commands:
-            await conversation_command_rate_limiter.update_and_check_if_valid(request, cmd)
-            q = q.replace(f"/{cmd.value}", "").strip()
+            try:
+                await conversation_command_rate_limiter.update_and_check_if_valid(request, cmd)
+                q = q.replace(f"/{cmd.value}", "").strip()
+            except HTTPException as e:
+                async for result in send_llm_response(str(e.detail)):
+                    yield result
+                return
 
         defiltered_query = defilter_query(q)
 
@@ -774,10 +779,6 @@ async def chat(
 
             # researched_results = await extract_relevant_info(q, researched_results, agent)
             logger.info(f"Researched Results: {researched_results}")
-
-        for cmd in conversation_commands:
-            await conversation_command_rate_limiter.update_and_check_if_valid(request, cmd)
-            q = q.replace(f"/{cmd.value}", "").strip()
 
         used_slash_summarize = conversation_commands == [ConversationCommand.Summarize]
         file_filters = conversation.file_filters if conversation else []
