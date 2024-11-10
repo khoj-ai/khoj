@@ -84,12 +84,10 @@ def extract_questions_gemini(
         images=query_images,
         model_type=ChatModelOptions.ModelType.GOOGLE,
         vision_enabled=vision_enabled,
+        attached_file_context=attached_files,
     )
 
     messages = []
-
-    if attached_files:
-        messages.append(ChatMessage(content=attached_files, role="user"))
 
     messages.append(ChatMessage(content=prompt, role="user"))
     messages.append(ChatMessage(content=system_prompt, role="system"))

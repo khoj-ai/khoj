@@ -83,12 +83,10 @@ def extract_questions_anthropic(
         images=query_images,
         model_type=ChatModelOptions.ModelType.ANTHROPIC,
         vision_enabled=vision_enabled,
+        attached_file_context=attached_files,
     )
 
     messages = []
-
-    if attached_files:
-        messages.append(ChatMessage(content=attached_files, role="user"))
 
     messages.append(ChatMessage(content=prompt, role="user"))
 

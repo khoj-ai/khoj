@@ -80,13 +80,10 @@ def extract_questions(
         images=query_images,
         model_type=ChatModelOptions.ModelType.OPENAI,
         vision_enabled=vision_enabled,
+        attached_file_context=attached_files,
     )
 
     messages = []
-
-    if attached_files:
-        messages.append(ChatMessage(content=attached_files, role="user"))
-
     messages.append(ChatMessage(content=prompt, role="user"))
 
     response = send_message_to_model(
