@@ -258,7 +258,7 @@ async def agenerate_chat_response(*args):
 def gather_raw_attached_files(
     attached_files: Dict[str, str],
 ):
-    """_summary_
+    """
     Gather contextual data from the given (raw) files
     """
 
