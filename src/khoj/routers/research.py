@@ -87,15 +87,24 @@ async def apick_next_tool(
         max_iterations=max_iterations,
     )
 
-    with timer("Chat actor: Infer information sources to refer", logger):
-        response = await send_message_to_model_wrapper(
-            query=query,
-            context=function_planning_prompt,
-            response_type="json_object",
-            user=user,
-            query_images=query_images,
-            tracer=tracer,
+    try:
+        with timer("Chat actor: Infer information sources to refer", logger):
+            response = await send_message_to_model_wrapper(
+                query=query,
+                context=function_planning_prompt,
+                response_type="json_object",
+                user=user,
+                query_images=query_images,
+                tracer=tracer,
+            )
+    except Exception as e:
+        logger.error(f"Failed to infer information sources to refer: {e}", exc_info=True)
+        yield InformationCollectionIteration(
+            tool=None,
+            query=None,
+            warning="Failed to infer information sources to refer. Skipping iteration. Try again.",
         )
+        return
 
     try:
         response = clean_json(response)
