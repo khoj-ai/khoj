@@ -294,6 +294,9 @@ export async function packageFilesForUpload(files: FileList): Promise<FormData> 
                         fileType = "text/html";
                     } else if (fileExtension === "pdf") {
                         fileType = "application/pdf";
+                    } else if (fileExtension === "docx") {
+                        fileType =
+                            "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
                     } else {
                         // Skip this file if its type is not supported
                         resolve();
