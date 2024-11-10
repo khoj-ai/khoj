@@ -338,7 +338,11 @@ def generate_chatml_messages_with_context(
             message_context += chat.get("intent").get("inferred-queries")[0]
         if not is_none_or_empty(chat.get("context")):
             references = "\n\n".join(
-                {f"# File: {item['file']}\n## {item['compiled']}\n" for item in chat.get("context") or []}
+                {
+                    f"# File: {item['file']}\n## {item['compiled']}\n"
+                    for item in chat.get("context") or []
+                    if isinstance(item, dict)
+                }
             )
             message_context += f"{prompts.notes_conversation.format(references=references)}\n\n"
         if not is_none_or_empty(chat.get("onlineContext")):
