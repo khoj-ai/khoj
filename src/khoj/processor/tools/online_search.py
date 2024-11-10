@@ -95,17 +95,21 @@ async def search_online(
         response_dict = {subquery: search_result for subquery, search_result in search_results}
 
     # Gather distinct web pages from organic results for subqueries without an instant answer.
-    # Content of web pages is directly available when Jina is used for search.
     webpages: Dict[str, Dict] = {}
     for subquery in response_dict:
         if "answerBox" in response_dict[subquery]:
             continue
-        for organic in response_dict[subquery].get("organic", [])[:max_webpages_to_read]:
+        for idx, organic in enumerate(response_dict[subquery].get("organic", [])):
             link = organic.get("link")
-            if link in webpages:
+            if link in webpages and idx < max_webpages_to_read:
                 webpages[link]["queries"].add(subquery)
-            else:
+            # Content of web pages is directly available when Jina is used for search.
+            elif idx < max_webpages_to_read:
                 webpages[link] = {"queries": {subquery}, "content": organic.get("content")}
+            # Only keep webpage content for up to max_webpages_to_read organic results.
+            if idx >= max_webpages_to_read and not is_none_or_empty(organic.get("content")):
+                organic["content"] = None
+                response_dict[subquery]["organic"][idx] = organic
 
     # Read, extract relevant info from the retrieved web pages
     if webpages:
