@@ -756,8 +756,8 @@ async def chat(
                 user=user,
                 query_images=uploaded_images,
                 agent=agent,
-                tracer=tracer,
                 attached_files=attached_file_context,
+                tracer=tracer,
             )
 
             # If we're doing research, we don't want to do anything else
@@ -797,8 +797,8 @@ async def chat(
                 user_name=user_name,
                 location=location,
                 file_filters=conversation.file_filters if conversation else [],
-                tracer=tracer,
                 attached_files=attached_file_context,
+                tracer=tracer,
             ):
                 if isinstance(research_result, InformationCollectionIteration):
                     if research_result.summarizedResult:
@@ -849,8 +849,8 @@ async def chat(
                     query_images=uploaded_images,
                     agent=agent,
                     send_status_func=partial(send_event, ChatEvent.STATUS),
-                    tracer=tracer,
                     attached_files=attached_file_context,
+                    tracer=tracer,
                 ):
                     if isinstance(response, dict) and ChatEvent.STATUS in response:
                         yield response[ChatEvent.STATUS]
@@ -870,9 +870,9 @@ async def chat(
                 client_application=request.user.client_app,
                 conversation_id=conversation_id,
                 query_images=uploaded_images,
-                tracer=tracer,
                 train_of_thought=train_of_thought,
                 raw_attached_files=raw_attached_files,
+                tracer=tracer,
             )
             return
 
@@ -916,9 +916,9 @@ async def chat(
                 inferred_queries=[query_to_run],
                 automation_id=automation.id,
                 query_images=uploaded_images,
-                tracer=tracer,
                 train_of_thought=train_of_thought,
                 raw_attached_files=raw_attached_files,
+                tracer=tracer,
             )
             async for result in send_llm_response(llm_response):
                 yield result
@@ -940,8 +940,8 @@ async def chat(
                     partial(send_event, ChatEvent.STATUS),
                     query_images=uploaded_images,
                     agent=agent,
-                    tracer=tracer,
                     attached_files=attached_file_context,
+                    tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -986,8 +986,8 @@ async def chat(
                     custom_filters,
                     query_images=uploaded_images,
                     agent=agent,
-                    tracer=tracer,
                     attached_files=attached_file_context,
+                    tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -1012,8 +1012,8 @@ async def chat(
                     partial(send_event, ChatEvent.STATUS),
                     query_images=uploaded_images,
                     agent=agent,
-                    tracer=tracer,
                     attached_files=attached_file_context,
+                    tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -1053,8 +1053,8 @@ async def chat(
                     partial(send_event, ChatEvent.STATUS),
                     query_images=uploaded_images,
                     agent=agent,
-                    tracer=tracer,
                     attached_files=attached_file_context,
+                    tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -1093,8 +1093,8 @@ async def chat(
                 send_status_func=partial(send_event, ChatEvent.STATUS),
                 query_images=uploaded_images,
                 agent=agent,
-                tracer=tracer,
                 attached_files=attached_file_context,
+                tracer=tracer,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
@@ -1125,10 +1125,10 @@ async def chat(
                 compiled_references=compiled_references,
                 online_results=online_results,
                 query_images=uploaded_images,
-                tracer=tracer,
                 train_of_thought=train_of_thought,
                 attached_file_context=attached_file_context,
                 raw_attached_files=raw_attached_files,
+                tracer=tracer,
             )
             content_obj = {
                 "intentType": intent_type,
@@ -1157,8 +1157,8 @@ async def chat(
                 user=user,
                 agent=agent,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
-                tracer=tracer,
                 attached_files=attached_file_context,
+                tracer=tracer,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
@@ -1186,10 +1186,10 @@ async def chat(
                 compiled_references=compiled_references,
                 online_results=online_results,
                 query_images=uploaded_images,
-                tracer=tracer,
                 train_of_thought=train_of_thought,
                 attached_file_context=attached_file_context,
                 raw_attached_files=raw_attached_files,
+                tracer=tracer,
             )
 
             async for result in send_llm_response(json.dumps(content_obj)):
@@ -1215,10 +1215,10 @@ async def chat(
             user_name,
             researched_results,
             uploaded_images,
-            tracer,
             train_of_thought,
             attached_file_context,
             raw_attached_files,
+            tracer,
         )
 
         # Send Response

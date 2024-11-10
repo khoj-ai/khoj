@@ -268,8 +268,8 @@ async def execute_information_collection(
                     send_status_func,
                     query_images=query_images,
                     agent=agent,
-                    tracer=tracer,
                     attached_files=attached_files,
+                    tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]

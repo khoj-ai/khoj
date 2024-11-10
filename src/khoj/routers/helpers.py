@@ -361,8 +361,8 @@ async def aget_relevant_information_sources(
     user: KhojUser,
     query_images: List[str] = None,
     agent: Agent = None,
-    tracer: dict = {},
     attached_files: str = None,
+    tracer: dict = {},
 ):
     """
     Given a query, determine which of the available tools the agent should use in order to answer appropriately.
@@ -399,8 +399,8 @@ async def aget_relevant_information_sources(
             relevant_tools_prompt,
             response_type="json_object",
             user=user,
-            tracer=tracer,
             attached_files=attached_files,
+            tracer=tracer,
         )
 
     try:
@@ -509,8 +509,8 @@ async def infer_webpage_urls(
     user: KhojUser,
     query_images: List[str] = None,
     agent: Agent = None,
-    tracer: dict = {},
     attached_files: str = None,
+    tracer: dict = {},
 ) -> List[str]:
     """
     Infer webpage links from the given query
@@ -539,8 +539,8 @@ async def infer_webpage_urls(
             query_images=query_images,
             response_type="json_object",
             user=user,
-            tracer=tracer,
             attached_files=attached_files,
+            tracer=tracer,
         )
 
     # Validate that the response is a non-empty, JSON-serializable list of URLs
@@ -565,8 +565,8 @@ async def generate_online_subqueries(
     user: KhojUser,
     query_images: List[str] = None,
     agent: Agent = None,
-    tracer: dict = {},
     attached_files: str = None,
+    tracer: dict = {},
 ) -> List[str]:
     """
     Generate subqueries from the given query
@@ -595,8 +595,8 @@ async def generate_online_subqueries(
             query_images=query_images,
             response_type="json_object",
             user=user,
-            tracer=tracer,
             attached_files=attached_files,
+            tracer=tracer,
         )
 
     # Validate that the response is a non-empty, JSON-serializable list
@@ -718,8 +718,8 @@ async def generate_summary_from_files(
     query_images: List[str] = None,
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
-    tracer: dict = {},
     attached_files: str = None,
+    tracer: dict = {},
 ):
     try:
         file_objects = None
@@ -781,8 +781,8 @@ async def generate_excalidraw_diagram(
     user: KhojUser = None,
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
-    tracer: dict = {},
     attached_files: str = None,
+    tracer: dict = {},
 ):
     if send_status_func:
         async for event in send_status_func("**Enhancing the Diagramming Prompt**"):
@@ -797,8 +797,8 @@ async def generate_excalidraw_diagram(
         query_images=query_images,
         user=user,
         agent=agent,
-        tracer=tracer,
         attached_files=attached_files,
+        tracer=tracer,
     )
 
     if send_status_func:
@@ -824,8 +824,8 @@ async def generate_better_diagram_description(
     query_images: List[str] = None,
     user: KhojUser = None,
     agent: Agent = None,
-    tracer: dict = {},
     attached_files: str = None,
+    tracer: dict = {},
 ) -> str:
     """
     Generate a diagram description from the given query and context
@@ -866,8 +866,8 @@ async def generate_better_diagram_description(
             improve_diagram_description_prompt,
             query_images=query_images,
             user=user,
-            tracer=tracer,
             attached_files=attached_files,
+            tracer=tracer,
         )
         response = response.strip()
         if response.startswith(('"', "'")) and response.endswith(('"', "'")):
@@ -914,8 +914,8 @@ async def generate_better_image_prompt(
     query_images: Optional[List[str]] = None,
     user: KhojUser = None,
     agent: Agent = None,
-    tracer: dict = {},
     attached_files: str = "",
+    tracer: dict = {},
 ) -> str:
     """
     Generate a better image prompt from the given query
@@ -963,7 +963,7 @@ async def generate_better_image_prompt(
 
     with timer("Chat actor: Generate contextual image prompt", logger):
         response = await send_message_to_model_wrapper(
-            image_prompt, query_images=query_images, user=user, tracer=tracer, attached_files=attached_files
+            image_prompt, query_images=query_images, user=user, attached_files=attached_files, tracer=tracer
         )
         response = response.strip()
         if response.startswith(('"', "'")) and response.endswith(('"', "'")):
@@ -979,8 +979,8 @@ async def send_message_to_model_wrapper(
     user: KhojUser = None,
     query_images: List[str] = None,
     context: str = "",
-    tracer: dict = {},
     attached_files: str = None,
+    tracer: dict = {},
 ):
     conversation_config: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config(user)
     vision_available = conversation_config.vision_enabled
@@ -1106,8 +1106,8 @@ def send_message_to_model_wrapper_sync(
     system_message: str = "",
     response_type: str = "text",
     user: KhojUser = None,
-    tracer: dict = {},
     attached_files: str = "",
+    tracer: dict = {},
 ):
     conversation_config: ChatModelOptions = ConversationAdapters.get_default_conversation_config(user)
 
@@ -1225,10 +1225,10 @@ def generate_chat_response(
     user_name: Optional[str] = None,
     meta_research: str = "",
     query_images: Optional[List[str]] = None,
-    tracer: dict = {},
     train_of_thought: List[Any] = [],
     attached_files: str = None,
     raw_attached_files: List[FileAttachment] = None,
+    tracer: dict = {},
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
     chat_response = None
@@ -1252,9 +1252,9 @@ def generate_chat_response(
             client_application=client_application,
             conversation_id=conversation_id,
             query_images=query_images,
-            tracer=tracer,
             train_of_thought=train_of_thought,
             raw_attached_files=raw_attached_files,
+            tracer=tracer,
         )
 
         conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)
@@ -1281,8 +1281,8 @@ def generate_chat_response(
                 location_data=location_data,
                 user_name=user_name,
                 agent=agent,
-                tracer=tracer,
                 attached_files=attached_files,
+                tracer=tracer,
             )
 
         elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
@@ -1307,8 +1307,8 @@ def generate_chat_response(
                 user_name=user_name,
                 agent=agent,
                 vision_available=vision_available,
-                tracer=tracer,
                 attached_files=attached_files,
+                tracer=tracer,
             )
 
         elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
@@ -1330,8 +1330,8 @@ def generate_chat_response(
                 user_name=user_name,
                 agent=agent,
                 vision_available=vision_available,
-                tracer=tracer,
                 attached_files=attached_files,
+                tracer=tracer,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
             api_key = conversation_config.openai_config.api_key
@@ -1352,8 +1352,8 @@ def generate_chat_response(
                 agent=agent,
                 query_images=query_images,
                 vision_available=vision_available,
-                tracer=tracer,
                 attached_files=attached_files,
+                tracer=tracer,
             )
 
         metadata.update({"chat_model": conversation_config.chat_model})

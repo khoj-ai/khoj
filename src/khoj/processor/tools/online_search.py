@@ -67,8 +67,8 @@ async def search_online(
     max_webpages_to_read: int = DEFAULT_MAX_WEBPAGES_TO_READ,
     query_images: List[str] = None,
     agent: Agent = None,
-    tracer: dict = {},
     attached_files: str = None,
+    tracer: dict = {},
 ):
     query += " ".join(custom_filters)
     if not is_internet_connected():
@@ -165,9 +165,9 @@ async def read_webpages(
     send_status_func: Optional[Callable] = None,
     query_images: List[str] = None,
     agent: Agent = None,
-    tracer: dict = {},
     max_webpages_to_read: int = DEFAULT_MAX_WEBPAGES_TO_READ,
     attached_files: str = None,
+    tracer: dict = {},
 ):
     "Infer web pages to read from the query and extract relevant information from them"
     logger.info(f"Inferring web pages to read")
@@ -178,8 +178,8 @@ async def read_webpages(
         user,
         query_images,
         agent=agent,
-        tracer=tracer,
         attached_files=attached_files,
+        tracer=tracer,
     )
 
     # Get the top 10 web pages to read

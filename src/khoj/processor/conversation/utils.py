@@ -224,8 +224,8 @@ def save_to_conversation_log(
     automation_id: str = None,
     query_images: List[str] = None,
     raw_attached_files: List[FileAttachment] = [],
-    tracer: Dict[str, Any] = {},
     train_of_thought: List[Any] = [],
+    tracer: Dict[str, Any] = {},
 ):
     user_message_time = user_message_time or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     turn_id = tracer.get("mid") or str(uuid.uuid4())

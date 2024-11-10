@@ -28,8 +28,8 @@ async def text_to_image(
     send_status_func: Optional[Callable] = None,
     query_images: Optional[List[str]] = None,
     agent: Agent = None,
-    tracer: dict = {},
     attached_files: str = None,
+    tracer: dict = {},
 ):
     status_code = 200
     image = None
@@ -70,8 +70,8 @@ async def text_to_image(
         query_images=query_images,
         user=user,
         agent=agent,
-        tracer=tracer,
         attached_files=attached_files,
+        tracer=tracer,
     )
 
     if send_status_func:

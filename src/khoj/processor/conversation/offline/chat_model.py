@@ -37,8 +37,8 @@ def extract_questions_offline(
     max_prompt_size: int = None,
     temperature: float = 0.7,
     personality_context: Optional[str] = None,
-    tracer: dict = {},
     attached_files: str = None,
+    tracer: dict = {},
 ) -> List[str]:
     """
     Infer search queries to retrieve relevant notes to answer user query
@@ -154,8 +154,8 @@ def converse_offline(
     location_data: LocationData = None,
     user_name: str = None,
     agent: Agent = None,
-    tracer: dict = {},
     attached_files: str = None,
+    tracer: dict = {},
 ) -> Union[ThreadedGenerator, Iterator[str]]:
     """
     Converse with user using Llama

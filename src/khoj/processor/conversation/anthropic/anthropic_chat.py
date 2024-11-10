@@ -36,8 +36,8 @@ def extract_questions_anthropic(
     query_images: Optional[list[str]] = None,
     vision_enabled: bool = False,
     personality_context: Optional[str] = None,
-    tracer: dict = {},
     attached_files: str = None,
+    tracer: dict = {},
 ):
     """
     Infer search queries to retrieve relevant notes to answer user query
@@ -154,8 +154,8 @@ def converse_anthropic(
     agent: Agent = None,
     query_images: Optional[list[str]] = None,
     vision_available: bool = False,
-    tracer: dict = {},
     attached_files: str = None,
+    tracer: dict = {},
 ):
     """
     Converse with user using Anthropic's Claude

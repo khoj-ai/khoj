@@ -31,8 +31,8 @@ async def run_code(
     query_images: List[str] = None,
     agent: Agent = None,
     sandbox_url: str = SANDBOX_URL,
-    tracer: dict = {},
     attached_files: str = None,
+    tracer: dict = {},
 ):
     # Generate Code
     if send_status_func:

@@ -37,8 +37,8 @@ def extract_questions_gemini(
     query_images: Optional[list[str]] = None,
     vision_enabled: bool = False,
     personality_context: Optional[str] = None,
-    tracer: dict = {},
     attached_files: str = None,
+    tracer: dict = {},
 ):
     """
     Infer search queries to retrieve relevant notes to answer user query
@@ -122,7 +122,6 @@ def gemini_send_message_to_model(
     temperature=0,
     model_kwargs=None,
     tracer={},
-    attached_files: str = None,
 ):
     """
     Send message to model
@@ -165,8 +164,8 @@ def converse_gemini(
     agent: Agent = None,
     query_images: Optional[list[str]] = None,
     vision_available: bool = False,
-    tracer={},
     attached_files: str = None,
+    tracer={},
 ):
     """
     Converse with user using Google's Gemini
