@@ -277,7 +277,7 @@ def construct_structured_message(
     """
     Format messages into appropriate multimedia format for supported chat model types
     """
-    constructed_messages = [
+    constructed_messages: List[ChatMessage] = [
         {"type": "text", "text": message},
     ]
 
