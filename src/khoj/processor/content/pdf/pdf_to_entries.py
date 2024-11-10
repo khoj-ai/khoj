@@ -2,7 +2,7 @@ import base64
 import logging
 import os
 from datetime import datetime
-from random import random
+from random import randint
 from typing import Dict, List, Tuple
 
 from langchain_community.document_loaders import PyMuPDFLoader
@@ -99,7 +99,7 @@ class PdfToEntries(TextToEntries):
         try:
             # Write the PDF file to a temporary file, as it is stored in byte format in the pdf_file object and the PDF Loader expects a file path
             timestamp_now = datetime.utcnow().timestamp()
-            random_suffix = random.randint(0, 1000)
+            random_suffix = randint(0, 1000)
             tmp_file = f"tmp_pdf_file_{timestamp_now}_{random_suffix}.pdf"
             pdf_entry_by_pages = []
             with open(f"{tmp_file}", "wb") as f:
