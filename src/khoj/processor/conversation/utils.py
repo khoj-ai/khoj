@@ -277,23 +277,26 @@ def construct_structured_message(
     """
     Format messages into appropriate multimedia format for supported chat model types
     """
-    constructed_messages: List[ChatMessage] = [
-        {"type": "text", "text": message},
-    ]
-
-    if not is_none_or_empty(attached_file_context):
-        constructed_messages.append({"type": "text", "text": attached_file_context})
-
     if model_type in [
         ChatModelOptions.ModelType.OPENAI,
         ChatModelOptions.ModelType.GOOGLE,
         ChatModelOptions.ModelType.ANTHROPIC,
     ]:
+        constructed_messages: List[Any] = [
+            {"type": "text", "text": message},
+        ]
+
+        if not is_none_or_empty(attached_file_context):
+            constructed_messages.append({"type": "text", "text": attached_file_context})
         if vision_enabled and images:
             for image in images:
                 constructed_messages.append({"type": "image_url", "image_url": {"url": image}})
+        return constructed_messages
 
-    return constructed_messages
+    if not is_none_or_empty(attached_file_context):
+        return f"{attached_file_context}\n\n{message}"
+
+    return message
 
 
 def gather_raw_attached_files(
