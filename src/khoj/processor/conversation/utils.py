@@ -277,9 +277,6 @@ def construct_structured_message(
     """
     Format messages into appropriate multimedia format for supported chat model types
     """
-    if not images or not vision_enabled:
-        return message
-
     constructed_messages = [
         {"type": "text", "text": message},
     ]
@@ -292,8 +289,9 @@ def construct_structured_message(
         ChatModelOptions.ModelType.GOOGLE,
         ChatModelOptions.ModelType.ANTHROPIC,
     ]:
-        for image in images:
-            constructed_messages.append({"type": "image_url", "image_url": {"url": image}})
+        if vision_enabled and images:
+            for image in images:
+                constructed_messages.append({"type": "image_url", "image_url": {"url": image}})
 
     return constructed_messages
 
