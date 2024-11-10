@@ -91,6 +91,7 @@ from khoj.processor.conversation.utils import (
     ChatEvent,
     ThreadedGenerator,
     clean_json,
+    construct_chat_history,
     generate_chatml_messages_with_context,
     save_to_conversation_log,
 )
@@ -268,35 +269,6 @@ def gather_raw_attached_files(
         [f"File: {file_name}\n\n{file_content}\n\n" for file_name, file_content in attached_files.items()]
     )
     return f"I have attached the following files:\n\n{contextual_data}"
-
-
-def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:
-    chat_history = ""
-    for chat in conversation_history.get("chat", [])[-n:]:
-        if chat["by"] == "khoj" and chat["intent"].get("type") in ["remember", "reminder", "summarize"]:
-            chat_history += f"User: {chat['intent']['query']}\n"
-
-            if chat["intent"].get("inferred-queries"):
-                chat_history += f'{agent_name}: {{"queries": {chat["intent"].get("inferred-queries")}}}\n'
-
-            chat_history += f"{agent_name}: {chat['message']}\n\n"
-        elif chat["by"] == "khoj" and ("text-to-image" in chat["intent"].get("type")):
-            chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += f"{agent_name}: [generated image redacted for space]\n"
-        elif chat["by"] == "khoj" and ("excalidraw" in chat["intent"].get("type")):
-            chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += f"{agent_name}: {chat['intent']['inferred-queries'][0]}\n"
-        elif chat["by"] == "you":
-            raw_attached_files = chat.get("attachedFiles")
-            if raw_attached_files:
-                attached_files: Dict[str, str] = {}
-                for file in raw_attached_files:
-                    attached_files[file["name"]] = file["content"]
-
-                attached_file_context = gather_raw_attached_files(attached_files)
-                chat_history += f"User: {attached_file_context}\n"
-
-    return chat_history
 
 
 async def acreate_title_from_history(

@@ -11,6 +11,7 @@ from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
     InformationCollectionIteration,
     clean_json,
+    construct_chat_history,
     construct_iteration_history,
     construct_tool_chat_history,
 )
@@ -19,7 +20,6 @@ from khoj.processor.tools.run_code import run_code
 from khoj.routers.api import extract_references_and_questions
 from khoj.routers.helpers import (
     ChatEvent,
-    construct_chat_history,
     generate_summary_from_files,
     send_message_to_model_wrapper,
 )
