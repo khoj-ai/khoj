@@ -1,6 +1,7 @@
 import logging
 import os
 from datetime import datetime
+from random import random
 from typing import Dict, List, Tuple
 
 from langchain_community.document_loaders import Docx2txtLoader
@@ -94,7 +95,8 @@ class DocxToEntries(TextToEntries):
         """Extract text from specified DOCX file"""
         try:
             timestamp_now = datetime.utcnow().timestamp()
-            tmp_file = f"tmp_docx_file_{timestamp_now}.docx"
+            random_suffix = random.randint(0, 1000)
+            tmp_file = f"tmp_docx_file_{timestamp_now}_{random_suffix}.docx"
             docx_entry_by_pages = []
             with open(tmp_file, "wb") as f:
                 bytes_content = docx_file
