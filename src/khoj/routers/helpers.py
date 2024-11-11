@@ -1582,6 +1582,11 @@ def scheduled_chat(
         # encode the conversation_id to avoid any issues with special characters
         query_dict["conversation_id"] = [quote(str(conversation_id))]
 
+        # validate that the conversation id exists. If not, delete the automation and exit.
+        if not ConversationAdapters.get_conversation_by_id(conversation_id):
+            AutomationAdapters.delete_automation(user, job_id)
+            return
+
     # Restructure the original query_dict into a valid JSON payload for the chat API
     json_payload = {key: values[0] for key, values in query_dict.items()}
 
