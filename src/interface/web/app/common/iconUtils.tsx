@@ -40,7 +40,6 @@ import {
     Leaf,
     NewspaperClipping,
     OrangeSlice,
-    Rainbow,
     SmileyMelting,
     YinYang,
     SneakerMove,
@@ -247,6 +246,13 @@ function getIconFromFilename(
         case "doc":
         case "docx":
             return <MicrosoftWordLogo className={className} />;
+        case "csv":
+        case "json":
+            return <MathOperations className={className} />;
+        case "txt":
+            return <Notebook className={className} />;
+        case "py":
+            return <Code className={className} />;
         case "jpg":
         case "jpeg":
         case "png":

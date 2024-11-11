@@ -433,14 +433,6 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                         if (!message.includes(`![${file.filename}](`)) {
                             message += `\n\n![${file.filename}](data:image/png;base64,${file.b64_data})`;
                         }
-                    } else if (
-                        file.filename.endsWith(".txt") ||
-                        file.filename.endsWith(".org") ||
-                        file.filename.endsWith(".md") ||
-                        file.filename.endsWith(".csv") ||
-                        file.filename.endsWith(".json")
-                    ) {
-                        message += `\n\n## ${file.filename}\n\`\`\`\n${file.b64_data}\n\`\`\`\n`;
                     }
                 });
             });

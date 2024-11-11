@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { ArrowRight } from "@phosphor-icons/react";
+import { ArrowCircleDown, ArrowRight } from "@phosphor-icons/react";
 
 import markdownIt from "markdown-it";
 const md = new markdownIt({
@@ -11,7 +11,13 @@ const md = new markdownIt({
     typographer: true,
 });
 
-import { Context, WebPage, OnlineContext, CodeContext } from "../chatMessage/chatMessage";
+import {
+    Context,
+    WebPage,
+    OnlineContext,
+    CodeContext,
+    CodeContextFile,
+} from "../chatMessage/chatMessage";
 import { Card } from "@/components/ui/card";
 
 import {
@@ -97,6 +103,7 @@ function NotesContextReferenceCard(props: NotesContextReferenceCardProps) {
 interface CodeContextReferenceCardProps {
     code: string;
     output: string;
+    output_files: CodeContextFile[];
     error: string;
     showFullContent: boolean;
 }
@@ -105,6 +112,38 @@ function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
     const fileIcon = getIconFromFilename(".py", "w-6 h-6 text-muted-foreground inline-flex mr-2");
     const sanitizedCodeSnippet = DOMPurify.sanitize(props.code.replace(/\n/g, "<br/>"));
     const [isHovering, setIsHovering] = useState(false);
+    const [isDownloadHover, setIsDownloadHover] = useState(false);
+
+    const handleDownload = (file: CodeContextFile) => {
+        // Determine MIME type
+        let mimeType = "text/plain";
+        let byteString = file.b64_data;
+        if (file.filename.match(/\.(png|jpg|jpeg|webp)$/)) {
+            mimeType = `image/${file.filename.split(".").pop()}`;
+            byteString = atob(file.b64_data);
+        } else if (file.filename.endsWith(".json")) {
+            mimeType = "application/json";
+        } else if (file.filename.endsWith(".csv")) {
+            mimeType = "text/csv";
+        }
+
+        const arrayBuffer = new ArrayBuffer(byteString.length);
+        const bytes = new Uint8Array(arrayBuffer);
+
+        for (let i = 0; i < byteString.length; i++) {
+            bytes[i] = byteString.charCodeAt(i);
+        }
+
+        const blob = new Blob([arrayBuffer], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = file.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
 
     return (
         <>
@@ -122,9 +161,66 @@ function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
                             Code
                         </h3>
                         <p
-                            className={`${props.showFullContent ? "block" : "overflow-hidden line-clamp-2"}`}
+                            className={`text-xs ${props.showFullContent ? "block" : "overflow-hidden line-clamp-3"}`}
                             dangerouslySetInnerHTML={{ __html: sanitizedCodeSnippet }}
                         ></p>
+                        {props.output_files && props.output_files.length > 0 && (
+                            <div className={`mt-2 border-t pt-2`}>
+                                {props.output_files
+                                    .slice(0, props.showFullContent ? undefined : 1)
+                                    .map((file, index) => {
+                                        const fileIcon = getIconFromFilename(
+                                            file.filename,
+                                            "w-4 h-4 text-muted-foreground inline-flex",
+                                        );
+                                        return (
+                                            <div key={`${file.filename}-${index}`}>
+                                                <h4 className="text-sm text-muted-foreground flex items-center">
+                                                    {fileIcon}
+                                                    <span className="flex items-center overflow-hidden mx-2">
+                                                        {file.filename}
+                                                    </span>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            handleDownload(file);
+                                                        }}
+                                                        onMouseEnter={() =>
+                                                            setIsDownloadHover(true)
+                                                        }
+                                                        onMouseLeave={() =>
+                                                            setIsDownloadHover(false)
+                                                        }
+                                                        title={`Download file: ${file.filename}`}
+                                                    >
+                                                        <ArrowCircleDown
+                                                            className="w-4 h-4"
+                                                            weight={
+                                                                isDownloadHover ? "fill" : "regular"
+                                                            }
+                                                        />
+                                                    </button>
+                                                </h4>
+                                                {file.filename.match(/\.(txt|org|md|csv|json)$/) ? (
+                                                    <pre
+                                                        className={`${props.showFullContent ? "block" : "line-clamp-2"} text-sm mt-1 p-1 bg-background rounded overflow-x-auto`}
+                                                    >
+                                                        {file.b64_data}
+                                                    </pre>
+                                                ) : file.filename.match(
+                                                      /\.(png|jpg|jpeg|webp)$/,
+                                                  ) ? (
+                                                    <img
+                                                        src={`data:image/${file.filename.split(".").pop()};base64,${file.b64_data}`}
+                                                        alt={file.filename}
+                                                        className="mt-1 max-h-32 rounded"
+                                                    />
+                                                ) : null}
+                                            </div>
+                                        );
+                                    })}
+                            </div>
+                        )}
                     </Card>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] mx-2">
@@ -136,7 +232,7 @@ function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
                             Code
                         </h3>
                         <p
-                            className={`overflow-hidden line-clamp-5`}
+                            className={`text-xs overflow-hidden line-clamp-10`}
                             dangerouslySetInnerHTML={{ __html: sanitizedCodeSnippet }}
                         ></p>
                     </Card>
@@ -146,14 +242,10 @@ function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
     );
 }
 
-export interface ReferencePanelData {
-    notesReferenceCardData: NotesContextReferenceData[];
-    onlineReferenceCardData: OnlineReferenceData[];
-}
-
 export interface CodeReferenceData {
     code: string;
     output: string;
+    output_files: CodeContextFile[];
     error: string;
 }
 
@@ -289,6 +381,7 @@ export function constructAllReferences(
             codeReferences.push({
                 code: value.code,
                 output: value.results.std_out,
+                output_files: value.results.output_files,
                 error: value.results.std_err,
             });
         }
@@ -497,21 +590,21 @@ export default function ReferencePanel(props: ReferencePanelDataProps) {
                             />
                         );
                     })}
-                    {props.onlineReferenceCardData.map((online, index) => {
-                        return (
-                            <GenericOnlineReferenceCard
-                                showFullContent={true}
-                                {...online}
-                                key={`${online.title}-${index}`}
-                            />
-                        );
-                    })}
                     {props.codeReferenceCardData.map((code, index) => {
                         return (
                             <CodeContextReferenceCard
                                 showFullContent={true}
                                 {...code}
                                 key={`code-${index}`}
+                            />
+                        );
+                    })}
+                    {props.onlineReferenceCardData.map((online, index) => {
+                        return (
+                            <GenericOnlineReferenceCard
+                                showFullContent={true}
+                                {...online}
+                                key={`${online.title}-${index}`}
                             />
                         );
                     })}
