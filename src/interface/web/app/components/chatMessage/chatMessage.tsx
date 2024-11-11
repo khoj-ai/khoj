@@ -708,41 +708,47 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             onMouseLeave={(event) => setIsHovering(false)}
             onMouseEnter={(event) => setIsHovering(true)}
         >
-            {props.chatMessage.queryFiles && props.chatMessage.queryFiles.length > 0 && (
-                <div className="flex flex-wrap flex-col m-2 max-w-full">
-                    {props.chatMessage.queryFiles.map((file, index) => (
-                        <Dialog key={index}>
-                            <DialogTrigger asChild>
-                                <div
-                                    className="flex items-center space-x-2 cursor-pointer bg-gray-500 bg-opacity-25 rounded-lg m-1 p-2 w-full
-                                "
-                                >
-                                    <div className="flex-shrink-0">
-                                        {getIconFromFilename(file.file_type)}
-                                    </div>
-                                    <span className="truncate flex-1 min-w-0">{file.name}</span>
-                                    {file.size && (
-                                        <span className="text-gray-400 flex-shrink-0">
-                                            ({convertBytesToText(file.size)})
-                                        </span>
-                                    )}
-                                </div>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>{file.name}</DialogTitle>
-                                </DialogHeader>
-                                <DialogDescription>
-                                    <ScrollArea className="h-72 w-full rounded-md">
-                                        {file.content}
-                                    </ScrollArea>
-                                </DialogDescription>
-                            </DialogContent>
-                        </Dialog>
-                    ))}
-                </div>
-            )}
             <div className={chatMessageWrapperClasses(props.chatMessage)}>
+                {props.chatMessage.queryFiles && props.chatMessage.queryFiles.length > 0 && (
+                    <div className="flex flex-wrap flex-col mb-2 max-w-full">
+                        {props.chatMessage.queryFiles.map((file, index) => (
+                            <Dialog key={index}>
+                                <DialogTrigger asChild>
+                                    <div
+                                        className="flex items-center space-x-2 cursor-pointer bg-gray-500 bg-opacity-25 rounded-lg p-2 w-full
+                                "
+                                    >
+                                        <div className="flex-shrink-0">
+                                            {getIconFromFilename(file.file_type)}
+                                        </div>
+                                        <span className="truncate flex-1 min-w-0 max-w-[200px]">
+                                            {file.name}
+                                        </span>
+                                        {file.size && (
+                                            <span className="text-gray-400 flex-shrink-0">
+                                                ({convertBytesToText(file.size)})
+                                            </span>
+                                        )}
+                                    </div>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>
+                                            <div className="truncate min-w-0 break-words break-all text-wrap max-w-full whitespace-normal">
+                                                {file.name}
+                                            </div>
+                                        </DialogTitle>
+                                    </DialogHeader>
+                                    <DialogDescription>
+                                        <ScrollArea className="h-72 w-full rounded-md break-words break-all text-wrap">
+                                            {file.content}
+                                        </ScrollArea>
+                                    </DialogDescription>
+                                </DialogContent>
+                            </Dialog>
+                        ))}
+                    </div>
+                )}
                 <div
                     ref={messageRef}
                     className={styles.chatMessage}
