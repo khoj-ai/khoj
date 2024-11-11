@@ -1,14 +1,10 @@
-import base64
 import logging
-import os
-from datetime import datetime
-from random import randint
+import tempfile
+from io import BytesIO
 from typing import Dict, List, Tuple
 
 from langchain_community.document_loaders import PyMuPDFLoader
 
-# importing FileObjectAdapter so that we can add new files and debug file object db.
-# from khoj.database.adapters import FileObjectAdapters
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import KhojUser
 from khoj.processor.content.text_to_entries import TextToEntries
@@ -97,26 +93,19 @@ class PdfToEntries(TextToEntries):
     def extract_text(pdf_file):
         """Extract text from specified PDF files"""
         try:
-            # Write the PDF file to a temporary file, as it is stored in byte format in the pdf_file object and the PDF Loader expects a file path
-            timestamp_now = datetime.utcnow().timestamp()
-            random_suffix = randint(0, 1000)
-            tmp_file = f"tmp_pdf_file_{timestamp_now}_{random_suffix}.pdf"
-            pdf_entry_by_pages = []
-            with open(f"{tmp_file}", "wb") as f:
-                f.write(pdf_file)
-            try:
-                loader = PyMuPDFLoader(f"{tmp_file}", extract_images=False)
-                pdf_entry_by_pages = [page.page_content for page in loader.load()]
-            except ImportError:
-                loader = PyMuPDFLoader(f"{tmp_file}")
-                pdf_entry_by_pages = [
-                    page.page_content for page in loader.load()
-                ]  # page_content items list for a given pdf.
+            # Create temp file with .pdf extension that gets auto-deleted
+            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=True) as tmpf:
+                tmpf.write(pdf_file)
+                tmpf.flush()  # Ensure all data is written
+
+                # Load the content using PyMuPDFLoader
+                loader = PyMuPDFLoader(tmpf.name, extract_images=True)
+                pdf_entries_per_file = loader.load()
+
+                # Convert the loaded entries into the desired format
+                pdf_entry_by_pages = [page.page_content for page in pdf_entries_per_file]
         except Exception as e:
             logger.warning(f"Unable to process file: {pdf_file}. This file will not be indexed.")
             logger.warning(e, exc_info=True)
-        finally:
-            if os.path.exists(f"{tmp_file}"):
-                os.remove(f"{tmp_file}")
 
         return pdf_entry_by_pages
