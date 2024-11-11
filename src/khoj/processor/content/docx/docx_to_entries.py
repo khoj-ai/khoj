@@ -1,7 +1,5 @@
 import logging
-import os
-from datetime import datetime
-from random import randint
+import tempfile
 from typing import Dict, List, Tuple
 
 from langchain_community.document_loaders import Docx2txtLoader
@@ -94,26 +92,20 @@ class DocxToEntries(TextToEntries):
     def extract_text(docx_file):
         """Extract text from specified DOCX file"""
         try:
-            timestamp_now = datetime.utcnow().timestamp()
-            random_suffix = randint(0, 1000)
-            tmp_file = f"tmp_docx_file_{timestamp_now}_{random_suffix}.docx"
             docx_entry_by_pages = []
-            with open(tmp_file, "wb") as f:
-                bytes_content = docx_file
-                f.write(bytes_content)
+            # Create temp file with .docx extension that gets auto-deleted
+            with tempfile.NamedTemporaryFile(suffix=".docx", delete=True) as tmp:
+                tmp.write(docx_file)
+                tmp.flush()  # Ensure all data is written
 
-            # Load the content using Docx2txtLoader
-            loader = Docx2txtLoader(tmp_file)
-            docx_entries_per_file = loader.load()
+                # Load the content using Docx2txtLoader
+                loader = Docx2txtLoader(tmp.name)
+                docx_entries_per_file = loader.load()
 
-            # Convert the loaded entries into the desired format
-            docx_entry_by_pages = [page.page_content for page in docx_entries_per_file]
-
+                # Convert the loaded entries into the desired format
+                docx_entry_by_pages = [page.page_content for page in docx_entries_per_file]
         except Exception as e:
             logger.warning(f"Unable to extract text from file: {docx_file}")
             logger.warning(e, exc_info=True)
-        finally:
-            if os.path.exists(f"{tmp_file}"):
-                os.remove(f"{tmp_file}")
 
         return docx_entry_by_pages
