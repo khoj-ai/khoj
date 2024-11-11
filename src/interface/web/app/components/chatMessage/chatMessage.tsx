@@ -421,6 +421,31 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             }
         }
 
+        // Replace file links with base64 data
+        message = renderCodeGenImageInline(message, props.chatMessage.codeContext);
+
+        // Add code context files to the message
+        if (props.chatMessage.codeContext) {
+            Object.entries(props.chatMessage.codeContext).forEach(([key, value]) => {
+                value.results.output_files?.forEach((file) => {
+                    if (file.filename.endsWith(".png") || file.filename.endsWith(".jpg")) {
+                        // Don't add the image again if it's already in the message!
+                        if (!message.includes(`![${file.filename}](`)) {
+                            message += `\n\n![${file.filename}](data:image/png;base64,${file.b64_data})`;
+                        }
+                    } else if (
+                        file.filename.endsWith(".txt") ||
+                        file.filename.endsWith(".org") ||
+                        file.filename.endsWith(".md") ||
+                        file.filename.endsWith(".csv") ||
+                        file.filename.endsWith(".json")
+                    ) {
+                        message += `\n\n## ${file.filename}\n\`\`\`\n${file.b64_data}\n\`\`\`\n`;
+                    }
+                });
+            });
+        }
+
         // Handle user attached images rendering
         let messageForClipboard = message;
         let messageToRender = message;
@@ -444,47 +469,6 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             const userImagesInHtml = `<div class="${styles.imagesContainer}">${imagesInHtml}</div>`;
             messageForClipboard = `${imagesInMd}\n\n${messageForClipboard}`;
             messageToRender = `${userImagesInHtml}${messageToRender}`;
-        }
-
-        if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image") {
-            message = `![generated image](data:image/png;base64,${message})`;
-        } else if (props.chatMessage.intent && props.chatMessage.intent.type == "text-to-image2") {
-            message = `![generated image](${message})`;
-        } else if (
-            props.chatMessage.intent &&
-            props.chatMessage.intent.type == "text-to-image-v3"
-        ) {
-            message = `![generated image](data:image/webp;base64,${message})`;
-        }
-        if (
-            props.chatMessage.intent &&
-            props.chatMessage.intent.type.includes("text-to-image") &&
-            props.chatMessage.intent["inferred-queries"]?.length > 0
-        ) {
-            message += `\n\n${props.chatMessage.intent["inferred-queries"][0]}`;
-        }
-
-        // Replace file links with base64 data
-        message = renderCodeGenImageInline(message, props.chatMessage.codeContext);
-
-        // Add code context files to the message
-        if (props.chatMessage.codeContext) {
-            Object.entries(props.chatMessage.codeContext).forEach(([key, value]) => {
-                value.results.output_files?.forEach((file) => {
-                    if (file.filename.endsWith(".png") || file.filename.endsWith(".jpg")) {
-                        // Don't add the image again if it's already in the message!
-                        if (!message.includes(`![${file.filename}](`)) {
-                            message += `\n\n![${file.filename}](data:image/png;base64,${file.b64_data})`;
-                        }
-                    } else if (
-                        file.filename.endsWith(".txt") ||
-                        file.filename.endsWith(".org") ||
-                        file.filename.endsWith(".md")
-                    ) {
-                        message += `\n\n## ${file.filename}\n\`\`\`\n${file.b64_data}\n\`\`\`\n`;
-                    }
-                });
-            });
         }
 
         // Set the message text

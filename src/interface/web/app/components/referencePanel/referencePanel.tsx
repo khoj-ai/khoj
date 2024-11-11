@@ -103,7 +103,7 @@ interface CodeContextReferenceCardProps {
 
 function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
     const fileIcon = getIconFromFilename(".py", "w-6 h-6 text-muted-foreground inline-flex mr-2");
-    const snippet = DOMPurify.sanitize(props.code);
+    const sanitizedCodeSnippet = DOMPurify.sanitize(props.code.replace(/\n/g, "<br/>"));
     const [isHovering, setIsHovering] = useState(false);
 
     return (
@@ -123,9 +123,8 @@ function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
                         </h3>
                         <p
                             className={`${props.showFullContent ? "block" : "overflow-hidden line-clamp-2"}`}
-                        >
-                            {snippet}
-                        </p>
+                            dangerouslySetInnerHTML={{ __html: sanitizedCodeSnippet }}
+                        ></p>
                     </Card>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] mx-2">
@@ -136,7 +135,10 @@ function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
                             {fileIcon}
                             Code
                         </h3>
-                        <p className={`overflow-hidden line-clamp-3`}>{snippet}</p>
+                        <p
+                            className={`overflow-hidden line-clamp-5`}
+                            dangerouslySetInnerHTML={{ __html: sanitizedCodeSnippet }}
+                        ></p>
                     </Card>
                 </PopoverContent>
             </Popover>
