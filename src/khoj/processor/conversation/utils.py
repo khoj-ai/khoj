@@ -140,6 +140,35 @@ def construct_iteration_history(
     return previous_iterations_history
 
 
+def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:
+    chat_history = ""
+    for chat in conversation_history.get("chat", [])[-n:]:
+        if chat["by"] == "khoj" and chat["intent"].get("type") in ["remember", "reminder", "summarize"]:
+            chat_history += f"User: {chat['intent']['query']}\n"
+
+            if chat["intent"].get("inferred-queries"):
+                chat_history += f'{agent_name}: {{"queries": {chat["intent"].get("inferred-queries")}}}\n'
+
+            chat_history += f"{agent_name}: {chat['message']}\n\n"
+        elif chat["by"] == "khoj" and ("text-to-image" in chat["intent"].get("type")):
+            chat_history += f"User: {chat['intent']['query']}\n"
+            chat_history += f"{agent_name}: [generated image redacted for space]\n"
+        elif chat["by"] == "khoj" and ("excalidraw" in chat["intent"].get("type")):
+            chat_history += f"User: {chat['intent']['query']}\n"
+            chat_history += f"{agent_name}: {chat['intent']['inferred-queries'][0]}\n"
+        elif chat["by"] == "you":
+            raw_attached_files = chat.get("attachedFiles")
+            if raw_attached_files:
+                attached_files: Dict[str, str] = {}
+                for file in raw_attached_files:
+                    attached_files[file["name"]] = file["content"]
+
+                attached_file_context = gather_raw_attached_files(attached_files)
+                chat_history += f"User: {attached_file_context}\n"
+
+    return chat_history
+
+
 def construct_tool_chat_history(
     previous_iterations: List[InformationCollectionIteration], tool: ConversationCommand = None
 ) -> Dict[str, list]:
@@ -538,35 +567,6 @@ def get_image_from_url(image_url: str, type="pil"):
     except requests.exceptions.RequestException as e:
         logger.error(f"Failed to get image from URL {image_url}: {e}")
         return ImageWithType(content=None, type=None)
-
-
-def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:
-    chat_history = ""
-    for chat in conversation_history.get("chat", [])[-n:]:
-        if chat["by"] == "khoj" and chat["intent"].get("type") in ["remember", "reminder", "summarize"]:
-            chat_history += f"User: {chat['intent']['query']}\n"
-
-            if chat["intent"].get("inferred-queries"):
-                chat_history += f'{agent_name}: {{"queries": {chat["intent"].get("inferred-queries")}}}\n'
-
-            chat_history += f"{agent_name}: {chat['message']}\n\n"
-        elif chat["by"] == "khoj" and ("text-to-image" in chat["intent"].get("type")):
-            chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += f"{agent_name}: [generated image redacted for space]\n"
-        elif chat["by"] == "khoj" and ("excalidraw" in chat["intent"].get("type")):
-            chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += f"{agent_name}: {chat['intent']['inferred-queries'][0]}\n"
-        elif chat["by"] == "you":
-            raw_attached_files = chat.get("attachedFiles")
-            if raw_attached_files:
-                attached_files: Dict[str, str] = {}
-                for file in raw_attached_files:
-                    attached_files[file["name"]] = file["content"]
-
-                attached_file_context = gather_raw_attached_files(attached_files)
-                chat_history += f"User: {attached_file_context}\n"
-
-    return chat_history
 
 
 def commit_conversation_trace(
