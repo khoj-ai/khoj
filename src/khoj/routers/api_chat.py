@@ -1133,7 +1133,6 @@ async def chat(
                 online_results=online_results,
                 query_images=uploaded_images,
                 train_of_thought=train_of_thought,
-                attached_file_context=attached_file_context,
                 raw_query_files=raw_query_files,
                 tracer=tracer,
             )
@@ -1194,7 +1193,6 @@ async def chat(
                 online_results=online_results,
                 query_images=uploaded_images,
                 train_of_thought=train_of_thought,
-                attached_file_context=attached_file_context,
                 raw_query_files=raw_query_files,
                 tracer=tracer,
             )

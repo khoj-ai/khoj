@@ -237,25 +237,27 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
             ? Array.from(nonImageFiles).concat(Array.from(attachedFiles || []))
             : Array.from(attachedFiles || []);
 
-        // Ensure files are below size limit (10 MB)
-        for (let i = 0; i < newFiles.length; i++) {
-            if (newFiles[i].size > 10 * 1024 * 1024) {
-                setWarning(
-                    `File ${newFiles[i].name} is too large. Please upload files smaller than 10 MB.`,
-                );
-                return;
+        if (newFiles.length > 0) {
+            // Ensure files are below size limit (10 MB)
+            for (let i = 0; i < newFiles.length; i++) {
+                if (newFiles[i].size > 10 * 1024 * 1024) {
+                    setWarning(
+                        `File ${newFiles[i].name} is too large. Please upload files smaller than 10 MB.`,
+                    );
+                    return;
+                }
             }
+
+            const dataTransfer = new DataTransfer();
+            newFiles.forEach((file) => dataTransfer.items.add(file));
+
+            // Extract text from files
+            extractTextFromFiles(dataTransfer.files).then((data) => {
+                props.setUploadedFiles(data);
+                setAttachedFiles(dataTransfer.files);
+                setConvertedAttachedFiles(data);
+            });
         }
-
-        const dataTransfer = new DataTransfer();
-        newFiles.forEach((file) => dataTransfer.items.add(file));
-        setAttachedFiles(dataTransfer.files);
-
-        // Extract text from files
-        extractTextFromFiles(dataTransfer.files).then((data) => {
-            props.setUploadedFiles(data);
-            setConvertedAttachedFiles(data);
-        });
 
         // Set focus to the input for user message after uploading files
         chatInputRef?.current?.focus();
