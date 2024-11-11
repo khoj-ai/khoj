@@ -103,9 +103,17 @@ class PdfToEntries(TextToEntries):
                 pdf_entries_per_file = loader.load()
 
                 # Convert the loaded entries into the desired format
-                pdf_entry_by_pages = [page.page_content for page in pdf_entries_per_file]
+                pdf_entry_by_pages = [PdfToEntries.clean_text(page.page_content) for page in pdf_entries_per_file]
         except Exception as e:
             logger.warning(f"Unable to process file: {pdf_file}. This file will not be indexed.")
             logger.warning(e, exc_info=True)
 
         return pdf_entry_by_pages
+
+    @staticmethod
+    def clean_text(text: str) -> str:
+        # Remove null bytes
+        text = text.replace("\x00", "")
+        # Replace invalid Unicode
+        text = text.encode("utf-8", errors="ignore").decode("utf-8")
+        return text

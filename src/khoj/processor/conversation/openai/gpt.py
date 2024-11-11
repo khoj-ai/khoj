@@ -34,7 +34,7 @@ def extract_questions(
     query_images: Optional[list[str]] = None,
     vision_enabled: bool = False,
     personality_context: Optional[str] = None,
-    attached_files: str = None,
+    query_files: str = None,
     tracer: dict = {},
 ):
     """
@@ -80,7 +80,7 @@ def extract_questions(
         images=query_images,
         model_type=ChatModelOptions.ModelType.OPENAI,
         vision_enabled=vision_enabled,
-        attached_file_context=attached_files,
+        attached_file_context=query_files,
     )
 
     messages = []
@@ -151,7 +151,7 @@ def converse(
     agent: Agent = None,
     query_images: Optional[list[str]] = None,
     vision_available: bool = False,
-    attached_files: str = None,
+    query_files: str = None,
     tracer: dict = {},
 ):
     """
@@ -210,7 +210,7 @@ def converse(
         query_images=query_images,
         vision_enabled=vision_available,
         model_type=ChatModelOptions.ModelType.OPENAI,
-        attached_files=attached_files,
+        query_files=query_files,
     )
     truncated_messages = "\n".join({f"{message.content[:70]}..." for message in messages})
     logger.debug(f"Conversation Context for GPT: {truncated_messages}")

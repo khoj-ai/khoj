@@ -36,7 +36,7 @@ async def run_code(
     query_images: List[str] = None,
     agent: Agent = None,
     sandbox_url: str = SANDBOX_URL,
-    attached_files: str = None,
+    query_files: str = None,
     tracer: dict = {},
 ):
     # Generate Code
@@ -54,7 +54,7 @@ async def run_code(
                 query_images,
                 agent,
                 tracer,
-                attached_files,
+                query_files,
             )
     except Exception as e:
         raise ValueError(f"Failed to generate code for {query} with error: {e}")
@@ -84,7 +84,7 @@ async def generate_python_code(
     query_images: List[str] = None,
     agent: Agent = None,
     tracer: dict = {},
-    attached_files: str = None,
+    query_files: str = None,
 ) -> List[str]:
     location = f"{location_data}" if location_data else "Unknown"
     username = prompts.user_name.format(name=user.get_full_name()) if user.get_full_name() else ""
@@ -112,7 +112,7 @@ async def generate_python_code(
         response_type="json_object",
         user=user,
         tracer=tracer,
-        attached_files=attached_files,
+        query_files=query_files,
     )
 
     # Validate that the response is a non-empty, JSON-serializable list

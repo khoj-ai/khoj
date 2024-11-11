@@ -68,7 +68,7 @@ async def search_online(
     query_images: List[str] = None,
     previous_subqueries: Set = set(),
     agent: Agent = None,
-    attached_files: str = None,
+    query_files: str = None,
     tracer: dict = {},
 ):
     query += " ".join(custom_filters)
@@ -86,7 +86,7 @@ async def search_online(
         query_images=query_images,
         agent=agent,
         tracer=tracer,
-        attached_files=attached_files,
+        query_files=query_files,
     )
     subqueries = list(new_subqueries - previous_subqueries)
     response_dict: Dict[str, Dict[str, List[Dict] | Dict]] = {}
@@ -178,7 +178,7 @@ async def read_webpages(
     query_images: List[str] = None,
     agent: Agent = None,
     max_webpages_to_read: int = DEFAULT_MAX_WEBPAGES_TO_READ,
-    attached_files: str = None,
+    query_files: str = None,
     tracer: dict = {},
 ):
     "Infer web pages to read from the query and extract relevant information from them"
@@ -190,7 +190,7 @@ async def read_webpages(
         user,
         query_images,
         agent=agent,
-        attached_files=attached_files,
+        query_files=query_files,
         tracer=tracer,
     )
 

@@ -157,14 +157,14 @@ def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="A
             chat_history += f"User: {chat['intent']['query']}\n"
             chat_history += f"{agent_name}: {chat['intent']['inferred-queries'][0]}\n"
         elif chat["by"] == "you":
-            raw_attached_files = chat.get("attachedFiles")
-            if raw_attached_files:
-                attached_files: Dict[str, str] = {}
-                for file in raw_attached_files:
-                    attached_files[file["name"]] = file["content"]
+            raw_query_files = chat.get("queryFiles")
+            if raw_query_files:
+                query_files: Dict[str, str] = {}
+                for file in raw_query_files:
+                    query_files[file["name"]] = file["content"]
 
-                attached_file_context = gather_raw_attached_files(attached_files)
-                chat_history += f"User: {attached_file_context}\n"
+                query_file_context = gather_raw_query_files(query_files)
+                chat_history += f"User: {query_file_context}\n"
 
     return chat_history
 
@@ -254,7 +254,7 @@ def save_to_conversation_log(
     conversation_id: str = None,
     automation_id: str = None,
     query_images: List[str] = None,
-    raw_attached_files: List[FileAttachment] = [],
+    raw_query_files: List[FileAttachment] = [],
     train_of_thought: List[Any] = [],
     tracer: Dict[str, Any] = {},
 ):
@@ -267,7 +267,7 @@ def save_to_conversation_log(
             "created": user_message_time,
             "images": query_images,
             "turnId": turn_id,
-            "attachedFiles": [file.model_dump(mode="json") for file in raw_attached_files],
+            "queryFiles": [file.model_dump(mode="json") for file in raw_query_files],
         },
         khoj_message_metadata={
             "context": compiled_references,
@@ -330,18 +330,18 @@ def construct_structured_message(
     return message
 
 
-def gather_raw_attached_files(
-    attached_files: Dict[str, str],
+def gather_raw_query_files(
+    query_files: Dict[str, str],
 ):
     """
     Gather contextual data from the given (raw) files
     """
 
-    if len(attached_files) == 0:
+    if len(query_files) == 0:
         return ""
 
     contextual_data = " ".join(
-        [f"File: {file_name}\n\n{file_content}\n\n" for file_name, file_content in attached_files.items()]
+        [f"File: {file_name}\n\n{file_content}\n\n" for file_name, file_content in query_files.items()]
     )
     return f"I have attached the following files:\n\n{contextual_data}"
 
@@ -358,7 +358,7 @@ def generate_chatml_messages_with_context(
     vision_enabled=False,
     model_type="",
     context_message="",
-    attached_files: str = None,
+    query_files: str = None,
 ):
     """Generate chat messages with appropriate context from previous conversation to send to the chat model"""
     # Set max prompt size from user config or based on pre-configured for model and machine specs
@@ -389,13 +389,13 @@ def generate_chatml_messages_with_context(
             )
             message_context += f"{prompts.notes_conversation.format(references=references)}\n\n"
 
-        if chat.get("attachedFiles"):
-            raw_attached_files = chat.get("attachedFiles")
-            attached_files_dict = dict()
-            for file in raw_attached_files:
-                attached_files_dict[file["name"]] = file["content"]
+        if chat.get("queryFiles"):
+            raw_query_files = chat.get("queryFiles")
+            query_files_dict = dict()
+            for file in raw_query_files:
+                query_files_dict[file["name"]] = file["content"]
 
-            message_attached_files = gather_raw_attached_files(attached_files_dict)
+            message_attached_files = gather_raw_query_files(query_files_dict)
             chatml_messages.append(ChatMessage(content=message_attached_files, role="user"))
 
         if not is_none_or_empty(chat.get("onlineContext")):
@@ -407,7 +407,7 @@ def generate_chatml_messages_with_context(
 
         role = "user" if chat["by"] == "you" else "assistant"
         message_content = construct_structured_message(
-            chat["message"], chat.get("images"), model_type, vision_enabled, attached_file_context=attached_files
+            chat["message"], chat.get("images"), model_type, vision_enabled, attached_file_context=query_files
         )
 
         reconstructed_message = ChatMessage(content=message_content, role=role)
@@ -421,7 +421,7 @@ def generate_chatml_messages_with_context(
         messages.append(
             ChatMessage(
                 content=construct_structured_message(
-                    user_message, query_images, model_type, vision_enabled, attached_files
+                    user_message, query_images, model_type, vision_enabled, query_files
                 ),
                 role="user",
             )

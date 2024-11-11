@@ -50,7 +50,7 @@ from khoj.routers.helpers import (
     aget_relevant_output_modes,
     construct_automation_created_message,
     create_automation,
-    gather_raw_attached_files,
+    gather_raw_query_files,
     generate_excalidraw_diagram,
     generate_summary_from_files,
     get_conversation_command,
@@ -602,7 +602,7 @@ async def chat(
     country_code = body.country_code or get_country_code_from_timezone(body.timezone)
     timezone = body.timezone
     raw_images = body.images
-    raw_attached_files = body.files
+    raw_query_files = body.files
 
     async def event_generator(q: str, images: list[str]):
         start_time = time.perf_counter()
@@ -614,7 +614,7 @@ async def chat(
         q = unquote(q)
         train_of_thought = []
         nonlocal conversation_id
-        nonlocal raw_attached_files
+        nonlocal raw_query_files
 
         tracer: dict = {
             "mid": turn_id,
@@ -634,10 +634,10 @@ async def chat(
                 if uploaded_image:
                     uploaded_images.append(uploaded_image)
 
-        attached_files: Dict[str, str] = {}
-        if raw_attached_files:
-            for file in raw_attached_files:
-                attached_files[file.name] = file.content
+        query_files: Dict[str, str] = {}
+        if raw_query_files:
+            for file in raw_query_files:
+                query_files[file.name] = file.content
 
         async def send_event(event_type: ChatEvent, data: str | dict):
             nonlocal connection_alive, ttft, train_of_thought
@@ -750,7 +750,7 @@ async def chat(
         compiled_references: List[Any] = []
         inferred_queries: List[Any] = []
         file_filters = conversation.file_filters if conversation and conversation.file_filters else []
-        attached_file_context = gather_raw_attached_files(attached_files)
+        attached_file_context = gather_raw_query_files(query_files)
 
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
             conversation_commands = await aget_relevant_information_sources(
@@ -760,7 +760,7 @@ async def chat(
                 user=user,
                 query_images=uploaded_images,
                 agent=agent,
-                attached_files=attached_file_context,
+                query_files=attached_file_context,
                 tracer=tracer,
             )
 
@@ -806,7 +806,7 @@ async def chat(
                 user_name=user_name,
                 location=location,
                 file_filters=conversation.file_filters if conversation else [],
-                attached_files=attached_file_context,
+                query_files=attached_file_context,
                 tracer=tracer,
             ):
                 if isinstance(research_result, InformationCollectionIteration):
@@ -855,7 +855,7 @@ async def chat(
                     query_images=uploaded_images,
                     agent=agent,
                     send_status_func=partial(send_event, ChatEvent.STATUS),
-                    attached_files=attached_file_context,
+                    query_files=attached_file_context,
                     tracer=tracer,
                 ):
                     if isinstance(response, dict) and ChatEvent.STATUS in response:
@@ -877,7 +877,7 @@ async def chat(
                 conversation_id=conversation_id,
                 query_images=uploaded_images,
                 train_of_thought=train_of_thought,
-                raw_attached_files=raw_attached_files,
+                raw_query_files=raw_query_files,
                 tracer=tracer,
             )
             return
@@ -923,7 +923,7 @@ async def chat(
                 automation_id=automation.id,
                 query_images=uploaded_images,
                 train_of_thought=train_of_thought,
-                raw_attached_files=raw_attached_files,
+                raw_query_files=raw_query_files,
                 tracer=tracer,
             )
             async for result in send_llm_response(llm_response):
@@ -946,7 +946,7 @@ async def chat(
                     partial(send_event, ChatEvent.STATUS),
                     query_images=uploaded_images,
                     agent=agent,
-                    attached_files=attached_file_context,
+                    query_files=attached_file_context,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -992,7 +992,7 @@ async def chat(
                     custom_filters,
                     query_images=uploaded_images,
                     agent=agent,
-                    attached_files=attached_file_context,
+                    query_files=attached_file_context,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1018,7 +1018,7 @@ async def chat(
                     partial(send_event, ChatEvent.STATUS),
                     query_images=uploaded_images,
                     agent=agent,
-                    attached_files=attached_file_context,
+                    query_files=attached_file_context,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1059,7 +1059,7 @@ async def chat(
                     partial(send_event, ChatEvent.STATUS),
                     query_images=uploaded_images,
                     agent=agent,
-                    attached_files=attached_file_context,
+                    query_files=attached_file_context,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1100,7 +1100,7 @@ async def chat(
                 send_status_func=partial(send_event, ChatEvent.STATUS),
                 query_images=uploaded_images,
                 agent=agent,
-                attached_files=attached_file_context,
+                query_files=attached_file_context,
                 tracer=tracer,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1134,7 +1134,7 @@ async def chat(
                 query_images=uploaded_images,
                 train_of_thought=train_of_thought,
                 attached_file_context=attached_file_context,
-                raw_attached_files=raw_attached_files,
+                raw_query_files=raw_query_files,
                 tracer=tracer,
             )
             content_obj = {
@@ -1164,7 +1164,7 @@ async def chat(
                 user=user,
                 agent=agent,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
-                attached_files=attached_file_context,
+                query_files=attached_file_context,
                 tracer=tracer,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1195,7 +1195,7 @@ async def chat(
                 query_images=uploaded_images,
                 train_of_thought=train_of_thought,
                 attached_file_context=attached_file_context,
-                raw_attached_files=raw_attached_files,
+                raw_query_files=raw_query_files,
                 tracer=tracer,
             )
 
@@ -1224,7 +1224,7 @@ async def chat(
             uploaded_images,
             train_of_thought,
             attached_file_context,
-            raw_attached_files,
+            raw_query_files,
             tracer,
         )
 

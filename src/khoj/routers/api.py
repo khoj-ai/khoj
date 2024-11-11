@@ -351,7 +351,7 @@ async def extract_references_and_questions(
     query_images: Optional[List[str]] = None,
     previous_inferred_queries: Set = set(),
     agent: Agent = None,
-    attached_files: str = None,
+    query_files: str = None,
     tracer: dict = {},
 ):
     user = request.user.object if request.user.is_authenticated else None
@@ -426,7 +426,7 @@ async def extract_references_and_questions(
                 user=user,
                 max_prompt_size=conversation_config.max_prompt_size,
                 personality_context=personality_context,
-                attached_files=attached_files,
+                query_files=query_files,
                 tracer=tracer,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
@@ -445,7 +445,7 @@ async def extract_references_and_questions(
                 query_images=query_images,
                 vision_enabled=vision_enabled,
                 personality_context=personality_context,
-                attached_files=attached_files,
+                query_files=query_files,
                 tracer=tracer,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
@@ -461,7 +461,7 @@ async def extract_references_and_questions(
                 user=user,
                 vision_enabled=vision_enabled,
                 personality_context=personality_context,
-                attached_files=attached_files,
+                query_files=query_files,
                 tracer=tracer,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
@@ -478,7 +478,7 @@ async def extract_references_and_questions(
                 user=user,
                 vision_enabled=vision_enabled,
                 personality_context=personality_context,
-                attached_files=attached_files,
+                query_files=query_files,
                 tracer=tracer,
             )
 

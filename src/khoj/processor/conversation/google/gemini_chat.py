@@ -37,7 +37,7 @@ def extract_questions_gemini(
     query_images: Optional[list[str]] = None,
     vision_enabled: bool = False,
     personality_context: Optional[str] = None,
-    attached_files: str = None,
+    query_files: str = None,
     tracer: dict = {},
 ):
     """
@@ -84,7 +84,7 @@ def extract_questions_gemini(
         images=query_images,
         model_type=ChatModelOptions.ModelType.GOOGLE,
         vision_enabled=vision_enabled,
-        attached_file_context=attached_files,
+        attached_file_context=query_files,
     )
 
     messages = []
@@ -162,7 +162,7 @@ def converse_gemini(
     agent: Agent = None,
     query_images: Optional[list[str]] = None,
     vision_available: bool = False,
-    attached_files: str = None,
+    query_files: str = None,
     tracer={},
 ):
     """
@@ -221,7 +221,7 @@ def converse_gemini(
         query_images=query_images,
         vision_enabled=vision_available,
         model_type=ChatModelOptions.ModelType.GOOGLE,
-        attached_files=attached_files,
+        query_files=query_files,
     )
 
     messages, system_prompt = format_messages_for_gemini(messages, system_prompt)

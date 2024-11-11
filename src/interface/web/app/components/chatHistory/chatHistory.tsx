@@ -373,7 +373,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                             images: message.images,
                                             conversationId: props.conversationId,
                                             turnId: messageTurnId,
-                                            attachedFiles: message.attachedFiles,
+                                            queryFiles: message.queryFiles,
                                         }}
                                         customClassName="fullHistory"
                                         borderLeftColor={`${data?.agent?.color}-500`}

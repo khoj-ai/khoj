@@ -83,19 +83,21 @@ function ChatBodyData(props: ChatBodyDataProps) {
         }
 
         const storedUploadedFiles = localStorage.getItem("uploadedFiles");
-        const parsedFiles = storedUploadedFiles ? JSON.parse(storedUploadedFiles) : [];
 
-        const uploadedFiles: AttachedFileText[] = [];
-        for (const file of parsedFiles) {
-            uploadedFiles.push({
-                name: file.name,
-                file_type: file.file_type,
-                content: file.content,
-                size: file.size,
-            });
+        if (storedUploadedFiles) {
+            const parsedFiles = storedUploadedFiles ? JSON.parse(storedUploadedFiles) : [];
+            const uploadedFiles: AttachedFileText[] = [];
+            for (const file of parsedFiles) {
+                uploadedFiles.push({
+                    name: file.name,
+                    file_type: file.file_type,
+                    content: file.content,
+                    size: file.size,
+                });
+            }
+            localStorage.removeItem("uploadedFiles");
+            props.setUploadedFiles(uploadedFiles);
         }
-        localStorage.removeItem("uploadedFiles");
-        props.setUploadedFiles(uploadedFiles);
     }, [setQueryToProcess, props.setImages, conversationId]);
 
     useEffect(() => {
@@ -212,7 +214,7 @@ export default function Chat() {
                 timestamp: new Date().toISOString(),
                 rawQuery: queryToProcess || "",
                 images: images,
-                attachedFiles: uploadedFiles,
+                queryFiles: uploadedFiles,
             };
             setMessages((prevMessages) => [...prevMessages, newStreamMessage]);
             setProcessQuerySignal(true);

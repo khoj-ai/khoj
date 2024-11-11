@@ -161,7 +161,7 @@ export interface SingleChatMessage {
     images?: string[];
     conversationId: string;
     turnId?: string;
-    attachedFiles?: AttachedFileText[];
+    queryFiles?: AttachedFileText[];
 }
 
 export interface StreamMessage {
@@ -178,7 +178,7 @@ export interface StreamMessage {
     intentType?: string;
     inferredQueries?: string[];
     turnId?: string;
-    attachedFiles?: AttachedFileText[];
+    queryFiles?: AttachedFileText[];
 }
 
 export interface ChatHistoryData {
@@ -708,16 +708,21 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             onMouseLeave={(event) => setIsHovering(false)}
             onMouseEnter={(event) => setIsHovering(true)}
         >
-            {props.chatMessage.attachedFiles && props.chatMessage.attachedFiles.length > 0 && (
-                <div className="flex flex-wrap flex-col m-2">
-                    {props.chatMessage.attachedFiles.map((file, index) => (
+            {props.chatMessage.queryFiles && props.chatMessage.queryFiles.length > 0 && (
+                <div className="flex flex-wrap flex-col m-2 max-w-full">
+                    {props.chatMessage.queryFiles.map((file, index) => (
                         <Dialog key={index}>
-                            <DialogTrigger>
-                                <div className="flex items-center space-x-2 cursor-pointer bg-gray-500 bg-opacity-25 rounded-lg m-1 p-2 w-full">
-                                    {getIconFromFilename(file.file_type)}
-                                    <span className="truncate">{file.name}</span>
+                            <DialogTrigger asChild>
+                                <div
+                                    className="flex items-center space-x-2 cursor-pointer bg-gray-500 bg-opacity-25 rounded-lg m-1 p-2 w-full
+                                "
+                                >
+                                    <div className="flex-shrink-0">
+                                        {getIconFromFilename(file.file_type)}
+                                    </div>
+                                    <span className="truncate flex-1 min-w-0">{file.name}</span>
                                     {file.size && (
-                                        <span className="text-gray-400">
+                                        <span className="text-gray-400 flex-shrink-0">
                                             ({convertBytesToText(file.size)})
                                         </span>
                                     )}

@@ -46,7 +46,7 @@ async def apick_next_tool(
     max_iterations: int = 5,
     send_status_func: Optional[Callable] = None,
     tracer: dict = {},
-    attached_files: str = None,
+    query_files: str = None,
 ):
     """Given a query, determine which of the available tools the agent should use in order to answer appropriately."""
 
@@ -92,7 +92,7 @@ async def apick_next_tool(
                 response_type="json_object",
                 user=user,
                 query_images=query_images,
-                attached_files=attached_files,
+                query_files=query_files,
                 tracer=tracer,
             )
     except Exception as e:
@@ -152,7 +152,7 @@ async def execute_information_collection(
     location: LocationData = None,
     file_filters: List[str] = [],
     tracer: dict = {},
-    attached_files: str = None,
+    query_files: str = None,
 ):
     current_iteration = 0
     MAX_ITERATIONS = 5
@@ -176,7 +176,7 @@ async def execute_information_collection(
             MAX_ITERATIONS,
             send_status_func,
             tracer=tracer,
-            attached_files=attached_files,
+            query_files=query_files,
         ):
             if isinstance(result, dict) and ChatEvent.STATUS in result:
                 yield result[ChatEvent.STATUS]
@@ -207,7 +207,7 @@ async def execute_information_collection(
                 previous_inferred_queries=previous_inferred_queries,
                 agent=agent,
                 tracer=tracer,
-                attached_files=attached_files,
+                query_files=query_files,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
@@ -269,7 +269,7 @@ async def execute_information_collection(
                     query_images=query_images,
                     agent=agent,
                     tracer=tracer,
-                    attached_files=attached_files,
+                    query_files=query_files,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -300,7 +300,7 @@ async def execute_information_collection(
                     send_status_func,
                     query_images=query_images,
                     agent=agent,
-                    attached_files=attached_files,
+                    query_files=query_files,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -326,7 +326,7 @@ async def execute_information_collection(
                     query_images=query_images,
                     agent=agent,
                     send_status_func=send_status_func,
-                    attached_files=attached_files,
+                    query_files=query_files,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]

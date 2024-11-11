@@ -256,18 +256,18 @@ async def agenerate_chat_response(*args):
     return await loop.run_in_executor(executor, generate_chat_response, *args)
 
 
-def gather_raw_attached_files(
-    attached_files: Dict[str, str],
+def gather_raw_query_files(
+    query_files: Dict[str, str],
 ):
     """
     Gather contextual data from the given (raw) files
     """
 
-    if len(attached_files) == 0:
+    if len(query_files) == 0:
         return ""
 
     contextual_data = " ".join(
-        [f"File: {file_name}\n\n{file_content}\n\n" for file_name, file_content in attached_files.items()]
+        [f"File: {file_name}\n\n{file_content}\n\n" for file_name, file_content in query_files.items()]
     )
     return f"I have attached the following files:\n\n{contextual_data}"
 
@@ -334,7 +334,7 @@ async def aget_relevant_information_sources(
     user: KhojUser,
     query_images: List[str] = None,
     agent: Agent = None,
-    attached_files: str = None,
+    query_files: str = None,
     tracer: dict = {},
 ):
     """
@@ -372,7 +372,7 @@ async def aget_relevant_information_sources(
             relevant_tools_prompt,
             response_type="json_object",
             user=user,
-            attached_files=attached_files,
+            query_files=query_files,
             tracer=tracer,
         )
 
@@ -482,7 +482,7 @@ async def infer_webpage_urls(
     user: KhojUser,
     query_images: List[str] = None,
     agent: Agent = None,
-    attached_files: str = None,
+    query_files: str = None,
     tracer: dict = {},
 ) -> List[str]:
     """
@@ -512,7 +512,7 @@ async def infer_webpage_urls(
             query_images=query_images,
             response_type="json_object",
             user=user,
-            attached_files=attached_files,
+            query_files=query_files,
             tracer=tracer,
         )
 
@@ -538,7 +538,7 @@ async def generate_online_subqueries(
     user: KhojUser,
     query_images: List[str] = None,
     agent: Agent = None,
-    attached_files: str = None,
+    query_files: str = None,
     tracer: dict = {},
 ) -> Set[str]:
     """
@@ -568,7 +568,7 @@ async def generate_online_subqueries(
             query_images=query_images,
             response_type="json_object",
             user=user,
-            attached_files=attached_files,
+            query_files=query_files,
             tracer=tracer,
         )
 
@@ -691,7 +691,7 @@ async def generate_summary_from_files(
     query_images: List[str] = None,
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
-    attached_files: str = None,
+    query_files: str = None,
     tracer: dict = {},
 ):
     try:
@@ -701,17 +701,15 @@ async def generate_summary_from_files(
             if len(file_names) > 0:
                 file_objects = await FileObjectAdapters.async_get_file_objects_by_name(None, file_names.pop(), agent)
 
-        if (file_objects and len(file_objects) == 0 and not attached_files) or (
-            not file_objects and not attached_files
-        ):
+        if (file_objects and len(file_objects) == 0 and not query_files) or (not file_objects and not query_files):
             response_log = "Sorry, I couldn't find anything to summarize."
             yield response_log
             return
 
         contextual_data = " ".join([f"File: {file.file_name}\n\n{file.raw_text}" for file in file_objects])
 
-        if attached_files:
-            contextual_data += f"\n\n{attached_files}"
+        if query_files:
+            contextual_data += f"\n\n{query_files}"
 
         if not q:
             q = "Create a general summary of the file"
@@ -754,7 +752,7 @@ async def generate_excalidraw_diagram(
     user: KhojUser = None,
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
-    attached_files: str = None,
+    query_files: str = None,
     tracer: dict = {},
 ):
     if send_status_func:
@@ -770,7 +768,7 @@ async def generate_excalidraw_diagram(
         query_images=query_images,
         user=user,
         agent=agent,
-        attached_files=attached_files,
+        query_files=query_files,
         tracer=tracer,
     )
 
@@ -797,7 +795,7 @@ async def generate_better_diagram_description(
     query_images: List[str] = None,
     user: KhojUser = None,
     agent: Agent = None,
-    attached_files: str = None,
+    query_files: str = None,
     tracer: dict = {},
 ) -> str:
     """
@@ -839,7 +837,7 @@ async def generate_better_diagram_description(
             improve_diagram_description_prompt,
             query_images=query_images,
             user=user,
-            attached_files=attached_files,
+            query_files=query_files,
             tracer=tracer,
         )
         response = response.strip()
@@ -887,7 +885,7 @@ async def generate_better_image_prompt(
     query_images: Optional[List[str]] = None,
     user: KhojUser = None,
     agent: Agent = None,
-    attached_files: str = "",
+    query_files: str = "",
     tracer: dict = {},
 ) -> str:
     """
@@ -936,7 +934,7 @@ async def generate_better_image_prompt(
 
     with timer("Chat actor: Generate contextual image prompt", logger):
         response = await send_message_to_model_wrapper(
-            image_prompt, query_images=query_images, user=user, attached_files=attached_files, tracer=tracer
+            image_prompt, query_images=query_images, user=user, query_files=query_files, tracer=tracer
         )
         response = response.strip()
         if response.startswith(('"', "'")) and response.endswith(('"', "'")):
@@ -952,7 +950,7 @@ async def send_message_to_model_wrapper(
     user: KhojUser = None,
     query_images: List[str] = None,
     context: str = "",
-    attached_files: str = None,
+    query_files: str = None,
     tracer: dict = {},
 ):
     conversation_config: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config(user)
@@ -992,7 +990,7 @@ async def send_message_to_model_wrapper(
             max_prompt_size=max_tokens,
             vision_enabled=vision_available,
             model_type=conversation_config.model_type,
-            attached_files=attached_files,
+            query_files=query_files,
         )
 
         return send_message_to_model_offline(
@@ -1019,7 +1017,7 @@ async def send_message_to_model_wrapper(
             vision_enabled=vision_available,
             query_images=query_images,
             model_type=conversation_config.model_type,
-            attached_files=attached_files,
+            query_files=query_files,
         )
 
         return send_message_to_model(
@@ -1042,7 +1040,7 @@ async def send_message_to_model_wrapper(
             vision_enabled=vision_available,
             query_images=query_images,
             model_type=conversation_config.model_type,
-            attached_files=attached_files,
+            query_files=query_files,
         )
 
         return anthropic_send_message_to_model(
@@ -1064,7 +1062,7 @@ async def send_message_to_model_wrapper(
             vision_enabled=vision_available,
             query_images=query_images,
             model_type=conversation_config.model_type,
-            attached_files=attached_files,
+            query_files=query_files,
         )
 
         return gemini_send_message_to_model(
@@ -1079,7 +1077,7 @@ def send_message_to_model_wrapper_sync(
     system_message: str = "",
     response_type: str = "text",
     user: KhojUser = None,
-    attached_files: str = "",
+    query_files: str = "",
     tracer: dict = {},
 ):
     conversation_config: ChatModelOptions = ConversationAdapters.get_default_conversation_config(user)
@@ -1104,7 +1102,7 @@ def send_message_to_model_wrapper_sync(
             max_prompt_size=max_tokens,
             vision_enabled=vision_available,
             model_type=conversation_config.model_type,
-            attached_files=attached_files,
+            query_files=query_files,
         )
 
         return send_message_to_model_offline(
@@ -1126,7 +1124,7 @@ def send_message_to_model_wrapper_sync(
             max_prompt_size=max_tokens,
             vision_enabled=vision_available,
             model_type=conversation_config.model_type,
-            attached_files=attached_files,
+            query_files=query_files,
         )
 
         openai_response = send_message_to_model(
@@ -1148,7 +1146,7 @@ def send_message_to_model_wrapper_sync(
             max_prompt_size=max_tokens,
             vision_enabled=vision_available,
             model_type=conversation_config.model_type,
-            attached_files=attached_files,
+            query_files=query_files,
         )
 
         return anthropic_send_message_to_model(
@@ -1168,7 +1166,7 @@ def send_message_to_model_wrapper_sync(
             max_prompt_size=max_tokens,
             vision_enabled=vision_available,
             model_type=conversation_config.model_type,
-            attached_files=attached_files,
+            query_files=query_files,
         )
 
         return gemini_send_message_to_model(
@@ -1199,8 +1197,8 @@ def generate_chat_response(
     meta_research: str = "",
     query_images: Optional[List[str]] = None,
     train_of_thought: List[Any] = [],
-    attached_files: str = None,
-    raw_attached_files: List[FileAttachment] = None,
+    query_files: str = None,
+    raw_query_files: List[FileAttachment] = None,
     tracer: dict = {},
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
@@ -1223,7 +1221,7 @@ def generate_chat_response(
             conversation_id=conversation_id,
             query_images=query_images,
             train_of_thought=train_of_thought,
-            raw_attached_files=raw_attached_files,
+            raw_query_files=raw_query_files,
             tracer=tracer,
         )
 
@@ -1258,7 +1256,7 @@ def generate_chat_response(
                 location_data=location_data,
                 user_name=user_name,
                 agent=agent,
-                attached_files=attached_files,
+                query_files=query_files,
                 tracer=tracer,
             )
 
@@ -1284,7 +1282,7 @@ def generate_chat_response(
                 user_name=user_name,
                 agent=agent,
                 vision_available=vision_available,
-                attached_files=attached_files,
+                query_files=query_files,
                 tracer=tracer,
             )
 
@@ -1307,7 +1305,7 @@ def generate_chat_response(
                 user_name=user_name,
                 agent=agent,
                 vision_available=vision_available,
-                attached_files=attached_files,
+                query_files=query_files,
                 tracer=tracer,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
@@ -1329,7 +1327,7 @@ def generate_chat_response(
                 agent=agent,
                 query_images=query_images,
                 vision_available=vision_available,
-                attached_files=attached_files,
+                query_files=query_files,
                 tracer=tracer,
             )
 
