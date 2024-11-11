@@ -257,9 +257,6 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
             setConvertedAttachedFiles(data);
         });
 
-        const totalSize = Array.from(files).reduce((acc, file) => acc + file.size, 0);
-        const totalSizeInMB = totalSize / (1024 * 1024);
-
         // Set focus to the input for user message after uploading files
         chatInputRef?.current?.focus();
     }
@@ -612,6 +609,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                 >
                     <input
                         type="file"
+                        accept=".pdf,.doc,.docx,.txt,.md,.org,.jpg,.jpeg,.png,.webp"
                         multiple={true}
                         ref={fileInputRef}
                         onChange={handleFileChange}
