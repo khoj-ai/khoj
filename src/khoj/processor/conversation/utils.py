@@ -449,7 +449,7 @@ def truncate_messages(
             truncated_message = encoder.decode(encoder.encode(original_question)[:remaining_tokens]).strip()
             messages = [ChatMessage(content=truncated_message, role=messages[0].role)]
         logger.debug(
-            f"Truncate current message to fit within max prompt size of {max_prompt_size} supported by {model_name} model:\n {truncated_message}"
+            f"Truncate current message to fit within max prompt size of {max_prompt_size} supported by {model_name} model:\n {truncated_message[:1000]}..."
         )
 
     if system_message:
