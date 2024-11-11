@@ -6,7 +6,7 @@ import os
 import threading
 import time
 import uuid
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, Callable, List, Optional, Set, Union
 
 import cron_descriptor
 import pytz
@@ -349,6 +349,7 @@ async def extract_references_and_questions(
     location_data: LocationData = None,
     send_status_func: Optional[Callable] = None,
     query_images: Optional[List[str]] = None,
+    previous_inferred_queries: Set = set(),
     agent: Agent = None,
     attached_files: str = None,
     tracer: dict = {},
@@ -482,6 +483,7 @@ async def extract_references_and_questions(
             )
 
     # Collate search results as context for GPT
+    inferred_queries = list(set(inferred_queries) - previous_inferred_queries)
     with timer("Searching knowledge base took", logger):
         search_results = []
         logger.info(f"🔍 Searching knowledge base with queries: {inferred_queries}")

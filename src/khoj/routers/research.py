@@ -42,38 +42,35 @@ async def apick_next_tool(
     location: LocationData = None,
     user_name: str = None,
     agent: Agent = None,
-    previous_iterations_history: str = None,
+    previous_iterations: List[InformationCollectionIteration] = [],
     max_iterations: int = 5,
     send_status_func: Optional[Callable] = None,
     tracer: dict = {},
     attached_files: str = None,
 ):
-    """
-    Given a query, determine which of the available tools the agent should use in order to answer appropriately. One at a time, and it's able to use subsequent iterations to refine the answer.
-    """
+    """Given a query, determine which of the available tools the agent should use in order to answer appropriately."""
 
+    # Construct tool options for the agent to choose from
     tool_options = dict()
     tool_options_str = ""
-
     agent_tools = agent.input_tools if agent else []
-
     for tool, description in function_calling_description_for_llm.items():
         tool_options[tool.value] = description
         if len(agent_tools) == 0 or tool.value in agent_tools:
             tool_options_str += f'- "{tool.value}": "{description}"\n'
 
+    # Construct chat history with user and iteration history with researcher agent for context
     chat_history = construct_chat_history(conversation_history, agent_name=agent.name if agent else "Khoj")
+    previous_iterations_history = construct_iteration_history(previous_iterations, prompts.previous_iteration)
 
     if query_images:
         query = f"[placeholder for user attached images]\n{query}"
 
+    today = datetime.today()
+    location_data = f"{location}" if location else "Unknown"
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
     )
-
-    # Extract Past User Message and Inferred Questions from Conversation Log
-    today = datetime.today()
-    location_data = f"{location}" if location else "Unknown"
 
     function_planning_prompt = prompts.plan_function_execution.format(
         tools=tool_options_str,
@@ -87,16 +84,25 @@ async def apick_next_tool(
         max_iterations=max_iterations,
     )
 
-    with timer("Chat actor: Infer information sources to refer", logger):
-        response = await send_message_to_model_wrapper(
-            query=query,
-            context=function_planning_prompt,
-            response_type="json_object",
-            user=user,
-            query_images=query_images,
-            tracer=tracer,
-            attached_files=attached_files,
+    try:
+        with timer("Chat actor: Infer information sources to refer", logger):
+            response = await send_message_to_model_wrapper(
+                query=query,
+                context=function_planning_prompt,
+                response_type="json_object",
+                user=user,
+                query_images=query_images,
+                attached_files=attached_files,
+                tracer=tracer,
+            )
+    except Exception as e:
+        logger.error(f"Failed to infer information sources to refer: {e}", exc_info=True)
+        yield InformationCollectionIteration(
+            tool=None,
+            query=None,
+            warning="Failed to infer information sources to refer. Skipping iteration. Try again.",
         )
+        return
 
     try:
         response = clean_json(response)
@@ -104,8 +110,15 @@ async def apick_next_tool(
         selected_tool = response.get("tool", None)
         generated_query = response.get("query", None)
         scratchpad = response.get("scratchpad", None)
+        warning = None
         logger.info(f"Response for determining relevant tools: {response}")
-        if send_status_func:
+
+        # Detect selection of previously used query, tool combination.
+        previous_tool_query_combinations = {(i.tool, i.query) for i in previous_iterations}
+        if (selected_tool, generated_query) in previous_tool_query_combinations:
+            warning = f"Repeated tool, query combination detected. Skipping iteration. Try something different."
+        # Only send client status updates if we'll execute this iteration
+        elif send_status_func:
             determined_tool_message = "**Determined Tool**: "
             determined_tool_message += f"{selected_tool}({generated_query})." if selected_tool else "respond."
             determined_tool_message += f"\nReason: {scratchpad}" if scratchpad else ""
@@ -115,13 +128,14 @@ async def apick_next_tool(
         yield InformationCollectionIteration(
             tool=selected_tool,
             query=generated_query,
+            warning=warning,
         )
-
     except Exception as e:
         logger.error(f"Invalid response for determining relevant tools: {response}. {e}", exc_info=True)
         yield InformationCollectionIteration(
             tool=None,
             query=None,
+            warning=f"Invalid response for determining relevant tools: {response}. Skipping iteration. Fix error: {e}",
         )
 
 
@@ -149,7 +163,6 @@ async def execute_information_collection(
         document_results: List[Dict[str, str]] = []
         summarize_files: str = ""
         this_iteration = InformationCollectionIteration(tool=None, query=query)
-        previous_iterations_history = construct_iteration_history(previous_iterations, prompts.previous_iteration)
 
         async for result in apick_next_tool(
             query,
@@ -159,7 +172,7 @@ async def execute_information_collection(
             location,
             user_name,
             agent,
-            previous_iterations_history,
+            previous_iterations,
             MAX_ITERATIONS,
             send_status_func,
             tracer=tracer,
@@ -170,9 +183,16 @@ async def execute_information_collection(
             elif isinstance(result, InformationCollectionIteration):
                 this_iteration = result
 
-        if this_iteration.tool == ConversationCommand.Notes:
+        # Skip running iteration if warning present in iteration
+        if this_iteration.warning:
+            logger.warning(f"Research mode: {this_iteration.warning}.")
+
+        elif this_iteration.tool == ConversationCommand.Notes:
             this_iteration.context = []
             document_results = []
+            previous_inferred_queries = {
+                c["query"] for iteration in previous_iterations if iteration.context for c in iteration.context
+            }
             async for result in extract_references_and_questions(
                 request,
                 construct_tool_chat_history(previous_iterations, ConversationCommand.Notes),
@@ -184,6 +204,7 @@ async def execute_information_collection(
                 location,
                 send_status_func,
                 query_images,
+                previous_inferred_queries=previous_inferred_queries,
                 agent=agent,
                 tracer=tracer,
                 attached_files=attached_files,
@@ -208,6 +229,12 @@ async def execute_information_collection(
                     logger.error(f"Error extracting document references: {e}", exc_info=True)
 
         elif this_iteration.tool == ConversationCommand.Online:
+            previous_subqueries = {
+                subquery
+                for iteration in previous_iterations
+                if iteration.onlineContext
+                for subquery in iteration.onlineContext.keys()
+            }
             async for result in search_online(
                 this_iteration.query,
                 construct_tool_chat_history(previous_iterations, ConversationCommand.Online),
@@ -217,11 +244,16 @@ async def execute_information_collection(
                 [],
                 max_webpages_to_read=0,
                 query_images=query_images,
+                previous_subqueries=previous_subqueries,
                 agent=agent,
                 tracer=tracer,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
+                elif is_none_or_empty(result):
+                    this_iteration.warning = (
+                        "Detected previously run online search queries. Skipping iteration. Try something different."
+                    )
                 else:
                     online_results: Dict[str, Dict] = result  # type: ignore
                     this_iteration.onlineContext = online_results
@@ -309,16 +341,19 @@ async def execute_information_collection(
 
         current_iteration += 1
 
-        if document_results or online_results or code_results or summarize_files:
-            results_data = f"**Results**:\n"
+        if document_results or online_results or code_results or summarize_files or this_iteration.warning:
+            results_data = f"\n<iteration>{current_iteration}\n<tool>{this_iteration.tool}</tool>\n<query>{this_iteration.query}</query>\n<results>"
             if document_results:
-                results_data += f"**Document References**:\n{yaml.dump(document_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n"
+                results_data += f"\n<document_references>\n{yaml.dump(document_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</document_references>"
             if online_results:
-                results_data += f"**Online Results**:\n{yaml.dump(online_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n"
+                results_data += f"\n<online_results>\n{yaml.dump(online_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</online_results>"
             if code_results:
-                results_data += f"**Code Results**:\n{yaml.dump(code_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n"
+                results_data += f"\n<code_results>\n{yaml.dump(code_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</code_results>"
             if summarize_files:
-                results_data += f"**Summarized Files**:\n{yaml.dump(summarize_files, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n"
+                results_data += f"\n<summarized_files>\n{yaml.dump(summarize_files, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</summarized_files>"
+            if this_iteration.warning:
+                results_data += f"\n<warning>\n{this_iteration.warning}\n</warning>"
+            results_data += "\n</results>\n</iteration>"
 
             # intermediate_result = await extract_relevant_info(this_iteration.query, results_data, agent)
             this_iteration.summarizedResult = results_data

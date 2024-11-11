@@ -4,7 +4,7 @@ import logging
 import os
 import urllib.parse
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import aiohttp
 from bs4 import BeautifulSoup
@@ -66,6 +66,7 @@ async def search_online(
     custom_filters: List[str] = [],
     max_webpages_to_read: int = DEFAULT_MAX_WEBPAGES_TO_READ,
     query_images: List[str] = None,
+    previous_subqueries: Set = set(),
     agent: Agent = None,
     attached_files: str = None,
     tracer: dict = {},
@@ -77,7 +78,7 @@ async def search_online(
         return
 
     # Breakdown the query into subqueries to get the correct answer
-    subqueries = await generate_online_subqueries(
+    new_subqueries = await generate_online_subqueries(
         query,
         conversation_history,
         location,
@@ -87,33 +88,42 @@ async def search_online(
         tracer=tracer,
         attached_files=attached_files,
     )
-    response_dict = {}
+    subqueries = list(new_subqueries - previous_subqueries)
+    response_dict: Dict[str, Dict[str, List[Dict] | Dict]] = {}
 
-    if subqueries:
-        logger.info(f"🌐 Searching the Internet for {list(subqueries)}")
-        if send_status_func:
-            subqueries_str = "\n- " + "\n- ".join(list(subqueries))
-            async for event in send_status_func(f"**Searching the Internet for**: {subqueries_str}"):
-                yield {ChatEvent.STATUS: event}
+    if is_none_or_empty(subqueries):
+        logger.info("No new subqueries to search online")
+        yield response_dict
+        return
 
-    with timer(f"Internet searches for {list(subqueries)} took", logger):
+    logger.info(f"🌐 Searching the Internet for {subqueries}")
+    if send_status_func:
+        subqueries_str = "\n- " + "\n- ".join(subqueries)
+        async for event in send_status_func(f"**Searching the Internet for**: {subqueries_str}"):
+            yield {ChatEvent.STATUS: event}
+
+    with timer(f"Internet searches for {subqueries} took", logger):
         search_func = search_with_google if SERPER_DEV_API_KEY else search_with_jina
         search_tasks = [search_func(subquery, location) for subquery in subqueries]
         search_results = await asyncio.gather(*search_tasks)
         response_dict = {subquery: search_result for subquery, search_result in search_results}
 
     # Gather distinct web pages from organic results for subqueries without an instant answer.
-    # Content of web pages is directly available when Jina is used for search.
     webpages: Dict[str, Dict] = {}
     for subquery in response_dict:
         if "answerBox" in response_dict[subquery]:
             continue
-        for organic in response_dict[subquery].get("organic", [])[:max_webpages_to_read]:
+        for idx, organic in enumerate(response_dict[subquery].get("organic", [])):
             link = organic.get("link")
-            if link in webpages:
+            if link in webpages and idx < max_webpages_to_read:
                 webpages[link]["queries"].add(subquery)
-            else:
+            # Content of web pages is directly available when Jina is used for search.
+            elif idx < max_webpages_to_read:
                 webpages[link] = {"queries": {subquery}, "content": organic.get("content")}
+            # Only keep webpage content for up to max_webpages_to_read organic results.
+            if idx >= max_webpages_to_read and not is_none_or_empty(organic.get("content")):
+                organic["content"] = None
+                response_dict[subquery]["organic"][idx] = organic
 
     # Read, extract relevant info from the retrieved web pages
     if webpages:
@@ -123,7 +133,9 @@ async def search_online(
             async for event in send_status_func(f"**Reading web pages**: {webpage_links_str}"):
                 yield {ChatEvent.STATUS: event}
     tasks = [
-        read_webpage_and_extract_content(data["queries"], link, data["content"], user=user, agent=agent, tracer=tracer)
+        read_webpage_and_extract_content(
+            data["queries"], link, data.get("content"), user=user, agent=agent, tracer=tracer
+        )
         for link, data in webpages.items()
     ]
     results = await asyncio.gather(*tasks)
@@ -371,3 +383,25 @@ async def search_with_jina(query: str, location: LocationData) -> Tuple[str, Dic
                 for item in response_json["data"]
             ]
             return query, {"organic": parsed_response}
+
+
+def deduplicate_organic_results(online_results: dict) -> dict:
+    """Deduplicate organic search results based on links across all queries."""
+    # Keep track of seen links to filter out duplicates across queries
+    seen_links = set()
+    deduplicated_results = {}
+
+    # Process each query's results
+    for query, results in online_results.items():
+        # Filter organic results keeping only first occurrence of each link
+        filtered_organic = []
+        for result in results.get("organic", []):
+            link = result.get("link")
+            if link and link not in seen_links:
+                seen_links.add(link)
+                filtered_organic.append(result)
+
+        # Update results with deduplicated organic entries
+        deduplicated_results[query] = {**results, "organic": filtered_organic}
+
+    return deduplicated_results

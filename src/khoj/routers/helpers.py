@@ -20,6 +20,7 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Set,
     Tuple,
     Union,
 )
@@ -539,7 +540,7 @@ async def generate_online_subqueries(
     agent: Agent = None,
     attached_files: str = None,
     tracer: dict = {},
-) -> List[str]:
+) -> Set[str]:
     """
     Generate subqueries from the given query
     """
@@ -575,14 +576,14 @@ async def generate_online_subqueries(
     try:
         response = clean_json(response)
         response = json.loads(response)
-        response = [q.strip() for q in response["queries"] if q.strip()]
-        if not isinstance(response, list) or not response or len(response) == 0:
+        response = {q.strip() for q in response["queries"] if q.strip()}
+        if not isinstance(response, set) or not response or len(response) == 0:
             logger.error(f"Invalid response for constructing subqueries: {response}. Returning original query: {q}")
-            return [q]
+            return {q}
         return response
     except Exception as e:
         logger.error(f"Invalid response for constructing subqueries: {response}. Returning original query: {q}")
-        return [q]
+        return {q}
 
 
 async def schedule_query(
@@ -1208,9 +1209,6 @@ def generate_chat_response(
 
     metadata = {}
     agent = AgentAdapters.get_conversation_agent_by_id(conversation.agent.id) if conversation.agent else None
-    query_to_run = q
-    if meta_research:
-        query_to_run = f"AI Research: {meta_research} {q}"
     try:
         partial_completion = partial(
             save_to_conversation_log,
@@ -1228,6 +1226,13 @@ def generate_chat_response(
             raw_attached_files=raw_attached_files,
             tracer=tracer,
         )
+
+        query_to_run = q
+        if meta_research:
+            query_to_run = f"<query>{q}</query>\n<collected_research>\n{meta_research}\n</collected_research>"
+            compiled_references = []
+            online_results = {}
+            code_results = {}
 
         conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)
         vision_available = conversation_config.vision_enabled
@@ -1375,25 +1380,28 @@ class ApiUserRateLimiter:
         # Check if the user has exceeded the rate limit
         if subscribed and count_requests >= self.subscribed_requests:
             logger.info(
-                f"Rate limit: {count_requests} requests in {self.window} seconds for user: {user}. Limit is {self.subscribed_requests} requests."
-            )
-            raise HTTPException(status_code=429, detail="Slow down! Too Many Requests")
-        if not subscribed and count_requests >= self.requests:
-            if self.requests >= self.subscribed_requests:
-                logger.info(
-                    f"Rate limit: {count_requests} requests in {self.window} seconds for user: {user}. Limit is {self.subscribed_requests} requests."
-                )
-                raise HTTPException(
-                    status_code=429,
-                    detail="Slow down! Too Many Requests",
-                )
-
-            logger.info(
-                f"Rate limit: {count_requests} requests in {self.window} seconds for user: {user}. Limit is {self.subscribed_requests} requests."
+                f"Rate limit: {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for subscribed user: {user}."
             )
             raise HTTPException(
                 status_code=429,
-                detail="I'm glad you're enjoying interacting with me! But you've exceeded your usage limit for today. Come back tomorrow or subscribe to increase your usage limit via [your settings](https://app.khoj.dev/settings).",
+                detail="I'm glad you're enjoying interacting with me! You've unfortunately exceeded your usage limit for today. But let's chat more tomorrow?",
+            )
+        if not subscribed and count_requests >= self.requests:
+            if self.requests >= self.subscribed_requests:
+                logger.info(
+                    f"Rate limit: {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for user: {user}."
+                )
+                raise HTTPException(
+                    status_code=429,
+                    detail="I'm glad you're enjoying interacting with me! You've unfortunately exceeded your usage limit for today. But let's chat more tomorrow?",
+                )
+
+            logger.info(
+                f"Rate limit: {count_requests}/{self.requests} requests not allowed in {self.window} seconds for user: {user}."
+            )
+            raise HTTPException(
+                status_code=429,
+                detail="I'm glad you're enjoying interacting with me! You've unfortunately exceeded your usage limit for today. You can subscribe to increase your usage limit via [your settings](https://app.khoj.dev/settings) or we can continue our conversation tomorrow?",
             )
 
         # Add the current request to the cache
@@ -1419,6 +1427,7 @@ class ApiImageRateLimiter:
 
         # Check number of images
         if len(body.images) > self.max_images:
+            logger.info(f"Rate limit: {len(body.images)}/{self.max_images} images not allowed per message.")
             raise HTTPException(
                 status_code=429,
                 detail=f"Those are way too many images for me! I can handle up to {self.max_images} images per message.",
@@ -1439,6 +1448,7 @@ class ApiImageRateLimiter:
             total_size_mb += len(image_bytes) / (1024 * 1024)  # Convert bytes to MB
 
         if total_size_mb > self.max_combined_size_mb:
+            logger.info(f"Data limit: {total_size_mb}MB/{self.max_combined_size_mb}MB size not allowed per message.")
             raise HTTPException(
                 status_code=429,
                 detail=f"Those images are way too large for me! I can handle up to {self.max_combined_size_mb}MB of images per message.",
@@ -1474,13 +1484,19 @@ class ConversationCommandRateLimiter:
 
         if subscribed and count_requests >= self.subscribed_rate_limit:
             logger.info(
-                f"Rate limit: {count_requests} requests in 24 hours for user: {user}. Limit is {self.subscribed_rate_limit} requests."
+                f"Rate limit: {count_requests}/{self.subscribed_rate_limit} requests not allowed in 24 hours for subscribed user: {user}."
             )
-            raise HTTPException(status_code=429, detail="Slow down! Too Many Requests")
-        if not subscribed and count_requests >= self.trial_rate_limit:
             raise HTTPException(
                 status_code=429,
-                detail=f"We're glad you're enjoying Khoj! You've exceeded your `/{conversation_command.value}` command usage limit for today. Subscribe to increase your usage limit via [your settings](https://app.khoj.dev/settings).",
+                detail=f"I'm glad you're enjoying interacting with me! You've unfortunately exceeded your `/{conversation_command.value}` command usage limit for today. Maybe we can talk about something else for today?",
+            )
+        if not subscribed and count_requests >= self.trial_rate_limit:
+            logger.info(
+                f"Rate limit: {count_requests}/{self.trial_rate_limit} requests not allowed in 24 hours for user: {user}."
+            )
+            raise HTTPException(
+                status_code=429,
+                detail=f"I'm glad you're enjoying interacting with me! You've unfortunately exceeded your `/{conversation_command.value}` command usage limit for today. You can subscribe to increase your usage limit via [your settings](https://app.khoj.dev/settings) or we can talk about something else for today?",
             )
         await UserRequests.objects.acreate(user=user, slug=command_slug)
         return
@@ -1526,16 +1542,28 @@ class ApiIndexedDataLimiter:
         logger.info(f"Deleted {num_deleted_entries} entries for user: {user}.")
 
         if subscribed and incoming_data_size_mb >= self.subscribed_num_entries_size:
+            logger.info(
+                f"Data limit: {incoming_data_size_mb}MB incoming will exceed {self.subscribed_num_entries_size}MB allowed for subscribed user: {user}."
+            )
             raise HTTPException(status_code=429, detail="Too much data indexed.")
         if not subscribed and incoming_data_size_mb >= self.num_entries_size:
+            logger.info(
+                f"Data limit: {incoming_data_size_mb}MB incoming will exceed {self.num_entries_size}MB allowed for user: {user}."
+            )
             raise HTTPException(
                 status_code=429, detail="Too much data indexed. Subscribe to increase your data index limit."
             )
 
         user_size_data = EntryAdapters.get_size_of_indexed_data_in_mb(user)
         if subscribed and user_size_data + incoming_data_size_mb >= self.subscribed_total_entries_size:
+            logger.info(
+                f"Data limit: {incoming_data_size_mb}MB incoming + {user_size_data}MB existing will exceed {self.subscribed_total_entries_size}MB allowed for subscribed user: {user}."
+            )
             raise HTTPException(status_code=429, detail="Too much data indexed.")
         if not subscribed and user_size_data + incoming_data_size_mb >= self.total_entries_size_limit:
+            logger.info(
+                f"Data limit: {incoming_data_size_mb}MB incoming + {user_size_data}MB existing will exceed {self.subscribed_total_entries_size}MB allowed for non subscribed user: {user}."
+            )
             raise HTTPException(
                 status_code=429, detail="Too much data indexed. Subscribe to increase your data index limit."
             )
@@ -1622,6 +1650,11 @@ def scheduled_chat(
     if conversation_id:
         # encode the conversation_id to avoid any issues with special characters
         query_dict["conversation_id"] = [quote(str(conversation_id))]
+
+        # validate that the conversation id exists. If not, delete the automation and exit.
+        if not ConversationAdapters.get_conversation_by_id(conversation_id):
+            AutomationAdapters.delete_automation(user, job_id)
+            return
 
     # Restructure the original query_dict into a valid JSON payload for the chat API
     json_payload = {key: values[0] for key, values in query_dict.items()}

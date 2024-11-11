@@ -78,7 +78,12 @@ class KhojUserAdmin(UserAdmin):
     search_fields = ("email", "username", "phone_number", "uuid")
     filter_horizontal = ("groups", "user_permissions")
 
-    fieldsets = (("Personal info", {"fields": ("phone_number", "email_verification_code")}),) + UserAdmin.fieldsets
+    fieldsets = (
+        (
+            "Personal info",
+            {"fields": ("phone_number", "email_verification_code", "verified_phone_number", "verified_email")},
+        ),
+    ) + UserAdmin.fieldsets
 
     actions = ["get_email_login_url"]
 
