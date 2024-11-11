@@ -41,7 +41,7 @@ import { convertColorToTextClass, convertToBGClass } from "@/app/common/colorUti
 
 import LoginPrompt from "../loginPrompt/loginPrompt";
 import { InlineLoading } from "../loading/loading";
-import { getIconForSlashCommand, getIconFromFileType } from "@/app/common/iconUtils";
+import { getIconForSlashCommand, getIconFromFilename } from "@/app/common/iconUtils";
 import { packageFilesForUpload } from "@/app/common/chatFunctions";
 import { convertBytesToText } from "@/app/common/utils";
 import {
@@ -549,7 +549,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                                     {file.name}
                                                 </span>
                                                 <span className="flex items-center gap-1">
-                                                    {getIconFromFileType(file.file_type)}
+                                                    {getIconFromFilename(file.file_type)}
                                                     <span className="text-xs text-neutral-500 dark:text-neutral-400">
                                                         {convertBytesToText(file.size)}
                                                     </span>

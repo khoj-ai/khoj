@@ -51,7 +51,7 @@ import {
 import { DialogTitle } from "@radix-ui/react-dialog";
 import { convertBytesToText } from "@/app/common/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { getIconFromFileType } from "@/app/common/iconUtils";
+import { getIconFromFilename } from "@/app/common/iconUtils";
 
 const md = new markdownIt({
     html: true,
@@ -714,7 +714,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                         <Dialog key={index}>
                             <DialogTrigger>
                                 <div className="flex items-center space-x-2 cursor-pointer bg-gray-500 bg-opacity-25 rounded-lg m-1 p-2 w-full">
-                                    {getIconFromFileType(file.file_type)}
+                                    {getIconFromFilename(file.file_type)}
                                     <span className="truncate">{file.name}</span>
                                     {file.size && (
                                         <span className="text-gray-400">

@@ -50,8 +50,10 @@ import {
     Broadcast,
     KeyReturn,
     FilePdf,
+    FileMd,
+    MicrosoftWordLogo,
 } from "@phosphor-icons/react";
-import { Markdown, OrgMode, Pdf, Word } from "@/app/components/logo/fileLogo";
+import { OrgMode } from "@/app/components/logo/fileLogo";
 
 interface IconMap {
     [key: string]: (color: string, width: string, height: string) => JSX.Element | null;
@@ -217,13 +219,6 @@ export function getIconForSlashCommand(command: string, customClassName: string 
     return <ArrowRight className={className} />;
 }
 
-export function getIconFromFileType(fileType: string) {
-    if (fileType == "pdf") {
-        return <FilePdf className="w-6 h-6 text-muted-foreground inline-flex mr-1" />;
-    }
-    return <File className="w-6 h-6 text-muted-foreground inline-flex mr-1" />;
-}
-
 function getIconFromIconName(
     iconName: string,
     color: string = "gray",
@@ -246,11 +241,12 @@ function getIconFromFilename(
             return <OrgMode className={className} />;
         case "markdown":
         case "md":
-            return <Markdown className={className} />;
+            return <FileMd className={className} />;
         case "pdf":
-            return <Pdf className={className} />;
+            return <FilePdf className={className} />;
         case "doc":
-            return <Word className={className} />;
+        case "docx":
+            return <MicrosoftWordLogo className={className} />;
         case "jpg":
         case "jpeg":
         case "png":
