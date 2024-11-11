@@ -723,7 +723,10 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                         className={`w-6 h-6 inline-block ${props.agentColor ? convertColorToTextClass(props.agentColor) : convertColorToTextClass("orange")} rounded-full`}
                                     />
                                 ) : (
-                                    <ToggleLeft className={`w-6 h-6 inline-block rounded-full`} />
+                                    <ToggleLeft
+                                        weight="fill"
+                                        className={`w-6 h-6 inline-block ${props.agentColor ? convertColorToTextClass(props.agentColor) : convertColorToTextClass("orange")} rounded-full`}
+                                    />
                                 )}
                             </Button>
                         </TooltipTrigger>
