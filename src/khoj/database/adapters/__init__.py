@@ -24,7 +24,6 @@ import cron_descriptor
 from apscheduler.job import Job
 from asgiref.sync import sync_to_async
 from django.contrib.sessions.backends.db import SessionStore
-from django.db import models
 from django.db.models import Prefetch, Q
 from django.db.models.manager import BaseManager
 from django.db.utils import IntegrityError
@@ -38,7 +37,6 @@ from khoj.database.models import (
     ChatModelOptions,
     ClientApplication,
     Conversation,
-    DataStore,
     Entry,
     FileObject,
     GithubConfig,
@@ -506,18 +504,6 @@ async def aget_user_name(user: KhojUser):
     return None
 
 
-async def set_text_content_config(user: KhojUser, object: Type[models.Model], updated_config):
-    deduped_files = list(set(updated_config.input_files)) if updated_config.input_files else None
-    deduped_filters = list(set(updated_config.input_filter)) if updated_config.input_filter else None
-    await object.objects.filter(user=user).adelete()
-    await object.objects.acreate(
-        input_files=deduped_files,
-        input_filter=deduped_filters,
-        index_heading_entries=updated_config.index_heading_entries,
-        user=user,
-    )
-
-
 @arequire_valid_user
 async def set_user_github_config(user: KhojUser, pat_token: str, repos: list):
     config = await GithubConfig.objects.filter(user=user).afirst()
@@ -855,19 +841,6 @@ class PublicConversationAdapters:
     def get_public_conversation_url(public_conversation: PublicConversation):
         # Public conversations are viewable by anyone, but not editable.
         return f"/share/chat/{public_conversation.slug}/"
-
-
-class DataStoreAdapters:
-    @staticmethod
-    async def astore_data(data: dict, key: str, user: KhojUser, private: bool = True):
-        if await DataStore.objects.filter(key=key).aexists():
-            return key
-        await DataStore.objects.acreate(value=data, key=key, owner=user, private=private)
-        return key
-
-    @staticmethod
-    async def aretrieve_public_data(key: str):
-        return await DataStore.objects.filter(key=key, private=False).afirst()
 
 
 class ConversationAdapters:
