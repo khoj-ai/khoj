@@ -1388,6 +1388,10 @@ class FileObjectAdapters:
         return await sync_to_async(list)(FileObject.objects.filter(user=user, file_name=file_name, agent=agent))
 
     @staticmethod
+    async def async_get_file_objects_by_names(user: KhojUser, file_names: List[str]):
+        return await sync_to_async(list)(FileObject.objects.filter(user=user, file_name__in=file_names))
+
+    @staticmethod
     async def async_get_all_file_objects(user: KhojUser):
         return await sync_to_async(list)(FileObject.objects.filter(user=user))
 

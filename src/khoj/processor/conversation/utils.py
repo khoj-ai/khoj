@@ -36,6 +36,7 @@ from khoj.utils.helpers import (
     is_none_or_empty,
     merge_dicts,
 )
+from khoj.utils.rawconfig import FileAttachment
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +147,7 @@ def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="A
             chat_history += f"User: {chat['intent']['query']}\n"
 
             if chat["intent"].get("inferred-queries"):
-                chat_history += f'Khoj: {{"queries": {chat["intent"].get("inferred-queries")}}}\n'
+                chat_history += f'{agent_name}: {{"queries": {chat["intent"].get("inferred-queries")}}}\n'
 
             chat_history += f"{agent_name}: {chat['message']}\n\n"
         elif chat["by"] == "khoj" and ("text-to-image" in chat["intent"].get("type")):
@@ -155,6 +156,16 @@ def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="A
         elif chat["by"] == "khoj" and ("excalidraw" in chat["intent"].get("type")):
             chat_history += f"User: {chat['intent']['query']}\n"
             chat_history += f"{agent_name}: {chat['intent']['inferred-queries'][0]}\n"
+        elif chat["by"] == "you":
+            raw_query_files = chat.get("queryFiles")
+            if raw_query_files:
+                query_files: Dict[str, str] = {}
+                for file in raw_query_files:
+                    query_files[file["name"]] = file["content"]
+
+                query_file_context = gather_raw_query_files(query_files)
+                chat_history += f"User: {query_file_context}\n"
+
     return chat_history
 
 
@@ -243,8 +254,9 @@ def save_to_conversation_log(
     conversation_id: str = None,
     automation_id: str = None,
     query_images: List[str] = None,
-    tracer: Dict[str, Any] = {},
+    raw_query_files: List[FileAttachment] = [],
     train_of_thought: List[Any] = [],
+    tracer: Dict[str, Any] = {},
 ):
     user_message_time = user_message_time or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     turn_id = tracer.get("mid") or str(uuid.uuid4())
@@ -255,6 +267,7 @@ def save_to_conversation_log(
             "created": user_message_time,
             "images": query_images,
             "turnId": turn_id,
+            "queryFiles": [file.model_dump(mode="json") for file in raw_query_files],
         },
         khoj_message_metadata={
             "context": compiled_references,
@@ -289,23 +302,48 @@ Khoj: "{inferred_queries if ("text-to-image" in intent_type) else chat_response}
     )
 
 
-def construct_structured_message(message: str, images: list[str], model_type: str, vision_enabled: bool):
+def construct_structured_message(
+    message: str, images: list[str], model_type: str, vision_enabled: bool, attached_file_context: str
+):
     """
     Format messages into appropriate multimedia format for supported chat model types
     """
-    if not images or not vision_enabled:
-        return message
-
     if model_type in [
         ChatModelOptions.ModelType.OPENAI,
         ChatModelOptions.ModelType.GOOGLE,
         ChatModelOptions.ModelType.ANTHROPIC,
     ]:
-        return [
+        constructed_messages: List[Any] = [
             {"type": "text", "text": message},
-            *[{"type": "image_url", "image_url": {"url": image}} for image in images],
         ]
+
+        if not is_none_or_empty(attached_file_context):
+            constructed_messages.append({"type": "text", "text": attached_file_context})
+        if vision_enabled and images:
+            for image in images:
+                constructed_messages.append({"type": "image_url", "image_url": {"url": image}})
+        return constructed_messages
+
+    if not is_none_or_empty(attached_file_context):
+        return f"{attached_file_context}\n\n{message}"
+
     return message
+
+
+def gather_raw_query_files(
+    query_files: Dict[str, str],
+):
+    """
+    Gather contextual data from the given (raw) files
+    """
+
+    if len(query_files) == 0:
+        return ""
+
+    contextual_data = " ".join(
+        [f"File: {file_name}\n\n{file_content}\n\n" for file_name, file_content in query_files.items()]
+    )
+    return f"I have attached the following files:\n\n{contextual_data}"
 
 
 def generate_chatml_messages_with_context(
@@ -320,6 +358,7 @@ def generate_chatml_messages_with_context(
     vision_enabled=False,
     model_type="",
     context_message="",
+    query_files: str = None,
 ):
     """Generate chat messages with appropriate context from previous conversation to send to the chat model"""
     # Set max prompt size from user config or based on pre-configured for model and machine specs
@@ -336,6 +375,8 @@ def generate_chatml_messages_with_context(
     chatml_messages: List[ChatMessage] = []
     for chat in conversation_log.get("chat", []):
         message_context = ""
+        message_attached_files = ""
+
         if chat["by"] == "khoj" and "excalidraw" in chat["intent"].get("type", ""):
             message_context += chat.get("intent").get("inferred-queries")[0]
         if not is_none_or_empty(chat.get("context")):
@@ -347,14 +388,27 @@ def generate_chatml_messages_with_context(
                 }
             )
             message_context += f"{prompts.notes_conversation.format(references=references)}\n\n"
+
+        if chat.get("queryFiles"):
+            raw_query_files = chat.get("queryFiles")
+            query_files_dict = dict()
+            for file in raw_query_files:
+                query_files_dict[file["name"]] = file["content"]
+
+            message_attached_files = gather_raw_query_files(query_files_dict)
+            chatml_messages.append(ChatMessage(content=message_attached_files, role="user"))
+
         if not is_none_or_empty(chat.get("onlineContext")):
             message_context += f"{prompts.online_search_conversation.format(online_results=chat.get('onlineContext'))}"
+
         if not is_none_or_empty(message_context):
             reconstructed_context_message = ChatMessage(content=message_context, role="user")
             chatml_messages.insert(0, reconstructed_context_message)
 
         role = "user" if chat["by"] == "you" else "assistant"
-        message_content = construct_structured_message(chat["message"], chat.get("images"), model_type, vision_enabled)
+        message_content = construct_structured_message(
+            chat["message"], chat.get("images"), model_type, vision_enabled, attached_file_context=query_files
+        )
 
         reconstructed_message = ChatMessage(content=message_content, role=role)
         chatml_messages.insert(0, reconstructed_message)
@@ -366,14 +420,18 @@ def generate_chatml_messages_with_context(
     if not is_none_or_empty(user_message):
         messages.append(
             ChatMessage(
-                content=construct_structured_message(user_message, query_images, model_type, vision_enabled),
+                content=construct_structured_message(
+                    user_message, query_images, model_type, vision_enabled, query_files
+                ),
                 role="user",
             )
         )
     if not is_none_or_empty(context_message):
         messages.append(ChatMessage(content=context_message, role="user"))
+
     if len(chatml_messages) > 0:
         messages += chatml_messages
+
     if not is_none_or_empty(system_message):
         messages.append(ChatMessage(content=system_message, role="system"))
 

@@ -312,7 +312,6 @@ def test_summarize_one_file(chat_client, default_user2: KhojUser):
     # Assert
     assert response_message != ""
     assert response_message != "No files selected for summarization. Please add files using the section on the left."
-    assert response_message != "Only one file can be selected for summarization."
 
 
 @pytest.mark.django_db(transaction=True)
@@ -344,7 +343,6 @@ def test_summarize_extra_text(chat_client, default_user2: KhojUser):
     # Assert
     assert response_message != ""
     assert response_message != "No files selected for summarization. Please add files using the section on the left."
-    assert response_message != "Only one file can be selected for summarization."
 
 
 @pytest.mark.django_db(transaction=True)
@@ -371,7 +369,7 @@ def test_summarize_multiple_files(chat_client, default_user2: KhojUser):
     response_message = response.json()["response"]
 
     # Assert
-    assert response_message == "Only one file can be selected for summarization."
+    assert response_message is not None
 
 
 @pytest.mark.django_db(transaction=True)
@@ -435,7 +433,6 @@ def test_summarize_different_conversation(chat_client, default_user2: KhojUser):
     assert (
         response_message_conv1 != "No files selected for summarization. Please add files using the section on the left."
     )
-    assert response_message_conv1 != "Only one file can be selected for summarization."
 
 
 @pytest.mark.django_db(transaction=True)

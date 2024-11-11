@@ -37,6 +37,7 @@ def extract_questions_offline(
     max_prompt_size: int = None,
     temperature: float = 0.7,
     personality_context: Optional[str] = None,
+    query_files: str = None,
     tracer: dict = {},
 ) -> List[str]:
     """
@@ -87,6 +88,7 @@ def extract_questions_offline(
         loaded_model=offline_chat_model,
         max_prompt_size=max_prompt_size,
         model_type=ChatModelOptions.ModelType.OFFLINE,
+        query_files=query_files,
     )
 
     state.chat_lock.acquire()
@@ -152,6 +154,7 @@ def converse_offline(
     location_data: LocationData = None,
     user_name: str = None,
     agent: Agent = None,
+    query_files: str = None,
     tracer: dict = {},
 ) -> Union[ThreadedGenerator, Iterator[str]]:
     """
@@ -216,6 +219,7 @@ def converse_offline(
         max_prompt_size=max_prompt_size,
         tokenizer_name=tokenizer_name,
         model_type=ChatModelOptions.ModelType.OFFLINE,
+        query_files=query_files,
     )
 
     truncated_messages = "\n".join({f"{message.content[:70]}..." for message in messages})

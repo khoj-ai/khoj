@@ -40,19 +40,36 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { convertColorToTextClass, convertToBGClass } from "@/app/common/colorUtils";
 
 import LoginPrompt from "../loginPrompt/loginPrompt";
-import { uploadDataForIndexing } from "../../common/chatFunctions";
 import { InlineLoading } from "../loading/loading";
-import { getIconForSlashCommand } from "@/app/common/iconUtils";
+import { getIconForSlashCommand, getIconFromFilename } from "@/app/common/iconUtils";
+import { packageFilesForUpload } from "@/app/common/chatFunctions";
+import { convertBytesToText } from "@/app/common/utils";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export interface ChatOptions {
     [key: string]: string;
+}
+
+export interface AttachedFileText {
+    name: string;
+    content: string;
+    file_type: string;
+    size: number;
 }
 
 interface ChatInputProps {
     sendMessage: (message: string) => void;
     sendImage: (image: string) => void;
     sendDisabled: boolean;
-    setUploadedFiles?: (files: string[]) => void;
+    setUploadedFiles: (files: AttachedFileText[]) => void;
     conversationId?: string | null;
     chatOptionsData?: ChatOptions | null;
     isMobileWidth?: boolean;
@@ -74,6 +91,9 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     const [imageUploaded, setImageUploaded] = useState(false);
     const [imagePaths, setImagePaths] = useState<string[]>([]);
     const [imageData, setImageData] = useState<string[]>([]);
+
+    const [attachedFiles, setAttachedFiles] = useState<FileList | null>(null);
+    const [convertedAttachedFiles, setConvertedAttachedFiles] = useState<AttachedFileText[]>([]);
 
     const [recording, setRecording] = useState(false);
     const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
@@ -154,6 +174,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         }
 
         props.sendMessage(messageToSend);
+        setAttachedFiles(null);
+        setConvertedAttachedFiles([]);
         setMessage("");
     }
 
@@ -203,20 +225,67 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
             setImagePaths((prevPaths) => [...prevPaths, ...newImagePaths]);
             // Set focus to the input for user message after uploading files
             chatInputRef?.current?.focus();
-            return;
         }
 
-        uploadDataForIndexing(
-            files,
-            setWarning,
-            setUploading,
-            setError,
-            props.setUploadedFiles,
-            props.conversationId,
+        // Process all non-image files
+        const nonImageFiles = Array.from(files).filter(
+            (file) => !image_endings.includes(file.name.split(".").pop() || ""),
         );
+
+        // Concatenate attachedFiles and files
+        const newFiles = nonImageFiles
+            ? Array.from(nonImageFiles).concat(Array.from(attachedFiles || []))
+            : Array.from(attachedFiles || []);
+
+        // Ensure files are below size limit (10 MB)
+        for (let i = 0; i < newFiles.length; i++) {
+            if (newFiles[i].size > 10 * 1024 * 1024) {
+                setWarning(
+                    `File ${newFiles[i].name} is too large. Please upload files smaller than 10 MB.`,
+                );
+                return;
+            }
+        }
+
+        const dataTransfer = new DataTransfer();
+        newFiles.forEach((file) => dataTransfer.items.add(file));
+        setAttachedFiles(dataTransfer.files);
+
+        // Extract text from files
+        extractTextFromFiles(dataTransfer.files).then((data) => {
+            props.setUploadedFiles(data);
+            setConvertedAttachedFiles(data);
+        });
 
         // Set focus to the input for user message after uploading files
         chatInputRef?.current?.focus();
+    }
+
+    async function extractTextFromFiles(files: FileList): Promise<AttachedFileText[]> {
+        const formData = await packageFilesForUpload(files);
+        setUploading(true);
+
+        try {
+            const response = await fetch("/api/content/convert", {
+                method: "POST",
+                body: formData,
+            });
+            setUploading(false);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            setError(
+                "Error converting files. " +
+                    error +
+                    ". Please try again, or contact team@khoj.dev if the issue persists.",
+            );
+            console.error("Error converting files:", error);
+            return [];
+        }
     }
 
     // Assuming this function is added within the same context as the provided excerpt
@@ -445,6 +514,93 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                 </div>
             )}
             <div>
+                <div className="flex items-center gap-2 overflow-x-auto">
+                    {imageUploaded &&
+                        imagePaths.map((path, index) => (
+                            <div key={index} className="relative flex-shrink-0 pb-3 pt-2 group">
+                                <img
+                                    src={path}
+                                    alt={`img-${index}`}
+                                    className="w-auto h-16 object-cover rounded-xl"
+                                />
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute -top-0 -right-2 h-5 w-5 rounded-full bg-neutral-200 dark:bg-neutral-600 hover:bg-neutral-300 dark:hover:bg-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => removeImageUpload(index)}
+                                >
+                                    <X className="h-3 w-3" />
+                                </Button>
+                            </div>
+                        ))}
+                    {convertedAttachedFiles &&
+                        Array.from(convertedAttachedFiles).map((file, index) => (
+                            <Dialog key={index}>
+                                <DialogTrigger asChild>
+                                    <div key={index} className="relative flex-shrink-0 p-2 group">
+                                        <div
+                                            className={`w-auto h-16 object-cover rounded-xl ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} bg-opacity-15`}
+                                        >
+                                            <div className="flex p-2 flex-col justify-start items-start h-full">
+                                                <span className="text-sm font-bold text-neutral-500 dark:text-neutral-400 text-ellipsis truncate max-w-[200px] break-words">
+                                                    {file.name}
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    {getIconFromFilename(file.file_type)}
+                                                    <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                                                        {convertBytesToText(file.size)}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="absolute -top-0 -right-2 h-5 w-5 rounded-full bg-neutral-200 dark:bg-neutral-600 hover:bg-neutral-300 dark:hover:bg-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={() => {
+                                                setAttachedFiles((prevFiles) => {
+                                                    const removeFile = file.name;
+                                                    if (!prevFiles) return null;
+                                                    const updatedFiles = Array.from(
+                                                        prevFiles,
+                                                    ).filter((file) => file.name !== removeFile);
+                                                    const dataTransfer = new DataTransfer();
+                                                    updatedFiles.forEach((file) =>
+                                                        dataTransfer.items.add(file),
+                                                    );
+
+                                                    const filteredConvertedAttachedFiles =
+                                                        convertedAttachedFiles.filter(
+                                                            (file) => file.name !== removeFile,
+                                                        );
+
+                                                    props.setUploadedFiles(
+                                                        filteredConvertedAttachedFiles,
+                                                    );
+                                                    setConvertedAttachedFiles(
+                                                        filteredConvertedAttachedFiles,
+                                                    );
+                                                    return dataTransfer.files;
+                                                });
+                                            }}
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>{file.name}</DialogTitle>
+                                    </DialogHeader>
+                                    <DialogDescription>
+                                        <ScrollArea className="h-72 w-full rounded-md">
+                                            {file.content}
+                                        </ScrollArea>
+                                    </DialogDescription>
+                                </DialogContent>
+                            </Dialog>
+                        ))}
+                </div>
                 <div
                     className={`${styles.actualInputArea} justify-between dark:bg-neutral-700 relative ${isDragAndDropping && "animate-pulse"}`}
                     onDragOver={handleDragOver}
@@ -453,12 +609,14 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                 >
                     <input
                         type="file"
+                        accept=".pdf,.doc,.docx,.txt,.md,.org,.jpg,.jpeg,.png,.webp"
                         multiple={true}
                         ref={fileInputRef}
                         onChange={handleFileChange}
                         style={{ display: "none" }}
                     />
-                    <div className="flex items-end pb-2">
+
+                    <div className="flex items-center">
                         <Button
                             variant={"ghost"}
                             className="!bg-none p-0 m-2 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
@@ -469,29 +627,6 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                         </Button>
                     </div>
                     <div className="flex-grow flex flex-col w-full gap-1.5 relative">
-                        <div className="flex items-center gap-2 overflow-x-auto">
-                            {imageUploaded &&
-                                imagePaths.map((path, index) => (
-                                    <div
-                                        key={index}
-                                        className="relative flex-shrink-0 pb-3 pt-2 group"
-                                    >
-                                        <img
-                                            src={path}
-                                            alt={`img-${index}`}
-                                            className="w-auto h-16 object-cover rounded-xl"
-                                        />
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="absolute -top-0 -right-2 h-5 w-5 rounded-full bg-neutral-200 dark:bg-neutral-600 hover:bg-neutral-300 dark:hover:bg-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            onClick={() => removeImageUpload(index)}
-                                        >
-                                            <X className="h-3 w-3" />
-                                        </Button>
-                                    </div>
-                                ))}
-                        </div>
                         <Textarea
                             ref={chatInputRef}
                             className={`border-none focus:border-none
@@ -582,10 +717,14 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                 <span className="text-muted-foreground text-sm">Research Mode</span>
                                 {useResearchMode ? (
                                     <ToggleRight
+                                        weight="fill"
                                         className={`w-6 h-6 inline-block ${props.agentColor ? convertColorToTextClass(props.agentColor) : convertColorToTextClass("orange")} rounded-full`}
                                     />
                                 ) : (
-                                    <ToggleLeft className={`w-6 h-6 inline-block rounded-full`} />
+                                    <ToggleLeft
+                                        weight="fill"
+                                        className={`w-6 h-6 inline-block ${props.agentColor ? convertColorToTextClass(props.agentColor) : convertColorToTextClass("orange")} rounded-full`}
+                                    />
                                 )}
                             </Button>
                         </TooltipTrigger>

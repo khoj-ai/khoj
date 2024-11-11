@@ -19,7 +19,6 @@ from khoj.database.adapters import (
     AgentAdapters,
     ConversationAdapters,
     EntryAdapters,
-    FileObjectAdapters,
     PublicConversationAdapters,
     aget_user_name,
 )
@@ -45,12 +44,13 @@ from khoj.routers.helpers import (
     ConversationCommandRateLimiter,
     DeleteMessageRequestBody,
     FeedbackData,
+    acreate_title_from_history,
     agenerate_chat_response,
     aget_relevant_information_sources,
     aget_relevant_output_modes,
     construct_automation_created_message,
     create_automation,
-    extract_relevant_info,
+    gather_raw_query_files,
     generate_excalidraw_diagram,
     generate_summary_from_files,
     get_conversation_command,
@@ -76,7 +76,12 @@ from khoj.utils.helpers import (
     get_device,
     is_none_or_empty,
 )
-from khoj.utils.rawconfig import FileFilterRequest, FilesFilterRequest, LocationData
+from khoj.utils.rawconfig import (
+    ChatRequestBody,
+    FileFilterRequest,
+    FilesFilterRequest,
+    LocationData,
+)
 
 # Initialize Router
 logger = logging.getLogger(__name__)
@@ -374,7 +379,7 @@ def fork_public_conversation(
             {
                 "status": "ok",
                 "next_url": redirect_uri,
-                "conversation_id": new_conversation.id,
+                "conversation_id": str(new_conversation.id),
             }
         ),
     )
@@ -530,6 +535,32 @@ async def set_conversation_title(
     )
 
 
+@api_chat.post("/title")
+@requires(["authenticated"])
+async def generate_chat_title(
+    request: Request,
+    common: CommonQueryParams,
+    conversation_id: str,
+):
+    user: KhojUser = request.user.object
+    conversation = await ConversationAdapters.aget_conversation_by_user(user=user, conversation_id=conversation_id)
+
+    # Conversation.title is explicitly set by the user. Do not override.
+    if conversation.title:
+        return {"status": "ok", "title": conversation.title}
+
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    new_title = await acreate_title_from_history(request.user.object, conversation=conversation)
+
+    conversation.slug = new_title
+
+    conversation.asave()
+
+    return {"status": "ok", "title": new_title}
+
+
 @api_chat.delete("/conversation/message", response_class=Response)
 @requires(["authenticated"])
 def delete_message(request: Request, delete_request: DeleteMessageRequestBody) -> Response:
@@ -571,6 +602,7 @@ async def chat(
     country_code = body.country_code or get_country_code_from_timezone(body.timezone)
     timezone = body.timezone
     raw_images = body.images
+    raw_query_files = body.files
 
     async def event_generator(q: str, images: list[str]):
         start_time = time.perf_counter()
@@ -582,6 +614,7 @@ async def chat(
         q = unquote(q)
         train_of_thought = []
         nonlocal conversation_id
+        nonlocal raw_query_files
 
         tracer: dict = {
             "mid": turn_id,
@@ -600,6 +633,11 @@ async def chat(
                 uploaded_image = upload_image_to_bucket(webp_image_bytes, request.user.object.id)
                 if uploaded_image:
                     uploaded_images.append(uploaded_image)
+
+        query_files: Dict[str, str] = {}
+        if raw_query_files:
+            for file in raw_query_files:
+                query_files[file.name] = file.content
 
         async def send_event(event_type: ChatEvent, data: str | dict):
             nonlocal connection_alive, ttft, train_of_thought
@@ -711,6 +749,8 @@ async def chat(
         ## Extract Document References
         compiled_references: List[Any] = []
         inferred_queries: List[Any] = []
+        file_filters = conversation.file_filters if conversation and conversation.file_filters else []
+        attached_file_context = gather_raw_query_files(query_files)
 
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
             conversation_commands = await aget_relevant_information_sources(
@@ -720,6 +760,7 @@ async def chat(
                 user=user,
                 query_images=uploaded_images,
                 agent=agent,
+                query_files=attached_file_context,
                 tracer=tracer,
             )
 
@@ -765,6 +806,7 @@ async def chat(
                 user_name=user_name,
                 location=location,
                 file_filters=conversation.file_filters if conversation else [],
+                query_files=attached_file_context,
                 tracer=tracer,
             ):
                 if isinstance(research_result, InformationCollectionIteration):
@@ -804,10 +846,6 @@ async def chat(
                 response_log = "No files selected for summarization. Please add files using the section on the left."
                 async for result in send_llm_response(response_log):
                     yield result
-            elif len(file_filters) > 1 and not agent_has_entries:
-                response_log = "Only one file can be selected for summarization."
-                async for result in send_llm_response(response_log):
-                    yield result
             else:
                 async for response in generate_summary_from_files(
                     q=q,
@@ -817,6 +855,7 @@ async def chat(
                     query_images=uploaded_images,
                     agent=agent,
                     send_status_func=partial(send_event, ChatEvent.STATUS),
+                    query_files=attached_file_context,
                     tracer=tracer,
                 ):
                     if isinstance(response, dict) and ChatEvent.STATUS in response:
@@ -837,8 +876,9 @@ async def chat(
                 client_application=request.user.client_app,
                 conversation_id=conversation_id,
                 query_images=uploaded_images,
-                tracer=tracer,
                 train_of_thought=train_of_thought,
+                raw_query_files=raw_query_files,
+                tracer=tracer,
             )
             return
 
@@ -882,8 +922,9 @@ async def chat(
                 inferred_queries=[query_to_run],
                 automation_id=automation.id,
                 query_images=uploaded_images,
-                tracer=tracer,
                 train_of_thought=train_of_thought,
+                raw_query_files=raw_query_files,
+                tracer=tracer,
             )
             async for result in send_llm_response(llm_response):
                 yield result
@@ -905,6 +946,7 @@ async def chat(
                     partial(send_event, ChatEvent.STATUS),
                     query_images=uploaded_images,
                     agent=agent,
+                    query_files=attached_file_context,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -950,6 +992,7 @@ async def chat(
                     custom_filters,
                     query_images=uploaded_images,
                     agent=agent,
+                    query_files=attached_file_context,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -975,6 +1018,7 @@ async def chat(
                     partial(send_event, ChatEvent.STATUS),
                     query_images=uploaded_images,
                     agent=agent,
+                    query_files=attached_file_context,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1015,6 +1059,7 @@ async def chat(
                     partial(send_event, ChatEvent.STATUS),
                     query_images=uploaded_images,
                     agent=agent,
+                    query_files=attached_file_context,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1055,6 +1100,7 @@ async def chat(
                 send_status_func=partial(send_event, ChatEvent.STATUS),
                 query_images=uploaded_images,
                 agent=agent,
+                query_files=attached_file_context,
                 tracer=tracer,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1086,8 +1132,10 @@ async def chat(
                 compiled_references=compiled_references,
                 online_results=online_results,
                 query_images=uploaded_images,
-                tracer=tracer,
                 train_of_thought=train_of_thought,
+                attached_file_context=attached_file_context,
+                raw_query_files=raw_query_files,
+                tracer=tracer,
             )
             content_obj = {
                 "intentType": intent_type,
@@ -1116,6 +1164,7 @@ async def chat(
                 user=user,
                 agent=agent,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
+                query_files=attached_file_context,
                 tracer=tracer,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1144,8 +1193,10 @@ async def chat(
                 compiled_references=compiled_references,
                 online_results=online_results,
                 query_images=uploaded_images,
-                tracer=tracer,
                 train_of_thought=train_of_thought,
+                attached_file_context=attached_file_context,
+                raw_query_files=raw_query_files,
+                tracer=tracer,
             )
 
             async for result in send_llm_response(json.dumps(content_obj)):
@@ -1171,8 +1222,10 @@ async def chat(
             user_name,
             researched_results,
             uploaded_images,
-            tracer,
             train_of_thought,
+            attached_file_context,
+            raw_query_files,
+            tracer,
         )
 
         # Send Response

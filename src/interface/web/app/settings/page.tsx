@@ -137,10 +137,8 @@ const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
     const deleteSelected = async () => {
         let filesToDelete = selectedFiles.length > 0 ? selectedFiles : filteredFiles;
-        console.log("Delete selected files", filesToDelete);
 
         if (filesToDelete.length === 0) {
-            console.log("No files to delete");
             return;
         }
 
@@ -162,15 +160,12 @@ const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
             // Reset selectedFiles
             setSelectedFiles([]);
-
-            console.log("Deleted files:", filesToDelete);
         } catch (error) {
             console.error("Error deleting files:", error);
         }
     };
 
     const deleteFile = async (filename: string) => {
-        console.log("Delete selected file", filename);
         try {
             const response = await fetch(
                 `/api/content/file?filename=${encodeURIComponent(filename)}`,
@@ -189,8 +184,6 @@ const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
             // Remove the file from selectedFiles if it's there
             setSelectedFiles((prevSelected) => prevSelected.filter((file) => file !== filename));
-
-            console.log("Deleted file:", filename);
         } catch (error) {
             console.error("Error deleting file:", error);
         }

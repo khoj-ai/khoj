@@ -36,6 +36,7 @@ def extract_questions_anthropic(
     query_images: Optional[list[str]] = None,
     vision_enabled: bool = False,
     personality_context: Optional[str] = None,
+    query_files: str = None,
     tracer: dict = {},
 ):
     """
@@ -82,9 +83,12 @@ def extract_questions_anthropic(
         images=query_images,
         model_type=ChatModelOptions.ModelType.ANTHROPIC,
         vision_enabled=vision_enabled,
+        attached_file_context=query_files,
     )
 
-    messages = [ChatMessage(content=prompt, role="user")]
+    messages = []
+
+    messages.append(ChatMessage(content=prompt, role="user"))
 
     messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)
 
@@ -148,6 +152,7 @@ def converse_anthropic(
     agent: Agent = None,
     query_images: Optional[list[str]] = None,
     vision_available: bool = False,
+    query_files: str = None,
     tracer: dict = {},
 ):
     """
@@ -205,6 +210,7 @@ def converse_anthropic(
         query_images=query_images,
         vision_enabled=vision_available,
         model_type=ChatModelOptions.ModelType.ANTHROPIC,
+        query_files=query_files,
     )
 
     messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)

@@ -11,7 +11,11 @@ import { Card, CardTitle } from "@/components/ui/card";
 import SuggestionCard from "@/app/components/suggestions/suggestionCard";
 import SidePanel from "@/app/components/sidePanel/chatHistorySidePanel";
 import Loading from "@/app/components/loading/loading";
-import { ChatInputArea, ChatOptions } from "@/app/components/chatInputArea/chatInputArea";
+import {
+    AttachedFileText,
+    ChatInputArea,
+    ChatOptions,
+} from "@/app/components/chatInputArea/chatInputArea";
 import { Suggestion, suggestionsData } from "@/app/components/suggestions/suggestionsData";
 import LoginPrompt from "@/app/components/loginPrompt/loginPrompt";
 
@@ -34,7 +38,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
     onConversationIdChange?: (conversationId: string) => void;
-    setUploadedFiles: (files: string[]) => void;
+    setUploadedFiles: (files: AttachedFileText[]) => void;
     isMobileWidth?: boolean;
     isLoggedIn: boolean;
     userConfig: UserConfig | null;
@@ -155,6 +159,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     if (images.length > 0) {
                         localStorage.setItem("images", JSON.stringify(images));
                     }
+
                     window.location.href = `/chat?conversationId=${newConversationId}`;
                 } catch (error) {
                     console.error("Error creating new conversation:", error);
@@ -401,7 +406,7 @@ export default function Home() {
     const [chatOptionsData, setChatOptionsData] = useState<ChatOptions | null>(null);
     const [isLoading, setLoading] = useState(true);
     const [conversationId, setConversationID] = useState<string | null>(null);
-    const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+    const [uploadedFiles, setUploadedFiles] = useState<AttachedFileText[] | null>(null);
     const isMobileWidth = useIsMobileWidth();
 
     const { userConfig: initialUserConfig, isLoadingUserConfig } = useUserConfig(true);
@@ -416,6 +421,12 @@ export default function Home() {
     useEffect(() => {
         setUserConfig(initialUserConfig);
     }, [initialUserConfig]);
+
+    useEffect(() => {
+        if (uploadedFiles) {
+            localStorage.setItem("uploadedFiles", JSON.stringify(uploadedFiles));
+        }
+    }, [uploadedFiles]);
 
     useEffect(() => {
         fetch("/api/chat/options")
@@ -442,7 +453,7 @@ export default function Home() {
             <div className={`${styles.sidePanel}`}>
                 <SidePanel
                     conversationId={conversationId}
-                    uploadedFiles={uploadedFiles}
+                    uploadedFiles={[]}
                     isMobileWidth={isMobileWidth}
                 />
             </div>

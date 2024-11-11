@@ -37,6 +37,7 @@ def extract_questions_gemini(
     query_images: Optional[list[str]] = None,
     vision_enabled: bool = False,
     personality_context: Optional[str] = None,
+    query_files: str = None,
     tracer: dict = {},
 ):
     """
@@ -83,9 +84,13 @@ def extract_questions_gemini(
         images=query_images,
         model_type=ChatModelOptions.ModelType.GOOGLE,
         vision_enabled=vision_enabled,
+        attached_file_context=query_files,
     )
 
-    messages = [ChatMessage(content=prompt, role="user"), ChatMessage(content=system_prompt, role="system")]
+    messages = []
+
+    messages.append(ChatMessage(content=prompt, role="user"))
+    messages.append(ChatMessage(content=system_prompt, role="system"))
 
     response = gemini_send_message_to_model(
         messages, api_key, model, response_type="json_object", temperature=temperature, tracer=tracer
@@ -108,7 +113,13 @@ def extract_questions_gemini(
 
 
 def gemini_send_message_to_model(
-    messages, api_key, model, response_type="text", temperature=0, model_kwargs=None, tracer={}
+    messages,
+    api_key,
+    model,
+    response_type="text",
+    temperature=0,
+    model_kwargs=None,
+    tracer={},
 ):
     """
     Send message to model
@@ -151,6 +162,7 @@ def converse_gemini(
     agent: Agent = None,
     query_images: Optional[list[str]] = None,
     vision_available: bool = False,
+    query_files: str = None,
     tracer={},
 ):
     """
@@ -209,6 +221,7 @@ def converse_gemini(
         query_images=query_images,
         vision_enabled=vision_available,
         model_type=ChatModelOptions.ModelType.GOOGLE,
+        query_files=query_files,
     )
 
     messages, system_prompt = format_messages_for_gemini(messages, system_prompt)

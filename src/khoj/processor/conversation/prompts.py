@@ -988,16 +988,27 @@ You are an extremely smart and helpful title generator assistant. Given a user q
 
 # Examples:
 User: Show a new Calvin and Hobbes quote every morning at 9am. My Current Location: Shanghai, China
-Khoj: Your daily Calvin and Hobbes Quote
+Assistant: Your daily Calvin and Hobbes Quote
 
 User: Notify me when version 2.0.0 of the sentence transformers python package is released. My Current Location: Mexico City, Mexico
-Khoj: Sentence Transformers Python Package Version 2.0.0 Release
+Assistant: Sentence Transformers Python Package Version 2.0.0 Release
 
 User: Gather the latest tech news on the first sunday of every month.
-Khoj: Your Monthly Dose of Tech News
+Assistant: Your Monthly Dose of Tech News
 
 User Query: {query}
-Khoj:
+Assistant:
+""".strip()
+)
+
+conversation_title_generation = PromptTemplate.from_template(
+    """
+You are an extremely smart and helpful title generator assistant. Given a conversation, extract the subject of the conversation. Crisp, informative, ten words or less.
+
+Conversation History:
+{chat_history}
+
+Assistant:
 """.strip()
 )
 

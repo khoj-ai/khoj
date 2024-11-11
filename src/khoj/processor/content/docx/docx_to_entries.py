@@ -1,6 +1,5 @@
 import logging
-import os
-from datetime import datetime
+import tempfile
 from typing import Dict, List, Tuple
 
 from langchain_community.document_loaders import Docx2txtLoader
@@ -58,28 +57,13 @@ class DocxToEntries(TextToEntries):
         file_to_text_map = dict()
         for docx_file in docx_files:
             try:
-                timestamp_now = datetime.utcnow().timestamp()
-                tmp_file = f"tmp_docx_file_{timestamp_now}.docx"
-                with open(tmp_file, "wb") as f:
-                    bytes_content = docx_files[docx_file]
-                    f.write(bytes_content)
-
-                # Load the content using Docx2txtLoader
-                loader = Docx2txtLoader(tmp_file)
-                docx_entries_per_file = loader.load()
-
-                # Convert the loaded entries into the desired format
-                docx_texts = [page.page_content for page in docx_entries_per_file]
-
+                docx_texts = DocxToEntries.extract_text(docx_files[docx_file])
                 entry_to_location_map += zip(docx_texts, [docx_file] * len(docx_texts))
                 entries.extend(docx_texts)
                 file_to_text_map[docx_file] = docx_texts
             except Exception as e:
-                logger.warning(f"Unable to process file: {docx_file}. This file will not be indexed.")
+                logger.warning(f"Unable to extract entries from file: {docx_file}")
                 logger.warning(e, exc_info=True)
-            finally:
-                if os.path.exists(f"{tmp_file}"):
-                    os.remove(f"{tmp_file}")
         return file_to_text_map, DocxToEntries.convert_docx_entries_to_maps(entries, dict(entry_to_location_map))
 
     @staticmethod
@@ -103,3 +87,25 @@ class DocxToEntries(TextToEntries):
         logger.debug(f"Converted {len(parsed_entries)} DOCX entries to dictionaries")
 
         return entries
+
+    @staticmethod
+    def extract_text(docx_file):
+        """Extract text from specified DOCX file"""
+        try:
+            docx_entry_by_pages = []
+            # Create temp file with .docx extension that gets auto-deleted
+            with tempfile.NamedTemporaryFile(suffix=".docx", delete=True) as tmp:
+                tmp.write(docx_file)
+                tmp.flush()  # Ensure all data is written
+
+                # Load the content using Docx2txtLoader
+                loader = Docx2txtLoader(tmp.name)
+                docx_entries_per_file = loader.load()
+
+                # Convert the loaded entries into the desired format
+                docx_entry_by_pages = [page.page_content for page in docx_entries_per_file]
+        except Exception as e:
+            logger.warning(f"Unable to extract text from file: {docx_file}")
+            logger.warning(e, exc_info=True)
+
+        return docx_entry_by_pages

@@ -40,6 +40,18 @@ import { AgentData } from "@/app/agents/page";
 import renderMathInElement from "katex/contrib/auto-render";
 import "katex/dist/katex.min.css";
 import ExcalidrawComponent from "../excalidraw/excalidraw";
+import { AttachedFileText } from "../chatInputArea/chatInputArea";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { DialogTitle } from "@radix-ui/react-dialog";
+import { convertBytesToText } from "@/app/common/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { getIconFromFilename } from "@/app/common/iconUtils";
 
 const md = new markdownIt({
     html: true,
@@ -149,6 +161,7 @@ export interface SingleChatMessage {
     images?: string[];
     conversationId: string;
     turnId?: string;
+    queryFiles?: AttachedFileText[];
 }
 
 export interface StreamMessage {
@@ -165,6 +178,7 @@ export interface StreamMessage {
     intentType?: string;
     inferredQueries?: string[];
     turnId?: string;
+    queryFiles?: AttachedFileText[];
 }
 
 export interface ChatHistoryData {
@@ -398,7 +412,6 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
         if (props.chatMessage.intent) {
             const { type, "inferred-queries": inferredQueries } = props.chatMessage.intent;
 
-            console.log("intent type", type);
             if (type in intentTypeHandlers) {
                 message = intentTypeHandlers[type as keyof typeof intentTypeHandlers](message);
             }
@@ -695,6 +708,40 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             onMouseLeave={(event) => setIsHovering(false)}
             onMouseEnter={(event) => setIsHovering(true)}
         >
+            {props.chatMessage.queryFiles && props.chatMessage.queryFiles.length > 0 && (
+                <div className="flex flex-wrap flex-col m-2 max-w-full">
+                    {props.chatMessage.queryFiles.map((file, index) => (
+                        <Dialog key={index}>
+                            <DialogTrigger asChild>
+                                <div
+                                    className="flex items-center space-x-2 cursor-pointer bg-gray-500 bg-opacity-25 rounded-lg m-1 p-2 w-full
+                                "
+                                >
+                                    <div className="flex-shrink-0">
+                                        {getIconFromFilename(file.file_type)}
+                                    </div>
+                                    <span className="truncate flex-1 min-w-0">{file.name}</span>
+                                    {file.size && (
+                                        <span className="text-gray-400 flex-shrink-0">
+                                            ({convertBytesToText(file.size)})
+                                        </span>
+                                    )}
+                                </div>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>{file.name}</DialogTitle>
+                                </DialogHeader>
+                                <DialogDescription>
+                                    <ScrollArea className="h-72 w-full rounded-md">
+                                        {file.content}
+                                    </ScrollArea>
+                                </DialogDescription>
+                            </DialogContent>
+                        </Dialog>
+                    ))}
+                </div>
+            )}
             <div className={chatMessageWrapperClasses(props.chatMessage)}>
                 <div
                     ref={messageRef}

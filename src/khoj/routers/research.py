@@ -11,6 +11,7 @@ from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
     InformationCollectionIteration,
     clean_json,
+    construct_chat_history,
     construct_iteration_history,
     construct_tool_chat_history,
 )
@@ -19,8 +20,6 @@ from khoj.processor.tools.run_code import run_code
 from khoj.routers.api import extract_references_and_questions
 from khoj.routers.helpers import (
     ChatEvent,
-    construct_chat_history,
-    extract_relevant_info,
     generate_summary_from_files,
     send_message_to_model_wrapper,
 )
@@ -47,6 +46,7 @@ async def apick_next_tool(
     max_iterations: int = 5,
     send_status_func: Optional[Callable] = None,
     tracer: dict = {},
+    query_files: str = None,
 ):
     """Given a query, determine which of the available tools the agent should use in order to answer appropriately."""
 
@@ -92,6 +92,7 @@ async def apick_next_tool(
                 response_type="json_object",
                 user=user,
                 query_images=query_images,
+                query_files=query_files,
                 tracer=tracer,
             )
     except Exception as e:
@@ -151,6 +152,7 @@ async def execute_information_collection(
     location: LocationData = None,
     file_filters: List[str] = [],
     tracer: dict = {},
+    query_files: str = None,
 ):
     current_iteration = 0
     MAX_ITERATIONS = 5
@@ -174,6 +176,7 @@ async def execute_information_collection(
             MAX_ITERATIONS,
             send_status_func,
             tracer=tracer,
+            query_files=query_files,
         ):
             if isinstance(result, dict) and ChatEvent.STATUS in result:
                 yield result[ChatEvent.STATUS]
@@ -204,6 +207,7 @@ async def execute_information_collection(
                 previous_inferred_queries=previous_inferred_queries,
                 agent=agent,
                 tracer=tracer,
+                query_files=query_files,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
@@ -265,6 +269,7 @@ async def execute_information_collection(
                     query_images=query_images,
                     agent=agent,
                     tracer=tracer,
+                    query_files=query_files,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -295,6 +300,7 @@ async def execute_information_collection(
                     send_status_func,
                     query_images=query_images,
                     agent=agent,
+                    query_files=query_files,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -320,6 +326,7 @@ async def execute_information_collection(
                     query_images=query_images,
                     agent=agent,
                     send_status_func=send_status_func,
+                    query_files=query_files,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]

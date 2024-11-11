@@ -5,23 +5,25 @@ import React, { Suspense, useEffect, useRef, useState } from "react";
 
 import SidePanel from "../../components/sidePanel/chatHistorySidePanel";
 import ChatHistory from "../../components/chatHistory/chatHistory";
-import NavMenu from "../../components/navMenu/navMenu";
 import Loading from "../../components/loading/loading";
 
 import "katex/dist/katex.min.css";
 
-import { useIPLocationData, useIsMobileWidth, welcomeConsole } from "../../common/utils";
+import { useIsMobileWidth, welcomeConsole } from "../../common/utils";
 import { useAuthenticatedData } from "@/app/common/auth";
 
-import { ChatInputArea, ChatOptions } from "@/app/components/chatInputArea/chatInputArea";
+import {
+    AttachedFileText,
+    ChatInputArea,
+    ChatOptions,
+} from "@/app/components/chatInputArea/chatInputArea";
 import { StreamMessage } from "@/app/components/chatMessage/chatMessage";
-import { processMessageChunk } from "@/app/common/chatFunctions";
 import { AgentData } from "@/app/agents/page";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
     setTitle: (title: string) => void;
-    setUploadedFiles: (files: string[]) => void;
+    setUploadedFiles: (files: AttachedFileText[]) => void;
     isMobileWidth?: boolean;
     publicConversationSlug: string;
     streamedMessages: StreamMessage[];
@@ -49,23 +51,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
             props.setImages(encodedImages);
         }
     }, [images, props.setImages]);
-
-    useEffect(() => {
-        const storedImages = localStorage.getItem("images");
-        if (storedImages) {
-            const parsedImages: string[] = JSON.parse(storedImages);
-            setImages(parsedImages);
-            const encodedImages = parsedImages.map((img: string) => encodeURIComponent(img));
-            props.setImages(encodedImages);
-            localStorage.removeItem("images");
-        }
-
-        const storedMessage = localStorage.getItem("message");
-        if (storedMessage) {
-            setProcessingMessage(true);
-            setQueryToProcess(storedMessage);
-        }
-    }, [setQueryToProcess, props.setImages]);
 
     useEffect(() => {
         if (message) {
@@ -130,14 +115,10 @@ export default function SharedChat() {
     const [conversationId, setConversationID] = useState<string | undefined>(undefined);
     const [messages, setMessages] = useState<StreamMessage[]>([]);
     const [queryToProcess, setQueryToProcess] = useState<string>("");
-    const [processQuerySignal, setProcessQuerySignal] = useState(false);
-    const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+    const [uploadedFiles, setUploadedFiles] = useState<AttachedFileText[] | null>(null);
     const [paramSlug, setParamSlug] = useState<string | undefined>(undefined);
     const [images, setImages] = useState<string[]>([]);
 
-    const locationData = useIPLocationData() || {
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    };
     const authenticatedData = useAuthenticatedData();
     const isMobileWidth = useIsMobileWidth();
 
@@ -162,6 +143,12 @@ export default function SharedChat() {
     }, []);
 
     useEffect(() => {
+        if (uploadedFiles) {
+            localStorage.setItem("uploadedFiles", JSON.stringify(uploadedFiles));
+        }
+    }, [uploadedFiles]);
+
+    useEffect(() => {
         if (queryToProcess && !conversationId) {
             // If the user has not yet started conversing in the chat, create a new conversation
             fetch(`/api/chat/share/fork?public_conversation_slug=${paramSlug}`, {
@@ -173,6 +160,11 @@ export default function SharedChat() {
                 .then((response) => response.json())
                 .then((data) => {
                     setConversationID(data.conversation_id);
+                    localStorage.setItem("message", queryToProcess);
+                    if (images.length > 0) {
+                        localStorage.setItem("images", JSON.stringify(images));
+                    }
+                    window.location.href = `/chat?conversationId=${data.conversation_id}`;
                 })
                 .catch((err) => {
                     console.error(err);
@@ -180,104 +172,7 @@ export default function SharedChat() {
                 });
             return;
         }
-
-        if (queryToProcess) {
-            // Add a new object to the state
-            const newStreamMessage: StreamMessage = {
-                rawResponse: "",
-                trainOfThought: [],
-                context: [],
-                onlineContext: {},
-                codeContext: {},
-                completed: false,
-                timestamp: new Date().toISOString(),
-                rawQuery: queryToProcess || "",
-                images: images,
-            };
-            setMessages((prevMessages) => [...prevMessages, newStreamMessage]);
-            setProcessQuerySignal(true);
-        }
     }, [queryToProcess, conversationId, paramSlug]);
-
-    useEffect(() => {
-        if (processQuerySignal) {
-            chat();
-        }
-    }, [processQuerySignal]);
-
-    async function readChatStream(response: Response) {
-        if (!response.ok) throw new Error(response.statusText);
-        if (!response.body) throw new Error("Response body is null");
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        const eventDelimiter = "␃🔚␗";
-        let buffer = "";
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-                setQueryToProcess("");
-                setProcessQuerySignal(false);
-                setImages([]);
-                break;
-            }
-
-            const chunk = decoder.decode(value, { stream: true });
-
-            buffer += chunk;
-
-            let newEventIndex;
-            while ((newEventIndex = buffer.indexOf(eventDelimiter)) !== -1) {
-                const event = buffer.slice(0, newEventIndex);
-                buffer = buffer.slice(newEventIndex + eventDelimiter.length);
-                if (event) {
-                    const currentMessage = messages.find((message) => !message.completed);
-
-                    if (!currentMessage) {
-                        console.error("No current message found");
-                        return;
-                    }
-
-                    processMessageChunk(event, currentMessage);
-
-                    setMessages([...messages]);
-                }
-            }
-        }
-    }
-
-    async function chat() {
-        if (!queryToProcess || !conversationId) return;
-        const chatAPI = "/api/chat?client=web";
-        const chatAPIBody = {
-            q: queryToProcess,
-            conversation_id: conversationId,
-            stream: true,
-            ...(locationData && {
-                region: locationData.region,
-                country: locationData.country,
-                city: locationData.city,
-                country_code: locationData.countryCode,
-                timezone: locationData.timezone,
-            }),
-            ...(images.length > 0 && { image: images }),
-        };
-
-        const response = await fetch(chatAPI, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(chatAPIBody),
-        });
-
-        try {
-            await readChatStream(response);
-        } catch (error) {
-            console.error(error);
-        }
-    }
 
     if (isLoading) {
         return <Loading />;
@@ -293,7 +188,7 @@ export default function SharedChat() {
             <div className={styles.sidePanel}>
                 <SidePanel
                     conversationId={conversationId ?? null}
-                    uploadedFiles={uploadedFiles}
+                    uploadedFiles={[]}
                     isMobileWidth={isMobileWidth}
                 />
             </div>

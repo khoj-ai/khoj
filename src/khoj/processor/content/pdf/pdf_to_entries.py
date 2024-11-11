@@ -1,13 +1,10 @@
-import base64
 import logging
-import os
-from datetime import datetime
+import tempfile
+from io import BytesIO
 from typing import Dict, List, Tuple
 
 from langchain_community.document_loaders import PyMuPDFLoader
 
-# importing FileObjectAdapter so that we can add new files and debug file object db.
-# from khoj.database.adapters import FileObjectAdapters
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import KhojUser
 from khoj.processor.content.text_to_entries import TextToEntries
@@ -60,31 +57,13 @@ class PdfToEntries(TextToEntries):
         entry_to_location_map: List[Tuple[str, str]] = []
         for pdf_file in pdf_files:
             try:
-                # Write the PDF file to a temporary file, as it is stored in byte format in the pdf_file object and the PDF Loader expects a file path
-                timestamp_now = datetime.utcnow().timestamp()
-                tmp_file = f"tmp_pdf_file_{timestamp_now}.pdf"
-                with open(f"{tmp_file}", "wb") as f:
-                    bytes = pdf_files[pdf_file]
-                    f.write(bytes)
-                try:
-                    loader = PyMuPDFLoader(f"{tmp_file}", extract_images=False)
-                    pdf_entries_per_file = [page.page_content for page in loader.load()]
-                except ImportError:
-                    loader = PyMuPDFLoader(f"{tmp_file}")
-                    pdf_entries_per_file = [
-                        page.page_content for page in loader.load()
-                    ]  # page_content items list for a given pdf.
-                entry_to_location_map += zip(
-                    pdf_entries_per_file, [pdf_file] * len(pdf_entries_per_file)
-                )  # this is an indexed map of pdf_entries for the pdf.
+                pdf_entries_per_file = PdfToEntries.extract_text(pdf_files[pdf_file])
+                entry_to_location_map += zip(pdf_entries_per_file, [pdf_file] * len(pdf_entries_per_file))
                 entries.extend(pdf_entries_per_file)
                 file_to_text_map[pdf_file] = pdf_entries_per_file
             except Exception as e:
-                logger.warning(f"Unable to process file: {pdf_file}. This file will not be indexed.")
+                logger.warning(f"Unable to extract entries from file: {pdf_file}")
                 logger.warning(e, exc_info=True)
-            finally:
-                if os.path.exists(f"{tmp_file}"):
-                    os.remove(f"{tmp_file}")
 
         return file_to_text_map, PdfToEntries.convert_pdf_entries_to_maps(entries, dict(entry_to_location_map))
 
@@ -109,3 +88,32 @@ class PdfToEntries(TextToEntries):
         logger.debug(f"Converted {len(parsed_entries)} PDF entries to dictionaries")
 
         return entries
+
+    @staticmethod
+    def extract_text(pdf_file):
+        """Extract text from specified PDF files"""
+        try:
+            # Create temp file with .pdf extension that gets auto-deleted
+            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=True) as tmpf:
+                tmpf.write(pdf_file)
+                tmpf.flush()  # Ensure all data is written
+
+                # Load the content using PyMuPDFLoader
+                loader = PyMuPDFLoader(tmpf.name, extract_images=True)
+                pdf_entries_per_file = loader.load()
+
+                # Convert the loaded entries into the desired format
+                pdf_entry_by_pages = [PdfToEntries.clean_text(page.page_content) for page in pdf_entries_per_file]
+        except Exception as e:
+            logger.warning(f"Unable to process file: {pdf_file}. This file will not be indexed.")
+            logger.warning(e, exc_info=True)
+
+        return pdf_entry_by_pages
+
+    @staticmethod
+    def clean_text(text: str) -> str:
+        # Remove null bytes
+        text = text.replace("\x00", "")
+        # Replace invalid Unicode
+        text = text.encode("utf-8", errors="ignore").decode("utf-8")
+        return text
