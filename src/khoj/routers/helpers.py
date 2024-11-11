@@ -301,11 +301,15 @@ async def acreate_title_from_query(query: str, user: KhojUser = None) -> str:
     return response.strip()
 
 
-async def acheck_if_safe_prompt(system_prompt: str, user: KhojUser = None) -> Tuple[bool, str]:
+async def acheck_if_safe_prompt(system_prompt: str, user: KhojUser = None, lax: bool = False) -> Tuple[bool, str]:
     """
     Check if the system prompt is safe to use
     """
-    safe_prompt_check = prompts.personality_prompt_safety_expert.format(prompt=system_prompt)
+    safe_prompt_check = (
+        prompts.personality_prompt_safety_expert.format(prompt=system_prompt)
+        if not lax
+        else prompts.personality_prompt_safety_expert_lax.format(prompt=system_prompt)
+    )
     is_safe = True
     reason = ""
 

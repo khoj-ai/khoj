@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     manifest: "/static/khoj.webmanifest",
     openGraph: {
         siteName: "Khoj AI",
-        title: "Khoj AI - Home",
+        title: "Khoj AI",
         description: "Your Second Brain.",
         url: "https://app.khoj.dev",
         type: "website",

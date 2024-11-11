@@ -183,7 +183,7 @@ async def delete_agent(
 
 
 @api_agents.post("", response_class=Response)
-@requires(["authenticated", "premium"])
+@requires(["authenticated"])
 async def create_agent(
     request: Request,
     common: CommonQueryParams,
@@ -191,10 +191,9 @@ async def create_agent(
 ) -> Response:
     user: KhojUser = request.user.object
 
-    is_safe_prompt, reason = True, ""
-
-    if body.privacy_level != Agent.PrivacyLevel.PRIVATE:
-        is_safe_prompt, reason = await acheck_if_safe_prompt(body.persona)
+    is_safe_prompt, reason = await acheck_if_safe_prompt(
+        body.persona, user, lax=body.privacy_level == Agent.PrivacyLevel.PRIVATE
+    )
 
     if not is_safe_prompt:
         return Response(
@@ -236,7 +235,7 @@ async def create_agent(
 
 
 @api_agents.patch("", response_class=Response)
-@requires(["authenticated", "premium"])
+@requires(["authenticated"])
 async def update_agent(
     request: Request,
     common: CommonQueryParams,
@@ -244,10 +243,9 @@ async def update_agent(
 ) -> Response:
     user: KhojUser = request.user.object
 
-    is_safe_prompt, reason = True, ""
-
-    if body.privacy_level != Agent.PrivacyLevel.PRIVATE:
-        is_safe_prompt, reason = await acheck_if_safe_prompt(body.persona)
+    is_safe_prompt, reason = await acheck_if_safe_prompt(
+        body.persona, user, lax=body.privacy_level == Agent.PrivacyLevel.PRIVATE
+    )
 
     if not is_safe_prompt:
         return Response(

@@ -526,7 +526,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
     const [allFileOptions, setAllFileOptions] = useState<string[]>([]);
     const [currentStep, setCurrentStep] = useState(0);
 
-    const [showSubscribeDialog, setShowSubscribeDialog] = useState(true);
+    const [showSubscribeDialog, setShowSubscribeDialog] = useState(false);
 
     const privacyOptions = ["public", "private", "protected"];
 
@@ -684,7 +684,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
         }
     };
 
-    if (!props.isSubscribed && showSubscribeDialog) {
+    if (showSubscribeDialog) {
         return (
             <AlertDialog open={true}>
                 <AlertDialogContent>
@@ -1271,7 +1271,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                         <Button
                             type="submit"
                             variant={"outline"}
-                            disabled={isSaving || !props.isSubscribed}
+                            disabled={isSaving}
                             className={`items-center ${isSaving ? "bg-stone-100 dark:bg-neutral-900" : ""} text-white ${colorOptionClassName}`}
                         >
                             <FloppyDisk className="h-4 w-4 mr-2" />
