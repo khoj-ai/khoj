@@ -57,6 +57,7 @@ function NotesContextReferenceCard(props: NotesContextReferenceCardProps) {
         props.title || ".txt",
         "w-6 h-6 text-muted-foreground inline-flex mr-2",
     );
+    const fileName = props.title.split("/").pop() || props.title;
     const snippet = extractSnippet(props);
     const [isHovering, setIsHovering] = useState(false);
 
@@ -67,30 +68,30 @@ function NotesContextReferenceCard(props: NotesContextReferenceCardProps) {
                     <Card
                         onMouseEnter={() => setIsHovering(true)}
                         onMouseLeave={() => setIsHovering(false)}
-                        className={`${props.showFullContent ? "w-auto" : "w-[200px]"} overflow-hidden break-words text-balance rounded-lg p-2 bg-muted border-none`}
+                        className={`${props.showFullContent ? "w-auto" : "w-[200px]"} overflow-hidden break-words text-balance rounded-lg border-none p-2 bg-muted`}
                     >
                         <h3
                             className={`${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground}`}
                         >
                             {fileIcon}
-                            {props.title}
+                            {props.showFullContent ? props.title : fileName}
                         </h3>
                         <p
-                            className={`${props.showFullContent ? "block" : "overflow-hidden line-clamp-2"}`}
+                            className={`border-t mt-1 pt-1 text-sm ${props.showFullContent ? "overflow-x-auto block" : "overflow-hidden line-clamp-2"}`}
                             dangerouslySetInnerHTML={{ __html: snippet }}
                         ></p>
                     </Card>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] mx-2">
                     <Card
-                        className={`w-auto overflow-hidden break-words text-balance rounded-lg p-2 border-none`}
+                        className={`w-auto overflow-hidden break-words text-balance rounded-lg border-none p-2`}
                     >
                         <h3 className={`line-clamp-2 text-muted-foreground}`}>
                             {fileIcon}
                             {props.title}
                         </h3>
                         <p
-                            className={`overflow-hidden line-clamp-3`}
+                            className={`border-t mt-1 pt-1 text-sm overflow-hidden line-clamp-5`}
                             dangerouslySetInnerHTML={{ __html: snippet }}
                         ></p>
                     </Card>
@@ -109,8 +110,8 @@ interface CodeContextReferenceCardProps {
 }
 
 function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
-    const fileIcon = getIconFromFilename(".py", "w-6 h-6 text-muted-foreground inline-flex mr-2");
-    const sanitizedCodeSnippet = DOMPurify.sanitize(props.code.replace(/\n/g, "<br/>"));
+    const fileIcon = getIconFromFilename(".py", "!w-4 h-4 text-muted-foreground flex-shrink-0");
+    const sanitizedCodeSnippet = DOMPurify.sanitize(props.code);
     const [isHovering, setIsHovering] = useState(false);
     const [isDownloadHover, setIsDownloadHover] = useState(false);
 
@@ -152,89 +153,98 @@ function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
                     <Card
                         onMouseEnter={() => setIsHovering(true)}
                         onMouseLeave={() => setIsHovering(false)}
-                        className={`${props.showFullContent ? "w-auto" : "w-[200px]"} overflow-hidden break-words text-balance rounded-lg p-2 bg-muted border-none`}
+                        className={`${props.showFullContent ? "w-auto" : "w-[200px]"} overflow-hidden break-words text-balance rounded-lg border-none p-2 bg-muted`}
                     >
-                        <h3
-                            className={`${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground}`}
-                        >
-                            {fileIcon}
-                            Code
-                        </h3>
-                        <p
-                            className={`text-xs ${props.showFullContent ? "block" : "overflow-hidden line-clamp-3"}`}
-                            dangerouslySetInnerHTML={{ __html: sanitizedCodeSnippet }}
-                        ></p>
-                        {props.output_files && props.output_files.length > 0 && (
-                            <div className={`mt-2 border-t pt-2`}>
-                                {props.output_files
-                                    .slice(0, props.showFullContent ? undefined : 1)
-                                    .map((file, index) => {
-                                        const fileIcon = getIconFromFilename(
-                                            file.filename,
-                                            "w-4 h-4 text-muted-foreground inline-flex",
-                                        );
-                                        return (
-                                            <div key={`${file.filename}-${index}`}>
-                                                <h4 className="text-sm text-muted-foreground flex items-center">
-                                                    {fileIcon}
-                                                    <span className="flex items-center overflow-hidden mx-2">
-                                                        {file.filename}
-                                                    </span>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            handleDownload(file);
-                                                        }}
-                                                        onMouseEnter={() =>
-                                                            setIsDownloadHover(true)
-                                                        }
-                                                        onMouseLeave={() =>
-                                                            setIsDownloadHover(false)
-                                                        }
-                                                        title={`Download file: ${file.filename}`}
-                                                    >
-                                                        <ArrowCircleDown
-                                                            className="w-4 h-4"
-                                                            weight={
-                                                                isDownloadHover ? "fill" : "regular"
-                                                            }
-                                                        />
-                                                    </button>
-                                                </h4>
-                                                {file.filename.match(/\.(txt|org|md|csv|json)$/) ? (
-                                                    <pre
-                                                        className={`${props.showFullContent ? "block" : "line-clamp-2"} text-sm mt-1 p-1 bg-background rounded overflow-x-auto`}
-                                                    >
-                                                        {file.b64_data}
-                                                    </pre>
-                                                ) : file.filename.match(
-                                                      /\.(png|jpg|jpeg|webp)$/,
-                                                  ) ? (
-                                                    <img
-                                                        src={`data:image/${file.filename.split(".").pop()};base64,${file.b64_data}`}
-                                                        alt={file.filename}
-                                                        className="mt-1 max-h-32 rounded"
-                                                    />
-                                                ) : null}
-                                            </div>
-                                        );
-                                    })}
+                        <div className="flex flex-col px-1">
+                            <div className="flex items-center gap-2">
+                                {fileIcon}
+                                <h3
+                                    className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground flex-grow`}
+                                >
+                                    code artifacts
+                                </h3>
                             </div>
-                        )}
+                            <pre
+                                className={`text-xs border-t mt-1 pt-1 ${props.showFullContent ? "block overflow-x-auto" : props.output_files?.length > 0 ? "hidden" : "overflow-hidden line-clamp-3"}`}
+                            >
+                                {sanitizedCodeSnippet}
+                            </pre>
+                            {props.output_files?.length > 0 && (
+                                <div className="border-t mt-1 pt-1">
+                                    {props.output_files
+                                        .slice(0, props.showFullContent ? undefined : 1)
+                                        .map((file, index) => {
+                                            return (
+                                                <div key={`${file.filename}-${index}`}>
+                                                    <h4 className="text-sm text-muted-foreground flex items-center">
+                                                        <span
+                                                            className={`flex items-center overflow-hidden mr-2 font-bold`}
+                                                        >
+                                                            {file.filename}
+                                                        </span>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                handleDownload(file);
+                                                            }}
+                                                            onMouseEnter={() =>
+                                                                setIsDownloadHover(true)
+                                                            }
+                                                            onMouseLeave={() =>
+                                                                setIsDownloadHover(false)
+                                                            }
+                                                            title={`Download file: ${file.filename}`}
+                                                        >
+                                                            <ArrowCircleDown
+                                                                className="w-4 h-4"
+                                                                weight={
+                                                                    isDownloadHover
+                                                                        ? "fill"
+                                                                        : "regular"
+                                                                }
+                                                            />
+                                                        </button>
+                                                    </h4>
+                                                    {file.filename.match(
+                                                        /\.(txt|org|md|csv|json)$/,
+                                                    ) ? (
+                                                        <pre
+                                                            className={`${props.showFullContent ? "block" : "line-clamp-2"} text-sm mt-1 p-1 bg-background rounded overflow-x-auto`}
+                                                        >
+                                                            {file.b64_data}
+                                                        </pre>
+                                                    ) : file.filename.match(
+                                                          /\.(png|jpg|jpeg|webp)$/,
+                                                      ) ? (
+                                                        <img
+                                                            src={`data:image/${file.filename.split(".").pop()};base64,${file.b64_data}`}
+                                                            alt={file.filename}
+                                                            className="mt-1 max-h-32 rounded"
+                                                        />
+                                                    ) : null}
+                                                </div>
+                                            );
+                                        })}
+                                </div>
+                            )}
+                        </div>
                     </Card>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] mx-2">
                     <Card
-                        className={`w-auto overflow-hidden break-words text-balance rounded-lg p-2 border-none`}
+                        className={`w-auto overflow-hidden break-words text-balance rounded-lg border-none p-2`}
                     >
-                        <h3 className={`line-clamp-2 text-muted-foreground}`}>
+                        <div className="flex items-center gap-2">
                             {fileIcon}
-                            Code
-                        </h3>
-                        <p
-                            className={`text-xs overflow-hidden line-clamp-10`}
-                            dangerouslySetInnerHTML={{ __html: sanitizedCodeSnippet }}
-                        ></p>
+                            <h3
+                                className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground flex-grow`}
+                            >
+                                code
+                            </h3>
+                        </div>
+                        <pre className={`text-xs border-t mt-1 pt-1 verflow-hidden line-clamp-10`}>
+                            {sanitizedCodeSnippet}
+                        </pre>
                     </Card>
                 </PopoverContent>
             </Popover>
@@ -291,21 +301,17 @@ function GenericOnlineReferenceCard(props: OnlineReferenceCardProps) {
                     <Card
                         onMouseEnter={handleMouseEnter}
                         onMouseLeave={handleMouseLeave}
-                        className={`${props.showFullContent ? "w-auto" : "w-[200px]"} overflow-hidden break-words rounded-lg text-balance p-2 bg-muted border-none`}
+                        className={`${props.showFullContent ? "w-auto" : "w-[200px]"} overflow-hidden break-words text-balance rounded-lg border-none p-2 bg-muted`}
                     >
                         <div className="flex flex-col">
                             <a
                                 href={props.link}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="!no-underline p-2"
+                                className="!no-underline px-1"
                             >
                                 <div className="flex items-center gap-2">
-                                    <img
-                                        src={favicon}
-                                        alt=""
-                                        className="!w-4 h-4 mr-2 flex-shrink-0"
-                                    />
+                                    <img src={favicon} alt="" className="!w-4 h-4 flex-shrink-0" />
                                     <h3
                                         className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground flex-grow`}
                                     >
@@ -313,12 +319,12 @@ function GenericOnlineReferenceCard(props: OnlineReferenceCardProps) {
                                     </h3>
                                 </div>
                                 <h3
-                                    className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} font-bold`}
+                                    className={`border-t mt-1 pt-1 overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} font-bold`}
                                 >
                                     {props.title}
                                 </h3>
                                 <p
-                                    className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-2"}`}
+                                    className={`overflow-hidden text-sm ${props.showFullContent ? "block" : "line-clamp-2"}`}
                                 >
                                     {props.description}
                                 </p>
@@ -335,23 +341,23 @@ function GenericOnlineReferenceCard(props: OnlineReferenceCardProps) {
                                 href={props.link}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="!no-underline p-2"
+                                className="!no-underline px-1"
                             >
-                                <div className="flex items-center">
-                                    <img src={favicon} alt="" className="!w-4 h-4 mr-2" />
+                                <div className="flex items-center gap-2">
+                                    <img src={favicon} alt="" className="!w-4 h-4 flex-shrink-0" />
                                     <h3
-                                        className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-2"} text-muted-foreground`}
+                                        className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-2"} text-muted-foreground flex-grow`}
                                     >
                                         {domain}
                                     </h3>
                                 </div>
                                 <h3
-                                    className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-2"} font-bold`}
+                                    className={`border-t mt-1 pt-1 overflow-hidden ${props.showFullContent ? "block" : "line-clamp-2"} font-bold`}
                                 >
                                     {props.title}
                                 </h3>
                                 <p
-                                    className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-3"}`}
+                                    className={`overflow-hidden text-sm ${props.showFullContent ? "block" : "line-clamp-5"}`}
                                 >
                                     {props.description}
                                 </p>
