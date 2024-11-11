@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from magika import Magika
 
 from khoj.database.models import (
+    KhojUser,
     LocalMarkdownConfig,
     LocalOrgConfig,
     LocalPdfConfig,
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 magika = Magika()
 
 
-def collect_files(search_type: Optional[SearchType] = SearchType.All, user=None) -> dict:
+def collect_files(user: KhojUser, search_type: Optional[SearchType] = SearchType.All) -> dict:
     files: dict[str, dict] = {"docx": {}, "image": {}}
 
     if search_type == SearchType.All or search_type == SearchType.Org:

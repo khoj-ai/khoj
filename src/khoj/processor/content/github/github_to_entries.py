@@ -48,7 +48,7 @@ class GithubToEntries(TextToEntries):
         else:
             return
 
-    def process(self, files: dict[str, str] = None, user: KhojUser = None, regenerate: bool = False) -> Tuple[int, int]:
+    def process(self, files: dict[str, str], user: KhojUser, regenerate: bool = False) -> Tuple[int, int]:
         if self.config.pat_token is None or self.config.pat_token == "":
             logger.error(f"Github PAT token is not set. Skipping github content")
             raise ValueError("Github PAT token is not set. Skipping github content")
@@ -101,12 +101,12 @@ class GithubToEntries(TextToEntries):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
             num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
+                user,
                 current_entries,
                 DbEntry.EntryType.GITHUB,
                 DbEntry.EntrySource.GITHUB,
                 key="compiled",
                 logger=logger,
-                user=user,
             )
 
         return num_new_embeddings, num_deleted_embeddings

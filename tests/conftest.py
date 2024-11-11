@@ -304,7 +304,7 @@ def chat_client_builder(search_config, user, index_content=True, require_auth=Fa
 
         # Index Markdown Content for Search
         all_files = fs_syncer.collect_files(user=user)
-        success = configure_content(all_files, user=user)
+        configure_content(user, all_files)
 
     # Initialize Processor from Config
     if os.getenv("OPENAI_API_KEY"):
@@ -381,7 +381,7 @@ def client_offline_chat(search_config: SearchConfig, default_user2: KhojUser):
     )
 
     all_files = fs_syncer.collect_files(user=default_user2)
-    configure_content(all_files, user=default_user2)
+    configure_content(default_user2, all_files)
 
     # Initialize Processor from Config
     ChatModelOptionsFactory(
@@ -432,7 +432,7 @@ def pdf_configured_user1(default_user: KhojUser):
     )
     # Index Markdown Content for Search
     all_files = fs_syncer.collect_files(user=default_user)
-    success = configure_content(all_files, user=default_user)
+    configure_content(default_user, all_files)
 
 
 @pytest.fixture(scope="function")

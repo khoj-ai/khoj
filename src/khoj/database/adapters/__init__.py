@@ -8,13 +8,22 @@ import secrets
 import sys
 from datetime import date, datetime, timedelta, timezone
 from enum import Enum
-from typing import Callable, Iterable, List, Optional, Type
+from functools import wraps
+from typing import (
+    Any,
+    Callable,
+    Coroutine,
+    Iterable,
+    List,
+    Optional,
+    ParamSpec,
+    TypeVar,
+)
 
 import cron_descriptor
 from apscheduler.job import Job
 from asgiref.sync import sync_to_async
 from django.contrib.sessions.backends.db import SessionStore
-from django.db import models
 from django.db.models import Prefetch, Q
 from django.db.models.manager import BaseManager
 from django.db.utils import IntegrityError
@@ -28,7 +37,6 @@ from khoj.database.models import (
     ChatModelOptions,
     ClientApplication,
     Conversation,
-    DataStore,
     Entry,
     FileObject,
     GithubConfig,
@@ -80,6 +88,45 @@ class SubscriptionState(Enum):
     INVALID = "invalid"
 
 
+P = ParamSpec("P")
+T = TypeVar("T")
+
+
+def require_valid_user(func: Callable[P, T]) -> Callable[P, T]:
+    @wraps(func)
+    def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+        # Extract user from args/kwargs
+        user = next((arg for arg in args if isinstance(arg, KhojUser)), None)
+        if not user:
+            user = next((val for val in kwargs.values() if isinstance(val, KhojUser)), None)
+
+        # Throw error if user is not found
+        if not user:
+            raise ValueError("Khoj user argument required but not provided.")
+
+        return func(*args, **kwargs)
+
+    return sync_wrapper
+
+
+def arequire_valid_user(func: Callable[P, Coroutine[Any, Any, T]]) -> Callable[P, Coroutine[Any, Any, T]]:
+    @wraps(func)
+    async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+        # Extract user from args/kwargs
+        user = next((arg for arg in args if isinstance(arg, KhojUser)), None)
+        if not user:
+            user = next((v for v in kwargs.values() if isinstance(v, KhojUser)), None)
+
+        # Throw error if user is not found
+        if not user:
+            raise ValueError("Khoj user argument required but not provided.")
+
+        return await func(*args, **kwargs)
+
+    return async_wrapper
+
+
+@arequire_valid_user
 async def set_notion_config(token: str, user: KhojUser):
     notion_config = await NotionConfig.objects.filter(user=user).afirst()
     if not notion_config:
@@ -90,6 +137,7 @@ async def set_notion_config(token: str, user: KhojUser):
     return notion_config
 
 
+@require_valid_user
 def create_khoj_token(user: KhojUser, name=None):
     "Create Khoj API key for user"
     token = f"kk-{secrets.token_urlsafe(32)}"
@@ -97,6 +145,7 @@ def create_khoj_token(user: KhojUser, name=None):
     return KhojApiUser.objects.create(token=token, user=user, name=name)
 
 
+@arequire_valid_user
 async def acreate_khoj_token(user: KhojUser, name=None):
     "Create Khoj API key for user"
     token = f"kk-{secrets.token_urlsafe(32)}"
@@ -104,11 +153,13 @@ async def acreate_khoj_token(user: KhojUser, name=None):
     return await KhojApiUser.objects.acreate(token=token, user=user, name=name)
 
 
+@require_valid_user
 def get_khoj_tokens(user: KhojUser):
     "Get all Khoj API keys for user"
     return list(KhojApiUser.objects.filter(user=user))
 
 
+@arequire_valid_user
 async def delete_khoj_token(user: KhojUser, token: str):
     "Delete Khoj API Key for user"
     await KhojApiUser.objects.filter(token=token, user=user).adelete()
@@ -132,6 +183,7 @@ async def aget_or_create_user_by_phone_number(phone_number: str) -> tuple[KhojUs
     return user, is_new
 
 
+@arequire_valid_user
 async def aset_user_phone_number(user: KhojUser, phone_number: str) -> KhojUser:
     if is_none_or_empty(phone_number):
         return None
@@ -155,6 +207,7 @@ async def aset_user_phone_number(user: KhojUser, phone_number: str) -> KhojUser:
     return user
 
 
+@arequire_valid_user
 async def aremove_phone_number(user: KhojUser) -> KhojUser:
     user.phone_number = None
     user.verified_phone_number = False
@@ -192,6 +245,7 @@ async def aget_or_create_user_by_email(email: str) -> tuple[KhojUser, bool]:
     return user, is_new
 
 
+@arequire_valid_user
 async def astart_trial_subscription(user: KhojUser) -> Subscription:
     subscription = await Subscription.objects.filter(user=user).afirst()
     if not subscription:
@@ -246,6 +300,7 @@ async def create_user_by_google_token(token: dict) -> KhojUser:
     return user
 
 
+@require_valid_user
 def set_user_name(user: KhojUser, first_name: str, last_name: str) -> KhojUser:
     user.first_name = first_name
     user.last_name = last_name
@@ -253,6 +308,7 @@ def set_user_name(user: KhojUser, first_name: str, last_name: str) -> KhojUser:
     return user
 
 
+@require_valid_user
 def get_user_name(user: KhojUser):
     full_name = user.get_full_name()
     if not is_none_or_empty(full_name):
@@ -264,6 +320,7 @@ def get_user_name(user: KhojUser):
     return None
 
 
+@require_valid_user
 def get_user_photo(user: KhojUser):
     google_profile: GoogleUser = GoogleUser.objects.filter(user=user).first()
     if google_profile:
@@ -327,6 +384,7 @@ def get_user_subscription_state(email: str) -> str:
     return subscription_to_state(user_subscription)
 
 
+@arequire_valid_user
 async def aget_user_subscription_state(user: KhojUser) -> str:
     """Get subscription state of user
     Valid state transitions: trial -> subscribed <-> unsubscribed OR expired
@@ -335,6 +393,7 @@ async def aget_user_subscription_state(user: KhojUser) -> str:
     return await sync_to_async(subscription_to_state)(user_subscription)
 
 
+@arequire_valid_user
 async def ais_user_subscribed(user: KhojUser) -> bool:
     """
     Get whether the user is subscribed
@@ -351,6 +410,7 @@ async def ais_user_subscribed(user: KhojUser) -> bool:
     return subscribed
 
 
+@require_valid_user
 def is_user_subscribed(user: KhojUser) -> bool:
     """
     Get whether the user is subscribed
@@ -416,11 +476,13 @@ def get_all_users() -> BaseManager[KhojUser]:
     return KhojUser.objects.all()
 
 
+@require_valid_user
 def get_user_github_config(user: KhojUser):
     config = GithubConfig.objects.filter(user=user).prefetch_related("githubrepoconfig").first()
     return config
 
 
+@require_valid_user
 def get_user_notion_config(user: KhojUser):
     config = NotionConfig.objects.filter(user=user).first()
     return config
@@ -430,6 +492,7 @@ def delete_user_requests(window: timedelta = timedelta(days=1)):
     return UserRequests.objects.filter(created_at__lte=datetime.now(tz=timezone.utc) - window).delete()
 
 
+@arequire_valid_user
 async def aget_user_name(user: KhojUser):
     full_name = user.get_full_name()
     if not is_none_or_empty(full_name):
@@ -441,18 +504,7 @@ async def aget_user_name(user: KhojUser):
     return None
 
 
-async def set_text_content_config(user: KhojUser, object: Type[models.Model], updated_config):
-    deduped_files = list(set(updated_config.input_files)) if updated_config.input_files else None
-    deduped_filters = list(set(updated_config.input_filter)) if updated_config.input_filter else None
-    await object.objects.filter(user=user).adelete()
-    await object.objects.acreate(
-        input_files=deduped_files,
-        input_filter=deduped_filters,
-        index_heading_entries=updated_config.index_heading_entries,
-        user=user,
-    )
-
-
+@arequire_valid_user
 async def set_user_github_config(user: KhojUser, pat_token: str, repos: list):
     config = await GithubConfig.objects.filter(user=user).afirst()
 
@@ -587,8 +639,11 @@ class AgentAdapters:
         )
 
     @staticmethod
+    @arequire_valid_user
     async def adelete_agent_by_slug(agent_slug: str, user: KhojUser):
         agent = await AgentAdapters.aget_agent_by_slug(agent_slug, user)
+        if agent.creator != user:
+            return False
 
         async for entry in Entry.objects.filter(agent=agent).aiterator():
             await entry.adelete()
@@ -712,6 +767,7 @@ class AgentAdapters:
         return await Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).afirst()
 
     @staticmethod
+    @arequire_valid_user
     async def aupdate_agent(
         user: KhojUser,
         name: str,
@@ -787,19 +843,6 @@ class PublicConversationAdapters:
         return f"/share/chat/{public_conversation.slug}/"
 
 
-class DataStoreAdapters:
-    @staticmethod
-    async def astore_data(data: dict, key: str, user: KhojUser, private: bool = True):
-        if await DataStore.objects.filter(key=key).aexists():
-            return key
-        await DataStore.objects.acreate(value=data, key=key, owner=user, private=private)
-        return key
-
-    @staticmethod
-    async def aretrieve_public_data(key: str):
-        return await DataStore.objects.filter(key=key, private=False).afirst()
-
-
 class ConversationAdapters:
     @staticmethod
     def make_public_conversation_copy(conversation: Conversation):
@@ -812,6 +855,7 @@ class ConversationAdapters:
         )
 
     @staticmethod
+    @require_valid_user
     def get_conversation_by_user(
         user: KhojUser, client_application: ClientApplication = None, conversation_id: str = None
     ) -> Optional[Conversation]:
@@ -830,6 +874,7 @@ class ConversationAdapters:
         return conversation
 
     @staticmethod
+    @require_valid_user
     def get_conversation_sessions(user: KhojUser, client_application: ClientApplication = None):
         return (
             Conversation.objects.filter(user=user, client=client_application)
@@ -838,6 +883,7 @@ class ConversationAdapters:
         )
 
     @staticmethod
+    @arequire_valid_user
     async def aset_conversation_title(
         user: KhojUser, client_application: ClientApplication, conversation_id: str, title: str
     ):
@@ -855,6 +901,7 @@ class ConversationAdapters:
         return Conversation.objects.filter(id=conversation_id).first()
 
     @staticmethod
+    @arequire_valid_user
     async def acreate_conversation_session(
         user: KhojUser, client_application: ClientApplication = None, agent_slug: str = None, title: str = None
     ):
@@ -871,6 +918,7 @@ class ConversationAdapters:
         )
 
     @staticmethod
+    @require_valid_user
     def create_conversation_session(
         user: KhojUser, client_application: ClientApplication = None, agent_slug: str = None, title: str = None
     ):
@@ -883,6 +931,7 @@ class ConversationAdapters:
         return Conversation.objects.create(user=user, client=client_application, agent=agent, title=title)
 
     @staticmethod
+    @arequire_valid_user
     async def aget_conversation_by_user(
         user: KhojUser,
         client_application: ClientApplication = None,
@@ -907,6 +956,7 @@ class ConversationAdapters:
         )
 
     @staticmethod
+    @arequire_valid_user
     async def adelete_conversation_by_user(
         user: KhojUser, client_application: ClientApplication = None, conversation_id: str = None
     ):
@@ -915,6 +965,7 @@ class ConversationAdapters:
         return await Conversation.objects.filter(user=user, client=client_application).adelete()
 
     @staticmethod
+    @require_valid_user
     def has_any_conversation_config(user: KhojUser):
         return ChatModelOptions.objects.filter(user=user).exists()
 
@@ -951,6 +1002,7 @@ class ConversationAdapters:
         return OpenAIProcessorConversationConfig.objects.filter().exists()
 
     @staticmethod
+    @arequire_valid_user
     async def aset_user_conversation_processor(user: KhojUser, conversation_processor_config_id: int):
         config = await ChatModelOptions.objects.filter(id=conversation_processor_config_id).afirst()
         if not config:
@@ -959,6 +1011,7 @@ class ConversationAdapters:
         return new_config
 
     @staticmethod
+    @arequire_valid_user
     async def aset_user_voice_model(user: KhojUser, model_id: str):
         config = await VoiceModelOption.objects.filter(model_id=model_id).afirst()
         if not config:
@@ -1143,6 +1196,7 @@ class ConversationAdapters:
         return enabled_scrapers
 
     @staticmethod
+    @require_valid_user
     def create_conversation_from_public_conversation(
         user: KhojUser, public_conversation: PublicConversation, client_app: ClientApplication
     ):
@@ -1159,6 +1213,7 @@ class ConversationAdapters:
         )
 
     @staticmethod
+    @require_valid_user
     def save_conversation(
         user: KhojUser,
         conversation_log: dict,
@@ -1208,6 +1263,7 @@ class ConversationAdapters:
         return await SpeechToTextModelOptions.objects.filter().afirst()
 
     @staticmethod
+    @arequire_valid_user
     async def aget_conversation_starters(user: KhojUser, max_results=3):
         all_questions = []
         if await ReflectiveQuestion.objects.filter(user=user).aexists():
@@ -1337,6 +1393,7 @@ class ConversationAdapters:
         return conversation.file_filters
 
     @staticmethod
+    @require_valid_user
     def delete_message_by_turn_id(user: KhojUser, conversation_id: str, turn_id: str):
         conversation = ConversationAdapters.get_conversation_by_user(user, conversation_id=conversation_id)
         if not conversation or not conversation.conversation_log or not conversation.conversation_log.get("chat"):
@@ -1355,52 +1412,63 @@ class FileObjectAdapters:
         file_object.save()
 
     @staticmethod
+    @require_valid_user
     def create_file_object(user: KhojUser, file_name: str, raw_text: str):
         return FileObject.objects.create(user=user, file_name=file_name, raw_text=raw_text)
 
     @staticmethod
+    @require_valid_user
     def get_file_object_by_name(user: KhojUser, file_name: str):
         return FileObject.objects.filter(user=user, file_name=file_name).first()
 
     @staticmethod
+    @require_valid_user
     def get_all_file_objects(user: KhojUser):
         return FileObject.objects.filter(user=user).all()
 
     @staticmethod
+    @require_valid_user
     def delete_file_object_by_name(user: KhojUser, file_name: str):
         return FileObject.objects.filter(user=user, file_name=file_name).delete()
 
     @staticmethod
+    @require_valid_user
     def delete_all_file_objects(user: KhojUser):
         return FileObject.objects.filter(user=user).delete()
 
     @staticmethod
-    async def async_update_raw_text(file_object: FileObject, new_raw_text: str):
+    async def aupdate_raw_text(file_object: FileObject, new_raw_text: str):
         file_object.raw_text = new_raw_text
         await file_object.asave()
 
     @staticmethod
-    async def async_create_file_object(user: KhojUser, file_name: str, raw_text: str):
+    @arequire_valid_user
+    async def acreate_file_object(user: KhojUser, file_name: str, raw_text: str):
         return await FileObject.objects.acreate(user=user, file_name=file_name, raw_text=raw_text)
 
     @staticmethod
-    async def async_get_file_objects_by_name(user: KhojUser, file_name: str, agent: Agent = None):
+    @arequire_valid_user
+    async def aget_file_objects_by_name(user: KhojUser, file_name: str, agent: Agent = None):
         return await sync_to_async(list)(FileObject.objects.filter(user=user, file_name=file_name, agent=agent))
 
     @staticmethod
-    async def async_get_file_objects_by_names(user: KhojUser, file_names: List[str]):
+    @arequire_valid_user
+    async def aget_file_objects_by_names(user: KhojUser, file_names: List[str]):
         return await sync_to_async(list)(FileObject.objects.filter(user=user, file_name__in=file_names))
 
     @staticmethod
-    async def async_get_all_file_objects(user: KhojUser):
+    @arequire_valid_user
+    async def aget_all_file_objects(user: KhojUser):
         return await sync_to_async(list)(FileObject.objects.filter(user=user))
 
     @staticmethod
-    async def async_delete_file_object_by_name(user: KhojUser, file_name: str):
+    @arequire_valid_user
+    async def adelete_file_object_by_name(user: KhojUser, file_name: str):
         return await FileObject.objects.filter(user=user, file_name=file_name).adelete()
 
     @staticmethod
-    async def async_delete_all_file_objects(user: KhojUser):
+    @arequire_valid_user
+    async def adelete_all_file_objects(user: KhojUser):
         return await FileObject.objects.filter(user=user).adelete()
 
 
@@ -1410,15 +1478,18 @@ class EntryAdapters:
     date_filter = DateFilter()
 
     @staticmethod
+    @require_valid_user
     def does_entry_exist(user: KhojUser, hashed_value: str) -> bool:
         return Entry.objects.filter(user=user, hashed_value=hashed_value).exists()
 
     @staticmethod
+    @require_valid_user
     def delete_entry_by_file(user: KhojUser, file_path: str):
         deleted_count, _ = Entry.objects.filter(user=user, file_path=file_path).delete()
         return deleted_count
 
     @staticmethod
+    @require_valid_user
     def get_filtered_entries(user: KhojUser, file_type: str = None, file_source: str = None):
         queryset = Entry.objects.filter(user=user)
 
@@ -1431,6 +1502,7 @@ class EntryAdapters:
         return queryset
 
     @staticmethod
+    @require_valid_user
     def delete_all_entries(user: KhojUser, file_type: str = None, file_source: str = None, batch_size=1000):
         deleted_count = 0
         queryset = EntryAdapters.get_filtered_entries(user, file_type, file_source)
@@ -1442,6 +1514,7 @@ class EntryAdapters:
         return deleted_count
 
     @staticmethod
+    @arequire_valid_user
     async def adelete_all_entries(user: KhojUser, file_type: str = None, file_source: str = None, batch_size=1000):
         deleted_count = 0
         queryset = EntryAdapters.get_filtered_entries(user, file_type, file_source)
@@ -1453,10 +1526,12 @@ class EntryAdapters:
         return deleted_count
 
     @staticmethod
+    @require_valid_user
     def get_existing_entry_hashes_by_file(user: KhojUser, file_path: str):
         return Entry.objects.filter(user=user, file_path=file_path).values_list("hashed_value", flat=True)
 
     @staticmethod
+    @require_valid_user
     def delete_entry_by_hash(user: KhojUser, hashed_values: List[str]):
         Entry.objects.filter(user=user, hashed_value__in=hashed_values).delete()
 
@@ -1468,6 +1543,7 @@ class EntryAdapters:
         )
 
     @staticmethod
+    @require_valid_user
     def user_has_entries(user: KhojUser):
         return Entry.objects.filter(user=user).exists()
 
@@ -1476,6 +1552,7 @@ class EntryAdapters:
         return Entry.objects.filter(agent=agent).exists()
 
     @staticmethod
+    @arequire_valid_user
     async def auser_has_entries(user: KhojUser):
         return await Entry.objects.filter(user=user).aexists()
 
@@ -1486,10 +1563,12 @@ class EntryAdapters:
         return await Entry.objects.filter(agent=agent).aexists()
 
     @staticmethod
+    @arequire_valid_user
     async def adelete_entry_by_file(user: KhojUser, file_path: str):
         return await Entry.objects.filter(user=user, file_path=file_path).adelete()
 
     @staticmethod
+    @arequire_valid_user
     async def adelete_entries_by_filenames(user: KhojUser, filenames: List[str], batch_size=1000):
         deleted_count = 0
         for i in range(0, len(filenames), batch_size):
@@ -1508,6 +1587,7 @@ class EntryAdapters:
         )
 
     @staticmethod
+    @require_valid_user
     def get_all_filenames_by_source(user: KhojUser, file_source: str):
         return (
             Entry.objects.filter(user=user, file_source=file_source)
@@ -1516,6 +1596,7 @@ class EntryAdapters:
         )
 
     @staticmethod
+    @require_valid_user
     def get_size_of_indexed_data_in_mb(user: KhojUser):
         entries = Entry.objects.filter(user=user).iterator()
         total_size = sum(sys.getsizeof(entry.compiled) for entry in entries)
@@ -1535,6 +1616,9 @@ class EntryAdapters:
             owner_filter = Q(user=user)
         if agent != None:
             owner_filter |= Q(agent=agent)
+
+        if owner_filter == Q():
+            return Entry.objects.none()
 
         if len(word_filters) == 0 and len(file_filters) == 0 and len(date_filters) == 0:
             return Entry.objects.filter(owner_filter)
@@ -1610,10 +1694,12 @@ class EntryAdapters:
         return relevant_entries[:max_results]
 
     @staticmethod
+    @require_valid_user
     def get_unique_file_types(user: KhojUser):
         return Entry.objects.filter(user=user).values_list("file_type", flat=True).distinct()
 
     @staticmethod
+    @require_valid_user
     def get_unique_file_sources(user: KhojUser):
         return Entry.objects.filter(user=user).values_list("file_source", flat=True).distinct().all()
 

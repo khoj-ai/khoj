@@ -31,7 +31,7 @@ class TextToEntries(ABC):
         self.date_filter = DateFilter()
 
     @abstractmethod
-    def process(self, files: dict[str, str] = None, user: KhojUser = None, regenerate: bool = False) -> Tuple[int, int]:
+    def process(self, files: dict[str, str], user: KhojUser, regenerate: bool = False) -> Tuple[int, int]:
         ...
 
     @staticmethod
@@ -114,13 +114,13 @@ class TextToEntries(ABC):
 
     def update_embeddings(
         self,
+        user: KhojUser,
         current_entries: List[Entry],
         file_type: str,
         file_source: str,
         key="compiled",
         logger: logging.Logger = None,
         deletion_filenames: Set[str] = None,
-        user: KhojUser = None,
         regenerate: bool = False,
         file_to_text_map: dict[str, str] = None,
     ):
