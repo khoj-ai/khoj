@@ -488,10 +488,10 @@ export function TeaserReferencesSection(props: TeaserReferenceSectionProps) {
         setNumTeaserSlots(props.isMobileWidth ? 1 : 3);
     }, [props.isMobileWidth]);
 
-    const notesDataToShow = props.notesReferenceCardData.slice(0, numTeaserSlots);
-    const codeDataToShow = props.codeReferenceCardData.slice(
+    const codeDataToShow = props.codeReferenceCardData.slice(0, numTeaserSlots);
+    const notesDataToShow = props.notesReferenceCardData.slice(
         0,
-        numTeaserSlots - notesDataToShow.length,
+        numTeaserSlots - codeDataToShow.length,
     );
     const onlineDataToShow =
         notesDataToShow.length + codeDataToShow.length < numTeaserSlots
@@ -522,21 +522,21 @@ export function TeaserReferencesSection(props: TeaserReferenceSectionProps) {
                 <p className="text-gray-400 m-2">{numReferences} sources</p>
             </h3>
             <div className={`flex flex-wrap gap-2 w-auto mt-2`}>
-                {notesDataToShow.map((note, index) => {
-                    return (
-                        <NotesContextReferenceCard
-                            showFullContent={false}
-                            {...note}
-                            key={`${note.title}-${index}`}
-                        />
-                    );
-                })}
                 {codeDataToShow.map((code, index) => {
                     return (
                         <CodeContextReferenceCard
                             showFullContent={false}
                             {...code}
                             key={`code-${index}`}
+                        />
+                    );
+                })}
+                {notesDataToShow.map((note, index) => {
+                    return (
+                        <NotesContextReferenceCard
+                            showFullContent={false}
+                            {...note}
+                            key={`${note.title}-${index}`}
                         />
                     );
                 })}
@@ -584,21 +584,21 @@ export default function ReferencePanel(props: ReferencePanelDataProps) {
                     <SheetDescription>View all references for this response</SheetDescription>
                 </SheetHeader>
                 <div className="flex flex-wrap gap-2 w-auto mt-2">
-                    {props.notesReferenceCardData.map((note, index) => {
-                        return (
-                            <NotesContextReferenceCard
-                                showFullContent={true}
-                                {...note}
-                                key={`${note.title}-${index}`}
-                            />
-                        );
-                    })}
                     {props.codeReferenceCardData.map((code, index) => {
                         return (
                             <CodeContextReferenceCard
                                 showFullContent={true}
                                 {...code}
                                 key={`code-${index}`}
+                            />
+                        );
+                    })}
+                    {props.notesReferenceCardData.map((note, index) => {
+                        return (
+                            <NotesContextReferenceCard
+                                showFullContent={true}
+                                {...note}
+                                key={`${note.title}-${index}`}
                             />
                         );
                     })}
