@@ -724,7 +724,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                     />
                                 ) : (
                                     <ToggleLeft
-                                        className={`w-6 h-6 inline-block ${props.agentColor ? convertColorToTextClass(props.agentColor) : convertColorToTextClass("orange")} rounded-full`}
+                                        weight="fill"
+                                        className={`w-6 h-6 inline-block ${convertColorToTextClass("gray")} rounded-full`}
                                     />
                                 )}
                             </Button>
