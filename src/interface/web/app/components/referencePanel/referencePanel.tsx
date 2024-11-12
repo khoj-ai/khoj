@@ -220,7 +220,8 @@ function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
                             >
                                 {sanitizedCodeSnippet}
                             </pre>
-                            {renderOutputFiles(props.output_files, false)}
+                            {props.output_files?.length > 0 &&
+                                renderOutputFiles(props.output_files, false)}
                         </div>
                     </Card>
                 </PopoverTrigger>
@@ -236,7 +237,7 @@ function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
                                 code {props.output_files?.length > 0 ? "artifact" : ""}
                             </h3>
                         </div>
-                        {(props.output_files.length > 0 &&
+                        {(props.output_files?.length > 0 &&
                             renderOutputFiles(props.output_files?.slice(0, 1), true)) || (
                             <pre className="text-xs border-t mt-1 pt-1 verflow-hidden line-clamp-10">
                                 {sanitizedCodeSnippet}
