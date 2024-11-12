@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { ArrowRight } from "@phosphor-icons/react";
+import { ArrowCircleDown, ArrowRight } from "@phosphor-icons/react";
 
 import markdownIt from "markdown-it";
 const md = new markdownIt({
@@ -11,7 +11,13 @@ const md = new markdownIt({
     typographer: true,
 });
 
-import { Context, WebPage, OnlineContext, CodeContext } from "../chatMessage/chatMessage";
+import {
+    Context,
+    WebPage,
+    OnlineContext,
+    CodeContext,
+    CodeContextFile,
+} from "../chatMessage/chatMessage";
 import { Card } from "@/components/ui/card";
 
 import {
@@ -51,6 +57,7 @@ function NotesContextReferenceCard(props: NotesContextReferenceCardProps) {
         props.title || ".txt",
         "w-6 h-6 text-muted-foreground inline-flex mr-2",
     );
+    const fileName = props.title.split("/").pop() || props.title;
     const snippet = extractSnippet(props);
     const [isHovering, setIsHovering] = useState(false);
 
@@ -61,30 +68,30 @@ function NotesContextReferenceCard(props: NotesContextReferenceCardProps) {
                     <Card
                         onMouseEnter={() => setIsHovering(true)}
                         onMouseLeave={() => setIsHovering(false)}
-                        className={`${props.showFullContent ? "w-auto" : "w-[200px]"} overflow-hidden break-words text-balance rounded-lg p-2 bg-muted border-none`}
+                        className={`${props.showFullContent ? "w-auto" : "w-[200px]"} overflow-hidden break-words text-balance rounded-lg border-none p-2 bg-muted`}
                     >
                         <h3
                             className={`${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground}`}
                         >
                             {fileIcon}
-                            {props.title}
+                            {props.showFullContent ? props.title : fileName}
                         </h3>
                         <p
-                            className={`${props.showFullContent ? "block" : "overflow-hidden line-clamp-2"}`}
+                            className={`text-sm ${props.showFullContent ? "overflow-x-auto block" : "overflow-hidden line-clamp-2"}`}
                             dangerouslySetInnerHTML={{ __html: snippet }}
                         ></p>
                     </Card>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] mx-2">
                     <Card
-                        className={`w-auto overflow-hidden break-words text-balance rounded-lg p-2 border-none`}
+                        className={`w-auto overflow-hidden break-words text-balance rounded-lg border-none p-2`}
                     >
                         <h3 className={`line-clamp-2 text-muted-foreground}`}>
                             {fileIcon}
                             {props.title}
                         </h3>
                         <p
-                            className={`overflow-hidden line-clamp-3`}
+                            className={`border-t mt-1 pt-1 text-sm overflow-hidden line-clamp-5`}
                             dangerouslySetInnerHTML={{ __html: snippet }}
                         ></p>
                     </Card>
@@ -97,14 +104,98 @@ function NotesContextReferenceCard(props: NotesContextReferenceCardProps) {
 interface CodeContextReferenceCardProps {
     code: string;
     output: string;
+    output_files: CodeContextFile[];
     error: string;
     showFullContent: boolean;
 }
 
 function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
-    const fileIcon = getIconFromFilename(".py", "w-6 h-6 text-muted-foreground inline-flex mr-2");
-    const snippet = DOMPurify.sanitize(props.code);
+    const fileIcon = getIconFromFilename(".py", "!w-4 h-4 text-muted-foreground flex-shrink-0");
+    const sanitizedCodeSnippet = DOMPurify.sanitize(props.code);
     const [isHovering, setIsHovering] = useState(false);
+    const [isDownloadHover, setIsDownloadHover] = useState(false);
+
+    const handleDownload = (file: CodeContextFile) => {
+        // Determine MIME type
+        let mimeType = "text/plain";
+        let byteString = file.b64_data;
+        if (file.filename.match(/\.(png|jpg|jpeg|webp)$/)) {
+            mimeType = `image/${file.filename.split(".").pop()}`;
+            byteString = atob(file.b64_data);
+        } else if (file.filename.endsWith(".json")) {
+            mimeType = "application/json";
+        } else if (file.filename.endsWith(".csv")) {
+            mimeType = "text/csv";
+        }
+
+        const arrayBuffer = new ArrayBuffer(byteString.length);
+        const bytes = new Uint8Array(arrayBuffer);
+
+        for (let i = 0; i < byteString.length; i++) {
+            bytes[i] = byteString.charCodeAt(i);
+        }
+
+        const blob = new Blob([arrayBuffer], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = file.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const renderOutputFiles = (files: CodeContextFile[], hoverCard: boolean) => {
+        if (files?.length == 0) return null;
+        return (
+            <div
+                className={`${hoverCard || props.showFullContent ? "border-t mt-1 pt-1" : undefined}`}
+            >
+                {files.slice(0, props.showFullContent ? undefined : 1).map((file, index) => {
+                    return (
+                        <div key={`${file.filename}-${index}`}>
+                            <h4 className="text-sm text-muted-foreground flex items-center">
+                                <span
+                                    className={`overflow-hidden mr-2 font-bold ${props.showFullContent ? undefined : "line-clamp-1"}`}
+                                >
+                                    {file.filename}
+                                </span>
+                                <button
+                                    className={`${hoverCard ? "hidden" : undefined}`}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        handleDownload(file);
+                                    }}
+                                    onMouseEnter={() => setIsDownloadHover(true)}
+                                    onMouseLeave={() => setIsDownloadHover(false)}
+                                    title={`Download file: ${file.filename}`}
+                                >
+                                    <ArrowCircleDown
+                                        className={`w-4 h-4`}
+                                        weight={isDownloadHover ? "fill" : "regular"}
+                                    />
+                                </button>
+                            </h4>
+                            {file.filename.match(/\.(txt|org|md|csv|json)$/) ? (
+                                <pre
+                                    className={`${props.showFullContent ? "block" : "line-clamp-2"} text-sm mt-1 p-1 bg-background rounded overflow-x-auto`}
+                                >
+                                    {file.b64_data}
+                                </pre>
+                            ) : file.filename.match(/\.(png|jpg|jpeg|webp)$/) ? (
+                                <img
+                                    src={`data:image/${file.filename.split(".").pop()};base64,${file.b64_data}`}
+                                    alt={file.filename}
+                                    className="mt-1 max-h-32 rounded"
+                                />
+                            ) : null}
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
 
     return (
         <>
@@ -113,30 +204,44 @@ function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
                     <Card
                         onMouseEnter={() => setIsHovering(true)}
                         onMouseLeave={() => setIsHovering(false)}
-                        className={`${props.showFullContent ? "w-auto" : "w-[200px]"} overflow-hidden break-words text-balance rounded-lg p-2 bg-muted border-none`}
+                        className={`${props.showFullContent ? "w-auto" : "w-[200px]"} overflow-hidden break-words text-balance rounded-lg border-none p-2 bg-muted`}
                     >
-                        <h3
-                            className={`${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground}`}
-                        >
-                            {fileIcon}
-                            Code
-                        </h3>
-                        <p
-                            className={`${props.showFullContent ? "block" : "overflow-hidden line-clamp-2"}`}
-                        >
-                            {snippet}
-                        </p>
+                        <div className="flex flex-col px-1">
+                            <div className="flex items-center gap-2">
+                                {fileIcon}
+                                <h3
+                                    className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground flex-grow`}
+                                >
+                                    code {props.output_files?.length > 0 ? "artifacts" : ""}
+                                </h3>
+                            </div>
+                            <pre
+                                className={`text-xs pb-2 ${props.showFullContent ? "block overflow-x-auto" : props.output_files?.length > 0 ? "hidden" : "overflow-hidden line-clamp-3"}`}
+                            >
+                                {sanitizedCodeSnippet}
+                            </pre>
+                            {renderOutputFiles(props.output_files, false)}
+                        </div>
                     </Card>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] mx-2">
                     <Card
-                        className={`w-auto overflow-hidden break-words text-balance rounded-lg p-2 border-none`}
+                        className={`w-auto overflow-hidden break-words text-balance rounded-lg border-none p-2`}
                     >
-                        <h3 className={`line-clamp-2 text-muted-foreground}`}>
+                        <div className="flex items-center gap-2">
                             {fileIcon}
-                            Code
-                        </h3>
-                        <p className={`overflow-hidden line-clamp-3`}>{snippet}</p>
+                            <h3
+                                className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground flex-grow`}
+                            >
+                                code {props.output_files?.length > 0 ? "artifact" : ""}
+                            </h3>
+                        </div>
+                        {(props.output_files.length > 0 &&
+                            renderOutputFiles(props.output_files?.slice(0, 1), true)) || (
+                            <pre className="text-xs border-t mt-1 pt-1 verflow-hidden line-clamp-10">
+                                {sanitizedCodeSnippet}
+                            </pre>
+                        )}
                     </Card>
                 </PopoverContent>
             </Popover>
@@ -144,14 +249,10 @@ function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
     );
 }
 
-export interface ReferencePanelData {
-    notesReferenceCardData: NotesContextReferenceData[];
-    onlineReferenceCardData: OnlineReferenceData[];
-}
-
 export interface CodeReferenceData {
     code: string;
     output: string;
+    output_files: CodeContextFile[];
     error: string;
 }
 
@@ -197,21 +298,17 @@ function GenericOnlineReferenceCard(props: OnlineReferenceCardProps) {
                     <Card
                         onMouseEnter={handleMouseEnter}
                         onMouseLeave={handleMouseLeave}
-                        className={`${props.showFullContent ? "w-auto" : "w-[200px]"} overflow-hidden break-words rounded-lg text-balance p-2 bg-muted border-none`}
+                        className={`${props.showFullContent ? "w-auto" : "w-[200px]"} overflow-hidden break-words text-balance rounded-lg border-none p-2 bg-muted`}
                     >
                         <div className="flex flex-col">
                             <a
                                 href={props.link}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="!no-underline p-2"
+                                className="!no-underline px-1"
                             >
                                 <div className="flex items-center gap-2">
-                                    <img
-                                        src={favicon}
-                                        alt=""
-                                        className="!w-4 h-4 mr-2 flex-shrink-0"
-                                    />
+                                    <img src={favicon} alt="" className="!w-4 h-4 flex-shrink-0" />
                                     <h3
                                         className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground flex-grow`}
                                     >
@@ -224,7 +321,7 @@ function GenericOnlineReferenceCard(props: OnlineReferenceCardProps) {
                                     {props.title}
                                 </h3>
                                 <p
-                                    className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-2"}`}
+                                    className={`overflow-hidden text-sm ${props.showFullContent ? "block" : "line-clamp-2"}`}
                                 >
                                     {props.description}
                                 </p>
@@ -241,23 +338,23 @@ function GenericOnlineReferenceCard(props: OnlineReferenceCardProps) {
                                 href={props.link}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="!no-underline p-2"
+                                className="!no-underline px-1"
                             >
-                                <div className="flex items-center">
-                                    <img src={favicon} alt="" className="!w-4 h-4 mr-2" />
+                                <div className="flex items-center gap-2">
+                                    <img src={favicon} alt="" className="!w-4 h-4 flex-shrink-0" />
                                     <h3
-                                        className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-2"} text-muted-foreground`}
+                                        className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-2"} text-muted-foreground flex-grow`}
                                     >
                                         {domain}
                                     </h3>
                                 </div>
                                 <h3
-                                    className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-2"} font-bold`}
+                                    className={`border-t mt-1 pt-1 overflow-hidden ${props.showFullContent ? "block" : "line-clamp-2"} font-bold`}
                                 >
                                     {props.title}
                                 </h3>
                                 <p
-                                    className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-3"}`}
+                                    className={`overflow-hidden text-sm ${props.showFullContent ? "block" : "line-clamp-5"}`}
                                 >
                                     {props.description}
                                 </p>
@@ -287,6 +384,7 @@ export function constructAllReferences(
             codeReferences.push({
                 code: value.code,
                 output: value.results.std_out,
+                output_files: value.results.output_files,
                 error: value.results.std_err,
             });
         }
@@ -390,10 +488,10 @@ export function TeaserReferencesSection(props: TeaserReferenceSectionProps) {
         setNumTeaserSlots(props.isMobileWidth ? 1 : 3);
     }, [props.isMobileWidth]);
 
-    const notesDataToShow = props.notesReferenceCardData.slice(0, numTeaserSlots);
-    const codeDataToShow = props.codeReferenceCardData.slice(
+    const codeDataToShow = props.codeReferenceCardData.slice(0, numTeaserSlots);
+    const notesDataToShow = props.notesReferenceCardData.slice(
         0,
-        numTeaserSlots - notesDataToShow.length,
+        numTeaserSlots - codeDataToShow.length,
     );
     const onlineDataToShow =
         notesDataToShow.length + codeDataToShow.length < numTeaserSlots
@@ -424,21 +522,21 @@ export function TeaserReferencesSection(props: TeaserReferenceSectionProps) {
                 <p className="text-gray-400 m-2">{numReferences} sources</p>
             </h3>
             <div className={`flex flex-wrap gap-2 w-auto mt-2`}>
-                {notesDataToShow.map((note, index) => {
-                    return (
-                        <NotesContextReferenceCard
-                            showFullContent={false}
-                            {...note}
-                            key={`${note.title}-${index}`}
-                        />
-                    );
-                })}
                 {codeDataToShow.map((code, index) => {
                     return (
                         <CodeContextReferenceCard
                             showFullContent={false}
                             {...code}
                             key={`code-${index}`}
+                        />
+                    );
+                })}
+                {notesDataToShow.map((note, index) => {
+                    return (
+                        <NotesContextReferenceCard
+                            showFullContent={false}
+                            {...note}
+                            key={`${note.title}-${index}`}
                         />
                     );
                 })}
@@ -486,6 +584,15 @@ export default function ReferencePanel(props: ReferencePanelDataProps) {
                     <SheetDescription>View all references for this response</SheetDescription>
                 </SheetHeader>
                 <div className="flex flex-wrap gap-2 w-auto mt-2">
+                    {props.codeReferenceCardData.map((code, index) => {
+                        return (
+                            <CodeContextReferenceCard
+                                showFullContent={true}
+                                {...code}
+                                key={`code-${index}`}
+                            />
+                        );
+                    })}
                     {props.notesReferenceCardData.map((note, index) => {
                         return (
                             <NotesContextReferenceCard
@@ -501,15 +608,6 @@ export default function ReferencePanel(props: ReferencePanelDataProps) {
                                 showFullContent={true}
                                 {...online}
                                 key={`${online.title}-${index}`}
-                            />
-                        );
-                    })}
-                    {props.codeReferenceCardData.map((code, index) => {
-                        return (
-                            <CodeContextReferenceCard
-                                showFullContent={true}
-                                {...code}
-                                key={`code-${index}`}
                             />
                         );
                     })}
