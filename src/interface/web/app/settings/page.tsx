@@ -594,7 +594,7 @@ export default function SettingsView() {
 
     const setSubscription = async (state: string) => {
         try {
-            const url = `/api/subscription?email=${userConfig?.username}&operation=${state}`;
+            const url = `/api/subscription?operation=${state}`;
             const response = await fetch(url, {
                 method: "PATCH",
                 headers: {

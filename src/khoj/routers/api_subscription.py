@@ -94,8 +94,9 @@ async def subscribe(request: Request):
 
 @subscription_router.patch("")
 @requires(["authenticated"])
-async def update_subscription(request: Request, email: str, operation: str):
+async def update_subscription(request: Request, operation: str):
     # Retrieve the customer's details
+    email = request.user.object.email
     customers = stripe.Customer.list(email=email).auto_paging_iter()
     customer = next(customers, None)
     if customer is None:
