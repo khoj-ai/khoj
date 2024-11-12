@@ -12,7 +12,7 @@ from khoj.database.models import ProcessLock
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
 from khoj.utils import config as utils_config
 from khoj.utils.config import OfflineChatProcessorModel, SearchModels
-from khoj.utils.helpers import LRU, get_device
+from khoj.utils.helpers import LRU, get_device, is_env_var_true
 from khoj.utils.rawconfig import FullConfig
 
 # Application Global State
@@ -34,6 +34,7 @@ SearchType = utils_config.SearchType
 scheduler: BackgroundScheduler = None
 schedule_leader_process_lock: ProcessLock = None
 telemetry: List[Dict[str, str]] = []
+telemetry_disabled: bool = is_env_var_true("KHOJ_TELEMETRY_DISABLE")
 khoj_version: str = None
 device = get_device()
 chat_on_gpu: bool = True

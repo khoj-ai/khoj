@@ -61,6 +61,10 @@ services:
       # - KHOJ_NO_HTTPS=True
       # - KHOJ_DOMAIN=192.168.0.104
       # - KHOJ_DOMAIN=khoj.example.com
+      # Uncomment the line below to disable telemetry.
+      # Telemetry helps us prioritize feature development and understand how people are using Khoj
+      # Read more at https://docs.khoj.dev/miscellaneous/telemetry
+      # - KHOJ_TELEMETRY_DISABLE=True
     command: --host="0.0.0.0" --port=42110 -vv --anonymous-mode --non-interactive
 
 

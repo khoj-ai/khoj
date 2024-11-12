@@ -14,13 +14,6 @@ We don't send any personal information or any information from/about your conten
 
 ## Disable Telemetry
 
-If you're self-hosting Khoj, you can opt out of telemetry at any time. To do so,
-1. Open `~/.khoj/khoj.yml`
-2. Add the following configuration:
-```
-app:
-  should-log-telemetry: false
-```
-3. Save the file and restart Khoj
+If you're self-hosting Khoj, you can opt out of telemetry at any time by setting the `KHOJ_TELEMETRY_DISABLE` environment variable to `True` via shell or `docker-compose.yml`
 
 If you have any questions or concerns, please reach out to us on [Discord](https://discord.gg/BDgyabRM6e).

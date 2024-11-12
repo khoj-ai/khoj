@@ -249,7 +249,11 @@ def configure_server(
         state.search_models = configure_search(state.search_models, state.config.search_type)
         setup_default_agent(user)
 
-        message = "📡 Telemetry disabled" if telemetry_disabled(state.config.app) else "📡 Telemetry enabled"
+        message = (
+            "📡 Telemetry disabled"
+            if telemetry_disabled(state.config.app, state.telemetry_disabled)
+            else "📡 Telemetry enabled"
+        )
         logger.info(message)
 
         if not init:
@@ -361,7 +365,7 @@ def configure_search_types():
 
 @schedule.repeat(schedule.every(2).minutes)
 def upload_telemetry():
-    if telemetry_disabled(state.config.app) or not state.telemetry:
+    if telemetry_disabled(state.config.app, state.telemetry_disabled) or not state.telemetry:
         return
 
     try:
