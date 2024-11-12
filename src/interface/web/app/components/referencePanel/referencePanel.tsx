@@ -77,7 +77,7 @@ function NotesContextReferenceCard(props: NotesContextReferenceCardProps) {
                             {props.showFullContent ? props.title : fileName}
                         </h3>
                         <p
-                            className={`border-t mt-1 pt-1 text-sm ${props.showFullContent ? "overflow-x-auto block" : "overflow-hidden line-clamp-2"}`}
+                            className={`text-sm ${props.showFullContent ? "overflow-x-auto block" : "overflow-hidden line-clamp-2"}`}
                             dangerouslySetInnerHTML={{ __html: snippet }}
                         ></p>
                     </Card>
@@ -146,6 +146,57 @@ function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
         URL.revokeObjectURL(url);
     };
 
+    const renderOutputFiles = (files: CodeContextFile[], hoverCard: boolean) => {
+        if (files?.length == 0) return null;
+        return (
+            <div
+                className={`${hoverCard || props.showFullContent ? "border-t mt-1 pt-1" : undefined}`}
+            >
+                {files.slice(0, props.showFullContent ? undefined : 1).map((file, index) => {
+                    return (
+                        <div key={`${file.filename}-${index}`}>
+                            <h4 className="text-sm text-muted-foreground flex items-center">
+                                <span
+                                    className={`overflow-hidden mr-2 font-bold ${props.showFullContent ? undefined : "line-clamp-1"}`}
+                                >
+                                    {file.filename}
+                                </span>
+                                <button
+                                    className={`${hoverCard ? "hidden" : undefined}`}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        handleDownload(file);
+                                    }}
+                                    onMouseEnter={() => setIsDownloadHover(true)}
+                                    onMouseLeave={() => setIsDownloadHover(false)}
+                                    title={`Download file: ${file.filename}`}
+                                >
+                                    <ArrowCircleDown
+                                        className={`w-4 h-4`}
+                                        weight={isDownloadHover ? "fill" : "regular"}
+                                    />
+                                </button>
+                            </h4>
+                            {file.filename.match(/\.(txt|org|md|csv|json)$/) ? (
+                                <pre
+                                    className={`${props.showFullContent ? "block" : "line-clamp-2"} text-sm mt-1 p-1 bg-background rounded overflow-x-auto`}
+                                >
+                                    {file.b64_data}
+                                </pre>
+                            ) : file.filename.match(/\.(png|jpg|jpeg|webp)$/) ? (
+                                <img
+                                    src={`data:image/${file.filename.split(".").pop()};base64,${file.b64_data}`}
+                                    alt={file.filename}
+                                    className="mt-1 max-h-32 rounded"
+                                />
+                            ) : null}
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
+
     return (
         <>
             <Popover open={isHovering && !props.showFullContent} onOpenChange={setIsHovering}>
@@ -161,72 +212,15 @@ function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
                                 <h3
                                     className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground flex-grow`}
                                 >
-                                    code artifacts
+                                    code {props.output_files?.length > 0 ? "artifacts" : ""}
                                 </h3>
                             </div>
                             <pre
-                                className={`text-xs border-t mt-1 pt-1 ${props.showFullContent ? "block overflow-x-auto" : props.output_files?.length > 0 ? "hidden" : "overflow-hidden line-clamp-3"}`}
+                                className={`text-xs pb-2 ${props.showFullContent ? "block overflow-x-auto" : props.output_files?.length > 0 ? "hidden" : "overflow-hidden line-clamp-3"}`}
                             >
                                 {sanitizedCodeSnippet}
                             </pre>
-                            {props.output_files?.length > 0 && (
-                                <div className="border-t mt-1 pt-1">
-                                    {props.output_files
-                                        .slice(0, props.showFullContent ? undefined : 1)
-                                        .map((file, index) => {
-                                            return (
-                                                <div key={`${file.filename}-${index}`}>
-                                                    <h4 className="text-sm text-muted-foreground flex items-center">
-                                                        <span
-                                                            className={`flex items-center overflow-hidden mr-2 font-bold`}
-                                                        >
-                                                            {file.filename}
-                                                        </span>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                handleDownload(file);
-                                                            }}
-                                                            onMouseEnter={() =>
-                                                                setIsDownloadHover(true)
-                                                            }
-                                                            onMouseLeave={() =>
-                                                                setIsDownloadHover(false)
-                                                            }
-                                                            title={`Download file: ${file.filename}`}
-                                                        >
-                                                            <ArrowCircleDown
-                                                                className="w-4 h-4"
-                                                                weight={
-                                                                    isDownloadHover
-                                                                        ? "fill"
-                                                                        : "regular"
-                                                                }
-                                                            />
-                                                        </button>
-                                                    </h4>
-                                                    {file.filename.match(
-                                                        /\.(txt|org|md|csv|json)$/,
-                                                    ) ? (
-                                                        <pre
-                                                            className={`${props.showFullContent ? "block" : "line-clamp-2"} text-sm mt-1 p-1 bg-background rounded overflow-x-auto`}
-                                                        >
-                                                            {file.b64_data}
-                                                        </pre>
-                                                    ) : file.filename.match(
-                                                          /\.(png|jpg|jpeg|webp)$/,
-                                                      ) ? (
-                                                        <img
-                                                            src={`data:image/${file.filename.split(".").pop()};base64,${file.b64_data}`}
-                                                            alt={file.filename}
-                                                            className="mt-1 max-h-32 rounded"
-                                                        />
-                                                    ) : null}
-                                                </div>
-                                            );
-                                        })}
-                                </div>
-                            )}
+                            {renderOutputFiles(props.output_files, false)}
                         </div>
                     </Card>
                 </PopoverTrigger>
@@ -239,12 +233,15 @@ function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
                             <h3
                                 className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground flex-grow`}
                             >
-                                code
+                                code {props.output_files?.length > 0 ? "artifact" : ""}
                             </h3>
                         </div>
-                        <pre className={`text-xs border-t mt-1 pt-1 verflow-hidden line-clamp-10`}>
-                            {sanitizedCodeSnippet}
-                        </pre>
+                        {(props.output_files.length > 0 &&
+                            renderOutputFiles(props.output_files?.slice(0, 1), true)) || (
+                            <pre className="text-xs border-t mt-1 pt-1 verflow-hidden line-clamp-10">
+                                {sanitizedCodeSnippet}
+                            </pre>
+                        )}
                     </Card>
                 </PopoverContent>
             </Popover>
@@ -319,7 +316,7 @@ function GenericOnlineReferenceCard(props: OnlineReferenceCardProps) {
                                     </h3>
                                 </div>
                                 <h3
-                                    className={`border-t mt-1 pt-1 overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} font-bold`}
+                                    className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} font-bold`}
                                 >
                                     {props.title}
                                 </h3>
