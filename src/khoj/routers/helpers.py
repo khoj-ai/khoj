@@ -784,13 +784,17 @@ async def generate_excalidraw_diagram(
     if send_status_func:
         async for event in send_status_func(f"**Diagram to Create:**:\n{better_diagram_description_prompt}"):
             yield {ChatEvent.STATUS: event}
-
-    excalidraw_diagram_description = await generate_excalidraw_diagram_from_description(
-        q=better_diagram_description_prompt,
-        user=user,
-        agent=agent,
-        tracer=tracer,
-    )
+    try:
+        excalidraw_diagram_description = await generate_excalidraw_diagram_from_description(
+            q=better_diagram_description_prompt,
+            user=user,
+            agent=agent,
+            tracer=tracer,
+        )
+    except Exception as e:
+        logger.error(f"Error generating Excalidraw diagram for {user.email}: {e}", exc_info=True)
+        yield None, None
+        return
 
     yield better_diagram_description_prompt, excalidraw_diagram_description
 
@@ -876,7 +880,10 @@ async def generate_excalidraw_diagram_from_description(
             query=excalidraw_diagram_generation, user=user, tracer=tracer
         )
         raw_response = clean_json(raw_response)
-        response: Dict[str, str] = json.loads(raw_response)
+        try:
+            response: Dict[str, str] = json.loads(raw_response)
+        except Exception:
+            raise AssertionError(f"Invalid response for generating Excalidraw diagram: {raw_response}")
         if not response or not isinstance(response, List) or not isinstance(response[0], Dict):
             # TODO Some additional validation here that it's a valid Excalidraw diagram
             raise AssertionError(f"Invalid response for improving diagram description: {response}")

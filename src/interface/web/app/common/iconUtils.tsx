@@ -215,6 +215,10 @@ export function getIconForSlashCommand(command: string, customClassName: string 
         return <PencilLine className={className} />;
     }
 
+    if (command.includes("code")) {
+        return <Code className={className} />;
+    }
+
     return <ArrowRight className={className} />;
 }
 

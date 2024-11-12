@@ -5,6 +5,7 @@ import math
 import mimetypes
 import os
 import queue
+import re
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
@@ -377,8 +378,10 @@ def generate_chatml_messages_with_context(
         message_context = ""
         message_attached_files = ""
 
+        chat_message = chat.get("message")
+
         if chat["by"] == "khoj" and "excalidraw" in chat["intent"].get("type", ""):
-            message_context += chat.get("intent").get("inferred-queries")[0]
+            chat_message = chat["intent"].get("inferred-queries")[0]
         if not is_none_or_empty(chat.get("context")):
             references = "\n\n".join(
                 {
@@ -407,7 +410,7 @@ def generate_chatml_messages_with_context(
 
         role = "user" if chat["by"] == "you" else "assistant"
         message_content = construct_structured_message(
-            chat["message"], chat.get("images"), model_type, vision_enabled, attached_file_context=query_files
+            chat_message, chat.get("images"), model_type, vision_enabled, attached_file_context=query_files
         )
 
         reconstructed_message = ChatMessage(content=message_content, role=role)
@@ -524,7 +527,25 @@ def reciprocal_conversation_to_chatml(message_pair):
 
 def clean_json(response: str):
     """Remove any markdown json codeblock and newline formatting if present. Useful for non schema enforceable models"""
-    return response.strip().replace("\n", "").removeprefix("```json").removesuffix("```")
+    try:
+        # Remove markdown code blocks
+        cleaned = response.strip().replace("```json", "").replace("```", "")
+
+        # Find JSON array/object pattern
+        json_match = re.search(r"\[.*\]|\{.*\}", cleaned, re.DOTALL)
+        if not json_match:
+            return ""
+
+        # Extract matched JSON
+        json_str = json_match.group()
+
+        # Validate by parsing
+        json.loads(json_str)
+
+        return json_str.strip()
+
+    except (json.JSONDecodeError, AttributeError):
+        return ""
 
 
 def clean_code_python(code: str):

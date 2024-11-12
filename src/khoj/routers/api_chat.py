@@ -1171,8 +1171,13 @@ async def chat(
                     yield result[ChatEvent.STATUS]
                 else:
                     better_diagram_description_prompt, excalidraw_diagram_description = result
-                    inferred_queries.append(better_diagram_description_prompt)
-                    diagram_description = excalidraw_diagram_description
+                    if better_diagram_description_prompt and excalidraw_diagram_description:
+                        inferred_queries.append(better_diagram_description_prompt)
+                        diagram_description = excalidraw_diagram_description
+                    else:
+                        async for result in send_llm_response(f"Failed to generate diagram. Please try again later."):
+                            yield result
+                        return
 
             content_obj = {
                 "intentType": intent_type,
