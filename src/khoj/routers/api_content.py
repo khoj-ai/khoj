@@ -422,8 +422,18 @@ async def convert_documents(
                     f"Page {index} of {file_data.name}:\n\n{entry}" for index, entry in enumerate(entries_per_page)
                 ]
                 extracted_content = "\n".join(annotated_pages)
+            else:
+                # Convert content to string
+                extracted_content = extracted_content.decode("utf-8")
 
-            size_in_bytes = len(extracted_content.encode("utf-8"))
+            # Calculate size in bytes. Some of the content might be in bytes, some in str.
+            if isinstance(extracted_content, str):
+                size_in_bytes = len(extracted_content.encode("utf-8"))
+            elif isinstance(extracted_content, bytes):
+                size_in_bytes = len(extracted_content)
+            else:
+                size_in_bytes = 0
+                logger.warning(f"Unexpected content type: {type(extracted_content)}")
 
             converted_files.append(
                 {
