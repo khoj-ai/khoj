@@ -556,7 +556,7 @@ async def generate_chat_title(
 
     conversation.slug = new_title
 
-    conversation.asave()
+    await conversation.asave()
 
     return {"status": "ok", "title": new_title}
 
