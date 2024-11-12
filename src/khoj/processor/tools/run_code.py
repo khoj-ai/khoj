@@ -1,4 +1,5 @@
 import base64
+import copy
 import datetime
 import json
 import logging
@@ -88,7 +89,8 @@ async def run_code(
         with timer("Chat actor: Execute generated program", logger, log_level=logging.INFO):
             result = await execute_sandboxed_python(generated_code.code, input_data, sandbox_url)
             code = result.pop("code")
-            logger.info(f"Executed Code:\n--@@--\n{code}\n--@@--Result:\n--@@--\n{result}\n--@@--")
+            cleaned_result = truncate_code_context({"cleaned": {"results": result}})["cleaned"]["results"]
+            logger.info(f"Executed Code\n----\n{code}\n----\nResult\n----\n{cleaned_result}\n----")
             yield {query: {"code": code, "results": result}}
     except Exception as e:
         raise ValueError(f"Failed to run code for {query} with error: {e}")
@@ -163,7 +165,8 @@ async def execute_sandboxed_python(code: str, input_data: list[dict], sandbox_ur
                 result: dict[str, Any] = await response.json()
                 result["code"] = cleaned_code
                 # Store decoded output files
-                for output_file in result.get("output_files", []):
+                result["output_files"] = result.get("output_files", [])
+                for output_file in result["output_files"]:
                     # Decode text files as UTF-8
                     if mimetypes.guess_type(output_file["filename"])[0].startswith("text/") or Path(
                         output_file["filename"]
@@ -175,4 +178,28 @@ async def execute_sandboxed_python(code: str, input_data: list[dict], sandbox_ur
                     "code": cleaned_code,
                     "success": False,
                     "std_err": f"Failed to execute code with {response.status}",
+                    "output_files": [],
                 }
+
+
+def truncate_code_context(original_code_results: dict[str, Any], max_chars=10000) -> dict[str, Any]:
+    """
+    Truncate large output files and drop image file data from code results.
+    """
+    # Create a deep copy of the code results to avoid modifying the original data
+    code_results = copy.deepcopy(original_code_results)
+    for code_result in code_results.values():
+        for idx, output_file in enumerate(code_result["results"]["output_files"]):
+            # Drop image files from code results
+            if Path(output_file["filename"]).suffix in {".png", ".jpg", ".jpeg", ".webp"}:
+                code_result["results"]["output_files"][idx] = {
+                    "filename": output_file["filename"],
+                    "b64_data": "[placeholder for generated image data for brevity]",
+                }
+            # Truncate large output files
+            elif len(output_file["b64_data"]) > max_chars:
+                code_result["results"]["output_files"][idx] = {
+                    "filename": output_file["filename"],
+                    "b64_data": output_file["b64_data"][:max_chars] + "...",
+                }
+    return code_results

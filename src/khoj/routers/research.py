@@ -16,7 +16,7 @@ from khoj.processor.conversation.utils import (
     construct_tool_chat_history,
 )
 from khoj.processor.tools.online_search import read_webpages, search_online
-from khoj.processor.tools.run_code import run_code
+from khoj.processor.tools.run_code import run_code, truncate_code_context
 from khoj.routers.api import extract_references_and_questions
 from khoj.routers.helpers import (
     ChatEvent,
@@ -348,7 +348,7 @@ async def execute_information_collection(
             if online_results:
                 results_data += f"\n<online_results>\n{yaml.dump(online_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</online_results>"
             if code_results:
-                results_data += f"\n<code_results>\n{yaml.dump(code_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</code_results>"
+                results_data += f"\n<code_results>\n{yaml.dump(truncate_code_context(code_results), allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</code_results>"
             if summarize_files:
                 results_data += f"\n<summarized_files>\n{yaml.dump(summarize_files, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</summarized_files>"
             if this_iteration.warning:
