@@ -463,7 +463,7 @@ class Conversation(BaseModel):
     slug = models.CharField(max_length=200, default=None, null=True, blank=True)
 
     # The title field is explicitly set by the user.
-    title = models.CharField(max_length=200, default=None, null=True, blank=True)
+    title = models.CharField(max_length=500, default=None, null=True, blank=True)
     agent = models.ForeignKey(Agent, on_delete=models.SET_NULL, default=None, null=True, blank=True)
     file_filters = models.JSONField(default=list)
     id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, primary_key=True, db_index=True)
