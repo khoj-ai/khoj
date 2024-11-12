@@ -527,25 +527,7 @@ def reciprocal_conversation_to_chatml(message_pair):
 
 def clean_json(response: str):
     """Remove any markdown json codeblock and newline formatting if present. Useful for non schema enforceable models"""
-    try:
-        # Remove markdown code blocks
-        cleaned = response.strip().replace("```json", "").replace("```", "")
-
-        # Find JSON array/object pattern
-        json_match = re.search(r"\[.*\]|\{.*\}", cleaned, re.DOTALL)
-        if not json_match:
-            return ""
-
-        # Extract matched JSON
-        json_str = json_match.group()
-
-        # Validate by parsing
-        json.loads(json_str)
-
-        return json_str.strip()
-
-    except (json.JSONDecodeError, AttributeError):
-        return ""
+    return response.strip().replace("\n", "").removeprefix("```json").removesuffix("```")
 
 
 def clean_code_python(code: str):
