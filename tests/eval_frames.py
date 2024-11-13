@@ -1,18 +1,20 @@
+import argparse
 import concurrent.futures
 import json
 import logging
 import os
 import time
+from datetime import datetime
 from typing import Any, Dict
 
 import pandas as pd
 import requests
 from datasets import load_dataset
 
-from khoj.utils.helpers import timer
+from khoj.utils.helpers import is_none_or_empty, timer
 
 # Configure root logger
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
 # Configuration
@@ -82,23 +84,28 @@ def evaluate_response(query: str, agent_response: str, ground_truth: str) -> Dic
     try:
         response = requests.post(
             GEMINI_API_URL,
-            headers={"Content-Type": "application/json", "response_mime_type": "application/json"},
-            json={"contents": [{"parts": [{"text": evaluation_prompt}]}]},
+            headers={"Content-Type": "application/json"},
+            json={
+                "contents": [{"parts": [{"text": evaluation_prompt}]}],
+                "generationConfig": {"response_mime_type": "application/json"},
+            },
         )
         response.raise_for_status()
 
         # Parse evaluation response
-        eval_response = json.loads(clean_json(response.json()["candidates"][0]["content"]["parts"][0]["text"]))
-        if "decision" in eval_response and isinstance(eval_response["decision"], str):
-            eval_response["decision"] = eval_response["decision"].upper() == "TRUE"
+        eval_response: dict[str, str] = json.loads(
+            clean_json(response.json()["candidates"][0]["content"]["parts"][0]["text"])
+        )
+        decision = str(eval_response.get("decision", "")).upper() == "TRUE"
+        explanation = eval_response.get("explanation", "")
+        # Handle evaluation service errors
+        if "503 Service Error" in explanation:
+            decision = None
         # Extract decision and explanation from structured response
-        return {
-            "decision": eval_response.get("decision", False),
-            "explanation": eval_response.get("explanation", ""),
-        }
+        return decision, explanation
     except Exception as e:
         logger.error(f"Error in evaluation: {e}")
-        return {"decision": "FALSE", "explanation": f"Evaluation failed: {str(e)}"}
+        return None, f"Evaluation failed: {str(e)}"
 
 
 def process_batch(batch, batch_start, results, dataset_length):
@@ -107,17 +114,17 @@ def process_batch(batch, batch_start, results, dataset_length):
         logger.info(f"Processing example: {current_index}/{dataset_length}")
 
         # Trigger research mode if enabled
-        prompt = f"/{KHOJ_MODE} {prompt}" if KHOJ_MODE else prompt
+        prompt = f"/{KHOJ_MODE} {prompt}" if KHOJ_MODE and not prompt.startswith(f"/{KHOJ_MODE}") else prompt
 
         # Get agent response
         agent_response = get_agent_response(prompt)
 
         # Evaluate response
-        if agent_response is None or agent_response.strip() == "":
-            evaluation["decision"] = False
-            evaluation["explanation"] = "Agent response is empty. This maybe due to a service error."
+        if is_none_or_empty(agent_response):
+            decision = None
+            explanation = "Agent response is empty. This maybe due to a service error."
         else:
-            evaluation = evaluate_response(prompt, agent_response, answer)
+            decision, explanation = evaluate_response(prompt, agent_response, answer)
 
         # Store results
         results.append(
@@ -126,25 +133,29 @@ def process_batch(batch, batch_start, results, dataset_length):
                 "prompt": prompt,
                 "ground_truth": answer,
                 "agent_response": agent_response,
-                "evaluation_decision": evaluation["decision"],
-                "evaluation_explanation": evaluation["explanation"],
+                "evaluation_decision": decision,
+                "evaluation_explanation": explanation,
                 "reasoning_type": reasoning_type,
             }
         )
 
-        # Color the decision based on its value
-        decision = evaluation["decision"]
-        decision_color = "green" if decision == True else "red"
+        # Log results
+        decision_color = {True: "green", None: "blue", False: "red"}[decision]
         colored_decision = color_text(str(decision), decision_color)
         logger.info(
-            f'Decision: {colored_decision}\nQuestion: {prompt}\nExpected Answer: {answer}\nAgent Answer: {agent_response}\nExplanation: {evaluation["explanation"]}\n'
+            f"Decision: {colored_decision}\nQuestion: {prompt}\nExpected Answer: {answer}\nAgent Answer: {agent_response}\nExplanation: {explanation}\n"
         )
 
         time.sleep(SLEEP_SECONDS)  # Rate limiting
 
 
 def color_text(text, color):
-    colors = {"red": "\033[91m", "green": "\033[92m", "reset": "\033[0m"}
+    colors = {
+        "red": "\033[91m",  # Bright red
+        "green": "\033[32m",  # Standard green
+        "blue": "\033[94m",  # Bright blue
+        "reset": "\033[0m",
+    }
     return f"{colors[color]}{text}{colors['reset']}"
 
 
@@ -153,7 +164,21 @@ def clean_json(response: str):
     return response.strip().replace("\n", "").removeprefix("```json").removesuffix("```")
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Evaluate Khoj on the Google FRAMES benchmark.")
+    parser.add_argument(
+        "--output",
+        "-o",
+        default=None,
+        help="Path to store evaluation results CSV (default: frames_evaluation_results_[datetime].csv)",
+    )
+    return parser.parse_args()
+
+
 def main():
+    # Initialize variables
+    args = parse_args()
+
     # Load dataset
     with timer("Loaded dataset in", logger):
         dataset = load_frames_dataset()
@@ -161,7 +186,6 @@ def main():
         return
 
     # Initialize variables
-    counter = 0
     results = []
     dataset_length = len(dataset["Prompt"])
 
@@ -182,18 +206,22 @@ def main():
 
     # Calculate metrics
     df = pd.DataFrame(results)
-    accuracy = (df["evaluation_decision"] == True).mean()
+    eval_df = df.dropna(subset=["evaluation_decision"])  # Exclude rows with missing evaluation decision
+    accuracy = (eval_df["evaluation_decision"] == True).mean()
 
     # Calculate accuracy by reasoning type
-    reasoning_type_accuracy = df.groupby("reasoning_type")["evaluation_decision"].apply(lambda x: (x == True).mean())
-
-    # Save results
-    df.to_csv("frames_evaluation_results.csv", index=False)
+    reasoning_type_accuracy = eval_df.groupby("reasoning_type")["evaluation_decision"].apply(
+        lambda x: (x == True).mean()
+    )
 
     # Print summary
     logger.info(f"\nOverall Accuracy: {accuracy:.2%}")
-    logger.info("\nAccuracy by Reasoning Type:")
-    logger.info(reasoning_type_accuracy)
+    logger.info(f"\nAccuracy by Reasoning Type:\n{reasoning_type_accuracy}")
+
+    # Save results
+    output_file = args.output or f"frames_evaluation_results_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
+    df.to_csv(output_file, index=False)
+    logger.info(f"Results saved to {output_file}")
 
 
 if __name__ == "__main__":
@@ -201,12 +229,14 @@ if __name__ == "__main__":
     Evaluate Khoj on the Google FRAMES benchmark.
     Response are evaluated by GEMINI_EVAL_MODEL (default: gemini-pro-1.5-002).
 
-    Khoj should be running at KHOJ_URL, default at http://localhost:42110.
+    Khoj should be running at KHOJ_URL (default: http://localhost:42110).
     The Gemini judge model is accessed via the Gemini API with your GEMINI_API_KEY.
     To evaluate Khoj in research mode, set the KHOJ_MODE environment variable to "research".
 
     Run the script using the following command:
     KHOJ_MODE="research" GEMINI_API_KEY="<your_gemini_api_key>" python eval_frames.py
     """
-    with timer("Ran eval in", logger):
+    logger.info(f"{datetime.now()} - Begin Quizzing Khoj on the FRAMES benchmark.")
+    with timer("Ran eval script in", logger, log_level=logging.INFO):
         main()
+    logger.info(f"{datetime.now()} - End Quizzing Khoj on the FRAMES benchmark.")
