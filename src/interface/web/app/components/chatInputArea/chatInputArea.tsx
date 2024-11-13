@@ -76,6 +76,7 @@ interface ChatInputProps {
     isLoggedIn: boolean;
     agentColor?: string;
     isResearchModeEnabled?: boolean;
+    setTriggeredAbort: (value: boolean) => void;
 }
 
 export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((props, ref) => {
@@ -678,20 +679,33 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Button
-                                            variant="default"
-                                            className={`${!message || recording || "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
-                                            onClick={() => {
-                                                setMessage("Listening...");
-                                                setRecording(!recording);
-                                            }}
-                                            disabled={props.sendDisabled}
-                                        >
-                                            <Microphone weight="fill" className="w-6 h-6" />
-                                        </Button>
+                                        {props.sendDisabled ? (
+                                            <Button
+                                                variant="default"
+                                                className={`${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                                                onClick={() => {
+                                                    props.setTriggeredAbort(true);
+                                                }}
+                                            >
+                                                <Stop weight="fill" className="w-6 h-6" />
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                variant="default"
+                                                className={`${!message || recording || "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                                                onClick={() => {
+                                                    setMessage("Listening...");
+                                                    setRecording(!recording);
+                                                }}
+                                            >
+                                                <Microphone weight="fill" className="w-6 h-6" />
+                                            </Button>
+                                        )}
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                        Click to transcribe your message with voice.
+                                        {props.sendDisabled
+                                            ? "Click here to stop the streaming."
+                                            : "Click to transcribe your message with voice."}
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>
@@ -699,7 +713,6 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                         <Button
                             className={`${(!message || recording) && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
                             onClick={onSendMessage}
-                            disabled={props.sendDisabled}
                         >
                             <ArrowUp className="w-6 h-6" weight="bold" />
                         </Button>

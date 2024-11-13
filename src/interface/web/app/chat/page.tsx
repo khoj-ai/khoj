@@ -38,6 +38,7 @@ interface ChatBodyDataProps {
     isMobileWidth?: boolean;
     isLoggedIn: boolean;
     setImages: (images: string[]) => void;
+    setTriggeredAbort: (triggeredAbort: boolean) => void;
 }
 
 function ChatBodyData(props: ChatBodyDataProps) {
@@ -160,6 +161,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     setUploadedFiles={props.setUploadedFiles}
                     ref={chatInputRef}
                     isResearchModeEnabled={isInResearchMode}
+                    setTriggeredAbort={props.setTriggeredAbort}
                 />
             </div>
         </>
@@ -177,6 +179,10 @@ export default function Chat() {
     const [processQuerySignal, setProcessQuerySignal] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<AttachedFileText[] | undefined>(undefined);
     const [images, setImages] = useState<string[]>([]);
+
+    const [abortMessageStreamController, setAbortMessageStreamController] =
+        useState<AbortController | null>(null);
+    const [triggeredAbort, setTriggeredAbort] = useState(false);
 
     const locationData = useIPLocationData() || {
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -203,6 +209,15 @@ export default function Chat() {
     }, []);
 
     useEffect(() => {
+        if (triggeredAbort) {
+            abortMessageStreamController?.abort();
+            handleAbortedMessage();
+            setTriggeredAbort(false);
+        }
+    }),
+        [triggeredAbort];
+
+    useEffect(() => {
         if (queryToProcess) {
             const newStreamMessage: StreamMessage = {
                 rawResponse: "",
@@ -218,6 +233,7 @@ export default function Chat() {
             };
             setMessages((prevMessages) => [...prevMessages, newStreamMessage]);
             setProcessQuerySignal(true);
+            setAbortMessageStreamController(new AbortController());
         }
     }, [queryToProcess]);
 
@@ -283,6 +299,17 @@ export default function Chat() {
         }
     }
 
+    function handleAbortedMessage() {
+        const currentMessage = messages.find((message) => !message.completed);
+        if (!currentMessage) return;
+
+        currentMessage.rawResponse = `I've stopped processing this message. If you'd like to continue, please send another message.`;
+        currentMessage.completed = true;
+        setMessages([...messages]);
+        setQueryToProcess("");
+        setProcessQuerySignal(false);
+    }
+
     async function chat() {
         localStorage.removeItem("message");
         if (!queryToProcess || !conversationId) return;
@@ -308,6 +335,7 @@ export default function Chat() {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify(chatAPIBody),
+            signal: abortMessageStreamController?.signal,
         });
 
         try {
@@ -321,14 +349,18 @@ export default function Chat() {
 
             // Render error message as current message
             const errorMessage = (err as Error).message;
+            const errorName = (err as Error).name;
             if (errorMessage.includes("Error in input stream"))
                 currentMessage.rawResponse = `Woops! The connection broke while I was writing my thoughts down. Maybe try again in a bit or dislike this message if the issue persists?`;
             else if (response.status === 429) {
                 "detail" in apiError
                     ? (currentMessage.rawResponse = `${apiError.detail}`)
                     : (currentMessage.rawResponse = `I'm a bit overwhelmed at the moment. Could you try again in a bit or dislike this message if the issue persists?`);
-            } else
+            } else if (errorName === "AbortError") {
+                currentMessage.rawResponse = `I've stopped processing this message. If you'd like to continue, please send the message again.`;
+            } else {
                 currentMessage.rawResponse = `Umm, not sure what just happened. I see this error message: ${errorMessage}. Could you try again or dislike this message if the issue persists?`;
+            }
 
             // Complete message streaming teardown properly
             currentMessage.completed = true;
@@ -388,6 +420,7 @@ export default function Chat() {
                             isMobileWidth={isMobileWidth}
                             onConversationIdChange={handleConversationIdChange}
                             setImages={setImages}
+                            setTriggeredAbort={setTriggeredAbort}
                         />
                     </Suspense>
                 </div>

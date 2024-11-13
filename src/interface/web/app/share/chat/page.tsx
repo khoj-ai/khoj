@@ -101,6 +101,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     agentColor={agentMetadata?.color}
                     isMobileWidth={props.isMobileWidth}
                     setUploadedFiles={props.setUploadedFiles}
+                    setTriggeredAbort={() => {}}
                     ref={chatInputRef}
                 />
             </div>

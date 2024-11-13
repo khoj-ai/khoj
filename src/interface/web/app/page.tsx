@@ -312,6 +312,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                             setUploadedFiles={props.setUploadedFiles}
                             agentColor={agents.find((agent) => agent.slug === selectedAgent)?.color}
                             ref={chatInputRef}
+                            setTriggeredAbort={() => {}}
                         />
                     </div>
                 )}
@@ -394,6 +395,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                             setUploadedFiles={props.setUploadedFiles}
                             agentColor={agents.find((agent) => agent.slug === selectedAgent)?.color}
                             ref={chatInputRef}
+                            setTriggeredAbort={() => {}}
                         />
                     </div>
                 </>
