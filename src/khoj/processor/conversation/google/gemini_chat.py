@@ -226,7 +226,7 @@ def converse_gemini(
 
     messages, system_prompt = format_messages_for_gemini(messages, system_prompt)
 
-    truncated_messages = "\n".join({f"{message.content[:40]}..." for message in messages})
+    truncated_messages = "\n".join({f"{content[:70]}..." for message in messages for content in message.content})
     logger.debug(f"Conversation Context for Gemini: {truncated_messages}")
 
     # Get Response from Google AI
