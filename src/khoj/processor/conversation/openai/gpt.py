@@ -15,6 +15,7 @@ from khoj.processor.conversation.utils import (
     clean_json,
     construct_structured_message,
     generate_chatml_messages_with_context,
+    messages_to_print,
 )
 from khoj.utils.helpers import ConversationCommand, is_none_or_empty
 from khoj.utils.rawconfig import LocationData
@@ -212,8 +213,7 @@ def converse(
         model_type=ChatModelOptions.ModelType.OPENAI,
         query_files=query_files,
     )
-    truncated_messages = "\n".join({f"{message.content[:70]}..." for message in messages})
-    logger.debug(f"Conversation Context for GPT: {truncated_messages}")
+    logger.debug(f"Conversation Context for GPT: {messages_to_print(messages)}")
 
     # Get Response from GPT
     return chat_completion_with_backoff(

@@ -17,6 +17,7 @@ from khoj.processor.conversation.utils import (
     clean_json,
     construct_structured_message,
     generate_chatml_messages_with_context,
+    messages_to_print,
 )
 from khoj.utils.helpers import ConversationCommand, is_none_or_empty
 from khoj.utils.rawconfig import LocationData
@@ -214,9 +215,7 @@ def converse_anthropic(
     )
 
     messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)
-
-    truncated_messages = "\n".join({f"{content[:70]}..." for message in messages for content in message.content})
-    logger.debug(f"Conversation Context for Claude: {truncated_messages}")
+    logger.debug(f"Conversation Context for Claude: {messages_to_print(messages)}")
 
     # Get Response from Claude
     return anthropic_chat_completion_with_backoff(

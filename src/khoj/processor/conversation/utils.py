@@ -736,3 +736,10 @@ Metadata
     except Exception as e:
         logger.error(f"Failed to merge message {msg_branch} into conversation {conv_branch}: {str(e)}", exc_info=True)
         return False
+
+
+def messages_to_print(messages: list[ChatMessage], max_length: int = 70) -> str:
+    """
+    Format, truncate messages to print
+    """
+    return "\n".join([f"{json.dumps(message.content)[:max_length]}..." for message in messages])
