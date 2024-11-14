@@ -13,6 +13,7 @@ export enum SuggestionType {
     Travel = "Travel",
     Health = "Health",
     Learning = "Learning",
+    Math = "Mathematics",
     Language = "Language",
     PopCulture = "Pop Culture",
     Food = "Food",
@@ -42,6 +43,7 @@ addSuggestionColorMap(SuggestionType.Home, "green");
 addSuggestionColorMap(SuggestionType.Fun, "fuchsia");
 addSuggestionColorMap(SuggestionType.Code, "purple");
 addSuggestionColorMap(SuggestionType.Finance, "green");
+addSuggestionColorMap(SuggestionType.Math, "blue");
 
 const DEFAULT_COLOR = "orange";
 
@@ -64,6 +66,8 @@ export function convertSuggestionTitleToIconClass(title: string, color: string) 
     if (title === SuggestionType.Interviewing)
         return getIconFromIconName("Lectern", color, "w-6", "h-6");
     if (title === SuggestionType.Finance) return getIconFromIconName("Wallet", color, "w-6", "h-6");
+    if (title === SuggestionType.Math)
+        return getIconFromIconName("MathOperations", color, "w-6", "h-6");
     else return getIconFromIconName("Lightbulb", color, "w-6", "h-6");
 }
 
@@ -694,6 +698,182 @@ export const suggestionsData: Suggestion[] = [
         type: SuggestionType.Finance,
         color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
         description: "Describe strategies for minimizing tax liability legally.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Finance,
+        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
+        description: "Draw a diagram illustrating the flow of money in a personal budget.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Learning,
+        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
+        description: "Draw a mind map summarizing key concepts from the Industrial Revolution.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Learning,
+        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
+        description: "Draw a diagram of the life cycle of a flowering plant.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Learning,
+        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
+        description: "Draw a diagram illustrating the structure of the United States government.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Health,
+        color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
+        description: "Draw a diagram of the human skeletal system.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Code,
+        color: suggestionToColorMap[SuggestionType.Code] || DEFAULT_COLOR,
+        description: "Draw a diagram illustrating the architecture of a computer network.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Health,
+        color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
+        description: "Draw a diagram of the digestive system.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Travel,
+        color: suggestionToColorMap[SuggestionType.Travel] || DEFAULT_COLOR,
+        description: "Create a sample flow chart of a travel itinerary for CDMX.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Food,
+        color: suggestionToColorMap[SuggestionType.Food] || DEFAULT_COLOR,
+        description: "Draw a diagram illustrating the steps in a recipe for lasagna.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Fun,
+        color: suggestionToColorMap[SuggestionType.Fun] || DEFAULT_COLOR,
+        description: "Draw a diagram of a basketball court, labeling the different positions.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Code,
+        color: suggestionToColorMap[SuggestionType.Code] || DEFAULT_COLOR,
+        description: "Draw a diagram of a simple electrical circuit.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Learning,
+        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
+        description: "Draw a diagram illustrating the notes on a musical staff.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Learning,
+        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
+        description: "Draw a plot diagram of A Tale of Two Cities.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Learning,
+        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
+        description: "Draw a timeline of major events in World War II.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Learning,
+        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
+        description: "Draw a free-body diagram of a falling object.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Learning,
+        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
+        description: "Draw the Lewis structure of a water molecule.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Learning,
+        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
+        description: "Draw a diagram of the layers of the Earth.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Learning,
+        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
+        description: "Draw a diagram of the solar system.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Learning,
+        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
+        description: "Draw a graph of the equation y = x^2.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Math,
+        color: suggestionToColorMap[SuggestionType.Math] || DEFAULT_COLOR,
+        description: "Create a chart for the sine and cosine functions over one period.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Learning,
+        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
+        description: "Create a bar chart comparing the average monthly temperatures of two cities.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Finance,
+        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
+        description: "Create a line chart showing the GDP growth rate over the last decade.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Learning,
+        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
+        description: "Create a chart for historical rainfall in Karachi last year.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Learning,
+        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
+        description:
+            "Create a chart showing the trend in smartphone usage in Korea over the past five years.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Learning,
+        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
+        description:
+            "Create a chart comparing the performance statistics of Lebron James and Kobe Bryant.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Learning,
+        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
+        description: "Create a chart showing historical casualties in major wars.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Learning,
+        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
+        description: "Create a chart illustrating the relationship between velocity and time.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Learning,
+        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
+        description: "Create a chart showing the frequency of earthquakes over the past century.",
+        link: "",
+    },
+    {
+        type: SuggestionType.Math,
+        color: suggestionToColorMap[SuggestionType.Math] || DEFAULT_COLOR,
+        description: "Create a scatter plot of a set of random data points.",
         link: "",
     },
 ];
