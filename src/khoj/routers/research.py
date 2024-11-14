@@ -114,7 +114,7 @@ async def apick_next_tool(
         logger.info(f"Response for determining relevant tools: {response}")
 
         # Detect selection of previously used query, tool combination.
-        previous_tool_query_combinations = {(i.tool, i.query) for i in previous_iterations}
+        previous_tool_query_combinations = {(i.tool, i.query) for i in previous_iterations if i.warning is None}
         if (selected_tool, generated_query) in previous_tool_query_combinations:
             warning = f"Repeated tool, query combination detected. Skipping iteration. Try something different."
         # Only send client status updates if we'll execute this iteration
@@ -226,7 +226,8 @@ async def execute_information_collection(
                     ):
                         yield result
                 except Exception as e:
-                    logger.error(f"Error extracting document references: {e}", exc_info=True)
+                    this_iteration.warning = f"Error extracting document references: {e}"
+                    logger.error(this_iteration.warning, exc_info=True)
 
         elif this_iteration.tool == ConversationCommand.Online:
             previous_subqueries = {
@@ -257,7 +258,8 @@ async def execute_information_collection(
                         online_results: Dict[str, Dict] = result  # type: ignore
                         this_iteration.onlineContext = online_results
             except Exception as e:
-                logger.error(f"Error searching online: {e}", exc_info=True)
+                this_iteration.warning = f"Error searching online: {e}"
+                logger.error(this_iteration.warning, exc_info=True)
 
         elif this_iteration.tool == ConversationCommand.Webpage:
             try:
@@ -288,7 +290,8 @@ async def execute_information_collection(
                                 webpages.append(webpage["link"])
                         this_iteration.onlineContext = online_results
             except Exception as e:
-                logger.error(f"Error reading webpages: {e}", exc_info=True)
+                this_iteration.warning = f"Error reading webpages: {e}"
+                logger.error(this_iteration.warning, exc_info=True)
 
         elif this_iteration.tool == ConversationCommand.Code:
             try:
@@ -312,10 +315,8 @@ async def execute_information_collection(
                 async for result in send_status_func(f"**Ran code snippets**: {len(this_iteration.codeContext)}"):
                     yield result
             except ValueError as e:
-                logger.warning(
-                    f"Failed to use code tool: {e}. Attempting to respond without code results",
-                    exc_info=True,
-                )
+                this_iteration.warning = f"Error running code: {e}"
+                logger.warning(this_iteration.warning, exc_info=True)
 
         elif this_iteration.tool == ConversationCommand.Summarize:
             try:
@@ -334,7 +335,8 @@ async def execute_information_collection(
                     else:
                         summarize_files = result  # type: ignore
             except Exception as e:
-                logger.error(f"Error generating summary: {e}", exc_info=True)
+                this_iteration.warning = f"Error summarizing files: {e}"
+                logger.error(this_iteration.warning, exc_info=True)
 
         else:
             # No valid tools. This is our exit condition.
