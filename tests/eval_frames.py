@@ -48,38 +48,6 @@ def load_frames_dataset():
         return None
 
 
-def load_talc_dataset():
-    """
-    Load the TALC dataset from Github.
-
-    Normalize it into the FRAMES benchmark structure and the HuggingFace Dataset format.
-    """
-    try:
-        # Load TALC search benchmark from Github
-        raw_url = "https://raw.githubusercontent.com/Talc-AI/search-bench/3fd5b0858e2effa4c1578c7d046bee0a3895c488/data/searchbench_08_30_2024.jsonl"
-        response = requests.get(raw_url)
-        response.raise_for_status()
-
-        # Parse benchmark from raw JSONL response
-        jsonl_data = [json.loads(line) for line in response.text.splitlines()]
-
-        # Rename keys to match FRAMES format
-        formatted_data = [
-            {"Prompt": d["question"], "Answer": d["expected_answer"], "reasoning_types": "talc"} for d in jsonl_data
-        ]
-
-        # Convert benchmark to HF Dataset
-        dataset = Dataset.from_list(formatted_data)
-        dataset = dataset.shuffle() if RANDOMIZE else dataset
-        dataset = dataset.select(range(int(SAMPLE_SIZE))) if SAMPLE_SIZE else dataset
-
-        return dataset
-
-    except Exception as e:
-        logger.error(f"Error loading dataset: {e}")
-        return None
-
-
 def get_agent_response(prompt: str) -> str:
     """Get response from the Khoj API"""
     try:
@@ -208,7 +176,7 @@ def parse_args():
         "--dataset",
         "-d",
         default="frames",
-        choices=["frames", "talc"],
+        choices=["frames"],
         help="Dataset to use for evaluation (default: frames)",
     )
     return parser.parse_args()
@@ -223,8 +191,6 @@ def main():
     with timer(f"Loaded {args.dataset} dataset in", logger):
         if args.dataset == "frames":
             dataset = load_frames_dataset()
-        elif args.dataset == "talc":
-            dataset = load_talc_dataset()
     if dataset is None:
         return
 
