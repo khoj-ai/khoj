@@ -235,28 +235,29 @@ async def execute_information_collection(
                 if iteration.onlineContext
                 for subquery in iteration.onlineContext.keys()
             }
-            async for result in search_online(
-                this_iteration.query,
-                construct_tool_chat_history(previous_iterations, ConversationCommand.Online),
-                location,
-                user,
-                send_status_func,
-                [],
-                max_webpages_to_read=0,
-                query_images=query_images,
-                previous_subqueries=previous_subqueries,
-                agent=agent,
-                tracer=tracer,
-            ):
-                if isinstance(result, dict) and ChatEvent.STATUS in result:
-                    yield result[ChatEvent.STATUS]
-                elif is_none_or_empty(result):
-                    this_iteration.warning = (
-                        "Detected previously run online search queries. Skipping iteration. Try something different."
-                    )
-                else:
-                    online_results: Dict[str, Dict] = result  # type: ignore
-                    this_iteration.onlineContext = online_results
+            try:
+                async for result in search_online(
+                    this_iteration.query,
+                    construct_tool_chat_history(previous_iterations, ConversationCommand.Online),
+                    location,
+                    user,
+                    send_status_func,
+                    [],
+                    max_webpages_to_read=0,
+                    query_images=query_images,
+                    previous_subqueries=previous_subqueries,
+                    agent=agent,
+                    tracer=tracer,
+                ):
+                    if isinstance(result, dict) and ChatEvent.STATUS in result:
+                        yield result[ChatEvent.STATUS]
+                    elif is_none_or_empty(result):
+                        this_iteration.warning = "Detected previously run online search queries. Skipping iteration. Try something different."
+                    else:
+                        online_results: Dict[str, Dict] = result  # type: ignore
+                        this_iteration.onlineContext = online_results
+            except Exception as e:
+                logger.error(f"Error searching online: {e}", exc_info=True)
 
         elif this_iteration.tool == ConversationCommand.Webpage:
             try:
