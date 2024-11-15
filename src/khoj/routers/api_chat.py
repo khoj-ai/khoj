@@ -47,7 +47,6 @@ from khoj.routers.helpers import (
     acreate_title_from_history,
     agenerate_chat_response,
     aget_relevant_information_sources,
-    aget_relevant_output_modes,
     construct_automation_created_message,
     create_automation,
     gather_raw_query_files,
@@ -769,18 +768,8 @@ async def chat(
                 conversation_commands = [ConversationCommand.Research]
 
             conversation_commands_str = ", ".join([cmd.value for cmd in conversation_commands])
-            async for result in send_event(
-                ChatEvent.STATUS, f"**Chose Data Sources to Search:** {conversation_commands_str}"
-            ):
+            async for result in send_event(ChatEvent.STATUS, f"**Selected Tools:** {conversation_commands_str}"):
                 yield result
-
-            mode = await aget_relevant_output_modes(
-                q, meta_log, is_automated_task, user, uploaded_images, agent, tracer=tracer
-            )
-            async for result in send_event(ChatEvent.STATUS, f"**Decided Response Mode:** {mode.value}"):
-                yield result
-            if mode not in conversation_commands:
-                conversation_commands.append(mode)
 
         for cmd in conversation_commands:
             try:
