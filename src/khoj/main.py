@@ -109,7 +109,10 @@ def shutdown_scheduler():
         logger.info("🔓 Schedule Leader released")
         ProcessLockAdapters.remove_process_lock(state.schedule_leader_process_lock)
 
-    state.scheduler.shutdown()
+    try:
+        state.scheduler.shutdown()
+    except Exception as e:
+        logger.debug(f"Did not shutdown scheduler: {e}")
 
 
 def run(should_start_server=True):
@@ -237,5 +240,6 @@ def poll_task_scheduler():
 if __name__ == "__main__":
     run()
 else:
-    run(should_start_server=False)
-    atexit.register(shutdown_scheduler)
+    if "gunicorn" in sys.modules:
+        run(should_start_server=False)
+        atexit.register(shutdown_scheduler)
