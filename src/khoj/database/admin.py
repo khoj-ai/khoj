@@ -108,7 +108,6 @@ admin.site.register(GithubConfig)
 admin.site.register(NotionConfig)
 admin.site.register(UserVoiceModelConfig)
 admin.site.register(VoiceModelOption)
-admin.site.register(UserConversationConfig)
 admin.site.register(UserRequests)
 
 
@@ -326,3 +325,35 @@ class ConversationAdmin(admin.ModelAdmin):
             if "export_selected_minimal_objects" in actions:
                 del actions["export_selected_minimal_objects"]
         return actions
+
+
+@admin.register(UserConversationConfig)
+class UserConversationConfigAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "get_user_email",
+        "get_chat_model",
+        "get_subscription_type",
+    )
+    search_fields = ("id", "user__email", "setting__chat_model", "user__subscription__type")
+    ordering = ("-updated_at",)
+
+    def get_user_email(self, obj):
+        return obj.user.email
+
+    get_user_email.short_description = "User Email"  # type: ignore
+    get_user_email.admin_order_field = "user__email"  # type: ignore
+
+    def get_chat_model(self, obj):
+        return obj.setting.chat_model if obj.setting else None
+
+    get_chat_model.short_description = "Chat Model"  # type: ignore
+    get_chat_model.admin_order_field = "setting__chat_model"  # type: ignore
+
+    def get_subscription_type(self, obj):
+        if hasattr(obj.user, "subscription"):
+            return obj.user.subscription.type
+        return None
+
+    get_subscription_type.short_description = "Subscription Type"  # type: ignore
+    get_subscription_type.admin_order_field = "user__subscription__type"  # type: ignore
