@@ -170,7 +170,12 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         }
 
         let messageToSend = message.trim();
-        if (useResearchMode && !messageToSend.startsWith("/research")) {
+        // Check if message starts with an explicit slash command
+        const startsWithSlashCommand =
+            props.chatOptionsData &&
+            Object.keys(props.chatOptionsData).some((cmd) => messageToSend.startsWith(`/${cmd}`));
+        // Only add /research if useResearchMode is enabled and message doesn't already use a slash command
+        if (useResearchMode && !startsWithSlashCommand) {
             messageToSend = `/research ${messageToSend}`;
         }
 
