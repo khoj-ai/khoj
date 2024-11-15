@@ -9,7 +9,6 @@ from khoj.processor.conversation.openai.gpt import converse, extract_questions
 from khoj.processor.conversation.utils import message_to_log
 from khoj.routers.helpers import (
     aget_relevant_information_sources,
-    aget_relevant_output_modes,
     generate_online_subqueries,
     infer_webpage_urls,
     schedule_query,
@@ -522,26 +521,6 @@ async def test_websearch_khoj_website_for_info_about_khoj(chat_client, default_u
     assert any(
         ["site:khoj.dev" in response for response in responses]
     ), "Expected search query to include site:khoj.dev but got: " + str(responses)
-
-
-# ----------------------------------------------------------------------------------------------------
-@pytest.mark.anyio
-@pytest.mark.django_db(transaction=True)
-@pytest.mark.parametrize(
-    "user_query, expected_mode",
-    [
-        ("What's the latest in the Israel/Palestine conflict?", "text"),
-        ("Summarize the latest tech news every Monday evening", "automation"),
-        ("Paint a scenery in Timbuktu in the winter", "image"),
-        ("Remind me, when did I last visit the Serengeti?", "text"),
-    ],
-)
-async def test_use_default_response_mode(chat_client, user_query, expected_mode):
-    # Act
-    mode = await aget_relevant_output_modes(user_query, {})
-
-    # Assert
-    assert mode.value == expected_mode
 
 
 # ----------------------------------------------------------------------------------------------------
