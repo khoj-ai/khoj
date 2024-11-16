@@ -101,7 +101,7 @@ class PdfToEntries(TextToEntries):
                 tmpf.flush()  # Ensure all data is written
 
                 # Load the content using PyMuPDFLoader
-                loader = PyMuPDFLoader(tmpf.name, extract_images=True)
+                loader = PyMuPDFLoader(tmpf.name)
                 pdf_entries_per_file = loader.load()
 
                 # Convert the loaded entries into the desired format
