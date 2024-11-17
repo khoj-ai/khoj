@@ -87,7 +87,7 @@ def initialization(interactive: bool = True):
             ChatModelOptions.ModelType.GOOGLE,
             default_gemini_chat_models,
             default_api_key=os.getenv("GEMINI_API_KEY"),
-            vision_enabled=False,
+            vision_enabled=True,
             is_offline=False,
             interactive=interactive,
             provider_name="Google Gemini",
@@ -98,7 +98,7 @@ def initialization(interactive: bool = True):
             ChatModelOptions.ModelType.ANTHROPIC,
             default_anthropic_chat_models,
             default_api_key=os.getenv("ANTHROPIC_API_KEY"),
-            vision_enabled=False,
+            vision_enabled=True,
             is_offline=False,
             interactive=interactive,
         )
@@ -158,7 +158,9 @@ def initialization(interactive: bool = True):
         is_offline: bool = False,
         provider_name: str = None,
     ) -> Tuple[bool, OpenAIProcessorConversationConfig]:
-        supported_vision_models = ["gpt-4o-mini", "gpt-4o"]
+        supported_vision_models = (
+            default_openai_chat_models + default_anthropic_chat_models + default_gemini_chat_models
+        )
         provider_name = provider_name or model_type.name.capitalize()
         default_use_model = {True: "y", False: "n"}[default_api_key is not None or is_offline]
         use_model_provider = (
