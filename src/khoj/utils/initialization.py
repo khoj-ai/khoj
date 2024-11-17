@@ -231,6 +231,46 @@ def initialization(interactive: bool = True):
         logger.info(f"🗣️ {provider_name} chat model configuration complete")
         return True, chat_provider
 
+    def _update_chat_model_options():
+        """Update available chat models for OpenAI-compatible APIs"""
+        try:
+            # Get OpenAI configs with custom base URLs
+            custom_configs = OpenAIProcessorConversationConfig.objects.exclude(api_base_url__isnull=True)
+
+            for config in custom_configs:
+                try:
+                    # Create OpenAI client with custom base URL
+                    openai_client = openai.OpenAI(api_key=config.api_key, base_url=config.api_base_url)
+
+                    # Get available models
+                    available_models = [model.id for model in openai_client.models.list()]
+
+                    # Get existing chat model options for this config
+                    existing_models = ChatModelOptions.objects.filter(
+                        openai_config=config, model_type=ChatModelOptions.ModelType.OPENAI
+                    )
+
+                    # Add new models
+                    for model in available_models:
+                        if not existing_models.filter(chat_model=model).exists():
+                            ChatModelOptions.objects.create(
+                                chat_model=model,
+                                model_type=ChatModelOptions.ModelType.OPENAI,
+                                max_prompt_size=model_to_prompt_size.get(model),
+                                vision_enabled=model in default_openai_chat_models,
+                                tokenizer=model_to_tokenizer.get(model),
+                                openai_config=config,
+                            )
+
+                    # Remove models that are no longer available
+                    existing_models.exclude(chat_model__in=available_models).delete()
+
+                except Exception as e:
+                    logger.warning(f"Failed to update models for {config.name}: {str(e)}")
+
+        except Exception as e:
+            logger.error(f"Failed to update chat model options: {str(e)}")
+
     admin_user = KhojUser.objects.filter(is_staff=True).first()
     if admin_user is None:
         while True:
@@ -252,3 +292,6 @@ def initialization(interactive: bool = True):
                 return
             except Exception as e:
                 logger.error(f"🚨 Failed to create chat configuration: {e}", exc_info=True)
+    else:
+        _update_chat_model_options()
+        logger.info("🗣️ Chat model configuration updated")
