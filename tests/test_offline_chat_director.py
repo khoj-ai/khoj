@@ -7,7 +7,7 @@ from freezegun import freeze_time
 from khoj.database.models import Agent, Entry, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import message_to_log
-from khoj.routers.helpers import aget_relevant_information_sources
+from khoj.routers.helpers import aget_relevant_tools_to_execute
 from tests.helpers import ConversationFactory
 
 SKIP_TESTS = True
@@ -735,7 +735,7 @@ async def test_get_correct_tools_online(client_offline_chat):
     user_query = "What's the weather in Patagonia this week?"
 
     # Act
-    tools = await aget_relevant_information_sources(user_query, {}, is_task=False)
+    tools = await aget_relevant_tools_to_execute(user_query, {}, is_task=False)
 
     # Assert
     tools = [tool.value for tool in tools]
@@ -750,7 +750,7 @@ async def test_get_correct_tools_notes(client_offline_chat):
     user_query = "Where did I go for my first battleship training?"
 
     # Act
-    tools = await aget_relevant_information_sources(user_query, {}, is_task=False)
+    tools = await aget_relevant_tools_to_execute(user_query, {}, is_task=False)
 
     # Assert
     tools = [tool.value for tool in tools]
@@ -765,7 +765,7 @@ async def test_get_correct_tools_online_or_general_and_notes(client_offline_chat
     user_query = "What's the highest point in Patagonia and have I been there?"
 
     # Act
-    tools = await aget_relevant_information_sources(user_query, {}, is_task=False)
+    tools = await aget_relevant_tools_to_execute(user_query, {}, is_task=False)
 
     # Assert
     tools = [tool.value for tool in tools]
@@ -782,7 +782,7 @@ async def test_get_correct_tools_general(client_offline_chat):
     user_query = "How many noble gases are there?"
 
     # Act
-    tools = await aget_relevant_information_sources(user_query, {}, is_task=False)
+    tools = await aget_relevant_tools_to_execute(user_query, {}, is_task=False)
 
     # Assert
     tools = [tool.value for tool in tools]
@@ -806,7 +806,7 @@ async def test_get_correct_tools_with_chat_history(client_offline_chat, default_
     chat_history = create_conversation(chat_log, default_user2)
 
     # Act
-    tools = await aget_relevant_information_sources(user_query, chat_history, is_task=False)
+    tools = await aget_relevant_tools_to_execute(user_query, chat_history, is_task=False)
 
     # Assert
     tools = [tool.value for tool in tools]

@@ -8,7 +8,7 @@ from freezegun import freeze_time
 from khoj.processor.conversation.openai.gpt import converse, extract_questions
 from khoj.processor.conversation.utils import message_to_log
 from khoj.routers.helpers import (
-    aget_relevant_information_sources,
+    aget_relevant_tools_to_execute,
     generate_online_subqueries,
     infer_webpage_urls,
     schedule_query,
@@ -538,7 +538,7 @@ async def test_select_data_sources_actor_chooses_to_search_notes(
     chat_client, user_query, expected_conversation_commands
 ):
     # Act
-    conversation_commands = await aget_relevant_information_sources(user_query, {}, False, False)
+    conversation_commands = await aget_relevant_tools_to_execute(user_query, {}, False, False)
 
     # Assert
     assert set(expected_conversation_commands) == set(conversation_commands)

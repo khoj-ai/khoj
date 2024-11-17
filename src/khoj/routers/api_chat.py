@@ -46,7 +46,7 @@ from khoj.routers.helpers import (
     FeedbackData,
     acreate_title_from_history,
     agenerate_chat_response,
-    aget_relevant_information_sources,
+    aget_relevant_tools_to_execute,
     construct_automation_created_message,
     create_automation,
     gather_raw_query_files,
@@ -752,7 +752,7 @@ async def chat(
         attached_file_context = gather_raw_query_files(query_files)
 
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
-            conversation_commands = await aget_relevant_information_sources(
+            conversation_commands = await aget_relevant_tools_to_execute(
                 q,
                 meta_log,
                 is_automated_task,
@@ -1164,8 +1164,27 @@ async def chat(
                         inferred_queries.append(better_diagram_description_prompt)
                         diagram_description = excalidraw_diagram_description
                     else:
-                        async for result in send_llm_response(f"Failed to generate diagram. Please try again later."):
+                        error_message = "Failed to generate diagram. Please try again later."
+                        async for result in send_llm_response(error_message):
                             yield result
+
+                        await sync_to_async(save_to_conversation_log)(
+                            q,
+                            error_message,
+                            user,
+                            meta_log,
+                            user_message_time,
+                            inferred_queries=[better_diagram_description_prompt],
+                            client_application=request.user.client_app,
+                            conversation_id=conversation_id,
+                            compiled_references=compiled_references,
+                            online_results=online_results,
+                            code_results=code_results,
+                            query_images=uploaded_images,
+                            train_of_thought=train_of_thought,
+                            raw_query_files=raw_query_files,
+                            tracer=tracer,
+                        )
                         return
 
             content_obj = {

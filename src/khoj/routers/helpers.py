@@ -336,7 +336,7 @@ async def acheck_if_safe_prompt(system_prompt: str, user: KhojUser = None, lax: 
     return is_safe, reason
 
 
-async def aget_relevant_information_sources(
+async def aget_relevant_tools_to_execute(
     query: str,
     conversation_history: dict,
     is_task: bool,
