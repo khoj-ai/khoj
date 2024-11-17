@@ -27,6 +27,7 @@ from django.contrib.sessions.backends.db import SessionStore
 from django.db.models import Prefetch, Q
 from django.db.models.manager import BaseManager
 from django.db.utils import IntegrityError
+from django_apscheduler import util
 from django_apscheduler.models import DjangoJob, DjangoJobExecution
 from fastapi import HTTPException
 from pgvector.django import CosineDistance
@@ -606,6 +607,7 @@ class ProcessLockAdapters:
                 logger.debug(f"Skip removing {operation} process lock as it was not set")
 
 
+@util.close_old_connections
 def run_with_process_lock(*args, **kwargs):
     """Wrapper function used for scheduling jobs.
     Required as APScheduler can't discover the `ProcessLockAdapter.run_with_lock' method on its own.
