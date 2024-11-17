@@ -365,7 +365,7 @@ tool_descriptions_for_llm = {
     ConversationCommand.Notes: "To search the user's personal knowledge base. Especially helpful if the question expects context from the user's notes or documents.",
     ConversationCommand.Online: "To search for the latest, up-to-date information from the internet. Note: **Questions about Khoj should always use this data source**",
     ConversationCommand.Webpage: "To use if the user has directly provided the webpage urls or you are certain of the webpage urls to read.",
-    ConversationCommand.Code: "To run Python code in a Pyodide sandbox with no network access. Helpful when need to parse information, run complex calculations, create plaintext documents, and charts for user with quantitative data. Matplotlib, bs4, pandas, numpy, etc. are available.",
+    ConversationCommand.Code: "To run Python code in a Pyodide sandbox with no network access. Helpful when need to parse information, run complex calculations, create plaintext documents, and create charts with quantitative data. Matplotlib, bs4, pandas, numpy, etc. are available.",
     ConversationCommand.Summarize: "To retrieve an answer that depends on the entire document or a large text.",
 }
 
@@ -373,13 +373,13 @@ function_calling_description_for_llm = {
     ConversationCommand.Notes: "To search the user's personal knowledge base. Especially helpful if the question expects context from the user's notes or documents.",
     ConversationCommand.Online: "To search the internet for information. Useful to get a quick, broad overview from the internet. Provide all relevant context to ensure new searches, not in previous iterations, are performed.",
     ConversationCommand.Webpage: "To extract information from webpages. Useful for more detailed research from the internet. Usually used when you know the webpage links to refer to. Share the webpage links and information to extract in your query.",
-    ConversationCommand.Code: "To run Python code in a Pyodide sandbox with no network access. Helpful when need to parse information, run complex calculations, create plaintext documents, and charts for user with quantitative data. Matplotlib, bs4, pandas, numpy, etc. are available.",
+    ConversationCommand.Code: "To run Python code in a Pyodide sandbox with no network access. Helpful when need to parse information, run complex calculations, create plaintext documents, and create charts with quantitative data. Matplotlib, bs4, pandas, numpy, etc. are available.",
 }
 
 mode_descriptions_for_llm = {
-    ConversationCommand.Image: "Use this if you are confident the user is requesting you to create a new picture based on their description. This does not support generating charts or graphs.",
-    ConversationCommand.Text: "Use this if a normal text response would be sufficient for accurately responding to the query.",
-    ConversationCommand.Diagram: "Use this if the user is requesting a diagram or visual representation that requires primitives like lines, rectangles, and text. Not for quantitative data.",
+    ConversationCommand.Image: "Use this if you are confident the user is requesting you to create a new picture based on their description. This DOES NOT support generating charts or graphs. It is for creative images.",
+    ConversationCommand.Text: "Use this if a normal text response would be sufficient for accurately responding to the query or you don't feel strongly about the other modes.",
+    ConversationCommand.Diagram: "Use this if the user is requesting a diagram or visual representation that requires primitives like lines, rectangles, and text. This does not work for charts, graphs, or quantitative data. It is for mind mapping, flowcharts, etc.",
 }
 
 mode_descriptions_for_agent = {
