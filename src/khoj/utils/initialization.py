@@ -2,12 +2,13 @@ import logging
 import os
 from typing import Tuple
 
+import openai
+
 from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import (
     ChatModelOptions,
     KhojUser,
     OpenAIProcessorConversationConfig,
-    ServerChatSettings,
     SpeechToTextModelOptions,
     TextToImageModelConfig,
 )
@@ -42,14 +43,32 @@ def initialization(interactive: bool = True):
             "🗣️ Configure chat models available to your server. You can always update these at /server/admin using your admin account"
         )
 
+        openai_api_base = os.getenv("OPENAI_API_BASE")
+        provider = "Ollama" if openai_api_base and openai_api_base.endswith(":11434/v1/") else "OpenAI"
+        openai_api_key = os.getenv("OPENAI_API_KEY", "placeholder" if openai_api_base else None)
+        default_chat_models = default_openai_chat_models
+        if openai_api_base:
+            # Get available chat models from OpenAI compatible API
+            try:
+                openai_client = openai.OpenAI(api_key=openai_api_key, base_url=openai_api_base)
+                default_chat_models = [model.id for model in openai_client.models.list()]
+                # Put the available default OpenAI models at the top
+                valid_default_models = [model for model in default_openai_chat_models if model in default_chat_models]
+                other_available_models = [model for model in default_chat_models if model not in valid_default_models]
+                default_chat_models = valid_default_models + other_available_models
+            except Exception:
+                logger.warning(f"⚠️ Failed to fetch {provider} chat models. Fallback to default models. Error: {e}")
+
         # Set up OpenAI's online chat models
         openai_configured, openai_provider = _setup_chat_model_provider(
             ChatModelOptions.ModelType.OPENAI,
-            default_openai_chat_models,
-            default_api_key=os.getenv("OPENAI_API_KEY"),
+            default_chat_models,
+            default_api_key=openai_api_key,
+            api_base_url=openai_api_base,
             vision_enabled=True,
             is_offline=False,
             interactive=interactive,
+            provider_name=provider,
         )
 
         # Setup OpenAI speech to text model
@@ -87,7 +106,7 @@ def initialization(interactive: bool = True):
             ChatModelOptions.ModelType.GOOGLE,
             default_gemini_chat_models,
             default_api_key=os.getenv("GEMINI_API_KEY"),
-            vision_enabled=False,
+            vision_enabled=True,
             is_offline=False,
             interactive=interactive,
             provider_name="Google Gemini",
@@ -98,7 +117,7 @@ def initialization(interactive: bool = True):
             ChatModelOptions.ModelType.ANTHROPIC,
             default_anthropic_chat_models,
             default_api_key=os.getenv("ANTHROPIC_API_KEY"),
-            vision_enabled=False,
+            vision_enabled=True,
             is_offline=False,
             interactive=interactive,
         )
@@ -154,11 +173,14 @@ def initialization(interactive: bool = True):
         default_chat_models: list,
         default_api_key: str,
         interactive: bool,
+        api_base_url: str = None,
         vision_enabled: bool = False,
         is_offline: bool = False,
         provider_name: str = None,
     ) -> Tuple[bool, OpenAIProcessorConversationConfig]:
-        supported_vision_models = ["gpt-4o-mini", "gpt-4o"]
+        supported_vision_models = (
+            default_openai_chat_models + default_anthropic_chat_models + default_gemini_chat_models
+        )
         provider_name = provider_name or model_type.name.capitalize()
         default_use_model = {True: "y", False: "n"}[default_api_key is not None or is_offline]
         use_model_provider = (
@@ -170,14 +192,16 @@ def initialization(interactive: bool = True):
 
         logger.info(f"️💬 Setting up your {provider_name} chat configuration")
 
-        chat_model_provider = None
+        chat_provider = None
         if not is_offline:
             if interactive:
                 user_api_key = input(f"Enter your {provider_name} API key (default: {default_api_key}): ")
                 api_key = user_api_key if user_api_key != "" else default_api_key
             else:
                 api_key = default_api_key
-            chat_model_provider = OpenAIProcessorConversationConfig.objects.create(api_key=api_key, name=provider_name)
+            chat_provider = OpenAIProcessorConversationConfig.objects.create(
+                api_key=api_key, name=provider_name, api_base_url=api_base_url
+            )
 
         if interactive:
             chat_model_names = input(
@@ -199,13 +223,13 @@ def initialization(interactive: bool = True):
                 "max_prompt_size": default_max_tokens,
                 "vision_enabled": vision_enabled,
                 "tokenizer": default_tokenizer,
-                "openai_config": chat_model_provider,
+                "openai_config": chat_provider,
             }
 
             ChatModelOptions.objects.create(**chat_model_options)
 
         logger.info(f"🗣️ {provider_name} chat model configuration complete")
-        return True, chat_model_provider
+        return True, chat_provider
 
     admin_user = KhojUser.objects.filter(is_staff=True).first()
     if admin_user is None:

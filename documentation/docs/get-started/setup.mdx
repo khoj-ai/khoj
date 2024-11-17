@@ -19,7 +19,11 @@ These are the general setup instructions for self-hosted Khoj.
 You can install the Khoj server using either [Docker](?server=docker) or [Pip](?server=pip).
 
 :::info[Offline Model + GPU]
-If you want to use the offline chat model and you have a GPU, you should use Installation Option 2  - local setup via the Python package directly. Our Docker image doesn't currently support running the offline chat model on GPU, making inference times really slow.
+To use the offline chat model with your GPU, we recommend using the Docker setup with Ollama . You can also use the local Khoj setup via the Python package directly.
+:::
+
+:::info[First Run]
+Restart your Khoj server after the first run to ensure all settings are applied correctly.
 :::
 
 <Tabs groupId="server" queryString>
@@ -28,27 +32,28 @@ If you want to use the offline chat model and you have a GPU, you should use Ins
       <TabItem value="macos" label="MacOS">
         <h3>Prerequisites</h3>
         <h4>Docker</h4>
-        (Option 1) Click here to install [Docker Desktop](https://docs.docker.com/desktop/install/mac-install/). Make sure you also install the [Docker Compose](https://docs.docker.com/desktop/install/mac-install/) tool.
+        - *Option 1*: Click here to install [Docker Desktop](https://docs.docker.com/desktop/install/mac-install/). Make sure you also install the [Docker Compose](https://docs.docker.com/desktop/install/mac-install/) tool.
 
-        (Option 2) Use [Homebrew](https://brew.sh/) to install Docker and Docker Compose.
-        ```shell
-        brew install --cask docker
-        brew install docker-compose
-        ```
+        - *Option 2*: Use [Homebrew](https://brew.sh/) to install Docker and Docker Compose.
+          ```shell
+          brew install --cask docker
+          brew install docker-compose
+          ```
         <h3>Setup</h3>
         1. Download the Khoj docker-compose.yml file [from Github](https://github.com/khoj-ai/khoj/blob/master/docker-compose.yml)
-          ```shell
-          mkdir ~/.khoj && cd ~/.khoj
-          wget https://raw.githubusercontent.com/khoj-ai/khoj/master/docker-compose.yml
-          ```
-        2. Configure the environment variables in the docker-compose.yml
-          - Set `KHOJ_ADMIN_PASSWORD`, `KHOJ_DJANGO_SECRET_KEY` (and optionally the `KHOJ_ADMIN_EMAIL`) to something secure. This allows you to customize Khoj later via the admin panel.
-          - Set `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` to your API key if you want to use OpenAI, Anthropic or Gemini chat models respectively.
+           ```shell
+           mkdir ~/.khoj && cd ~/.khoj
+           wget https://raw.githubusercontent.com/khoj-ai/khoj/master/docker-compose.yml
+           ```
+        2. Configure the environment variables in the `docker-compose.yml`
+           - Set `KHOJ_ADMIN_PASSWORD`, `KHOJ_DJANGO_SECRET_KEY` (and optionally the `KHOJ_ADMIN_EMAIL`) to something secure. This allows you to customize Khoj later via the admin panel.
+           - Set `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` to your API key if you want to use OpenAI, Anthropic or Gemini commercial chat models respectively.
+           - Uncomment `OPENAI_API_BASE` to use [Ollama](/advanced/ollama?type=first-run&server=docker#setup) running on your host machine. Or set it to the URL of your OpenAI compatible API like vLLM or [LMStudio](/advanced/lmstudio).
         3. Start Khoj by running the following command in the same directory as your docker-compose.yml file.
-          ```shell
-          cd ~/.khoj
-          docker-compose up
-          ```
+           ```shell
+           cd ~/.khoj
+           docker-compose up
+           ```
       </TabItem>
       <TabItem value="windows" label="Windows">
       <h3>Prerequisites</h3>
@@ -61,20 +66,21 @@ If you want to use the offline chat model and you have a GPU, you should use Ins
 
       <h3>Setup</h3>
       1. Download the Khoj docker-compose.yml file [from Github](https://github.com/khoj-ai/khoj/blob/master/docker-compose.yml)
-        ```shell
-        # Windows users should use their WSL2 terminal to run these commands
-        mkdir ~/.khoj && cd ~/.khoj
-        wget https://raw.githubusercontent.com/khoj-ai/khoj/master/docker-compose.yml
-        ```
-      2. Configure the environment variables in the docker-compose.yml
-        - Set `KHOJ_ADMIN_PASSWORD`, `KHOJ_DJANGO_SECRET_KEY` (and optionally the `KHOJ_ADMIN_EMAIL`) to something secure. This allows you to customize Khoj later via the admin panel.
-        - Set `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` to your API key if you want to use OpenAI, Anthropic or Gemini chat models respectively.
+         ```shell
+         # Windows users should use their WSL2 terminal to run these commands
+         mkdir ~/.khoj && cd ~/.khoj
+         wget https://raw.githubusercontent.com/khoj-ai/khoj/master/docker-compose.yml
+         ```
+      2. Configure the environment variables in the `docker-compose.yml`
+         - Set `KHOJ_ADMIN_PASSWORD`, `KHOJ_DJANGO_SECRET_KEY` (and optionally the `KHOJ_ADMIN_EMAIL`) to something secure. This allows you to customize Khoj later via the admin panel.
+         - Set `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` to your API key if you want to use OpenAI, Anthropic or Gemini commercial chat models respectively.
+         - Uncomment `OPENAI_API_BASE` to use [Ollama](/advanced/ollama) running on your host machine. Or set it to the URL of your OpenAI compatible API like vLLM or [LMStudio](/advanced/lmstudio).
       3. Start Khoj by running the following command in the same directory as your docker-compose.yml file.
-        ```shell
-        # Windows users should use their WSL2 terminal to run these commands
-        cd ~/.khoj
-        docker-compose up
-        ```
+         ```shell
+         # Windows users should use their WSL2 terminal to run these commands
+         cd ~/.khoj
+         docker-compose up
+         ```
       </TabItem>
       <TabItem value="linux" label="Linux">
         <h3>Prerequisites</h3>
@@ -83,18 +89,19 @@ If you want to use the offline chat model and you have a GPU, you should use Ins
 
         <h3>Setup</h3>
         1. Download the Khoj docker-compose.yml file [from Github](https://github.com/khoj-ai/khoj/blob/master/docker-compose.yml)
-          ```shell
-          mkdir ~/.khoj && cd ~/.khoj
-          wget https://raw.githubusercontent.com/khoj-ai/khoj/master/docker-compose.yml
-          ```
-        2. Configure the environment variables in the docker-compose.yml
-          - Set `KHOJ_ADMIN_PASSWORD`, `KHOJ_DJANGO_SECRET_KEY` (and optionally the `KHOJ_ADMIN_EMAIL`) to something secure. This allows you to customize Khoj later via the admin panel.
-          - Set `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` to your API key if you want to use OpenAI, Anthropic or Gemini chat models respectively.
+           ```shell
+           mkdir ~/.khoj && cd ~/.khoj
+           wget https://raw.githubusercontent.com/khoj-ai/khoj/master/docker-compose.yml
+           ```
+        2. Configure the environment variables in the `docker-compose.yml`
+           - Set `KHOJ_ADMIN_PASSWORD`, `KHOJ_DJANGO_SECRET_KEY` (and optionally the `KHOJ_ADMIN_EMAIL`) to something secure. This allows you to customize Khoj later via the admin panel.
+           - Set `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` to your API key if you want to use OpenAI, Anthropic or Gemini commercial chat models respectively.
+           - Uncomment `OPENAI_API_BASE` to use [Ollama](/advanced/ollama) running on your host machine. Or set it to the URL of your OpenAI compatible API like vLLM or [LMStudio](/advanced/lmstudio).
         3. Start Khoj by running the following command in the same directory as your docker-compose.yml file.
-          ```shell
-          cd ~/.khoj
-          docker-compose up
-          ```
+           ```shell
+           cd ~/.khoj
+           docker-compose up
+           ```
       </TabItem>
     </Tabs>
 

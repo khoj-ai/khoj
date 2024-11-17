@@ -37,7 +37,7 @@ ENV PYTHONPATH=/app/src:$PYTHONPATH
 
 # Go to the directory src/interface/web and export the built Next.js assets
 WORKDIR /app/src/interface/web
-RUN bash -c "yarn install --frozen-lockfile --verbose && yarn ciexport && yarn cache clean"
+RUN bash -c "yarn install --frozen-lockfile && yarn ciexport && yarn cache clean"
 WORKDIR /app
 
 # Run the Application

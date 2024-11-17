@@ -1,0 +1,78 @@
+# Ollama
+
+```mdx-code-block
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+```
+
+:::info
+This is only helpful for self-hosted users. If you're using [Khoj Cloud](https://app.khoj.dev), you can use our first-party supported models.
+:::
+
+:::info
+Khoj can directly run local LLMs [available on HuggingFace in GGUF format](https://huggingface.co/models?library=gguf). The integration with Ollama is useful to run Khoj on Docker and have the chat models use your GPU or to try new models via CLI.
+:::
+
+Ollama allows you to run [many popular open-source LLMs](https://ollama.com/library) locally from your terminal.
+For folks comfortable with the terminal, Ollama's terminal based flows can ease setup and management of chat models.
+
+Ollama exposes a local [OpenAI API compatible server](https://github.com/ollama/ollama/blob/main/docs/openai.md#models). This makes it possible to use chat models from Ollama with Khoj.
+
+## Setup
+:::info
+Restart your Khoj server after first run or update to the settings below to ensure all settings are applied correctly.
+:::
+
+<Tabs groupId="type" queryString>
+  <TabItem value="first-run" label="First Run">
+    <Tabs groupId="server" queryString>
+      <TabItem value="docker" label="Docker">
+      1. Setup Ollama: https://ollama.com/
+      2. Download your preferred chat model with Ollama. For example,
+         ```bash
+         ollama pull llama3.1
+         ```
+      3. Uncomment `OPENAI_API_BASE` environment variable in your downloaded Khoj [docker-compose.yml](https://github.com/khoj-ai/khoj/blob/master/docker-compose.yml#:~:text=OPENAI_API_BASE)
+      4. Start Khoj docker for the first time to automatically integrate and load models from the Ollama running on your host machine
+         ```bash
+         # run below command in the directory where you downloaded the Khoj docker-compose.yml
+         docker-compose up
+         ```
+      </TabItem>
+
+      <TabItem value="pip" label="Pip">
+      1. Setup Ollama: https://ollama.com/
+      2. Download your preferred chat model with Ollama. For example,
+         ```bash
+         ollama pull llama3.1
+         ```
+      3. Set `OPENAI_API_BASE` environment variable to `http://localhost:11434/v1` in your shell before starting Khoj for the first time
+         ```bash
+         export OPENAI_API_BASE="http://localhost:11434/v1"
+         khoj --anonymous-mode
+         ```
+      </TabItem>
+   </Tabs>
+  </TabItem>
+  <TabItem value="update" label="Update">
+   1. Setup Ollama: https://ollama.com/
+   2. Download your preferred chat model with Ollama. For example,
+      ```bash
+      ollama pull llama3.1
+      ```
+   3. Create a new [OpenAI Processor Conversation Config](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/add) on your Khoj admin panel
+      - Name: `ollama`
+      - Api Key: `any string`
+      - Api Base Url: `http://localhost:11434/v1/` (default for Ollama)
+   4. Create a new [Chat Model Option](http://localhost:42110/server/admin/database/chatmodeloptions/add) on your Khoj admin panel.
+      - Name: `llama3.1` (replace with the name of your local model)
+      - Model Type: `Openai`
+      - Openai Config: `<the ollama config you created in step 3>`
+      - Max prompt size: `20000` (replace with the max prompt size of your model)
+   5. Go to [your config](http://localhost:42110/settings) and select the model you just created in the chat model dropdown.
+
+   If you want to add additional models running on Ollama, repeat step 4 for each model.
+  </TabItem>
+</Tabs>
+
+That's it! You should now be able to chat with your Ollama model from Khoj.
