@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 from markdownify import markdownify
 
 from khoj.database.adapters import ConversationAdapters
-from khoj.database.models import Agent, KhojUser, WebScraper
+from khoj.database.models import Agent, KhojUser, ServerChatSettings, WebScraper
 from khoj.processor.conversation import prompts
 from khoj.routers.helpers import (
     ChatEvent,
@@ -362,13 +362,31 @@ async def search_with_jina(query: str, location: LocationData) -> Tuple[str, Dic
     encoded_query = urllib.parse.quote(query)
     jina_search_api_url = f"{JINA_SEARCH_API_URL}/{encoded_query}"
     headers = {"Accept": "application/json"}
-    if JINA_API_KEY:
-        headers["Authorization"] = f"Bearer {JINA_API_KEY}"
+
+    # First check for jina scraper configuration in database
+    default_jina_scraper = (
+        await ServerChatSettings.objects.filter()
+        .prefetch_related("web_scraper")
+        .filter(web_scraper__type=WebScraper.WebScraperType.JINA)
+        .afirst()
+    )
+    if default_jina_scraper and default_jina_scraper.web_scraper:
+        jina_scraper = default_jina_scraper.web_scraper
+    else:
+        # Fallback to first configured Jina scraper in DB if no server settings
+        jina_scraper = await WebScraper.objects.filter(type=WebScraper.WebScraperType.JINA).afirst()
+
+    # Get API key from DB scraper config or environment variable
+    api_key = jina_scraper.api_key if jina_scraper and jina_scraper.api_key else JINA_API_KEY
+
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
 
     async with aiohttp.ClientSession() as session:
         async with session.get(jina_search_api_url, headers=headers) as response:
             if response.status != 200:
-                logger.error(await response.text())
+                error_text = await response.text()
+                logger.error(f"Jina search failed: {error_text}")
                 return query, {}
             response_json = await response.json()
             parsed_response = [
