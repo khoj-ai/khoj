@@ -286,10 +286,23 @@ def main():
     logger.info(f"\nOverall Accuracy: {colored_accuracy}")
     logger.info(f"\nAccuracy by Reasoning Type:\n{reasoning_type_accuracy}")
 
-    # Save results
+    # Save summary to file
+    sample_type = f"Sampling Type: {SAMPLE_SIZE} samples." if SAMPLE_SIZE else "Whole dataset."
+    sample_type += " Randomized." if RANDOMIZE else ""
+    summary = (
+        f"Overall Accuracy: {accuracy:.2%}\n\nAccuracy by Reasoning Type:\n{reasoning_type_accuracy}\n\n{sample_type}\n"
+    )
+    summary_file = args.output.replace(".csv", ".txt") if args.output else None
+    summary_file = (
+        summary_file or f"{args.dataset}_evaluation_summary_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt"
+    )
+    with open(summary_file, "w") as f:
+        f.write(summary)
+
+    # Save raw results to file
     output_file = args.output or f"{args.dataset}_evaluation_results_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
     df.to_csv(output_file, index=False)
-    logger.info(f"Results saved to {output_file}")
+    logger.info(f"Results saved to {summary_file}, {output_file}")
 
 
 if __name__ == "__main__":

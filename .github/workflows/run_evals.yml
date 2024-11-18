@@ -45,9 +45,14 @@ jobs:
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
         ports:
           - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v3
@@ -57,7 +62,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.10
+          python-version: '3.10'
 
       - name: Get App Version
         id: hatch
@@ -88,7 +93,9 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SERPER_DEV_API_KEY: ${{ secrets.SERPER_DEV_API_KEY }}
           OLOSTEP_API_KEY: ${{ secrets.OLOSTEP_API_KEY }}
-          POSTGRES_HOST: postgres
+          KHOJ_ADMIN_EMAIL: khoj
+          KHOJ_ADMIN_PASSWORD: khoj
+          POSTGRES_HOST: localhost
           POSTGRES_PORT: 5432
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -119,4 +126,23 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: eval-results-${{ steps.hatch.outputs.version }}-${{ matrix.khoj_mode }}-${{ matrix.dataset }}
-          path: "*_evaluation_results_*.csv"
+          path: |
+            *_evaluation_results_*.csv
+            *_evaluation_summary_*.txt
+
+      - name: Display Results
+        if: always()
+        run: |
+          # Read and display summary
+          echo "## Evaluation Summary of Khoj on ${{ matrix.dataset }} in ${{ matrix.khoj_mode }} mode" >> $GITHUB_STEP_SUMMARY
+          echo "**$(head -n 1 *_evaluation_summary_*.txt)**" >> $GITHUB_STEP_SUMMARY
+          echo "- Khoj Version: ${{ steps.hatch.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Chat Model: Gemini 1.5 Flash 002" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          tail -n +2 *_evaluation_summary_*.txt >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+          # Display in logs too
+          echo "===== EVALUATION RESULTS ====="
+          cat *_evaluation_summary_*.txt

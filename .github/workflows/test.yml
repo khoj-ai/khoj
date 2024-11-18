@@ -5,6 +5,7 @@ on:
     paths:
       - src/khoj/**
       - tests/**
+      - '!tests/evals/**'
       - config/**
       - pyproject.toml
       - .pre-commit-config.yml
@@ -15,6 +16,7 @@ on:
     paths:
       - src/khoj/**
       - tests/**
+      - '!tests/evals/**'
       - config/**
       - pyproject.toml
       - .pre-commit-config.yml
