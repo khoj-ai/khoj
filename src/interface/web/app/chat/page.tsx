@@ -303,7 +303,6 @@ export default function Chat() {
         const currentMessage = messages.find((message) => !message.completed);
         if (!currentMessage) return;
 
-        currentMessage.rawResponse = `I've stopped processing this message. If you'd like to continue, please send another message.`;
         currentMessage.completed = true;
         setMessages([...messages]);
         setQueryToProcess("");
