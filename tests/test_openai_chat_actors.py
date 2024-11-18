@@ -1,4 +1,3 @@
-import os
 from datetime import datetime
 
 import freezegun
@@ -8,7 +7,7 @@ from freezegun import freeze_time
 from khoj.processor.conversation.openai.gpt import converse, extract_questions
 from khoj.processor.conversation.utils import message_to_log
 from khoj.routers.helpers import (
-    aget_relevant_tools_to_execute,
+    aget_data_sources_and_output_format,
     generate_online_subqueries,
     infer_webpage_urls,
     schedule_query,
@@ -529,19 +528,36 @@ async def test_websearch_khoj_website_for_info_about_khoj(chat_client, default_u
 @pytest.mark.parametrize(
     "user_query, expected_conversation_commands",
     [
-        ("Where did I learn to swim?", [ConversationCommand.Notes]),
-        ("Where is the nearest hospital?", [ConversationCommand.Online]),
-        ("Summarize the wikipedia page on the history of the internet", [ConversationCommand.Webpage]),
+        (
+            "Where did I learn to swim?",
+            {"sources": [ConversationCommand.Notes], "output": ConversationCommand.Text},
+        ),
+        (
+            "Where is the nearest hospital?",
+            {"sources": [ConversationCommand.Online], "output": ConversationCommand.Text},
+        ),
+        (
+            "Summarize the wikipedia page on the history of the internet",
+            {"sources": [ConversationCommand.Webpage], "output": ConversationCommand.Text},
+        ),
+        (
+            "Make a painting incorporating my past diving experiences",
+            {"sources": [ConversationCommand.Notes], "output": ConversationCommand.Image},
+        ),
+        (
+            "Create a chart of the weather over the next 7 days in Timbuktu",
+            {"sources": [ConversationCommand.Online, ConversationCommand.Code], "output": ConversationCommand.Text},
+        ),
     ],
 )
 async def test_select_data_sources_actor_chooses_to_search_notes(
-    chat_client, user_query, expected_conversation_commands
+    chat_client, user_query, expected_conversation_commands, default_user2
 ):
     # Act
-    conversation_commands = await aget_relevant_tools_to_execute(user_query, {}, False, False)
+    selected_conversation_commands = await aget_data_sources_and_output_format(user_query, {}, False, default_user2)
 
     # Assert
-    assert set(expected_conversation_commands) == set(conversation_commands)
+    assert expected_conversation_commands == selected_conversation_commands
 
 
 # ----------------------------------------------------------------------------------------------------

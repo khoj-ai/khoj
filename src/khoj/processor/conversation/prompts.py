@@ -630,37 +630,36 @@ pick_relevant_tools = PromptTemplate.from_template(
     """
 You are Khoj, an extremely smart and helpful search assistant.
 {personality_context}
-- You have access to a variety of data sources to help you answer the user's question
-- You can use the data sources listed below to collect more relevant information
-- You can select certain types of output to respond to the user's question. Select just one output type to answer the user's question
-- You can use any combination of these data sources and output types to answer the user's question
-- You can only select one output type to answer the user's question
+- You have access to a variety of data sources to help you answer the user's question.
+- You can use any subset of data sources listed below to collect more relevant information.
+- You can select the most appropriate output format from the options listed below to respond to the user's question.
+- Both the data sources and output format should be selected based on the user's query and relevant context provided in the chat history.
 
-Which of the tools listed below you would use to answer the user's question? You **only** have access to the following:
+Which of the data sources, output format listed below would you use to answer the user's question? You **only** have access to the following:
 
-Inputs:
-{tools}
+Data Sources:
+{sources}
 
-Outputs:
+Output Formats:
 {outputs}
 
 Here are some examples:
 
 Example:
 Chat History:
-User: I'm thinking of moving to a new city. I'm trying to decide between New York and San Francisco.
+User: I'm thinking of moving to a new city. I'm trying to decide between New York and San Francisco
 AI: Moving to a new city can be challenging. Both New York and San Francisco are great cities to live in. New York is known for its diverse culture and San Francisco is known for its tech scene.
 
-Q: What is the population of each of those cities?
-Khoj: {{"source": ["online"], "output": ["text"]}}
+Q: Chart the population growth of each of those cities in the last decade
+Khoj: {{"source": ["online", "code"], "output": "text"}}
 
 Example:
 Chat History:
-User: I'm thinking of my next vacation idea. Ideally, I want to see something new and exciting.
+User: I'm thinking of my next vacation idea. Ideally, I want to see something new and exciting
 AI: Excellent! Taking a vacation is a great way to relax and recharge.
 
 Q: Where did Grandma grow up?
-Khoj: {{"source": ["notes"], "output": ["text"]}}
+Khoj: {{"source": ["notes"], "output": "text"}}
 
 Example:
 Chat History:
@@ -668,7 +667,7 @@ User: Good morning
 AI: Good morning! How can I help you today?
 
 Q: How can I share my files with Khoj?
-Khoj: {{"source": ["default", "online"], "output": ["text"]}}
+Khoj: {{"source": ["default", "online"], "output": "text"}}
 
 Example:
 Chat History:
@@ -676,17 +675,18 @@ User: What is the first element in the periodic table?
 AI: The first element in the periodic table is Hydrogen.
 
 Q: Summarize this article https://en.wikipedia.org/wiki/Hydrogen
-Khoj: {{"source": ["webpage"], "output": ["text"]}}
+Khoj: {{"source": ["webpage"], "output": "text"}}
 
 Example:
 Chat History:
-User: I want to start a new hobby. I'm thinking of learning to play the guitar.
-AI: Learning to play the guitar is a great hobby. It can be a lot of fun and a great way to express yourself.
+User: I'm learning to play the guitar, so I can make a band with my friends
+AI: Learning to play the guitar is a great hobby. It can be a fun way to socialize and express yourself.
 
-Q: Draw a painting of a guitar.
-Khoj: {{"source": ["general"], "output": ["image"]}}
+Q: Create a painting of my recent jamming sessions
+Khoj: {{"source": ["notes"], "output": "image"}}
 
-Now it's your turn to pick the sources and output to answer the user's query. Respond with a JSON object, including both `source` and `output`. The values should be a list of strings. Do not say anything else.
+Now it's your turn to pick the appropriate data sources and output format to answer the user's query. Respond with a JSON object, including both `source` and `output` in the following format. Do not say anything else.
+{{"source": list[str], "output': str}}
 
 Chat History:
 {chat_history}

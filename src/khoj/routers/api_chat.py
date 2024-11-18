@@ -46,7 +46,7 @@ from khoj.routers.helpers import (
     FeedbackData,
     acreate_title_from_history,
     agenerate_chat_response,
-    aget_relevant_tools_to_execute,
+    aget_data_sources_and_output_format,
     construct_automation_created_message,
     create_automation,
     gather_raw_query_files,
@@ -752,7 +752,7 @@ async def chat(
         attached_file_context = gather_raw_query_files(query_files)
 
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
-            conversation_commands = await aget_relevant_tools_to_execute(
+            chosen_io = await aget_data_sources_and_output_format(
                 q,
                 meta_log,
                 is_automated_task,
@@ -762,6 +762,7 @@ async def chat(
                 query_files=attached_file_context,
                 tracer=tracer,
             )
+            conversation_commands = chosen_io.get("sources") + [chosen_io.get("output")]
 
             # If we're doing research, we don't want to do anything else
             if ConversationCommand.Research in conversation_commands:

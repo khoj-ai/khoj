@@ -336,7 +336,7 @@ async def acheck_if_safe_prompt(system_prompt: str, user: KhojUser = None, lax: 
     return is_safe, reason
 
 
-async def aget_relevant_tools_to_execute(
+async def aget_data_sources_and_output_format(
     query: str,
     conversation_history: dict,
     is_task: bool,
@@ -345,33 +345,33 @@ async def aget_relevant_tools_to_execute(
     agent: Agent = None,
     query_files: str = None,
     tracer: dict = {},
-):
+) -> Dict[str, Any]:
     """
-    Given a query, determine which of the available tools the agent should use in order to answer appropriately.
+    Given a query, determine which of the available data sources and output modes the agent should use to answer appropriately.
     """
 
-    tool_options = dict()
-    tool_options_str = ""
+    source_options = dict()
+    source_options_str = ""
 
-    agent_tools = agent.input_tools if agent else []
+    agent_sources = agent.input_tools if agent else []
 
-    for tool, description in tool_descriptions_for_llm.items():
-        tool_options[tool.value] = description
-        if len(agent_tools) == 0 or tool.value in agent_tools:
-            tool_options_str += f'- "{tool.value}": "{description}"\n'
+    for source, description in tool_descriptions_for_llm.items():
+        source_options[source.value] = description
+        if len(agent_sources) == 0 or source.value in agent_sources:
+            source_options_str += f'- "{source.value}": "{description}"\n'
 
-    mode_options = dict()
-    mode_options_str = ""
+    output_options = dict()
+    output_options_str = ""
 
-    output_modes = agent.output_modes if agent else []
+    agent_outputs = agent.output_modes if agent else []
 
-    for mode, description in mode_descriptions_for_llm.items():
+    for output, description in mode_descriptions_for_llm.items():
         # Do not allow tasks to schedule another task
-        if is_task and mode == ConversationCommand.Automation:
+        if is_task and output == ConversationCommand.Automation:
             continue
-        mode_options[mode.value] = description
-        if len(output_modes) == 0 or mode.value in output_modes:
-            mode_options_str += f'- "{mode.value}": "{description}"\n'
+        output_options[output.value] = description
+        if len(agent_outputs) == 0 or output.value in agent_outputs:
+            output_options_str += f'- "{output.value}": "{description}"\n'
 
     chat_history = construct_chat_history(conversation_history)
 
@@ -384,8 +384,8 @@ async def aget_relevant_tools_to_execute(
 
     relevant_tools_prompt = prompts.pick_relevant_tools.format(
         query=query,
-        tools=tool_options_str,
-        outputs=mode_options_str,
+        sources=source_options_str,
+        outputs=output_options_str,
         chat_history=chat_history,
         personality_context=personality_context,
     )
@@ -403,43 +403,42 @@ async def aget_relevant_tools_to_execute(
         response = clean_json(response)
         response = json.loads(response)
 
-        input_tools = [q.strip() for q in response.get("source", []) if q.strip()]
-        output_modes = [q.strip() for q in response.get("output", ["text"]) if q.strip()]  # Default to text output
+        selected_sources = [q.strip() for q in response.get("source", []) if q.strip()]
+        selected_output = response.get("output", "text").strip()  # Default to text output
 
-        if not isinstance(input_tools, list) or not input_tools or len(input_tools) == 0:
+        if not isinstance(selected_sources, list) or not selected_sources or len(selected_sources) == 0:
             raise ValueError(
-                f"Invalid response for determining relevant tools: {input_tools}. Raw Response: {response}"
+                f"Invalid response for determining relevant tools: {selected_sources}. Raw Response: {response}"
             )
 
-        final_response = [] if not is_task else [ConversationCommand.AutomatedTask]
-        for llm_suggested_tool in input_tools:
+        result: Dict = {"sources": [], "output": None} if not is_task else {"output": ConversationCommand.AutomatedTask}
+        for selected_source in selected_sources:
             # Add a double check to verify it's in the agent list, because the LLM sometimes gets confused by the tool options.
-            if llm_suggested_tool in tool_options.keys() and (
-                len(agent_tools) == 0 or llm_suggested_tool in agent_tools
+            if (
+                selected_source in source_options.keys()
+                and isinstance(result["sources"], list)
+                and (len(agent_sources) == 0 or selected_source in agent_sources)
             ):
                 # Check whether the tool exists as a valid ConversationCommand
-                final_response.append(ConversationCommand(llm_suggested_tool))
+                result["sources"].append(ConversationCommand(selected_source))
 
-        for llm_suggested_output in output_modes:
-            # Add a double check to verify it's in the agent list, because the LLM sometimes gets confused by the tool options.
-            if llm_suggested_output in mode_options.keys() and (
-                len(output_modes) == 0 or llm_suggested_output in output_modes
-            ):
-                # Check whether the tool exists as a valid ConversationCommand
-                final_response.append(ConversationCommand(llm_suggested_output))
+        # Add a double check to verify it's in the agent list, because the LLM sometimes gets confused by the tool options.
+        if selected_output in output_options.keys() and (len(agent_outputs) == 0 or selected_output in agent_outputs):
+            # Check whether the tool exists as a valid ConversationCommand
+            result["output"] = ConversationCommand(selected_output)
 
-        if is_none_or_empty(final_response):
-            if len(agent_tools) == 0:
-                final_response = [ConversationCommand.Default, ConversationCommand.Text]
+        if is_none_or_empty(result):
+            if len(agent_sources) == 0:
+                result = {"sources": [ConversationCommand.Default], "output": ConversationCommand.Text}
             else:
-                final_response = [ConversationCommand.General, ConversationCommand.Text]
+                result = {"sources": [ConversationCommand.General], "output": ConversationCommand.Text}
     except Exception as e:
         logger.error(f"Invalid response for determining relevant tools: {response}. Error: {e}", exc_info=True)
-        if len(agent_tools) == 0:
-            final_response = [ConversationCommand.Default, ConversationCommand.Text]
-        else:
-            final_response = agent_tools
-    return final_response
+        sources = agent_sources if len(agent_sources) > 0 else [ConversationCommand.Default]
+        output = agent_outputs[0] if len(agent_outputs) > 0 else ConversationCommand.Text
+        result = {"sources": sources, "output": output}
+
+    return result
 
 
 async def infer_webpage_urls(
