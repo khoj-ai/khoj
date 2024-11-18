@@ -1,0 +1,122 @@
+name: Run Khoj Evals
+
+on:
+  # Run on every releases
+  release:
+    types: [published]
+  # Allow manual triggers from GitHub UI
+  workflow_dispatch:
+    inputs:
+      khoj_mode:
+        description: 'Khoj Mode (general/default/research)'
+        required: true
+        default: 'default'
+        type: choice
+        options:
+          - general
+          - default
+          - research
+      dataset:
+        description: 'Dataset to evaluate (frames/simpleqa)'
+        required: true
+        default: 'frames'
+        type: choice
+        options:
+          - frames
+          - simpleqa
+      sample_size:
+        description: 'Number of samples to evaluate'
+        required: false
+        default: 200
+        type: number
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Use input from manual trigger if available, else run all combinations
+        khoj_mode: ${{ github.event_name == 'workflow_dispatch' && fromJSON(format('["{0}"]', inputs.khoj_mode)) || fromJSON('["general", "default", "research"]') }}
+        dataset: ${{ github.event_name == 'workflow_dispatch' && fromJSON(format('["{0}"]', inputs.dataset)) || fromJSON('["frames", "simpleqa"]') }}
+
+    services:
+      postgres:
+        image: ankane/pgvector
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+
+      - name: Get App Version
+        id: hatch
+        run: echo "version=$(pipx run hatch version)" >> $GITHUB_OUTPUT
+
+      - name: ⏬️ Install Dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt update && apt install -y git python3-pip libegl1 sqlite3 libsqlite3-dev libsqlite3-0 ffmpeg libsm6 libxext6
+          apt install -y postgresql postgresql-client && apt install -y postgresql-server-dev-14
+          python -m ensurepip --upgrade
+          python -m pip install --upgrade pip
+
+      - name: ⬇️ Install Application
+        run: |
+          sed -i 's/dynamic = \["version"\]/version = "${{ steps.hatch.outputs.version }}"/' pyproject.toml
+          pip install --upgrade .[dev]
+
+      - name: 📝 Run Evals
+        env:
+          KHOJ_MODE: ${{ matrix.khoj_mode }}
+          SAMPLE_SIZE: ${{ inputs.sample_size }}
+          BATCH_SIZE: "20"
+          RANDOMIZE: "True"
+          KHOJ_URL: "http://localhost:42110"
+          KHOJ_LLM_SEED: "42"
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SERPER_DEV_API_KEY: ${{ secrets.SERPER_DEV_API_KEY }}
+          OLOSTEP_API_KEY: ${{ secrets.OLOSTEP_API_KEY }}
+          POSTGRES_HOST: postgres
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+          KHOJ_DEBUG: "False"             # To disable prompt tracer
+          KHOJ_TELEMETRY_DISABLE: "True"  # To disable telemetry for tests
+        run: |
+          # Start Khoj server in background
+          khoj --anonymous-mode --non-interactive &
+
+          # Wait for server to be ready
+          timeout=120
+          while ! curl -s http://localhost:42110/api/health > /dev/null; do
+            if [ $timeout -le 0 ]; then
+              echo "Timed out waiting for Khoj server"
+              exit 1
+            fi
+            echo "Waiting for Khoj server..."
+            sleep 2
+            timeout=$((timeout-2))
+          done
+
+          # Run evals
+          python tests/evals/eval.py -d ${{ matrix.dataset }}
+
+      - name: Upload Results
+        if: always()  # Upload results even if tests fail
+        uses: actions/upload-artifact@v3
+        with:
+          name: eval-results-${{ steps.hatch.outputs.version }}-${{ matrix.khoj_mode }}-${{ matrix.dataset }}
+          path: "*_evaluation_results_*.csv"

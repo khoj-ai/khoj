@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 KHOJ_URL = os.getenv("KHOJ_URL", "http://localhost:42110")
 KHOJ_CHAT_API_URL = f"{KHOJ_URL}/api/chat"
 KHOJ_API_KEY = os.getenv("KHOJ_API_KEY")
-KHOJ_MODE = os.getenv("KHOJ_MODE")  # E.g research, general, notes etc.
+KHOJ_MODE = os.getenv("KHOJ_MODE", "default")  # E.g research, general, notes etc.
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_EVAL_MODEL = os.getenv("GEMINI_EVAL_MODEL", "gemini-1.5-pro-002")
@@ -32,8 +32,10 @@ GEMINI_API_URL = (
 
 SAMPLE_SIZE = os.getenv("SAMPLE_SIZE")  # Number of examples to evaluate
 RANDOMIZE = os.getenv("RANDOMIZE", "false").lower() == "true"  # Randomize examples
-BATCH_SIZE = int(os.getenv("BATCH_SIZE", 10))  # Number of examples to evaluate in parallel
-SLEEP_SECONDS = 1  # Delay between API calls to avoid rate limiting
+BATCH_SIZE = int(
+    os.getenv("BATCH_SIZE", int(SAMPLE_SIZE) / 10 if SAMPLE_SIZE else 10)
+)  # Examples to evaluate in each batch
+SLEEP_SECONDS = 3 if KHOJ_MODE == "general" else 1  # Sleep between API calls to avoid rate limiting
 
 
 def load_frames_dataset():
