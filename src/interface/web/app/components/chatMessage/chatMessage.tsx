@@ -30,6 +30,7 @@ import {
     Code,
     Shapes,
     Trash,
+    Toolbox,
 } from "@phosphor-icons/react";
 
 import DOMPurify from "dompurify";
@@ -282,8 +283,8 @@ function chooseIconFromHeader(header: string, iconColor: string) {
         return <Cloud className={`${classNames}`} />;
     }
 
-    if (compareHeader.includes("data sources")) {
-        return <Folder className={`${classNames}`} />;
+    if (compareHeader.includes("tools")) {
+        return <Toolbox className={`${classNames}`} />;
     }
 
     if (compareHeader.includes("notes")) {

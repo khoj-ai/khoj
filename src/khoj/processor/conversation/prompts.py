@@ -565,59 +565,6 @@ Here's some additional context about you:
 """
 )
 
-pick_relevant_output_mode = PromptTemplate.from_template(
-    """
-You are Khoj, an excellent analyst for selecting the correct way to respond to a user's query.
-{personality_context}
-You have access to a limited set of modes for your response.
-You can only use one of these modes.
-
-{modes}
-
-Here are some examples:
-
-Example:
-Chat History:
-User: I just visited Jerusalem for the first time. Pull up my notes from the trip.
-AI: You mention visiting Masjid Al-Aqsa and the Western Wall. You also mention trying the local cuisine and visiting the Dead Sea.
-
-Q: Draw a picture of my trip to Jerusalem.
-Khoj: {{"output": "image"}}
-
-Example:
-Chat History:
-User: I'm having trouble deciding which laptop to get. I want something with at least 16 GB of RAM and a 1 TB SSD.
-AI: I can help with that. I see online that there is a new model of the Dell XPS 15 that meets your requirements.
-
-Q: What are the specs of the new Dell XPS 15?
-Khoj: {{"output": "text"}}
-
-Example:
-Chat History:
-User: Where did I go on my last vacation?
-AI: You went to Jordan and visited Petra, the Dead Sea, and Wadi Rum.
-
-Q: Remind me who did I go with on that trip?
-Khoj: {{"output": "text"}}
-
-Example:
-Chat History:
-User: How's the weather outside? Current Location: Bali, Indonesia
-AI: It's currently 28°C and partly cloudy in Bali.
-
-Q: Share a painting using the weather for Bali every morning.
-Khoj: {{"output": "automation"}}
-
-Now it's your turn to pick the mode you would like to use to answer the user's question. Provide your response as a JSON. Do not say anything else.
-
-Chat History:
-{chat_history}
-
-Q: {query}
-Khoj:
-""".strip()
-)
-
 plan_function_execution = PromptTemplate.from_template(
     """
 You are Khoj, a smart, creative and methodical researcher. Use the provided tool AIs to investigate information to answer query.
@@ -679,17 +626,22 @@ previous_iteration = PromptTemplate.from_template(
 """
 )
 
-pick_relevant_information_collection_tools = PromptTemplate.from_template(
+pick_relevant_tools = PromptTemplate.from_template(
     """
 You are Khoj, an extremely smart and helpful search assistant.
 {personality_context}
 - You have access to a variety of data sources to help you answer the user's question
 - You can use the data sources listed below to collect more relevant information
-- You can use any combination of these data sources to answer the user's question
+- You can select certain types of output to respond to the user's question. Select just one output type to answer the user's question
+- You can use any combination of these data sources and output types to answer the user's question
 
-Which of the data sources listed below you would use to answer the user's question? You **only** have access to the following data sources:
+Which of the tools listed below you would use to answer the user's question? You **only** have access to the following:
 
+Inputs:
 {tools}
+
+Outputs:
+{outputs}
 
 Here are some examples:
 
@@ -699,7 +651,7 @@ User: I'm thinking of moving to a new city. I'm trying to decide between New Yor
 AI: Moving to a new city can be challenging. Both New York and San Francisco are great cities to live in. New York is known for its diverse culture and San Francisco is known for its tech scene.
 
 Q: What is the population of each of those cities?
-Khoj: {{"source": ["online"]}}
+Khoj: {{"source": ["online"], "output": ["text"]}}
 
 Example:
 Chat History:
@@ -707,14 +659,7 @@ User: I'm thinking of my next vacation idea. Ideally, I want to see something ne
 AI: Excellent! Taking a vacation is a great way to relax and recharge.
 
 Q: Where did Grandma grow up?
-Khoj: {{"source": ["notes"]}}
-
-Example:
-Chat History:
-
-
-Q: What can you do for me?
-Khoj: {{"source": ["notes", "online"]}}
+Khoj: {{"source": ["notes"], "output": ["text"]}}
 
 Example:
 Chat History:
@@ -722,7 +667,7 @@ User: Good morning
 AI: Good morning! How can I help you today?
 
 Q: How can I share my files with Khoj?
-Khoj: {{"source": ["default", "online"]}}
+Khoj: {{"source": ["default", "online"], "output": ["text"]}}
 
 Example:
 Chat History:
@@ -730,15 +675,15 @@ User: What is the first element in the periodic table?
 AI: The first element in the periodic table is Hydrogen.
 
 Q: Summarize this article https://en.wikipedia.org/wiki/Hydrogen
-Khoj: {{"source": ["webpage"]}}
+Khoj: {{"source": ["webpage"], "output": ["text"]}}
 
 Example:
 Chat History:
 User: I want to start a new hobby. I'm thinking of learning to play the guitar.
 AI: Learning to play the guitar is a great hobby. It can be a lot of fun and a great way to express yourself.
 
-Q: What is the first element of the periodic table?
-Khoj: {{"source": ["general"]}}
+Q: Draw a painting of a guitar.
+Khoj: {{"source": ["general"], "output": ["image"]}}
 
 Now it's your turn to pick the data sources you would like to use to answer the user's question. Provide the data sources as a list of strings in a JSON object. Do not say anything else.
 

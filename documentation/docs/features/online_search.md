@@ -14,7 +14,7 @@ Try it out yourself! https://app.khoj.dev
 
 ## Self-Hosting
 
-Online search works out of the box even when self-hosting. Khoj uses [JinaAI's reader API](https://jina.ai/reader/) to search online and read webpages by default. No API key setup is necessary.
+Online search can work even with self-hosting! Khoj uses [JinaAI's reader API](https://jina.ai/reader/) to search online and read webpages by default. You can get a free API key via https://jina.ai/reader. Set the `JINA_API_KEY` environment variable to your Jina AI reader API key to enable online search.
 
 To improve online search, set the `SERPER_DEV_API_KEY` environment variable to your [Serper.dev](https://serper.dev/) API key. These search results include additional context like answer box, knowledge graph etc.
 

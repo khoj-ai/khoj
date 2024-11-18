@@ -336,7 +336,7 @@ async def acheck_if_safe_prompt(system_prompt: str, user: KhojUser = None, lax: 
     return is_safe, reason
 
 
-async def aget_relevant_information_sources(
+async def aget_relevant_tools_to_execute(
     query: str,
     conversation_history: dict,
     is_task: bool,
@@ -360,75 +360,6 @@ async def aget_relevant_information_sources(
         if len(agent_tools) == 0 or tool.value in agent_tools:
             tool_options_str += f'- "{tool.value}": "{description}"\n'
 
-    chat_history = construct_chat_history(conversation_history)
-
-    if query_images:
-        query = f"[placeholder for {len(query_images)} user attached images]\n{query}"
-
-    personality_context = (
-        prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
-    )
-
-    relevant_tools_prompt = prompts.pick_relevant_information_collection_tools.format(
-        query=query,
-        tools=tool_options_str,
-        chat_history=chat_history,
-        personality_context=personality_context,
-    )
-
-    with timer("Chat actor: Infer information sources to refer", logger):
-        response = await send_message_to_model_wrapper(
-            relevant_tools_prompt,
-            response_type="json_object",
-            user=user,
-            query_files=query_files,
-            tracer=tracer,
-        )
-
-    try:
-        response = clean_json(response)
-        response = json.loads(response)
-        response = [q.strip() for q in response["source"] if q.strip()]
-        if not isinstance(response, list) or not response or len(response) == 0:
-            logger.error(f"Invalid response for determining relevant tools: {response}")
-            return tool_options
-
-        final_response = [] if not is_task else [ConversationCommand.AutomatedTask]
-        for llm_suggested_tool in response:
-            # Add a double check to verify it's in the agent list, because the LLM sometimes gets confused by the tool options.
-            if llm_suggested_tool in tool_options.keys() and (
-                len(agent_tools) == 0 or llm_suggested_tool in agent_tools
-            ):
-                # Check whether the tool exists as a valid ConversationCommand
-                final_response.append(ConversationCommand(llm_suggested_tool))
-
-        if is_none_or_empty(final_response):
-            if len(agent_tools) == 0:
-                final_response = [ConversationCommand.Default]
-            else:
-                final_response = [ConversationCommand.General]
-    except Exception:
-        logger.error(f"Invalid response for determining relevant tools: {response}")
-        if len(agent_tools) == 0:
-            final_response = [ConversationCommand.Default]
-        else:
-            final_response = agent_tools
-    return final_response
-
-
-async def aget_relevant_output_modes(
-    query: str,
-    conversation_history: dict,
-    is_task: bool = False,
-    user: KhojUser = None,
-    query_images: List[str] = None,
-    agent: Agent = None,
-    tracer: dict = {},
-):
-    """
-    Given a query, determine which of the available tools the agent should use in order to answer appropriately.
-    """
-
     mode_options = dict()
     mode_options_str = ""
 
@@ -451,37 +382,65 @@ async def aget_relevant_output_modes(
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
     )
 
-    relevant_mode_prompt = prompts.pick_relevant_output_mode.format(
+    relevant_tools_prompt = prompts.pick_relevant_tools.format(
         query=query,
-        modes=mode_options_str,
+        tools=tool_options_str,
+        outputs=mode_options_str,
         chat_history=chat_history,
         personality_context=personality_context,
     )
 
-    with timer("Chat actor: Infer output mode for chat response", logger):
+    with timer("Chat actor: Infer information sources to refer", logger):
         response = await send_message_to_model_wrapper(
-            relevant_mode_prompt, response_type="json_object", user=user, tracer=tracer
+            relevant_tools_prompt,
+            response_type="json_object",
+            user=user,
+            query_files=query_files,
+            tracer=tracer,
         )
 
     try:
         response = clean_json(response)
         response = json.loads(response)
+        input_tools = [q.strip() for q in response["source"] if q.strip()]
+        if not isinstance(input_tools, list) or not input_tools or len(input_tools) == 0:
+            logger.error(f"Invalid response for determining relevant tools: {input_tools}")
+            return tool_options
 
-        if is_none_or_empty(response):
-            return ConversationCommand.Text
+        output_modes = [q.strip() for q in response["output"] if q.strip()]
+        if not isinstance(output_modes, list) or not output_modes or len(output_modes) == 0:
+            logger.error(f"Invalid response for determining relevant output modes: {output_modes}")
+            return mode_options
 
-        output_mode = response["output"]
+        final_response = [] if not is_task else [ConversationCommand.AutomatedTask]
+        for llm_suggested_tool in input_tools:
+            # Add a double check to verify it's in the agent list, because the LLM sometimes gets confused by the tool options.
+            if llm_suggested_tool in tool_options.keys() and (
+                len(agent_tools) == 0 or llm_suggested_tool in agent_tools
+            ):
+                # Check whether the tool exists as a valid ConversationCommand
+                final_response.append(ConversationCommand(llm_suggested_tool))
 
-        # Add a double check to verify it's in the agent list, because the LLM sometimes gets confused by the tool options.
-        if output_mode in mode_options.keys() and (len(output_modes) == 0 or output_mode in output_modes):
-            # Check whether the tool exists as a valid ConversationCommand
-            return ConversationCommand(output_mode)
+        for llm_suggested_output in output_modes:
+            # Add a double check to verify it's in the agent list, because the LLM sometimes gets confused by the tool options.
+            if llm_suggested_output in mode_options.keys() and (
+                len(output_modes) == 0 or llm_suggested_output in output_modes
+            ):
+                # Check whether the tool exists as a valid ConversationCommand
+                final_response.append(ConversationCommand(llm_suggested_output))
 
-        logger.error(f"Invalid output mode selected: {output_mode}. Defaulting to text.")
-        return ConversationCommand.Text
+        if is_none_or_empty(final_response):
+            if len(agent_tools) == 0:
+                final_response = [ConversationCommand.Default, ConversationCommand.Text]
+            else:
+                final_response = [ConversationCommand.General, ConversationCommand.Text]
     except Exception:
-        logger.error(f"Invalid response for determining output mode: {response}")
-        return ConversationCommand.Text
+        logger.error(f"Invalid response for determining relevant tools: {response}")
+        if len(agent_tools) == 0:
+            final_response = [ConversationCommand.Default, ConversationCommand.Text]
+        else:
+            final_response = agent_tools
+    return final_response
 
 
 async def infer_webpage_urls(

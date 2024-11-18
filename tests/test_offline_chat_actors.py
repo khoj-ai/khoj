@@ -18,7 +18,6 @@ from khoj.processor.conversation.offline.chat_model import (
 )
 from khoj.processor.conversation.offline.utils import download_model
 from khoj.processor.conversation.utils import message_to_log
-from khoj.routers.helpers import aget_relevant_output_modes
 from khoj.utils.constants import default_offline_chat_models
 
 
@@ -547,34 +546,6 @@ def test_filter_questions():
     filtered_questions = filter_questions(test_questions)
     assert len(filtered_questions) == 1
     assert filtered_questions[0] == "Who is on the basketball team?"
-
-
-# ----------------------------------------------------------------------------------------------------
-@pytest.mark.anyio
-@pytest.mark.django_db(transaction=True)
-async def test_use_text_response_mode(client_offline_chat):
-    # Arrange
-    user_query = "What's the latest in the Israel/Palestine conflict?"
-
-    # Act
-    mode = await aget_relevant_output_modes(user_query, {})
-
-    # Assert
-    assert mode.value == "text"
-
-
-# ----------------------------------------------------------------------------------------------------
-@pytest.mark.anyio
-@pytest.mark.django_db(transaction=True)
-async def test_use_image_response_mode(client_offline_chat):
-    # Arrange
-    user_query = "Paint a picture of the scenery in Timbuktu in the winter"
-
-    # Act
-    mode = await aget_relevant_output_modes(user_query, {})
-
-    # Assert
-    assert mode.value == "image"
 
 
 # Helpers
