@@ -613,7 +613,7 @@ async def post_automation(
         )
 
     if not subject:
-        subject = await acreate_title_from_query(q)
+        subject = await acreate_title_from_query(q, user)
 
     title = f"Automation: {subject}"
 
