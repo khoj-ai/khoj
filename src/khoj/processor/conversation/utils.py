@@ -740,6 +740,20 @@ Metadata
 
 def messages_to_print(messages: list[ChatMessage], max_length: int = 70) -> str:
     """
-    Format, truncate messages to print
+    Format and truncate messages to print, ensuring JSON serializable content
     """
-    return "\n".join([f"{json.dumps(message.content)[:max_length]}..." for message in messages])
+
+    def safe_serialize(content: Any) -> str:
+        try:
+            # Try JSON serialization
+            json.dumps(content)
+            return content
+        except (TypeError, json.JSONDecodeError):
+            # Handle non-serializable types
+            if hasattr(content, "format") and content.format == "WEBP":
+                return "[WebP Image]"
+            elif hasattr(content, "__dict__"):
+                return str(content.__dict__)
+            return str(content)
+
+    return "\n".join([f"{json.dumps(safe_serialize(message.content))[:max_length]}..." for message in messages])
