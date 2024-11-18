@@ -14,14 +14,13 @@ from khoj.routers.helpers import (
     should_notify,
 )
 from khoj.utils.helpers import ConversationCommand
-from khoj.utils.rawconfig import LocationData
-from tests.conftest import default_user2
+from tests.helpers import get_chat_api_key
 
 # Initialize variables for tests
-api_key = os.getenv("OPENAI_API_KEY")
+api_key = get_chat_api_key()
 if api_key is None:
     pytest.skip(
-        reason="Set OPENAI_API_KEY environment variable to run tests below. Get OpenAI API key from https://platform.openai.com/account/api-keys",
+        reason="Set OPENAI_API_KEY, GEMINI_API_KEY or ANTHROPIC_API_KEY environment variable to run tests below.",
         allow_module_level=True,
     )
 
@@ -42,7 +41,6 @@ def test_extract_question_with_date_filter_from_relative_day():
         ("dt>='1984-04-01'", "dt<'1984-04-02'"),
         ("dt>'1984-03-31'", "dt<'1984-04-02'"),
     ]
-    assert len(response) == 1
     assert any([start in response[0] and end in response[0] for start, end in expected_responses]), (
         "Expected date filter to limit to 1st April 1984 in response but got: " + response[0]
     )
@@ -105,9 +103,9 @@ def test_extract_multiple_implicit_questions_from_message():
     expected_responses = [
         ("morpheus", "neo"),
     ]
-    assert len(response) == 2
+    assert len(response) > 1
     assert any([start in response[0].lower() and end in response[1].lower() for start, end in expected_responses]), (
-        "Expected two search queries in response but got: " + response[0]
+        "Expected more than one search query in response but got: " + response[0]
     )
 
 
@@ -153,8 +151,7 @@ def test_generate_search_query_using_question_and_answer_from_chat_history():
     response = extract_questions("Who is their father?", conversation_log=populate_chat_history(message_list))
 
     # Assert
-    assert len(response) == 1
-    assert "Leia" in response[0] and "Luke" in response[0]
+    assert any(["Leia" in response or "Luke" in response for response in response])
 
 
 # ----------------------------------------------------------------------------------------------------

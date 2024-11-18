@@ -13,6 +13,7 @@ from khoj.configure import (
 )
 from khoj.database.models import (
     Agent,
+    ChatModelOptions,
     GithubConfig,
     GithubRepoConfig,
     KhojApiUser,
@@ -39,6 +40,8 @@ from tests.helpers import (
     SubscriptionFactory,
     UserConversationProcessorConfigFactory,
     UserFactory,
+    get_chat_api_key,
+    get_chat_provider,
 )
 
 
@@ -307,10 +310,19 @@ def chat_client_builder(search_config, user, index_content=True, require_auth=Fa
         configure_content(user, all_files)
 
     # Initialize Processor from Config
-    if os.getenv("OPENAI_API_KEY"):
-        chat_model = ChatModelOptionsFactory(chat_model="gpt-4o-mini", model_type="openai")
-        chat_model.openai_config = OpenAIProcessorConversationConfigFactory()
-        UserConversationProcessorConfigFactory(user=user, setting=chat_model)
+    chat_provider = get_chat_provider()
+    online_chat_model: ChatModelOptionsFactory = None
+    if chat_provider == ChatModelOptions.ModelType.OPENAI:
+        online_chat_model = ChatModelOptionsFactory(chat_model="gpt-4o-mini", model_type="openai")
+    elif chat_provider == ChatModelOptions.ModelType.GOOGLE:
+        online_chat_model = ChatModelOptionsFactory(chat_model="gemini-1.5-flash", model_type="google")
+    elif chat_provider == ChatModelOptions.ModelType.ANTHROPIC:
+        online_chat_model = ChatModelOptionsFactory(chat_model="claude-3-5-haiku-20241022", model_type="anthropic")
+    if online_chat_model:
+        online_chat_model.openai_config = OpenAIProcessorConversationConfigFactory(
+            api_key=get_chat_api_key(chat_provider)
+        )
+        UserConversationProcessorConfigFactory(user=user, setting=online_chat_model)
 
     state.anonymous_mode = not require_auth
 
@@ -385,7 +397,7 @@ def client_offline_chat(search_config: SearchConfig, default_user2: KhojUser):
 
     # Initialize Processor from Config
     ChatModelOptionsFactory(
-        chat_model="bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
+        chat_model="bartowski/Meta-Llama-3.1-3B-Instruct-GGUF",
         tokenizer=None,
         max_prompt_size=None,
         model_type="offline",

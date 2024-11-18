@@ -1,18 +1,17 @@
 import os
 import urllib.parse
-from urllib.parse import quote
 
 import pytest
 from freezegun import freeze_time
 
-from khoj.database.models import Agent, Entry, KhojUser, LocalPdfConfig
+from khoj.database.models import Agent, Entry, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import message_to_log
 from khoj.routers.helpers import aget_data_sources_and_output_format
-from tests.helpers import ConversationFactory
+from tests.helpers import ConversationFactory, get_chat_api_key
 
 # Initialize variables for tests
-api_key = os.getenv("OPENAI_API_KEY")
+api_key = get_chat_api_key()
 if api_key is None:
     pytest.skip(
         reason="Set OPENAI_API_KEY environment variable to run tests below. Get OpenAI API key from https://platform.openai.com/account/api-keys",

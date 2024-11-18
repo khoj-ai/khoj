@@ -4,13 +4,13 @@ import pytest
 from faker import Faker
 from freezegun import freeze_time
 
-from khoj.database.models import Agent, Entry, KhojUser
+from khoj.database.models import Agent, ChatModelOptions, Entry, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import message_to_log
 from khoj.routers.helpers import aget_data_sources_and_output_format
-from tests.helpers import ConversationFactory
+from tests.helpers import ConversationFactory, get_chat_provider
 
-SKIP_TESTS = True
+SKIP_TESTS = get_chat_provider(default=None) != ChatModelOptions.ModelType.OFFLINE
 pytestmark = pytest.mark.skipif(
     SKIP_TESTS,
     reason="Disable in CI to avoid long test runs.",

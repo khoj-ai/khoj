@@ -2,7 +2,10 @@ from datetime import datetime
 
 import pytest
 
-SKIP_TESTS = True
+from khoj.database.models import ChatModelOptions
+from tests.helpers import get_chat_provider
+
+SKIP_TESTS = get_chat_provider(default=None) != ChatModelOptions.ModelType.OFFLINE
 pytestmark = pytest.mark.skipif(
     SKIP_TESTS,
     reason="Disable in CI to avoid long test runs.",
