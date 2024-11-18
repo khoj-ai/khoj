@@ -402,15 +402,14 @@ async def aget_relevant_tools_to_execute(
     try:
         response = clean_json(response)
         response = json.loads(response)
-        input_tools = [q.strip() for q in response["source"] if q.strip()]
-        if not isinstance(input_tools, list) or not input_tools or len(input_tools) == 0:
-            logger.error(f"Invalid response for determining relevant tools: {input_tools}")
-            return tool_options
 
-        output_modes = [q.strip() for q in response["output"] if q.strip()]
-        if not isinstance(output_modes, list) or not output_modes or len(output_modes) == 0:
-            logger.error(f"Invalid response for determining relevant output modes: {output_modes}")
-            return mode_options
+        input_tools = [q.strip() for q in response.get("source", []) if q.strip()]
+        output_modes = [q.strip() for q in response.get("output", ["text"]) if q.strip()]  # Default to text output
+
+        if not isinstance(input_tools, list) or not input_tools or len(input_tools) == 0:
+            raise ValueError(
+                f"Invalid response for determining relevant tools: {input_tools}. Raw Response: {response}"
+            )
 
         final_response = [] if not is_task else [ConversationCommand.AutomatedTask]
         for llm_suggested_tool in input_tools:
@@ -434,8 +433,8 @@ async def aget_relevant_tools_to_execute(
                 final_response = [ConversationCommand.Default, ConversationCommand.Text]
             else:
                 final_response = [ConversationCommand.General, ConversationCommand.Text]
-    except Exception:
-        logger.error(f"Invalid response for determining relevant tools: {response}")
+    except Exception as e:
+        logger.error(f"Invalid response for determining relevant tools: {response}. Error: {e}", exc_info=True)
         if len(agent_tools) == 0:
             final_response = [ConversationCommand.Default, ConversationCommand.Text]
         else:

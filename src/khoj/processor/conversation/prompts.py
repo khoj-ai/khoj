@@ -634,6 +634,7 @@ You are Khoj, an extremely smart and helpful search assistant.
 - You can use the data sources listed below to collect more relevant information
 - You can select certain types of output to respond to the user's question. Select just one output type to answer the user's question
 - You can use any combination of these data sources and output types to answer the user's question
+- You can only select one output type to answer the user's question
 
 Which of the tools listed below you would use to answer the user's question? You **only** have access to the following:
 
@@ -685,7 +686,7 @@ AI: Learning to play the guitar is a great hobby. It can be a lot of fun and a g
 Q: Draw a painting of a guitar.
 Khoj: {{"source": ["general"], "output": ["image"]}}
 
-Now it's your turn to pick the data sources you would like to use to answer the user's question. Provide the data sources as a list of strings in a JSON object. Do not say anything else.
+Now it's your turn to pick the sources and output to answer the user's query. Respond with a JSON object, including both `source` and `output`. The values should be a list of strings. Do not say anything else.
 
 Chat History:
 {chat_history}
