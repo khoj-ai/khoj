@@ -689,11 +689,12 @@ class AgentAdapters:
         # TODO Update this to allow any public agent that's officially approved once that experience is launched
         public_query &= Q(managed_by_admin=True)
         if user:
-            return (
-                Agent.objects.filter(public_query | Q(creator=user))
-                .distinct()
-                .order_by("created_at")
-                .prefetch_related("creator", "chat_model", "fileobject_set")
+            return list(
+                set(
+                    Agent.objects.filter(public_query | Q(creator=user))
+                    .order_by("created_at")
+                    .prefetch_related("creator", "chat_model", "fileobject_set")
+                )
             )
         return (
             Agent.objects.filter(public_query)
@@ -1584,18 +1585,12 @@ class EntryAdapters:
     async def aget_agent_entry_filepaths(agent: Agent):
         if agent is None:
             return []
-        return await sync_to_async(set)(
-            Entry.objects.filter(agent=agent).distinct("file_path").values_list("file_path", flat=True)
-        )
+        return await sync_to_async(set)(Entry.objects.filter(agent=agent).values_list("file_path", flat=True))
 
     @staticmethod
     @require_valid_user
     def get_all_filenames_by_source(user: KhojUser, file_source: str):
-        return (
-            Entry.objects.filter(user=user, file_source=file_source)
-            .distinct("file_path")
-            .values_list("file_path", flat=True)
-        )
+        return Entry.objects.filter(user=user, file_source=file_source).values_list("file_path", flat=True)
 
     @staticmethod
     @require_valid_user
@@ -1698,12 +1693,12 @@ class EntryAdapters:
     @staticmethod
     @require_valid_user
     def get_unique_file_types(user: KhojUser):
-        return Entry.objects.filter(user=user).values_list("file_type", flat=True).distinct()
+        return list(set(Entry.objects.filter(user=user).values_list("file_type", flat=True)))
 
     @staticmethod
     @require_valid_user
     def get_unique_file_sources(user: KhojUser):
-        return Entry.objects.filter(user=user).values_list("file_source", flat=True).distinct().all()
+        return list(set(Entry.objects.filter(user=user).values_list("file_source", flat=True)))
 
 
 class AutomationAdapters:

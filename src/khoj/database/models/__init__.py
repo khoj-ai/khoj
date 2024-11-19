@@ -181,12 +181,8 @@ class Agent(BaseModel):
     )  # Creator will only be null when the agents are managed by admin
     name = models.CharField(max_length=200)
     personality = models.TextField()
-    input_tools = ArrayField(
-        models.CharField(max_length=200, choices=InputToolOptions.choices), default=list, null=True, blank=True
-    )
-    output_modes = ArrayField(
-        models.CharField(max_length=200, choices=OutputModeOptions.choices), default=list, null=True, blank=True
-    )
+    input_tools = models.JSONField(default=list, null=True)
+    output_modes = models.JSONField(default=list, null=True)
     managed_by_admin = models.BooleanField(default=False)
     chat_model = models.ForeignKey(ChatModelOptions, on_delete=models.CASCADE)
     slug = models.CharField(max_length=200, unique=True)

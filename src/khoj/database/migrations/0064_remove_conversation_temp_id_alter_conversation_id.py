@@ -57,6 +57,22 @@ def enable_triggers(apps, schema_editor):
     schema_editor.execute('ALTER TABLE "database_conversation" ENABLE TRIGGER ALL;')
 
 
+def rename_conversation_id_to_temp_id(apps, schema_editor):
+    # if sqlite
+    if schema_editor.connection.vendor == "sqlite":
+        pass
+    else:
+        schema_editor.execute('ALTER TABLE "database_conversation" RENAME COLUMN "id" TO "temp_id";')
+
+
+def rename_temp_id_to_id(apps, schema_editor):
+    # if sqlite
+    if schema_editor.connection.vendor == "sqlite":
+        pass
+    else:
+        schema_editor.execute('ALTER TABLE "database_conversation" RENAME COLUMN "temp_id" TO "id";')
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ("database", "0063_conversation_temp_id"),

@@ -14,33 +14,33 @@ class Migration(migrations.Migration):
             model_name="agent",
             name="tools",
         ),
-        migrations.AddField(
-            model_name="agent",
-            name="input_tools",
-            field=django.contrib.postgres.fields.ArrayField(
-                base_field=models.CharField(
-                    choices=[
-                        ("general", "General"),
-                        ("online", "Online"),
-                        ("notes", "Notes"),
-                        ("summarize", "Summarize"),
-                        ("webpage", "Webpage"),
-                    ],
-                    max_length=200,
-                ),
-                default=list,
-                size=None,
-            ),
-        ),
-        migrations.AddField(
-            model_name="agent",
-            name="output_modes",
-            field=django.contrib.postgres.fields.ArrayField(
-                base_field=models.CharField(choices=[("text", "Text"), ("image", "Image")], max_length=200),
-                default=list,
-                size=None,
-            ),
-        ),
+        # migrations.AddField(
+        #     model_name="agent",
+        #     name="input_tools",
+        #     field=django.contrib.postgres.fields.ArrayField(
+        #         base_field=models.CharField(
+        #             choices=[
+        #                 ("general", "General"),
+        #                 ("online", "Online"),
+        #                 ("notes", "Notes"),
+        #                 ("summarize", "Summarize"),
+        #                 ("webpage", "Webpage"),
+        #             ],
+        #             max_length=200,
+        #         ),
+        #         default=list,
+        #         size=None,
+        #     ),
+        # ),
+        # migrations.AddField(
+        #     model_name="agent",
+        #     name="output_modes",
+        #     field=django.contrib.postgres.fields.ArrayField(
+        #         base_field=models.CharField(choices=[("text", "Text"), ("image", "Image")], max_length=200),
+        #         default=list,
+        #         size=None,
+        #     ),
+        # ),
         migrations.AlterField(
             model_name="agent",
             name="style_icon",

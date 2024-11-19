@@ -115,16 +115,23 @@ CLOSE_CONNECTIONS_AFTER_REQUEST = True
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 20000
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.postgresql",
+#         "HOST": os.getenv("POSTGRES_HOST", "localhost"),
+#         "PORT": os.getenv("POSTGRES_PORT", "5432"),
+#         "USER": os.getenv("POSTGRES_USER", "postgres"),
+#         "NAME": os.getenv("POSTGRES_DB", "khoj"),
+#         "PASSWORD": os.getenv("POSTGRES_PASSWORD", "postgres"),
+#         "CONN_MAX_AGE": 0,
+#         "CONN_HEALTH_CHECKS": True,
+#     }
+# }
+
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "HOST": os.getenv("POSTGRES_HOST", "localhost"),
-        "PORT": os.getenv("POSTGRES_PORT", "5432"),
-        "USER": os.getenv("POSTGRES_USER", "postgres"),
-        "NAME": os.getenv("POSTGRES_DB", "khoj"),
-        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "postgres"),
-        "CONN_MAX_AGE": 0,
-        "CONN_HEALTH_CHECKS": True,
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
     }
 }
 
