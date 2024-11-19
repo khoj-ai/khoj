@@ -4,6 +4,8 @@ from threading import Thread
 from typing import Dict
 
 import openai
+from openai.types.chat.chat_completion import ChatCompletion
+from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
 from tenacity import (
     before_sleep_log,
     retry,
@@ -18,7 +20,7 @@ from khoj.processor.conversation.utils import (
     commit_conversation_trace,
 )
 from khoj.utils import state
-from khoj.utils.helpers import in_debug_mode
+from khoj.utils.helpers import get_chat_usage_metrics, in_debug_mode
 
 logger = logging.getLogger(__name__)
 
@@ -64,27 +66,34 @@ def completion_with_backoff(
     if os.getenv("KHOJ_LLM_SEED"):
         model_kwargs["seed"] = int(os.getenv("KHOJ_LLM_SEED"))
 
-    chat = client.chat.completions.create(
-        stream=stream,
+    chat: ChatCompletion | openai.Stream[ChatCompletionChunk] = client.chat.completions.create(
         messages=formatted_messages,  # type: ignore
         model=model,  # type: ignore
+        stream=stream,
+        stream_options={"include_usage": True} if stream else {},
         temperature=temperature,
         timeout=20,
         **(model_kwargs or dict()),
     )
 
-    if not stream:
-        return chat.choices[0].message.content
-
     aggregated_response = ""
-    for chunk in chat:
-        if len(chunk.choices) == 0:
-            continue
-        delta_chunk = chunk.choices[0].delta  # type: ignore
-        if isinstance(delta_chunk, str):
-            aggregated_response += delta_chunk
-        elif delta_chunk.content:
-            aggregated_response += delta_chunk.content
+    if not stream:
+        chunk = chat
+        aggregated_response = chunk.choices[0].message.content
+    else:
+        for chunk in chat:
+            if len(chunk.choices) == 0:
+                continue
+            delta_chunk = chunk.choices[0].delta  # type: ignore
+            if isinstance(delta_chunk, str):
+                aggregated_response += delta_chunk
+            elif delta_chunk.content:
+                aggregated_response += delta_chunk.content
+
+    # Calculate cost of chat
+    input_tokens = chunk.usage.prompt_tokens if hasattr(chunk, "usage") and chunk.usage else 0
+    output_tokens = chunk.usage.completion_tokens if hasattr(chunk, "usage") and chunk.usage else 0
+    tracer["usage"] = get_chat_usage_metrics(model, input_tokens, output_tokens, tracer.get("usage"))
 
     # Save conversation trace
     tracer["chat_model"] = model
@@ -164,10 +173,11 @@ def llm_thread(
         if os.getenv("KHOJ_LLM_SEED"):
             model_kwargs["seed"] = int(os.getenv("KHOJ_LLM_SEED"))
 
-        chat = client.chat.completions.create(
-            stream=stream,
+        chat: ChatCompletion | openai.Stream[ChatCompletionChunk] = client.chat.completions.create(
             messages=formatted_messages,
             model=model_name,  # type: ignore
+            stream=stream,
+            stream_options={"include_usage": True} if stream else {},
             temperature=temperature,
             timeout=20,
             **(model_kwargs or dict()),
@@ -175,7 +185,8 @@ def llm_thread(
 
         aggregated_response = ""
         if not stream:
-            aggregated_response = chat.choices[0].message.content
+            chunk = chat
+            aggregated_response = chunk.choices[0].message.content
             g.send(aggregated_response)
         else:
             for chunk in chat:
@@ -190,6 +201,11 @@ def llm_thread(
                 if text_chunk:
                     aggregated_response += text_chunk
                     g.send(text_chunk)
+
+        # Calculate cost of chat
+        input_tokens = chunk.usage.prompt_tokens if hasattr(chunk, "usage") and chunk.usage else 0
+        output_tokens = chunk.usage.completion_tokens if hasattr(chunk, "usage") and chunk.usage else 0
+        tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, tracer.get("usage"))
 
         # Save conversation trace
         tracer["chat_model"] = model_name

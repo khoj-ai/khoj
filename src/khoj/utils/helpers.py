@@ -540,3 +540,27 @@ def get_country_code_from_timezone(tz: str) -> str:
 def get_country_name_from_timezone(tz: str) -> str:
     """Get country name from timezone"""
     return country_names.get(get_country_code_from_timezone(tz), "United States")
+
+
+def get_cost_of_chat_message(model_name: str, input_tokens: int = 0, output_tokens: int = 0, prev_cost: float = 0.0):
+    """
+    Calculate cost of chat message based on input and output tokens
+    """
+
+    # Calculate cost of input and output tokens. Costs are per million tokens
+    input_cost = constants.model_to_cost.get(model_name, {}).get("input", 0) * (input_tokens / 1e6)
+    output_cost = constants.model_to_cost.get(model_name, {}).get("output", 0) * (output_tokens / 1e6)
+
+    return input_cost + output_cost + prev_cost
+
+
+def get_chat_usage_metrics(model_name: str, input_tokens: int = 0, output_tokens: int = 0, usage: dict = {}):
+    """
+    Get usage metrics for chat message based on input and output tokens
+    """
+    prev_usage = usage or {"input_tokens": 0, "output_tokens": 0, "cost": 0.0}
+    return {
+        "input_tokens": prev_usage["input_tokens"] + input_tokens,
+        "output_tokens": prev_usage["output_tokens"] + output_tokens,
+        "cost": get_cost_of_chat_message(model_name, input_tokens, output_tokens, prev_cost=prev_usage["cost"]),
+    }

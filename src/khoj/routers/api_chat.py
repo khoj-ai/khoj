@@ -667,12 +667,19 @@ async def chat(
             finally:
                 yield event_delimiter
 
-        async def send_llm_response(response: str):
+        async def send_llm_response(response: str, usage: dict = None):
+            # Send Chat Response
             async for result in send_event(ChatEvent.START_LLM_RESPONSE, ""):
                 yield result
             async for result in send_event(ChatEvent.MESSAGE, response):
                 yield result
             async for result in send_event(ChatEvent.END_LLM_RESPONSE, ""):
+                yield result
+            # Send Usage Metadata once llm interactions are complete
+            if usage:
+                async for event in send_event(ChatEvent.USAGE, usage):
+                    yield event
+            async for result in send_event(ChatEvent.END_RESPONSE, ""):
                 yield result
 
         def collect_telemetry():
@@ -680,14 +687,17 @@ async def chat(
             nonlocal chat_metadata
             latency = time.perf_counter() - start_time
             cmd_set = set([cmd.value for cmd in conversation_commands])
+            cost = (tracer.get("usage", {}) or {}).get("cost", 0)
             chat_metadata = chat_metadata or {}
             chat_metadata["conversation_command"] = cmd_set
             chat_metadata["agent"] = conversation.agent.slug if conversation.agent else None
             chat_metadata["latency"] = f"{latency:.3f}"
             chat_metadata["ttft_latency"] = f"{ttft:.3f}"
+            chat_metadata["usage"] = tracer.get("usage")
 
             logger.info(f"Chat response time to first token: {ttft:.3f} seconds")
             logger.info(f"Chat response total time: {latency:.3f} seconds")
+            logger.info(f"Chat response cost: ${cost:.5f}")
             update_telemetry_state(
                 request=request,
                 telemetry_type="api",
@@ -699,7 +709,7 @@ async def chat(
             )
 
         if is_query_empty(q):
-            async for result in send_llm_response("Please ask your query to get started."):
+            async for result in send_llm_response("Please ask your query to get started.", tracer.get("usage")):
                 yield result
             return
 
@@ -713,7 +723,7 @@ async def chat(
             create_new=body.create_new,
         )
         if not conversation:
-            async for result in send_llm_response(f"Conversation {conversation_id} not found"):
+            async for result in send_llm_response(f"Conversation {conversation_id} not found", tracer.get("usage")):
                 yield result
             return
         conversation_id = conversation.id
@@ -777,7 +787,7 @@ async def chat(
                 await conversation_command_rate_limiter.update_and_check_if_valid(request, cmd)
                 q = q.replace(f"/{cmd.value}", "").strip()
             except HTTPException as e:
-                async for result in send_llm_response(str(e.detail)):
+                async for result in send_llm_response(str(e.detail), tracer.get("usage")):
                     yield result
                 return
 
@@ -834,7 +844,7 @@ async def chat(
             agent_has_entries = await EntryAdapters.aagent_has_entries(agent)
             if len(file_filters) == 0 and not agent_has_entries:
                 response_log = "No files selected for summarization. Please add files using the section on the left."
-                async for result in send_llm_response(response_log):
+                async for result in send_llm_response(response_log, tracer.get("usage")):
                     yield result
             else:
                 async for response in generate_summary_from_files(
@@ -853,7 +863,7 @@ async def chat(
                     else:
                         if isinstance(response, str):
                             response_log = response
-                            async for result in send_llm_response(response):
+                            async for result in send_llm_response(response, tracer.get("usage")):
                                 yield result
 
             await sync_to_async(save_to_conversation_log)(
@@ -880,7 +890,7 @@ async def chat(
                     conversation_config = await ConversationAdapters.aget_default_conversation_config(user)
                 model_type = conversation_config.model_type
                 formatted_help = help_message.format(model=model_type, version=state.khoj_version, device=get_device())
-                async for result in send_llm_response(formatted_help):
+                async for result in send_llm_response(formatted_help, tracer.get("usage")):
                     yield result
                 return
             # Adding specification to search online specifically on khoj.dev pages.
@@ -895,7 +905,7 @@ async def chat(
             except Exception as e:
                 logger.error(f"Error scheduling task {q} for {user.email}: {e}")
                 error_message = f"Unable to create automation. Ensure the automation doesn't already exist."
-                async for result in send_llm_response(error_message):
+                async for result in send_llm_response(error_message, tracer.get("usage")):
                     yield result
                 return
 
@@ -916,7 +926,7 @@ async def chat(
                 raw_query_files=raw_query_files,
                 tracer=tracer,
             )
-            async for result in send_llm_response(llm_response):
+            async for result in send_llm_response(llm_response, tracer.get("usage")):
                 yield result
             return
 
@@ -963,7 +973,7 @@ async def chat(
                     yield result
 
             if conversation_commands == [ConversationCommand.Notes] and not await EntryAdapters.auser_has_entries(user):
-                async for result in send_llm_response(f"{no_entries_found.format()}"):
+                async for result in send_llm_response(f"{no_entries_found.format()}", tracer.get("usage")):
                     yield result
                 return
 
@@ -1105,7 +1115,7 @@ async def chat(
                     "detail": improved_image_prompt,
                     "image": None,
                 }
-                async for result in send_llm_response(json.dumps(content_obj)):
+                async for result in send_llm_response(json.dumps(content_obj), tracer.get("usage")):
                     yield result
                 return
 
@@ -1132,7 +1142,7 @@ async def chat(
                 "inferredQueries": [improved_image_prompt],
                 "image": generated_image,
             }
-            async for result in send_llm_response(json.dumps(content_obj)):
+            async for result in send_llm_response(json.dumps(content_obj), tracer.get("usage")):
                 yield result
             return
 
@@ -1166,7 +1176,7 @@ async def chat(
                         diagram_description = excalidraw_diagram_description
                     else:
                         error_message = "Failed to generate diagram. Please try again later."
-                        async for result in send_llm_response(error_message):
+                        async for result in send_llm_response(error_message, tracer.get("usage")):
                             yield result
 
                         await sync_to_async(save_to_conversation_log)(
@@ -1213,7 +1223,7 @@ async def chat(
                 tracer=tracer,
             )
 
-            async for result in send_llm_response(json.dumps(content_obj)):
+            async for result in send_llm_response(json.dumps(content_obj), tracer.get("usage")):
                 yield result
             return
 
@@ -1251,6 +1261,11 @@ async def chat(
         async for item in iterator:
             if item is None:
                 async for result in send_event(ChatEvent.END_LLM_RESPONSE, ""):
+                    yield result
+                # Send Usage Metadata once llm interactions are complete
+                async for event in send_event(ChatEvent.USAGE, tracer.get("usage")):
+                    yield event
+                async for result in send_event(ChatEvent.END_RESPONSE, ""):
                     yield result
                 logger.debug("Finished streaming response")
                 return

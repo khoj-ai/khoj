@@ -18,7 +18,7 @@ from khoj.processor.conversation.utils import (
     get_image_from_url,
 )
 from khoj.utils import state
-from khoj.utils.helpers import in_debug_mode, is_none_or_empty
+from khoj.utils.helpers import get_chat_usage_metrics, in_debug_mode, is_none_or_empty
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +59,7 @@ def anthropic_completion_with_backoff(
     aggregated_response = "{" if response_type == "json_object" else ""
     max_tokens = max_tokens or DEFAULT_MAX_TOKENS_ANTHROPIC
 
+    final_message = None
     model_kwargs = model_kwargs or dict()
     if system_prompt:
         model_kwargs["system"] = system_prompt
@@ -73,6 +74,12 @@ def anthropic_completion_with_backoff(
     ) as stream:
         for text in stream.text_stream:
             aggregated_response += text
+        final_message = stream.get_final_message()
+
+    # Calculate cost of chat
+    input_tokens = final_message.usage.input_tokens
+    output_tokens = final_message.usage.output_tokens
+    tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, tracer.get("usage"))
 
     # Save conversation trace
     tracer["chat_model"] = model_name
@@ -126,6 +133,7 @@ def anthropic_llm_thread(
         ]
 
         aggregated_response = ""
+        final_message = None
         with client.messages.stream(
             messages=formatted_messages,
             model=model_name,  # type: ignore
@@ -138,6 +146,12 @@ def anthropic_llm_thread(
             for text in stream.text_stream:
                 aggregated_response += text
                 g.send(text)
+            final_message = stream.get_final_message()
+
+        # Calculate cost of chat
+        input_tokens = final_message.usage.input_tokens
+        output_tokens = final_message.usage.output_tokens
+        tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, tracer.get("usage"))
 
         # Save conversation trace
         tracer["chat_model"] = model_name

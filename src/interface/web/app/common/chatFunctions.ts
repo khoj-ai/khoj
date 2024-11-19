@@ -133,7 +133,7 @@ export function processMessageChunk(
         console.log(`Started streaming: ${new Date()}`);
     } else if (chunk.type === "end_llm_response") {
         console.log(`Completed streaming: ${new Date()}`);
-
+    } else if (chunk.type === "end_response") {
         // Append any references after all the data has been streamed
         if (codeContext) currentMessage.codeContext = codeContext;
         if (onlineContext) currentMessage.onlineContext = onlineContext;
