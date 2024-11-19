@@ -14,7 +14,7 @@ from khoj.routers.helpers import (
     should_notify,
 )
 from khoj.utils.helpers import ConversationCommand
-from tests.helpers import get_chat_api_key
+from tests.helpers import generate_chat_history, get_chat_api_key
 
 # Initialize variables for tests
 api_key = get_chat_api_key()
@@ -538,12 +538,20 @@ async def test_websearch_khoj_website_for_info_about_khoj(chat_client, default_u
             {"sources": [ConversationCommand.Webpage], "output": ConversationCommand.Text},
         ),
         (
+            "How many noble gases are there?",
+            {"sources": [ConversationCommand.General], "output": ConversationCommand.Text},
+        ),
+        (
             "Make a painting incorporating my past diving experiences",
             {"sources": [ConversationCommand.Notes], "output": ConversationCommand.Image},
         ),
         (
             "Create a chart of the weather over the next 7 days in Timbuktu",
             {"sources": [ConversationCommand.Online, ConversationCommand.Code], "output": ConversationCommand.Text},
+        ),
+        (
+            "What's the highest point in this country and have I been there?",
+            {"sources": [ConversationCommand.Online, ConversationCommand.Notes], "output": ConversationCommand.Text},
         ),
     ],
 )
@@ -554,7 +562,32 @@ async def test_select_data_sources_actor_chooses_to_search_notes(
     selected_conversation_commands = await aget_data_sources_and_output_format(user_query, {}, False, default_user2)
 
     # Assert
-    assert expected_conversation_commands == selected_conversation_commands
+    assert set(expected_conversation_commands["sources"]) == set(selected_conversation_commands["sources"])
+    assert expected_conversation_commands["output"] == selected_conversation_commands["output"]
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+async def test_get_correct_tools_with_chat_history(chat_client, default_user2):
+    # Arrange
+    user_query = "What's the latest in the Israel/Palestine conflict?"
+    chat_log = [
+        (
+            "Let's talk about the current events around the world.",
+            "Sure, let's discuss the current events. What would you like to know?",
+            [],
+        ),
+        ("What's up in New York City?", "A Pride parade has recently been held in New York City, on July 31st.", []),
+    ]
+    chat_history = generate_chat_history(chat_log)
+
+    # Act
+    selected = await aget_data_sources_and_output_format(user_query, chat_history, False, default_user2)
+    sources = selected["sources"]
+
+    # Assert
+    assert sources == [ConversationCommand.Online]
 
 
 # ----------------------------------------------------------------------------------------------------

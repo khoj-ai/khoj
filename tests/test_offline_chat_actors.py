@@ -3,7 +3,9 @@ from datetime import datetime
 import pytest
 
 from khoj.database.models import ChatModelOptions
-from tests.helpers import get_chat_provider
+from khoj.routers.helpers import aget_data_sources_and_output_format
+from khoj.utils.helpers import ConversationCommand
+from tests.helpers import ConversationFactory, generate_chat_history, get_chat_provider
 
 SKIP_TESTS = get_chat_provider(default=None) != ChatModelOptions.ModelType.OFFLINE
 pytestmark = pytest.mark.skipif(
@@ -134,7 +136,7 @@ def test_generate_search_query_using_question_from_chat_history(loaded_model):
     # Act
     response = extract_questions_offline(
         query,
-        conversation_log=populate_chat_history(message_list),
+        conversation_log=generate_chat_history(message_list),
         loaded_model=loaded_model,
         use_history=True,
     )
@@ -180,7 +182,7 @@ def test_generate_search_query_using_answer_from_chat_history(loaded_model):
     # Act
     response = extract_questions_offline(
         "Is she a Doctor?",
-        conversation_log=populate_chat_history(message_list),
+        conversation_log=generate_chat_history(message_list),
         loaded_model=loaded_model,
         use_history=True,
     )
@@ -209,7 +211,7 @@ def test_generate_search_query_with_date_and_context_from_chat_history(loaded_mo
     # Act
     response = extract_questions_offline(
         "What was the Pizza place we ate at over there?",
-        conversation_log=populate_chat_history(message_list),
+        conversation_log=generate_chat_history(message_list),
         loaded_model=loaded_model,
     )
 
@@ -225,6 +227,77 @@ def test_generate_search_query_with_date_and_context_from_chat_history(loaded_mo
     assert any([start in response[0] and end in response[0] for start, end in expected_responses]), (
         "Expected date filter to limit to April 2000 in response but got: " + response[0]
     )
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize(
+    "user_query, expected_conversation_commands",
+    [
+        (
+            "Where did I learn to swim?",
+            {"sources": [ConversationCommand.Notes], "output": ConversationCommand.Text},
+        ),
+        (
+            "Where is the nearest hospital?",
+            {"sources": [ConversationCommand.Online], "output": ConversationCommand.Text},
+        ),
+        (
+            "Summarize the wikipedia page on the history of the internet",
+            {"sources": [ConversationCommand.Webpage], "output": ConversationCommand.Text},
+        ),
+        (
+            "How many noble gases are there?",
+            {"sources": [ConversationCommand.General], "output": ConversationCommand.Text},
+        ),
+        (
+            "Make a painting incorporating my past diving experiences",
+            {"sources": [ConversationCommand.Notes], "output": ConversationCommand.Image},
+        ),
+        (
+            "Create a chart of the weather over the next 7 days in Timbuktu",
+            {"sources": [ConversationCommand.Online, ConversationCommand.Code], "output": ConversationCommand.Text},
+        ),
+        (
+            "What's the highest point in this country and have I been there?",
+            {"sources": [ConversationCommand.Online, ConversationCommand.Notes], "output": ConversationCommand.Text},
+        ),
+    ],
+)
+async def test_select_data_sources_actor_chooses_to_search_notes(
+    client_offline_chat, user_query, expected_conversation_commands, default_user2
+):
+    # Act
+    selected_conversation_commands = await aget_data_sources_and_output_format(user_query, {}, False, default_user2)
+
+    # Assert
+    assert set(expected_conversation_commands["sources"]) == set(selected_conversation_commands["sources"])
+    assert expected_conversation_commands["output"] == selected_conversation_commands["output"]
+
+
+# ----------------------------------------------------------------------------------------------------
+@pytest.mark.anyio
+@pytest.mark.django_db(transaction=True)
+async def test_get_correct_tools_with_chat_history(client_offline_chat, default_user2):
+    # Arrange
+    user_query = "What's the latest in the Israel/Palestine conflict?"
+    chat_log = [
+        (
+            "Let's talk about the current events around the world.",
+            "Sure, let's discuss the current events. What would you like to know?",
+            [],
+        ),
+        ("What's up in New York City?", "A Pride parade has recently been held in New York City, on July 31st.", []),
+    ]
+    chat_history = ConversationFactory(user=default_user2, conversation_log=generate_chat_history(chat_log))
+
+    # Act
+    tools = await aget_data_sources_and_output_format(user_query, chat_history, is_task=False)
+
+    # Assert
+    tools = [tool.value for tool in tools]
+    assert tools == ["online"]
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -264,7 +337,7 @@ def test_answer_from_chat_history_and_previously_retrieved_content(loaded_model)
     response_gen = converse_offline(
         references=[],  # Assume no context retrieved from notes for the user_query
         user_query="Where was I born?",
-        conversation_log=populate_chat_history(message_list),
+        conversation_log=generate_chat_history(message_list),
         loaded_model=loaded_model,
     )
     response = "".join([response_chunk for response_chunk in response_gen])
@@ -291,7 +364,7 @@ def test_answer_from_chat_history_and_currently_retrieved_content(loaded_model):
             {"compiled": "Testatron was born on 1st April 1984 in Testville."}
         ],  # Assume context retrieved from notes for the user_query
         user_query="Where was I born?",
-        conversation_log=populate_chat_history(message_list),
+        conversation_log=generate_chat_history(message_list),
         loaded_model=loaded_model,
     )
     response = "".join([response_chunk for response_chunk in response_gen])
@@ -316,7 +389,7 @@ def test_refuse_answering_unanswerable_question(loaded_model):
     response_gen = converse_offline(
         references=[],  # Assume no context retrieved from notes for the user_query
         user_query="Where was I born?",
-        conversation_log=populate_chat_history(message_list),
+        conversation_log=generate_chat_history(message_list),
         loaded_model=loaded_model,
     )
     response = "".join([response_chunk for response_chunk in response_gen])
@@ -429,7 +502,7 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content(loaded
     response_gen = converse_offline(
         references=[],  # Assume no context retrieved from notes for the user_query
         user_query="Write a haiku about unit testing in 3 lines",
-        conversation_log=populate_chat_history(message_list),
+        conversation_log=generate_chat_history(message_list),
         loaded_model=loaded_model,
     )
     response = "".join([response_chunk for response_chunk in response_gen])
@@ -549,18 +622,3 @@ def test_filter_questions():
     filtered_questions = filter_questions(test_questions)
     assert len(filtered_questions) == 1
     assert filtered_questions[0] == "Who is on the basketball team?"
-
-
-# Helpers
-# ----------------------------------------------------------------------------------------------------
-def populate_chat_history(message_list):
-    # Generate conversation logs
-    conversation_log = {"chat": []}
-    for user_message, chat_response, context in message_list:
-        message_to_log(
-            user_message,
-            chat_response,
-            {"context": context, "intent": {"query": user_message, "inferred-queries": f'["{user_message}"]'}},
-            conversation_log=conversation_log["chat"],
-        )
-    return conversation_log

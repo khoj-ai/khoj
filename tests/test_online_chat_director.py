@@ -7,8 +7,7 @@ from freezegun import freeze_time
 from khoj.database.models import Agent, Entry, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import message_to_log
-from khoj.routers.helpers import aget_data_sources_and_output_format
-from tests.helpers import ConversationFactory, get_chat_api_key
+from tests.helpers import ConversationFactory, generate_chat_history, get_chat_api_key
 
 # Initialize variables for tests
 api_key = get_chat_api_key()
@@ -21,22 +20,9 @@ if api_key is None:
 
 # Helpers
 # ----------------------------------------------------------------------------------------------------
-def generate_history(message_list):
-    # Generate conversation logs
-    conversation_log = {"chat": []}
-    for user_message, gpt_message, context in message_list:
-        message_to_log(
-            user_message,
-            gpt_message,
-            {"context": context, "intent": {"query": user_message, "inferred-queries": f'["{user_message}"]'}},
-            conversation_log=conversation_log.get("chat", []),
-        )
-    return conversation_log
-
-
 def create_conversation(message_list, user, agent=None):
     # Generate conversation logs
-    conversation_log = generate_history(message_list)
+    conversation_log = generate_chat_history(message_list)
 
     # Update Conversation Metadata Logs in Database
     return ConversationFactory(user=user, conversation_log=conversation_log, agent=agent)
@@ -619,7 +605,9 @@ def test_answer_in_chat_history_by_conversation_id(chat_client, default_user2: K
 
     # Act
     query = "/general What is my favorite color?"
-    response = chat_client.post(f"/api/chat", json={"q": query, "conversation_id": conversation.id, "stream": True})
+    response = chat_client.post(
+        f"/api/chat", json={"q": query, "conversation_id": str(conversation.id), "stream": True}
+    )
     response_message = response.content.decode("utf-8")
 
     # Assert
@@ -652,7 +640,7 @@ def test_answer_in_chat_history_by_conversation_id_with_agent(
 
     # Act
     query = "/general What did I buy for breakfast?"
-    response = chat_client.post(f"/api/chat", json={"q": query, "conversation_id": conversation.id})
+    response = chat_client.post(f"/api/chat", json={"q": query, "conversation_id": str(conversation.id)})
     response_message = response.json()["response"]
 
     # Assert that agent only responds with the summary of spending
@@ -708,89 +696,3 @@ def test_answer_using_file_filter(chat_client):
     assert only_full_name_check or comparative_statement_check, (
         "Expected Xi is older than Namita, but got: " + response_message
     )
-
-
-# ----------------------------------------------------------------------------------------------------
-@pytest.mark.anyio
-@pytest.mark.django_db(transaction=True)
-async def test_get_correct_tools_online(chat_client):
-    # Arrange
-    user_query = "What's the weather in Patagonia this week?"
-
-    # Act
-    tools = await aget_data_sources_and_output_format(user_query, {}, False, False)
-
-    # Assert
-    tools = [tool.value for tool in tools]
-    assert tools == ["online"]
-
-
-# ----------------------------------------------------------------------------------------------------
-@pytest.mark.anyio
-@pytest.mark.django_db(transaction=True)
-async def test_get_correct_tools_notes(chat_client):
-    # Arrange
-    user_query = "Where did I go for my first battleship training?"
-
-    # Act
-    tools = await aget_data_sources_and_output_format(user_query, {}, False, False)
-
-    # Assert
-    tools = [tool.value for tool in tools]
-    assert tools == ["notes"]
-
-
-# ----------------------------------------------------------------------------------------------------
-@pytest.mark.anyio
-@pytest.mark.django_db(transaction=True)
-async def test_get_correct_tools_online_or_general_and_notes(chat_client):
-    # Arrange
-    user_query = "What's the highest point in Patagonia and have I been there?"
-
-    # Act
-    tools = await aget_data_sources_and_output_format(user_query, {}, False, False)
-
-    # Assert
-    tools = [tool.value for tool in tools]
-    assert len(tools) == 2
-    assert "online" in tools or "general" in tools
-    assert "notes" in tools
-
-
-# ----------------------------------------------------------------------------------------------------
-@pytest.mark.anyio
-@pytest.mark.django_db(transaction=True)
-async def test_get_correct_tools_general(chat_client):
-    # Arrange
-    user_query = "How many noble gases are there?"
-
-    # Act
-    tools = await aget_data_sources_and_output_format(user_query, {}, False, False)
-
-    # Assert
-    tools = [tool.value for tool in tools]
-    assert tools == ["general"]
-
-
-# ----------------------------------------------------------------------------------------------------
-@pytest.mark.anyio
-@pytest.mark.django_db(transaction=True)
-async def test_get_correct_tools_with_chat_history(chat_client):
-    # Arrange
-    user_query = "What's the latest in the Israel/Palestine conflict?"
-    chat_log = [
-        (
-            "Let's talk about the current events around the world.",
-            "Sure, let's discuss the current events. What would you like to know?",
-            [],
-        ),
-        ("What's up in New York City?", "A Pride parade has recently been held in New York City, on July 31st.", []),
-    ]
-    chat_history = generate_history(chat_log)
-
-    # Act
-    tools = await aget_data_sources_and_output_format(user_query, chat_history, False, False)
-
-    # Assert
-    tools = [tool.value for tool in tools]
-    assert tools == ["online"]

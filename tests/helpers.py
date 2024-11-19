@@ -15,6 +15,7 @@ from khoj.database.models import (
     Subscription,
     UserConversationConfig,
 )
+from khoj.processor.conversation.utils import message_to_log
 
 
 def get_chat_provider(default: ChatModelOptions.ModelType | None = ChatModelOptions.ModelType.OFFLINE):
@@ -41,6 +42,19 @@ def get_chat_api_key(provider: ChatModelOptions.ModelType = None):
         return os.getenv("ANTHROPIC_API_KEY")
     else:
         return os.getenv("OPENAI_API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("ANTHROPIC_API_KEY")
+
+
+def generate_chat_history(message_list):
+    # Generate conversation logs
+    conversation_log = {"chat": []}
+    for user_message, chat_response, context in message_list:
+        message_to_log(
+            user_message,
+            chat_response,
+            {"context": context, "intent": {"query": user_message, "inferred-queries": f'["{user_message}"]'}},
+            conversation_log=conversation_log.get("chat", []),
+        )
+    return conversation_log
 
 
 class UserFactory(factory.django.DjangoModelFactory):
