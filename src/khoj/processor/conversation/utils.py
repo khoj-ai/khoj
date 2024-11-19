@@ -49,8 +49,6 @@ except ImportError:
 
 model_to_prompt_size = {
     # OpenAI Models
-    "gpt-3.5-turbo": 12000,
-    "gpt-4-turbo-preview": 20000,
     "gpt-4o": 20000,
     "gpt-4o-mini": 20000,
     "o1-preview": 20000,
@@ -60,11 +58,14 @@ model_to_prompt_size = {
     "gemini-1.5-pro": 20000,
     # Anthropic Models
     "claude-3-5-sonnet-20240620": 20000,
-    "claude-3-opus-20240229": 20000,
+    "claude-3-5-haiku-20241022": 20000,
     # Offline Models
-    "TheBloke/Mistral-7B-Instruct-v0.2-GGUF": 3500,
-    "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF": 3500,
     "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF": 20000,
+    "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF": 20000,
+    "bartowski/Llama-3.2-3B-Instruct-GGUF": 20000,
+    "bartowski/gemma-2-9b-it-GGUF": 6000,
+    "bartowski/gemma-2-2b-it-GGUF": 6000,
+    "Qwen/Qwen2.5-14B-Instruct-GGUF": 20000,
 }
 model_to_tokenizer: Dict[str, str] = {}
 

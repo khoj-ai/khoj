@@ -10,9 +10,10 @@ telemetry_server = "https://khoj.beta.haletic.com/v1/telemetry"
 content_directory = "~/.khoj/content/"
 default_offline_chat_models = [
     "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
+    "bartowski/Llama-3.2-3B-Instruct-GGUF",
     "bartowski/gemma-2-9b-it-GGUF",
     "bartowski/gemma-2-2b-it-GGUF",
-    "bartowski/Phi-3.5-mini-instruct-GGUF",
+    "Qwen/Qwen2.5-14B-Instruct-GGUF",
 ]
 default_openai_chat_models = ["gpt-4o-mini", "gpt-4o"]
 default_gemini_chat_models = ["gemini-1.5-flash", "gemini-1.5-pro"]
