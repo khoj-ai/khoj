@@ -528,7 +528,7 @@ def reciprocal_conversation_to_chatml(message_pair):
 
 def clean_json(response: str):
     """Remove any markdown json codeblock and newline formatting if present. Useful for non schema enforceable models"""
-    return response.strip().replace("\n", "").removeprefix("```json").removesuffix("```")
+    return response.strip().replace("\n", "").removeprefix("```json").removeprefix("```python").removesuffix("```")
 
 
 def clean_code_python(code: str):
