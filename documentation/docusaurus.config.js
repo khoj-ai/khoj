@@ -73,14 +73,14 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
-      image: 'img/khoj-logo-sideways-500.png',
+      image: 'img/khoj_documentation.png',
       metadata: [
-        {name: 'og:title', content: 'Khoj Documentation'},
+        {name: 'og:title', content: 'Docs'},
         {name: 'og:type', content: 'website'},
         {name: 'og:site_name', content: 'Khoj Documentation'},
         {name: 'og:description', content: 'Quickly get started with using or self-hosting Khoj'},
         {name: 'og:url', content: 'https://docs.khoj.dev'},
-        {name: 'keywords', content: 'khoj, khoj ai, chatgpt, open ai, open source, productivity'}
+        {name: 'keywords', content: 'khoj, khoj ai, chatgpt, open source ai, open source, transparent, accessible, trustworthy, hackable, index notes, rag, productivity'}
       ],
       navbar: {
         title: 'Khoj',
