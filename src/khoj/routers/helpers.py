@@ -411,7 +411,7 @@ async def aget_data_sources_and_output_format(
                 f"Invalid response for determining relevant tools: {selected_sources}. Raw Response: {response}"
             )
 
-        result: Dict = {"sources": [], "output": None} if not is_task else {"output": ConversationCommand.AutomatedTask}
+        result: Dict = {"sources": [], "output": None if not is_task else ConversationCommand.AutomatedTask}
         for selected_source in selected_sources:
             # Add a double check to verify it's in the agent list, because the LLM sometimes gets confused by the tool options.
             if (
