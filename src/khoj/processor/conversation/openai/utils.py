@@ -56,7 +56,6 @@ def completion_with_backoff(
     # Update request parameters for compatability with o1 model series
     # Refer: https://platform.openai.com/docs/guides/reasoning/beta-limitations
     if model.startswith("o1"):
-        stream = False
         temperature = 1
         model_kwargs.pop("stop", None)
         model_kwargs.pop("response_format", None)
@@ -156,7 +155,6 @@ def llm_thread(
         # Update request parameters for compatability with o1 model series
         # Refer: https://platform.openai.com/docs/guides/reasoning/beta-limitations
         if model_name.startswith("o1"):
-            stream = False
             temperature = 1
             model_kwargs.pop("stop", None)
             model_kwargs.pop("response_format", None)
