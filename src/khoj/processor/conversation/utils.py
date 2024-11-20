@@ -291,7 +291,7 @@ def save_to_conversation_log(
         user_message=q,
     )
 
-    if in_debug_mode() or state.verbose > 1:
+    if os.getenv("PROMPTRACE_DIR"):
         merge_message_into_conversation_trace(q, chat_response, tracer)
 
     logger.info(
@@ -578,7 +578,7 @@ def commit_conversation_trace(
     response: str | list[dict],
     tracer: dict,
     system_message: str | list[dict] = "",
-    repo_path: str = "/tmp/promptrace",
+    repo_path: str = None,
 ) -> str:
     """
     Save trace of conversation step using git. Useful to visualize, compare and debug traces.
@@ -587,6 +587,11 @@ def commit_conversation_trace(
     try:
         from git import Repo
     except ImportError:
+        return None
+
+    # Infer repository path from environment variable or provided path
+    repo_path = repo_path or os.getenv("PROMPTRACE_DIR")
+    if not repo_path:
         return None
 
     # Serialize session, system message and response to yaml
@@ -600,9 +605,6 @@ def commit_conversation_trace(
 
     # Extract chat metadata for session
     uid, cid, mid = tracer.get("uid", "main"), tracer.get("cid", "main"), tracer.get("mid")
-
-    # Infer repository path from environment variable or provided path
-    repo_path = os.getenv("PROMPTRACE_DIR", repo_path)
 
     try:
         # Prepare git repository
