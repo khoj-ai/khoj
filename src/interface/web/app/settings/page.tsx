@@ -387,7 +387,13 @@ const DropdownComponent: React.FC<DropdownComponentProps> = ({ items, selected, 
                             <CaretDown className="h-4 w-4 ml-auto text-muted-foreground" />
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent>
+                    <DropdownMenuContent
+                        style={{
+                            maxHeight: "200px",
+                            overflowY: "auto",
+                            minWidth: "var(--radix-dropdown-menu-trigger-width)",
+                        }}
+                    >
                         <DropdownMenuRadioGroup
                             value={position}
                             onValueChange={async (value) => {
