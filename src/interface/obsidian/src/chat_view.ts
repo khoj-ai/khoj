@@ -945,7 +945,7 @@ export class KhojChatView extends KhojPaneView {
             console.log("Started streaming", new Date());
         } else if (chunk.type === 'end_llm_response') {
             console.log("Stopped streaming", new Date());
-
+        } else if (chunk.type === 'end_response') {
             // Automatically respond with voice if the subscribed user has sent voice message
             if (this.chatMessageState.isVoice && this.setting.userInfo?.is_active)
                 this.textToSpeech(this.chatMessageState.rawResponse);

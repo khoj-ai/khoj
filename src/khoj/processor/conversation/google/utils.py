@@ -25,7 +25,7 @@ from khoj.processor.conversation.utils import (
     get_image_from_url,
 )
 from khoj.utils import state
-from khoj.utils.helpers import in_debug_mode, is_none_or_empty
+from khoj.utils.helpers import get_chat_usage_metrics, in_debug_mode, is_none_or_empty
 
 logger = logging.getLogger(__name__)
 
@@ -68,12 +68,18 @@ def gemini_completion_with_backoff(
         response = chat_session.send_message(formatted_messages[-1]["parts"])
         response_text = response.text
     except StopCandidateException as e:
+        response = None
         response_text, _ = handle_gemini_response(e.args)
         # Respond with reason for stopping
         logger.warning(
             f"LLM Response Prevented for {model_name}: {response_text}.\n"
             + f"Last Message by {messages[-1].role}: {messages[-1].content}"
         )
+
+    # Aggregate cost of chat
+    input_tokens = response.usage_metadata.prompt_token_count if response else 0
+    output_tokens = response.usage_metadata.candidates_token_count if response else 0
+    tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, tracer.get("usage"))
 
     # Save conversation trace
     tracer["chat_model"] = model_name
@@ -145,6 +151,11 @@ def gemini_llm_thread(
             g.send(message)
             if stopped:
                 raise StopCandidateException(message)
+
+        # Calculate cost of chat
+        input_tokens = chunk.usage_metadata.prompt_token_count
+        output_tokens = chunk.usage_metadata.candidates_token_count
+        tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, tracer.get("usage"))
 
         # Save conversation trace
         tracer["chat_model"] = model_name

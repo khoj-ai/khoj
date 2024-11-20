@@ -5,7 +5,6 @@ import math
 import mimetypes
 import os
 import queue
-import re
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
@@ -57,7 +56,7 @@ model_to_prompt_size = {
     "gemini-1.5-flash": 20000,
     "gemini-1.5-pro": 20000,
     # Anthropic Models
-    "claude-3-5-sonnet-20240620": 20000,
+    "claude-3-5-sonnet-20241022": 20000,
     "claude-3-5-haiku-20241022": 20000,
     # Offline Models
     "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF": 20000,
@@ -213,6 +212,8 @@ class ChatEvent(Enum):
     REFERENCES = "references"
     STATUS = "status"
     METADATA = "metadata"
+    USAGE = "usage"
+    END_RESPONSE = "end_response"
 
 
 def message_to_log(

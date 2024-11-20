@@ -1,9 +1,10 @@
-name: Run Khoj Evals
+name: eval
 
 on:
-  # Run on every releases
-  release:
-    types: [published]
+  # Run on every release
+  push:
+    tags:
+      - "*"
   # Allow manual triggers from GitHub UI
   workflow_dispatch:
     inputs:
@@ -82,7 +83,7 @@ jobs:
           sed -i 's/dynamic = \["version"\]/version = "${{ steps.hatch.outputs.version }}"/' pyproject.toml
           pip install --upgrade .[dev]
 
-      - name: 📝 Run Evals
+      - name: 📝 Run Eval
         env:
           KHOJ_MODE: ${{ matrix.khoj_mode }}
           SAMPLE_SIZE: ${{ inputs.sample_size }}

@@ -1770,6 +1770,7 @@ Manage your automations [here](/automations).
 class MessageProcessor:
     def __init__(self):
         self.references = {}
+        self.usage = {}
         self.raw_response = ""
 
     def convert_message_chunk_to_json(self, raw_chunk: str) -> Dict[str, Any]:
@@ -1793,6 +1794,8 @@ class MessageProcessor:
         chunk_type = ChatEvent(chunk["type"])
         if chunk_type == ChatEvent.REFERENCES:
             self.references = chunk["data"]
+        elif chunk_type == ChatEvent.USAGE:
+            self.usage = chunk["data"]
         elif chunk_type == ChatEvent.MESSAGE:
             chunk_data = chunk["data"]
             if isinstance(chunk_data, dict):
@@ -1837,7 +1840,7 @@ async def read_chat_stream(response_iterator: AsyncGenerator[str, None]) -> Dict
     if buffer:
         processor.process_message_chunk(buffer)
 
-    return {"response": processor.raw_response, "references": processor.references}
+    return {"response": processor.raw_response, "references": processor.references, "usage": processor.usage}
 
 
 def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False):
