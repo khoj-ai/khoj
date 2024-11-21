@@ -89,7 +89,7 @@ async def login_magic_link(request: Request, form: MagicLinkForm):
             update_telemetry_state(
                 request=request,
                 telemetry_type="api",
-                api="create_user",
+                api="create_user__email",
                 metadata={"server_id": str(user.uuid)},
             )
             logger.log(logging.INFO, f"🥳 New User Created: {user.uuid}")
@@ -174,7 +174,7 @@ async def auth(request: Request):
             update_telemetry_state(
                 request=request,
                 telemetry_type="api",
-                api="create_user",
+                api="create_user__google",
                 metadata={"server_id": str(khoj_user.uuid)},
             )
             logger.log(logging.INFO, f"🥳 New User Created: {khoj_user.uuid}")
