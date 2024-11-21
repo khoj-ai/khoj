@@ -40,6 +40,8 @@ def cli(args=None):
         type=pathlib.Path,
         help="Path to UNIX socket for server. Use to run server behind reverse proxy. Default: /tmp/uvicorn.sock",
     )
+    parser.add_argument("--sslcert", type=str, help="Path to SSL certificate file")
+    parser.add_argument("--sslkey", type=str, help="Path to SSL key file")
     parser.add_argument("--version", "-V", action="store_true", help="Print the installed Khoj version and exit")
     parser.add_argument(
         "--disable-chat-on-gpu", action="store_true", default=False, help="Disable using GPU for the offline chat model"

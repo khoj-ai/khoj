@@ -208,6 +208,9 @@ def set_state(args):
     state.verbose = args.verbose
     state.host = args.host
     state.port = args.port
+    state.ssl_config = (
+        {"ssl_certfile": args.sslcert, "ssl_keyfile": args.sslkey} if args.sslcert and args.sslkey else None
+    )
     state.anonymous_mode = args.anonymous_mode
     state.khoj_version = version("khoj")
     state.chat_on_gpu = args.chat_on_gpu
@@ -226,6 +229,7 @@ def start_server(app, host=None, port=None, socket=None):
             use_colors=True,
             log_config=None,
             timeout_keep_alive=60,
+            **state.ssl_config if state.ssl_config else {},
         )
     logger.info("🌒 Stopping Khoj")
 

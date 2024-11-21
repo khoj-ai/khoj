@@ -27,6 +27,7 @@ config_file: Path = None
 verbose: int = 0
 host: str = None
 port: int = None
+ssl_config: Dict[str, str] = None
 cli_args: List[str] = None
 query_cache: Dict[str, LRU] = defaultdict(LRU)
 chat_lock = threading.Lock()
