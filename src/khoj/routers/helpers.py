@@ -826,7 +826,7 @@ async def generate_excalidraw_diagram_from_description(
     user: KhojUser = None,
     agent: Agent = None,
     tracer: dict = {},
-) -> str:
+) -> Dict[str, Any]:
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
     )
