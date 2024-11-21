@@ -753,7 +753,11 @@ async def generate_excalidraw_diagram(
         yield None, None
         return
 
-    yield better_diagram_description_prompt, excalidraw_diagram_description
+    scratchpad = excalidraw_diagram_description.get("scratchpad")
+
+    inferred_queries = f"Instruction: {better_diagram_description_prompt}\n\nScratchpad: {scratchpad}"
+
+    yield inferred_queries, excalidraw_diagram_description.get("elements")
 
 
 async def generate_better_diagram_description(
@@ -838,10 +842,18 @@ async def generate_excalidraw_diagram_from_description(
         )
         raw_response = clean_json(raw_response)
         try:
+            # Expect response to have `elements` and `scratchpad` keys
             response: Dict[str, str] = json.loads(raw_response)
+            if (
+                not response
+                or not isinstance(response, Dict)
+                or not response.get("elements")
+                or not response.get("scratchpad")
+            ):
+                raise AssertionError(f"Invalid response for generating Excalidraw diagram: {response}")
         except Exception:
             raise AssertionError(f"Invalid response for generating Excalidraw diagram: {raw_response}")
-        if not response or not isinstance(response, List) or not isinstance(response[0], Dict):
+        if not response or not isinstance(response["elements"], List) or not isinstance(response["elements"][0], Dict):
             # TODO Some additional validation here that it's a valid Excalidraw diagram
             raise AssertionError(f"Invalid response for improving diagram description: {response}")
 

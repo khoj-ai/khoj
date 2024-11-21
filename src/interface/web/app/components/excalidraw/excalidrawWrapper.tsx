@@ -58,7 +58,7 @@ export default function ExcalidrawWrapper(props: ExcalidrawWrapperProps) {
 
         for (const element of props.data) {
             if (isValidExcalidrawElement(element as ExcalidrawElementSkeleton)) {
-                basicValidSkeletons.push(element as ExcalidrawElementSkeleton);
+                basicValidSkeletons.push(element);
             }
         }
 
@@ -68,11 +68,22 @@ export default function ExcalidrawWrapper(props: ExcalidrawWrapperProps) {
                 continue;
             }
             if (element.type === "arrow") {
-                const start = basicValidSkeletons.find((child) => child.id === element.start?.id);
-                const end = basicValidSkeletons.find((child) => child.id === element.end?.id);
-                if (start && end) {
-                    validSkeletons.push(element);
+                if (element.start) {
+                    const start = basicValidSkeletons.find(
+                        (child) => child.id === element.start?.id,
+                    );
+                    if (!start) {
+                        continue;
+                    }
                 }
+                if (element.end) {
+                    const end = basicValidSkeletons.find((child) => child.id === element.end?.id);
+                    if (!end) {
+                        continue;
+                    }
+                }
+
+                validSkeletons.push(element);
             } else {
                 validSkeletons.push(element);
             }
