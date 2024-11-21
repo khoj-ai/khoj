@@ -20,7 +20,11 @@ from khoj.processor.conversation.utils import (
     commit_conversation_trace,
 )
 from khoj.utils import state
-from khoj.utils.helpers import get_chat_usage_metrics, in_debug_mode
+from khoj.utils.helpers import (
+    get_chat_usage_metrics,
+    in_debug_mode,
+    is_promptrace_enabled,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +101,7 @@ def completion_with_backoff(
     # Save conversation trace
     tracer["chat_model"] = model
     tracer["temperature"] = temperature
-    if in_debug_mode() or state.verbose > 1:
+    if is_promptrace_enabled():
         commit_conversation_trace(messages, aggregated_response, tracer)
 
     return aggregated_response
@@ -208,7 +212,7 @@ def llm_thread(
         # Save conversation trace
         tracer["chat_model"] = model_name
         tracer["temperature"] = temperature
-        if in_debug_mode() or state.verbose > 1:
+        if is_promptrace_enabled():
             commit_conversation_trace(messages, aggregated_response, tracer)
     except Exception as e:
         logger.error(f"Error in llm_thread: {e}", exc_info=True)

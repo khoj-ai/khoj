@@ -34,6 +34,7 @@ from khoj.utils.helpers import (
     ConversationCommand,
     in_debug_mode,
     is_none_or_empty,
+    is_promptrace_enabled,
     merge_dicts,
 )
 from khoj.utils.rawconfig import FileAttachment
@@ -292,7 +293,7 @@ def save_to_conversation_log(
         user_message=q,
     )
 
-    if os.getenv("PROMPTRACE_DIR"):
+    if is_promptrace_enabled():
         merge_message_into_conversation_trace(q, chat_response, tracer)
 
     logger.info(
@@ -591,7 +592,7 @@ def commit_conversation_trace(
         return None
 
     # Infer repository path from environment variable or provided path
-    repo_path = repo_path or os.getenv("PROMPTRACE_DIR")
+    repo_path = repo_path if not is_none_or_empty(repo_path) else os.getenv("PROMPTRACE_DIR")
     if not repo_path:
         return None
 
@@ -686,7 +687,7 @@ Metadata
         return None
 
 
-def merge_message_into_conversation_trace(query: str, response: str, tracer: dict, repo_path="/tmp/promptrace") -> bool:
+def merge_message_into_conversation_trace(query: str, response: str, tracer: dict, repo_path=None) -> bool:
     """
     Merge the message branch into its parent conversation branch.
 
@@ -709,7 +710,9 @@ def merge_message_into_conversation_trace(query: str, response: str, tracer: dic
         conv_branch = f"c_{tracer['cid']}"
 
         # Infer repository path from environment variable or provided path
-        repo_path = os.getenv("PROMPTRACE_DIR", repo_path)
+        repo_path = repo_path if not is_none_or_empty(repo_path) else os.getenv("PROMPTRACE_DIR")
+        if not repo_path:
+            return None
         repo = Repo(repo_path)
 
         # Checkout conversation branch

@@ -451,6 +451,12 @@ def in_debug_mode():
     return is_env_var_true("KHOJ_DEBUG")
 
 
+def is_promptrace_enabled():
+    """Check if Khoj is running with prompt tracing enabled.
+    Set PROMPTRACE_DIR environment variable to prompt tracing path to enable it."""
+    return not is_none_or_empty(os.getenv("PROMPTRACE_DIR"))
+
+
 def is_valid_url(url: str) -> bool:
     """Check if a string is a valid URL"""
     try:

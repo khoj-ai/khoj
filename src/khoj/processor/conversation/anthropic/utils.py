@@ -18,7 +18,12 @@ from khoj.processor.conversation.utils import (
     get_image_from_url,
 )
 from khoj.utils import state
-from khoj.utils.helpers import get_chat_usage_metrics, in_debug_mode, is_none_or_empty
+from khoj.utils.helpers import (
+    get_chat_usage_metrics,
+    in_debug_mode,
+    is_none_or_empty,
+    is_promptrace_enabled,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +89,7 @@ def anthropic_completion_with_backoff(
     # Save conversation trace
     tracer["chat_model"] = model_name
     tracer["temperature"] = temperature
-    if in_debug_mode() or state.verbose > 1:
+    if is_promptrace_enabled():
         commit_conversation_trace(messages, aggregated_response, tracer)
 
     return aggregated_response
@@ -156,7 +161,7 @@ def anthropic_llm_thread(
         # Save conversation trace
         tracer["chat_model"] = model_name
         tracer["temperature"] = temperature
-        if in_debug_mode() or state.verbose > 1:
+        if is_promptrace_enabled():
             commit_conversation_trace(messages, aggregated_response, tracer)
     except Exception as e:
         logger.error(f"Error in anthropic_llm_thread: {e}", exc_info=True)
