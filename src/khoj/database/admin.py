@@ -1,5 +1,6 @@
 import csv
 import json
+from datetime import date, datetime, timedelta, timezone
 
 from apscheduler.job import Job
 from django.contrib import admin, messages
@@ -65,6 +66,38 @@ admin.site.register(DjangoJob, KhojDjangoJobAdmin)
 
 
 class KhojUserAdmin(UserAdmin):
+    class DateJoinedAfterFilter(admin.SimpleListFilter):
+        title = "Joined after"
+        parameter_name = "joined_after"
+
+        def lookups(self, request, model_admin):
+            return (
+                ("1d", "Last 24 hours"),
+                ("7d", "Last 7 days"),
+                ("30d", "Last 30 days"),
+                ("90d", "Last 90 days"),
+            )
+
+        def queryset(self, request, queryset):
+            if self.value():
+                days = int(self.value().rstrip("d"))
+                date_threshold = datetime.now() - timedelta(days=days)
+                return queryset.filter(date_joined__gte=date_threshold)
+            return queryset
+
+    class HasGoogleAuthFilter(admin.SimpleListFilter):
+        title = "Has Google Auth"
+        parameter_name = "has_google_auth"
+
+        def lookups(self, request, model_admin):
+            return (("True", "True"), ("False", "False"))
+
+        def queryset(self, request, queryset):
+            if self.value() == "True":
+                return queryset.filter(googleuser__isnull=False)
+            if self.value() == "False":
+                return queryset.filter(googleuser__isnull=True)
+
     list_display = (
         "id",
         "email",
@@ -77,6 +110,12 @@ class KhojUserAdmin(UserAdmin):
     )
     search_fields = ("email", "username", "phone_number", "uuid")
     filter_horizontal = ("groups", "user_permissions")
+
+    list_filter = (
+        HasGoogleAuthFilter,
+        DateJoinedAfterFilter,
+        "verified_email",
+    ) + UserAdmin.list_filter
 
     fieldsets = (
         (
