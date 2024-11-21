@@ -749,9 +749,20 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                             <FormItem className="space-y-1 grid gap-2">
                                 <FormLabel>Chat Model</FormLabel>
                                 <FormDescription>
-                                    Which large language model should this agent use?
+                                    {!props.isSubscribed ? (
+                                        <p className="text-secondary-foreground">
+                                            Upgrade to the <a href="/settings">Futurist plan</a> to
+                                            access all models.
+                                        </p>
+                                    ) : (
+                                        <p>Which chat model would you like to use?</p>
+                                    )}
                                 </FormDescription>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select
+                                    onValueChange={field.onChange}
+                                    defaultValue={field.value}
+                                    disabled={!props.isSubscribed}
+                                >
                                     <FormControl>
                                         <SelectTrigger className="text-left">
                                             <SelectValue />
@@ -841,7 +852,6 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                         render={({ field }) => (
                             <FormItem className="space-y-3">
                                 <FormLabel>Color</FormLabel>
-                                <FormDescription>Choose a color for your agent.</FormDescription>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
                                         <SelectTrigger className="w-[200px]">
@@ -876,7 +886,6 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                         render={({ field }) => (
                             <FormItem className="space-y-3">
                                 <FormLabel>Icon</FormLabel>
-                                <FormDescription>Choose an icon for your agent.</FormDescription>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
                                         <SelectTrigger className="w-[200px]">
