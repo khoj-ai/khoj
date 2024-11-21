@@ -24,6 +24,7 @@ from khoj.utils.helpers import (
     in_debug_mode,
     is_none_or_empty,
     is_promptrace_enabled,
+    truncate_code_context,
 )
 from khoj.utils.rawconfig import LocationData
 from khoj.utils.yaml import yaml_dump
@@ -211,7 +212,9 @@ def converse_offline(
 
         context_message += f"{prompts.online_search_conversation_offline.format(online_results=yaml_dump(simplified_online_results))}\n\n"
     if ConversationCommand.Code in conversation_commands and not is_none_or_empty(code_results):
-        context_message += f"{prompts.code_executed_context.format(code_results=str(code_results))}\n\n"
+        context_message += (
+            f"{prompts.code_executed_context.format(code_results=truncate_code_context(code_results))}\n\n"
+        )
     context_message = context_message.strip()
 
     # Setup Prompt with Primer or Conversation History
