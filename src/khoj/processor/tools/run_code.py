@@ -1,5 +1,4 @@
 import base64
-import copy
 import datetime
 import json
 import logging
@@ -20,7 +19,7 @@ from khoj.processor.conversation.utils import (
     construct_chat_history,
 )
 from khoj.routers.helpers import send_message_to_model_wrapper
-from khoj.utils.helpers import is_none_or_empty, timer
+from khoj.utils.helpers import is_none_or_empty, timer, truncate_code_context
 from khoj.utils.rawconfig import LocationData
 
 logger = logging.getLogger(__name__)
@@ -180,26 +179,3 @@ async def execute_sandboxed_python(code: str, input_data: list[dict], sandbox_ur
                     "std_err": f"Failed to execute code with {response.status}",
                     "output_files": [],
                 }
-
-
-def truncate_code_context(original_code_results: dict[str, Any], max_chars=10000) -> dict[str, Any]:
-    """
-    Truncate large output files and drop image file data from code results.
-    """
-    # Create a deep copy of the code results to avoid modifying the original data
-    code_results = copy.deepcopy(original_code_results)
-    for code_result in code_results.values():
-        for idx, output_file in enumerate(code_result["results"]["output_files"]):
-            # Drop image files from code results
-            if Path(output_file["filename"]).suffix in {".png", ".jpg", ".jpeg", ".webp"}:
-                code_result["results"]["output_files"][idx] = {
-                    "filename": output_file["filename"],
-                    "b64_data": "[placeholder for generated image data for brevity]",
-                }
-            # Truncate large output files
-            elif len(output_file["b64_data"]) > max_chars:
-                code_result["results"]["output_files"][idx] = {
-                    "filename": output_file["filename"],
-                    "b64_data": output_file["b64_data"][:max_chars] + "...",
-                }
-    return code_results

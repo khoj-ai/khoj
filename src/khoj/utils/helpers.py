@@ -1,5 +1,6 @@
 from __future__ import annotations  # to avoid quoting type hints
 
+import copy
 import datetime
 import io
 import ipaddress
@@ -18,7 +19,7 @@ from itertools import islice
 from os import path
 from pathlib import Path
 from time import perf_counter
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 from urllib.parse import urlparse
 
 import psutil
@@ -525,6 +526,29 @@ def convert_image_to_webp(image_bytes):
         webp_image_bytes = webp_image_io.getvalue()
         webp_image_io.close()
         return webp_image_bytes
+
+
+def truncate_code_context(original_code_results: dict[str, Any], max_chars=10000) -> dict[str, Any]:
+    """
+    Truncate large output files and drop image file data from code results.
+    """
+    # Create a deep copy of the code results to avoid modifying the original data
+    code_results = copy.deepcopy(original_code_results)
+    for code_result in code_results.values():
+        for idx, output_file in enumerate(code_result["results"]["output_files"]):
+            # Drop image files from code results
+            if Path(output_file["filename"]).suffix in {".png", ".jpg", ".jpeg", ".webp"}:
+                code_result["results"]["output_files"][idx] = {
+                    "filename": output_file["filename"],
+                    "b64_data": "[placeholder for generated image data for brevity]",
+                }
+            # Truncate large output files
+            elif len(output_file["b64_data"]) > max_chars:
+                code_result["results"]["output_files"][idx] = {
+                    "filename": output_file["filename"],
+                    "b64_data": output_file["b64_data"][:max_chars] + "...",
+                }
+    return code_results
 
 
 @lru_cache
