@@ -345,7 +345,7 @@ async def set_user_subscription(
     user_subscription.type = type
     if is_recurring is not None:
         user_subscription.is_recurring = is_recurring
-    if renewal_date is False:
+    if renewal_date is None:
         user_subscription.renewal_date = None
     elif renewal_date is not None:
         user_subscription.renewal_date = renewal_date

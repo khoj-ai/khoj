@@ -67,7 +67,7 @@ async def subscribe(request: Request):
     elif event_type in {"customer.subscription.updated"}:
         user_subscription = await sync_to_async(adapters.get_user_subscription)(customer_email)
 
-        renewal_date = False
+        renewal_date = None
         if subscription["current_period_end"]:
             renewal_date = datetime.fromtimestamp(subscription["current_period_end"], tz=timezone.utc)
 
@@ -82,7 +82,7 @@ async def subscribe(request: Request):
     elif event_type in {"customer.subscription.deleted"}:
         # Reset the user to trial state
         user, is_new = await adapters.set_user_subscription(
-            customer_email, is_recurring=False, renewal_date=False, type=Subscription.Type.TRIAL
+            customer_email, is_recurring=False, renewal_date=None, type=Subscription.Type.TRIAL
         )
         success = user is not None
 
