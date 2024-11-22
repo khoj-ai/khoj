@@ -2,7 +2,8 @@
 
 import styles from "./sidePanel.module.css";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRef } from "react";
 
 import { mutate } from "swr";
 
@@ -57,12 +58,16 @@ import {
     UserCirclePlus,
     Sidebar,
     NotePencil,
+    FunnelSimple,
+    MagnifyingGlass,
 } from "@phosphor-icons/react";
 
 interface ChatHistory {
     conversation_id: string;
     slug: string;
     agent_name: string;
+    agent_icon: string;
+    agent_color: string;
     compressed: boolean;
     created: string;
     updated: string;
@@ -71,8 +76,11 @@ interface ChatHistory {
 
 import {
     DropdownMenu,
+    DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -96,6 +104,8 @@ import { modifyFileFilterForConversation } from "@/app/common/chatFunctions";
 import { ScrollAreaScrollbar } from "@radix-ui/react-scroll-area";
 import { KhojLogoType } from "@/app/components/logo/khojLogo";
 import NavMenu from "@/app/components/navMenu/navMenu";
+import { getIconFromIconName } from "@/app/common/iconUtils";
+import AgentProfileCard from "../profileCard/profileCard";
 
 // Define a fetcher function
 const fetcher = (url: string) =>
@@ -407,6 +417,12 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
     return (
         <>
             <div>
+                {props.data && props.data.length > 5 && (
+                    <ChatSessionsModal
+                        data={props.organizedData}
+                        showSidePanel={props.setEnabled}
+                    />
+                )}
                 <ScrollArea>
                     <ScrollAreaScrollbar
                         orientation="vertical"
@@ -436,6 +452,8 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                                                         }
                                                         slug={chatHistory.slug}
                                                         agent_name={chatHistory.agent_name}
+                                                        agent_color={chatHistory.agent_color}
+                                                        agent_icon={chatHistory.agent_icon}
                                                         showSidePanel={props.setEnabled}
                                                     />
                                                 ),
@@ -444,12 +462,6 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                                 ))}
                     </div>
                 </ScrollArea>
-                {props.data && props.data.length > 5 && (
-                    <ChatSessionsModal
-                        data={props.organizedData}
-                        showSidePanel={props.setEnabled}
-                    />
-                )}
             </div>
             <FilesMenu
                 conversationId={props.conversationId}
@@ -683,28 +695,150 @@ interface ChatSessionsModalProps {
     showSidePanel: (isEnabled: boolean) => void;
 }
 
+interface AgentStyle {
+    color: string;
+    icon: string;
+}
+
 function ChatSessionsModal({ data, showSidePanel }: ChatSessionsModalProps) {
+    const [agentsFilter, setAgentsFilter] = useState<string[]>([]);
+    const [agentOptions, setAgentOptions] = useState<string[]>([]);
+    const [searchQuery, setSearchQuery] = useState<string>("");
+
+    const [agentNameToStyleMap, setAgentNameToStyleMap] = useState<Record<string, AgentStyle>>({});
+
+    useEffect(() => {
+        if (data) {
+            const agents: string[] = [];
+            let agentNameToStyleMapLocal: Record<string, AgentStyle> = {};
+            Object.keys(data).forEach((timeGrouping) => {
+                data[timeGrouping].forEach((chatHistory) => {
+                    if (!agents.includes(chatHistory.agent_name) && chatHistory.agent_name) {
+                        agents.push(chatHistory.agent_name);
+
+                        agentNameToStyleMapLocal = {
+                            ...agentNameToStyleMapLocal,
+                            [chatHistory.agent_name]: {
+                                color: chatHistory.agent_color,
+                                icon: chatHistory.agent_icon,
+                            },
+                        };
+                    }
+                });
+            });
+            console.log(agentNameToStyleMapLocal);
+            setAgentNameToStyleMap(agentNameToStyleMapLocal);
+            setAgentOptions(agents);
+        }
+    }, [data]);
+
+    // Memoize the filtered results
+    const filteredData = useMemo(() => {
+        if (!data) return null;
+
+        // Early return if no filters active
+        if (agentsFilter.length === 0 && searchQuery.length === 0) {
+            return data;
+        }
+
+        const filtered: GroupedChatHistory = {};
+        const agentSet = new Set(agentsFilter);
+        const searchLower = searchQuery.toLowerCase();
+
+        for (const timeGrouping in data) {
+            const matches = data[timeGrouping].filter((chatHistory) => {
+                // Early return for agent filter
+                if (agentsFilter.length > 0 && !agentSet.has(chatHistory.agent_name)) {
+                    return false;
+                }
+
+                // Early return for search query
+                if (searchQuery && !chatHistory.slug?.toLowerCase().includes(searchLower)) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            if (matches.length > 0) {
+                filtered[timeGrouping] = matches;
+            }
+        }
+
+        return filtered;
+    }, [data, agentsFilter, searchQuery]);
+
     return (
         <Dialog>
-            <DialogTrigger className="flex text-left text-medium text-gray-500 hover:text-gray-300 cursor-pointer my-4 text-sm p-[0.5rem]">
-                <span className="mr-2">
-                    See All <ArrowRight className="inline h-4 w-4" weight="bold" />
+            <DialogTrigger className="flex text-left text-medium text-gray-500 hover:text-gray-300 cursor-pointer my-1 text-sm p-[0.1rem]">
+                <span className="flex items-center gap-1">
+                    <MagnifyingGlass className="inline h-4 w-4 mr-1" weight="bold" /> Find
+                    Conversation
                 </span>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>All Conversations</DialogTitle>
                     <DialogDescription className="p-0">
+                        <div className="flex flex-row justify-between mt-2 gap-2">
+                            <Input
+                                value={searchQuery}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                }}
+                                placeholder="Search conversations"
+                            />
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        className={`p-0 px-1 ${agentsFilter.length > 0 ? "bg-muted text-muted-foreground" : "bg-inherit"} `}
+                                    >
+                                        <FunnelSimple />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    {/* <ScrollArea className="h-[200px]"> */}
+                                    <DropdownMenuLabel>Agents</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {agentOptions.map((agent) => (
+                                        <DropdownMenuCheckboxItem
+                                            key={agent}
+                                            onSelect={(e) => e.preventDefault()}
+                                            checked={agentsFilter.includes(agent)}
+                                            onCheckedChange={(checked) => {
+                                                if (checked) {
+                                                    setAgentsFilter([...agentsFilter, agent]);
+                                                } else {
+                                                    setAgentsFilter(
+                                                        agentsFilter.filter((a) => a !== agent),
+                                                    );
+                                                }
+                                            }}
+                                        >
+                                            <div className="flex items-center justify-center px-1">
+                                                {getIconFromIconName(
+                                                    agentNameToStyleMap[agent]?.icon,
+                                                    agentNameToStyleMap[agent]?.color,
+                                                )}
+                                                <div className="break-words">{agent}</div>
+                                            </div>
+                                        </DropdownMenuCheckboxItem>
+                                    ))}
+                                    {/* </ScrollArea> */}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
                         <ScrollArea className="h-[500px] py-4">
-                            {data &&
-                                Object.keys(data).map((timeGrouping) => (
+                            {filteredData &&
+                                Object.keys(filteredData).map((timeGrouping) => (
                                     <div key={timeGrouping}>
                                         <div
                                             className={`text-muted-foreground text-sm font-bold p-[0.5rem] `}
                                         >
                                             {timeGrouping}
                                         </div>
-                                        {data[timeGrouping].map((chatHistory) => (
+                                        {filteredData[timeGrouping].map((chatHistory) => (
                                             <ChatSession
                                                 updated={chatHistory.updated}
                                                 created={chatHistory.created}
@@ -713,6 +847,8 @@ function ChatSessionsModal({ data, showSidePanel }: ChatSessionsModalProps) {
                                                 conversation_id={chatHistory.conversation_id}
                                                 slug={chatHistory.slug}
                                                 agent_name={chatHistory.agent_name}
+                                                agent_color={chatHistory.agent_color}
+                                                agent_icon={chatHistory.agent_icon}
                                                 showSidePanel={showSidePanel}
                                             />
                                         ))}

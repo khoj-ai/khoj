@@ -432,7 +432,15 @@ def chat_sessions(
         conversations = conversations[:8]
 
     sessions = conversations.values_list(
-        "id", "slug", "title", "agent__slug", "agent__name", "created_at", "updated_at"
+        "id",
+        "slug",
+        "title",
+        "agent__slug",
+        "agent__name",
+        "created_at",
+        "updated_at",
+        "agent__style_icon",
+        "agent__style_color",
     )
 
     session_values = [
@@ -442,6 +450,8 @@ def chat_sessions(
             "agent_name": session[4],
             "created": session[5].strftime("%Y-%m-%d %H:%M:%S"),
             "updated": session[6].strftime("%Y-%m-%d %H:%M:%S"),
+            "agent_icon": session[7],
+            "agent_color": session[8],
         }
         for session in sessions
     ]
