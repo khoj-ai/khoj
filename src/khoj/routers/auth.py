@@ -4,6 +4,7 @@ import logging
 import os
 from typing import Optional
 
+import requests
 from fastapi import APIRouter
 from pydantic import BaseModel, EmailStr
 from starlette.authentication import requires
@@ -139,26 +140,40 @@ async def delete_token(request: Request, token: str):
     return await delete_khoj_token(user=request.user.object, token=token)
 
 
-@auth_router.post("/redirect")
+@auth_router.get("/redirect")
 async def auth(request: Request):
-    form = await request.form()
     next_url = get_next_url(request)
     for q in request.query_params:
+        if q in ["code", "state", "scope", "authuser", "prompt", "session_state", "access_type"]:
+            continue
         if not q == "next":
             next_url += f"&{q}={request.query_params[q]}"
 
-    credential = form.get("credential")
+    code = request.query_params.get("code")
 
-    csrf_token_cookie = request.cookies.get("g_csrf_token")
-    if not csrf_token_cookie:
-        logger.info("Missing CSRF token. Redirecting user to login page")
-        return RedirectResponse(url=next_url)
-    csrf_token_body = form.get("g_csrf_token")
-    if not csrf_token_body:
-        logger.info("Missing CSRF token body. Redirecting user to login page")
-        return RedirectResponse(url=next_url)
-    if csrf_token_cookie != csrf_token_body:
-        return Response("Invalid CSRF token", status_code=400)
+    # 1. Construct the full redirect URI including domain
+    base_url = str(request.base_url).rstrip("/")
+    redirect_uri = f"{base_url}{request.app.url_path_for('auth')}"
+
+    verified_data = requests.post(
+        "https://oauth2.googleapis.com/token",
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        data={
+            "code": code,
+            "client_id": os.environ["GOOGLE_CLIENT_ID"],
+            "client_secret": os.environ["GOOGLE_CLIENT_SECRET"],
+            "redirect_uri": redirect_uri,
+            "grant_type": "authorization_code",
+        },
+    )
+
+    verified_data.raise_for_status()
+
+    credential = verified_data.json().get("id_token")
+
+    if not credential:
+        logger.error("Missing id_token in OAuth response")
+        return RedirectResponse(url="/login?error=invalid_token", status_code=HTTP_302_FOUND)
 
     try:
         idinfo = id_token.verify_oauth2_token(credential, google_requests.Request(), os.environ["GOOGLE_CLIENT_ID"])
@@ -178,7 +193,6 @@ async def auth(request: Request):
                 metadata={"server_id": str(khoj_user.uuid)},
             )
             logger.log(logging.INFO, f"🥳 New User Created: {khoj_user.uuid}")
-            return RedirectResponse(url=next_url, status_code=HTTP_302_FOUND)
 
     return RedirectResponse(url=next_url, status_code=HTTP_302_FOUND)
 
@@ -187,3 +201,15 @@ async def auth(request: Request):
 async def logout(request: Request):
     request.session.pop("user", None)
     return RedirectResponse(url="/")
+
+
+@auth_router.get("/oauth/metadata")
+async def oauth_metadata(request: Request):
+    redirect_uri = str(request.app.url_path_for("auth"))
+
+    return {
+        "google": {
+            "client_id": os.environ.get("GOOGLE_CLIENT_ID"),
+            "redirect_uri": f"{redirect_uri}",
+        }
+    }
