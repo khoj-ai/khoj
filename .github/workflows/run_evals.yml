@@ -89,7 +89,7 @@ jobs:
       - name: 📝 Run Eval
         env:
           KHOJ_MODE: ${{ matrix.khoj_mode }}
-          SAMPLE_SIZE: ${{ inputs.sample_size }}
+          SAMPLE_SIZE: ${{ github.event_name == 'workflow_dispatch' && inputs.sample_size || 200 }}
           BATCH_SIZE: "20"
           RANDOMIZE: "True"
           KHOJ_URL: "http://localhost:42110"
