@@ -26,6 +26,7 @@ WORKDIR /app
 COPY pyproject.toml .
 COPY README.md .
 ARG VERSION=0.0.0
+ENV PIP_EXTRA_INDEX_URL=https://abetlen.github.io/llama-cpp-python/whl/cpu
 RUN sed -i "s/dynamic = \\[\"version\"\\]/version = \"$VERSION\"/" pyproject.toml && \
     pip install --no-cache-dir -e .[prod]
 
