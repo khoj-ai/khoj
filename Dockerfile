@@ -10,6 +10,8 @@ RUN apt update -y && apt -y install \
     python3-pip \
     swig \
     curl \
+    # Required by llama-cpp-python pre-built wheels. See #1628
+    musl-dev \
     # Required by RapidOCR
     libgl1 \
     libglx-mesa0 \
@@ -19,7 +21,9 @@ RUN apt update -y && apt -y install \
     curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
     echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
     apt update -y && apt -y --no-install-recommends install nodejs yarn && \
-    apt clean && rm -rf /var/lib/apt/lists/*
+    apt clean && rm -rf /var/lib/apt/lists/* && \
+    # Required by llama-cpp-python pre-built wheels. See #1628
+    ln -s /usr/lib/x86_64-linux-musl/libc.so /lib/libc.musl-x86_64.so.1
 
 # Install Application
 WORKDIR /app
