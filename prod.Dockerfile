@@ -14,12 +14,16 @@ RUN apt update -y && apt -y install \
     libxext6 \
     swig \
     curl && \
+    # Required by llama-cpp-python pre-built wheels. See #1628
+    musl-dev \
     # Required by Next.js Web app
     curl -sL https://deb.nodesource.com/setup_20.x | bash - && \
     curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
     echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
     apt update -y && apt -y --no-install-recommends install nodejs yarn && \
-    apt clean && rm -rf /var/lib/apt/lists/*
+    apt clean && rm -rf /var/lib/apt/lists/* && \
+    # Required by llama-cpp-python pre-built wheels. See #1628
+    ln -s /usr/lib/x86_64-linux-musl/libc.so /lib/libc.musl-x86_64.so.1
 
 # Install Application
 WORKDIR /app
@@ -38,7 +42,7 @@ ENV PYTHONPATH=/app/src:$PYTHONPATH
 
 # Go to the directory src/interface/web and export the built Next.js assets
 WORKDIR /app/src/interface/web
-RUN bash -c "yarn install --frozen-lockfile --verbose && yarn ciexport && yarn cache clean"
+RUN bash -c "yarn install --frozen-lockfile && yarn ciexport && yarn cache clean"
 WORKDIR /app
 
 # Run the Application
