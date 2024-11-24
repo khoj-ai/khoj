@@ -38,7 +38,7 @@ env:
 jobs:
   build:
     name: Publish Khoj Docker Images
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-linux-x64-high
     strategy:
       fail-fast: false
       matrix:
