@@ -726,7 +726,6 @@ function ChatSessionsModal({ data, showSidePanel }: ChatSessionsModalProps) {
                     }
                 });
             });
-            console.log(agentNameToStyleMapLocal);
             setAgentNameToStyleMap(agentNameToStyleMapLocal);
             setAgentOptions(agents);
         }
