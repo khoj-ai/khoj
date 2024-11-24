@@ -26,8 +26,10 @@ WORKDIR /app
 COPY pyproject.toml .
 COPY README.md .
 ARG VERSION=0.0.0
-# use the pre-built llama-cpp-python cpu wheel
-ENV PIP_EXTRA_INDEX_URL=https://abetlen.github.io/llama-cpp-python/whl/cpu
+# use the pre-built llama-cpp-python, torch cpu wheel
+ENV PIP_EXTRA_INDEX_URL="https://download.pytorch.org/whl/cpu https://abetlen.github.io/llama-cpp-python/whl/cpu"
+# avoid downloading unused cuda specific python packages
+ENV CUDA_VISIBLE_DEVICES=""
 RUN sed -i "s/dynamic = \\[\"version\"\\]/version = \"$VERSION\"/" pyproject.toml && \
     pip install --no-cache-dir .
 
