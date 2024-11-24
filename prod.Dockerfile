@@ -38,10 +38,13 @@ FROM node:20-alpine AS web-app
 # Set build optimization env vars
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-COPY src/interface/web /app/src/interface/web
 WORKDIR /app/src/interface/web
-RUN yarn install --frozen-lockfile && \
-    yarn build
+# Install dependencies first (cache layer)
+COPY src/interface/web/package.json src/interface/web/yarn.lock ./
+RUN yarn install --frozen-lockfile
+# Copy source and build
+COPY src/interface/web/. ./
+RUN yarn build
 
 # Merge the Server and Web App into a Single Image
 FROM base
