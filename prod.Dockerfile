@@ -13,9 +13,9 @@ RUN apt update -y && apt -y install \
     libsm6 \
     libxext6 \
     swig \
-    curl && \
+    curl \
     # Required by llama-cpp-python pre-built wheels. See #1628
-    musl-dev \
+    musl-dev && \
     # Required by Next.js Web app
     curl -sL https://deb.nodesource.com/setup_20.x | bash - && \
     curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
