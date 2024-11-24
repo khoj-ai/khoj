@@ -994,7 +994,7 @@ export default function Automations() {
     const [suggestedAutomations, setSuggestedAutomations] = useState<AutomationsData[]>([]);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
     const isMobileWidth = useIsMobileWidth();
-    const ipLocationData = useIPLocationData();
+    const { locationData, locationDataError, locationDataLoading } = useIPLocationData();
 
     useEffect(() => {
         if (newAutomationData) {
@@ -1044,18 +1044,18 @@ export default function Automations() {
                                     {authenticatedData.email}
                                 </span>
                             ) : null}
-                            {ipLocationData && (
+                            {locationData && (
                                 <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm">
                                     <MapPinSimple className="h-4 w-4 mr-2 inline text-purple-500" />
-                                    {ipLocationData
-                                        ? `${ipLocationData.city}, ${ipLocationData.country}`
+                                    {locationData
+                                        ? `${locationData.city}, ${locationData.country}`
                                         : "Unknown"}
                                 </span>
                             )}
-                            {ipLocationData && (
+                            {locationData && (
                                 <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm">
                                     <Clock className="h-4 w-4 mr-2 inline text-green-500" />
-                                    {ipLocationData ? `${ipLocationData.timezone}` : "Unknown"}
+                                    {locationData ? `${locationData.timezone}` : "Unknown"}
                                 </span>
                             )}
                         </div>
@@ -1086,7 +1086,7 @@ export default function Automations() {
                                 setNewAutomationData={setNewAutomationData}
                                 authenticatedData={authenticatedData}
                                 isCreating={isCreating}
-                                ipLocationData={ipLocationData}
+                                ipLocationData={locationData}
                             />
                         ) : (
                             <Button
@@ -1103,7 +1103,7 @@ export default function Automations() {
                         <SharedAutomationCard
                             isMobileWidth={isMobileWidth}
                             authenticatedData={authenticatedData}
-                            locationData={ipLocationData}
+                            locationData={locationData}
                             isLoggedIn={authenticatedData ? true : false}
                             setShowLoginPrompt={setShowLoginPrompt}
                             setNewAutomationData={setNewAutomationData}
@@ -1125,7 +1125,7 @@ export default function Automations() {
                                             setNewAutomationData={setNewAutomationData}
                                             authenticatedData={authenticatedData}
                                             isCreating={isCreating}
-                                            ipLocationData={ipLocationData}
+                                            ipLocationData={locationData}
                                         />
                                     ) : (
                                         <Button
@@ -1147,7 +1147,7 @@ export default function Automations() {
                                     key={automation.id}
                                     authenticatedData={authenticatedData}
                                     automation={automation}
-                                    locationData={ipLocationData}
+                                    locationData={locationData}
                                     isLoggedIn={authenticatedData ? true : false}
                                     setShowLoginPrompt={setShowLoginPrompt}
                                 />
@@ -1158,7 +1158,7 @@ export default function Automations() {
                                 key={automation.id}
                                 authenticatedData={authenticatedData}
                                 automation={automation}
-                                locationData={ipLocationData}
+                                locationData={locationData}
                                 isLoggedIn={authenticatedData ? true : false}
                                 setShowLoginPrompt={setShowLoginPrompt}
                             />
@@ -1173,7 +1173,7 @@ export default function Automations() {
                                 key={automation.id}
                                 authenticatedData={authenticatedData}
                                 automation={automation}
-                                locationData={ipLocationData}
+                                locationData={locationData}
                                 isLoggedIn={authenticatedData ? true : false}
                                 setShowLoginPrompt={setShowLoginPrompt}
                                 suggestedCard={true}

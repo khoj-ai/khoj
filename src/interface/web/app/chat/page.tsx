@@ -184,8 +184,10 @@ export default function Chat() {
         useState<AbortController | null>(null);
     const [triggeredAbort, setTriggeredAbort] = useState(false);
 
-    const locationData = useIPLocationData() || {
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    const { locationData, locationDataError, locationDataLoading } = useIPLocationData() || {
+        locationData: {
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
     };
     const authenticatedData = useAuthenticatedData();
     const isMobileWidth = useIsMobileWidth();
@@ -239,9 +241,13 @@ export default function Chat() {
 
     useEffect(() => {
         if (processQuerySignal) {
+            if (locationDataLoading) {
+                return;
+            }
+
             chat();
         }
-    }, [processQuerySignal]);
+    }, [processQuerySignal, locationDataLoading]);
 
     async function readChatStream(response: Response) {
         if (!response.ok) throw new Error(response.statusText);
