@@ -703,7 +703,7 @@ async def chat(
             chat_metadata["agent"] = conversation.agent.slug if conversation and conversation.agent else None
             chat_metadata["latency"] = f"{latency:.3f}"
             chat_metadata["ttft_latency"] = f"{ttft:.3f}"
-            chat_metadata["usage"] = tracer.get("usage")
+            chat_metadata["cost"] = f"{cost:.5f}"
 
             logger.info(f"Chat response time to first token: {ttft:.3f} seconds")
             logger.info(f"Chat response total time: {latency:.3f} seconds")
