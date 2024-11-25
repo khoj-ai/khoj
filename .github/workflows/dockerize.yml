@@ -47,7 +47,7 @@ jobs:
         platform:
           - linux/amd64
           - linux/arm64
-    runs-on: ${{ matrix.platform == 'linux/arm64' && 'ubuntu-linux-arm64' || 'ubuntu-linux-x64-high' }}
+    runs-on: ${{ matrix.platform == 'linux/arm64' && 'ubuntu-linux-arm64' || 'ubuntu-latest' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
