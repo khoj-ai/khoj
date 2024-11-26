@@ -134,3 +134,8 @@ def automations_config_page(
             "request": request,
         },
     )
+
+
+@web_client.get("/.well-known/assetlinks.json", response_class=FileResponse)
+def assetlinks(request: Request):
+    return FileResponse(constants.assetlinks_file_path)
