@@ -1,4 +1,3 @@
-import json
 import logging
 from datetime import datetime
 from typing import Callable, Dict, List, Optional
@@ -10,10 +9,10 @@ from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
     InformationCollectionIteration,
-    clean_json,
     construct_chat_history,
     construct_iteration_history,
     construct_tool_chat_history,
+    load_complex_json,
 )
 from khoj.processor.tools.online_search import read_webpages, search_online
 from khoj.processor.tools.run_code import run_code
@@ -106,8 +105,7 @@ async def apick_next_tool(
         return
 
     try:
-        response = clean_json(response)
-        response = json.loads(response)
+        response = load_complex_json(response)
         selected_tool = response.get("tool", None)
         generated_query = response.get("query", None)
         scratchpad = response.get("scratchpad", None)
