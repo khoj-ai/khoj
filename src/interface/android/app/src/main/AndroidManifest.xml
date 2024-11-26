@@ -1,0 +1,188 @@
+<!--
+    Copyright 2019 Google Inc. All Rights Reserved.
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+         http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+
+<!-- The "package" attribute is rewritten by the Gradle build with the value of applicationId.
+     It is still required here, as it is used to derive paths, for instance when referring
+     to an Activity by ".MyActivity" instead of the full name. If more Activities are added to the
+     application, the package attribute will need to reflect the correct path in order to use
+     the abbreviated format. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="dev.khoj.app">
+
+
+        <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+
+
+
+
+
+
+
+    <application
+        android:name="Application"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/appName"
+
+        android:manageSpaceActivity="com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity"
+
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.Translucent.NoTitleBar">
+
+        <meta-data
+            android:name="asset_statements"
+            android:resource="@string/assetStatements" />
+
+
+            <meta-data
+                android:name="web_manifest_url"
+                android:value="@string/webManifestUrl" />
+
+
+        <meta-data
+            android:name="twa_generator"
+            android:value="@string/generatorApp" />
+
+
+
+
+
+
+            <activity android:name="com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity">
+            <meta-data
+                android:name="android.support.customtabs.trusted.MANAGE_SPACE_URL"
+                android:value="@string/launchUrl" />
+            </activity>
+
+
+        <activity android:name="LauncherActivity"
+            android:alwaysRetainTaskState="true"
+            android:label="@string/launcherName"
+            android:exported="true">
+            <meta-data android:name="android.support.customtabs.trusted.DEFAULT_URL"
+                android:value="@string/launchUrl" />
+
+            <meta-data
+                android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR"
+                android:resource="@color/colorPrimary" />
+
+            <meta-data
+                android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR_DARK"
+                android:resource="@color/colorPrimaryDark" />
+
+            <meta-data
+                android:name="android.support.customtabs.trusted.NAVIGATION_BAR_COLOR"
+                android:resource="@color/navigationColor" />
+
+            <meta-data
+                android:name="android.support.customtabs.trusted.NAVIGATION_BAR_COLOR_DARK"
+                android:resource="@color/navigationColorDark" />
+
+            <meta-data
+                android:name="androix.browser.trusted.NAVIGATION_BAR_DIVIDER_COLOR"
+                android:resource="@color/navigationDividerColor" />
+
+            <meta-data
+                android:name="androix.browser.trusted.NAVIGATION_BAR_DIVIDER_COLOR_DARK"
+                android:resource="@color/navigationDividerColorDark" />
+
+            <meta-data android:name="android.support.customtabs.trusted.SPLASH_IMAGE_DRAWABLE"
+                android:resource="@drawable/splash"/>
+
+            <meta-data android:name="android.support.customtabs.trusted.SPLASH_SCREEN_BACKGROUND_COLOR"
+                android:resource="@color/backgroundColor"/>
+
+            <meta-data android:name="android.support.customtabs.trusted.SPLASH_SCREEN_FADE_OUT_DURATION"
+                android:value="@integer/splashScreenFadeOutDuration"/>
+
+            <meta-data android:name="android.support.customtabs.trusted.FILE_PROVIDER_AUTHORITY"
+                android:value="@string/providerAuthority"/>
+
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
+
+            <meta-data android:name="android.support.customtabs.trusted.FALLBACK_STRATEGY"
+                android:value="@string/fallbackType" />
+
+
+
+
+
+            <meta-data android:name="android.support.customtabs.trusted.SCREEN_ORIENTATION"
+                android:value="@string/orientation"/>
+
+
+
+
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https"
+                    android:host="@string/hostName"/>
+            </intent-filter>
+
+
+        </activity>
+
+        <activity android:name="com.google.androidbrowserhelper.trusted.FocusActivity" />
+
+        <activity android:name="com.google.androidbrowserhelper.trusted.WebViewFallbackActivity"
+            android:configChanges="orientation|screenSize" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="@string/providerAuthority"
+            android:grantUriPermissions="true"
+            android:exported="false">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/filepaths" />
+        </provider>
+
+        <service
+            android:name=".DelegationService"
+            android:enabled="@bool/enableNotification"
+            android:exported="@bool/enableNotification">
+
+
+                <meta-data
+                    android:name="android.support.customtabs.trusted.SMALL_ICON"
+                    android:resource="@drawable/ic_notification_icon" />
+
+
+            <intent-filter>
+                <action android:name="android.support.customtabs.trusted.TRUSTED_WEB_ACTIVITY_SERVICE"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+            </intent-filter>
+        </service>
+
+
+            <activity android:name="com.google.androidbrowserhelper.trusted.NotificationPermissionRequestActivity" />
+
+
+
+            <activity android:name=
+        "com.google.androidbrowserhelper.locationdelegation.PermissionRequestActivity"/>
+
+    </application>
+</manifest>

@@ -3,6 +3,7 @@
     "short_name": "Khoj",
     "display": "standalone",
     "start_url": "/",
+    "scope": "/",
     "description": "The open, personal AI for your digital brain. You can ask Khoj to draft a message, paint your imagination, find information on the internet and even answer questions from your documents.",
     "theme_color": "#ffffff",
     "background_color": "#ffffff",
