@@ -15,6 +15,7 @@ from time import perf_counter
 from typing import Any, Callable, Dict, List, Optional
 
 import PIL.Image
+import pyjson5
 import requests
 import tiktoken
 import yaml
@@ -565,17 +566,18 @@ def load_complex_json(json_str):
     processed = re.sub(pattern, replace_unescaped_quotes, cleaned)
 
     # See which json loader can load the processed JSON as valid
-    errors = ""
-    json_loaders_to_try = [json.loads]
+    errors = []
+    json_loaders_to_try = [json.loads, pyjson5.loads]
     for loads in json_loaders_to_try:
         try:
             return loads(processed)
-        except json.JSONDecodeError as e:
-            errors += f"\n\n{e}"
+        except (json.JSONDecodeError, pyjson5.Json5Exception) as e:
+            errors.append(f"{type(e).__name__}: {str(e)}")
 
     # If all loaders fail, raise the aggregated error
     raise ValueError(
-        f"Failed to load JSON with error: {errors}\n\nWhile attempting to load this cleaned JSON:\n{processed}"
+        f"Failed to load JSON with errors: {'; '.join(errors)}\n\n"
+        f"While attempting to load this cleaned JSON:\n{processed}"
     )
 
 
