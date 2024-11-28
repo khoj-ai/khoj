@@ -16,7 +16,7 @@
     "start": "yarn electron ."
   },
   "dependencies": {
-    "@todesktop/runtime": "^1.6.4",
+    "@todesktop/runtime": "^2.0.0",
     "axios": "^1.7.4",
     "cron": "^2.4.3",
     "electron-store": "^8.1.0"
