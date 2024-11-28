@@ -26,6 +26,7 @@ on:
           - frames
           - simpleqa
           - gpqa
+          - math500
       sample_size:
         description: 'Number of samples to evaluate'
         required: false
@@ -96,8 +97,8 @@ jobs:
           KHOJ_URL: "http://localhost:42110"
           KHOJ_LLM_SEED: "42"
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          SERPER_DEV_API_KEY: ${{ secrets.SERPER_DEV_API_KEY }}
-          OLOSTEP_API_KEY: ${{ secrets.OLOSTEP_API_KEY }}
+          SERPER_DEV_API_KEY: ${{ matrix.dataset != 'math500' && secrets.SERPER_DEV_API_KEY }}
+          OLOSTEP_API_KEY: ${{ matrix.dataset != 'math500' && secrets.OLOSTEP_API_KEY }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           KHOJ_ADMIN_EMAIL: khoj
           KHOJ_ADMIN_PASSWORD: khoj

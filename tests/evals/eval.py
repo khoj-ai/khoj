@@ -6,6 +6,7 @@ import os
 import re
 import time
 from datetime import datetime
+from functools import partial
 from io import StringIO
 from textwrap import dedent
 from threading import Lock
@@ -192,6 +193,30 @@ D) {choices[3]}
         return dataset
     except Exception as e:
         logger.error(f"Error loading dataset: {e}")
+        return None
+
+
+def load_math500_dataset():
+    """
+    Load and format the MATH500 dataset to match the evaluation script's structure.
+
+    Args:
+        sample_size (int, optional): Number of samples to include. Defaults to None (use full dataset).
+        randomize (bool, optional): Whether to randomize the dataset. Defaults to False.
+
+    Returns:
+        Dataset: Formatted HuggingFace Dataset.
+    """
+    try:
+        # Load the MATH500 dataset from HuggingFace
+        dataset = load_dataset("HuggingFaceH4/MATH-500", split="test")
+        dataset = dataset.rename_columns({"problem": "Prompt", "answer": "Answer", "subject": "reasoning_types"})
+        dataset = dataset.shuffle() if RANDOMIZE else dataset
+        dataset = dataset.select(range(int(SAMPLE_SIZE))) if SAMPLE_SIZE else dataset
+
+        return dataset
+    except Exception as e:
+        print(f"Error loading and formatting MATH500 dataset: {e}")
         return None
 
 
@@ -385,7 +410,7 @@ def parse_args():
         "--dataset",
         "-d",
         default="frames",
-        choices=["frames", "simpleqa", "gpqa"],
+        choices=["frames", "simpleqa", "gpqa", "math500"],
         help="Dataset to use for evaluation (default: frames)",
     )
     return parser.parse_args()
@@ -404,6 +429,8 @@ def main():
             dataset = load_simpleqa_dataset()
         elif args.dataset == "gpqa":
             dataset = load_gpqa_dataset()
+        elif args.dataset == "math500":
+            dataset = load_math500_dataset()
     if dataset is None:
         return
 
@@ -412,6 +439,10 @@ def main():
     dataset_length = len(dataset["Prompt"])
     if args.dataset == "gpqa":
         response_evaluator = evaluate_response_with_mcq_match
+    elif args.dataset == "math500":
+        response_evaluator = partial(
+            evaluate_response_with_gemini, eval_model=os.getenv("GEMINI_EVAL_MODEL", "gemini-1.5-flash-002")
+        )
     else:
         response_evaluator = evaluate_response_with_gemini
 
