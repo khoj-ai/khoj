@@ -1,6 +1,5 @@
 import base64
 import datetime
-import json
 import logging
 import mimetypes
 import os
@@ -15,8 +14,8 @@ from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
     ChatEvent,
     clean_code_python,
-    clean_json,
     construct_chat_history,
+    load_complex_json,
 )
 from khoj.routers.helpers import send_message_to_model_wrapper
 from khoj.utils.helpers import is_none_or_empty, timer, truncate_code_context
@@ -135,8 +134,7 @@ async def generate_python_code(
     )
 
     # Validate that the response is a non-empty, JSON-serializable list
-    response = clean_json(response)
-    response = json.loads(response)
+    response = load_complex_json(response)
     code = response.get("code", "").strip()
     input_files = response.get("input_files", [])
     input_links = response.get("input_links", [])
