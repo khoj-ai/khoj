@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from threading import Thread
 from typing import Any, Iterator, List, Optional, Union
 
+import pyjson5
 from langchain.schema import ChatMessage
 from llama_cpp import Llama
 
@@ -13,6 +14,7 @@ from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.utils import download_model
 from khoj.processor.conversation.utils import (
     ThreadedGenerator,
+    clean_json,
     commit_conversation_trace,
     generate_chatml_messages_with_context,
     messages_to_print,
@@ -114,8 +116,8 @@ def extract_questions_offline(
 
     # Extract and clean the chat model's response
     try:
-        response = response.strip(empty_escape_sequences)
-        response = json.loads(response)
+        response = clean_json(empty_escape_sequences)
+        response = pyjson5.loads(response)
         questions = [q.strip() for q in response["queries"] if q.strip()]
         questions = filter_questions(questions)
     except:

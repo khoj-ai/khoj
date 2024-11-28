@@ -27,6 +27,7 @@ from typing import (
 from urllib.parse import parse_qs, quote, unquote, urljoin, urlparse
 
 import cron_descriptor
+import pyjson5
 import pytz
 import requests
 from apscheduler.job import Job
@@ -541,7 +542,7 @@ async def generate_online_subqueries(
     # Validate that the response is a non-empty, JSON-serializable list
     try:
         response = clean_json(response)
-        response = json.loads(response)
+        response = pyjson5.loads(response)
         response = {q.strip() for q in response["queries"] if q.strip()}
         if not isinstance(response, set) or not response or len(response) == 0:
             logger.error(f"Invalid response for constructing subqueries: {response}. Returning original query: {q}")
