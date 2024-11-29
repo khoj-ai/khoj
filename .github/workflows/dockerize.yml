@@ -91,6 +91,9 @@ jobs:
             PORT=42110
           cache-from: type=gha,scope=${{ matrix.image }}-${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}-${{ matrix.platform}}
+          labels: |
+            org.opencontainers.image.description=Khoj AI - Your second brain powered by LLMs and Neural Search
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
 
       - name: 📦️⛅️ Build and Push Cloud Docker Image
         uses: docker/build-push-action@v4
@@ -108,3 +111,6 @@ jobs:
             PORT=42110
           cache-from: type=gha,scope=${{ matrix.image }}-${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}-${{ matrix.platform}}
+          labels: |
+            org.opencontainers.image.description=Khoj AI Cloud - Your second brain powered by LLMs and Neural Search
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
