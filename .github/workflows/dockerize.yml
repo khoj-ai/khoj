@@ -41,13 +41,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image:
-          - 'local'
-          - 'cloud'
-        platform:
-          - linux/amd64
-          - linux/arm64
-    runs-on: ${{ matrix.platform == 'linux/arm64' && 'ubuntu-linux-arm64' || 'ubuntu-latest' }}
+        include:
+          - image: 'local'
+            platform: linux/amd64
+            runner: ubuntu-latest
+          - image: 'local'
+            platform: linux/arm64
+            runner: ubuntu-linux-arm64
+          - image: 'cloud'
+            platform: linux/amd64
+            runner: ubuntu-latest
+          - image: 'cloud'
+            platform: linux/arm64
+            runner: ubuntu-linux-arm64
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
