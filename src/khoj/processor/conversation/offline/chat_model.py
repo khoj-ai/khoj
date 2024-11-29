@@ -26,7 +26,7 @@ from khoj.utils.helpers import (
     is_promptrace_enabled,
     truncate_code_context,
 )
-from khoj.utils.rawconfig import LocationData
+from khoj.utils.rawconfig import FileAttachment, LocationData
 from khoj.utils.yaml import yaml_dump
 
 logger = logging.getLogger(__name__)
@@ -162,7 +162,7 @@ def converse_offline(
     user_name: str = None,
     agent: Agent = None,
     query_files: str = None,
-    generated_files: List[str] = None,
+    generated_files: List[FileAttachment] = None,
     additional_context: List[str] = None,
     tracer: dict = {},
 ) -> Union[ThreadedGenerator, Iterator[str]]:
