@@ -293,7 +293,7 @@ def save_to_conversation_log(
             "turnId": turn_id,
             "images": generated_images,
             "queryFiles": [file.model_dump(mode="json") for file in raw_generated_files],
-            "excalidrawDiagram": str(generated_excalidraw_diagram),
+            "excalidrawDiagram": str(generated_excalidraw_diagram) if generated_excalidraw_diagram else None,
         },
         conversation_log=meta_log.get("chat", []),
     )
