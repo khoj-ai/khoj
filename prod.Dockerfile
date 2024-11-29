@@ -31,7 +31,7 @@ ENV PIP_EXTRA_INDEX_URL="https://download.pytorch.org/whl/cpu https://abetlen.gi
 # avoid downloading unused cuda specific python packages
 ENV CUDA_VISIBLE_DEVICES=""
 RUN sed -i "s/dynamic = \\[\"version\"\\]/version = \"$VERSION\"/" pyproject.toml && \
-    pip install --no-cache-dir .[prod]
+    pip install --no-cache-dir -e .[prod]
 
 # Build Web App
 FROM node:20-alpine AS web-app
@@ -48,9 +48,10 @@ RUN yarn build
 
 # Merge the Server and Web App into a Single Image
 FROM base
-ENV PYTHONPATH=/app/src
+ENV PYTHONPATH=/app/src:$PYTHONPATH
 WORKDIR /app
 COPY --from=server-deps /usr/local/lib/python3.10/dist-packages /usr/local/lib/python3.10/dist-packages
+COPY --from=server-deps /usr/local/bin /usr/local/bin
 COPY --from=web-app /app/src/interface/web/out ./src/khoj/interface/built
 COPY . .
 RUN cd src && python3 khoj/manage.py collectstatic --noinput
