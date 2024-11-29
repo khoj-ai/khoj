@@ -54,6 +54,12 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
     const lastIndex = props.trainOfThought.length - 1;
     const [collapsed, setCollapsed] = useState(props.completed);
 
+    // useEffect(() => {
+    //     if (props.completed) {
+    //         setCollapsed(true);
+    //     }
+    // }), [props.completed];
+
     return (
         <div
             className={`${!collapsed ? styles.trainOfThought + " shadow-sm" : ""}`}
@@ -410,6 +416,9 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                                 "inferred-queries": message.inferredQueries || [],
                                             },
                                             conversationId: props.conversationId,
+                                            images: message.generatedImages,
+                                            queryFiles: message.generatedFiles,
+                                            excalidrawDiagram: message.generatedExcalidrawDiagram,
                                             turnId: messageTurnId,
                                         }}
                                         conversationId={props.conversationId}

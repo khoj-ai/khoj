@@ -162,6 +162,8 @@ def converse_offline(
     user_name: str = None,
     agent: Agent = None,
     query_files: str = None,
+    generated_files: List[str] = None,
+    additional_context: List[str] = None,
     tracer: dict = {},
 ) -> Union[ThreadedGenerator, Iterator[str]]:
     """
@@ -229,6 +231,8 @@ def converse_offline(
         tokenizer_name=tokenizer_name,
         model_type=ChatModelOptions.ModelType.OFFLINE,
         query_files=query_files,
+        generated_files=generated_files,
+        additional_program_context=additional_context,
     )
 
     logger.debug(f"Conversation Context for {model}: {messages_to_print(messages)}")

@@ -2,7 +2,7 @@ import json
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from langchain.schema import ChatMessage
 
@@ -158,6 +158,10 @@ def converse_anthropic(
     query_images: Optional[list[str]] = None,
     vision_available: bool = False,
     query_files: str = None,
+    generated_images: Optional[list[str]] = None,
+    generated_files: List[str] = None,
+    generated_excalidraw_diagram: Optional[str] = None,
+    additional_context: Optional[str] = None,
     tracer: dict = {},
 ):
     """
@@ -218,6 +222,10 @@ def converse_anthropic(
         vision_enabled=vision_available,
         model_type=ChatModelOptions.ModelType.ANTHROPIC,
         query_files=query_files,
+        generated_excalidraw_diagram=generated_excalidraw_diagram,
+        generated_files=generated_files,
+        generated_images=generated_images,
+        additional_program_context=additional_context,
     )
 
     messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)

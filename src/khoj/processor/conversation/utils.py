@@ -155,6 +155,9 @@ def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="A
         elif chat["by"] == "khoj" and ("text-to-image" in chat["intent"].get("type")):
             chat_history += f"User: {chat['intent']['query']}\n"
             chat_history += f"{agent_name}: [generated image redacted for space]\n"
+        elif chat["by"] == "khoj" and chat.get("images"):
+            chat_history += f"User: {chat['intent']['query']}\n"
+            chat_history += f"{agent_name}: [generated image redacted for space]\n"
         elif chat["by"] == "khoj" and ("excalidraw" in chat["intent"].get("type")):
             chat_history += f"User: {chat['intent']['query']}\n"
             chat_history += f"{agent_name}: {chat['intent']['inferred-queries'][0]}\n"
@@ -211,6 +214,7 @@ class ChatEvent(Enum):
     END_LLM_RESPONSE = "end_llm_response"
     MESSAGE = "message"
     REFERENCES = "references"
+    GENERATED_ASSETS = "generated_assets"
     STATUS = "status"
     METADATA = "metadata"
     USAGE = "usage"
@@ -223,7 +227,6 @@ def message_to_log(
     user_message_metadata={},
     khoj_message_metadata={},
     conversation_log=[],
-    train_of_thought=[],
 ):
     """Create json logs from messages, metadata for conversation log"""
     default_khoj_message_metadata = {
@@ -231,6 +234,10 @@ def message_to_log(
         "trigger-emotion": "calm",
     }
     khoj_response_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Filter out any fields that are set to None
+    user_message_metadata = {k: v for k, v in user_message_metadata.items() if v is not None}
+    khoj_message_metadata = {k: v for k, v in khoj_message_metadata.items() if v is not None}
 
     # Create json log from Human's message
     human_log = merge_dicts({"message": user_message, "by": "you"}, user_message_metadata)
@@ -259,6 +266,9 @@ def save_to_conversation_log(
     automation_id: str = None,
     query_images: List[str] = None,
     raw_query_files: List[FileAttachment] = [],
+    generated_images: List[str] = [],
+    raw_generated_files: List[FileAttachment] = [],
+    generated_excalidraw_diagram: str = None,
     train_of_thought: List[Any] = [],
     tracer: Dict[str, Any] = {},
 ):
@@ -281,9 +291,11 @@ def save_to_conversation_log(
             "automationId": automation_id,
             "trainOfThought": train_of_thought,
             "turnId": turn_id,
+            "images": generated_images,
+            "queryFiles": [file.model_dump(mode="json") for file in raw_generated_files],
+            "excalidrawDiagram": str(generated_excalidraw_diagram),
         },
         conversation_log=meta_log.get("chat", []),
-        train_of_thought=train_of_thought,
     )
     ConversationAdapters.save_conversation(
         user,
@@ -307,7 +319,7 @@ Khoj: "{inferred_queries if ("text-to-image" in intent_type) else chat_response}
 
 
 def construct_structured_message(
-    message: str, images: list[str], model_type: str, vision_enabled: bool, attached_file_context: str
+    message: str, images: list[str], model_type: str, vision_enabled: bool, attached_file_context: str = None
 ):
     """
     Format messages into appropriate multimedia format for supported chat model types
@@ -363,6 +375,10 @@ def generate_chatml_messages_with_context(
     model_type="",
     context_message="",
     query_files: str = None,
+    generated_images: Optional[list[str]] = None,
+    generated_files: List[FileAttachment] = None,
+    generated_excalidraw_diagram: str = None,
+    additional_program_context: List[str] = [],
 ):
     """Generate chat messages with appropriate context from previous conversation to send to the chat model"""
     # Set max prompt size from user config or based on pre-configured for model and machine specs
@@ -382,6 +398,7 @@ def generate_chatml_messages_with_context(
         message_attached_files = ""
 
         chat_message = chat.get("message")
+        role = "user" if chat["by"] == "you" else "assistant"
 
         if chat["by"] == "khoj" and "excalidraw" in chat["intent"].get("type", ""):
             chat_message = chat["intent"].get("inferred-queries")[0]
@@ -402,7 +419,7 @@ def generate_chatml_messages_with_context(
                 query_files_dict[file["name"]] = file["content"]
 
             message_attached_files = gather_raw_query_files(query_files_dict)
-            chatml_messages.append(ChatMessage(content=message_attached_files, role="user"))
+            chatml_messages.append(ChatMessage(content=message_attached_files, role=role))
 
         if not is_none_or_empty(chat.get("onlineContext")):
             message_context += f"{prompts.online_search_conversation.format(online_results=chat.get('onlineContext'))}"
@@ -411,9 +428,18 @@ def generate_chatml_messages_with_context(
             reconstructed_context_message = ChatMessage(content=message_context, role="user")
             chatml_messages.insert(0, reconstructed_context_message)
 
-        role = "user" if chat["by"] == "you" else "assistant"
+        if chat.get("images") and role == "assistant":
+            # Issue: the assistant role cannot accept an image as a message content, so send it in a separate user message.
+            file_attachment_message = construct_structured_message(
+                message=prompts.generated_image_attachment.format(),
+                images=chat.get("images"),
+                model_type=model_type,
+                vision_enabled=vision_enabled,
+            )
+            chatml_messages.append(ChatMessage(content=file_attachment_message, role="user"))
+
         message_content = construct_structured_message(
-            chat_message, chat.get("images"), model_type, vision_enabled, attached_file_context=query_files
+            chat_message, chat.get("images") if role == "user" else [], model_type, vision_enabled
         )
 
         reconstructed_message = ChatMessage(content=message_content, role=role)
@@ -423,6 +449,7 @@ def generate_chatml_messages_with_context(
             break
 
     messages = []
+
     if not is_none_or_empty(user_message):
         messages.append(
             ChatMessage(
@@ -434,6 +461,31 @@ def generate_chatml_messages_with_context(
         )
     if not is_none_or_empty(context_message):
         messages.append(ChatMessage(content=context_message, role="user"))
+
+    if generated_images:
+        messages.append(
+            ChatMessage(
+                content=construct_structured_message(
+                    prompts.generated_image_attachment.format(), generated_images, model_type, vision_enabled
+                ),
+                role="user",
+            )
+        )
+
+    if generated_files:
+        message_attached_files = gather_raw_query_files({file.name: file.content for file in generated_files})
+        messages.append(ChatMessage(content=message_attached_files, role="assistant"))
+
+    if generated_excalidraw_diagram:
+        messages.append(ChatMessage(content=prompts.generated_diagram_attachment.format(), role="assistant"))
+
+    if additional_program_context:
+        messages.append(
+            ChatMessage(
+                content=prompts.additional_program_context.format(context="\n".join(additional_program_context)),
+                role="assistant",
+            )
+        )
 
     if len(chatml_messages) > 0:
         messages += chatml_messages

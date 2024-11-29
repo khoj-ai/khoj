@@ -180,6 +180,20 @@ Improved Prompt:
 """.strip()
 )
 
+generated_image_attachment = PromptTemplate.from_template(
+    f"""
+Here is the image you generated based on my query. You can follow-up with a general response to my query. Limit to 1-2 sentences.
+""".strip()
+)
+
+generated_diagram_attachment = PromptTemplate.from_template(
+    f"""
+The AI has successfully created a diagram based on the user's query and handled the request. Good job!
+
+AI can follow-up with a general response or summary. Limit to 1-2 sentences.
+""".strip()
+)
+
 ## Diagram Generation
 ## --
 
@@ -1029,6 +1043,13 @@ A: {{ "safe": "True" }}
 Q: {prompt}
 A:
 """.strip()
+)
+
+additional_program_context = PromptTemplate.from_template(
+    """
+Here's some additional context about what happened while I was executing this query:
+{context}
+    """.strip()
 )
 
 

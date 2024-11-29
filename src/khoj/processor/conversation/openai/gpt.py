@@ -1,7 +1,7 @@
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from langchain.schema import ChatMessage
 
@@ -157,6 +157,10 @@ def converse(
     query_images: Optional[list[str]] = None,
     vision_available: bool = False,
     query_files: str = None,
+    generated_images: Optional[list[str]] = None,
+    generated_files: List[str] = None,
+    generated_excalidraw_diagram: Optional[str] = None,
+    additional_context: List[str] = None,
     tracer: dict = {},
 ):
     """
@@ -219,6 +223,10 @@ def converse(
         vision_enabled=vision_available,
         model_type=ChatModelOptions.ModelType.OPENAI,
         query_files=query_files,
+        generated_excalidraw_diagram=generated_excalidraw_diagram,
+        generated_files=generated_files,
+        generated_images=generated_images,
+        additional_program_context=additional_context,
     )
     logger.debug(f"Conversation Context for GPT: {messages_to_print(messages)}")
 

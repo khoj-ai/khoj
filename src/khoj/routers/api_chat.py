@@ -77,6 +77,7 @@ from khoj.utils.helpers import (
 )
 from khoj.utils.rawconfig import (
     ChatRequestBody,
+    FileAttachment,
     FileFilterRequest,
     FilesFilterRequest,
     LocationData,
@@ -771,6 +772,11 @@ async def chat(
         file_filters = conversation.file_filters if conversation and conversation.file_filters else []
         attached_file_context = gather_raw_query_files(query_files)
 
+        generated_images: List[str] = []
+        generated_files: List[FileAttachment] = []
+        generated_excalidraw_diagram: str = None
+        additional_context_for_llm_response: List[str] = []
+
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
             chosen_io = await aget_data_sources_and_output_format(
                 q,
@@ -876,21 +882,17 @@ async def chat(
                             async for result in send_llm_response(response, tracer.get("usage")):
                                 yield result
 
-            await sync_to_async(save_to_conversation_log)(
-                q,
-                response_log,
-                user,
-                meta_log,
-                user_message_time,
-                intent_type="summarize",
-                client_application=request.user.client_app,
-                conversation_id=conversation_id,
-                query_images=uploaded_images,
-                train_of_thought=train_of_thought,
-                raw_query_files=raw_query_files,
-                tracer=tracer,
+            summarized_document = FileAttachment(
+                name="Summarized Document",
+                content=response_log,
+                type="text/plain",
+                size=len(response_log.encode("utf-8")),
             )
-            return
+
+            async for result in send_event(ChatEvent.GENERATED_ASSETS, {"files": [summarized_document.model_dump()]}):
+                yield result
+
+            generated_files.append(summarized_document)
 
         custom_filters = []
         if conversation_commands == [ConversationCommand.Help]:
@@ -1079,6 +1081,7 @@ async def chat(
                 async for result in send_event(ChatEvent.STATUS, f"**Ran code snippets**: {len(code_results)}"):
                     yield result
             except ValueError as e:
+                additional_context_for_llm_response.append(f"Failed to run code")
                 logger.warning(
                     f"Failed to use code tool: {e}. Attempting to respond without code results",
                     exc_info=True,
@@ -1116,51 +1119,36 @@ async def chat(
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
                 else:
-                    generated_image, status_code, improved_image_prompt, intent_type = result
+                    generated_image, status_code, improved_image_prompt = result
 
+            inferred_queries.append(improved_image_prompt)
             if generated_image is None or status_code != 200:
-                content_obj = {
-                    "content-type": "application/json",
-                    "intentType": intent_type,
-                    "detail": improved_image_prompt,
-                    "image": None,
-                }
-                async for result in send_llm_response(json.dumps(content_obj), tracer.get("usage")):
+                additional_context_for_llm_response.append(f"Failed to generate image with {improved_image_prompt}")
+                async for result in send_event(ChatEvent.STATUS, f"Failed to generate image"):
                     yield result
-                return
+            else:
+                generated_images.append(generated_image)
+                # content_obj = {
+                #     "intentType": intent_type,
+                #     "inferredQueries": [improved_image_prompt],
+                #     "image": generated_image,
+                # }
+                # async for result in send_llm_response(json.dumps(content_obj), tracer.get("usage")):
+                #     yield result
+                # return
 
-            await sync_to_async(save_to_conversation_log)(
-                q,
-                generated_image,
-                user,
-                meta_log,
-                user_message_time,
-                intent_type=intent_type,
-                inferred_queries=[improved_image_prompt],
-                client_application=request.user.client_app,
-                conversation_id=conversation_id,
-                compiled_references=compiled_references,
-                online_results=online_results,
-                code_results=code_results,
-                query_images=uploaded_images,
-                train_of_thought=train_of_thought,
-                raw_query_files=raw_query_files,
-                tracer=tracer,
-            )
-            content_obj = {
-                "intentType": intent_type,
-                "inferredQueries": [improved_image_prompt],
-                "image": generated_image,
-            }
-            async for result in send_llm_response(json.dumps(content_obj), tracer.get("usage")):
-                yield result
-            return
+                async for result in send_event(
+                    ChatEvent.GENERATED_ASSETS,
+                    {
+                        "images": [generated_image],
+                    },
+                ):
+                    yield result
 
         if ConversationCommand.Diagram in conversation_commands:
             async for result in send_event(ChatEvent.STATUS, f"Creating diagram"):
                 yield result
 
-            intent_type = "excalidraw"
             inferred_queries = []
             diagram_description = ""
 
@@ -1184,62 +1172,59 @@ async def chat(
                     if better_diagram_description_prompt and excalidraw_diagram_description:
                         inferred_queries.append(better_diagram_description_prompt)
                         diagram_description = excalidraw_diagram_description
+
+                        generated_excalidraw_diagram = diagram_description
+
+                        async for result in send_event(
+                            ChatEvent.GENERATED_ASSETS,
+                            {
+                                "excalidrawDiagram": excalidraw_diagram_description,
+                            },
+                        ):
+                            yield result
                     else:
                         error_message = "Failed to generate diagram. Please try again later."
-                        async for result in send_llm_response(error_message, tracer.get("usage")):
+                        additional_context_for_llm_response.append(
+                            f"AI attempted to programmatically generate a diagram but failed due to a program issue. Generally, it is able to do so, but encountered a system issue this time. AI can suggest text description or rendering of the diagram or user can try again with a simpler prompt."
+                        )
+
+                        async for result in send_event(ChatEvent.STATUS, error_message):
                             yield result
 
-                        await sync_to_async(save_to_conversation_log)(
-                            q,
-                            error_message,
-                            user,
-                            meta_log,
-                            user_message_time,
-                            inferred_queries=[better_diagram_description_prompt],
-                            client_application=request.user.client_app,
-                            conversation_id=conversation_id,
-                            compiled_references=compiled_references,
-                            online_results=online_results,
-                            code_results=code_results,
-                            query_images=uploaded_images,
-                            train_of_thought=train_of_thought,
-                            raw_query_files=raw_query_files,
-                            tracer=tracer,
-                        )
-                        return
+            # content_obj = {
+            #     "intentType": intent_type,
+            #     "inferredQueries": inferred_queries,
+            #     "image": diagram_description,
+            # }
 
-            content_obj = {
-                "intentType": intent_type,
-                "inferredQueries": inferred_queries,
-                "image": diagram_description,
-            }
+            # await sync_to_async(save_to_conversation_log)(
+            #     q,
+            #     excalidraw_diagram_description,
+            #     user,
+            #     meta_log,
+            #     user_message_time,
+            #     intent_type="excalidraw",
+            #     inferred_queries=[better_diagram_description_prompt],
+            #     client_application=request.user.client_app,
+            #     conversation_id=conversation_id,
+            #     compiled_references=compiled_references,
+            #     online_results=online_results,
+            #     code_results=code_results,
+            #     query_images=uploaded_images,
+            #     train_of_thought=train_of_thought,
+            #     raw_query_files=raw_query_files,
+            #     generated_images=generated_images,
+            #     tracer=tracer,
+            # )
 
-            await sync_to_async(save_to_conversation_log)(
-                q,
-                excalidraw_diagram_description,
-                user,
-                meta_log,
-                user_message_time,
-                intent_type="excalidraw",
-                inferred_queries=[better_diagram_description_prompt],
-                client_application=request.user.client_app,
-                conversation_id=conversation_id,
-                compiled_references=compiled_references,
-                online_results=online_results,
-                code_results=code_results,
-                query_images=uploaded_images,
-                train_of_thought=train_of_thought,
-                raw_query_files=raw_query_files,
-                tracer=tracer,
-            )
-
-            async for result in send_llm_response(json.dumps(content_obj), tracer.get("usage")):
-                yield result
-            return
+            # async for result in send_llm_response(json.dumps(content_obj), tracer.get("usage")):
+            #     yield result
+            # return
 
         ## Generate Text Output
         async for result in send_event(ChatEvent.STATUS, f"**Generating a well-informed response**"):
             yield result
+
         llm_response, chat_metadata = await agenerate_chat_response(
             defiltered_query,
             meta_log,
@@ -1259,6 +1244,10 @@ async def chat(
             train_of_thought,
             attached_file_context,
             raw_query_files,
+            generated_images,
+            generated_files,
+            generated_excalidraw_diagram,
+            additional_context_for_llm_response,
             tracer,
         )
 

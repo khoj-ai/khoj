@@ -12,7 +12,7 @@ from khoj.database.models import Agent, KhojUser, TextToImageModelConfig
 from khoj.routers.helpers import ChatEvent, generate_better_image_prompt
 from khoj.routers.storage import upload_image
 from khoj.utils import state
-from khoj.utils.helpers import ImageIntentType, convert_image_to_webp, timer
+from khoj.utils.helpers import convert_image_to_webp, timer
 from khoj.utils.rawconfig import LocationData
 
 logger = logging.getLogger(__name__)
@@ -34,14 +34,13 @@ async def text_to_image(
     status_code = 200
     image = None
     image_url = None
-    intent_type = ImageIntentType.TEXT_TO_IMAGE_V3
 
     text_to_image_config = await ConversationAdapters.aget_user_text_to_image_model(user)
     if not text_to_image_config:
         # If the user has not configured a text to image model, return an unsupported on server error
         status_code = 501
         message = "Failed to generate image. Setup image generation on the server."
-        yield image_url or image, status_code, message, intent_type.value
+        yield image_url or image, status_code, message
         return
 
     text2image_model = text_to_image_config.model_name
@@ -52,6 +51,9 @@ async def text_to_image(
             chat_history += f"A: {chat['message']}\n"
         elif chat["by"] == "khoj" and "text-to-image" in chat["intent"].get("type"):
             chat_history += f"Q: Prompt: {chat['intent']['query']}\n"
+            chat_history += f"A: Improved Prompt: {chat['intent']['inferred-queries'][0]}\n"
+        elif chat["by"] == "khoj" and chat.get("images"):
+            chat_history += f"Q: {chat['intent']['query']}\n"
             chat_history += f"A: Improved Prompt: {chat['intent']['inferred-queries'][0]}\n"
 
     if send_status_func:
@@ -92,31 +94,29 @@ async def text_to_image(
                 logger.error(f"Image Generation blocked by OpenAI: {e}")
                 status_code = e.status_code  # type: ignore
                 message = f"Image generation blocked by OpenAI due to policy violation"  # type: ignore
-                yield image_url or image, status_code, message, intent_type.value
+                yield image_url or image, status_code, message
                 return
             else:
                 logger.error(f"Image Generation failed with {e}", exc_info=True)
                 message = f"Image generation failed using OpenAI"  # type: ignore
                 status_code = e.status_code  # type: ignore
-                yield image_url or image, status_code, message, intent_type.value
+                yield image_url or image, status_code, message
                 return
         except requests.RequestException as e:
             logger.error(f"Image Generation failed with {e}", exc_info=True)
             message = f"Image generation using {text2image_model} via {text_to_image_config.model_type} failed due to a network error."
             status_code = 502
-            yield image_url or image, status_code, message, intent_type.value
+            yield image_url or image, status_code, message
             return
 
     # Decide how to store the generated image
     with timer("Upload image to S3", logger):
         image_url = upload_image(webp_image_bytes, user.uuid)
-    if image_url:
-        intent_type = ImageIntentType.TEXT_TO_IMAGE2
-    else:
-        intent_type = ImageIntentType.TEXT_TO_IMAGE_V3
+
+    if not image_url:
         image = base64.b64encode(webp_image_bytes).decode("utf-8")
 
-    yield image_url or image, status_code, image_prompt, intent_type.value
+    yield image_url or image, status_code, image_prompt
 
 
 def generate_image_with_openai(

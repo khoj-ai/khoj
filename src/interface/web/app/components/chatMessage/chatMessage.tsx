@@ -163,6 +163,7 @@ export interface SingleChatMessage {
     conversationId: string;
     turnId?: string;
     queryFiles?: AttachedFileText[];
+    excalidrawDiagram?: string;
 }
 
 export interface StreamMessage {
@@ -180,6 +181,10 @@ export interface StreamMessage {
     inferredQueries?: string[];
     turnId?: string;
     queryFiles?: AttachedFileText[];
+    excalidrawDiagram?: string;
+    generatedFiles?: AttachedFileText[];
+    generatedImages?: string[];
+    generatedExcalidrawDiagram?: string;
 }
 
 export interface ChatHistoryData {
@@ -264,6 +269,9 @@ interface ChatMessageProps {
     onDeleteMessage: (turnId?: string) => void;
     conversationId: string;
     turnId?: string;
+    generatedImage?: string;
+    excalidrawDiagram?: string;
+    generatedFiles?: AttachedFileText[];
 }
 
 interface TrainOfThoughtProps {
@@ -392,6 +400,10 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
         if (props.chatMessage.intent && props.chatMessage.intent.type == "excalidraw") {
             message = props.chatMessage.intent["inferred-queries"][0];
             setExcalidrawData(props.chatMessage.message);
+        }
+
+        if (props.chatMessage.excalidrawDiagram) {
+            setExcalidrawData(props.chatMessage.excalidrawDiagram);
         }
 
         // Replace LaTeX delimiters with placeholders

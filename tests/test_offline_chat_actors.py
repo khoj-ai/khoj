@@ -22,7 +22,6 @@ from khoj.processor.conversation.offline.chat_model import (
     filter_questions,
 )
 from khoj.processor.conversation.offline.utils import download_model
-from khoj.processor.conversation.utils import message_to_log
 from khoj.utils.constants import default_offline_chat_models
 
 
