@@ -19,9 +19,8 @@
     "path": "android.keystore",
     "alias": "android"
   },
-  "appVersionName": "2",
-  "appVersionCode": 2,
-  "shortcuts": [],
+  "appVersionName": "3",
+  "appVersionCode": 3,
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://app.khoj.dev/static/khoj.webmanifest",
   "fallbackType": "customtabs",
@@ -38,7 +37,7 @@
   "isMetaQuest": false,
   "fullScopeUrl": "https://app.khoj.dev/",
   "minSdkVersion": 19,
-  "orientation": "default",
+  "orientation": "any",
   "fingerprints": [
     {
       "name": "signing",
@@ -51,5 +50,5 @@
   ],
   "additionalTrustedOrigins": [],
   "retainedBundles": [],
-  "appVersion": "2"
+  "appVersion": "3"
 }
