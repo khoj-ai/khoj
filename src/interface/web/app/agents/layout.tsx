@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
-import { Noto_Sans } from "next/font/google";
+import { noto_sans, noto_sans_arabic } from "@/app/fonts";
 import "../globals.css";
-
-const inter = Noto_Sans({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
     title: "Khoj AI - Agents",
@@ -33,7 +31,7 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en">
+        <html lang="en" className={`${noto_sans.variable} ${noto_sans_arabic.variable}`}>
             <meta
                 httpEquiv="Content-Security-Policy"
                 content="default-src 'self' https://assets.khoj.dev;
@@ -46,7 +44,7 @@ export default function RootLayout({
                        child-src 'none';
                        object-src 'none';"
             ></meta>
-            <body className={inter.className}>{children}</body>
+            <body>{children}</body>
         </html>
     );
 }

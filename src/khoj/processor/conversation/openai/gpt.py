@@ -1,8 +1,8 @@
-import json
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
+import pyjson5
 from langchain.schema import ChatMessage
 
 from khoj.database.models import Agent, ChatModelOptions, KhojUser
@@ -104,7 +104,7 @@ def extract_questions(
     # Extract, Clean Message from GPT's Response
     try:
         response = clean_json(response)
-        response = json.loads(response)
+        response = pyjson5.loads(response)
         response = [q.strip() for q in response["queries"] if q.strip()]
         if not isinstance(response, list) or not response:
             logger.error(f"Invalid response for constructing subqueries: {response}")
