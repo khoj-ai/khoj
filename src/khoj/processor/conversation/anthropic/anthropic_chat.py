@@ -161,7 +161,7 @@ def converse_anthropic(
     generated_images: Optional[list[str]] = None,
     generated_files: List[FileAttachment] = None,
     generated_excalidraw_diagram: Optional[str] = None,
-    additional_context: Optional[str] = None,
+    additional_context: Optional[List[str]] = None,
     tracer: dict = {},
 ):
     """
