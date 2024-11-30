@@ -958,6 +958,10 @@ export class KhojChatView extends KhojPaneView {
             console.log(`status: ${chunk.data}`);
             const statusMessage = chunk.data;
             this.handleStreamResponse(this.chatMessageState.newResponseTextEl, statusMessage, this.chatMessageState.loadingEllipsis, false);
+        } else if (chunk.type === 'generated_assets') {
+            const generatedAssets = chunk.data;
+            const imageData = this.handleImageResponse(generatedAssets, this.chatMessageState.rawResponse);
+            this.handleStreamResponse(this.chatMessageState.newResponseTextEl, imageData, this.chatMessageState.loadingEllipsis, false);
         } else if (chunk.type === 'start_llm_response') {
             console.log("Started streaming", new Date());
         } else if (chunk.type === 'end_llm_response') {
