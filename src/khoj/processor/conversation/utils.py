@@ -344,7 +344,8 @@ def construct_structured_message(
             constructed_messages.append({"type": "text", "text": attached_file_context})
         if vision_enabled and images:
             for image in images:
-                constructed_messages.append({"type": "image_url", "image_url": {"url": image}})
+                if image.startswith("https://"):
+                    constructed_messages.append({"type": "image_url", "image_url": {"url": image}})
         return constructed_messages
 
     if not is_none_or_empty(attached_file_context):
