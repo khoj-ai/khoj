@@ -110,7 +110,7 @@ class ChatMessage(PydanticBaseModel):
     queryFiles: Optional[List[Dict]] = None
     excalidrawDiagram: Optional[List[Dict]] = None
     by: str
-    turnId: Optional[str]
+    turnId: Optional[str] = None
     intent: Optional[Intent] = None
     automationId: Optional[str] = None
 
