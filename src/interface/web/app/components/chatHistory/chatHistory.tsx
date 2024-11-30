@@ -54,11 +54,11 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
     const lastIndex = props.trainOfThought.length - 1;
     const [collapsed, setCollapsed] = useState(props.completed);
 
-    // useEffect(() => {
-    //     if (props.completed) {
-    //         setCollapsed(true);
-    //     }
-    // }), [props.completed];
+    useEffect(() => {
+        if (props.completed) {
+            setCollapsed(true);
+        }
+    }, [props.completed]);
 
     return (
         <div
