@@ -108,7 +108,7 @@ class ChatMessage(PydanticBaseModel):
     created: str
     images: Optional[List[str]] = None
     queryFiles: Optional[List[Dict]] = None
-    excalidrawDiagram: Optional[str] = None
+    excalidrawDiagram: Optional[List[Dict]] = None
     by: str
     turnId: Optional[str]
     intent: Optional[Intent] = None

@@ -276,27 +276,32 @@ def save_to_conversation_log(
 ):
     user_message_time = user_message_time or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     turn_id = tracer.get("mid") or str(uuid.uuid4())
+
+    user_message_metadata = {"created": user_message_time, "images": query_images, "turnId": turn_id}
+
+    if raw_query_files and len(raw_query_files) > 0:
+        user_message_metadata["queryFiles"] = [file.model_dump(mode="json") for file in raw_query_files]
+
+    khoj_message_metadata = {
+        "context": compiled_references,
+        "intent": {"inferred-queries": inferred_queries, "type": intent_type},
+        "onlineContext": online_results,
+        "codeContext": code_results,
+        "automationId": automation_id,
+        "trainOfThought": train_of_thought,
+        "turnId": turn_id,
+        "images": generated_images,
+        "queryFiles": [file.model_dump(mode="json") for file in raw_generated_files],
+    }
+
+    if generated_excalidraw_diagram:
+        khoj_message_metadata["excalidrawDiagram"] = generated_excalidraw_diagram
+
     updated_conversation = message_to_log(
         user_message=q,
         chat_response=chat_response,
-        user_message_metadata={
-            "created": user_message_time,
-            "images": query_images,
-            "turnId": turn_id,
-            "queryFiles": [file.model_dump(mode="json") for file in raw_query_files],
-        },
-        khoj_message_metadata={
-            "context": compiled_references,
-            "intent": {"inferred-queries": inferred_queries, "type": intent_type},
-            "onlineContext": online_results,
-            "codeContext": code_results,
-            "automationId": automation_id,
-            "trainOfThought": train_of_thought,
-            "turnId": turn_id,
-            "images": generated_images,
-            "queryFiles": [file.model_dump(mode="json") for file in raw_generated_files],
-            "excalidrawDiagram": str(generated_excalidraw_diagram) if generated_excalidraw_diagram else None,
-        },
+        user_message_metadata=user_message_metadata,
+        khoj_message_metadata=khoj_message_metadata,
         conversation_log=meta_log.get("chat", []),
     )
     ConversationAdapters.save_conversation(
