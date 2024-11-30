@@ -1807,7 +1807,7 @@ class MessageProcessor:
         self.raw_response = ""
         self.generated_images = []
         self.generated_files = []
-        self.generated_excalidraw_diagrams = []
+        self.generated_excalidraw_diagram = []
 
     def convert_message_chunk_to_json(self, raw_chunk: str) -> Dict[str, Any]:
         if raw_chunk.startswith("{") and raw_chunk.endswith("}"):
@@ -1854,8 +1854,8 @@ class MessageProcessor:
                         self.generated_images = chunk_data[key]
                     elif key == "files":
                         self.generated_files = chunk_data[key]
-                    elif key == "excalidraw_diagrams":
-                        self.generated_excalidraw_diagrams = chunk_data[key]
+                    elif key == "excalidrawDiagram":
+                        self.generated_excalidraw_diagram = chunk_data[key]
 
     def handle_json_response(self, json_data: Dict[str, str]) -> str | Dict[str, str]:
         if "image" in json_data or "details" in json_data:
@@ -1892,7 +1892,7 @@ async def read_chat_stream(response_iterator: AsyncGenerator[str, None]) -> Dict
         "usage": processor.usage,
         "images": processor.generated_images,
         "files": processor.generated_files,
-        "excalidraw_diagrams": processor.generated_excalidraw_diagrams,
+        "excalidrawDiagram": processor.generated_excalidraw_diagram,
     }
 
 
