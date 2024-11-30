@@ -1,4 +1,4 @@
-import {ItemView, MarkdownRenderer, Scope, WorkspaceLeaf, request, requestUrl, setIcon, Platform} from 'obsidian';
+import { ItemView, MarkdownRenderer, Scope, WorkspaceLeaf, request, requestUrl, setIcon, Platform } from 'obsidian';
 import * as DOMPurify from 'dompurify';
 import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
@@ -46,10 +46,10 @@ export class KhojChatView extends KhojPaneView {
     waitingForLocation: boolean;
     location: Location = { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone };
     keyPressTimeout: NodeJS.Timeout | null = null;
-	userMessages: string[] = [];  // Store user sent messages for input history cycling
-	currentMessageIndex: number = -1;  // Track current message index in userMessages array
-	private currentUserInput: string = ""; // Stores the current user input that is being typed in chat
-	private startingMessage: string = "Message";
+    userMessages: string[] = [];  // Store user sent messages for input history cycling
+    currentMessageIndex: number = -1;  // Track current message index in userMessages array
+    private currentUserInput: string = ""; // Stores the current user input that is being typed in chat
+    private startingMessage: string = "Message";
     chatMessageState: ChatMessageState;
 
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
@@ -102,14 +102,14 @@ export class KhojChatView extends KhojPaneView {
 
         // Clear text after extracting message to send
         let user_message = input_el.value.trim();
-		// Store the message in the array if it's not empty
-		if (user_message) {
-			this.userMessages.push(user_message);
-			// Update starting message after sending a new message
-			const modifierKey = Platform.isMacOS ? '⌘' : '^';
-			this.startingMessage = `(${modifierKey}+↑/↓) for prev messages`;
-			input_el.placeholder = this.startingMessage;
-		}
+        // Store the message in the array if it's not empty
+        if (user_message) {
+            this.userMessages.push(user_message);
+            // Update starting message after sending a new message
+            const modifierKey = Platform.isMacOS ? '⌘' : '^';
+            this.startingMessage = `(${modifierKey}+↑/↓) for prev messages`;
+            input_el.placeholder = this.startingMessage;
+        }
         input_el.value = "";
         this.autoResize();
 
@@ -162,9 +162,9 @@ export class KhojChatView extends KhojPaneView {
         })
         chatInput.addEventListener('input', (_) => { this.onChatInput() });
         chatInput.addEventListener('keydown', (event) => {
-			this.incrementalChat(event);
-			this.handleArrowKeys(event);
-		});
+            this.incrementalChat(event);
+            this.handleArrowKeys(event);
+        });
 
         // Add event listeners for long press keybinding
         this.contentEl.addEventListener('keydown', this.handleKeyDown.bind(this));
@@ -199,7 +199,7 @@ export class KhojChatView extends KhojPaneView {
         // Get chat history from Khoj backend and set chat input state
         let getChatHistorySucessfully = await this.getChatHistory(chatBodyEl);
 
-        let placeholderText : string = getChatHistorySucessfully ? this.startingMessage : "Configure Khoj to enable chat";
+        let placeholderText: string = getChatHistorySucessfully ? this.startingMessage : "Configure Khoj to enable chat";
         chatInput.placeholder = placeholderText;
         chatInput.disabled = !getChatHistorySucessfully;
 
@@ -214,7 +214,7 @@ export class KhojChatView extends KhojPaneView {
         });
     }
 
-    startSpeechToText(event: KeyboardEvent | MouseEvent | TouchEvent, timeout=200) {
+    startSpeechToText(event: KeyboardEvent | MouseEvent | TouchEvent, timeout = 200) {
         if (!this.keyPressTimeout) {
             this.keyPressTimeout = setTimeout(async () => {
                 // Reset auto send voice message timer, UI if running
@@ -320,7 +320,7 @@ export class KhojChatView extends KhojPaneView {
         referenceButton.tabIndex = 0;
 
         // Add event listener to toggle full reference on click
-        referenceButton.addEventListener('click', function() {
+        referenceButton.addEventListener('click', function () {
             if (this.classList.contains("collapsed")) {
                 this.classList.remove("collapsed");
                 this.classList.add("expanded");
@@ -375,7 +375,7 @@ export class KhojChatView extends KhojPaneView {
         referenceButton.tabIndex = 0;
 
         // Add event listener to toggle full reference on click
-        referenceButton.addEventListener('click', function() {
+        referenceButton.addEventListener('click', function () {
             if (this.classList.contains("collapsed")) {
                 this.classList.remove("collapsed");
                 this.classList.add("expanded");
@@ -420,23 +420,23 @@ export class KhojChatView extends KhojPaneView {
                 "Authorization": `Bearer ${this.setting.khojApiKey}`,
             },
         })
-        .then(response => response.arrayBuffer())
-        .then(arrayBuffer => context.decodeAudioData(arrayBuffer))
-        .then(audioBuffer => {
-            const source = context.createBufferSource();
-            source.buffer = audioBuffer;
-            source.connect(context.destination);
-            source.start(0);
-            source.onended = function() {
+            .then(response => response.arrayBuffer())
+            .then(arrayBuffer => context.decodeAudioData(arrayBuffer))
+            .then(audioBuffer => {
+                const source = context.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(context.destination);
+                source.start(0);
+                source.onended = function () {
+                    speechButton.removeChild(loader);
+                    speechButton.disabled = false;
+                };
+            })
+            .catch(err => {
+                console.error("Error playing speech:", err);
                 speechButton.removeChild(loader);
-                speechButton.disabled = false;
-            };
-        })
-        .catch(err => {
-            console.error("Error playing speech:", err);
-            speechButton.removeChild(loader);
-            speechButton.disabled = false; // Consider enabling the button again to allow retrying
-        });
+                speechButton.disabled = false; // Consider enabling the button again to allow retrying
+            });
     }
 
     formatHTMLMessage(message: string, raw = false, willReplace = true) {
@@ -485,12 +485,18 @@ export class KhojChatView extends KhojPaneView {
         intentType?: string,
         inferredQueries?: string[],
         conversationId?: string,
+        images?: string[],
+        excalidrawDiagram?: string
     ) {
         if (!message) return;
 
         let chatMessageEl;
-        if (intentType?.includes("text-to-image") || intentType === "excalidraw") {
-            let imageMarkdown = this.generateImageMarkdown(message, intentType, inferredQueries, conversationId);
+        if (
+            intentType?.includes("text-to-image") ||
+            intentType === "excalidraw" ||
+            (images && images.length > 0) ||
+            excalidrawDiagram) {
+            let imageMarkdown = this.generateImageMarkdown(message, intentType ?? "", inferredQueries, conversationId, images, excalidrawDiagram);
             chatMessageEl = this.renderMessage(chatEl, imageMarkdown, sender, dt);
         } else {
             chatMessageEl = this.renderMessage(chatEl, message, sender, dt);
@@ -510,7 +516,7 @@ export class KhojChatView extends KhojPaneView {
         chatMessageBodyEl.appendChild(this.createReferenceSection(references));
     }
 
-    generateImageMarkdown(message: string, intentType: string, inferredQueries?: string[], conversationId?: string): string {
+    generateImageMarkdown(message: string, intentType: string, inferredQueries?: string[], conversationId?: string, images?: string[], excalidrawDiagram?: string): string {
         let imageMarkdown = "";
         if (intentType === "text-to-image") {
             imageMarkdown = `![](data:image/png;base64,${message})`;
@@ -518,11 +524,20 @@ export class KhojChatView extends KhojPaneView {
             imageMarkdown = `![](${message})`;
         } else if (intentType === "text-to-image-v3") {
             imageMarkdown = `![](data:image/webp;base64,${message})`;
-        } else if (intentType === "excalidraw") {
+        } else if (intentType === "excalidraw" || excalidrawDiagram) {
             const domain = this.setting.khojUrl.endsWith("/") ? this.setting.khojUrl : `${this.setting.khojUrl}/`;
             const redirectMessage = `Hey, I'm not ready to show you diagrams yet here. But you can view it in ${domain}chat?conversationId=${conversationId}`;
             imageMarkdown = redirectMessage;
+        } else if (images && images.length > 0) {
+            for (let image of images) {
+                if (image.startsWith("https://")) {
+                    imageMarkdown += `![](${image})\n\n`;
+                } else {
+                    imageMarkdown += `![](data:image/png;base64,${image})\n\n`;
+                }
+            }
         }
+
         if (inferredQueries) {
             imageMarkdown += "\n\n**Inferred Query**:";
             for (let inferredQuery of inferredQueries) {
@@ -650,19 +665,19 @@ export class KhojChatView extends KhojPaneView {
         chatBodyEl.innerHTML = "";
         chatBodyEl.dataset.conversationId = "";
         chatBodyEl.dataset.conversationTitle = "";
-		this.userMessages = [];
-		this.startingMessage = "Message";
+        this.userMessages = [];
+        this.startingMessage = "Message";
 
-		// Update the placeholder of the chat input
-		const chatInput = this.contentEl.querySelector('.khoj-chat-input') as HTMLTextAreaElement;
-		if (chatInput) {
-			chatInput.placeholder = this.startingMessage;
-		}
+        // Update the placeholder of the chat input
+        const chatInput = this.contentEl.querySelector('.khoj-chat-input') as HTMLTextAreaElement;
+        if (chatInput) {
+            chatInput.placeholder = this.startingMessage;
+        }
         this.renderMessage(chatBodyEl, "Hey 👋🏾, what's up?", "khoj");
     }
 
     async toggleChatSessions(forceShow: boolean = false): Promise<boolean> {
-		this.userMessages = [];  // clear user previous message history
+        this.userMessages = [];  // clear user previous message history
         let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
         if (!forceShow && this.contentEl.getElementsByClassName("side-panel")?.length > 0) {
             chatBodyEl.innerHTML = "";
@@ -768,10 +783,10 @@ export class KhojChatView extends KhojPaneView {
             let editConversationTitleInputEl = this.contentEl.createEl('input');
             editConversationTitleInputEl.classList.add("conversation-title-input");
             editConversationTitleInputEl.value = conversationTitle;
-            editConversationTitleInputEl.addEventListener('click', function(event) {
+            editConversationTitleInputEl.addEventListener('click', function (event) {
                 event.stopPropagation();
             });
-            editConversationTitleInputEl.addEventListener('keydown', function(event) {
+            editConversationTitleInputEl.addEventListener('keydown', function (event) {
                 if (event.key === "Enter") {
                     event.preventDefault();
                     editConversationTitleSaveButtonEl.click();
@@ -890,15 +905,17 @@ export class KhojChatView extends KhojPaneView {
                         chatLog.intent?.type,
                         chatLog.intent?.["inferred-queries"],
                         chatBodyEl.dataset.conversationId ?? "",
+                        chatLog.images,
+                        chatLog.excalidrawDiagram,
                     );
                     // push the user messages to the chat history
-                    if(chatLog.by === "you"){
+                    if (chatLog.by === "you") {
                         this.userMessages.push(chatLog.message);
                     }
                 });
 
                 // Update starting message after loading history
-			    const modifierKey: string = Platform.isMacOS ? '⌘' : '^';
+                const modifierKey: string = Platform.isMacOS ? '⌘' : '^';
                 this.startingMessage = this.userMessages.length > 0
                     ? `(${modifierKey}+↑/↓) for prev messages`
                     : "Message";
@@ -922,15 +939,15 @@ export class KhojChatView extends KhojPaneView {
             try {
                 let jsonChunk = JSON.parse(rawChunk);
                 if (!jsonChunk.type)
-                    jsonChunk = {type: 'message', data: jsonChunk};
+                    jsonChunk = { type: 'message', data: jsonChunk };
                 return jsonChunk;
             } catch (e) {
-                return {type: 'message', data: rawChunk};
+                return { type: 'message', data: rawChunk };
             }
         } else if (rawChunk.length > 0) {
-            return {type: 'message', data: rawChunk};
+            return { type: 'message', data: rawChunk };
         }
-        return {type: '', data: ''};
+        return { type: '', data: '' };
     }
 
     processMessageChunk(rawChunk: string): void {
@@ -965,7 +982,7 @@ export class KhojChatView extends KhojPaneView {
                 isVoice: false,
             };
         } else if (chunk.type === "references") {
-            this.chatMessageState.references = {"notes": chunk.data.context, "online": chunk.data.onlineContext};
+            this.chatMessageState.references = { "notes": chunk.data.context, "online": chunk.data.onlineContext };
         } else if (chunk.type === 'message') {
             const chunkData = chunk.data;
             if (typeof chunkData === 'object' && chunkData !== null) {
@@ -988,7 +1005,7 @@ export class KhojChatView extends KhojPaneView {
     }
 
     handleJsonResponse(jsonData: any): void {
-        if (jsonData.image || jsonData.detail) {
+        if (jsonData.image || jsonData.detail || jsonData.images || jsonData.excalidrawDiagram) {
             this.chatMessageState.rawResponse = this.handleImageResponse(jsonData, this.chatMessageState.rawResponse);
         } else if (jsonData.response) {
             this.chatMessageState.rawResponse = jsonData.response;
@@ -1234,11 +1251,11 @@ export class KhojChatView extends KhojPaneView {
             const recordingConfig = { mimeType: 'audio/webm' };
             this.mediaRecorder = new MediaRecorder(stream, recordingConfig);
 
-            this.mediaRecorder.addEventListener("dataavailable", function(event) {
+            this.mediaRecorder.addEventListener("dataavailable", function (event) {
                 if (event.data.size > 0) audioChunks.push(event.data);
             });
 
-            this.mediaRecorder.addEventListener("stop", async function() {
+            this.mediaRecorder.addEventListener("stop", async function () {
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                 await sendToServer(audioBlob);
             });
@@ -1368,7 +1385,22 @@ export class KhojChatView extends KhojPaneView {
             if (inferredQuery) {
                 rawResponse += `\n\n**Inferred Query**:\n\n${inferredQuery}`;
             }
+        } else if (imageJson.images) {
+            // If response has images field, response is a list of generated images.
+            imageJson.images.forEach((image: any) => {
+
+                if (image.startsWith("http")) {
+                    rawResponse += `![generated_image](${image})\n\n`;
+                } else {
+                    rawResponse += `![generated_image](data:image/png;base64,${image})\n\n`;
+                }
+            });
+        } else if (imageJson.excalidrawDiagram) {
+            const domain = this.setting.khojUrl.endsWith("/") ? this.setting.khojUrl : `${this.setting.khojUrl}/`;
+            const redirectMessage = `Hey, I'm not ready to show you diagrams yet here. But you can view it in ${domain}`;
+            rawResponse += redirectMessage;
         }
+
         // If response has detail field, response is an error message.
         if (imageJson.detail) rawResponse += imageJson.detail;
 
@@ -1407,7 +1439,7 @@ export class KhojChatView extends KhojPaneView {
         referenceExpandButton.classList.add("reference-expand-button");
         referenceExpandButton.innerHTML = numReferences == 1 ? "1 reference" : `${numReferences} references`;
 
-        referenceExpandButton.addEventListener('click', function() {
+        referenceExpandButton.addEventListener('click', function () {
             if (referenceSection.classList.contains("collapsed")) {
                 referenceSection.classList.remove("collapsed");
                 referenceSection.classList.add("expanded");
