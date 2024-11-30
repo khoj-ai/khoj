@@ -27,6 +27,7 @@ interface ChatMessageState {
     newResponseEl: HTMLElement | null;
     loadingEllipsis: HTMLElement | null;
     references: any;
+    generatedAssets: string;
     rawResponse: string;
     rawQuery: string;
     isVoice: boolean;
@@ -961,6 +962,7 @@ export class KhojChatView extends KhojPaneView {
         } else if (chunk.type === 'generated_assets') {
             const generatedAssets = chunk.data;
             const imageData = this.handleImageResponse(generatedAssets, this.chatMessageState.rawResponse);
+            this.chatMessageState.generatedAssets = imageData;
             this.handleStreamResponse(this.chatMessageState.newResponseTextEl, imageData, this.chatMessageState.loadingEllipsis, false);
         } else if (chunk.type === 'start_llm_response') {
             console.log("Started streaming", new Date());
@@ -984,6 +986,7 @@ export class KhojChatView extends KhojPaneView {
                 rawResponse: "",
                 rawQuery: liveQuery,
                 isVoice: false,
+                generatedAssets: "",
             };
         } else if (chunk.type === "references") {
             this.chatMessageState.references = { "notes": chunk.data.context, "online": chunk.data.onlineContext };
@@ -999,11 +1002,11 @@ export class KhojChatView extends KhojPaneView {
                     this.handleJsonResponse(jsonData);
                 } catch (e) {
                     this.chatMessageState.rawResponse += chunkData;
-                    this.handleStreamResponse(this.chatMessageState.newResponseTextEl, this.chatMessageState.rawResponse, this.chatMessageState.loadingEllipsis);
+                    this.handleStreamResponse(this.chatMessageState.newResponseTextEl, this.chatMessageState.rawResponse + this.chatMessageState.generatedAssets, this.chatMessageState.loadingEllipsis);
                 }
             } else {
                 this.chatMessageState.rawResponse += chunkData;
-                this.handleStreamResponse(this.chatMessageState.newResponseTextEl, this.chatMessageState.rawResponse, this.chatMessageState.loadingEllipsis);
+                this.handleStreamResponse(this.chatMessageState.newResponseTextEl, this.chatMessageState.rawResponse + this.chatMessageState.generatedAssets, this.chatMessageState.loadingEllipsis);
             }
         }
     }
