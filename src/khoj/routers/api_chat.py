@@ -1128,14 +1128,6 @@ async def chat(
                     yield result
             else:
                 generated_images.append(generated_image)
-                # content_obj = {
-                #     "intentType": intent_type,
-                #     "inferredQueries": [improved_image_prompt],
-                #     "image": generated_image,
-                # }
-                # async for result in send_llm_response(json.dumps(content_obj), tracer.get("usage")):
-                #     yield result
-                # return
 
                 async for result in send_event(
                     ChatEvent.GENERATED_ASSETS,
@@ -1190,36 +1182,6 @@ async def chat(
 
                         async for result in send_event(ChatEvent.STATUS, error_message):
                             yield result
-
-            # content_obj = {
-            #     "intentType": intent_type,
-            #     "inferredQueries": inferred_queries,
-            #     "image": diagram_description,
-            # }
-
-            # await sync_to_async(save_to_conversation_log)(
-            #     q,
-            #     excalidraw_diagram_description,
-            #     user,
-            #     meta_log,
-            #     user_message_time,
-            #     intent_type="excalidraw",
-            #     inferred_queries=[better_diagram_description_prompt],
-            #     client_application=request.user.client_app,
-            #     conversation_id=conversation_id,
-            #     compiled_references=compiled_references,
-            #     online_results=online_results,
-            #     code_results=code_results,
-            #     query_images=uploaded_images,
-            #     train_of_thought=train_of_thought,
-            #     raw_query_files=raw_query_files,
-            #     generated_images=generated_images,
-            #     tracer=tracer,
-            # )
-
-            # async for result in send_llm_response(json.dumps(content_obj), tracer.get("usage")):
-            #     yield result
-            # return
 
         ## Generate Text Output
         async for result in send_event(ChatEvent.STATUS, f"**Generating a well-informed response**"):
