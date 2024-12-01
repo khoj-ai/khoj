@@ -562,8 +562,7 @@ async def generate_chat_title(
         raise HTTPException(status_code=404, detail="Conversation not found")
 
     new_title = await acreate_title_from_history(request.user.object, conversation=conversation)
-
-    conversation.slug = new_title
+    conversation.slug = new_title[:200]
 
     await conversation.asave()
 
