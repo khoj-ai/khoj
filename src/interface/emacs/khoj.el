@@ -434,9 +434,9 @@ Auto invokes setup steps on calling main entrypoint."
 Append 'TYPE-QUERY' as query parameter in request url.
 Specify `BOUNDARY' used to separate files in request header."
   (let ((url-request-method (if force "PUT" "PATCH"))
-        (url-request-data body)
-          (url-request-extra-headers `(("content-type" . ,(format "multipart/form-data; boundary=%s" boundary))
-                                       ("Authorization" . ,(format "Bearer %s" khoj-api-key)))))
+        (url-request-data (encode-coding-string body 'utf-8))
+        (url-request-extra-headers `(("content-type" . ,(format "multipart/form-data; boundary=%s" boundary))
+                                     ("Authorization" . ,(encode-coding-string (format "Bearer %s" khoj-api-key) 'utf-8)))))
       (with-current-buffer
           (url-retrieve (format "%s/api/content?%s&client=emacs" khoj-server-url type-query)
                         ;; render response from indexing API endpoint on server
@@ -668,9 +668,9 @@ Simplified fork of `org-cycle-content' from Emacs 29.1 to work with >=27.1."
   "Sync call API at PATH with METHOD, query PARAMS and BODY as kv assoc list.
 Optionally apply CALLBACK with JSON parsed response and CBARGS."
   (let* ((url-request-method (or method "GET"))
-         (url-request-extra-headers `(("Authorization" . ,(format "Bearer %s" khoj-api-key))))
-         (url-request-extra-headers `(("Authorization" . ,(format "Bearer %s" khoj-api-key)) ("Content-Type" . "application/json")))
-         (url-request-data (if body (json-encode body) nil))
+         (url-request-extra-headers `(("Authorization" . ,(encode-coding-string (format "Bearer %s" khoj-api-key) 'utf-8))
+                                      ("Content-Type" . "application/json")))
+         (url-request-data (if body (encode-coding-string (json-encode body) 'utf-8) nil))
          (param-string (url-build-query-string (append params '((client "emacs")))))
          (query-url (format "%s%s?%s" khoj-server-url path param-string))
          (cbargs (if (and (listp cbargs) (listp (car cbargs))) (car cbargs) cbargs))) ; normalize cbargs to (a b) from ((a b)) if required
@@ -689,8 +689,9 @@ Optionally apply CALLBACK with JSON parsed response and CBARGS."
   "Async call to API at PATH with specified METHOD, query PARAMS and request BODY.
 Optionally apply CALLBACK with JSON parsed response and CBARGS."
   (let* ((url-request-method (or method "GET"))
-         (url-request-extra-headers `(("Authorization" . ,(format "Bearer %s" khoj-api-key)) ("Content-Type" . "application/json")))
-         (url-request-data (if body (json-encode body) nil))
+         (url-request-extra-headers `(("Authorization" . ,(encode-coding-string (format "Bearer %s" khoj-api-key) 'utf-8))
+                                      ("Content-Type" . "application/json")))
+         (url-request-data (if body (encode-coding-string (json-encode body) 'utf-8) nil))
          (param-string (url-build-query-string (append params '((client "emacs")))))
          (query-url (format "%s%s?%s" khoj-server-url path param-string))
          (cbargs (if (and (listp cbargs) (listp (car cbargs))) (car cbargs) cbargs))) ; normalize cbargs to (a b) from ((a b)) if required
@@ -716,7 +717,10 @@ Optionally apply CALLBACK with JSON parsed response and CBARGS."
 Render search results in BUFFER-NAME using CONTENT-TYPE and QUERY.
 Filter out first similar result if IS-FIND-SIMILAR set."
   (let* ((rerank (or rerank "false"))
-         (params `((q ,query) (t ,content-type) (r ,rerank) (n ,khoj-results-count)))
+         (params `((q ,(encode-coding-string query 'utf-8))
+                   (t ,content-type)
+                   (r ,rerank)
+                   (n ,khoj-results-count)))
          (path "/api/search"))
     (khoj--call-api-async path
                     "GET"
