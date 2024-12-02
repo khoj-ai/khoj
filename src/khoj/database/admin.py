@@ -286,17 +286,10 @@ class ConversationAdmin(admin.ModelAdmin):
             modified_log = conversation.conversation_log
             chat_log = modified_log.get("chat", [])
             for idx, log in enumerate(chat_log):
-                if (
-                    log["by"] == "khoj"
-                    and log["intent"]
-                    and log["intent"]["type"]
-                    and (
-                        log["intent"]["type"] == ImageIntentType.TEXT_TO_IMAGE.value
-                        or log["intent"]["type"] == ImageIntentType.TEXT_TO_IMAGE_V3.value
-                    )
-                ):
-                    log["message"] = "inline image redacted for space"
+                if log["by"] == "khoj" and log["images"]:
+                    log["images"] = ["inline image redacted for space"]
                     chat_log[idx] = log
+
             modified_log["chat"] = chat_log
 
             writer.writerow(

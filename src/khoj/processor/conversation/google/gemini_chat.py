@@ -56,7 +56,7 @@ def extract_questions_gemini(
         [
             f'User: {chat["intent"]["query"]}\nAssistant: {{"queries": {chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}}}\nA: {chat["message"]}\n\n'
             for chat in conversation_log.get("chat", [])[-4:]
-            if chat["by"] == "khoj" and "text-to-image" not in chat["intent"].get("type")
+            if chat["by"] == "khoj"
         ]
     )
 

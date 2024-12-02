@@ -413,27 +413,6 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             .replace(/\\\[/g, "LEFTBRACKET")
             .replace(/\\\]/g, "RIGHTBRACKET");
 
-        const intentTypeHandlers = {
-            "text-to-image": (msg: string) => `![generated image](data:image/png;base64,${msg})`,
-            "text-to-image2": (msg: string) => `![generated image](${msg})`,
-            "text-to-image-v3": (msg: string) =>
-                `![generated image](data:image/webp;base64,${msg})`,
-            excalidraw: (msg: string) => msg,
-        };
-
-        // Handle intent-specific rendering
-        if (props.chatMessage.intent) {
-            const { type, "inferred-queries": inferredQueries } = props.chatMessage.intent;
-
-            if (type in intentTypeHandlers) {
-                message = intentTypeHandlers[type as keyof typeof intentTypeHandlers](message);
-            }
-
-            if (type.includes("text-to-image") && inferredQueries?.length > 0) {
-                message += `\n\n${inferredQueries[0]}`;
-            }
-        }
-
         // Replace file links with base64 data
         message = renderCodeGenImageInline(message, props.chatMessage.codeContext);
 

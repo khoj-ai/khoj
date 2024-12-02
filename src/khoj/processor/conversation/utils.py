@@ -154,9 +154,6 @@ def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="A
                 chat_history += f'{agent_name}: {{"queries": {chat["intent"].get("inferred-queries")}}}\n'
 
             chat_history += f"{agent_name}: {chat['message']}\n\n"
-        elif chat["by"] == "khoj" and ("text-to-image" in chat["intent"].get("type")):
-            chat_history += f"User: {chat['intent']['query']}\n"
-            chat_history += f"{agent_name}: [generated image redacted for space]\n"
         elif chat["by"] == "khoj" and chat.get("images"):
             chat_history += f"User: {chat['intent']['query']}\n"
             chat_history += f"{agent_name}: [generated image redacted for space]\n"
@@ -320,7 +317,7 @@ def save_to_conversation_log(
 Saved Conversation Turn
 You ({user.username}): "{q}"
 
-Khoj: "{inferred_queries if ("text-to-image" in intent_type) else chat_response}"
+Khoj: "{chat_response}"
 """.strip()
     )
 
