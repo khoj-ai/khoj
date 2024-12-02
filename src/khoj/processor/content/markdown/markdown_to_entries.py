@@ -3,7 +3,7 @@ import re
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-import urllib3
+import urllib3.util
 
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import KhojUser
@@ -51,11 +51,11 @@ class MarkdownToEntries(TextToEntries):
         return num_new_embeddings, num_deleted_embeddings
 
     @staticmethod
-    def extract_markdown_entries(markdown_files, max_tokens=256) -> Tuple[Dict, List[Entry]]:
+    def extract_markdown_entries(markdown_files: Dict[str, str], max_tokens=256) -> Tuple[Dict[str, str], List[Entry]]:
         "Extract entries by heading from specified Markdown files"
         entries: List[str] = []
         entry_to_file_map: List[Tuple[str, str]] = []
-        file_to_text_map = dict()
+        file_to_text_map: Dict[str, str] = dict()
         for markdown_file in markdown_files:
             try:
                 markdown_content = markdown_files[markdown_file]
@@ -128,7 +128,7 @@ class MarkdownToEntries(TextToEntries):
         return entries, entry_to_file_map
 
     @staticmethod
-    def convert_markdown_entries_to_maps(parsed_entries: List[str], entry_to_file_map) -> List[Entry]:
+    def convert_markdown_entries_to_maps(parsed_entries: List[str], entry_to_file_map: Dict[str, str]) -> List[Entry]:
         "Convert each Markdown entries into a dictionary"
         entries: List[Entry] = []
         for parsed_entry in parsed_entries:
@@ -151,7 +151,7 @@ class MarkdownToEntries(TextToEntries):
                     compiled=compiled_entry,
                     raw=parsed_entry,
                     heading=f"{prefix}{heading}",
-                    file=f"{entry_filename}",
+                    file=entry_filename,
                 )
             )
 

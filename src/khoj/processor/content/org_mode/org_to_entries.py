@@ -208,7 +208,7 @@ class OrgToEntries(TextToEntries):
                     compiled += f"\n {parsed_entry.body}"
 
                 # Add the sub-entry contents to the entry
-                entry_compiled += f"{compiled}"
+                entry_compiled += compiled
                 entry_raw += f"{parsed_entry}"
                 if not entry_heading:
                     entry_heading = heading
@@ -218,8 +218,8 @@ class OrgToEntries(TextToEntries):
                     Entry(
                         compiled=entry_compiled,
                         raw=entry_raw,
-                        heading=f"{entry_heading}",
-                        file=f"{entry_to_file_map[parsed_entry]}",
+                        heading=entry_heading,
+                        file=entry_to_file_map[parsed_entry],
                     )
                 )
 
