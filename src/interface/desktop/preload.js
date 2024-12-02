@@ -83,4 +83,9 @@ contextBridge.exposeInMainWorld('appInfoAPI', {
 contextBridge.exposeInMainWorld('navigateAPI', {
   navigateToSettings: () => ipcRenderer.send('navigate', 'settings.html'),
   navigateToWebSettings: () => ipcRenderer.send('navigateToWebApp', 'settings'),
+  navigateToWebHome: () => ipcRenderer.send('navigateToWebApp', ''),
 })
+
+contextBridge.exposeInMainWorld('openFileAPI', {
+  openFile: (path) => ipcRenderer.invoke('openFile', path)
+});
