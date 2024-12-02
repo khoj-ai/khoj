@@ -139,7 +139,7 @@ class MarkdownToEntries(TextToEntries):
                 # Escape the URL to avoid issues with special characters
                 entry_filename = urllib3.util.parse_url(raw_filename).url
             else:
-                entry_filename = str(Path(raw_filename))
+                entry_filename = raw_filename
 
             heading = parsed_entry.splitlines()[0] if re.search(r"^#+\s", parsed_entry) else ""
             # Append base filename to compiled entry for context to model
