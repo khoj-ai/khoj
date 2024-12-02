@@ -1,0 +1,55 @@
+{
+  "packageId": "dev.khoj.app",
+  "host": "app.khoj.dev",
+  "name": "Khoj AI",
+  "launcherName": "Khoj",
+  "display": "standalone",
+  "themeColor": "#FFFFFF",
+  "themeColorDark": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#FFFFFF",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://assets.khoj.dev/khoj_lantern_1200x1200.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "4",
+  "appVersionCode": 4,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://app.khoj.dev/static/khoj.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": true
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://app.khoj.dev/",
+  "minSdkVersion": 19,
+  "orientation": "natural",
+  "fingerprints": [
+    {
+      "name": "signing",
+      "value": "CC:98:4A:0A:F1:CC:84:26:AC:02:86:49:AA:69:64:B9:5E:63:A3:EF:18:56:EA:CA:13:C1:3A:15:CA:49:77:46"
+    },
+    {
+      "name": "upload",
+      "value": "D4:5A:6F:6C:18:28:D2:1C:78:27:92:C6:AC:DB:4C:12:C4:52:A1:88:9B:A1:F5:67:D1:22:FE:A0:0F:B1:AE:92"
+    }
+  ],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "appVersion": "4"
+}
