@@ -13,14 +13,15 @@
   "backgroundColor": "#FFFFFF",
   "enableNotifications": true,
   "startUrl": "/",
-  "iconUrl": "https://app.khoj.dev/static/assets/icons/khoj_lantern_128x128.png",
+  "iconUrl": "https://assets.khoj.dev/khoj_lantern_1200x1200.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "android.keystore",
     "alias": "android"
   },
-  "appVersionName": "3",
-  "appVersionCode": 3,
+  "appVersionName": "4",
+  "appVersionCode": 4,
+  "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://app.khoj.dev/static/khoj.webmanifest",
   "fallbackType": "customtabs",
@@ -37,7 +38,7 @@
   "isMetaQuest": false,
   "fullScopeUrl": "https://app.khoj.dev/",
   "minSdkVersion": 19,
-  "orientation": "any",
+  "orientation": "natural",
   "fingerprints": [
     {
       "name": "signing",
@@ -50,5 +51,5 @@
   ],
   "additionalTrustedOrigins": [],
   "retainedBundles": [],
-  "appVersion": "3"
+  "appVersion": "4"
 }
