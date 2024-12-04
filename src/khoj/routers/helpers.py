@@ -136,7 +136,7 @@ def validate_conversation_config(user: KhojUser):
     if default_config is None:
         raise HTTPException(status_code=500, detail="Contact the server administrator to add a chat model.")
 
-    if default_config.model_type == "openai" and not default_config.openai_config:
+    if default_config.model_type == "openai" and not default_config.chat_api_provider:
         raise HTTPException(status_code=500, detail="Contact the server administrator to add a chat model.")
 
 
@@ -990,7 +990,7 @@ async def send_message_to_model_wrapper(
         )
 
     elif model_type == ChatModelOptions.ModelType.OPENAI:
-        openai_chat_config = conversation_config.openai_config
+        openai_chat_config = conversation_config.chat_api_provider
         api_key = openai_chat_config.api_key
         api_base_url = openai_chat_config.api_base_url
         truncated_messages = generate_chatml_messages_with_context(
@@ -1015,7 +1015,7 @@ async def send_message_to_model_wrapper(
             tracer=tracer,
         )
     elif model_type == ChatModelOptions.ModelType.ANTHROPIC:
-        api_key = conversation_config.openai_config.api_key
+        api_key = conversation_config.chat_api_provider.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=query,
             context_message=context,
@@ -1037,7 +1037,7 @@ async def send_message_to_model_wrapper(
             tracer=tracer,
         )
     elif model_type == ChatModelOptions.ModelType.GOOGLE:
-        api_key = conversation_config.openai_config.api_key
+        api_key = conversation_config.chat_api_provider.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=query,
             context_message=context,
@@ -1102,7 +1102,7 @@ def send_message_to_model_wrapper_sync(
         )
 
     elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
-        api_key = conversation_config.openai_config.api_key
+        api_key = conversation_config.chat_api_provider.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
             system_message=system_message,
@@ -1124,7 +1124,7 @@ def send_message_to_model_wrapper_sync(
         return openai_response
 
     elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
-        api_key = conversation_config.openai_config.api_key
+        api_key = conversation_config.chat_api_provider.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
             system_message=system_message,
@@ -1144,7 +1144,7 @@ def send_message_to_model_wrapper_sync(
         )
 
     elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
-        api_key = conversation_config.openai_config.api_key
+        api_key = conversation_config.chat_api_provider.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
             system_message=system_message,
@@ -1255,7 +1255,7 @@ def generate_chat_response(
             )
 
         elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
-            openai_chat_config = conversation_config.openai_config
+            openai_chat_config = conversation_config.chat_api_provider
             api_key = openai_chat_config.api_key
             chat_model = conversation_config.chat_model
             chat_response = converse(
@@ -1285,7 +1285,7 @@ def generate_chat_response(
             )
 
         elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
-            api_key = conversation_config.openai_config.api_key
+            api_key = conversation_config.chat_api_provider.api_key
             chat_response = converse_anthropic(
                 compiled_references,
                 query_to_run,
@@ -1311,7 +1311,7 @@ def generate_chat_response(
                 tracer=tracer,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
-            api_key = conversation_config.openai_config.api_key
+            api_key = conversation_config.chat_api_provider.api_key
             chat_response = converse_gemini(
                 compiled_references,
                 query_to_run,

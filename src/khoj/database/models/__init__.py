@@ -181,7 +181,7 @@ class Subscription(DbBaseModel):
     enabled_trial_at = models.DateTimeField(null=True, default=None, blank=True)
 
 
-class OpenAIProcessorConversationConfig(DbBaseModel):
+class ChatApiProvider(DbBaseModel):
     name = models.CharField(max_length=200)
     api_key = models.CharField(max_length=200)
     api_base_url = models.URLField(max_length=200, default=None, blank=True, null=True)
@@ -200,8 +200,8 @@ class ChatModelOptions(DbBaseModel):
     chat_model = models.CharField(max_length=200, default="bartowski/Meta-Llama-3.1-8B-Instruct-GGUF")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
     vision_enabled = models.BooleanField(default=False)
-    openai_config = models.ForeignKey(
-        OpenAIProcessorConversationConfig, on_delete=models.CASCADE, default=None, null=True, blank=True
+    chat_api_provider = models.ForeignKey(
+        ChatApiProvider, on_delete=models.CASCADE, default=None, null=True, blank=True
     )
 
 
@@ -504,9 +504,7 @@ class TextToImageModelConfig(DbBaseModel):
     model_name = models.CharField(max_length=200, default="dall-e-3")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OPENAI)
     api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
-    openai_config = models.ForeignKey(
-        OpenAIProcessorConversationConfig, on_delete=models.CASCADE, default=None, null=True, blank=True
-    )
+    openai_config = models.ForeignKey(ChatApiProvider, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
     def clean(self):
         # Custom validation logic
