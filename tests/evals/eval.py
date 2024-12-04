@@ -163,7 +163,7 @@ def load_gpqa_dataset():
         correct_letter = "ABCD"[correct_index]
 
         prompt = f"""
-Answer the following multiple choice question. Answer should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.
+Answer the following multiple choice question. Answer should be of the following format: 'Answer: $LETTER' (without quotes) where $LETTER is one of ABCD. Think step by step before answering.
 
 {row["Question"]}
 
