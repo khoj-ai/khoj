@@ -65,12 +65,12 @@ class PeopleAlsoAsk(PydanticBaseModel):
 
 class KnowledgeGraph(PydanticBaseModel):
     attributes: Dict[str, str]
-    description: str
-    descriptionLink: str
-    descriptionSource: str
-    imageUrl: str
+    description: Optional[str] = None
+    descriptionLink: Optional[str] = None
+    descriptionSource: Optional[str] = None
+    imageUrl: Optional[str] = None
     title: str
-    type: str
+    type: Optional[str] = None
 
 
 class OrganicContext(PydanticBaseModel):

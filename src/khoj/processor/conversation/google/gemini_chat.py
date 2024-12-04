@@ -170,7 +170,7 @@ def converse_gemini(
     generated_images: Optional[list[str]] = None,
     generated_files: List[FileAttachment] = None,
     generated_excalidraw_diagram: Optional[str] = None,
-    additional_context: List[str] = None,
+    additional_context_for_llm_response: List[str] = None,
     tracer={},
 ):
     """
@@ -235,7 +235,7 @@ def converse_gemini(
         generated_excalidraw_diagram=generated_excalidraw_diagram,
         generated_files=generated_files,
         generated_images=generated_images,
-        additional_program_context=additional_context,
+        additional_context_for_llm_response=additional_context_for_llm_response,
     )
 
     messages, system_prompt = format_messages_for_gemini(messages, system_prompt)

@@ -383,7 +383,7 @@ def generate_chatml_messages_with_context(
     generated_images: Optional[list[str]] = None,
     generated_files: List[FileAttachment] = None,
     generated_excalidraw_diagram: str = None,
-    additional_program_context: List[str] = [],
+    additional_context_for_llm_response: List[str] = [],
 ):
     """Generate chat messages with appropriate context from previous conversation to send to the chat model"""
     # Set max prompt size from user config or based on pre-configured for model and machine specs
@@ -484,10 +484,12 @@ def generate_chatml_messages_with_context(
     if generated_excalidraw_diagram:
         messages.append(ChatMessage(content=prompts.generated_diagram_attachment.format(), role="assistant"))
 
-    if additional_program_context:
+    if additional_context_for_llm_response:
         messages.append(
             ChatMessage(
-                content=prompts.additional_program_context.format(context="\n".join(additional_program_context)),
+                content=prompts.additional_program_context.format(
+                    context="\n".join(additional_context_for_llm_response)
+                ),
                 role="assistant",
             )
         )

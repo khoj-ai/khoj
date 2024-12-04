@@ -160,7 +160,7 @@ def converse(
     generated_images: Optional[list[str]] = None,
     generated_files: List[FileAttachment] = None,
     generated_excalidraw_diagram: Optional[str] = None,
-    additional_context: List[str] = None,
+    additional_context_for_llm_response: List[str] = None,
     tracer: dict = {},
 ):
     """
@@ -226,7 +226,7 @@ def converse(
         generated_excalidraw_diagram=generated_excalidraw_diagram,
         generated_files=generated_files,
         generated_images=generated_images,
-        additional_program_context=additional_context,
+        additional_context_for_llm_response=additional_context_for_llm_response,
     )
     logger.debug(f"Conversation Context for GPT: {messages_to_print(messages)}")
 

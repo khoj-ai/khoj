@@ -397,11 +397,6 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
         // Prepare initial message for rendering
         let message = props.chatMessage.message;
 
-        if (props.chatMessage.intent && props.chatMessage.intent.type == "excalidraw") {
-            message = props.chatMessage.intent["inferred-queries"][0];
-            setExcalidrawData(props.chatMessage.message);
-        }
-
         if (props.chatMessage.excalidrawDiagram) {
             setExcalidrawData(props.chatMessage.excalidrawDiagram);
         }
