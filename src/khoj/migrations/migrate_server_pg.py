@@ -60,11 +60,7 @@ import logging
 
 from packaging import version
 
-from khoj.database.models import (
-    ChatModelOptions,
-    OpenAIProcessorConversationConfig,
-    SearchModelConfig,
-)
+from khoj.database.models import ChatApiProvider, ChatModelOptions, SearchModelConfig
 from khoj.utils.yaml import load_config_from_file, save_config_to_file
 
 logger = logging.getLogger(__name__)
@@ -121,9 +117,7 @@ def migrate_server_pg(args):
                     if openai.get("chat-model") is None:
                         openai["chat-model"] = "gpt-3.5-turbo"
 
-                    openai_config = OpenAIProcessorConversationConfig.objects.create(
-                        api_key=openai.get("api-key"), name="default"
-                    )
+                    openai_config = ChatApiProvider.objects.create(api_key=openai.get("api-key"), name="default")
 
                     ChatModelOptions.objects.create(
                         chat_model=openai.get("chat-model"),

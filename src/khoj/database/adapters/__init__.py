@@ -35,6 +35,7 @@ from torch import Tensor
 
 from khoj.database.models import (
     Agent,
+    ChatApiProvider,
     ChatModelOptions,
     ClientApplication,
     Conversation,
@@ -46,7 +47,6 @@ from khoj.database.models import (
     KhojApiUser,
     KhojUser,
     NotionConfig,
-    OpenAIProcessorConversationConfig,
     ProcessLock,
     PublicConversation,
     ReflectiveQuestion,
@@ -1001,11 +1001,11 @@ class ConversationAdapters:
 
     @staticmethod
     def get_openai_conversation_config():
-        return OpenAIProcessorConversationConfig.objects.filter().first()
+        return ChatApiProvider.objects.filter().first()
 
     @staticmethod
     def has_valid_openai_conversation_config():
-        return OpenAIProcessorConversationConfig.objects.filter().exists()
+        return ChatApiProvider.objects.filter().exists()
 
     @staticmethod
     @arequire_valid_user
@@ -1313,7 +1313,7 @@ class ConversationAdapters:
                 ChatModelOptions.ModelType.OPENAI,
                 ChatModelOptions.ModelType.GOOGLE,
             ]
-        ) and conversation_config.openai_config:
+        ) and conversation_config.chat_api_provider:
             return conversation_config
 
         else:

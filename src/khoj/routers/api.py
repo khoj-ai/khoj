@@ -430,7 +430,7 @@ async def extract_references_and_questions(
                 tracer=tracer,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
-            openai_chat_config = conversation_config.openai_config
+            openai_chat_config = conversation_config.chat_api_provider
             api_key = openai_chat_config.api_key
             base_url = openai_chat_config.api_base_url
             chat_model = conversation_config.chat_model
@@ -449,7 +449,7 @@ async def extract_references_and_questions(
                 tracer=tracer,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
-            api_key = conversation_config.openai_config.api_key
+            api_key = conversation_config.chat_api_provider.api_key
             chat_model = conversation_config.chat_model
             inferred_queries = extract_questions_anthropic(
                 defiltered_query,
@@ -465,7 +465,7 @@ async def extract_references_and_questions(
                 tracer=tracer,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
-            api_key = conversation_config.openai_config.api_key
+            api_key = conversation_config.chat_api_provider.api_key
             chat_model = conversation_config.chat_model
             inferred_queries = extract_questions_gemini(
                 defiltered_query,

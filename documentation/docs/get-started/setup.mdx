@@ -302,11 +302,11 @@ Setup which chat model you'd want to use. Khoj supports local and online chat mo
 Using Ollama? See the [Ollama Integration](/advanced/ollama) section for more custom setup instructions.
 :::
 
-1. Create a new [OpenAI processor conversation config](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/add) in the server admin settings. This is kind of a misnomer, we know.
+1. Create a new [Chat API Provider](http://localhost:42110/server/admin/database/chatapiprovider/add) in the server admin settings.
    - Add your [OpenAI API key](https://platform.openai.com/api-keys)
    - Give the configuration a friendly name like `OpenAI`
    - (Optional) Set the API base URL. It is only relevant if you're using another OpenAI-compatible proxy server like [Ollama](/advanced/ollama) or [LMStudio](/advanced/lmstudio).<br />
-![example configuration for openai processor](/img/example_openai_processor_config.png)
+![example configuration for chat api provider](/img/example_openai_processor_config.png)
 2. Create a new [chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/add)
     - Set the `chat-model` field to an [OpenAI chat model](https://platform.openai.com/docs/models). Example: `gpt-4o`.
     - Make sure to set the `model-type` field to `OpenAI`.
@@ -315,22 +315,22 @@ Using Ollama? See the [Ollama Integration](/advanced/ollama) section for more cu
 ![example configuration for chat model options](/img/example_chatmodel_option.png)
   </TabItem>
   <TabItem value="anthropic" label="Anthropic">
-1. Create a new [OpenAI processor conversation config](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/add) in the server admin settings. This is kind of a misnomer, we know.
+1. Create a new [Chat API Provider](http://localhost:42110/server/admin/database/chatapiprovider/add) in the server admin settings.
    - Add your [Anthropic API key](https://console.anthropic.com/account/keys)
    - Give the configuration a friendly name like `Anthropic`. Do not configure the API base url.
 2. Create a new [chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/add)
     - Set the `chat-model` field to an [Anthropic chat model](https://docs.anthropic.com/en/docs/about-claude/models#model-names). Example: `claude-3-5-sonnet-20240620`.
     - Set the `model-type` field to `Anthropic`.
-    - Set the `Openai config` field to the OpenAI processor conversation config for Anthropic you created in step 1.
+    - Set the `chat api provider` field to the Anthropic Chat API Provider you created in step 1.
   </TabItem>
   <TabItem value="gemini" label="Gemini">
-1. Create a new [OpenAI processor conversation config](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/add) in the server admin settings. This is kind of a misnomer, we know.
+1. Create a new [Chat API Provider](http://localhost:42110/server/admin/database/chatapiprovider/add) in the server admin settings.
    - Add your [Gemini API key](https://aistudio.google.com/app/apikey)
    - Give the configuration a friendly name like `Gemini`. Do not configure the API base url.
 2. Create a new [chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/add)
     - Set the `chat-model` field to a [Google Gemini chat model](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models#gemini-models). Example: `gemini-1.5-flash`.
     - Set the `model-type` field to `Gemini`.
-    - Set the `Openai config` field to the OpenAI processor conversation config for Gemini you created in step 1.
+    - Set the `chat api provider` field to the Gemini Chat API Provider you created in step 1.
 
   </TabItem>
   <TabItem value="offline" label="Offline">

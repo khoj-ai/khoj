@@ -6,9 +6,9 @@ import openai
 
 from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import (
+    ChatApiProvider,
     ChatModelOptions,
     KhojUser,
-    OpenAIProcessorConversationConfig,
     SpeechToTextModelOptions,
     TextToImageModelConfig,
 )
@@ -177,7 +177,7 @@ def initialization(interactive: bool = True):
         vision_enabled: bool = False,
         is_offline: bool = False,
         provider_name: str = None,
-    ) -> Tuple[bool, OpenAIProcessorConversationConfig]:
+    ) -> Tuple[bool, ChatApiProvider]:
         supported_vision_models = (
             default_openai_chat_models + default_anthropic_chat_models + default_gemini_chat_models
         )
@@ -199,7 +199,7 @@ def initialization(interactive: bool = True):
                 api_key = user_api_key if user_api_key != "" else default_api_key
             else:
                 api_key = default_api_key
-            chat_provider = OpenAIProcessorConversationConfig.objects.create(
+            chat_provider = ChatApiProvider.objects.create(
                 api_key=api_key, name=provider_name, api_base_url=api_base_url
             )
 
@@ -235,7 +235,7 @@ def initialization(interactive: bool = True):
         """Update available chat models for OpenAI-compatible APIs"""
         try:
             # Get OpenAI configs with custom base URLs
-            custom_configs = OpenAIProcessorConversationConfig.objects.exclude(api_base_url__isnull=True)
+            custom_configs = ChatApiProvider.objects.exclude(api_base_url__isnull=True)
 
             for config in custom_configs:
                 try:
