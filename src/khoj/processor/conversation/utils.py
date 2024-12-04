@@ -433,19 +433,20 @@ def generate_chatml_messages_with_context(
             reconstructed_context_message = ChatMessage(content=message_context, role="user")
             chatml_messages.insert(0, reconstructed_context_message)
 
-        if chat.get("images") and role == "assistant":
-            # Issue: the assistant role cannot accept an image as a message content, so send it in a separate user message.
-            file_attachment_message = construct_structured_message(
-                message=prompts.generated_image_attachment.format(),
-                images=chat.get("images"),
-                model_type=model_type,
-                vision_enabled=vision_enabled,
-            )
-            chatml_messages.append(ChatMessage(content=file_attachment_message, role="user"))
-
-        message_content = construct_structured_message(
-            chat_message, chat.get("images") if role == "user" else [], model_type, vision_enabled
-        )
+        if chat.get("images"):
+            if role == "assistant":
+                # Issue: the assistant role cannot accept an image as a message content, so send it in a separate user message.
+                file_attachment_message = construct_structured_message(
+                    message=prompts.generated_image_attachment.format(),
+                    images=chat.get("images"),
+                    model_type=model_type,
+                    vision_enabled=vision_enabled,
+                )
+                chatml_messages.append(ChatMessage(content=file_attachment_message, role="user"))
+            else:
+                message_content = construct_structured_message(
+                    chat_message, chat.get("images"), model_type, vision_enabled
+                )
 
         reconstructed_message = ChatMessage(content=message_content, role=role)
         chatml_messages.insert(0, reconstructed_message)
