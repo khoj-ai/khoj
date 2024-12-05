@@ -79,7 +79,7 @@ class Subscription(BaseModel):
     enabled_trial_at = models.DateTimeField(null=True, default=None, blank=True)
 
 
-class ChatApiProvider(BaseModel):
+class AiModelApi(BaseModel):
     name = models.CharField(max_length=200)
     api_key = models.CharField(max_length=200)
     api_base_url = models.URLField(max_length=200, default=None, blank=True, null=True)
@@ -98,9 +98,7 @@ class ChatModelOptions(BaseModel):
     chat_model = models.CharField(max_length=200, default="bartowski/Meta-Llama-3.1-8B-Instruct-GGUF")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
     vision_enabled = models.BooleanField(default=False)
-    chat_api_provider = models.ForeignKey(
-        ChatApiProvider, on_delete=models.CASCADE, default=None, null=True, blank=True
-    )
+    ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
 
 class VoiceModelOption(BaseModel):
@@ -402,24 +400,24 @@ class TextToImageModelConfig(BaseModel):
     model_name = models.CharField(max_length=200, default="dall-e-3")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OPENAI)
     api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
-    openai_config = models.ForeignKey(ChatApiProvider, on_delete=models.CASCADE, default=None, null=True, blank=True)
+    ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
     def clean(self):
         # Custom validation logic
         error = {}
         if self.model_type == self.ModelType.OPENAI:
-            if self.api_key and self.openai_config:
+            if self.api_key and self.ai_model_api:
                 error[
                     "api_key"
-                ] = "Both API key and OpenAI config cannot be set for OpenAI models. Please set only one of them."
+                ] = "Both API key and AI Model API cannot be set for OpenAI models. Please set only one of them."
                 error[
-                    "openai_config"
+                    "ai_model_api"
                 ] = "Both API key and OpenAI config cannot be set for OpenAI models. Please set only one of them."
         if self.model_type != self.ModelType.OPENAI:
             if not self.api_key:
                 error["api_key"] = "The API key field must be set for non OpenAI models."
-            if self.openai_config:
-                error["openai_config"] = "OpenAI config cannot be set for non OpenAI models."
+            if self.ai_model_api:
+                error["ai_model_api"] = "AI Model API cannot be set for non OpenAI models."
         if error:
             raise ValidationError(error)
 

@@ -15,7 +15,7 @@ from unfold import admin as unfold_admin
 
 from khoj.database.models import (
     Agent,
-    ChatApiProvider,
+    AiModelApi,
     ChatModelOptions,
     ClientApplication,
     Conversation,
@@ -232,8 +232,8 @@ class TextToImageModelOptionsAdmin(unfold_admin.ModelAdmin):
     search_fields = ("id", "model_name", "model_type")
 
 
-@admin.register(ChatApiProvider)
-class ChatApiProviderAdmin(unfold_admin.ModelAdmin):
+@admin.register(AiModelApi)
+class AiModelApiAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "id",
         "name",
