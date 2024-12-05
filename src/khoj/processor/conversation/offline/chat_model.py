@@ -234,7 +234,7 @@ def converse_offline(
         model_type=ChatModelOptions.ModelType.OFFLINE,
         query_files=query_files,
         generated_files=generated_files,
-        additional_context_for_llm_response=additional_context,
+        program_execution_context=additional_context,
     )
 
     logger.debug(f"Conversation Context for {model}: {messages_to_print(messages)}")

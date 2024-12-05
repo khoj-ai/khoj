@@ -1043,11 +1043,10 @@ A:
 
 additional_program_context = PromptTemplate.from_template(
     """
-Here's some additional context about what happened while I was executing this query:
+Here are some additional results from the query execution:
 {context}
-    """.strip()
+""".strip()
 )
-
 
 personality_prompt_safety_expert_lax = PromptTemplate.from_template(
     """

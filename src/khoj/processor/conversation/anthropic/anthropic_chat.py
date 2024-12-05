@@ -160,7 +160,7 @@ def converse_anthropic(
     generated_images: Optional[list[str]] = None,
     generated_files: List[FileAttachment] = None,
     generated_excalidraw_diagram: Optional[str] = None,
-    additional_context_for_llm_response: Optional[List[str]] = None,
+    program_execution_context: Optional[List[str]] = None,
     tracer: dict = {},
 ):
     """
@@ -224,7 +224,7 @@ def converse_anthropic(
         generated_excalidraw_diagram=generated_excalidraw_diagram,
         generated_files=generated_files,
         generated_images=generated_images,
-        additional_context_for_llm_response=additional_context_for_llm_response,
+        program_execution_context=program_execution_context,
     )
 
     messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)

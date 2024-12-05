@@ -774,7 +774,7 @@ async def chat(
         generated_images: List[str] = []
         generated_files: List[FileAttachment] = []
         generated_excalidraw_diagram: str = None
-        additional_context_for_llm_response: List[str] = []
+        program_execution_context: List[str] = []
 
         if conversation_commands == [ConversationCommand.Default] or is_automated_task:
             chosen_io = await aget_data_sources_and_output_format(
@@ -1080,7 +1080,7 @@ async def chat(
                 async for result in send_event(ChatEvent.STATUS, f"**Ran code snippets**: {len(code_results)}"):
                     yield result
             except ValueError as e:
-                additional_context_for_llm_response.append(f"Failed to run code")
+                program_execution_context.append(f"Failed to run code")
                 logger.warning(
                     f"Failed to use code tool: {e}. Attempting to respond without code results",
                     exc_info=True,
@@ -1122,7 +1122,7 @@ async def chat(
 
             inferred_queries.append(improved_image_prompt)
             if generated_image is None or status_code != 200:
-                additional_context_for_llm_response.append(f"Failed to generate image with {improved_image_prompt}")
+                program_execution_context.append(f"Failed to generate image with {improved_image_prompt}")
                 async for result in send_event(ChatEvent.STATUS, f"Failed to generate image"):
                     yield result
             else:
@@ -1175,7 +1175,7 @@ async def chat(
                             yield result
                     else:
                         error_message = "Failed to generate diagram. Please try again later."
-                        additional_context_for_llm_response.append(
+                        program_execution_context.append(
                             f"AI attempted to programmatically generate a diagram but failed due to a program issue. Generally, it is able to do so, but encountered a system issue this time. AI can suggest text description or rendering of the diagram or user can try again with a simpler prompt."
                         )
 
@@ -1208,7 +1208,7 @@ async def chat(
             generated_images,
             generated_files,
             generated_excalidraw_diagram,
-            additional_context_for_llm_response,
+            program_execution_context,
             tracer,
         )
 

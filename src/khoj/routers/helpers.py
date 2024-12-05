@@ -1188,7 +1188,7 @@ def generate_chat_response(
     generated_images: List[str] = None,
     raw_generated_files: List[FileAttachment] = [],
     generated_excalidraw_diagram: str = None,
-    additional_context_for_llm_response: List[str] = [],
+    program_execution_context: List[str] = [],
     tracer: dict = {},
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
@@ -1280,7 +1280,7 @@ def generate_chat_response(
                 generated_files=raw_generated_files,
                 generated_images=generated_images,
                 generated_excalidraw_diagram=generated_excalidraw_diagram,
-                additional_context_for_llm_response=additional_context_for_llm_response,
+                program_execution_context=program_execution_context,
                 tracer=tracer,
             )
 
@@ -1307,7 +1307,7 @@ def generate_chat_response(
                 generated_files=raw_generated_files,
                 generated_images=generated_images,
                 generated_excalidraw_diagram=generated_excalidraw_diagram,
-                additional_context_for_llm_response=additional_context_for_llm_response,
+                program_execution_context=program_execution_context,
                 tracer=tracer,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
@@ -1333,7 +1333,7 @@ def generate_chat_response(
                 generated_files=raw_generated_files,
                 generated_images=generated_images,
                 generated_excalidraw_diagram=generated_excalidraw_diagram,
-                additional_context_for_llm_response=additional_context_for_llm_response,
+                program_execution_context=program_execution_context,
                 tracer=tracer,
             )
 
