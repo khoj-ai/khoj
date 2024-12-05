@@ -5,7 +5,7 @@ import factory
 from django.utils.timezone import make_aware
 
 from khoj.database.models import (
-    ChatApiProvider,
+    AiModelApi,
     ChatModelOptions,
     Conversation,
     KhojApiUser,
@@ -76,9 +76,9 @@ class ApiUserFactory(factory.django.DjangoModelFactory):
     token = factory.Faker("password")
 
 
-class ChatApiProviderFactory(factory.django.DjangoModelFactory):
+class AiModelApiFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = ChatApiProvider
+        model = AiModelApi
 
     api_key = get_chat_api_key()
 
@@ -91,7 +91,7 @@ class ChatModelOptionsFactory(factory.django.DjangoModelFactory):
     tokenizer = None
     chat_model = "bartowski/Meta-Llama-3.2-3B-Instruct-GGUF"
     model_type = get_chat_provider()
-    chat_api_provider = factory.LazyAttribute(lambda obj: ChatApiProviderFactory() if get_chat_api_key() else None)
+    ai_model_api = factory.LazyAttribute(lambda obj: AiModelApiFactory() if get_chat_api_key() else None)
 
 
 class UserConversationProcessorConfigFactory(factory.django.DjangoModelFactory):

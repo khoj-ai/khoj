@@ -232,9 +232,9 @@ def configure_server(
         config = FullConfig()
     state.config = config
 
-    if ConversationAdapters.has_valid_openai_conversation_config():
-        openai_config = ConversationAdapters.get_openai_conversation_config()
-        state.openai_client = openai.OpenAI(api_key=openai_config.api_key)
+    if ConversationAdapters.has_valid_ai_model_api():
+        ai_model_api = ConversationAdapters.get_ai_model_api()
+        state.openai_client = openai.OpenAI(api_key=ai_model_api.api_key)
 
     # Initialize Search Models from Config and initialize content
     try:

@@ -124,8 +124,8 @@ def generate_image_with_openai(
     # Get the API key from the user's configuration
     if text_to_image_config.api_key:
         api_key = text_to_image_config.api_key
-    elif text_to_image_config.openai_config:
-        api_key = text_to_image_config.openai_config.api_key
+    elif text_to_image_config.ai_model_api:
+        api_key = text_to_image_config.ai_model_api.api_key
     elif state.openai_client:
         api_key = state.openai_client.api_key
     auth_header = {"Authorization": f"Bearer {api_key}"} if api_key else {}
