@@ -217,10 +217,10 @@ class ChatModelOptionsAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "id",
         "chat_model",
-        "model_type",
+        "ai_model_api",
         "max_prompt_size",
     )
-    search_fields = ("id", "chat_model", "model_type")
+    search_fields = ("id", "chat_model", "ai_model_api__name")
 
 
 @admin.register(TextToImageModelConfig)
@@ -288,7 +288,7 @@ class ConversationAdmin(unfold_admin.ModelAdmin):
         "client",
     )
     search_fields = ("id", "user__email", "user__username", "client__name")
-    list_filter = ("agent",)
+    list_filter = ("agent", "client", "user")
     ordering = ("-created_at",)
 
     actions = ["export_selected_objects", "export_selected_minimal_objects"]

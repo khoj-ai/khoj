@@ -144,6 +144,9 @@ class KhojUser(AbstractUser):
             self.uuid = uuid.uuid4()
         super().save(*args, **kwargs)
 
+    def __str__(self):
+        return f"{self.username} ({self.uuid})"
+
 
 class GoogleUser(models.Model):
     user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
@@ -186,6 +189,9 @@ class AiModelApi(DbBaseModel):
     api_key = models.CharField(max_length=200)
     api_base_url = models.URLField(max_length=200, default=None, blank=True, null=True)
 
+    def __str__(self):
+        return self.name
+
 
 class ChatModelOptions(DbBaseModel):
     class ModelType(models.TextChoices):
@@ -201,6 +207,9 @@ class ChatModelOptions(DbBaseModel):
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
     vision_enabled = models.BooleanField(default=False)
     ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)
+
+    def __str__(self):
+        return self.chat_model
 
 
 class VoiceModelOption(DbBaseModel):
@@ -306,6 +315,9 @@ class Agent(DbBaseModel):
             self.slug = slug
 
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
 
 
 class ProcessLock(DbBaseModel):
@@ -420,6 +432,9 @@ class WebScraper(DbBaseModel):
 
         super().save(*args, **kwargs)
 
+    def __str__(self):
+        return self.name
+
 
 class ServerChatSettings(DbBaseModel):
     chat_default = models.ForeignKey(
@@ -492,6 +507,9 @@ class SearchModelConfig(DbBaseModel):
     # The confidence threshold of the bi_encoder model to consider the embeddings as relevant
     bi_encoder_confidence_threshold = models.FloatField(default=0.18)
 
+    def __str__(self):
+        return self.name
+
 
 class TextToImageModelConfig(DbBaseModel):
     class ModelType(models.TextChoices):
@@ -527,6 +545,9 @@ class TextToImageModelConfig(DbBaseModel):
         self.clean()
         super().save(*args, **kwargs)
 
+    def __str__(self):
+        return f"{self.model_name} - {self.model_type}"
+
 
 class SpeechToTextModelOptions(DbBaseModel):
     class ModelType(models.TextChoices):
@@ -535,6 +556,9 @@ class SpeechToTextModelOptions(DbBaseModel):
 
     model_name = models.CharField(max_length=200, default="base")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
+
+    def __str__(self):
+        return f"{self.model_name} - {self.model_type}"
 
 
 class UserConversationConfig(DbBaseModel):
