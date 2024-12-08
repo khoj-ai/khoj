@@ -81,7 +81,7 @@ jobs:
           # upgrade pip
           python -m ensurepip --upgrade && python -m pip install --upgrade pip
           # install terrarium for code sandbox
-          git clone https://github.com/cohere-ai/cohere-terrarium.git && cd cohere-terrarium && npm install && mkdir pyodide_cache
+          git clone https://github.com/khoj-ai/terrarium.git && cd terrarium && npm install && mkdir pyodide_cache
 
       - name: ⬇️ Install Application
         run: |
