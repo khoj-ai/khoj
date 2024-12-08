@@ -291,22 +291,22 @@
             <div class="card">
                 <div class="card-title">Files</div>
                 <div id="current-files"></div>
-                <button class="secondary-button" id="update-file">Add File</button>
+                <button class="secondary-button" id="update-file" title="Add a file to be indexed to your Khoj knowledge base. Will be synced automatically.">Add File</button>
             </div>
             <div class="card">
                 <div class="card-title">Folders</div>
                 <div id="current-folders"></div>
-                <button class="secondary-button" id="update-folder">Add Folder</button>
+                <button class="secondary-button" id="update-folder" title="Add a folder to be indexed to your Khoj knowledge base. All valid files will be synced automatically.">Add Folder</button>
             </div>
             <div class="sync-data">
                 <div id="loading-bar" style="display: none;"></div>
                 <div id="sync-status"></div>
                 <div id="big-actions">
-                    <button class="card-button" id="sync-force">
+                    <button class="card-button" id="sync-force" title="Delete and re-index all configured files and folders">
                         <img src="./assets/icons/upload.svg" class="sync-icon" alt="Sync">
-                        Force
+                        Force Sync
                     </button>
-                    <button class="card-button" id="delete-all">
+                    <button class="card-button" id="delete-all" title="Remove all indexed content from Khoj">
                         <img src="./assets/icons/trash-solid.svg" class="trash-icon" alt="Delete All">
                         Delete All
                     </button>
