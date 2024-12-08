@@ -50,16 +50,16 @@ class WebPage(PydanticBaseModel):
 
 
 class AnswerBox(PydanticBaseModel):
-    link: str
-    snippet: str
+    link: Optional[str] = None
+    snippet: Optional[str] = None
     title: str
     snippetHighlighted: List[str]
 
 
 class PeopleAlsoAsk(PydanticBaseModel):
-    link: str
-    question: str
-    snippet: str
+    link: Optional[str] = None
+    question: Optional[str] = None
+    snippet: Optional[str] = None
     title: str
 
 
