@@ -1,6 +1,6 @@
 import csv
 import json
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from apscheduler.job import Job
 from django.contrib import admin, messages
@@ -15,6 +15,7 @@ from unfold import admin as unfold_admin
 
 from khoj.database.models import (
     Agent,
+    AiModelApi,
     ChatModelOptions,
     ClientApplication,
     Conversation,
@@ -22,7 +23,6 @@ from khoj.database.models import (
     GithubConfig,
     KhojUser,
     NotionConfig,
-    OpenAIProcessorConversationConfig,
     ProcessLock,
     ReflectiveQuestion,
     SearchModelConfig,
@@ -232,8 +232,8 @@ class TextToImageModelOptionsAdmin(unfold_admin.ModelAdmin):
     search_fields = ("id", "model_name", "model_type")
 
 
-@admin.register(OpenAIProcessorConversationConfig)
-class OpenAIProcessorConversationConfigAdmin(unfold_admin.ModelAdmin):
+@admin.register(AiModelApi)
+class AiModelApiAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "id",
         "name",

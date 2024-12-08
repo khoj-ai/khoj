@@ -5,11 +5,11 @@ import factory
 from django.utils.timezone import make_aware
 
 from khoj.database.models import (
+    AiModelApi,
     ChatModelOptions,
     Conversation,
     KhojApiUser,
     KhojUser,
-    OpenAIProcessorConversationConfig,
     ProcessLock,
     SearchModelConfig,
     Subscription,
@@ -76,9 +76,9 @@ class ApiUserFactory(factory.django.DjangoModelFactory):
     token = factory.Faker("password")
 
 
-class OpenAIProcessorConversationConfigFactory(factory.django.DjangoModelFactory):
+class AiModelApiFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = OpenAIProcessorConversationConfig
+        model = AiModelApi
 
     api_key = get_chat_api_key()
 
@@ -91,9 +91,7 @@ class ChatModelOptionsFactory(factory.django.DjangoModelFactory):
     tokenizer = None
     chat_model = "bartowski/Meta-Llama-3.2-3B-Instruct-GGUF"
     model_type = get_chat_provider()
-    openai_config = factory.LazyAttribute(
-        lambda obj: OpenAIProcessorConversationConfigFactory() if get_chat_api_key() else None
-    )
+    ai_model_api = factory.LazyAttribute(lambda obj: AiModelApiFactory() if get_chat_api_key() else None)
 
 
 class UserConversationProcessorConfigFactory(factory.django.DjangoModelFactory):
