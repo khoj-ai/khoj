@@ -440,7 +440,7 @@ let titleBarStyle = process.platform === 'win32' ? 'default' : 'hidden';
 const {globalShortcut, clipboard} = require('electron'); // global shortcut and clipboard dependencies for shortcut window
 const openShortcutWindowKeyBind = 'CommandOrControl+Shift+K'
 
-const createWindow = (tab = 'chat.html') => {
+const createWindow = (tab = 'settings.html') => {
     win = new BrowserWindow({
       width: 800,
       height: 800,
@@ -602,6 +602,14 @@ app.whenReady().then(() => {
     });
     ipcMain.handle('deleteAllFiles', deleteAllFiles);
 
+    ipcMain.handle('openFile', async (_, path) => {
+        try {
+            await shell.openPath(path);
+        } catch (error) {
+            console.error('Error opening file:', error);
+        }
+    });
+
     const mainWindow = createWindow();
 
     app.setAboutPanelOptions({
@@ -652,7 +660,7 @@ app.whenReady().then(() => {
             globalShortcut.unregister('Escape');
         });
         ipcMain.on('continue-conversation-button-clicked', () => {
-            openWindow('chat.html');
+            openWindow('settings.html');
             if (shortcutWin && !shortcutWin.isDestroyed()) {
                 shortcutWin.close();
             }
@@ -727,8 +735,6 @@ app.whenReady().then(() => {
     tray = new Tray(icon)
 
     const contextMenu = Menu.buildFromTemplate([
-        { label: 'Chat', type: 'normal', click: () => { openWindow('chat.html'); }},
-        { label: 'Search', type: 'normal', click: () => { openWindow('search.html') }},
         { label: 'Configure', type: 'normal', click: () => { openWindow('settings.html') }},
         { type: 'separator' },
         { label: 'About Khoj', type: 'normal', click: () => { openAboutWindow(); } },

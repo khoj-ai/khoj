@@ -31,7 +31,7 @@ function toggleNavMenu() {
 }
 
 // Close the dropdown menu if the user clicks outside of it
-document.addEventListener('click', function(event) {
+document.addEventListener('click', function (event) {
     let menu = document.getElementById("khoj-nav-menu");
     let menuContainer = document.getElementById("khoj-nav-menu-container");
     let isClickOnMenu = menuContainer?.contains(event.target) || menuContainer === event.target;
@@ -56,25 +56,19 @@ async function populateHeaderPane() {
     // Populate the header element with the navigation pane
     return `
         <a class="khoj-logo" href="/">
-            <img class="khoj-logo" src="./assets/icons/khoj-logo-sideways-500.png" alt="Khoj"></img>
+            <img class="khoj-logo" src="./assets/icons/khoj_logo.png" alt="Khoj"></img>
         </a>
         <nav class="khoj-nav">
-        ${
-            userInfo && userInfo.email
-              ? `<div class="khoj-status-box">
+        ${userInfo && userInfo.email
+            ? `<div class="khoj-status-box">
               <span class="khoj-status-connected"></span>
                <span class="khoj-status-text">Connected to server</span>
                </div>`
-              : `<div class="khoj-status-box">
+            : `<div class="khoj-status-box">
               <span class="khoj-status-not-connected"></span>
                <span class="khoj-status-text">Not connected to server</span>
                </div>`
-          }
-            <a id="chat-nav" class="khoj-nav" href="./chat.html">
-              <img class="nav-icon" src="./assets/icons/chat.svg" alt="Chat">
-              <span class="khoj-nav-item-text">Chat</span>
-            </a>
-            ${has_documents ? '<a id="search-nav" class="khoj-nav" href="./search.html"><img class="nav-icon" src="./assets/icons/search.svg" alt="Search"> <span class="khoj-nav-item-text">Search</span></a>' : ''}
+        }
             ${username ? `
                 <div id="khoj-nav-menu-container" class="khoj-nav dropdown">
                     ${user_photo && user_photo != "None" ? `
@@ -84,7 +78,10 @@ async function populateHeaderPane() {
                     `}
                     <div id="khoj-nav-menu" class="khoj-nav-dropdown-content">
                         <div class="khoj-nav-username"> ${username} </div>
-                        <a id="settings-nav" class="khoj-nav" href="./settings.html">⚙️ Settings</a>
+                        <a onclick="window.navigateAPI.navigateToWebHome()" class="khoj-nav-link">
+                        <img class="khoj-nav-icon" src="./assets/icons/open-link.svg" alt="Open Host Url"></img>
+                        Open App
+                        </a>
                     </div>
                 </div>
             ` : ''}
