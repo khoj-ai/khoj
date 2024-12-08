@@ -64,7 +64,7 @@ class PeopleAlsoAsk(PydanticBaseModel):
 
 
 class KnowledgeGraph(PydanticBaseModel):
-    attributes: Dict[str, str]
+    attributes: Optional[Dict[str, str]] = None
     description: Optional[str] = None
     descriptionLink: Optional[str] = None
     descriptionSource: Optional[str] = None
