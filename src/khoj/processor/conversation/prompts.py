@@ -186,9 +186,7 @@ Here is the image you generated based on my query. You can follow-up with a gene
 
 generated_diagram_attachment = PromptTemplate.from_template(
     f"""
-The AI has successfully created a diagram based on the user's query and handled the request. Good job! This will be shared with the user.
-
-AI can follow-up with a general response or summary. Limit to 1-2 sentences.
+I've successfully created a diagram based on the user's query. The diagram will automatically be shared with the user. I can follow-up with a general response or summary. Limit to 1-2 sentences.
 """.strip()
 )
 
@@ -1045,11 +1043,10 @@ A:
 
 additional_program_context = PromptTemplate.from_template(
     """
-Here's some additional context about what happened while I was executing this query:
+Here are some additional results from the query execution:
 {context}
-    """.strip()
+""".strip()
 )
-
 
 personality_prompt_safety_expert_lax = PromptTemplate.from_template(
     """

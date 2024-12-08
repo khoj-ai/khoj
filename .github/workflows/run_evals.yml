@@ -76,12 +76,12 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           # install postgres and other dependencies
-          apt update && apt install -y git python3-pip libegl1 sqlite3 libsqlite3-dev libsqlite3-0 ffmpeg libsm6 libxext6
-          apt install -y postgresql postgresql-client && apt install -y postgresql-server-dev-14
+          sudo apt update && sudo apt install -y git python3-pip libegl1 sqlite3 libsqlite3-dev libsqlite3-0 ffmpeg libsm6 libxext6
+          sudo apt install -y postgresql postgresql-client && sudo apt install -y postgresql-server-dev-14
           # upgrade pip
           python -m ensurepip --upgrade && python -m pip install --upgrade pip
           # install terrarium for code sandbox
-          git clone https://github.com/cohere-ai/cohere-terrarium.git && cd cohere-terrarium && npm install && mkdir pyodide_cache
+          git clone https://github.com/khoj-ai/terrarium.git && cd terrarium && npm install --legacy-peer-deps && mkdir pyodide_cache
 
       - name: ⬇️ Install Application
         run: |
@@ -113,7 +113,7 @@ jobs:
           khoj --anonymous-mode --non-interactive &
 
           # Start code sandbox
-          npm run dev --prefix cohere-terrarium &
+          npm run dev --prefix terrarium &
 
           # Wait for server to be ready
           timeout=120

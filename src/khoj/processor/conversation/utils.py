@@ -383,7 +383,7 @@ def generate_chatml_messages_with_context(
     generated_images: Optional[list[str]] = None,
     generated_files: List[FileAttachment] = None,
     generated_excalidraw_diagram: str = None,
-    additional_program_context: List[str] = [],
+    program_execution_context: List[str] = [],
 ):
     """Generate chat messages with appropriate context from previous conversation to send to the chat model"""
     # Set max prompt size from user config or based on pre-configured for model and machine specs
@@ -433,19 +433,20 @@ def generate_chatml_messages_with_context(
             reconstructed_context_message = ChatMessage(content=message_context, role="user")
             chatml_messages.insert(0, reconstructed_context_message)
 
-        if chat.get("images") and role == "assistant":
-            # Issue: the assistant role cannot accept an image as a message content, so send it in a separate user message.
-            file_attachment_message = construct_structured_message(
-                message=prompts.generated_image_attachment.format(),
-                images=chat.get("images"),
-                model_type=model_type,
-                vision_enabled=vision_enabled,
-            )
-            chatml_messages.append(ChatMessage(content=file_attachment_message, role="user"))
-
-        message_content = construct_structured_message(
-            chat_message, chat.get("images") if role == "user" else [], model_type, vision_enabled
-        )
+        if chat.get("images"):
+            if role == "assistant":
+                # Issue: the assistant role cannot accept an image as a message content, so send it in a separate user message.
+                file_attachment_message = construct_structured_message(
+                    message=prompts.generated_image_attachment.format(),
+                    images=chat.get("images"),
+                    model_type=model_type,
+                    vision_enabled=vision_enabled,
+                )
+                chatml_messages.append(ChatMessage(content=file_attachment_message, role="user"))
+            else:
+                message_content = construct_structured_message(
+                    chat_message, chat.get("images"), model_type, vision_enabled
+                )
 
         reconstructed_message = ChatMessage(content=message_content, role=role)
         chatml_messages.insert(0, reconstructed_message)
@@ -484,10 +485,10 @@ def generate_chatml_messages_with_context(
     if generated_excalidraw_diagram:
         messages.append(ChatMessage(content=prompts.generated_diagram_attachment.format(), role="assistant"))
 
-    if additional_program_context:
+    if program_execution_context:
         messages.append(
             ChatMessage(
-                content=prompts.additional_program_context.format(context="\n".join(additional_program_context)),
+                content=prompts.additional_program_context.format(context="\n".join(program_execution_context)),
                 role="assistant",
             )
         )

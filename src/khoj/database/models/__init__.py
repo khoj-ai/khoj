@@ -40,7 +40,7 @@ class CodeContextResult(PydanticBaseModel):
 
 class CodeContextData(PydanticBaseModel):
     code: str
-    result: CodeContextResult
+    result: Optional[CodeContextResult] = None
 
 
 class WebPage(PydanticBaseModel):
@@ -50,27 +50,27 @@ class WebPage(PydanticBaseModel):
 
 
 class AnswerBox(PydanticBaseModel):
-    link: str
-    snippet: str
+    link: Optional[str] = None
+    snippet: Optional[str] = None
     title: str
-    snippetHighlighted: List[str]
+    snippetHighlighted: Optional[List[str]] = None
 
 
 class PeopleAlsoAsk(PydanticBaseModel):
-    link: str
-    question: str
-    snippet: str
+    link: Optional[str] = None
+    question: Optional[str] = None
+    snippet: Optional[str] = None
     title: str
 
 
 class KnowledgeGraph(PydanticBaseModel):
-    attributes: Dict[str, str]
-    description: str
-    descriptionLink: str
-    descriptionSource: str
-    imageUrl: str
+    attributes: Optional[Dict[str, str]] = None
+    description: Optional[str] = None
+    descriptionLink: Optional[str] = None
+    descriptionSource: Optional[str] = None
+    imageUrl: Optional[str] = None
     title: str
-    type: str
+    type: Optional[str] = None
 
 
 class OrganicContext(PydanticBaseModel):

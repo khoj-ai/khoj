@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import os
 from pathlib import Path
 
+from django.templatetags.static import static
+
 from khoj.utils.helpers import in_debug_mode, is_env_var_true
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -72,6 +74,7 @@ INSTALLED_APPS = [
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "khoj.database.apps.DatabaseConfig",
+    "unfold",
     "django.contrib.admin",
     "django.contrib.sessions",
     "django.contrib.messages",
@@ -195,3 +198,21 @@ APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
 # that supports multiple background worker processes instead (e.g. Dramatiq, Celery, Django-RQ,
 # etc. See: https://djangopackages.org/grids/g/workers-queues-tasks/ for popular options).
 APSCHEDULER_RUN_NOW_TIMEOUT = 240  # Seconds
+
+UNFOLD = {
+    "SITE_TITLE": "Khoj Admin Panel",
+    "SITE_HEADER": "Khoj Admin Panel",
+    "SITE_URL": "/",
+    "SITE_ICON": {
+        "light": lambda request: static("assets/icons/khoj_lantern_128x128.png"),
+        "dark": lambda request: static("assets/icons/khoj_lantern_128x128_dark.png"),
+    },
+    "SITE_FAVICONS": [
+        {
+            "rel": "icon",
+            "sizes": "32x32",
+            "type": "image/svg+xml",
+            "href": lambda request: static("assets/icons/khoj_lantern.svg"),
+        },
+    ],
+}
