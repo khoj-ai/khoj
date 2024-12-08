@@ -40,7 +40,7 @@ class CodeContextResult(PydanticBaseModel):
 
 class CodeContextData(PydanticBaseModel):
     code: str
-    result: CodeContextResult
+    result: Optional[CodeContextResult] = None
 
 
 class WebPage(PydanticBaseModel):
