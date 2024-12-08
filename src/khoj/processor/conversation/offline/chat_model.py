@@ -28,7 +28,7 @@ from khoj.utils.helpers import (
     is_promptrace_enabled,
     truncate_code_context,
 )
-from khoj.utils.rawconfig import LocationData
+from khoj.utils.rawconfig import FileAttachment, LocationData
 from khoj.utils.yaml import yaml_dump
 
 logger = logging.getLogger(__name__)
@@ -69,7 +69,7 @@ def extract_questions_offline(
 
     if use_history:
         for chat in conversation_log.get("chat", [])[-4:]:
-            if chat["by"] == "khoj" and "text-to-image" not in chat["intent"].get("type"):
+            if chat["by"] == "khoj":
                 chat_history += f"Q: {chat['intent']['query']}\n"
                 chat_history += f"Khoj: {chat['message']}\n\n"
 
@@ -164,6 +164,8 @@ def converse_offline(
     user_name: str = None,
     agent: Agent = None,
     query_files: str = None,
+    generated_files: List[FileAttachment] = None,
+    additional_context: List[str] = None,
     tracer: dict = {},
 ) -> Union[ThreadedGenerator, Iterator[str]]:
     """
@@ -231,6 +233,8 @@ def converse_offline(
         tokenizer_name=tokenizer_name,
         model_type=ChatModelOptions.ModelType.OFFLINE,
         query_files=query_files,
+        generated_files=generated_files,
+        program_execution_context=additional_context,
     )
 
     logger.debug(f"Conversation Context for {model}: {messages_to_print(messages)}")

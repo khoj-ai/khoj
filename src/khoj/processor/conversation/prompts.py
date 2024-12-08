@@ -178,6 +178,18 @@ Improved Prompt:
 """.strip()
 )
 
+generated_image_attachment = PromptTemplate.from_template(
+    f"""
+Here is the image you generated based on my query. You can follow-up with a general response to my query. Limit to 1-2 sentences.
+""".strip()
+)
+
+generated_diagram_attachment = PromptTemplate.from_template(
+    f"""
+I've successfully created a diagram based on the user's query. The diagram will automatically be shared with the user. I can follow-up with a general response or summary. Limit to 1-2 sentences.
+""".strip()
+)
+
 ## Diagram Generation
 ## --
 
@@ -1029,6 +1041,12 @@ A:
 """.strip()
 )
 
+additional_program_context = PromptTemplate.from_template(
+    """
+Here are some additional results from the query execution:
+{context}
+""".strip()
+)
 
 personality_prompt_safety_expert_lax = PromptTemplate.from_template(
     """

@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 import pyjson5
 from langchain.schema import ChatMessage
@@ -23,7 +23,7 @@ from khoj.utils.helpers import (
     is_none_or_empty,
     truncate_code_context,
 )
-from khoj.utils.rawconfig import LocationData
+from khoj.utils.rawconfig import FileAttachment, LocationData
 from khoj.utils.yaml import yaml_dump
 
 logger = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ def extract_questions_anthropic(
         [
             f'User: {chat["intent"]["query"]}\nAssistant: {{"queries": {chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}}}\nA: {chat["message"]}\n\n'
             for chat in conversation_log.get("chat", [])[-4:]
-            if chat["by"] == "khoj" and "text-to-image" not in chat["intent"].get("type")
+            if chat["by"] == "khoj"
         ]
     )
 
@@ -157,6 +157,10 @@ def converse_anthropic(
     query_images: Optional[list[str]] = None,
     vision_available: bool = False,
     query_files: str = None,
+    generated_images: Optional[list[str]] = None,
+    generated_files: List[FileAttachment] = None,
+    generated_excalidraw_diagram: Optional[str] = None,
+    program_execution_context: Optional[List[str]] = None,
     tracer: dict = {},
 ):
     """
@@ -217,6 +221,10 @@ def converse_anthropic(
         vision_enabled=vision_available,
         model_type=ChatModelOptions.ModelType.ANTHROPIC,
         query_files=query_files,
+        generated_excalidraw_diagram=generated_excalidraw_diagram,
+        generated_files=generated_files,
+        generated_images=generated_images,
+        program_execution_context=program_execution_context,
     )
 
     messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)

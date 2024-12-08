@@ -1185,6 +1185,10 @@ def generate_chat_response(
     train_of_thought: List[Any] = [],
     query_files: str = None,
     raw_query_files: List[FileAttachment] = None,
+    generated_images: List[str] = None,
+    raw_generated_files: List[FileAttachment] = [],
+    generated_excalidraw_diagram: str = None,
+    program_execution_context: List[str] = [],
     tracer: dict = {},
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
@@ -1208,6 +1212,9 @@ def generate_chat_response(
             query_images=query_images,
             train_of_thought=train_of_thought,
             raw_query_files=raw_query_files,
+            generated_images=generated_images,
+            raw_generated_files=raw_generated_files,
+            generated_excalidraw_diagram=generated_excalidraw_diagram,
             tracer=tracer,
         )
 
@@ -1243,6 +1250,7 @@ def generate_chat_response(
                 user_name=user_name,
                 agent=agent,
                 query_files=query_files,
+                generated_files=raw_generated_files,
                 tracer=tracer,
             )
 
@@ -1269,6 +1277,10 @@ def generate_chat_response(
                 agent=agent,
                 vision_available=vision_available,
                 query_files=query_files,
+                generated_files=raw_generated_files,
+                generated_images=generated_images,
+                generated_excalidraw_diagram=generated_excalidraw_diagram,
+                program_execution_context=program_execution_context,
                 tracer=tracer,
             )
 
@@ -1292,6 +1304,10 @@ def generate_chat_response(
                 agent=agent,
                 vision_available=vision_available,
                 query_files=query_files,
+                generated_files=raw_generated_files,
+                generated_images=generated_images,
+                generated_excalidraw_diagram=generated_excalidraw_diagram,
+                program_execution_context=program_execution_context,
                 tracer=tracer,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
@@ -1314,6 +1330,10 @@ def generate_chat_response(
                 query_images=query_images,
                 vision_available=vision_available,
                 query_files=query_files,
+                generated_files=raw_generated_files,
+                generated_images=generated_images,
+                generated_excalidraw_diagram=generated_excalidraw_diagram,
+                program_execution_context=program_execution_context,
                 tracer=tracer,
             )
 
@@ -1785,6 +1805,9 @@ class MessageProcessor:
         self.references = {}
         self.usage = {}
         self.raw_response = ""
+        self.generated_images = []
+        self.generated_files = []
+        self.generated_excalidraw_diagram = []
 
     def convert_message_chunk_to_json(self, raw_chunk: str) -> Dict[str, Any]:
         if raw_chunk.startswith("{") and raw_chunk.endswith("}"):
@@ -1823,6 +1846,16 @@ class MessageProcessor:
                     self.raw_response += chunk_data
             else:
                 self.raw_response += chunk_data
+        elif chunk_type == ChatEvent.GENERATED_ASSETS:
+            chunk_data = chunk["data"]
+            if isinstance(chunk_data, dict):
+                for key in chunk_data:
+                    if key == "images":
+                        self.generated_images = chunk_data[key]
+                    elif key == "files":
+                        self.generated_files = chunk_data[key]
+                    elif key == "excalidrawDiagram":
+                        self.generated_excalidraw_diagram = chunk_data[key]
 
     def handle_json_response(self, json_data: Dict[str, str]) -> str | Dict[str, str]:
         if "image" in json_data or "details" in json_data:
@@ -1853,7 +1886,14 @@ async def read_chat_stream(response_iterator: AsyncGenerator[str, None]) -> Dict
     if buffer:
         processor.process_message_chunk(buffer)
 
-    return {"response": processor.raw_response, "references": processor.references, "usage": processor.usage}
+    return {
+        "response": processor.raw_response,
+        "references": processor.references,
+        "usage": processor.usage,
+        "images": processor.generated_images,
+        "files": processor.generated_files,
+        "excalidrawDiagram": processor.generated_excalidraw_diagram,
+    }
 
 
 def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False):
