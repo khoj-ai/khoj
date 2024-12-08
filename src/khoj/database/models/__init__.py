@@ -53,7 +53,7 @@ class AnswerBox(PydanticBaseModel):
     link: Optional[str] = None
     snippet: Optional[str] = None
     title: str
-    snippetHighlighted: List[str]
+    snippetHighlighted: Optional[List[str]] = None
 
 
 class PeopleAlsoAsk(PydanticBaseModel):
