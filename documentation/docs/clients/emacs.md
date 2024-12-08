@@ -114,7 +114,7 @@ This feature finds entries similar to the one you are currently on.
 2. Hit `C-c s f` (or `M-x khoj RET f`) to find similar entries
 
 ### Advanced Usage
-- Add [query filters](https://github.com/khoj-ai/khoj/#query-filters) during search to narrow down results further
+- Add [query filters](/miscellaneous/advanced#query-filters) during search to narrow down results further
   e.g. `What is the meaning of life? -"god" +"none" dt>"last week"`
 
 - Use `C-c C-o 2` to open the current result at cursor in its source org file
