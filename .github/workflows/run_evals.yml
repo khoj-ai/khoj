@@ -113,7 +113,7 @@ jobs:
           khoj --anonymous-mode --non-interactive &
 
           # Start code sandbox
-          npm run dev --prefix cohere-terrarium &
+          npm run dev --prefix terrarium &
 
           # Wait for server to be ready
           timeout=120
