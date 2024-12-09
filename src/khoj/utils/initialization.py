@@ -235,6 +235,10 @@ def initialization(interactive: bool = True):
             # Get OpenAI configs with custom base URLs
             custom_configs = AiModelApi.objects.exclude(api_base_url__isnull=True)
 
+            # Only enable for whitelisted provider names (i.e Ollama) for now
+            # TODO: This is hacky. Will be replaced with more robust solution based on provider type enum
+            custom_configs = custom_configs.filter(name__in=["Ollama"])
+
             for config in custom_configs:
                 try:
                     # Create OpenAI client with custom base URL
