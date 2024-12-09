@@ -38,14 +38,13 @@ To add a server chat setting:
 - The `Advanced` field doesn't need to be set when self-hosting. When unset, the `Default` chat model is used for all users and the intermediate steps.
 
 
-### OpenAI Processor Conversation Configs
-These settings configure chat model providers to be accessed over API.
-The name of this setting is kind of a misnomer, we know, it'll hopefully be changed at some point.
-For each chat model provider you [add](http://localhost:42110/server/admin/database/openaiprocessorconversationconfig/add):
+### AI Model API
+These settings configure APIs to interact with AI models.
+For each AI Model API you [add](http://localhost:42110/server/admin/database/aimodelapi/add):
 - `Api key`: Set to your [OpenAI](https://platform.openai.com/api-keys), [Anthropic](https://console.anthropic.com/account/keys) or [Gemini](https://aistudio.google.com/app/apikey) API keys.
 - `Name`: Give the configuration any friendly name like `OpenAI`, `Gemini`, `Anthropic`.
 - `Api base url`: Set the API base URL. This is only relevant to set if you're using another OpenAI-compatible proxy server like [Ollama](/advanced/ollama) or [LMStudio](/advanced/lmstudio).
-  ![example configuration for openai processor](/img/example_openai_processor_config.png)
+  ![example configuration for ai model api](/img/example_openai_processor_config.png)
 
 ### Search Model Configs
 Search models are used to generate vector embeddings of your documents for natural language search and chat. You can choose any [embeddings models on HuggingFace](https://huggingface.co/models?pipeline_tag=sentence-similarity) to try, use for your to create vector embeddings of your documents for natural language search and chat.
