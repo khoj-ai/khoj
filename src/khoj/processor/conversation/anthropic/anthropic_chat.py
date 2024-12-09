@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 import pyjson5
 from langchain.schema import ChatMessage
 
-from khoj.database.models import Agent, ChatModelOptions, KhojUser
+from khoj.database.models import Agent, ChatModel, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.anthropic.utils import (
     anthropic_chat_completion_with_backoff,
@@ -85,7 +85,7 @@ def extract_questions_anthropic(
     prompt = construct_structured_message(
         message=prompt,
         images=query_images,
-        model_type=ChatModelOptions.ModelType.ANTHROPIC,
+        model_type=ChatModel.ModelType.ANTHROPIC,
         vision_enabled=vision_enabled,
         attached_file_context=query_files,
     )
@@ -218,7 +218,7 @@ def converse_anthropic(
         tokenizer_name=tokenizer_name,
         query_images=query_images,
         vision_enabled=vision_available,
-        model_type=ChatModelOptions.ModelType.ANTHROPIC,
+        model_type=ChatModel.ModelType.ANTHROPIC,
         query_files=query_files,
         generated_files=generated_files,
         generated_asset_results=generated_asset_results,

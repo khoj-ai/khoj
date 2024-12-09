@@ -5,14 +5,14 @@ import pytest
 from asgiref.sync import sync_to_async
 
 from khoj.database.adapters import AgentAdapters
-from khoj.database.models import Agent, ChatModelOptions, Entry, KhojUser
+from khoj.database.models import Agent, ChatModel, Entry, KhojUser
 from khoj.routers.api import execute_search
 from khoj.utils.helpers import get_absolute_path
-from tests.helpers import ChatModelOptionsFactory
+from tests.helpers import ChatModelFactory
 
 
 def test_create_default_agent(default_user: KhojUser):
-    ChatModelOptionsFactory()
+    ChatModelFactory()
 
     agent = AgentAdapters.create_default_agent(default_user)
     assert agent is not None
@@ -24,7 +24,7 @@ def test_create_default_agent(default_user: KhojUser):
 
 @pytest.mark.anyio
 @pytest.mark.django_db(transaction=True)
-async def test_create_or_update_agent(default_user: KhojUser, default_openai_chat_model_option: ChatModelOptions):
+async def test_create_or_update_agent(default_user: KhojUser, default_openai_chat_model_option: ChatModel):
     new_agent = await AgentAdapters.aupdate_agent(
         default_user,
         "Test Agent",
@@ -32,7 +32,7 @@ async def test_create_or_update_agent(default_user: KhojUser, default_openai_cha
         Agent.PrivacyLevel.PRIVATE,
         "icon",
         "color",
-        default_openai_chat_model_option.chat_model,
+        default_openai_chat_model_option.name,
         [],
         [],
         [],
@@ -46,7 +46,7 @@ async def test_create_or_update_agent(default_user: KhojUser, default_openai_cha
 @pytest.mark.anyio
 @pytest.mark.django_db(transaction=True)
 async def test_create_or_update_agent_with_knowledge_base(
-    default_user2: KhojUser, default_openai_chat_model_option: ChatModelOptions, chat_client
+    default_user2: KhojUser, default_openai_chat_model_option: ChatModel, chat_client
 ):
     full_filename = get_absolute_path("tests/data/markdown/having_kids.markdown")
     new_agent = await AgentAdapters.aupdate_agent(
@@ -56,7 +56,7 @@ async def test_create_or_update_agent_with_knowledge_base(
         Agent.PrivacyLevel.PRIVATE,
         "icon",
         "color",
-        default_openai_chat_model_option.chat_model,
+        default_openai_chat_model_option.name,
         [full_filename],
         [],
         [],
@@ -78,7 +78,7 @@ async def test_create_or_update_agent_with_knowledge_base(
 @pytest.mark.anyio
 @pytest.mark.django_db(transaction=True)
 async def test_create_or_update_agent_with_knowledge_base_and_search(
-    default_user2: KhojUser, default_openai_chat_model_option: ChatModelOptions, chat_client
+    default_user2: KhojUser, default_openai_chat_model_option: ChatModel, chat_client
 ):
     full_filename = get_absolute_path("tests/data/markdown/having_kids.markdown")
     new_agent = await AgentAdapters.aupdate_agent(
@@ -88,7 +88,7 @@ async def test_create_or_update_agent_with_knowledge_base_and_search(
         Agent.PrivacyLevel.PRIVATE,
         "icon",
         "color",
-        default_openai_chat_model_option.chat_model,
+        default_openai_chat_model_option.name,
         [full_filename],
         [],
         [],
@@ -102,7 +102,7 @@ async def test_create_or_update_agent_with_knowledge_base_and_search(
 @pytest.mark.anyio
 @pytest.mark.django_db(transaction=True)
 async def test_agent_with_knowledge_base_and_search_not_creator(
-    default_user2: KhojUser, default_openai_chat_model_option: ChatModelOptions, chat_client, default_user3: KhojUser
+    default_user2: KhojUser, default_openai_chat_model_option: ChatModel, chat_client, default_user3: KhojUser
 ):
     full_filename = get_absolute_path("tests/data/markdown/having_kids.markdown")
     new_agent = await AgentAdapters.aupdate_agent(
@@ -112,7 +112,7 @@ async def test_agent_with_knowledge_base_and_search_not_creator(
         Agent.PrivacyLevel.PUBLIC,
         "icon",
         "color",
-        default_openai_chat_model_option.chat_model,
+        default_openai_chat_model_option.name,
         [full_filename],
         [],
         [],
@@ -126,7 +126,7 @@ async def test_agent_with_knowledge_base_and_search_not_creator(
 @pytest.mark.anyio
 @pytest.mark.django_db(transaction=True)
 async def test_agent_with_knowledge_base_and_search_not_creator_and_private(
-    default_user2: KhojUser, default_openai_chat_model_option: ChatModelOptions, chat_client, default_user3: KhojUser
+    default_user2: KhojUser, default_openai_chat_model_option: ChatModel, chat_client, default_user3: KhojUser
 ):
     full_filename = get_absolute_path("tests/data/markdown/having_kids.markdown")
     new_agent = await AgentAdapters.aupdate_agent(
@@ -136,7 +136,7 @@ async def test_agent_with_knowledge_base_and_search_not_creator_and_private(
         Agent.PrivacyLevel.PRIVATE,
         "icon",
         "color",
-        default_openai_chat_model_option.chat_model,
+        default_openai_chat_model_option.name,
         [full_filename],
         [],
         [],
@@ -150,7 +150,7 @@ async def test_agent_with_knowledge_base_and_search_not_creator_and_private(
 @pytest.mark.anyio
 @pytest.mark.django_db(transaction=True)
 async def test_agent_with_knowledge_base_and_search_not_creator_and_private_accessible_to_none(
-    default_user2: KhojUser, default_openai_chat_model_option: ChatModelOptions, chat_client
+    default_user2: KhojUser, default_openai_chat_model_option: ChatModel, chat_client
 ):
     full_filename = get_absolute_path("tests/data/markdown/having_kids.markdown")
     new_agent = await AgentAdapters.aupdate_agent(
@@ -160,7 +160,7 @@ async def test_agent_with_knowledge_base_and_search_not_creator_and_private_acce
         Agent.PrivacyLevel.PRIVATE,
         "icon",
         "color",
-        default_openai_chat_model_option.chat_model,
+        default_openai_chat_model_option.name,
         [full_filename],
         [],
         [],
@@ -174,7 +174,7 @@ async def test_agent_with_knowledge_base_and_search_not_creator_and_private_acce
 @pytest.mark.anyio
 @pytest.mark.django_db(transaction=True)
 async def test_multiple_agents_with_knowledge_base_and_users(
-    default_user2: KhojUser, default_openai_chat_model_option: ChatModelOptions, chat_client, default_user3: KhojUser
+    default_user2: KhojUser, default_openai_chat_model_option: ChatModel, chat_client, default_user3: KhojUser
 ):
     full_filename = get_absolute_path("tests/data/markdown/having_kids.markdown")
     new_agent = await AgentAdapters.aupdate_agent(
@@ -184,7 +184,7 @@ async def test_multiple_agents_with_knowledge_base_and_users(
         Agent.PrivacyLevel.PUBLIC,
         "icon",
         "color",
-        default_openai_chat_model_option.chat_model,
+        default_openai_chat_model_option.name,
         [full_filename],
         [],
         [],
@@ -198,7 +198,7 @@ async def test_multiple_agents_with_knowledge_base_and_users(
         Agent.PrivacyLevel.PUBLIC,
         "icon",
         "color",
-        default_openai_chat_model_option.chat_model,
+        default_openai_chat_model_option.name,
         [full_filename2],
         [],
         [],

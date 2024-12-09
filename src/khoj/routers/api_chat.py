@@ -58,7 +58,7 @@ from khoj.routers.helpers import (
     is_ready_to_chat,
     read_chat_stream,
     update_telemetry_state,
-    validate_conversation_config,
+    validate_chat_model,
 )
 from khoj.routers.research import (
     InformationCollectionIteration,
@@ -205,7 +205,7 @@ def chat_history(
     n: Optional[int] = None,
 ):
     user = request.user.object
-    validate_conversation_config(user)
+    validate_chat_model(user)
 
     # Load Conversation History
     conversation = ConversationAdapters.get_conversation_by_user(
@@ -898,10 +898,10 @@ async def chat(
         custom_filters = []
         if conversation_commands == [ConversationCommand.Help]:
             if not q:
-                conversation_config = await ConversationAdapters.aget_user_conversation_config(user)
-                if conversation_config == None:
-                    conversation_config = await ConversationAdapters.aget_default_conversation_config(user)
-                model_type = conversation_config.model_type
+                chat_model = await ConversationAdapters.aget_user_chat_model(user)
+                if chat_model == None:
+                    chat_model = await ConversationAdapters.aget_default_chat_model(user)
+                model_type = chat_model.model_type
                 formatted_help = help_message.format(model=model_type, version=state.khoj_version, device=get_device())
                 async for result in send_llm_response(formatted_help, tracer.get("usage")):
                     yield result

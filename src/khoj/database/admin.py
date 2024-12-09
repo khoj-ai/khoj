@@ -16,7 +16,7 @@ from unfold import admin as unfold_admin
 from khoj.database.models import (
     Agent,
     AiModelApi,
-    ChatModelOptions,
+    ChatModel,
     ClientApplication,
     Conversation,
     Entry,
@@ -212,15 +212,15 @@ class KhojUserSubscription(unfold_admin.ModelAdmin):
     list_filter = ("type",)
 
 
-@admin.register(ChatModelOptions)
-class ChatModelOptionsAdmin(unfold_admin.ModelAdmin):
+@admin.register(ChatModel)
+class ChatModelAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "id",
-        "chat_model",
+        "name",
         "ai_model_api",
         "max_prompt_size",
     )
-    search_fields = ("id", "chat_model", "ai_model_api__name")
+    search_fields = ("id", "name", "ai_model_api__name")
 
 
 @admin.register(TextToImageModelConfig)
@@ -385,7 +385,7 @@ class UserConversationConfigAdmin(unfold_admin.ModelAdmin):
         "get_chat_model",
         "get_subscription_type",
     )
-    search_fields = ("id", "user__email", "setting__chat_model", "user__subscription__type")
+    search_fields = ("id", "user__email", "setting__name", "user__subscription__type")
     ordering = ("-updated_at",)
 
     def get_user_email(self, obj):
@@ -395,10 +395,10 @@ class UserConversationConfigAdmin(unfold_admin.ModelAdmin):
     get_user_email.admin_order_field = "user__email"  # type: ignore
 
     def get_chat_model(self, obj):
-        return obj.setting.chat_model if obj.setting else None
+        return obj.setting.name if obj.setting else None
 
     get_chat_model.short_description = "Chat Model"  # type: ignore
-    get_chat_model.admin_order_field = "setting__chat_model"  # type: ignore
+    get_chat_model.admin_order_field = "setting__name"  # type: ignore
 
     def get_subscription_type(self, obj):
         if hasattr(obj.user, "subscription"):

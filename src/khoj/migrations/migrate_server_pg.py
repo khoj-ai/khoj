@@ -60,7 +60,7 @@ import logging
 
 from packaging import version
 
-from khoj.database.models import AiModelApi, ChatModelOptions, SearchModelConfig
+from khoj.database.models import AiModelApi, ChatModel, SearchModelConfig
 from khoj.utils.yaml import load_config_from_file, save_config_to_file
 
 logger = logging.getLogger(__name__)
@@ -98,11 +98,11 @@ def migrate_server_pg(args):
 
             if "offline-chat" in raw_config["processor"]["conversation"]:
                 offline_chat = raw_config["processor"]["conversation"]["offline-chat"]
-                ChatModelOptions.objects.create(
-                    chat_model=offline_chat.get("chat-model"),
+                ChatModel.objects.create(
+                    name=offline_chat.get("chat-model"),
                     tokenizer=processor_conversation.get("tokenizer"),
                     max_prompt_size=processor_conversation.get("max-prompt-size"),
-                    model_type=ChatModelOptions.ModelType.OFFLINE,
+                    model_type=ChatModel.ModelType.OFFLINE,
                 )
 
             if (
@@ -119,11 +119,11 @@ def migrate_server_pg(args):
 
                     openai_model_api = AiModelApi.objects.create(api_key=openai.get("api-key"), name="default")
 
-                    ChatModelOptions.objects.create(
-                        chat_model=openai.get("chat-model"),
+                    ChatModel.objects.create(
+                        name=openai.get("chat-model"),
                         tokenizer=processor_conversation.get("tokenizer"),
                         max_prompt_size=processor_conversation.get("max-prompt-size"),
-                        model_type=ChatModelOptions.ModelType.OPENAI,
+                        model_type=ChatModel.ModelType.OPENAI,
                         ai_model_api=openai_model_api,
                     )
 
