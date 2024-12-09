@@ -174,6 +174,7 @@ class AgentAdmin(unfold_admin.ModelAdmin):
         "name",
     )
     search_fields = ("id", "name")
+    list_filter = ("privacy_level",)
     ordering = ("-created_at",)
 
 
