@@ -37,6 +37,15 @@ function SubscriptionBadge({ is_active }: { is_active: boolean }) {
     );
 }
 
+function VersionBadge({ version }: { version: string }) {
+    return (
+        <div className="flex flex-row items-center">
+            <div className="w-3 h-3 rounded-full bg-green-500 mr-1"></div>
+            <p className="text-xs">{version}</p>
+        </div>
+    );
+}
+
 export default function NavMenu() {
     const userData = useAuthenticatedData();
     const [darkMode, setDarkMode] = useState(false);
@@ -99,6 +108,9 @@ export default function NavMenu() {
                             <div className="flex flex-col">
                                 <p className="font-semibold">{userData?.email}</p>
                                 <SubscriptionBadge is_active={userData?.is_active ?? false} />
+                                {userData?.khoj_version && (
+                                    <VersionBadge version={userData?.khoj_version} />
+                                )}
                             </div>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -170,9 +182,7 @@ export default function NavMenu() {
                                 >
                                     <div className="flex flex-rows">
                                         <Code className="w-6 h-6" />
-                                        <p className="ml-3 font-semibold">
-                                            {userData ? userData.khoj_version : "Releases"}
-                                        </p>
+                                        <p className="ml-3 font-semibold">Releases</p>
                                     </div>
                                 </Link>
                             </DropdownMenuItem>
@@ -220,6 +230,9 @@ export default function NavMenu() {
                                 <div className="flex flex-col">
                                     <p className="font-semibold">{userData?.email}</p>
                                     <SubscriptionBadge is_active={userData?.is_active ?? false} />
+                                    {userData?.khoj_version && (
+                                        <VersionBadge version={userData?.khoj_version} />
+                                    )}
                                 </div>
                             </MenubarItem>
                             <MenubarSeparator className="dark:bg-white height-[2px] bg-black" />
@@ -295,9 +308,7 @@ export default function NavMenu() {
                                     >
                                         <div className="flex flex-rows">
                                             <Code className="w-6 h-6" />
-                                            <p className="ml-3 font-semibold">
-                                                {userData ? userData.khoj_version : "Releases"}
-                                            </p>
+                                            <p className="ml-3 font-semibold">Releases</p>
                                         </div>
                                     </Link>
                                 </MenubarItem>
