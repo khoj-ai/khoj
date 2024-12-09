@@ -37,6 +37,9 @@ const config = {
     locales: ['en'],
   },
 
+  // Add a widget for Chatwoot for live chat if users need help
+  clientModules: [require.resolve('./src/components/ChatwootWidget.js')],
+
   presets: [
     [
       'classic',
@@ -69,7 +72,6 @@ const config = {
       }),
     ],
   ],
-
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
