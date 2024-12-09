@@ -9,6 +9,7 @@ export interface UserProfile {
     is_active: boolean;
     has_documents: boolean;
     detail: string;
+    khoj_version: string;
 }
 
 const fetcher = (url: string) =>
