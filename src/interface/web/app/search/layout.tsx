@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import "../globals.css";
+import { ContentSecurityPolicy } from "../common/layoutHelper";
 
 export const metadata: Metadata = {
     title: "Khoj AI - Search",
@@ -31,5 +32,10 @@ export default function RootLayout({
 }: Readonly<{
     children: React.ReactNode;
 }>) {
-    return <div>{children}</div>;
+    return (
+        <html>
+            <ContentSecurityPolicy />
+            <body>{children}</body>
+        </html>
+    );
 }
