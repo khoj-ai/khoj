@@ -63,7 +63,7 @@ dependencies = [
     "tenacity == 8.3.0",
     "anyio == 3.7.1",
     "pymupdf == 1.24.11",
-    "django == 5.0.9",
+    "django == 5.0.10",
     "django-unfold == 0.42.0",
     "authlib == 1.2.1",
     "llama-cpp-python == 0.2.88",
