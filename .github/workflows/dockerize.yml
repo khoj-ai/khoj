@@ -51,9 +51,9 @@ jobs:
           - image: 'cloud'
             platform: linux/amd64
             runner: ubuntu-latest
-          # - image: 'cloud'
-          #   platform: linux/arm64
-          #   runner: ubuntu-linux-arm64
+          - image: 'cloud'
+            platform: linux/arm64
+            runner: ubuntu-linux-arm64
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout Code
@@ -61,9 +61,6 @@ jobs:
         with:
           # Get all history to correctly infer Khoj version using hatch
           fetch-depth: 0
-
-      - name: 🧹 Delete huge unnecessary tools folder
-        run: rm -rf /opt/hostedtoolcache
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -91,8 +88,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}
-            ${{ github.ref_type == 'tag' && format('ghcr.io/{0}:latest', github.repository) || '' }}
+            ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}-${{ matrix.platform }}
           build-args: |
             VERSION=${{ steps.hatch.outputs.version }}
             PORT=42110
@@ -111,8 +107,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}
-            ${{ github.ref_type == 'tag' && format('ghcr.io/{0}-cloud:latest', github.repository) || '' }}
+            ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}-${{ matrix.platform }}
           build-args: |
             VERSION=${{ steps.hatch.outputs.version }}
             PORT=42110
@@ -121,3 +116,31 @@ jobs:
           labels: |
             org.opencontainers.image.description=Khoj AI Cloud - Your second brain powered by LLMs and Neural Search
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+  manifest:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.PAT }}
+
+      - name: Create and Push Local Manifest
+        if: github.event.inputs.khoj == 'true' || github.event_name == 'push'
+        run: |
+          docker manifest create ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }} \
+            ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}-linux/amd64 \
+            ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}-linux/arm64
+          docker manifest push ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}
+
+      - name: Create and Push Cloud Manifest
+        if: github.event.inputs.khoj-cloud == 'true' || github.event_name == 'push'
+        run: |
+          docker manifest create ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }} \
+            ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}-linux/amd64 \
+            ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}-linux/arm64
+          docker manifest push ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}
