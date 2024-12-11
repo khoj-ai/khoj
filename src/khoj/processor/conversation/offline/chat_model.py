@@ -3,7 +3,7 @@ import logging
 import os
 from datetime import datetime, timedelta
 from threading import Thread
-from typing import Any, Iterator, List, Optional, Union
+from typing import Any, Dict, Iterator, List, Optional, Union
 
 import pyjson5
 from langchain.schema import ChatMessage
@@ -166,6 +166,7 @@ def converse_offline(
     query_files: str = None,
     generated_files: List[FileAttachment] = None,
     additional_context: List[str] = None,
+    generated_asset_results: Dict[str, Dict] = {},
     tracer: dict = {},
 ) -> Union[ThreadedGenerator, Iterator[str]]:
     """
@@ -234,6 +235,7 @@ def converse_offline(
         model_type=ChatModelOptions.ModelType.OFFLINE,
         query_files=query_files,
         generated_files=generated_files,
+        generated_asset_results=generated_asset_results,
         program_execution_context=additional_context,
     )
 

@@ -40,6 +40,7 @@ from khoj.utils.helpers import (
     merge_dicts,
 )
 from khoj.utils.rawconfig import FileAttachment
+from khoj.utils.yaml import yaml_dump
 
 logger = logging.getLogger(__name__)
 
@@ -380,9 +381,8 @@ def generate_chatml_messages_with_context(
     model_type="",
     context_message="",
     query_files: str = None,
-    generated_images: Optional[list[str]] = None,
     generated_files: List[FileAttachment] = None,
-    generated_excalidraw_diagram: str = None,
+    generated_asset_results: Dict[str, Dict] = {},
     program_execution_context: List[str] = [],
 ):
     """Generate chat messages with appropriate context from previous conversation to send to the chat model"""
@@ -402,11 +402,15 @@ def generate_chatml_messages_with_context(
         message_context = ""
         message_attached_files = ""
 
+        generated_assets = {}
+
         chat_message = chat.get("message")
         role = "user" if chat["by"] == "you" else "assistant"
 
+        # Legacy code to handle excalidraw diagrams prior to Dec 2024
         if chat["by"] == "khoj" and "excalidraw" in chat["intent"].get("type", ""):
             chat_message = chat["intent"].get("inferred-queries")[0]
+
         if not is_none_or_empty(chat.get("context")):
             references = "\n\n".join(
                 {
@@ -433,15 +437,23 @@ def generate_chatml_messages_with_context(
             reconstructed_context_message = ChatMessage(content=message_context, role="user")
             chatml_messages.insert(0, reconstructed_context_message)
 
-        if chat.get("images") and role == "assistant":
-            # Issue: the assistant role cannot accept an image as a message content, so send it in a separate user message.
-            file_attachment_message = construct_structured_message(
-                message=prompts.generated_image_attachment.format(),
-                images=chat.get("images"),
-                model_type=model_type,
-                vision_enabled=vision_enabled,
+        if not is_none_or_empty(chat.get("images")) and role == "assistant":
+            generated_assets["image"] = {
+                "query": chat.get("intent", {}).get("inferred-queries", [user_message])[0],
+            }
+
+        if not is_none_or_empty(chat.get("excalidrawDiagram")) and role == "assistant":
+            generated_assets["diagram"] = {
+                "query": chat.get("intent", {}).get("inferred-queries", [user_message])[0],
+            }
+
+        if not is_none_or_empty(generated_assets):
+            chatml_messages.append(
+                ChatMessage(
+                    content=f"{prompts.generated_assets_context.format(generated_assets=yaml_dump(generated_assets))}\n",
+                    role="user",
+                )
             )
-            chatml_messages.append(ChatMessage(content=file_attachment_message, role="user"))
 
         message_content = construct_structured_message(
             chat_message, chat.get("images") if role == "user" else [], model_type, vision_enabled
@@ -464,33 +476,22 @@ def generate_chatml_messages_with_context(
                 role="user",
             )
         )
-    if not is_none_or_empty(context_message):
-        messages.append(ChatMessage(content=context_message, role="user"))
-
-    if generated_images:
-        messages.append(
-            ChatMessage(
-                content=construct_structured_message(
-                    prompts.generated_image_attachment.format(), generated_images, model_type, vision_enabled
-                ),
-                role="user",
-            )
-        )
 
     if generated_files:
         message_attached_files = gather_raw_query_files({file.name: file.content for file in generated_files})
         messages.append(ChatMessage(content=message_attached_files, role="assistant"))
 
-    if generated_excalidraw_diagram:
-        messages.append(ChatMessage(content=prompts.generated_diagram_attachment.format(), role="assistant"))
+    if not is_none_or_empty(generated_asset_results):
+        context_message += (
+            f"{prompts.generated_assets_context.format(generated_assets=yaml_dump(generated_asset_results))}\n\n"
+        )
 
     if program_execution_context:
-        messages.append(
-            ChatMessage(
-                content=prompts.additional_program_context.format(context="\n".join(program_execution_context)),
-                role="assistant",
-            )
-        )
+        program_context_text = "\n".join(program_execution_context)
+        context_message += f"{prompts.additional_program_context.format(context=program_context_text)}\n"
+
+    if not is_none_or_empty(context_message):
+        messages.append(ChatMessage(content=context_message, role="user"))
 
     if len(chatml_messages) > 0:
         messages += chatml_messages

@@ -178,40 +178,41 @@ Improved Prompt:
 """.strip()
 )
 
-generated_image_attachment = PromptTemplate.from_template(
-    f"""
-Here is the image you generated based on my query. You can follow-up with a general response to my query. Limit to 1-2 sentences.
+generated_assets_context = PromptTemplate.from_template(
+    """
+Assets that you created have already been created to respond to the query. Below, there are references to the descriptions used to create the assets.
+You can provide a summary of your reasoning from the information below or use it to respond to the original query.
+
+Generated Assets:
+{generated_assets}
+
+Limit your response to 3 sentences max. Be succinct, clear, and informative.
 """.strip()
 )
 
-generated_diagram_attachment = PromptTemplate.from_template(
-    f"""
-I've successfully created a diagram based on the user's query. The diagram will automatically be shared with the user. I can follow-up with a general response or summary. Limit to 1-2 sentences.
-""".strip()
-)
 
 ## Diagram Generation
 ## --
 
 improve_diagram_description_prompt = PromptTemplate.from_template(
     """
-you are an architect working with a novice digital artist using a diagramming software.
+You are an architect working with a novice digital artist using a diagramming software.
 {personality_context}
 
-you need to convert the user's query to a description format that the novice artist can use very well. you are allowed to use primitives like
-- text
-- rectangle
-- ellipse
-- line
-- arrow
+You need to convert the user's query to a description format that the novice artist can use very well. you are allowed to use primitives like
+- Text
+- Rectangle
+- Ellipse
+- Line
+- Arrow
 
-use these primitives to describe what sort of diagram the drawer should create. the artist must recreate the diagram every time, so include all relevant prior information in your description.
+Use these primitives to describe what sort of diagram the drawer should create. The artist must recreate the diagram every time, so include all relevant prior information in your description.
 
-- include the full, exact description. the artist does not have much experience, so be precise.
-- describe the layout.
-- you can only use straight lines.
-- use simple, concise language.
-- keep it simple and easy to understand. the artist is easily distracted.
+- Include the full, exact description. the artist does not have much experience, so be precise.
+- Describe the layout.
+- You can only use straight lines.
+- Use simple, concise language.
+- Keep it simple and easy to understand. the artist is easily distracted.
 
 Today's Date: {current_date}
 User's Location: {location}
@@ -334,6 +335,17 @@ Return a valid JSON object, where the drawing is in `elements` and your thought 
 
 Diagram Description: {query}
 
+""".strip()
+)
+
+failed_diagram_generation = PromptTemplate.from_template(
+    """
+You attempted to programmatically generate a diagram but failed due to a system issue. You are normally able to generate diagrams, but you encountered a system issue this time.
+
+You can create an ASCII image of the diagram in response instead.
+
+This is the diagram you attempted to make:
+{attempted_diagram}
 """.strip()
 )
 
