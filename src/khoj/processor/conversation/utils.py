@@ -468,6 +468,14 @@ def generate_chatml_messages_with_context(
 
     messages = []
 
+    if not is_none_or_empty(generated_asset_results):
+        messages.append(
+            ChatMessage(
+                content=f"{prompts.generated_assets_context.format(generated_assets=yaml_dump(generated_asset_results))}\n\n",
+                role="user",
+            )
+        )
+
     if not is_none_or_empty(user_message):
         messages.append(
             ChatMessage(
@@ -481,11 +489,6 @@ def generate_chatml_messages_with_context(
     if generated_files:
         message_attached_files = gather_raw_query_files({file.name: file.content for file in generated_files})
         messages.append(ChatMessage(content=message_attached_files, role="assistant"))
-
-    if not is_none_or_empty(generated_asset_results):
-        context_message += (
-            f"{prompts.generated_assets_context.format(generated_assets=yaml_dump(generated_asset_results))}\n\n"
-        )
 
     if program_execution_context:
         program_context_text = "\n".join(program_execution_context)

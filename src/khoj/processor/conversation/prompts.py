@@ -180,8 +180,8 @@ Improved Prompt:
 
 generated_assets_context = PromptTemplate.from_template(
     """
-Assets that you created have already been created to respond to the query. Below, there are references to the descriptions used to create the assets.
-You can provide a summary of your reasoning from the information below or use it to respond to the original query.
+You have ALREADY created the assets described below. They will automatically be added to the final response.
+You can provide a summary of your reasoning from the information below or use it to respond to my previous query.
 
 Generated Assets:
 {generated_assets}
