@@ -157,10 +157,9 @@ def converse_anthropic(
     query_images: Optional[list[str]] = None,
     vision_available: bool = False,
     query_files: str = None,
-    generated_images: Optional[list[str]] = None,
     generated_files: List[FileAttachment] = None,
-    generated_excalidraw_diagram: Optional[str] = None,
     program_execution_context: Optional[List[str]] = None,
+    generated_asset_results: Dict[str, Dict] = {},
     tracer: dict = {},
 ):
     """
@@ -221,9 +220,8 @@ def converse_anthropic(
         vision_enabled=vision_available,
         model_type=ChatModelOptions.ModelType.ANTHROPIC,
         query_files=query_files,
-        generated_excalidraw_diagram=generated_excalidraw_diagram,
         generated_files=generated_files,
-        generated_images=generated_images,
+        generated_asset_results=generated_asset_results,
         program_execution_context=program_execution_context,
     )
 

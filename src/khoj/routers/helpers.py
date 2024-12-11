@@ -88,7 +88,10 @@ from khoj.processor.conversation.offline.chat_model import (
     converse_offline,
     send_message_to_model_offline,
 )
-from khoj.processor.conversation.openai.gpt import converse, send_message_to_model
+from khoj.processor.conversation.openai.gpt import (
+    converse_openai,
+    send_message_to_model,
+)
 from khoj.processor.conversation.utils import (
     ChatEvent,
     ThreadedGenerator,
@@ -751,7 +754,7 @@ async def generate_excalidraw_diagram(
         )
     except Exception as e:
         logger.error(f"Error generating Excalidraw diagram for {user.email}: {e}", exc_info=True)
-        yield None, None
+        yield better_diagram_description_prompt, None
         return
 
     scratchpad = excalidraw_diagram_description.get("scratchpad")
@@ -1189,6 +1192,7 @@ def generate_chat_response(
     raw_generated_files: List[FileAttachment] = [],
     generated_excalidraw_diagram: str = None,
     program_execution_context: List[str] = [],
+    generated_asset_results: Dict[str, Dict] = {},
     tracer: dict = {},
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
@@ -1251,6 +1255,7 @@ def generate_chat_response(
                 agent=agent,
                 query_files=query_files,
                 generated_files=raw_generated_files,
+                generated_asset_results=generated_asset_results,
                 tracer=tracer,
             )
 
@@ -1258,7 +1263,7 @@ def generate_chat_response(
             openai_chat_config = conversation_config.ai_model_api
             api_key = openai_chat_config.api_key
             chat_model = conversation_config.chat_model
-            chat_response = converse(
+            chat_response = converse_openai(
                 compiled_references,
                 query_to_run,
                 query_images=query_images,
@@ -1278,8 +1283,7 @@ def generate_chat_response(
                 vision_available=vision_available,
                 query_files=query_files,
                 generated_files=raw_generated_files,
-                generated_images=generated_images,
-                generated_excalidraw_diagram=generated_excalidraw_diagram,
+                generated_asset_results=generated_asset_results,
                 program_execution_context=program_execution_context,
                 tracer=tracer,
             )
@@ -1305,8 +1309,7 @@ def generate_chat_response(
                 vision_available=vision_available,
                 query_files=query_files,
                 generated_files=raw_generated_files,
-                generated_images=generated_images,
-                generated_excalidraw_diagram=generated_excalidraw_diagram,
+                generated_asset_results=generated_asset_results,
                 program_execution_context=program_execution_context,
                 tracer=tracer,
             )
@@ -1331,8 +1334,7 @@ def generate_chat_response(
                 vision_available=vision_available,
                 query_files=query_files,
                 generated_files=raw_generated_files,
-                generated_images=generated_images,
-                generated_excalidraw_diagram=generated_excalidraw_diagram,
+                generated_asset_results=generated_asset_results,
                 program_execution_context=program_execution_context,
                 tracer=tracer,
             )

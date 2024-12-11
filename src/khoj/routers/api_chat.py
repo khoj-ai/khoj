@@ -23,6 +23,7 @@ from khoj.database.adapters import (
     aget_user_name,
 )
 from khoj.database.models import Agent, KhojUser
+from khoj.processor.conversation import prompts
 from khoj.processor.conversation.prompts import help_message, no_entries_found
 from khoj.processor.conversation.utils import defilter_query, save_to_conversation_log
 from khoj.processor.image.generate import text_to_image
@@ -765,6 +766,7 @@ async def chat(
         researched_results = ""
         online_results: Dict = dict()
         code_results: Dict = dict()
+        generated_asset_results: Dict = dict()
         ## Extract Document References
         compiled_references: List[Any] = []
         inferred_queries: List[Any] = []
@@ -1128,6 +1130,10 @@ async def chat(
             else:
                 generated_images.append(generated_image)
 
+                generated_asset_results["images"] = {
+                    "query": improved_image_prompt,
+                }
+
                 async for result in send_event(
                     ChatEvent.GENERATED_ASSETS,
                     {
@@ -1166,6 +1172,10 @@ async def chat(
 
                         generated_excalidraw_diagram = diagram_description
 
+                        generated_asset_results["diagrams"] = {
+                            "query": better_diagram_description_prompt,
+                        }
+
                         async for result in send_event(
                             ChatEvent.GENERATED_ASSETS,
                             {
@@ -1176,7 +1186,9 @@ async def chat(
                     else:
                         error_message = "Failed to generate diagram. Please try again later."
                         program_execution_context.append(
-                            f"AI attempted to programmatically generate a diagram but failed due to a program issue. Generally, it is able to do so, but encountered a system issue this time. AI can suggest text description or rendering of the diagram or user can try again with a simpler prompt."
+                            prompts.failed_diagram_generation.format(
+                                attempted_diagram=better_diagram_description_prompt
+                            )
                         )
 
                         async for result in send_event(ChatEvent.STATUS, error_message):
@@ -1209,6 +1221,7 @@ async def chat(
             generated_files,
             generated_excalidraw_diagram,
             program_execution_context,
+            generated_asset_results,
             tracer,
         )
 
