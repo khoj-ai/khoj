@@ -965,7 +965,7 @@ export default function SidePanel(props: SidePanelProps) {
                         }}
                     >
                         <DrawerTrigger>
-                            <Sidebar className="h-8 w-8 mx-2" weight="thin" />
+                            <Sidebar className="h-6 w-6 mx-2" weight="thin" />
                         </DrawerTrigger>
                         <DrawerContent>
                             <DrawerHeader>
@@ -1037,7 +1037,7 @@ export default function SidePanel(props: SidePanelProps) {
                     </div>
                 )}
                 {props.isMobileWidth && (
-                    <Link href="/" className="content-center">
+                    <Link href="/" className="content-center h-fit self-center">
                         <KhojLogoType />
                     </Link>
                 )}
