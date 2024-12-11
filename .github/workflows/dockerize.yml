@@ -85,7 +85,6 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          platforms: ${{ matrix.platform }}
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
@@ -104,7 +103,6 @@ jobs:
         with:
           context: .
           file: prod.Dockerfile
-          platforms: ${{ matrix.platform }}
           push: true
           tags: |
             ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
@@ -128,6 +126,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.PAT }}
+
       - name: Create and Push Local Manifest
         if: github.event.inputs.khoj == 'true' || github.event_name == 'push'
         run: |
