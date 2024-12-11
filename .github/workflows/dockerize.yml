@@ -51,9 +51,9 @@ jobs:
           - image: 'cloud'
             platform: linux/amd64
             runner: ubuntu-latest
-          - image: 'cloud'
-            platform: linux/arm64
-            runner: ubuntu-linux-arm64
+          # - image: 'cloud'
+          #   platform: linux/arm64
+          #   runner: ubuntu-linux-arm64
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout Code
