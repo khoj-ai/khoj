@@ -1,16 +1,264 @@
-<html>
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
-        <title>Khoj - Settings</title>
+<!DOCTYPE html>
+<html lang="en">
 
-        <link rel="icon" type="image/png" sizes="128x128" href="./assets/icons/favicon-128x128.png">
-        <link rel="manifest" href="./khoj.webmanifest">
-        <link rel="stylesheet" href="./assets/khoj.css">
-    </head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khoj - Settings</title>
+    <link rel="icon" type="image/png" sizes="128x128" href="./assets/icons/favicon-128x128.png">
+    <link rel="stylesheet" href="./assets/khoj.css">
+    <style>
+        :root {
+            --background-color: #f9fafb;
+            --primary-color: hsla(24.6 95% 53.1%);
+            --secondary-color: #f3f4f6;
+            --text-color: #111827;
+            --card-bg: #ffffff;
+            --card-border: #e5e7eb;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-family);
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: grid;
+            grid-template-columns: 1fr;
+            height: 100vh;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .header {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .section-cards {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0px 6px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .card-input {
+            width: -webkit-fill-available;
+            padding: 10px;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        input,
+        button {
+            font-family: var(--font-family);
+        }
+
+        .card-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .card-button:hover {
+            background-color: hsla(24.6 95% 53.1% / 0.5);
+        }
+
+        .secondary-button {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .secondary-button:hover {
+            background-color: #e5e7eb;
+        }
+
+        .sync-data {
+            display: flex;
+            justify-content: left;
+            align-items: baseline;
+            gap: 10px;
+            flex-direction: column;
+        }
+
+        div.folder-element,
+        div.file-element {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        img.file-synced-image {
+            width: 16px;
+            height: 16px;
+        }
+
+        div.remove-button-container {
+            display: flex;
+            flex-direction: row;
+            justify-content: right;
+            align-items: center;
+            gap: 12px;
+        }
+
+        button.remove-folder-button,
+        button.remove-file-button {
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+
+        button.remove-folder-button:hover,
+        button.remove-file-button:hover {
+            background-color: #f3f4f6;
+        }
+
+        div#sync-status {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        div#big-actions {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        div#big-actions button {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .content-name:hover {
+            text-decoration: underline;
+            color: var(--primary-color);
+        }
+
+        .sync-icon,
+        .clock-icon,
+        .trash-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        #loading-bar {
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg,
+                    hsla(24.6 95% 53.1% / 0.2) 0%,
+                    var(--primary-color) 50%,
+                    hsla(24.6 95% 53.1% / 0.2) 100%);
+            border-radius: 2px;
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            margin: 10px 0;
+            transition: opacity 0.3s ease;
+        }
+
+        @keyframes loading {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        #loading-bar[style*="display: none"] {
+            opacity: 0;
+        }
+
+        #loading-bar {
+            opacity: 1;
+        }
+
+        details.collapsible {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        details.collapsible:hover {
+            transform: translateY(-5px);
+            box-shadow: 0px 6px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        details.collapsible summary {
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        details.collapsible summary::after {
+            content: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>');
+            font-size: 0.8em;
+            transition: transform 0.2s;
+        }
+
+        details.collapsible[open] summary::after {
+            transform: rotate(180deg);
+        }
+
+        details.collapsible .content {
+            margin-top: 10px;
+        }
+    </style>
     <script src="./utils.js"></script>
     <script>
-        window.addEventListener("DOMContentLoaded", async() => {
+        window.addEventListener("DOMContentLoaded", async () => {
             // Setup the header pane
             document.getElementById("khoj-header").innerHTML = await populateHeaderPane();
             // Setup the nav menu
@@ -19,358 +267,54 @@
             document.getElementById("settings-nav")?.classList.add("khoj-nav-selected");
         })
     </script>
+</head>
 
-    <body>
-        <!--Add Header Logo and Nav Pane-->
+<body>
+    <!-- Main Content -->
+    <div class="main-content">
         <div id="khoj-header" class="khoj-header"></div>
         <div class="section-cards">
-            <div class="card-description-row">
-                <div class="card configuration">
-                    <div class="card-title-row">
-                        <img class="card-icon" src="./assets/icons/link.svg" alt="Khoj Server URL">
-                        <h3 class="card-title">
-                            Server URL
-                        </h3>
-                    </div>
-                    <div class="card-description-row">
-                        <input id="khoj-host-url" class="card-input" type="text">
-                    </div>
-                    <div class="card-title-row">
-                        <img class="card-icon" src="./assets/icons/key.svg" alt="Khoj Access Key">
-                        <h3 class="card-title">
-                            API Key
-                        </h3>
-                    </div>
-                    <div class="card-description-row">
-                        <input id="khoj-access-key" class="card-input" type="text" placeholder="Enter API key to access your Khoj">
-                    </div>
+            <!-- Replace the server URL and API key cards with: -->
+            <details class="collapsible">
+                <summary>Server URL</summary>
+                <div class="content">
+                    <input type="text" class="card-input" id="khoj-host-url" placeholder="Enter server URL">
                 </div>
+            </details>
+
+            <details class="collapsible">
+                <summary>API Key</summary>
+                <div class="content">
+                    <input type="text" class="card-input" id="khoj-access-key" placeholder="Enter API key">
+                </div>
+            </details>
+            <div class="card">
+                <div class="card-title">Files</div>
+                <div id="current-files"></div>
+                <button class="secondary-button" id="update-file" title="Add a file to be indexed to your Khoj knowledge base. Will be synced automatically.">Add File</button>
             </div>
-            <div class="card-description-row">
-                <div class="card configuration">
-                    <div class="card-title-row">
-                        <img class="card-icon" src="./assets/icons/plaintext.svg" alt="File">
-                        <h3 class="card-title">
-                            Files
-                            <button id="toggle-files" class="card-button">
-                                <svg id="toggle-files-svg" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"></path></svg>
-                            </button>
-                        </h3>
-                    </div>
-                    <div class="card-description-row">
-                        <div id="current-files"></div>
-                    </div>
-                    <div class="card-action-row">
-                        <button id="update-file" class="card-button">
-                            Add
-                            <img class="add-files-icon" src="./assets/icons/circular-add.svg" alt="Add">
-                        </button>
-                    </div>
-                </div>
+            <div class="card">
+                <div class="card-title">Folders</div>
+                <div id="current-folders"></div>
+                <button class="secondary-button" id="update-folder" title="Add a folder to be indexed to your Khoj knowledge base. All valid files will be synced automatically.">Add Folder</button>
             </div>
-            <div class="card-description-row">
-                <div class="card configuration">
-                    <div class="card-title-row">
-                        <img class="card-icon" src="./assets/icons/folder.svg" alt="Folder">
-                        <h3 class="card-title">
-                            Folders
-                            <button id="toggle-folders" class="card-button">
-                                <svg id="toggle-folders-svg" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"></path></svg>
-                            </button>
-                        </h3>
-                    </div>
-                    <div class="card-description-row">
-                        <div id="current-folders"></div>
-                    </div>
-                    <div class="card-action-row">
-                        <button id="update-folder" class="card-button">
-                            Add
-                            <img class="add-files-icon" src="./assets/icons/circular-add.svg" alt="Add">
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div class="section-action-row">
-                <div class="card-description-row">
-                    <button id="sync-force" class="sync-data">💾 Save</button>
-                </div>
-                <div class="card-description-row">
-                    <button id="delete-all" class="sync-data">🗑️ Delete All</button>
-                </div>
-            </div>
-            <div id="loading-bar" style="display: none;"></div>
-            <div class="card-description-row">
+            <div class="sync-data">
+                <div id="loading-bar" style="display: none;"></div>
                 <div id="sync-status"></div>
+                <div id="big-actions">
+                    <button class="card-button" id="sync-force" title="Delete and re-index all configured files and folders">
+                        <img src="./assets/icons/upload.svg" class="sync-icon" alt="Sync">
+                        Force Sync
+                    </button>
+                    <button class="card-button" id="delete-all" title="Remove all indexed content from Khoj">
+                        <img src="./assets/icons/trash-solid.svg" class="trash-icon" alt="Delete All">
+                        Delete All
+                    </button>
+                </div>
             </div>
         </div>
-    </body>
-
-    <style>
-        @media only screen and (max-width: 600px) {
-            body {
-                display: grid;
-                grid-template-columns: 1fr;
-                grid-template-rows: 1fr auto;
-                font-size: small!important;
-            }
-            body > * {
-                grid-column: 1;
-            }
-        }
-        @media only screen and (min-width: 600px) {
-            body {
-                display: grid;
-                grid-template-columns: 1fr min(70vw, 100%) 1fr;
-                grid-template-rows: 80px auto;
-            }
-            body > * {
-                grid-column: 2;
-            }
-        }
-        body, input {
-            padding: 0px;
-            margin: 0px;
-            background: var(--background-color);
-            color: #475569;
-            font-family: var(--font-family);
-            font-size: small;
-            font-weight: 300;
-            line-height: 1.5em;
-        }
-        body > * {
-            padding: 10px;
-            margin: 10px;
-        }
-
-        svg {
-            transition: transform 0.3s ease-in-out;
-        }
-
-        a.khoj-logo {
-            text-align: center;
-        }
-
-        #loading-bar {
-            height: 10px;
-            width: 100%;
-            background-color: #ddd;
-            position: relative;
-            overflow: hidden;
-        }
-
-        #loading-bar:before {
-            content: "";
-            display: block;
-            position: absolute;
-            left: -200px;
-            width: 200px;
-            height: 100%;
-            background-color: #2980b9;
-            animation: loading-bar 2s linear infinite;
-        }
-
-        @keyframes loading-bar {
-            0% {
-                left: -200px;
-            }
-            100% {
-                left: 100%;
-            }
-        }
-
-        .card-input {
-            padding: 4px;
-            box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.3);
-            border: none;
-            width: 450px;
-        }
-
-        .card {
-            display: grid;
-            gap: 8px;
-            padding: 24px 16px;
-            width: 450px;
-            background: var(--background-color);
-            border: 1px solid rgb(229, 229, 229);
-            border-radius: 4px;
-            box-shadow: 0px 1px 3px 0px rgba(0,0,0,0.1),0px 1px 2px -1px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-
-        .section-cards {
-            display: grid;
-            gap: 16px;
-            justify-items: center;
-            margin: 0;
-        }
-        .section-action-row {
-            display: grid;
-            grid-auto-flow: column;
-            gap: 16px;
-            height: fit-content;
-        }
-
-        .card-title-row {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            padding: 0;
-            gap: 12px;
-        }
-        .card-icon {
-            width: 28px;
-            height: 28px;
-        }
-        .add-files-icon {
-            width: 16px;
-            height: 16px;
-        }
-        .card-title {
-            font-size: medium;
-            font-weight: normal;
-            margin: 0;
-            padding: 0;
-            align-self: center;
-        }
-        .card-title-text {
-            vertical-align: middle;
-        }
-        .card-description {
-            margin: 0;
-            color: grey;
-            font-size: small;
-        }
-        .card-button-row {
-            display: grid;
-            grid-template-columns: auto;
-            text-align: right;
-        }
-        .card-button {
-            border: none;
-            font-weight: bold;
-            color: rgb(64,64,64);
-            background: transparent;
-            font-size: small;
-            cursor: pointer;
-            margin: 0;
-            padding: 0;
-            height: 32px;
-            text-align: right;
-        }
-        .primary-button {
-            border: none;
-            color: var(--background-color);
-            padding: 15px 32px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: small;
-        }
-
-        button.card-button.disabled {
-            color: var(--flower);
-            background: transparent;
-            font-size: small;
-            cursor: pointer;
-            margin: 0;
-            padding: 0;
-            height: 32px;
-            text-align: right;
-            text-align: left;
-        }
-
-        button.card-button.happy {
-            color: var(--leaf);
-        }
-
-        img.configured-icon {
-            max-width: 16px;
-        }
-
-        div.card-action-row.enabled{
-            display: block;
-        }
-
-        img.configured-icon.enabled {
-            display: inline;
-        }
-
-        div.card-action-row.disabled,
-        img.configured-icon.disabled {
-            display: none;
-        }
-
-        div.file-element,
-        div.folder-element {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            border: 1px solid rgb(229, 229, 229);
-            border-radius: 4px;
-            box-shadow: 0px 1px 3px 0px rgba(0,0,0,0.1),0px 1px 2px -1px rgba(0,0,0,0.8);
-            padding: 4px;
-            margin-bottom: 8px;
-        }
-
-        div.content-name {
-            overflow-wrap: break-word;
-        }
-
-        div.remove-button-container {
-            text-align: right;
-            display: flex;
-            margin-left: auto;
-            gap: 8px;
-        }
-
-        .file-synced-image{
-            width: 20px;
-            display: none;
-        }
-
-        button.remove-folder-button,
-        button.remove-file-button {
-            background-color: rgb(253 214 214);
-            border-radius: 3px;
-            border: none;
-            color: var(--flower);
-            padding: 4px;
-        }
-
-        button.remove-folder-button:hover,
-        button.remove-file-button:hover {
-            background-color: rgb(255 235 235);
-            border-radius: 3px;
-            border: none;
-            color: var(--flower);
-            padding: 4px;
-            cursor: pointer;
-        }
-        button.sync-data {
-            background-color: var(--primary-hover);
-            border: none;
-            color: var(--main-text-color);
-            padding: 12px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            box-shadow: 0px 5px 0px var(--background-color);
-        }
-
-        button.sync-data:hover {
-            background-color: var(--summer-sun);
-            box-shadow: 0px 3px 0px var(--background-color);
-            cursor: pointer;
-        }
-        .sync-force-toggle {
-            align-content: center;
-            display: grid;
-            grid-auto-flow: column;
-            gap: 4px;
-        }
-    </style>
-    <script src="./renderer.js"></script>
+    </div>
+</body>
+<script src="./renderer.js"></script>
 
 </html>

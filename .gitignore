@@ -42,3 +42,13 @@ src/interface/obsidian/main.js
 
 # obsidian
 data.json
+
+# Android
+src/interface/android/.gradle
+src/interface/android/app/build
+src/interface/android/build
+src/interface/android/*.aab
+src/interface/android/*.apk
+src/interface/android/*.apk.idsig
+src/interface/android/*.keystore
+src/interface/android/local.properties

@@ -184,8 +184,10 @@ export default function Chat() {
         useState<AbortController | null>(null);
     const [triggeredAbort, setTriggeredAbort] = useState(false);
 
-    const locationData = useIPLocationData() || {
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    const { locationData, locationDataError, locationDataLoading } = useIPLocationData() || {
+        locationData: {
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
     };
     const authenticatedData = useAuthenticatedData();
     const isMobileWidth = useIsMobileWidth();
@@ -239,9 +241,13 @@ export default function Chat() {
 
     useEffect(() => {
         if (processQuerySignal) {
+            if (locationDataLoading) {
+                return;
+            }
+
             chat();
         }
-    }, [processQuerySignal]);
+    }, [processQuerySignal, locationDataLoading]);
 
     async function readChatStream(response: Response) {
         if (!response.ok) throw new Error(response.statusText);
@@ -380,7 +386,7 @@ export default function Chat() {
             <title>
                 {`${defaultTitle}${!!title && title !== defaultTitle ? `: ${title}` : ""}`}
             </title>
-            <div>
+            <div className={isMobileWidth ? "h-1" : "h-auto"}>
                 <SidePanel
                     conversationId={conversationId}
                     uploadedFiles={[]}
@@ -389,9 +395,9 @@ export default function Chat() {
             </div>
             <div className={styles.chatBox}>
                 <div className={styles.chatBoxBody}>
-                    {!isMobileWidth && conversationId && (
+                    {conversationId && (
                         <div
-                            className={`${styles.chatTitleWrapper} text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mr-8 pt-6 col-auto h-fit`}
+                            className={`${styles.chatTitleWrapper} text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mx-2 md:mr-8 md:pt-6 col-auto h-fit`}
                         >
                             {title && (
                                 <h2
@@ -403,7 +409,7 @@ export default function Chat() {
                             <ChatSessionActionMenu
                                 conversationId={conversationId}
                                 setTitle={setTitle}
-                                sizing="md"
+                                sizing={isMobileWidth ? "sm" : "md"}
                             />
                         </div>
                     )}

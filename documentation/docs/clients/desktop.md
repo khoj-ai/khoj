@@ -4,21 +4,12 @@ sidebar_position: 1
 
 # Desktop
 
-> Query your Second Brain from your machine
+> Upload your knowledge base to Khoj and chat with your whole corpus
 
-Use the Desktop app to chat and search with Khoj.
-You can also share your files, folders with Khoj using the app.
+## Companion App
+
+Share your files, folders with Khoj using the app.
 Khoj will keep these files in sync to provide contextual responses when you search or chat.
-
-## Features
-- **Chat**
-  - **Faster answers**: Find answers quickly, from your private notes or the public internet
-  - **Assisted creativity**: Smoothly weave across retrieving answers and generating content
-  - **Iterative discovery**: Iteratively explore and re-discover your notes
-  - **Quick access**: Use [Khoj Mini](/features/khoj_mini) on the desktop to quickly pull up a mini chat module for quicker answers
-- **Search**
-  - **Natural**: Advanced natural language understanding using Transformer based ML Models
-  - **Incremental**: Incremental search for a fast, search-as-you-type experience
 
 ## Setup
 :::info[Self Hosting]
@@ -34,7 +25,20 @@ If you are self-hosting the Khoj server, update the *Settings* page on the Khoj 
 4. [Optional] Add any files, folders you'd like Khoj to be aware of on the *Settings* page and Click *Save*.
    These files and folders will be automatically kept in sync for you
 
-## Interface
-| Chat | Search |
-|:----:|:------:|
-| ![](/img/khoj_chat_on_desktop.png) | ![](/img/khoj_search_on_desktop.png) |
+# Main App
+
+You can also install the Khoj application on your desktop as a progressive web app.
+
+1. Open the [Khoj Web App](https://app.khoj.dev) in Chrome.
+2. Click on the install button in the address bar to install the app. You must be logged into your Chrome browser for this to work.
+
+![progressive web app install icon](/img/pwa_install_desktop.png)
+
+Alternatively, you can also install using this route:
+
+1. Open the three-dot menu in the top right corner of the browser.
+2. Go to 'Cast, Save, and Share' option.
+3. Click on the "Open in Khoj" option.
+
+
+![progressive web app install route](/img/chrome_pwa_alt.png)

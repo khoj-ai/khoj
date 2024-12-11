@@ -23,32 +23,30 @@ export function welcomeConsole() {
         `%c %s`,
         "font-family:monospace",
         `
-        __  __     __  __     ______       __        _____      __
-       /\\ \\/ /    /\\ \\_\\ \\   /\\  __ \\     /\\ \\      /\\  __ \\   /\\ \\
-       \\ \\  _"-.  \\ \\  __ \\  \\ \\ \\/\\ \\   _\\_\\ \\     \\ \\  __ \\  \\ \\ \\
-        \\ \\_\\ \\_\\  \\ \\_\\ \\_\\  \\ \\_____\\ /\\_____\\     \\ \\_\\ \\_\\  \\ \\_\\
-         \\/_/\\/_/   \\/_/\\/_/   \\/_____/ \\/_____/      \\/_/\\/_/   \\/_/
+ __  __     __  __     ______       __        _____      __
+/\\ \\/ /    /\\ \\_\\ \\   /\\  __ \\     /\\ \\      /\\  __ \\   /\\ \\
+\\ \\  _"-.  \\ \\  __ \\  \\ \\ \\/\\ \\   _\\_\\ \\     \\ \\  __ \\  \\ \\ \\
+ \\ \\_\\ \\_\\  \\ \\_\\ \\_\\  \\ \\_____\\ /\\_____\\     \\ \\_\\ \\_\\  \\ \\_\\
+  \\/_/\\/_/   \\/_/\\/_/   \\/_____/ \\/_____/      \\/_/\\/_/   \\/_/
 
 
-       Greetings traveller,
+Greetings traveller,
 
-       I am ✨Khoj✨, your open-source, personal AI copilot.
+I am ✨Khoj✨, your open-source, personal AI copilot.
 
-       See my source code at https://github.com/khoj-ai/khoj
-       Read my operating manual at https://docs.khoj.dev
-       `,
+See my source code at https://github.com/khoj-ai/khoj
+Read my operating manual at https://docs.khoj.dev
+`,
     );
 }
 
 export function useIPLocationData() {
-    const { data: locationData, error: locationDataError } = useSWR<LocationData>(
-        "/api/ip",
-        locationFetcher,
-        { revalidateOnFocus: false },
-    );
-
-    if (locationDataError || !locationData) return;
-    return locationData;
+    const {
+        data: locationData,
+        error: locationDataError,
+        isLoading: locationDataLoading,
+    } = useSWR<LocationData>("/api/ip", locationFetcher, { revalidateOnFocus: false });
+    return { locationData, locationDataError, locationDataLoading };
 }
 
 export function useIsMobileWidth() {

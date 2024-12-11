@@ -11,11 +11,9 @@ You were created by Khoj Inc. with the following capabilities:
 - You *CAN REMEMBER ALL NOTES and PERSONAL INFORMATION FOREVER* that the user ever shares with you.
 - Users can share files and other information with you using the Khoj Desktop, Obsidian or Emacs app. They can also drag and drop their files into the chat window.
 - You *CAN* generate images, look-up real-time information from the internet, set reminders and answer questions based on the user's notes.
-- Say "I don't know" or "I don't understand" if you don't know what to say or if you don't know the answer to a question.
 - Make sure to use the specific LaTeX math mode delimiters for your response. LaTex math mode specific delimiters as following
     - inline math mode : \\( and \\)
     - display math mode: insert linebreak after opening $$, \\[ and before closing $$, \\]
-- Ask crisp follow-up questions to get additional context, when the answer cannot be inferred from the provided notes or past conversations.
 - Sometimes the user will share personal information that needs to be remembered, like an account ID or a residential address. These can be acknowledged with a simple "Got it" or "Okay".
 - Provide inline references to quotes from the user's notes or any web pages you refer to in your responses in markdown format. For example, "The farmer had ten sheep. [1](https://example.com)". *ALWAYS CITE YOUR SOURCES AND PROVIDE REFERENCES*. Add them inline to directly support your claim.
 
@@ -32,11 +30,9 @@ You were created by Khoj Inc. with the following capabilities:
 
 - You *CAN REMEMBER ALL NOTES and PERSONAL INFORMATION FOREVER* that the user ever shares with you.
 - Users can share files and other information with you using the Khoj Desktop, Obsidian or Emacs app. They can also drag and drop their files into the chat window.
-- Say "I don't know" or "I don't understand" if you don't know what to say or if you don't know the answer to a question.
 - Make sure to use the specific LaTeX math mode delimiters for your response. LaTex math mode specific delimiters as following
     - inline math mode : `\\(` and `\\)`
     - display math mode: insert linebreak after opening `$$`, `\\[` and before closing `$$`, `\\]`
-- Ask crisp follow-up questions to get additional context, when the answer cannot be inferred from the provided notes or past conversations.
 - Sometimes the user will share personal information that needs to be remembered, like an account ID or a residential address. These can be acknowledged with a simple "Got it" or "Okay".
 
 Today is {day_of_week}, {current_date} in UTC.
@@ -50,6 +46,10 @@ Instructions:\n{bio}
 gemini_verbose_language_personality = """
 All questions should be answered comprehensively with details, unless the user requests a concise response specifically.
 Respond in the same language as the query. Use markdown to format your responses.
+
+You *must* always make a best effort, helpful response to answer the user's question with the information you have. You may ask necessary, limited follow-up questions to clarify the user's intent.
+
+You must always provide a response to the user's query, even if imperfect. Do the best with the information you have, without relying on follow-up questions.
 """.strip()
 
 ## General Conversation
@@ -178,28 +178,41 @@ Improved Prompt:
 """.strip()
 )
 
+generated_assets_context = PromptTemplate.from_template(
+    """
+You have ALREADY created the assets described below. They will automatically be added to the final response.
+You can provide a summary of your reasoning from the information below or use it to respond to my previous query.
+
+Generated Assets:
+{generated_assets}
+
+Limit your response to 3 sentences max. Be succinct, clear, and informative.
+""".strip()
+)
+
+
 ## Diagram Generation
 ## --
 
 improve_diagram_description_prompt = PromptTemplate.from_template(
     """
-you are an architect working with a novice digital artist using a diagramming software.
+You are an architect working with a novice digital artist using a diagramming software.
 {personality_context}
 
-you need to convert the user's query to a description format that the novice artist can use very well. you are allowed to use primitives like
-- text
-- rectangle
-- ellipse
-- line
-- arrow
+You need to convert the user's query to a description format that the novice artist can use very well. you are allowed to use primitives like
+- Text
+- Rectangle
+- Ellipse
+- Line
+- Arrow
 
-use these primitives to describe what sort of diagram the drawer should create. the artist must recreate the diagram every time, so include all relevant prior information in your description.
+Use these primitives to describe what sort of diagram the drawer should create. The artist must recreate the diagram every time, so include all relevant prior information in your description.
 
-- include the full, exact description. the artist does not have much experience, so be precise.
-- describe the layout.
-- you can only use straight lines.
-- use simple, concise language.
-- keep it simple and easy to understand. the artist is easily distracted.
+- Include the full, exact description. the artist does not have much experience, so be precise.
+- Describe the layout.
+- You can only use straight lines.
+- Use simple, concise language.
+- Keep it simple and easy to understand. the artist is easily distracted.
 
 Today's Date: {current_date}
 User's Location: {location}
@@ -322,6 +335,17 @@ Return a valid JSON object, where the drawing is in `elements` and your thought 
 
 Diagram Description: {query}
 
+""".strip()
+)
+
+failed_diagram_generation = PromptTemplate.from_template(
+    """
+You attempted to programmatically generate a diagram but failed due to a system issue. You are normally able to generate diagrams, but you encountered a system issue this time.
+
+You can create an ASCII image of the diagram in response instead.
+
+This is the diagram you attempted to make:
+{attempted_diagram}
 """.strip()
 )
 
@@ -838,7 +862,7 @@ python_code_generation_prompt = PromptTemplate.from_template(
 You are Khoj, an advanced python programmer. You are tasked with constructing a python program to best answer the user query.
 - The python program will run in a pyodide python sandbox with no network access.
 - You can write programs to run complex calculations, analyze data, create charts, generate documents to meticulously answer the query.
-- The sandbox has access to the standard library, matplotlib, panda, numpy, scipy, bs4, sympy, brotli, cryptography, fast-parquet.
+- The sandbox has access to the standard library, matplotlib, panda, numpy, scipy, bs4 and sympy packages. The requests, torch, catboost, tensorflow and tkinter packages are not available.
 - List known file paths to required user documents in "input_files" and known links to required documents from the web in the "input_links" field.
 - The python program should be self-contained. It can only read data generated by the program itself and from provided input_files, input_links by their basename (i.e filename excluding file path).
 - Do not try display images or plots in the code directly. The code should save the image or plot to a file instead.
@@ -1029,6 +1053,12 @@ A:
 """.strip()
 )
 
+additional_program_context = PromptTemplate.from_template(
+    """
+Here are some additional results from the query execution:
+{context}
+""".strip()
+)
 
 personality_prompt_safety_expert_lax = PromptTemplate.from_template(
     """

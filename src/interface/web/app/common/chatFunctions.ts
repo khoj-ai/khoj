@@ -1,3 +1,4 @@
+import { AttachedFileText } from "../components/chatInputArea/chatInputArea";
 import {
     CodeContext,
     Context,
@@ -14,6 +15,12 @@ export interface RawReferenceData {
 export interface MessageMetadata {
     conversationId: string;
     turnId: string;
+}
+
+export interface GeneratedAssetsData {
+    images: string[];
+    excalidrawDiagram: string;
+    files: AttachedFileText[];
 }
 
 export interface ResponseWithIntent {
@@ -84,6 +91,8 @@ export function processMessageChunk(
 
     if (!currentMessage || !chunk || !chunk.type) return { context, onlineContext, codeContext };
 
+    console.log(`chunk type: ${chunk.type}`);
+
     if (chunk.type === "status") {
         console.log(`status: ${chunk.data}`);
         const statusMessage = chunk.data as string;
@@ -98,6 +107,20 @@ export function processMessageChunk(
     } else if (chunk.type === "metadata") {
         const messageMetadata = chunk.data as MessageMetadata;
         currentMessage.turnId = messageMetadata.turnId;
+    } else if (chunk.type === "generated_assets") {
+        const generatedAssets = chunk.data as GeneratedAssetsData;
+
+        if (generatedAssets.images) {
+            currentMessage.generatedImages = generatedAssets.images;
+        }
+
+        if (generatedAssets.excalidrawDiagram) {
+            currentMessage.generatedExcalidrawDiagram = generatedAssets.excalidrawDiagram;
+        }
+
+        if (generatedAssets.files) {
+            currentMessage.generatedFiles = generatedAssets.files;
+        }
     } else if (chunk.type === "message") {
         const chunkData = chunk.data;
         // Here, handle if the response is a JSON response with an image, but the intentType is excalidraw

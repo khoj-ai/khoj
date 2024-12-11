@@ -19,12 +19,7 @@ from khoj.processor.conversation.utils import (
     ThreadedGenerator,
     commit_conversation_trace,
 )
-from khoj.utils import state
-from khoj.utils.helpers import (
-    get_chat_usage_metrics,
-    in_debug_mode,
-    is_promptrace_enabled,
-)
+from khoj.utils.helpers import get_chat_usage_metrics, is_promptrace_enabled
 
 logger = logging.getLogger(__name__)
 

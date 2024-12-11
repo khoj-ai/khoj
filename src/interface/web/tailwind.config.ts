@@ -55,6 +55,9 @@ const config = {
             },
         },
         extend: {
+            fontFamily: {
+                sans: ["var(--font-noto-sans)", "var(--font-noto-sans-arabic)"],
+            },
             colors: {
                 border: "hsl(var(--border))",
                 input: "hsl(var(--input))",

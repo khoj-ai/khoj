@@ -77,6 +77,21 @@ div.imageWrapper img {
     border-radius: 8px;
 }
 
+div.khoj div.imageWrapper img {
+    height: 512px;
+}
+
+div.khoj div.imageWrapper {
+    flex: 1 1 auto;
+}
+
+div.khoj div.imagesContainer {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    overflow-x: hidden;
+}
+
 div.chatMessageContainer > img {
     width: auto;
     height: auto;
@@ -177,5 +192,10 @@ div.trainOfThoughtElement ul {
 @media screen and (max-width: 768px) {
     div.youfullHistory {
         max-width: 90%;
+    }
+
+    div.khoj div.imageWrapper img {
+        width: 100%;
+        height: auto;
     }
 }

@@ -34,8 +34,8 @@ from khoj.utils.constants import web_directory
 from khoj.utils.helpers import resolve_absolute_path
 from khoj.utils.rawconfig import ContentConfig, ImageSearchConfig, SearchConfig
 from tests.helpers import (
+    AiModelApiFactory,
     ChatModelOptionsFactory,
-    OpenAIProcessorConversationConfigFactory,
     ProcessLockFactory,
     SubscriptionFactory,
     UserConversationProcessorConfigFactory,
@@ -319,9 +319,7 @@ def chat_client_builder(search_config, user, index_content=True, require_auth=Fa
     elif chat_provider == ChatModelOptions.ModelType.ANTHROPIC:
         online_chat_model = ChatModelOptionsFactory(chat_model="claude-3-5-haiku-20241022", model_type="anthropic")
     if online_chat_model:
-        online_chat_model.openai_config = OpenAIProcessorConversationConfigFactory(
-            api_key=get_chat_api_key(chat_provider)
-        )
+        online_chat_model.ai_model_api = AiModelApiFactory(api_key=get_chat_api_key(chat_provider))
         UserConversationProcessorConfigFactory(user=user, setting=online_chat_model)
 
     state.anonymous_mode = not require_auth

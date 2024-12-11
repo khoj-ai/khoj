@@ -1,10 +1,11 @@
-.git/
-.pytest_cache/
-.vscode/
-.venv/
-docs/
+.*
+**/__pycache__/
+*.egg-info/
+documentation/
 tests/
 build/
 dist/
 scripts/
-*.egg-info/
+src/interface/
+src/telemetry/
+!src/interface/web

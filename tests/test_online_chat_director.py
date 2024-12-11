@@ -6,7 +6,6 @@ from freezegun import freeze_time
 
 from khoj.database.models import Agent, Entry, KhojUser
 from khoj.processor.conversation import prompts
-from khoj.processor.conversation.utils import message_to_log
 from tests.helpers import ConversationFactory, generate_chat_history, get_chat_api_key
 
 # Initialize variables for tests

@@ -4,7 +4,7 @@ import freezegun
 import pytest
 from freezegun import freeze_time
 
-from khoj.processor.conversation.openai.gpt import converse, extract_questions
+from khoj.processor.conversation.openai.gpt import converse_openai, extract_questions
 from khoj.processor.conversation.utils import message_to_log
 from khoj.routers.helpers import (
     aget_data_sources_and_output_format,
@@ -158,7 +158,7 @@ def test_generate_search_query_using_question_and_answer_from_chat_history():
 @pytest.mark.chatquality
 def test_chat_with_no_chat_history_or_retrieved_content():
     # Act
-    response_gen = converse(
+    response_gen = converse_openai(
         references=[],  # Assume no context retrieved from notes for the user_query
         user_query="Hello, my name is Testatron. Who are you?",
         api_key=api_key,
@@ -183,7 +183,7 @@ def test_answer_from_chat_history_and_no_content():
     ]
 
     # Act
-    response_gen = converse(
+    response_gen = converse_openai(
         references=[],  # Assume no context retrieved from notes for the user_query
         user_query="What is my name?",
         conversation_log=populate_chat_history(message_list),
@@ -214,7 +214,7 @@ def test_answer_from_chat_history_and_previously_retrieved_content():
     ]
 
     # Act
-    response_gen = converse(
+    response_gen = converse_openai(
         references=[],  # Assume no context retrieved from notes for the user_query
         user_query="Where was I born?",
         conversation_log=populate_chat_history(message_list),
@@ -239,7 +239,7 @@ def test_answer_from_chat_history_and_currently_retrieved_content():
     ]
 
     # Act
-    response_gen = converse(
+    response_gen = converse_openai(
         references=[
             {"compiled": "Testatron was born on 1st April 1984 in Testville.", "file": "background.md"}
         ],  # Assume context retrieved from notes for the user_query
@@ -265,7 +265,7 @@ def test_refuse_answering_unanswerable_question():
     ]
 
     # Act
-    response_gen = converse(
+    response_gen = converse_openai(
         references=[],  # Assume no context retrieved from notes for the user_query
         user_query="Where was I born?",
         conversation_log=populate_chat_history(message_list),
@@ -318,7 +318,7 @@ Expenses:Food:Dining  10.00 USD""",
     ]
 
     # Act
-    response_gen = converse(
+    response_gen = converse_openai(
         references=context,  # Assume context retrieved from notes for the user_query
         user_query="What did I have for Dinner today?",
         api_key=api_key,
@@ -362,7 +362,7 @@ Expenses:Food:Dining  10.00 USD""",
     ]
 
     # Act
-    response_gen = converse(
+    response_gen = converse_openai(
         references=context,  # Assume context retrieved from notes for the user_query
         user_query="How much did I spend on dining this year?",
         api_key=api_key,
@@ -386,7 +386,7 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content():
     ]
 
     # Act
-    response_gen = converse(
+    response_gen = converse_openai(
         references=[],  # Assume no context retrieved from notes for the user_query
         user_query="Write a haiku about unit testing in 3 lines. Do not say anything else",
         conversation_log=populate_chat_history(message_list),
@@ -426,7 +426,7 @@ My sister, Aiyla is married to Tolga. They have 3 kids, Yildiz, Ali and Ahmet.""
     ]
 
     # Act
-    response_gen = converse(
+    response_gen = converse_openai(
         references=context,  # Assume context retrieved from notes for the user_query
         user_query="How many kids does my older sister have?",
         api_key=api_key,
@@ -459,13 +459,13 @@ def test_agent_prompt_should_be_used(openai_agent):
     expected_responses = ["9.50", "9.5"]
 
     # Act
-    response_gen = converse(
+    response_gen = converse_openai(
         references=context,  # Assume context retrieved from notes for the user_query
         user_query="What did I buy?",
         api_key=api_key,
     )
     no_agent_response = "".join([response_chunk for response_chunk in response_gen])
-    response_gen = converse(
+    response_gen = converse_openai(
         references=context,  # Assume context retrieved from notes for the user_query
         user_query="What did I buy?",
         api_key=api_key,

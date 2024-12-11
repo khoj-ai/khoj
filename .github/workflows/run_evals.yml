@@ -25,6 +25,8 @@ on:
         options:
           - frames
           - simpleqa
+          - gpqa
+          - math500
       sample_size:
         description: 'Number of samples to evaluate'
         required: false
@@ -74,12 +76,12 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           # install postgres and other dependencies
-          apt update && apt install -y git python3-pip libegl1 sqlite3 libsqlite3-dev libsqlite3-0 ffmpeg libsm6 libxext6
-          apt install -y postgresql postgresql-client && apt install -y postgresql-server-dev-14
+          sudo apt update && sudo apt install -y git python3-pip libegl1 sqlite3 libsqlite3-dev libsqlite3-0 ffmpeg libsm6 libxext6
+          sudo apt install -y postgresql postgresql-client && sudo apt install -y postgresql-server-dev-14
           # upgrade pip
           python -m ensurepip --upgrade && python -m pip install --upgrade pip
           # install terrarium for code sandbox
-          git clone https://github.com/cohere-ai/cohere-terrarium.git && cd cohere-terrarium && npm install && mkdir pyodide_cache
+          git clone https://github.com/khoj-ai/terrarium.git && cd terrarium && npm install --legacy-peer-deps && mkdir pyodide_cache
 
       - name: ⬇️ Install Application
         run: |
@@ -89,14 +91,15 @@ jobs:
       - name: 📝 Run Eval
         env:
           KHOJ_MODE: ${{ matrix.khoj_mode }}
-          SAMPLE_SIZE: ${{ inputs.sample_size }}
+          SAMPLE_SIZE: ${{ github.event_name == 'workflow_dispatch' && inputs.sample_size || 200 }}
           BATCH_SIZE: "20"
           RANDOMIZE: "True"
           KHOJ_URL: "http://localhost:42110"
           KHOJ_LLM_SEED: "42"
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          SERPER_DEV_API_KEY: ${{ secrets.SERPER_DEV_API_KEY }}
-          OLOSTEP_API_KEY: ${{ secrets.OLOSTEP_API_KEY }}
+          SERPER_DEV_API_KEY: ${{ matrix.dataset != 'math500' && secrets.SERPER_DEV_API_KEY }}
+          OLOSTEP_API_KEY: ${{ matrix.dataset != 'math500' && secrets.OLOSTEP_API_KEY }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
           KHOJ_ADMIN_EMAIL: khoj
           KHOJ_ADMIN_PASSWORD: khoj
           POSTGRES_HOST: localhost
@@ -110,7 +113,7 @@ jobs:
           khoj --anonymous-mode --non-interactive &
 
           # Start code sandbox
-          npm run dev --prefix cohere-terrarium &
+          npm run dev --prefix terrarium &
 
           # Wait for server to be ready
           timeout=120

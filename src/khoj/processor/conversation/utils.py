@@ -5,6 +5,7 @@ import math
 import mimetypes
 import os
 import queue
+import re
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
@@ -14,6 +15,7 @@ from time import perf_counter
 from typing import Any, Callable, Dict, List, Optional
 
 import PIL.Image
+import pyjson5
 import requests
 import tiktoken
 import yaml
@@ -38,6 +40,7 @@ from khoj.utils.helpers import (
     merge_dicts,
 )
 from khoj.utils.rawconfig import FileAttachment
+from khoj.utils.yaml import yaml_dump
 
 logger = logging.getLogger(__name__)
 
@@ -152,7 +155,7 @@ def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="A
                 chat_history += f'{agent_name}: {{"queries": {chat["intent"].get("inferred-queries")}}}\n'
 
             chat_history += f"{agent_name}: {chat['message']}\n\n"
-        elif chat["by"] == "khoj" and ("text-to-image" in chat["intent"].get("type")):
+        elif chat["by"] == "khoj" and chat.get("images"):
             chat_history += f"User: {chat['intent']['query']}\n"
             chat_history += f"{agent_name}: [generated image redacted for space]\n"
         elif chat["by"] == "khoj" and ("excalidraw" in chat["intent"].get("type")):
@@ -211,6 +214,7 @@ class ChatEvent(Enum):
     END_LLM_RESPONSE = "end_llm_response"
     MESSAGE = "message"
     REFERENCES = "references"
+    GENERATED_ASSETS = "generated_assets"
     STATUS = "status"
     METADATA = "metadata"
     USAGE = "usage"
@@ -223,7 +227,6 @@ def message_to_log(
     user_message_metadata={},
     khoj_message_metadata={},
     conversation_log=[],
-    train_of_thought=[],
 ):
     """Create json logs from messages, metadata for conversation log"""
     default_khoj_message_metadata = {
@@ -231,6 +234,10 @@ def message_to_log(
         "trigger-emotion": "calm",
     }
     khoj_response_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Filter out any fields that are set to None
+    user_message_metadata = {k: v for k, v in user_message_metadata.items() if v is not None}
+    khoj_message_metadata = {k: v for k, v in khoj_message_metadata.items() if v is not None}
 
     # Create json log from Human's message
     human_log = merge_dicts({"message": user_message, "by": "you"}, user_message_metadata)
@@ -259,31 +266,41 @@ def save_to_conversation_log(
     automation_id: str = None,
     query_images: List[str] = None,
     raw_query_files: List[FileAttachment] = [],
+    generated_images: List[str] = [],
+    raw_generated_files: List[FileAttachment] = [],
+    generated_excalidraw_diagram: str = None,
     train_of_thought: List[Any] = [],
     tracer: Dict[str, Any] = {},
 ):
     user_message_time = user_message_time or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     turn_id = tracer.get("mid") or str(uuid.uuid4())
+
+    user_message_metadata = {"created": user_message_time, "images": query_images, "turnId": turn_id}
+
+    if raw_query_files and len(raw_query_files) > 0:
+        user_message_metadata["queryFiles"] = [file.model_dump(mode="json") for file in raw_query_files]
+
+    khoj_message_metadata = {
+        "context": compiled_references,
+        "intent": {"inferred-queries": inferred_queries, "type": intent_type},
+        "onlineContext": online_results,
+        "codeContext": code_results,
+        "automationId": automation_id,
+        "trainOfThought": train_of_thought,
+        "turnId": turn_id,
+        "images": generated_images,
+        "queryFiles": [file.model_dump(mode="json") for file in raw_generated_files],
+    }
+
+    if generated_excalidraw_diagram:
+        khoj_message_metadata["excalidrawDiagram"] = generated_excalidraw_diagram
+
     updated_conversation = message_to_log(
         user_message=q,
         chat_response=chat_response,
-        user_message_metadata={
-            "created": user_message_time,
-            "images": query_images,
-            "turnId": turn_id,
-            "queryFiles": [file.model_dump(mode="json") for file in raw_query_files],
-        },
-        khoj_message_metadata={
-            "context": compiled_references,
-            "intent": {"inferred-queries": inferred_queries, "type": intent_type},
-            "onlineContext": online_results,
-            "codeContext": code_results,
-            "automationId": automation_id,
-            "trainOfThought": train_of_thought,
-            "turnId": turn_id,
-        },
+        user_message_metadata=user_message_metadata,
+        khoj_message_metadata=khoj_message_metadata,
         conversation_log=meta_log.get("chat", []),
-        train_of_thought=train_of_thought,
     )
     ConversationAdapters.save_conversation(
         user,
@@ -301,13 +318,13 @@ def save_to_conversation_log(
 Saved Conversation Turn
 You ({user.username}): "{q}"
 
-Khoj: "{inferred_queries if ("text-to-image" in intent_type) else chat_response}"
+Khoj: "{chat_response}"
 """.strip()
     )
 
 
 def construct_structured_message(
-    message: str, images: list[str], model_type: str, vision_enabled: bool, attached_file_context: str
+    message: str, images: list[str], model_type: str, vision_enabled: bool, attached_file_context: str = None
 ):
     """
     Format messages into appropriate multimedia format for supported chat model types
@@ -317,15 +334,17 @@ def construct_structured_message(
         ChatModelOptions.ModelType.GOOGLE,
         ChatModelOptions.ModelType.ANTHROPIC,
     ]:
-        constructed_messages: List[Any] = [
-            {"type": "text", "text": message},
-        ]
+        if not attached_file_context and not (vision_enabled and images):
+            return message
+
+        constructed_messages: List[Any] = [{"type": "text", "text": message}]
 
         if not is_none_or_empty(attached_file_context):
             constructed_messages.append({"type": "text", "text": attached_file_context})
         if vision_enabled and images:
             for image in images:
-                constructed_messages.append({"type": "image_url", "image_url": {"url": image}})
+                if image.startswith("https://"):
+                    constructed_messages.append({"type": "image_url", "image_url": {"url": image}})
         return constructed_messages
 
     if not is_none_or_empty(attached_file_context):
@@ -363,6 +382,9 @@ def generate_chatml_messages_with_context(
     model_type="",
     context_message="",
     query_files: str = None,
+    generated_files: List[FileAttachment] = None,
+    generated_asset_results: Dict[str, Dict] = {},
+    program_execution_context: List[str] = [],
 ):
     """Generate chat messages with appropriate context from previous conversation to send to the chat model"""
     # Set max prompt size from user config or based on pre-configured for model and machine specs
@@ -381,10 +403,15 @@ def generate_chatml_messages_with_context(
         message_context = ""
         message_attached_files = ""
 
-        chat_message = chat.get("message")
+        generated_assets = {}
 
+        chat_message = chat.get("message")
+        role = "user" if chat["by"] == "you" else "assistant"
+
+        # Legacy code to handle excalidraw diagrams prior to Dec 2024
         if chat["by"] == "khoj" and "excalidraw" in chat["intent"].get("type", ""):
             chat_message = chat["intent"].get("inferred-queries")[0]
+
         if not is_none_or_empty(chat.get("context")):
             references = "\n\n".join(
                 {
@@ -402,7 +429,7 @@ def generate_chatml_messages_with_context(
                 query_files_dict[file["name"]] = file["content"]
 
             message_attached_files = gather_raw_query_files(query_files_dict)
-            chatml_messages.append(ChatMessage(content=message_attached_files, role="user"))
+            chatml_messages.append(ChatMessage(content=message_attached_files, role=role))
 
         if not is_none_or_empty(chat.get("onlineContext")):
             message_context += f"{prompts.online_search_conversation.format(online_results=chat.get('onlineContext'))}"
@@ -411,9 +438,26 @@ def generate_chatml_messages_with_context(
             reconstructed_context_message = ChatMessage(content=message_context, role="user")
             chatml_messages.insert(0, reconstructed_context_message)
 
-        role = "user" if chat["by"] == "you" else "assistant"
+        if not is_none_or_empty(chat.get("images")) and role == "assistant":
+            generated_assets["image"] = {
+                "query": chat.get("intent", {}).get("inferred-queries", [user_message])[0],
+            }
+
+        if not is_none_or_empty(chat.get("excalidrawDiagram")) and role == "assistant":
+            generated_assets["diagram"] = {
+                "query": chat.get("intent", {}).get("inferred-queries", [user_message])[0],
+            }
+
+        if not is_none_or_empty(generated_assets):
+            chatml_messages.append(
+                ChatMessage(
+                    content=f"{prompts.generated_assets_context.format(generated_assets=yaml_dump(generated_assets))}\n",
+                    role="user",
+                )
+            )
+
         message_content = construct_structured_message(
-            chat_message, chat.get("images"), model_type, vision_enabled, attached_file_context=query_files
+            chat_message, chat.get("images") if role == "user" else [], model_type, vision_enabled
         )
 
         reconstructed_message = ChatMessage(content=message_content, role=role)
@@ -423,6 +467,15 @@ def generate_chatml_messages_with_context(
             break
 
     messages = []
+
+    if not is_none_or_empty(generated_asset_results):
+        messages.append(
+            ChatMessage(
+                content=f"{prompts.generated_assets_context.format(generated_assets=yaml_dump(generated_asset_results))}\n\n",
+                role="user",
+            )
+        )
+
     if not is_none_or_empty(user_message):
         messages.append(
             ChatMessage(
@@ -432,6 +485,15 @@ def generate_chatml_messages_with_context(
                 role="user",
             )
         )
+
+    if generated_files:
+        message_attached_files = gather_raw_query_files({file.name: file.content for file in generated_files})
+        messages.append(ChatMessage(content=message_attached_files, role="assistant"))
+
+    if program_execution_context:
+        program_context_text = "\n".join(program_execution_context)
+        context_message += f"{prompts.additional_program_context.format(context=program_context_text)}\n"
+
     if not is_none_or_empty(context_message):
         messages.append(ChatMessage(content=context_message, role="user"))
 
@@ -536,6 +598,47 @@ def clean_json(response: str):
 def clean_code_python(code: str):
     """Remove any markdown codeblock and newline formatting if present. Useful for non schema enforceable models"""
     return code.strip().removeprefix("```python").removesuffix("```")
+
+
+def load_complex_json(json_str):
+    """
+    Preprocess a raw JSON string to escape unescaped double quotes within value strings,
+    while preserving the JSON structure and already escaped quotes.
+    """
+
+    def replace_unescaped_quotes(match):
+        # Get the content between colons and commas/end braces
+        content = match.group(1)
+        # Replace unescaped double, single quotes that aren't already escaped
+        # Uses negative lookbehind to avoid replacing already escaped quotes
+        # Replace " with \"
+        processed_dq = re.sub(r'(?<!\\)"', '\\"', content)
+        # Replace \' with \\'
+        processed_final = re.sub(r"(?<!\\)\\'", r"\\\\'", processed_dq)
+        return f': "{processed_final}"'
+
+    # Match content between : and either , or }
+    # This pattern looks for ': ' followed by any characters until , or }
+    pattern = r':\s*"(.*?)(?<!\\)"(?=[,}])'
+
+    # Process the JSON string
+    cleaned = clean_json(rf"{json_str}")
+    processed = re.sub(pattern, replace_unescaped_quotes, cleaned)
+
+    # See which json loader can load the processed JSON as valid
+    errors = []
+    json_loaders_to_try = [json.loads, pyjson5.loads]
+    for loads in json_loaders_to_try:
+        try:
+            return loads(processed)
+        except (json.JSONDecodeError, pyjson5.Json5Exception) as e:
+            errors.append(f"{type(e).__name__}: {str(e)}")
+
+    # If all loaders fail, raise the aggregated error
+    raise ValueError(
+        f"Failed to load JSON with errors: {'; '.join(errors)}\n\n"
+        f"While attempting to load this cleaned JSON:\n{processed}"
+    )
 
 
 def defilter_query(query: str):

@@ -1,7 +1,9 @@
+import logging
 import os
 import re
 import uuid
 from random import choice
+from typing import Dict, List, Optional, Union
 
 from django.contrib.auth.models import AbstractUser
 from django.contrib.postgres.fields import ArrayField
@@ -11,9 +13,109 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from pgvector.django import VectorField
 from phonenumber_field.modelfields import PhoneNumberField
+from pydantic import BaseModel as PydanticBaseModel
+from pydantic import Field
+
+logger = logging.getLogger(__name__)
 
 
-class BaseModel(models.Model):
+# Pydantic models for type Chat Message validation
+class Context(PydanticBaseModel):
+    compiled: str
+    file: str
+
+
+class CodeContextFile(PydanticBaseModel):
+    filename: str
+    b64_data: str
+
+
+class CodeContextResult(PydanticBaseModel):
+    success: bool
+    output_files: List[CodeContextFile]
+    std_out: str
+    std_err: str
+    code_runtime: int
+
+
+class CodeContextData(PydanticBaseModel):
+    code: str
+    result: Optional[CodeContextResult] = None
+
+
+class WebPage(PydanticBaseModel):
+    link: str
+    query: Optional[str] = None
+    snippet: str
+
+
+class AnswerBox(PydanticBaseModel):
+    link: Optional[str] = None
+    snippet: Optional[str] = None
+    title: str
+    snippetHighlighted: Optional[List[str]] = None
+
+
+class PeopleAlsoAsk(PydanticBaseModel):
+    link: Optional[str] = None
+    question: Optional[str] = None
+    snippet: Optional[str] = None
+    title: str
+
+
+class KnowledgeGraph(PydanticBaseModel):
+    attributes: Optional[Dict[str, str]] = None
+    description: Optional[str] = None
+    descriptionLink: Optional[str] = None
+    descriptionSource: Optional[str] = None
+    imageUrl: Optional[str] = None
+    title: str
+    type: Optional[str] = None
+
+
+class OrganicContext(PydanticBaseModel):
+    snippet: str
+    title: str
+    link: str
+
+
+class OnlineContext(PydanticBaseModel):
+    webpages: Optional[Union[WebPage, List[WebPage]]] = None
+    answerBox: Optional[AnswerBox] = None
+    peopleAlsoAsk: Optional[List[PeopleAlsoAsk]] = None
+    knowledgeGraph: Optional[KnowledgeGraph] = None
+    organicContext: Optional[List[OrganicContext]] = None
+
+
+class Intent(PydanticBaseModel):
+    type: str
+    query: str
+    memory_type: str = Field(alias="memory-type")
+    inferred_queries: Optional[List[str]] = Field(default=None, alias="inferred-queries")
+
+
+class TrainOfThought(PydanticBaseModel):
+    type: str
+    data: str
+
+
+class ChatMessage(PydanticBaseModel):
+    message: str
+    trainOfThought: List[TrainOfThought] = []
+    context: List[Context] = []
+    onlineContext: Dict[str, OnlineContext] = {}
+    codeContext: Dict[str, CodeContextData] = {}
+    created: str
+    images: Optional[List[str]] = None
+    queryFiles: Optional[List[Dict]] = None
+    excalidrawDiagram: Optional[List[Dict]] = None
+    by: str
+    turnId: Optional[str] = None
+    intent: Optional[Intent] = None
+    automationId: Optional[str] = None
+
+
+class DbBaseModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -21,7 +123,7 @@ class BaseModel(models.Model):
         abstract = True
 
 
-class ClientApplication(BaseModel):
+class ClientApplication(DbBaseModel):
     name = models.CharField(max_length=200)
     client_id = models.CharField(max_length=200)
     client_secret = models.CharField(max_length=200)
@@ -41,6 +143,9 @@ class KhojUser(AbstractUser):
         if not self.uuid:
             self.uuid = uuid.uuid4()
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.username} ({self.uuid})"
 
 
 class GoogleUser(models.Model):
@@ -67,7 +172,7 @@ class KhojApiUser(models.Model):
     accessed_at = models.DateTimeField(null=True, default=None)
 
 
-class Subscription(BaseModel):
+class Subscription(DbBaseModel):
     class Type(models.TextChoices):
         TRIAL = "trial"
         STANDARD = "standard"
@@ -79,13 +184,16 @@ class Subscription(BaseModel):
     enabled_trial_at = models.DateTimeField(null=True, default=None, blank=True)
 
 
-class OpenAIProcessorConversationConfig(BaseModel):
+class AiModelApi(DbBaseModel):
     name = models.CharField(max_length=200)
     api_key = models.CharField(max_length=200)
     api_base_url = models.URLField(max_length=200, default=None, blank=True, null=True)
 
+    def __str__(self):
+        return self.name
 
-class ChatModelOptions(BaseModel):
+
+class ChatModelOptions(DbBaseModel):
     class ModelType(models.TextChoices):
         OPENAI = "openai"
         OFFLINE = "offline"
@@ -98,17 +206,18 @@ class ChatModelOptions(BaseModel):
     chat_model = models.CharField(max_length=200, default="bartowski/Meta-Llama-3.1-8B-Instruct-GGUF")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
     vision_enabled = models.BooleanField(default=False)
-    openai_config = models.ForeignKey(
-        OpenAIProcessorConversationConfig, on_delete=models.CASCADE, default=None, null=True, blank=True
-    )
+    ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)
+
+    def __str__(self):
+        return self.chat_model
 
 
-class VoiceModelOption(BaseModel):
+class VoiceModelOption(DbBaseModel):
     model_id = models.CharField(max_length=200)
     name = models.CharField(max_length=200)
 
 
-class Agent(BaseModel):
+class Agent(DbBaseModel):
     class StyleColorTypes(models.TextChoices):
         BLUE = "blue"
         GREEN = "green"
@@ -207,8 +316,11 @@ class Agent(BaseModel):
 
         super().save(*args, **kwargs)
 
+    def __str__(self):
+        return self.name
 
-class ProcessLock(BaseModel):
+
+class ProcessLock(DbBaseModel):
     class Operation(models.TextChoices):
         INDEX_CONTENT = "index_content"
         SCHEDULED_JOB = "scheduled_job"
@@ -231,24 +343,24 @@ def verify_agent(sender, instance, **kwargs):
             raise ValidationError(f"A private Agent with the name {instance.name} already exists.")
 
 
-class NotionConfig(BaseModel):
+class NotionConfig(DbBaseModel):
     token = models.CharField(max_length=200)
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
 
 
-class GithubConfig(BaseModel):
+class GithubConfig(DbBaseModel):
     pat_token = models.CharField(max_length=200)
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
 
 
-class GithubRepoConfig(BaseModel):
+class GithubRepoConfig(DbBaseModel):
     name = models.CharField(max_length=200)
     owner = models.CharField(max_length=200)
     branch = models.CharField(max_length=200)
     github_config = models.ForeignKey(GithubConfig, on_delete=models.CASCADE, related_name="githubrepoconfig")
 
 
-class WebScraper(BaseModel):
+class WebScraper(DbBaseModel):
     class WebScraperType(models.TextChoices):
         FIRECRAWL = "Firecrawl"
         OLOSTEP = "Olostep"
@@ -320,8 +432,11 @@ class WebScraper(BaseModel):
 
         super().save(*args, **kwargs)
 
+    def __str__(self):
+        return self.name
 
-class ServerChatSettings(BaseModel):
+
+class ServerChatSettings(DbBaseModel):
     chat_default = models.ForeignKey(
         ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="chat_default"
     )
@@ -333,35 +448,35 @@ class ServerChatSettings(BaseModel):
     )
 
 
-class LocalOrgConfig(BaseModel):
+class LocalOrgConfig(DbBaseModel):
     input_files = models.JSONField(default=list, null=True)
     input_filter = models.JSONField(default=list, null=True)
     index_heading_entries = models.BooleanField(default=False)
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
 
 
-class LocalMarkdownConfig(BaseModel):
+class LocalMarkdownConfig(DbBaseModel):
     input_files = models.JSONField(default=list, null=True)
     input_filter = models.JSONField(default=list, null=True)
     index_heading_entries = models.BooleanField(default=False)
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
 
 
-class LocalPdfConfig(BaseModel):
+class LocalPdfConfig(DbBaseModel):
     input_files = models.JSONField(default=list, null=True)
     input_filter = models.JSONField(default=list, null=True)
     index_heading_entries = models.BooleanField(default=False)
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
 
 
-class LocalPlaintextConfig(BaseModel):
+class LocalPlaintextConfig(DbBaseModel):
     input_files = models.JSONField(default=list, null=True)
     input_filter = models.JSONField(default=list, null=True)
     index_heading_entries = models.BooleanField(default=False)
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
 
 
-class SearchModelConfig(BaseModel):
+class SearchModelConfig(DbBaseModel):
     class ModelType(models.TextChoices):
         TEXT = "text"
 
@@ -392,8 +507,11 @@ class SearchModelConfig(BaseModel):
     # The confidence threshold of the bi_encoder model to consider the embeddings as relevant
     bi_encoder_confidence_threshold = models.FloatField(default=0.18)
 
+    def __str__(self):
+        return self.name
 
-class TextToImageModelConfig(BaseModel):
+
+class TextToImageModelConfig(DbBaseModel):
     class ModelType(models.TextChoices):
         OPENAI = "openai"
         STABILITYAI = "stability-ai"
@@ -402,26 +520,24 @@ class TextToImageModelConfig(BaseModel):
     model_name = models.CharField(max_length=200, default="dall-e-3")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OPENAI)
     api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
-    openai_config = models.ForeignKey(
-        OpenAIProcessorConversationConfig, on_delete=models.CASCADE, default=None, null=True, blank=True
-    )
+    ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
     def clean(self):
         # Custom validation logic
         error = {}
         if self.model_type == self.ModelType.OPENAI:
-            if self.api_key and self.openai_config:
+            if self.api_key and self.ai_model_api:
                 error[
                     "api_key"
-                ] = "Both API key and OpenAI config cannot be set for OpenAI models. Please set only one of them."
+                ] = "Both API key and AI Model API cannot be set for OpenAI models. Please set only one of them."
                 error[
-                    "openai_config"
+                    "ai_model_api"
                 ] = "Both API key and OpenAI config cannot be set for OpenAI models. Please set only one of them."
         if self.model_type != self.ModelType.OPENAI:
             if not self.api_key:
                 error["api_key"] = "The API key field must be set for non OpenAI models."
-            if self.openai_config:
-                error["openai_config"] = "OpenAI config cannot be set for non OpenAI models."
+            if self.ai_model_api:
+                error["ai_model_api"] = "AI Model API cannot be set for non OpenAI models."
         if error:
             raise ValidationError(error)
 
@@ -429,8 +545,11 @@ class TextToImageModelConfig(BaseModel):
         self.clean()
         super().save(*args, **kwargs)
 
+    def __str__(self):
+        return f"{self.model_name} - {self.model_type}"
 
-class SpeechToTextModelOptions(BaseModel):
+
+class SpeechToTextModelOptions(DbBaseModel):
     class ModelType(models.TextChoices):
         OPENAI = "openai"
         OFFLINE = "offline"
@@ -438,23 +557,26 @@ class SpeechToTextModelOptions(BaseModel):
     model_name = models.CharField(max_length=200, default="base")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
 
+    def __str__(self):
+        return f"{self.model_name} - {self.model_type}"
 
-class UserConversationConfig(BaseModel):
+
+class UserConversationConfig(DbBaseModel):
     user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
     setting = models.ForeignKey(ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
 
-class UserVoiceModelConfig(BaseModel):
+class UserVoiceModelConfig(DbBaseModel):
     user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
     setting = models.ForeignKey(VoiceModelOption, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
 
-class UserTextToImageModelConfig(BaseModel):
+class UserTextToImageModelConfig(DbBaseModel):
     user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
     setting = models.ForeignKey(TextToImageModelConfig, on_delete=models.CASCADE)
 
 
-class Conversation(BaseModel):
+class Conversation(DbBaseModel):
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
     conversation_log = models.JSONField(default=dict)
     client = models.ForeignKey(ClientApplication, on_delete=models.CASCADE, default=None, null=True, blank=True)
@@ -468,8 +590,39 @@ class Conversation(BaseModel):
     file_filters = models.JSONField(default=list)
     id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, primary_key=True, db_index=True)
 
+    def clean(self):
+        # Validate conversation_log structure
+        try:
+            messages = self.conversation_log.get("chat", [])
+            for msg in messages:
+                ChatMessage.model_validate(msg)
+        except Exception as e:
+            raise ValidationError(f"Invalid conversation_log format: {str(e)}")
 
-class PublicConversation(BaseModel):
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+    @property
+    def messages(self) -> List[ChatMessage]:
+        """Type-hinted accessor for conversation messages"""
+        validated_messages = []
+        for msg in self.conversation_log.get("chat", []):
+            try:
+                # Clean up inferred queries if they contain None
+                if msg.get("intent") and msg["intent"].get("inferred-queries"):
+                    msg["intent"]["inferred-queries"] = [
+                        q for q in msg["intent"]["inferred-queries"] if q is not None and isinstance(q, str)
+                    ]
+                msg["message"] = str(msg.get("message", ""))
+                validated_messages.append(ChatMessage.model_validate(msg))
+            except ValidationError as e:
+                logger.warning(f"Skipping invalid message in conversation: {e}")
+                continue
+        return validated_messages
+
+
+class PublicConversation(DbBaseModel):
     source_owner = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
     conversation_log = models.JSONField(default=dict)
     slug = models.CharField(max_length=200, default=None, null=True, blank=True)
@@ -499,12 +652,12 @@ def verify_public_conversation(sender, instance, **kwargs):
         instance.slug = slug
 
 
-class ReflectiveQuestion(BaseModel):
+class ReflectiveQuestion(DbBaseModel):
     question = models.CharField(max_length=500)
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
 
-class Entry(BaseModel):
+class Entry(DbBaseModel):
     class EntryType(models.TextChoices):
         IMAGE = "image"
         PDF = "pdf"
@@ -541,7 +694,7 @@ class Entry(BaseModel):
             raise ValidationError("An Entry cannot be associated with both a user and an agent.")
 
 
-class FileObject(BaseModel):
+class FileObject(DbBaseModel):
     # Same as Entry but raw will be a much larger string
     file_name = models.CharField(max_length=400, default=None, null=True, blank=True)
     raw_text = models.TextField()
@@ -549,7 +702,7 @@ class FileObject(BaseModel):
     agent = models.ForeignKey(Agent, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
 
-class EntryDates(BaseModel):
+class EntryDates(DbBaseModel):
     date = models.DateField()
     entry = models.ForeignKey(Entry, on_delete=models.CASCADE, related_name="embeddings_dates")
 
@@ -559,12 +712,12 @@ class EntryDates(BaseModel):
         ]
 
 
-class UserRequests(BaseModel):
+class UserRequests(DbBaseModel):
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
     slug = models.CharField(max_length=200)
 
 
-class DataStore(BaseModel):
+class DataStore(DbBaseModel):
     key = models.CharField(max_length=200, unique=True)
     value = models.JSONField(default=dict)
     private = models.BooleanField(default=False)

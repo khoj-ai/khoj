@@ -6,9 +6,9 @@ import openai
 
 from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import (
+    AiModelApi,
     ChatModelOptions,
     KhojUser,
-    OpenAIProcessorConversationConfig,
     SpeechToTextModelOptions,
     TextToImageModelConfig,
 )
@@ -56,8 +56,10 @@ def initialization(interactive: bool = True):
                 valid_default_models = [model for model in default_openai_chat_models if model in default_chat_models]
                 other_available_models = [model for model in default_chat_models if model not in valid_default_models]
                 default_chat_models = valid_default_models + other_available_models
-            except Exception:
-                logger.warning(f"⚠️ Failed to fetch {provider} chat models. Fallback to default models. Error: {e}")
+            except Exception as e:
+                logger.warning(
+                    f"⚠️ Failed to fetch {provider} chat models. Fallback to default models. Error: {str(e)}"
+                )
 
         # Set up OpenAI's online chat models
         openai_configured, openai_provider = _setup_chat_model_provider(
@@ -98,7 +100,7 @@ def initialization(interactive: bool = True):
             TextToImageModelConfig.objects.create(
                 model_name=openai_text_to_image_model,
                 model_type=TextToImageModelConfig.ModelType.OPENAI,
-                openai_config=openai_provider,
+                ai_model_api=openai_provider,
             )
 
         # Set up Google's Gemini online chat models
@@ -177,7 +179,7 @@ def initialization(interactive: bool = True):
         vision_enabled: bool = False,
         is_offline: bool = False,
         provider_name: str = None,
-    ) -> Tuple[bool, OpenAIProcessorConversationConfig]:
+    ) -> Tuple[bool, AiModelApi]:
         supported_vision_models = (
             default_openai_chat_models + default_anthropic_chat_models + default_gemini_chat_models
         )
@@ -192,16 +194,14 @@ def initialization(interactive: bool = True):
 
         logger.info(f"️💬 Setting up your {provider_name} chat configuration")
 
-        chat_provider = None
+        ai_model_api = None
         if not is_offline:
             if interactive:
                 user_api_key = input(f"Enter your {provider_name} API key (default: {default_api_key}): ")
                 api_key = user_api_key if user_api_key != "" else default_api_key
             else:
                 api_key = default_api_key
-            chat_provider = OpenAIProcessorConversationConfig.objects.create(
-                api_key=api_key, name=provider_name, api_base_url=api_base_url
-            )
+            ai_model_api = AiModelApi.objects.create(api_key=api_key, name=provider_name, api_base_url=api_base_url)
 
         if interactive:
             chat_model_names = input(
@@ -223,19 +223,23 @@ def initialization(interactive: bool = True):
                 "max_prompt_size": default_max_tokens,
                 "vision_enabled": vision_enabled,
                 "tokenizer": default_tokenizer,
-                "openai_config": chat_provider,
+                "ai_model_api": ai_model_api,
             }
 
             ChatModelOptions.objects.create(**chat_model_options)
 
         logger.info(f"🗣️ {provider_name} chat model configuration complete")
-        return True, chat_provider
+        return True, ai_model_api
 
     def _update_chat_model_options():
         """Update available chat models for OpenAI-compatible APIs"""
         try:
             # Get OpenAI configs with custom base URLs
-            custom_configs = OpenAIProcessorConversationConfig.objects.exclude(api_base_url__isnull=True)
+            custom_configs = AiModelApi.objects.exclude(api_base_url__isnull=True)
+
+            # Only enable for whitelisted provider names (i.e Ollama) for now
+            # TODO: This is hacky. Will be replaced with more robust solution based on provider type enum
+            custom_configs = custom_configs.filter(name__in=["Ollama"])
 
             for config in custom_configs:
                 try:
@@ -247,7 +251,7 @@ def initialization(interactive: bool = True):
 
                     # Get existing chat model options for this config
                     existing_models = ChatModelOptions.objects.filter(
-                        openai_config=config, model_type=ChatModelOptions.ModelType.OPENAI
+                        ai_model_api=config, model_type=ChatModelOptions.ModelType.OPENAI
                     )
 
                     # Add new models
@@ -259,7 +263,7 @@ def initialization(interactive: bool = True):
                                 max_prompt_size=model_to_prompt_size.get(model),
                                 vision_enabled=model in default_openai_chat_models,
                                 tokenizer=model_to_tokenizer.get(model),
-                                openai_config=config,
+                                ai_model_api=config,
                             )
 
                     # Remove models that are no longer available

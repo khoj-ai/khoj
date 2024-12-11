@@ -1,17 +1,21 @@
 import csv
 import json
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from apscheduler.job import Job
 from django.contrib import admin, messages
-from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import Group
 from django.http import HttpResponse
-from django_apscheduler.admin import DjangoJobAdmin
+from django_apscheduler.admin import DjangoJobAdmin, DjangoJobExecutionAdmin
 from django_apscheduler.jobstores import DjangoJobStore
-from django_apscheduler.models import DjangoJob
+from django_apscheduler.models import DjangoJob, DjangoJobExecution
+from unfold import admin as unfold_admin
 
 from khoj.database.models import (
     Agent,
+    AiModelApi,
     ChatModelOptions,
     ClientApplication,
     Conversation,
@@ -19,7 +23,6 @@ from khoj.database.models import (
     GithubConfig,
     KhojUser,
     NotionConfig,
-    OpenAIProcessorConversationConfig,
     ProcessLock,
     ReflectiveQuestion,
     SearchModelConfig,
@@ -35,10 +38,8 @@ from khoj.database.models import (
 )
 from khoj.utils.helpers import ImageIntentType
 
-admin.site.unregister(DjangoJob)
 
-
-class KhojDjangoJobAdmin(DjangoJobAdmin):
+class KhojDjangoJobAdmin(DjangoJobAdmin, unfold_admin.ModelAdmin):
     list_display = (
         "id",
         "next_run_time",
@@ -62,10 +63,25 @@ class KhojDjangoJobAdmin(DjangoJobAdmin):
         return queryset, use_distinct
 
 
+class KhojDjangoJobExecutionAdmin(DjangoJobExecutionAdmin, unfold_admin.ModelAdmin):
+    pass
+
+
+admin.site.unregister(DjangoJob)
 admin.site.register(DjangoJob, KhojDjangoJobAdmin)
+admin.site.unregister(DjangoJobExecution)
+admin.site.register(DjangoJobExecution, KhojDjangoJobExecutionAdmin)
 
 
-class KhojUserAdmin(UserAdmin):
+class GroupAdmin(BaseGroupAdmin, unfold_admin.ModelAdmin):
+    pass
+
+
+class UserAdmin(BaseUserAdmin, unfold_admin.ModelAdmin):
+    pass
+
+
+class KhojUserAdmin(UserAdmin, unfold_admin.ModelAdmin):
     class DateJoinedAfterFilter(admin.SimpleListFilter):
         title = "Joined after"
         parameter_name = "joined_after"
@@ -137,31 +153,33 @@ class KhojUserAdmin(UserAdmin):
     get_email_login_url.short_description = "Get email login URL"  # type: ignore
 
 
+admin.site.unregister(Group)
 admin.site.register(KhojUser, KhojUserAdmin)
 
-admin.site.register(ProcessLock)
-admin.site.register(SpeechToTextModelOptions)
-admin.site.register(ReflectiveQuestion)
-admin.site.register(ClientApplication)
-admin.site.register(GithubConfig)
-admin.site.register(NotionConfig)
-admin.site.register(UserVoiceModelConfig)
-admin.site.register(VoiceModelOption)
-admin.site.register(UserRequests)
+admin.site.register(ProcessLock, unfold_admin.ModelAdmin)
+admin.site.register(SpeechToTextModelOptions, unfold_admin.ModelAdmin)
+admin.site.register(ReflectiveQuestion, unfold_admin.ModelAdmin)
+admin.site.register(ClientApplication, unfold_admin.ModelAdmin)
+admin.site.register(GithubConfig, unfold_admin.ModelAdmin)
+admin.site.register(NotionConfig, unfold_admin.ModelAdmin)
+admin.site.register(UserVoiceModelConfig, unfold_admin.ModelAdmin)
+admin.site.register(VoiceModelOption, unfold_admin.ModelAdmin)
+admin.site.register(UserRequests, unfold_admin.ModelAdmin)
 
 
 @admin.register(Agent)
-class AgentAdmin(admin.ModelAdmin):
+class AgentAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "id",
         "name",
     )
     search_fields = ("id", "name")
+    list_filter = ("privacy_level",)
     ordering = ("-created_at",)
 
 
 @admin.register(Entry)
-class EntryAdmin(admin.ModelAdmin):
+class EntryAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "id",
         "created_at",
@@ -183,7 +201,7 @@ class EntryAdmin(admin.ModelAdmin):
 
 
 @admin.register(Subscription)
-class KhojUserSubscription(admin.ModelAdmin):
+class KhojUserSubscription(unfold_admin.ModelAdmin):
     list_display = (
         "id",
         "user",
@@ -195,18 +213,18 @@ class KhojUserSubscription(admin.ModelAdmin):
 
 
 @admin.register(ChatModelOptions)
-class ChatModelOptionsAdmin(admin.ModelAdmin):
+class ChatModelOptionsAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "id",
         "chat_model",
-        "model_type",
+        "ai_model_api",
         "max_prompt_size",
     )
-    search_fields = ("id", "chat_model", "model_type")
+    search_fields = ("id", "chat_model", "ai_model_api__name")
 
 
 @admin.register(TextToImageModelConfig)
-class TextToImageModelOptionsAdmin(admin.ModelAdmin):
+class TextToImageModelOptionsAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "id",
         "model_name",
@@ -215,8 +233,8 @@ class TextToImageModelOptionsAdmin(admin.ModelAdmin):
     search_fields = ("id", "model_name", "model_type")
 
 
-@admin.register(OpenAIProcessorConversationConfig)
-class OpenAIProcessorConversationConfigAdmin(admin.ModelAdmin):
+@admin.register(AiModelApi)
+class AiModelApiAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "id",
         "name",
@@ -227,7 +245,7 @@ class OpenAIProcessorConversationConfigAdmin(admin.ModelAdmin):
 
 
 @admin.register(SearchModelConfig)
-class SearchModelConfigAdmin(admin.ModelAdmin):
+class SearchModelConfigAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "id",
         "name",
@@ -238,7 +256,7 @@ class SearchModelConfigAdmin(admin.ModelAdmin):
 
 
 @admin.register(ServerChatSettings)
-class ServerChatSettingsAdmin(admin.ModelAdmin):
+class ServerChatSettingsAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "chat_default",
         "chat_advanced",
@@ -247,7 +265,7 @@ class ServerChatSettingsAdmin(admin.ModelAdmin):
 
 
 @admin.register(WebScraper)
-class WebScraperAdmin(admin.ModelAdmin):
+class WebScraperAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "priority",
         "name",
@@ -261,7 +279,7 @@ class WebScraperAdmin(admin.ModelAdmin):
 
 
 @admin.register(Conversation)
-class ConversationAdmin(admin.ModelAdmin):
+class ConversationAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "id",
         "user",
@@ -270,7 +288,7 @@ class ConversationAdmin(admin.ModelAdmin):
         "client",
     )
     search_fields = ("id", "user__email", "user__username", "client__name")
-    list_filter = ("agent",)
+    list_filter = ("agent", "client", "user")
     ordering = ("-created_at",)
 
     actions = ["export_selected_objects", "export_selected_minimal_objects"]
@@ -286,17 +304,10 @@ class ConversationAdmin(admin.ModelAdmin):
             modified_log = conversation.conversation_log
             chat_log = modified_log.get("chat", [])
             for idx, log in enumerate(chat_log):
-                if (
-                    log["by"] == "khoj"
-                    and log["intent"]
-                    and log["intent"]["type"]
-                    and (
-                        log["intent"]["type"] == ImageIntentType.TEXT_TO_IMAGE.value
-                        or log["intent"]["type"] == ImageIntentType.TEXT_TO_IMAGE_V3.value
-                    )
-                ):
-                    log["message"] = "inline image redacted for space"
+                if log["by"] == "khoj" and log["images"]:
+                    log["images"] = ["inline image redacted for space"]
                     chat_log[idx] = log
+
             modified_log["chat"] = chat_log
 
             writer.writerow(
@@ -367,7 +378,7 @@ class ConversationAdmin(admin.ModelAdmin):
 
 
 @admin.register(UserConversationConfig)
-class UserConversationConfigAdmin(admin.ModelAdmin):
+class UserConversationConfigAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "id",
         "get_user_email",

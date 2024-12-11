@@ -52,7 +52,7 @@ div.settingsMenuOptions {
     grid-auto-flow: row;
     position: absolute;
     background-color: var(--background-color);
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
     top: 64px;
     text-align: left;
     padding: 8px;
@@ -69,6 +69,6 @@ div.settingsMenuOptions {
     }
 
     div.titleBar {
-        padding: 8px;
+        padding: 4px;
     }
 }

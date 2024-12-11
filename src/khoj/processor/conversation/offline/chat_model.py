@@ -3,8 +3,9 @@ import logging
 import os
 from datetime import datetime, timedelta
 from threading import Thread
-from typing import Any, Iterator, List, Optional, Union
+from typing import Any, Dict, Iterator, List, Optional, Union
 
+import pyjson5
 from langchain.schema import ChatMessage
 from llama_cpp import Llama
 
@@ -13,6 +14,7 @@ from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.utils import download_model
 from khoj.processor.conversation.utils import (
     ThreadedGenerator,
+    clean_json,
     commit_conversation_trace,
     generate_chatml_messages_with_context,
     messages_to_print,
@@ -26,7 +28,7 @@ from khoj.utils.helpers import (
     is_promptrace_enabled,
     truncate_code_context,
 )
-from khoj.utils.rawconfig import LocationData
+from khoj.utils.rawconfig import FileAttachment, LocationData
 from khoj.utils.yaml import yaml_dump
 
 logger = logging.getLogger(__name__)
@@ -67,7 +69,7 @@ def extract_questions_offline(
 
     if use_history:
         for chat in conversation_log.get("chat", [])[-4:]:
-            if chat["by"] == "khoj" and "text-to-image" not in chat["intent"].get("type"):
+            if chat["by"] == "khoj":
                 chat_history += f"Q: {chat['intent']['query']}\n"
                 chat_history += f"Khoj: {chat['message']}\n\n"
 
@@ -114,8 +116,8 @@ def extract_questions_offline(
 
     # Extract and clean the chat model's response
     try:
-        response = response.strip(empty_escape_sequences)
-        response = json.loads(response)
+        response = clean_json(empty_escape_sequences)
+        response = pyjson5.loads(response)
         questions = [q.strip() for q in response["queries"] if q.strip()]
         questions = filter_questions(questions)
     except:
@@ -162,6 +164,9 @@ def converse_offline(
     user_name: str = None,
     agent: Agent = None,
     query_files: str = None,
+    generated_files: List[FileAttachment] = None,
+    additional_context: List[str] = None,
+    generated_asset_results: Dict[str, Dict] = {},
     tracer: dict = {},
 ) -> Union[ThreadedGenerator, Iterator[str]]:
     """
@@ -229,6 +234,9 @@ def converse_offline(
         tokenizer_name=tokenizer_name,
         model_type=ChatModelOptions.ModelType.OFFLINE,
         query_files=query_files,
+        generated_files=generated_files,
+        generated_asset_results=generated_asset_results,
+        program_execution_context=additional_context,
     )
 
     logger.debug(f"Conversation Context for {model}: {messages_to_print(messages)}")

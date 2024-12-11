@@ -725,12 +725,6 @@ export const suggestionsData: Suggestion[] = [
         link: "",
     },
     {
-        type: SuggestionType.Health,
-        color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
-        description: "Draw a diagram of the human skeletal system.",
-        link: "",
-    },
-    {
         type: SuggestionType.Code,
         color: suggestionToColorMap[SuggestionType.Code] || DEFAULT_COLOR,
         description: "Draw a diagram illustrating the architecture of a computer network.",

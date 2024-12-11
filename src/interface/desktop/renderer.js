@@ -26,36 +26,9 @@ async function removeFolder(folderPath) {
     }
 }
 
-const toggleFilesButton = document.getElementById('toggle-files');
 const currentFiles = document.getElementById('current-files');
 
-const toggleFilesSVG = document.getElementById('toggle-files-svg');
-
-toggleFilesButton.addEventListener('click', () => {
-    if (currentFiles.style.display === 'none') {
-        currentFiles.style.display = 'block';
-        toggleFilesSVG.style.transform = 'rotate(0deg)';
-    } else {
-        currentFiles.style.display = 'none';
-        toggleFilesSVG.style.transform = 'rotate(180deg)';
-    }
-});
-
-const toggleFoldersButton = document.getElementById('toggle-folders');
 const currentFolders = document.getElementById('current-folders');
-
-const toggleFoldersSVG = document.getElementById('toggle-folders-svg');
-
-
-toggleFoldersButton.addEventListener('click', () => {
-    if (currentFolders.style.display === 'none') {
-        currentFolders.style.display = 'block';
-        toggleFoldersSVG.style.transform = 'rotate(0deg)';
-    } else {
-        currentFolders.style.display = 'none';
-        toggleFoldersSVG.style.transform = 'rotate(180deg)';
-    }
-});
 
 function makeFileElement(file) {
     let fileElement = document.createElement("div");
@@ -64,20 +37,34 @@ function makeFileElement(file) {
     let fileNameElement = document.createElement("div");
     fileNameElement.classList.add("content-name");
     fileNameElement.innerHTML = file.path;
+    fileNameElement.style.cursor = "pointer";
+
+    fileNameElement.addEventListener("click", () => {
+        window.openFileAPI.openFile(file.path);
+    });
+
     fileElement.appendChild(fileNameElement);
 
     let buttonContainer = document.createElement("div");
     buttonContainer.classList.add("remove-button-container");
     let removeFileButton = document.createElement("button");
-    let fileSyncedImage = document.createElement("img")
+    let fileSyncedImage = document.createElement("img");
     fileSyncedImage.classList.add("file-synced-image");
+    fileSyncedImage.src = "./assets/icons/file-synced.svg";
+
+    // Create trash icon image
+    let trashIcon = document.createElement("img");
+    trashIcon.src = "./assets/icons/trash-solid.svg";
+    trashIcon.classList.add("trash-icon");
+
     removeFileButton.classList.add("remove-file-button");
-    removeFileButton.innerHTML = "🗑️";
+    removeFileButton.appendChild(trashIcon);
     removeFileButton.addEventListener("click", () => {
         removeFile(file.path);
     });
+
     buttonContainer.appendChild(removeFileButton);
-    buttonContainer.insertAdjacentElement("afterbegin",fileSyncedImage);
+    buttonContainer.insertAdjacentElement("afterbegin", fileSyncedImage);
     fileElement.appendChild(buttonContainer);
     return fileElement;
 }
@@ -89,13 +76,26 @@ function makeFolderElement(folder) {
     let folderNameElement = document.createElement("div");
     folderNameElement.classList.add("content-name");
     folderNameElement.innerHTML = folder.path;
+    folderNameElement.style.cursor = "pointer";
+
+    folderNameElement.addEventListener("click", () => {
+        window.openFileAPI.openFile(folder.path);
+    });
+
     folderElement.appendChild(folderNameElement);
 
     let buttonContainer = document.createElement("div");
     buttonContainer.classList.add("remove-button-container");
     let removeFolderButton = document.createElement("button");
     removeFolderButton.classList.add("remove-folder-button");
-    removeFolderButton.innerHTML = "🗑️";
+
+    // Create trash icon image
+    let trashIcon = document.createElement("img");
+    trashIcon.src = "./assets/icons/trash-solid.svg";
+    trashIcon.classList.add("trash-icon");
+
+    removeFolderButton.appendChild(trashIcon);
+
     removeFolderButton.addEventListener("click", () => {
         removeFolder(folder.path);
     });
@@ -104,7 +104,7 @@ function makeFolderElement(folder) {
     return folderElement;
 }
 
-(async function() {
+(async function () {
     const files = await window.getFilesAPI.getFiles();
     let currentFilesElement = document.getElementById("current-files");
     for (const file of files) {
@@ -157,26 +157,35 @@ window.updateStateAPI.onUpdateState((event, state) => {
     console.log("state was updated", state);
     loadingBar.style.display = 'none';
     let syncStatusElement = document.getElementById("sync-status");
+    syncStatusElement.innerHTML = '';
     const currentTime = new Date();
     nextSyncTime = new Date();
     nextSyncTime.setMinutes(Math.ceil((nextSyncTime.getMinutes() + 1) / 10) * 10);
     if (state.completed == false) {
 
-        fileSyncedImage.forEach((image)=> {
+        fileSyncedImage.forEach((image) => {
             image.style.display = "block"
             image.src = "./assets/icons/file-not-synced.svg"
         })
         if (state.error) syncStatusElement.innerHTML = state.error;
         return;
     } else {
-        fileSyncedImage.forEach((image)=> {
+        fileSyncedImage.forEach((image) => {
             image.style.display = "block"
             image.src = "./assets/icons/file-synced.svg"
         })
 
     }
     const options = { hour: '2-digit', minute: '2-digit' };
-    syncStatusElement.innerHTML = `⏱️ Synced at ${currentTime.toLocaleTimeString(undefined, options)}. Next sync at ${nextSyncTime.toLocaleTimeString(undefined, options)}.`;
+
+    const clockElement = document.createElement("div");
+    const clockIcon = document.createElement("img");
+    clockIcon.src = "./assets/icons/clock.svg";
+    clockIcon.classList.add("clock-icon");
+
+    clockElement.appendChild(clockIcon);
+    syncStatusElement.appendChild(clockElement);
+    syncStatusElement.innerHTML += ` Synced at ${currentTime.toLocaleTimeString(undefined, options)}. Next sync at ${nextSyncTime.toLocaleTimeString(undefined, options)}.`;
 });
 
 window.needsSubscriptionAPI.onNeedsSubscription((event, needsSubscription) => {
@@ -188,7 +197,7 @@ window.needsSubscriptionAPI.onNeedsSubscription((event, needsSubscription) => {
 });
 
 const urlInput = document.getElementById('khoj-host-url');
-(async function() {
+(async function () {
     const url = await window.hostURLAPI.getURL();
     urlInput.value = url;
 })();
@@ -210,7 +219,7 @@ urlInput.addEventListener('blur', async () => {
 });
 
 const khojKeyInput = document.getElementById('khoj-access-key');
-(async function() {
+(async function () {
     const token = await window.tokenAPI.getToken();
     khojKeyInput.value = token;
 })();

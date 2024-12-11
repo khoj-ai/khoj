@@ -27,6 +27,7 @@ from typing import (
 from urllib.parse import parse_qs, quote, unquote, urljoin, urlparse
 
 import cron_descriptor
+import pyjson5
 import pytz
 import requests
 from apscheduler.job import Job
@@ -87,7 +88,10 @@ from khoj.processor.conversation.offline.chat_model import (
     converse_offline,
     send_message_to_model_offline,
 )
-from khoj.processor.conversation.openai.gpt import converse, send_message_to_model
+from khoj.processor.conversation.openai.gpt import (
+    converse_openai,
+    send_message_to_model,
+)
 from khoj.processor.conversation.utils import (
     ChatEvent,
     ThreadedGenerator,
@@ -135,7 +139,7 @@ def validate_conversation_config(user: KhojUser):
     if default_config is None:
         raise HTTPException(status_code=500, detail="Contact the server administrator to add a chat model.")
 
-    if default_config.model_type == "openai" and not default_config.openai_config:
+    if default_config.model_type == "openai" and not default_config.ai_model_api:
         raise HTTPException(status_code=500, detail="Contact the server administrator to add a chat model.")
 
 
@@ -162,7 +166,7 @@ async def is_ready_to_chat(user: KhojUser):
                 ChatModelOptions.ModelType.GOOGLE,
             ]
         )
-        and user_conversation_config.openai_config
+        and user_conversation_config.ai_model_api
     ):
         return True
 
@@ -541,7 +545,7 @@ async def generate_online_subqueries(
     # Validate that the response is a non-empty, JSON-serializable list
     try:
         response = clean_json(response)
-        response = json.loads(response)
+        response = pyjson5.loads(response)
         response = {q.strip() for q in response["queries"] if q.strip()}
         if not isinstance(response, set) or not response or len(response) == 0:
             logger.error(f"Invalid response for constructing subqueries: {response}. Returning original query: {q}")
@@ -750,7 +754,7 @@ async def generate_excalidraw_diagram(
         )
     except Exception as e:
         logger.error(f"Error generating Excalidraw diagram for {user.email}: {e}", exc_info=True)
-        yield None, None
+        yield better_diagram_description_prompt, None
         return
 
     scratchpad = excalidraw_diagram_description.get("scratchpad")
@@ -989,7 +993,7 @@ async def send_message_to_model_wrapper(
         )
 
     elif model_type == ChatModelOptions.ModelType.OPENAI:
-        openai_chat_config = conversation_config.openai_config
+        openai_chat_config = conversation_config.ai_model_api
         api_key = openai_chat_config.api_key
         api_base_url = openai_chat_config.api_base_url
         truncated_messages = generate_chatml_messages_with_context(
@@ -1014,7 +1018,7 @@ async def send_message_to_model_wrapper(
             tracer=tracer,
         )
     elif model_type == ChatModelOptions.ModelType.ANTHROPIC:
-        api_key = conversation_config.openai_config.api_key
+        api_key = conversation_config.ai_model_api.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=query,
             context_message=context,
@@ -1036,7 +1040,7 @@ async def send_message_to_model_wrapper(
             tracer=tracer,
         )
     elif model_type == ChatModelOptions.ModelType.GOOGLE:
-        api_key = conversation_config.openai_config.api_key
+        api_key = conversation_config.ai_model_api.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=query,
             context_message=context,
@@ -1101,7 +1105,7 @@ def send_message_to_model_wrapper_sync(
         )
 
     elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
-        api_key = conversation_config.openai_config.api_key
+        api_key = conversation_config.ai_model_api.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
             system_message=system_message,
@@ -1123,7 +1127,7 @@ def send_message_to_model_wrapper_sync(
         return openai_response
 
     elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
-        api_key = conversation_config.openai_config.api_key
+        api_key = conversation_config.ai_model_api.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
             system_message=system_message,
@@ -1143,7 +1147,7 @@ def send_message_to_model_wrapper_sync(
         )
 
     elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
-        api_key = conversation_config.openai_config.api_key
+        api_key = conversation_config.ai_model_api.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
             system_message=system_message,
@@ -1184,6 +1188,11 @@ def generate_chat_response(
     train_of_thought: List[Any] = [],
     query_files: str = None,
     raw_query_files: List[FileAttachment] = None,
+    generated_images: List[str] = None,
+    raw_generated_files: List[FileAttachment] = [],
+    generated_excalidraw_diagram: str = None,
+    program_execution_context: List[str] = [],
+    generated_asset_results: Dict[str, Dict] = {},
     tracer: dict = {},
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
@@ -1207,6 +1216,9 @@ def generate_chat_response(
             query_images=query_images,
             train_of_thought=train_of_thought,
             raw_query_files=raw_query_files,
+            generated_images=generated_images,
+            raw_generated_files=raw_generated_files,
+            generated_excalidraw_diagram=generated_excalidraw_diagram,
             tracer=tracer,
         )
 
@@ -1242,14 +1254,16 @@ def generate_chat_response(
                 user_name=user_name,
                 agent=agent,
                 query_files=query_files,
+                generated_files=raw_generated_files,
+                generated_asset_results=generated_asset_results,
                 tracer=tracer,
             )
 
         elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
-            openai_chat_config = conversation_config.openai_config
+            openai_chat_config = conversation_config.ai_model_api
             api_key = openai_chat_config.api_key
             chat_model = conversation_config.chat_model
-            chat_response = converse(
+            chat_response = converse_openai(
                 compiled_references,
                 query_to_run,
                 query_images=query_images,
@@ -1268,11 +1282,14 @@ def generate_chat_response(
                 agent=agent,
                 vision_available=vision_available,
                 query_files=query_files,
+                generated_files=raw_generated_files,
+                generated_asset_results=generated_asset_results,
+                program_execution_context=program_execution_context,
                 tracer=tracer,
             )
 
         elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
-            api_key = conversation_config.openai_config.api_key
+            api_key = conversation_config.ai_model_api.api_key
             chat_response = converse_anthropic(
                 compiled_references,
                 query_to_run,
@@ -1291,10 +1308,13 @@ def generate_chat_response(
                 agent=agent,
                 vision_available=vision_available,
                 query_files=query_files,
+                generated_files=raw_generated_files,
+                generated_asset_results=generated_asset_results,
+                program_execution_context=program_execution_context,
                 tracer=tracer,
             )
         elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
-            api_key = conversation_config.openai_config.api_key
+            api_key = conversation_config.ai_model_api.api_key
             chat_response = converse_gemini(
                 compiled_references,
                 query_to_run,
@@ -1313,6 +1333,9 @@ def generate_chat_response(
                 query_images=query_images,
                 vision_available=vision_available,
                 query_files=query_files,
+                generated_files=raw_generated_files,
+                generated_asset_results=generated_asset_results,
+                program_execution_context=program_execution_context,
                 tracer=tracer,
             )
 
@@ -1784,6 +1807,9 @@ class MessageProcessor:
         self.references = {}
         self.usage = {}
         self.raw_response = ""
+        self.generated_images = []
+        self.generated_files = []
+        self.generated_excalidraw_diagram = []
 
     def convert_message_chunk_to_json(self, raw_chunk: str) -> Dict[str, Any]:
         if raw_chunk.startswith("{") and raw_chunk.endswith("}"):
@@ -1822,6 +1848,16 @@ class MessageProcessor:
                     self.raw_response += chunk_data
             else:
                 self.raw_response += chunk_data
+        elif chunk_type == ChatEvent.GENERATED_ASSETS:
+            chunk_data = chunk["data"]
+            if isinstance(chunk_data, dict):
+                for key in chunk_data:
+                    if key == "images":
+                        self.generated_images = chunk_data[key]
+                    elif key == "files":
+                        self.generated_files = chunk_data[key]
+                    elif key == "excalidrawDiagram":
+                        self.generated_excalidraw_diagram = chunk_data[key]
 
     def handle_json_response(self, json_data: Dict[str, str]) -> str | Dict[str, str]:
         if "image" in json_data or "details" in json_data:
@@ -1852,7 +1888,14 @@ async def read_chat_stream(response_iterator: AsyncGenerator[str, None]) -> Dict
     if buffer:
         processor.process_message_chunk(buffer)
 
-    return {"response": processor.raw_response, "references": processor.references, "usage": processor.usage}
+    return {
+        "response": processor.raw_response,
+        "references": processor.references,
+        "usage": processor.usage,
+        "images": processor.generated_images,
+        "files": processor.generated_files,
+        "excalidrawDiagram": processor.generated_excalidraw_diagram,
+    }
 
 
 def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False):

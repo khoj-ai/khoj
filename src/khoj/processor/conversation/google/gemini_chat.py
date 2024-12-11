@@ -1,9 +1,8 @@
-import json
 import logging
-import re
 from datetime import datetime, timedelta
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
+import pyjson5
 from langchain.schema import ChatMessage
 
 from khoj.database.models import Agent, ChatModelOptions, KhojUser
@@ -24,7 +23,7 @@ from khoj.utils.helpers import (
     is_none_or_empty,
     truncate_code_context,
 )
-from khoj.utils.rawconfig import LocationData
+from khoj.utils.rawconfig import FileAttachment, LocationData
 from khoj.utils.yaml import yaml_dump
 
 logger = logging.getLogger(__name__)
@@ -57,7 +56,7 @@ def extract_questions_gemini(
         [
             f'User: {chat["intent"]["query"]}\nAssistant: {{"queries": {chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}}}\nA: {chat["message"]}\n\n'
             for chat in conversation_log.get("chat", [])[-4:]
-            if chat["by"] == "khoj" and "text-to-image" not in chat["intent"].get("type")
+            if chat["by"] == "khoj"
         ]
     )
 
@@ -104,7 +103,7 @@ def extract_questions_gemini(
     # Extract, Clean Message from Gemini's Response
     try:
         response = clean_json(response)
-        response = json.loads(response)
+        response = pyjson5.loads(response)
         response = [q.strip() for q in response["queries"] if q.strip()]
         if not isinstance(response, list) or not response:
             logger.error(f"Invalid response for constructing subqueries: {response}")
@@ -168,6 +167,9 @@ def converse_gemini(
     query_images: Optional[list[str]] = None,
     vision_available: bool = False,
     query_files: str = None,
+    generated_files: List[FileAttachment] = None,
+    generated_asset_results: Dict[str, Dict] = {},
+    program_execution_context: List[str] = None,
     tracer={},
 ):
     """
@@ -229,6 +231,9 @@ def converse_gemini(
         vision_enabled=vision_available,
         model_type=ChatModelOptions.ModelType.GOOGLE,
         query_files=query_files,
+        generated_files=generated_files,
+        generated_asset_results=generated_asset_results,
+        program_execution_context=program_execution_context,
     )
 
     messages, system_prompt = format_messages_for_gemini(messages, system_prompt)
