@@ -88,7 +88,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}-${{ matrix.platform }}
+            ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
           build-args: |
             VERSION=${{ steps.hatch.outputs.version }}
             PORT=42110
@@ -107,7 +107,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}-${{ matrix.platform }}
+            ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
           build-args: |
             VERSION=${{ steps.hatch.outputs.version }}
             PORT=42110
@@ -128,19 +128,18 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.PAT }}
-
       - name: Create and Push Local Manifest
         if: github.event.inputs.khoj == 'true' || github.event_name == 'push'
         run: |
           docker manifest create ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }} \
-            ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}-linux/amd64 \
-            ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}-linux/arm64
+            ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}-amd64 \
+            ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}-arm64
           docker manifest push ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}
 
       - name: Create and Push Cloud Manifest
         if: github.event.inputs.khoj-cloud == 'true' || github.event_name == 'push'
         run: |
           docker manifest create ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }} \
-            ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}-linux/amd64 \
-            ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}-linux/arm64
+            ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}-amd64 \
+            ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}-arm64
           docker manifest push ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}
