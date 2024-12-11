@@ -105,7 +105,6 @@ import { ScrollAreaScrollbar } from "@radix-ui/react-scroll-area";
 import { KhojLogoType } from "@/app/components/logo/khojLogo";
 import NavMenu from "@/app/components/navMenu/navMenu";
 import { getIconFromIconName } from "@/app/common/iconUtils";
-import AgentProfileCard from "../profileCard/profileCard";
 
 // Define a fetcher function
 const fetcher = (url: string) =>
@@ -627,43 +626,56 @@ export function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
     const size = sizeClass();
 
     return (
-        <DropdownMenu onOpenChange={(open) => setIsOpen(open)} open={isOpen}>
-            <DropdownMenuTrigger>
-                <DotsThreeVertical className={`${size}`} />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-                <DropdownMenuItem>
-                    <Button
-                        className="p-0 text-sm h-auto"
-                        variant={"ghost"}
-                        onClick={() => setIsRenaming(true)}
-                    >
-                        <Pencil className={`mr-2 ${size}`} />
-                        Rename
-                    </Button>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                    <Button
-                        className="p-0 text-sm h-auto"
-                        variant={"ghost"}
-                        onClick={() => setIsSharing(true)}
-                    >
-                        <Share className={`mr-2 ${size}`} />
-                        Share
-                    </Button>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                    <Button
-                        className="p-0 text-sm h-auto text-rose-300 hover:text-rose-400"
-                        variant={"ghost"}
-                        onClick={() => setIsDeleting(true)}
-                    >
-                        <Trash className={`mr-2 ${size}`} />
-                        Delete
-                    </Button>
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-2">
+            {(props.sizing === "lg" || props.sizing === "md") && (
+                <Button
+                    className="p-0 text-sm h-auto"
+                    variant={"ghost"}
+                    onClick={() => setIsSharing(true)}
+                >
+                    <Share className={`${size}`} />
+                </Button>
+            )}
+            <DropdownMenu onOpenChange={(open) => setIsOpen(open)} open={isOpen}>
+                <DropdownMenuTrigger>
+                    <DotsThreeVertical className={`${size}`} />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                    <DropdownMenuItem>
+                        <Button
+                            className="p-0 text-sm h-auto"
+                            variant={"ghost"}
+                            onClick={() => setIsRenaming(true)}
+                        >
+                            <Pencil className={`mr-2 ${size}`} />
+                            Rename
+                        </Button>
+                    </DropdownMenuItem>
+                    {props.sizing === "sm" && (
+                        <DropdownMenuItem>
+                            <Button
+                                className="p-0 text-sm h-auto"
+                                variant={"ghost"}
+                                onClick={() => setIsSharing(true)}
+                            >
+                                <Share className={`mr-2 ${size}`} />
+                                Share
+                            </Button>
+                        </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem>
+                        <Button
+                            className="p-0 text-sm h-auto text-rose-300 hover:text-rose-400"
+                            variant={"ghost"}
+                            onClick={() => setIsDeleting(true)}
+                        >
+                            <Trash className={`mr-2 ${size}`} />
+                            Delete
+                        </Button>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
     );
 }
 
@@ -685,7 +697,11 @@ function ChatSession(props: ChatHistory) {
             >
                 <p className={styles.session}>{title}</p>
             </Link>
-            <ChatSessionActionMenu conversationId={props.conversation_id} setTitle={setTitle} />
+            <ChatSessionActionMenu
+                conversationId={props.conversation_id}
+                setTitle={setTitle}
+                sizing="sm"
+            />
         </div>
     );
 }

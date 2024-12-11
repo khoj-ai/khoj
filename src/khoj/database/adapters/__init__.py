@@ -857,7 +857,7 @@ class ConversationAdapters:
             agent=conversation.agent,
             conversation_log=conversation.conversation_log,
             slug=conversation.slug,
-            title=conversation.title,
+            title=conversation.title if conversation.title else conversation.slug,
         )
 
     @staticmethod
