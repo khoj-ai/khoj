@@ -464,7 +464,7 @@ export class KhojChatView extends KhojPaneView {
         let virtualChatMessageBodyTextEl = document.createElement("div");
 
         // Convert the message to html
-        MarkdownRenderer.renderMarkdown(markdownText, virtualChatMessageBodyTextEl, '', component);
+        MarkdownRenderer.render(this.app, markdownText, virtualChatMessageBodyTextEl, '', component);
 
         // Remove image HTML elements with any non whitelisted src prefix
         virtualChatMessageBodyTextEl.innerHTML = virtualChatMessageBodyTextEl.innerHTML.replace(
@@ -552,13 +552,12 @@ export class KhojChatView extends KhojPaneView {
 
     renderMessage(chatBodyEl: Element, message: string, sender: string, dt?: Date, raw: boolean = false, willReplace: boolean = true): Element {
         let message_time = this.formatDate(dt ?? new Date());
-        let emojified_sender = sender == "khoj" ? "🏮 Khoj" : "🤔 You";
 
         // Append message to conversation history HTML element.
         // The chat logs should display above the message input box to follow standard UI semantics
         let chatMessageEl = chatBodyEl.createDiv({
             attr: {
-                "data-meta": `${emojified_sender} at ${message_time}`,
+                "data-meta": message_time,
                 class: `khoj-chat-message ${sender}`
             },
         })
@@ -598,7 +597,7 @@ export class KhojChatView extends KhojPaneView {
         let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
         let chatMessageEl = chatBodyEl.createDiv({
             attr: {
-                "data-meta": `🏮 Khoj at ${messageTime}`,
+                "data-meta": messageTime,
                 class: `khoj-chat-message khoj`
             },
         })
@@ -687,7 +686,7 @@ export class KhojChatView extends KhojPaneView {
             return this.getChatHistory(chatBodyEl);
         }
         chatBodyEl.innerHTML = "";
-        const sidePanelEl = this.contentEl.createDiv("side-panel");
+        const sidePanelEl = chatBodyEl.createDiv("side-panel");
         const newConversationEl = sidePanelEl.createDiv("new-conversation");
         const conversationHeaderTitleEl = newConversationEl.createDiv("conversation-header-title");
         conversationHeaderTitleEl.textContent = "Conversations";
@@ -745,7 +744,6 @@ export class KhojChatView extends KhojPaneView {
 
                     conversationSessionEl.appendChild(conversationMenuEl);
                     conversationListBodyEl.appendChild(conversationSessionEl);
-                    chatBodyEl.appendChild(sidePanelEl);
                 }
             }
         } catch (err) {
@@ -1114,6 +1112,7 @@ export class KhojChatView extends KhojPaneView {
             rawQuery: query,
             rawResponse: "",
             isVoice: isVoice,
+            generatedAssets: "",
         };
 
         let response = await fetch(chatUrl, {
