@@ -334,9 +334,10 @@ def construct_structured_message(
         ChatModelOptions.ModelType.GOOGLE,
         ChatModelOptions.ModelType.ANTHROPIC,
     ]:
-        constructed_messages: List[Any] = [
-            {"type": "text", "text": message},
-        ]
+        if not attached_file_context and not (vision_enabled and images):
+            return message
+
+        constructed_messages: List[Any] = [{"type": "text", "text": message}]
 
         if not is_none_or_empty(attached_file_context):
             constructed_messages.append({"type": "text", "text": attached_file_context})

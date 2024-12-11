@@ -24,7 +24,7 @@ services:
         condition: service_healthy
     # Use the following line to use the latest version of khoj. Otherwise, it will build from source. Set this to ghcr.io/khoj-ai/khoj-cloud if you want to use the prod image.
     image: ghcr.io/khoj-ai/khoj:latest
-    # Uncomment the following line to build from source. This will take a few minutes. Comment the next two lines out if you want to use the offiicial image.
+    # Uncomment the following line to build from source. This will take a few minutes. Comment the next two lines out if you want to use the official image.
     # build:
       # context: .
     ports:
@@ -64,7 +64,7 @@ services:
       # Ensure you set your provider specific API keys.
       # ---
       # Free, Slower API. Does both web search and webpage read. Get API key from https://jina.ai/
-      # - JINA_API_KEY=you_jina_api_key
+      # - JINA_API_KEY=your_jina_api_key
       # Paid, Fast API. Only does web search. Get API key from https://serper.dev/
       # - SERPER_DEV_API_KEY=your_serper_dev_api_key
       # Paid, Fast, Open API. Only does webpage read. Get API key from https://firecrawl.dev/
