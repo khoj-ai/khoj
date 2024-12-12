@@ -1,13 +1,3 @@
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -21,10 +11,8 @@ import { Input } from "@/components/ui/input";
 import {
     ArrowLeft,
     ArrowsClockwise,
-    GoogleCardboardLogo,
     GoogleLogo,
     LineVertical,
-    PaperPlane,
     PaperPlaneTilt,
     PencilSimple,
     Spinner,
@@ -39,6 +27,7 @@ import { GoogleSignIn } from "./GoogleSignIn";
 export interface LoginPromptProps {
     loginRedirectMessage: string;
     onOpenChange: (open: boolean) => void;
+    isMobileWidth?: boolean;
 }
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -168,146 +157,209 @@ export default function LoginPrompt(props: LoginPromptProps) {
                     </DialogDescription> */}
 
                     {useEmailSignIn && (
-                        <div className="flex flex-col gap-4 py-4">
-                            <Button
-                                variant="ghost"
-                                className="w-fit p-0 m-0 flex gap-2 items-center justify-center text-sm absolute top-5 left-5"
-                                onClick={() => {
-                                    setUseEmailSignIn(false);
-                                }}
-                            >
-                                <ArrowLeft className="h-6 w-6" />
-                            </Button>
-                            <DialogHeader className="text-center">
-                                <DialogTitle className="text-center">
-                                    {checkEmail ? "Check your email" : "Sign in with Email"}
-                                </DialogTitle>
-                            </DialogHeader>
-                            <DialogDescription className="text-center">
-                                {checkEmail
-                                    ? recheckEmail
-                                        ? "A new link has been sent. Click on the link in your email to sign-in"
-                                        : "Click on the link in your email to sign-in"
-                                    : "You will receive a sign-in link on the email address you provide below"}
-                            </DialogDescription>
-                            <Input
-                                placeholder="Email"
-                                className="p-6"
-                                disabled={isLoading || checkEmail}
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                            />
-                            <Button
-                                variant="default"
-                                className="p-6"
-                                onClick={handleMagicLinkSignIn}
-                                disabled={isLoading || checkEmail || !email}
-                            >
-                                <PaperPlaneTilt className="h-6 w-6 mr-2" />
-                                {checkEmail ? "Check your email" : "Send sign in link"}
-                            </Button>
-                            {checkEmail && (
-                                <DialogDescription className="text-center flex items-center justify-center gap-4">
-                                    <Button
-                                        variant="ghost"
-                                        className="p-0"
-                                        disabled={recheckEmail}
-                                        onClick={() => {
-                                            handleMagicLinkSignIn();
-                                        }}
-                                    >
-                                        <ArrowsClockwise className="h-6 w-6 mr-2" />
-                                        Resend email
-                                    </Button>
-                                    <LineVertical className="h-6 w-6" />
-                                    <Button
-                                        variant="ghost"
-                                        className="p-0"
-                                        disabled={recheckEmail}
-                                        onClick={() => {
-                                            setEmail("");
-                                            setCheckEmail(false);
-                                        }}
-                                    >
-                                        <PencilSimple className="h-6 w-6 mr-2" />
-                                        Use a different email
-                                    </Button>
-                                </DialogDescription>
-                            )}
-                        </div>
+                        <EmailSignInContext
+                            email={email}
+                            setEmail={setEmail}
+                            checkEmail={checkEmail}
+                            setCheckEmail={setCheckEmail}
+                            setUseEmailSignIn={setUseEmailSignIn}
+                            recheckEmail={recheckEmail}
+                            setRecheckEmail={setRecheckEmail}
+                            handleMagicLinkSignIn={handleMagicLinkSignIn}
+                        />
                     )}
                     {!useEmailSignIn && (
-                        <div>
-                            <div className="relative w-full h-80 overflow-hidden rounded-lg">
-                                {tips.map((tip, index) => (
-                                    <img
-                                        key={tip.src}
-                                        src={tip.src}
-                                        alt={tip.alt}
-                                        className={`absolute w-full h-full object-cover transition-all duration-500 ease-in-out ${
-                                            index === currentTip
-                                                ? "opacity-100 translate-x-0"
-                                                : "opacity-0 translate-x-full"
-                                        }`}
-                                    />
-                                ))}
-                                <Button
-                                    onClick={prevSlide}
-                                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white/90 rounded-full p-2 shadow-lg"
-                                >
-                                    <CaretLeft className="text-black h-6 w-6" />
-                                </Button>
-                                <Button
-                                    onClick={nextSlide}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white/90 rounded-full p-2 shadow-lg"
-                                >
-                                    <CaretRight className="text-black h-6 w-6" />
-                                </Button>
-                            </div>
-                            <DialogHeader className="flex flex-col gap-4 text-center p-4">
-                                <DialogTitle className="text-base text-center font-bold">
-                                    Sign In for free to start using Khoj: Your AI-powered second
-                                    brain
-                                </DialogTitle>
-                            </DialogHeader>
-                            <div className="flex flex-col gap-4 py-4 text-center align-middle items-center">
-                                <GoogleSignIn onLoad={handleGoogleScriptLoad} />
-                                {/* <div id="g_id_signin" /> */}
-                                <Button
-                                    variant="outline"
-                                    className="w-[300px] p-6 flex gap-2 items-center justify-center"
-                                    onClick={handleGoogleSignIn}
-                                    disabled={isLoading || !data?.google}
-                                >
-                                    {isLoading ? (
-                                        <Spinner className="h-6 w-6" />
-                                    ) : (
-                                        <GoogleLogo className="h-6 w-6" />
-                                    )}
-                                    Continue with Google
-                                </Button>
-
-                                <Button
-                                    variant="default"
-                                    className="w-[300px] p-6 flex gap-2 items-center justify-center"
-                                    onClick={() => {
-                                        setUseEmailSignIn(true);
-                                    }}
-                                >
-                                    <PaperPlaneTilt className="h-6 w-6" />
-                                    Continue with Email
-                                </Button>
-                            </div>
-                            <DialogDescription className="text-center">
-                                By logging in, you agree to our{" "}
-                                <Link href="https://khoj.dev/terms-of-service">
-                                    Terms of Service.
-                                </Link>
-                            </DialogDescription>
-                        </div>
+                        <MainSignInContext
+                            tips={tips}
+                            currentTip={currentTip}
+                            nextSlide={nextSlide}
+                            prevSlide={prevSlide}
+                            handleGoogleScriptLoad={handleGoogleScriptLoad}
+                            handleGoogleSignIn={handleGoogleSignIn}
+                            isLoading={isLoading}
+                            data={data}
+                            setUseEmailSignIn={setUseEmailSignIn}
+                        />
                     )}
                 </div>
             </DialogContent>
         </Dialog>
+    );
+}
+
+function EmailSignInContext({
+    email,
+    setEmail,
+    checkEmail,
+    setCheckEmail,
+    setUseEmailSignIn,
+    recheckEmail,
+    handleMagicLinkSignIn,
+}: {
+    email: string;
+    setEmail: (email: string) => void;
+    checkEmail: boolean;
+    setCheckEmail: (checkEmail: boolean) => void;
+    setUseEmailSignIn: (useEmailSignIn: boolean) => void;
+    recheckEmail: boolean;
+    setRecheckEmail: (recheckEmail: boolean) => void;
+    handleMagicLinkSignIn: () => void;
+}) {
+    return (
+        <div className="flex flex-col gap-4 py-4">
+            <Button
+                variant="ghost"
+                className="w-fit p-0 m-0 flex gap-2 items-center justify-center text-sm absolute top-5 left-5"
+                onClick={() => {
+                    setUseEmailSignIn(false);
+                }}
+            >
+                <ArrowLeft className="h-6 w-6" />
+            </Button>
+            <div>
+                <div className="text-center font-bold text-lg">Sign in with Email</div>
+            </div>
+            <div className="text-center text-sm text-muted-foreground">
+                {checkEmail
+                    ? recheckEmail
+                        ? "A new link has been sent. Click on the link in your email to sign-in"
+                        : "Click on the link in your email to sign-in"
+                    : "You will receive a sign-in link on the email address you provide below"}
+            </div>
+            <Input
+                placeholder="Email"
+                className="p-6"
+                disabled={checkEmail}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+            />
+            <Button
+                variant="default"
+                className="p-6"
+                onClick={handleMagicLinkSignIn}
+                disabled={!email}
+            >
+                <PaperPlaneTilt className="h-6 w-6 mr-2" />
+                {checkEmail ? "Check your email" : "Send sign in link"}
+            </Button>
+            {checkEmail && (
+                <div className="flex items-center justify-center gap-4 text-muted-foreground">
+                    <Button
+                        variant="ghost"
+                        className="p-0"
+                        disabled={recheckEmail}
+                        onClick={() => {
+                            handleMagicLinkSignIn();
+                        }}
+                    >
+                        <ArrowsClockwise className="h-6 w-6 mr-2" />
+                        Resend email
+                    </Button>
+                    <LineVertical className="h-6 w-6" />
+                    <Button
+                        variant="ghost"
+                        className="p-0"
+                        disabled={recheckEmail}
+                        onClick={() => {
+                            setEmail("");
+                            setCheckEmail(false);
+                        }}
+                    >
+                        <PencilSimple className="h-6 w-6 mr-2" />
+                        Use a different email
+                    </Button>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function MainSignInContext({
+    tips,
+    currentTip,
+    nextSlide,
+    prevSlide,
+    handleGoogleScriptLoad,
+    handleGoogleSignIn,
+    isLoading,
+    data,
+    setUseEmailSignIn,
+}: {
+    tips: { src: string; alt: string }[];
+    currentTip: number;
+    nextSlide: () => void;
+    prevSlide: () => void;
+    handleGoogleScriptLoad: () => void;
+    handleGoogleSignIn: () => void;
+    isLoading: boolean;
+    data: CredentialsData | undefined;
+    setUseEmailSignIn: (useEmailSignIn: boolean) => void;
+}) {
+    return (
+        <div>
+            <div className="relative w-full h-80 overflow-hidden rounded-t-lg">
+                {tips.map((tip, index) => (
+                    <img
+                        key={tip.src}
+                        src={tip.src}
+                        alt={tip.alt}
+                        className={`absolute w-full h-full object-cover transition-all duration-500 ease-in-out ${
+                            index === currentTip
+                                ? "opacity-100 translate-x-0"
+                                : "opacity-0 translate-x-full"
+                        }`}
+                    />
+                ))}
+                <Button
+                    onClick={prevSlide}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white/90 rounded-full p-2 shadow-lg"
+                >
+                    <CaretLeft className="text-black h-6 w-6" />
+                </Button>
+                <Button
+                    onClick={nextSlide}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white/90 rounded-full p-2 shadow-lg"
+                >
+                    <CaretRight className="text-black h-6 w-6" />
+                </Button>
+            </div>
+            <div className="flex flex-col gap-4 text-center p-4">
+                <div className="text-center font-bold text-lg">
+                    Sign In for free to start using Khoj: Your AI-powered second brain
+                </div>
+            </div>
+            <div className="flex flex-col gap-4 py-4 text-center align-middle items-center">
+                <GoogleSignIn onLoad={handleGoogleScriptLoad} />
+                {/* <div id="g_id_signin" /> */}
+                <Button
+                    variant="outline"
+                    className="w-[300px] p-6 flex gap-2 items-center justify-center"
+                    onClick={handleGoogleSignIn}
+                    disabled={isLoading || !data?.google}
+                >
+                    {isLoading ? (
+                        <Spinner className="h-6 w-6" />
+                    ) : (
+                        <GoogleLogo className="h-6 w-6" />
+                    )}
+                    Continue with Google
+                </Button>
+
+                <Button
+                    variant="default"
+                    className="w-[300px] p-6 flex gap-2 items-center justify-center"
+                    onClick={() => {
+                        setUseEmailSignIn(true);
+                    }}
+                >
+                    <PaperPlaneTilt className="h-6 w-6" />
+                    Continue with Email
+                </Button>
+            </div>
+            <div className="text-center text-muted-foreground text-xs">
+                By logging in, you agree to our{" "}
+                <Link href="https://khoj.dev/terms-of-service">Terms of Service.</Link>
+            </div>
+        </div>
     );
 }
