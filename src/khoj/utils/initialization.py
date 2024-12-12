@@ -218,7 +218,7 @@ def initialization(interactive: bool = True):
             vision_enabled = vision_enabled and chat_model in supported_vision_models
 
             chat_model_options = {
-                "chat_model": chat_model,
+                "name": chat_model,
                 "model_type": model_type,
                 "max_prompt_size": default_max_tokens,
                 "vision_enabled": vision_enabled,
