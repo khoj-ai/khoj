@@ -320,7 +320,7 @@ function MainSignInContext({
     ];
 
     return (
-        <div className="flex flex-col gap-4 p-4">
+        <div className="flex flex-col gap-4 p-4 md:p-0">
             {!isMobileWidth && (
                 <Carousel
                     plugins={[plugin.current]}
@@ -331,13 +331,13 @@ function MainSignInContext({
                     <CarouselContent>
                         {tips.map((tip, index) => (
                             <CarouselItem key={index}>
-                                <div className="p-1">
+                                <div className="p-0">
                                     <Card>
                                         <CardContent className="flex items-center justify-center rounded-b-none rounded-t-lg p-0">
                                             <img
                                                 src={tip.src}
                                                 alt={tip.alt}
-                                                className="w-full h-auto"
+                                                className="w-full h-auto rounded-b-none rounded-t-lg"
                                             />
                                         </CardContent>
                                     </Card>
@@ -351,7 +351,7 @@ function MainSignInContext({
             )}
             <div className="flex flex-col gap-4 text-center p-4">
                 <div className="text-center font-bold text-lg">
-                    Sign In for free to start using Khoj: Your AI-powered second brain
+                    Sign in to unlock your second brain
                 </div>
             </div>
             <div className="flex flex-col gap-4 py-4 text-center align-middle items-center">
@@ -404,7 +404,7 @@ function MainSignInContext({
                 </Button>
 
                 <Button
-                    variant="secondary"
+                    variant="outline"
                     className="w-[300px] p-6 flex gap-2 items-center justify-center"
                     onClick={() => {
                         setUseEmailSignIn(true);
@@ -416,7 +416,8 @@ function MainSignInContext({
             </div>
             <div className="text-center text-muted-foreground text-xs">
                 By logging in, you agree to our{" "}
-                <Link href="https://khoj.dev/terms-of-service">Terms of Service.</Link>
+                <Link href="https://khoj.dev/terms-of-service">Terms of Service</Link>. See{" "}
+                <Link href="https://khoj.dev/privacy-policy">Privacy Policy</Link>.
             </div>
         </div>
     );
