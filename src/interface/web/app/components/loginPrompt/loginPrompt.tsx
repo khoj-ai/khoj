@@ -1,3 +1,6 @@
+"use client";
+
+import styles from "./loginPrompt.module.css";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -64,6 +67,29 @@ export default function LoginPrompt(props: LoginPromptProps) {
         setAutoRotate(false);
     };
 
+    useEffect(() => {
+        const google = (window as any).google;
+
+        console.log(data, isLoading, error);
+
+        if (!google) return;
+
+        // Initialize Google Sign In after script loads
+        google.accounts.id.initialize({
+            client_id: data?.google?.client_id,
+            callback: handleGoogleSignIn,
+            auto_select: false,
+            login_uri: data?.google?.redirect_uri,
+        });
+
+        // Render the button
+        google.accounts.id.renderButton(document.getElementById("g_id_signin")!, {
+            theme: "outline",
+            size: "large",
+            width: "100%",
+        });
+    }, [data]);
+
     const handleGoogleSignIn = () => {
         if (!data?.google?.client_id || !data?.google?.redirect_uri) return;
 
@@ -85,16 +111,22 @@ export default function LoginPrompt(props: LoginPromptProps) {
     };
 
     const handleGoogleScriptLoad = () => {
+        const google = (window as any).google;
+
+        console.log(data, isLoading, error);
+
+        if (!data?.google?.client_id || !data?.google?.redirect_uri) return;
+
         // Initialize Google Sign In after script loads
-        window.google.accounts.id.initialize({
-            client_id: "blahblahblah.apps.googleusercontent.com",
+        google.accounts.id.initialize({
+            client_id: data?.google?.client_id,
             callback: handleGoogleSignIn,
             auto_select: false,
-            login_uri: "http://localhost:42110/auth/redirect",
+            login_uri: data?.google?.redirect_uri,
         });
 
         // Render the button
-        window.google.accounts.id.renderButton(document.getElementById("g_id_signin")!, {
+        google.accounts.id.renderButton(document.getElementById("g_id_signin")!, {
             theme: "outline",
             size: "large",
             width: "100%",
@@ -172,6 +204,7 @@ export default function LoginPrompt(props: LoginPromptProps) {
                                 isLoading={isLoading}
                                 data={data}
                                 setUseEmailSignIn={setUseEmailSignIn}
+                                isMobileWidth={props.isMobileWidth}
                             />
                         )}
                     </div>
@@ -209,6 +242,7 @@ export default function LoginPrompt(props: LoginPromptProps) {
                             isLoading={isLoading}
                             data={data}
                             setUseEmailSignIn={setUseEmailSignIn}
+                            isMobileWidth={props.isMobileWidth ?? false}
                         />
                     )}
                 </div>
@@ -314,6 +348,7 @@ function MainSignInContext({
     isLoading,
     data,
     setUseEmailSignIn,
+    isMobileWidth,
 }: {
     tips: { src: string; alt: string }[];
     currentTip: number;
@@ -324,35 +359,40 @@ function MainSignInContext({
     isLoading: boolean;
     data: CredentialsData | undefined;
     setUseEmailSignIn: (useEmailSignIn: boolean) => void;
+    isMobileWidth: boolean;
 }) {
     return (
         <div className="flex flex-col gap-4 p-4">
-            <div className="relative w-full h-80 overflow-hidden rounded-t-lg">
-                {tips.map((tip, index) => (
-                    <img
-                        key={tip.src}
-                        src={tip.src}
-                        alt={tip.alt}
-                        className={`absolute w-full h-full object-cover transition-all duration-500 ease-in-out ${
-                            index === currentTip
-                                ? "opacity-100 translate-x-0"
-                                : "opacity-0 translate-x-full"
-                        }`}
-                    />
-                ))}
-                <Button
-                    onClick={prevSlide}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white/90 rounded-full p-2 shadow-lg"
-                >
-                    <CaretLeft className="text-black h-6 w-6" />
-                </Button>
-                <Button
-                    onClick={nextSlide}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white/90 rounded-full p-2 shadow-lg"
-                >
-                    <CaretRight className="text-black h-6 w-6" />
-                </Button>
-            </div>
+            {!isMobileWidth && (
+                <div className="relative w-full h-80 overflow-hidden rounded-t-lg">
+                    {tips.map((tip, index) => (
+                        <img
+                            key={tip.src}
+                            src={tip.src}
+                            alt={tip.alt}
+                            className={`absolute w-full h-full object-cover transition-all duration-500 ease-in-out ${
+                                index === currentTip
+                                    ? "opacity-100 translate-x-0"
+                                    : index < currentTip
+                                      ? "opacity-0 -translate-x-full"
+                                      : "opacity-0 translate-x-full"
+                            }`}
+                        />
+                    ))}
+                    <Button
+                        onClick={prevSlide}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white/90 rounded-full p-2 shadow-lg"
+                    >
+                        <CaretLeft className="text-black h-6 w-6" />
+                    </Button>
+                    <Button
+                        onClick={nextSlide}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white/90 rounded-full p-2 shadow-lg"
+                    >
+                        <CaretRight className="text-black h-6 w-6" />
+                    </Button>
+                </div>
+            )}
             <div className="flex flex-col gap-4 text-center p-4">
                 <div className="text-center font-bold text-lg">
                     Sign In for free to start using Khoj: Your AI-powered second brain
@@ -360,7 +400,7 @@ function MainSignInContext({
             </div>
             <div className="flex flex-col gap-4 py-4 text-center align-middle items-center">
                 <GoogleSignIn onLoad={handleGoogleScriptLoad} />
-                <div id="g_id_signin" />
+                {/* <div id="g_id_signin" /> */}
                 <Button
                     variant="outline"
                     className="w-[300px] p-6 flex gap-2 items-center justify-center"
@@ -370,7 +410,37 @@ function MainSignInContext({
                     {isLoading ? (
                         <Spinner className="h-6 w-6" />
                     ) : (
-                        <GoogleLogo className="h-6 w-6" />
+                        <button className={`${styles.gsiMaterialButton}`}>
+                            <div className={styles.gsiMaterialButtonState}></div>
+                            <div className={styles.gsiMaterialButtonContentWrapper}>
+                                <div className={styles.gsiMaterialButtonIcon}>
+                                    <svg
+                                        version="1.1"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 48 48"
+                                        xmlnsXlink="http://www.w3.org/1999/xlink"
+                                    >
+                                        <path
+                                            fill="#EA4335"
+                                            d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+                                        ></path>
+                                        <path
+                                            fill="#4285F4"
+                                            d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+                                        ></path>
+                                        <path
+                                            fill="#FBBC05"
+                                            d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+                                        ></path>
+                                        <path
+                                            fill="#34A853"
+                                            d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+                                        ></path>
+                                        <path fill="none" d="M0 0h48v48H0z"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </button>
                     )}
                     Continue with Google
                 </Button>
