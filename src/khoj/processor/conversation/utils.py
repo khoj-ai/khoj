@@ -24,7 +24,7 @@ from llama_cpp.llama import Llama
 from transformers import AutoTokenizer
 
 from khoj.database.adapters import ConversationAdapters
-from khoj.database.models import ChatModelOptions, ClientApplication, KhojUser
+from khoj.database.models import ChatModel, ClientApplication, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.utils import download_model, infer_max_tokens
 from khoj.search_filter.base_filter import BaseFilter
@@ -330,9 +330,9 @@ def construct_structured_message(
     Format messages into appropriate multimedia format for supported chat model types
     """
     if model_type in [
-        ChatModelOptions.ModelType.OPENAI,
-        ChatModelOptions.ModelType.GOOGLE,
-        ChatModelOptions.ModelType.ANTHROPIC,
+        ChatModel.ModelType.OPENAI,
+        ChatModel.ModelType.GOOGLE,
+        ChatModel.ModelType.ANTHROPIC,
     ]:
         if not attached_file_context and not (vision_enabled and images):
             return message

@@ -28,12 +28,7 @@ from khoj.database.adapters import (
     get_default_search_model,
     get_user_photo,
 )
-from khoj.database.models import (
-    Agent,
-    ChatModelOptions,
-    KhojUser,
-    SpeechToTextModelOptions,
-)
+from khoj.database.models import Agent, ChatModel, KhojUser, SpeechToTextModelOptions
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.anthropic.anthropic_chat import (
     extract_questions_anthropic,
@@ -404,15 +399,15 @@ async def extract_references_and_questions(
     # Infer search queries from user message
     with timer("Extracting search queries took", logger):
         # If we've reached here, either the user has enabled offline chat or the openai model is enabled.
-        conversation_config = await ConversationAdapters.aget_default_conversation_config(user)
-        vision_enabled = conversation_config.vision_enabled
+        chat_model = await ConversationAdapters.aget_default_chat_model(user)
+        vision_enabled = chat_model.vision_enabled
 
-        if conversation_config.model_type == ChatModelOptions.ModelType.OFFLINE:
+        if chat_model.model_type == ChatModel.ModelType.OFFLINE:
             using_offline_chat = True
-            chat_model = conversation_config.chat_model
-            max_tokens = conversation_config.max_prompt_size
+            chat_model_name = chat_model.name
+            max_tokens = chat_model.max_prompt_size
             if state.offline_chat_processor_config is None:
-                state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
+                state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model_name, max_tokens)
 
             loaded_model = state.offline_chat_processor_config.loaded_model
 
@@ -424,18 +419,18 @@ async def extract_references_and_questions(
                 should_extract_questions=True,
                 location_data=location_data,
                 user=user,
-                max_prompt_size=conversation_config.max_prompt_size,
+                max_prompt_size=chat_model.max_prompt_size,
                 personality_context=personality_context,
                 query_files=query_files,
                 tracer=tracer,
             )
-        elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
-            api_key = conversation_config.ai_model_api.api_key
-            base_url = conversation_config.ai_model_api.api_base_url
-            chat_model = conversation_config.chat_model
+        elif chat_model.model_type == ChatModel.ModelType.OPENAI:
+            api_key = chat_model.ai_model_api.api_key
+            base_url = chat_model.ai_model_api.api_base_url
+            chat_model_name = chat_model.name
             inferred_queries = extract_questions(
                 defiltered_query,
-                model=chat_model,
+                model=chat_model_name,
                 api_key=api_key,
                 api_base_url=base_url,
                 conversation_log=meta_log,
@@ -447,13 +442,13 @@ async def extract_references_and_questions(
                 query_files=query_files,
                 tracer=tracer,
             )
-        elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
-            api_key = conversation_config.ai_model_api.api_key
-            chat_model = conversation_config.chat_model
+        elif chat_model.model_type == ChatModel.ModelType.ANTHROPIC:
+            api_key = chat_model.ai_model_api.api_key
+            chat_model_name = chat_model.name
             inferred_queries = extract_questions_anthropic(
                 defiltered_query,
                 query_images=query_images,
-                model=chat_model,
+                model=chat_model_name,
                 api_key=api_key,
                 conversation_log=meta_log,
                 location_data=location_data,
@@ -463,17 +458,17 @@ async def extract_references_and_questions(
                 query_files=query_files,
                 tracer=tracer,
             )
-        elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
-            api_key = conversation_config.ai_model_api.api_key
-            chat_model = conversation_config.chat_model
+        elif chat_model.model_type == ChatModel.ModelType.GOOGLE:
+            api_key = chat_model.ai_model_api.api_key
+            chat_model_name = chat_model.name
             inferred_queries = extract_questions_gemini(
                 defiltered_query,
                 query_images=query_images,
-                model=chat_model,
+                model=chat_model_name,
                 api_key=api_key,
                 conversation_log=meta_log,
                 location_data=location_data,
-                max_tokens=conversation_config.max_prompt_size,
+                max_tokens=chat_model.max_prompt_size,
                 user=user,
                 vision_enabled=vision_enabled,
                 personality_context=personality_context,

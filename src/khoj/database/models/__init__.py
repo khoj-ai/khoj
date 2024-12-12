@@ -193,7 +193,7 @@ class AiModelApi(DbBaseModel):
         return self.name
 
 
-class ChatModelOptions(DbBaseModel):
+class ChatModel(DbBaseModel):
     class ModelType(models.TextChoices):
         OPENAI = "openai"
         OFFLINE = "offline"
@@ -203,13 +203,13 @@ class ChatModelOptions(DbBaseModel):
     max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
     subscribed_max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
     tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
-    chat_model = models.CharField(max_length=200, default="bartowski/Meta-Llama-3.1-8B-Instruct-GGUF")
+    name = models.CharField(max_length=200, default="bartowski/Meta-Llama-3.1-8B-Instruct-GGUF")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
     vision_enabled = models.BooleanField(default=False)
     ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
     def __str__(self):
-        return self.chat_model
+        return self.name
 
 
 class VoiceModelOption(DbBaseModel):
@@ -297,7 +297,7 @@ class Agent(DbBaseModel):
         models.CharField(max_length=200, choices=OutputModeOptions.choices), default=list, null=True, blank=True
     )
     managed_by_admin = models.BooleanField(default=False)
-    chat_model = models.ForeignKey(ChatModelOptions, on_delete=models.CASCADE)
+    chat_model = models.ForeignKey(ChatModel, on_delete=models.CASCADE)
     slug = models.CharField(max_length=200, unique=True)
     style_color = models.CharField(max_length=200, choices=StyleColorTypes.choices, default=StyleColorTypes.BLUE)
     style_icon = models.CharField(max_length=200, choices=StyleIconTypes.choices, default=StyleIconTypes.LIGHTBULB)
@@ -438,10 +438,10 @@ class WebScraper(DbBaseModel):
 
 class ServerChatSettings(DbBaseModel):
     chat_default = models.ForeignKey(
-        ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="chat_default"
+        ChatModel, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="chat_default"
     )
     chat_advanced = models.ForeignKey(
-        ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="chat_advanced"
+        ChatModel, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="chat_advanced"
     )
     web_scraper = models.ForeignKey(
         WebScraper, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="web_scraper"
@@ -563,7 +563,7 @@ class SpeechToTextModelOptions(DbBaseModel):
 
 class UserConversationConfig(DbBaseModel):
     user = models.OneToOneField(KhojUser, on_delete=models.CASCADE)
-    setting = models.ForeignKey(ChatModelOptions, on_delete=models.CASCADE, default=None, null=True, blank=True)
+    setting = models.ForeignKey(ChatModel, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
 
 class UserVoiceModelConfig(DbBaseModel):

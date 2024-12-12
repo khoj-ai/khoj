@@ -13,7 +13,7 @@ from khoj.configure import (
 )
 from khoj.database.models import (
     Agent,
-    ChatModelOptions,
+    ChatModel,
     GithubConfig,
     GithubRepoConfig,
     KhojApiUser,
@@ -35,7 +35,7 @@ from khoj.utils.helpers import resolve_absolute_path
 from khoj.utils.rawconfig import ContentConfig, ImageSearchConfig, SearchConfig
 from tests.helpers import (
     AiModelApiFactory,
-    ChatModelOptionsFactory,
+    ChatModelFactory,
     ProcessLockFactory,
     SubscriptionFactory,
     UserConversationProcessorConfigFactory,
@@ -184,14 +184,14 @@ def api_user4(default_user4):
 @pytest.mark.django_db
 @pytest.fixture
 def default_openai_chat_model_option():
-    chat_model = ChatModelOptionsFactory(chat_model="gpt-4o-mini", model_type="openai")
+    chat_model = ChatModelFactory(name="gpt-4o-mini", model_type="openai")
     return chat_model
 
 
 @pytest.mark.django_db
 @pytest.fixture
 def offline_agent():
-    chat_model = ChatModelOptionsFactory()
+    chat_model = ChatModelFactory()
     return Agent.objects.create(
         name="Accountant",
         chat_model=chat_model,
@@ -202,7 +202,7 @@ def offline_agent():
 @pytest.mark.django_db
 @pytest.fixture
 def openai_agent():
-    chat_model = ChatModelOptionsFactory(chat_model="gpt-4o-mini", model_type="openai")
+    chat_model = ChatModelFactory(name="gpt-4o-mini", model_type="openai")
     return Agent.objects.create(
         name="Accountant",
         chat_model=chat_model,
@@ -311,13 +311,13 @@ def chat_client_builder(search_config, user, index_content=True, require_auth=Fa
 
     # Initialize Processor from Config
     chat_provider = get_chat_provider()
-    online_chat_model: ChatModelOptionsFactory = None
-    if chat_provider == ChatModelOptions.ModelType.OPENAI:
-        online_chat_model = ChatModelOptionsFactory(chat_model="gpt-4o-mini", model_type="openai")
-    elif chat_provider == ChatModelOptions.ModelType.GOOGLE:
-        online_chat_model = ChatModelOptionsFactory(chat_model="gemini-1.5-flash", model_type="google")
-    elif chat_provider == ChatModelOptions.ModelType.ANTHROPIC:
-        online_chat_model = ChatModelOptionsFactory(chat_model="claude-3-5-haiku-20241022", model_type="anthropic")
+    online_chat_model: ChatModelFactory = None
+    if chat_provider == ChatModel.ModelType.OPENAI:
+        online_chat_model = ChatModelFactory(name="gpt-4o-mini", model_type="openai")
+    elif chat_provider == ChatModel.ModelType.GOOGLE:
+        online_chat_model = ChatModelFactory(name="gemini-1.5-flash", model_type="google")
+    elif chat_provider == ChatModel.ModelType.ANTHROPIC:
+        online_chat_model = ChatModelFactory(name="claude-3-5-haiku-20241022", model_type="anthropic")
     if online_chat_model:
         online_chat_model.ai_model_api = AiModelApiFactory(api_key=get_chat_api_key(chat_provider))
         UserConversationProcessorConfigFactory(user=user, setting=online_chat_model)
@@ -394,8 +394,8 @@ def client_offline_chat(search_config: SearchConfig, default_user2: KhojUser):
     configure_content(default_user2, all_files)
 
     # Initialize Processor from Config
-    ChatModelOptionsFactory(
-        chat_model="bartowski/Meta-Llama-3.1-3B-Instruct-GGUF",
+    ChatModelFactory(
+        name="bartowski/Meta-Llama-3.1-3B-Instruct-GGUF",
         tokenizer=None,
         max_prompt_size=None,
         model_type="offline",

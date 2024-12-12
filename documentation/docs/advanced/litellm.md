@@ -25,7 +25,7 @@ Using LiteLLM with Khoj makes it possible to turn any LLM behind an API into you
    - Name: `proxy-name`
    - Api Key: `any string`
    - Api Base Url: **URL of your Openai Proxy API**
-4. Create a new [Chat Model Option](http://localhost:42110/server/admin/database/chatmodeloptions/add) on your Khoj admin panel.
+4. Create a new [Chat Model](http://localhost:42110/server/admin/database/chatmodel/add) on your Khoj admin panel.
    - Name: `llama3.1` (replace with the name of your local model)
    - Model Type: `Openai`
    - Openai Config: `<the proxy config you created in step 3>`

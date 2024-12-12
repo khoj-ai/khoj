@@ -24,7 +24,7 @@ def get_chat_model_options(
 
     all_conversation_options = list()
     for conversation_option in conversation_options:
-        all_conversation_options.append({"chat_model": conversation_option.chat_model, "id": conversation_option.id})
+        all_conversation_options.append({"chat_model": conversation_option.name, "id": conversation_option.id})
 
     return Response(content=json.dumps(all_conversation_options), media_type="application/json", status_code=200)
 
@@ -37,12 +37,12 @@ def get_user_chat_model(
 ):
     user = request.user.object
 
-    chat_model = ConversationAdapters.get_conversation_config(user)
+    chat_model = ConversationAdapters.get_chat_model(user)
 
     if chat_model is None:
-        chat_model = ConversationAdapters.get_default_conversation_config(user)
+        chat_model = ConversationAdapters.get_default_chat_model(user)
 
-    return Response(status_code=200, content=json.dumps({"id": chat_model.id, "chat_model": chat_model.chat_model}))
+    return Response(status_code=200, content=json.dumps({"id": chat_model.id, "chat_model": chat_model.name}))
 
 
 @api_model.post("/chat", status_code=200)
