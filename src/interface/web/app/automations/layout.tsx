@@ -6,7 +6,7 @@ import { ContentSecurityPolicy } from "../common/layoutHelper";
 
 export const metadata: Metadata = {
     title: "Khoj AI - Automations",
-    description: "Use Autoomations with Khoj to simplify the process of running repetitive tasks.",
+    description: "Use Automations with Khoj to simplify the process of running repetitive tasks.",
     icons: {
         icon: "/static/assets/icons/khoj_lantern.ico",
         apple: "/static/assets/icons/khoj_lantern_256x256.png",
@@ -14,10 +14,16 @@ export const metadata: Metadata = {
     openGraph: {
         siteName: "Khoj AI",
         title: "Khoj AI - Automations",
-        description: "Your Second Brain.",
+        description:
+            "Use Automations with Khoj to simplify the process of running repetitive tasks.",
         url: "https://app.khoj.dev/automations",
         type: "website",
         images: [
+            {
+                url: "https://assets.khoj.dev/khoj_hero.png",
+                width: 940,
+                height: 525,
+            },
             {
                 url: "https://assets.khoj.dev/khoj_lantern_256x256.png",
                 width: 256,

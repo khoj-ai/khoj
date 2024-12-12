@@ -15,10 +15,15 @@ export const metadata: Metadata = {
     openGraph: {
         siteName: "Khoj AI",
         title: "Khoj AI - Settings",
-        description: "Your Second Brain.",
+        description: "Setup, configure, and personalize Khoj. your AI-powered research assistant.",
         url: "https://app.khoj.dev/settings",
         type: "website",
         images: [
+            {
+                url: "https://assets.khoj.dev/khoj_hero.png",
+                width: 940,
+                height: 525,
+            },
             {
                 url: "https://assets.khoj.dev/khoj_lantern_256x256.png",
                 width: 256,

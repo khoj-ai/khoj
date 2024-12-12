@@ -14,10 +14,16 @@ export const metadata: Metadata = {
     openGraph: {
         siteName: "Khoj AI",
         title: "Khoj AI - Chat",
-        description: "Your Second Brain.",
+        description:
+            "Ask anything. Khoj will use the internet and your docs to answer, paint and even automate stuff for you.",
         url: "https://app.khoj.dev/chat",
         type: "website",
         images: [
+            {
+                url: "https://assets.khoj.dev/khoj_hero.png",
+                width: 940,
+                height: 525,
+            },
             {
                 url: "https://assets.khoj.dev/khoj_lantern_256x256.png",
                 width: 256,
