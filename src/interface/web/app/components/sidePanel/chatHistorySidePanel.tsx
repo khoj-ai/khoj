@@ -105,6 +105,7 @@ import { ScrollAreaScrollbar } from "@radix-ui/react-scroll-area";
 import { KhojLogoType } from "@/app/components/logo/khojLogo";
 import NavMenu from "@/app/components/navMenu/navMenu";
 import { getIconFromIconName } from "@/app/common/iconUtils";
+import LoginPrompt from "../loginPrompt/loginPrompt";
 
 // Define a fetcher function
 const fetcher = (url: string) =>
@@ -908,6 +909,7 @@ export default function SidePanel(props: SidePanelProps) {
     const [organizedData, setOrganizedData] = useState<GroupedChatHistory | null>(null);
     const [subsetOrganizedData, setSubsetOrganizedData] = useState<GroupedChatHistory | null>(null);
     const [enabled, setEnabled] = useState(false);
+    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
     const authenticatedData = useAuthenticatedData();
     const { data: chatSessions } = useChatSessionsFetchRequest(
@@ -955,6 +957,13 @@ export default function SidePanel(props: SidePanelProps) {
         <div
             className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed} ${props.isMobileWidth ? "mt-0" : "mt-1"}`}
         >
+            {showLoginPrompt && (
+                <LoginPrompt
+                    loginRedirectMessage="Sign in to start chatting"
+                    onOpenChange={setShowLoginPrompt}
+                    isMobileWidth={props.isMobileWidth}
+                />
+            )}
             <div className={`flex justify-between flex-row`}>
                 {props.isMobileWidth ? (
                     <Drawer
@@ -990,17 +999,15 @@ export default function SidePanel(props: SidePanelProps) {
                                 </div>
                             ) : (
                                 <div className={`${styles.panelWrapper}`}>
-                                    <Link
-                                        href={`/login?next=${encodeURIComponent(window.location.pathname)}`}
-                                        className="text-center"
+                                    {" "}
+                                    {/* Redirect to login page */}
+                                    <Button
+                                        variant="default"
+                                        onClick={() => setShowLoginPrompt(true)}
                                     >
-                                        {" "}
-                                        {/* Redirect to login page */}
-                                        <Button variant="default">
-                                            <UserCirclePlus className="h-4 w-4 mr-1" />
-                                            Sign Up
-                                        </Button>
-                                    </Link>
+                                        <UserCirclePlus className="h-4 w-4 mr-1" />
+                                        Sign Up
+                                    </Button>
                                 </div>
                             )}
                             <DrawerFooter>
@@ -1068,15 +1075,11 @@ export default function SidePanel(props: SidePanelProps) {
                             <StackPlus className="h-4 w-4 mr-1" />
                             New Conversation
                         </Button>
-                    </Link>
-                    <Link href={`/login?next=${encodeURIComponent(window.location.pathname)}`}>
-                        {" "}
-                        {/* Redirect to login page */}
-                        <Button variant="default">
-                            <UserCirclePlus className="h-4 w-4 mr-1" />
-                            Sign Up
-                        </Button>
-                    </Link>
+                    </Link>{" "}
+                    <Button variant="default" onClick={() => setShowLoginPrompt(true)}>
+                        <UserCirclePlus className="h-4 w-4 mr-1" />
+                        Sign Up
+                    </Button>
                 </div>
             )}
         </div>
