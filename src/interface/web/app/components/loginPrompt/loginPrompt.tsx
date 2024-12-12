@@ -2,19 +2,11 @@
 
 import styles from "./loginPrompt.module.css";
 import { Button } from "@/components/ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
     ArrowLeft,
     ArrowsClockwise,
-    GoogleLogo,
     LineVertical,
     PaperPlaneTilt,
     PencilSimple,
@@ -70,8 +62,6 @@ export default function LoginPrompt(props: LoginPromptProps) {
     useEffect(() => {
         const google = (window as any).google;
 
-        console.log(data, isLoading, error);
-
         if (!google) return;
 
         // Initialize Google Sign In after script loads
@@ -112,8 +102,6 @@ export default function LoginPrompt(props: LoginPromptProps) {
 
     const handleGoogleScriptLoad = () => {
         const google = (window as any).google;
-
-        console.log(data, isLoading, error);
 
         if (!data?.google?.client_id || !data?.google?.redirect_uri) return;
 
@@ -413,7 +401,9 @@ function MainSignInContext({
                         <button className={`${styles.gsiMaterialButton}`}>
                             <div className={styles.gsiMaterialButtonState}></div>
                             <div className={styles.gsiMaterialButtonContentWrapper}>
-                                <div className={styles.gsiMaterialButtonIcon}>
+                                <div
+                                    className={`${styles.gsiMaterialButtonIcon} flex items-center justify-center`}
+                                >
                                     <svg
                                         version="1.1"
                                         xmlns="http://www.w3.org/2000/svg"
