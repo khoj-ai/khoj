@@ -217,6 +217,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             {showLoginPrompt && (
                 <LoginPrompt
                     onOpenChange={setShowLoginPrompt}
+                    isMobileWidth={props.isMobileWidth}
                     loginRedirectMessage={"Login to your second brain"}
                 />
             )}

@@ -408,6 +408,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
             {showLoginPrompt && loginRedirectMessage && (
                 <LoginPrompt
                     onOpenChange={setShowLoginPrompt}
+                    isMobileWidth={props.isMobileWidth}
                     loginRedirectMessage={loginRedirectMessage}
                 />
             )}

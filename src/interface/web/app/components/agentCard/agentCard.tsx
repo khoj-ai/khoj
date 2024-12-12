@@ -328,6 +328,7 @@ export function AgentCard(props: AgentCardProps) {
                 <LoginPrompt
                     loginRedirectMessage={`Sign in to start chatting with ${props.data.name}`}
                     onOpenChange={setShowLoginPrompt}
+                    isMobileWidth={props.isMobileWidth}
                 />
             )}
             <CardHeader>

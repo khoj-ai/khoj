@@ -23,6 +23,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { GoogleSignIn } from "./GoogleSignIn";
+import { Drawer, DrawerContent } from "@/components/ui/drawer";
 
 export interface LoginPromptProps {
     loginRedirectMessage: string;
@@ -143,19 +144,50 @@ export default function LoginPrompt(props: LoginPromptProps) {
             });
     }
 
+    if (props.isMobileWidth) {
+        return (
+            <Drawer open={true} onOpenChange={props.onOpenChange}>
+                <DrawerContent
+                    className={`flex flex-col gap-4 max-w-xl ${!useEmailSignIn ? "p-0 pb-4 m-0" : ""}`}
+                >
+                    <div>
+                        {useEmailSignIn && (
+                            <EmailSignInContext
+                                email={email}
+                                setEmail={setEmail}
+                                checkEmail={checkEmail}
+                                setCheckEmail={setCheckEmail}
+                                setUseEmailSignIn={setUseEmailSignIn}
+                                recheckEmail={recheckEmail}
+                                setRecheckEmail={setRecheckEmail}
+                                handleMagicLinkSignIn={handleMagicLinkSignIn}
+                            />
+                        )}
+                        {!useEmailSignIn && (
+                            <MainSignInContext
+                                tips={tips}
+                                currentTip={currentTip}
+                                nextSlide={nextSlide}
+                                prevSlide={prevSlide}
+                                handleGoogleScriptLoad={handleGoogleScriptLoad}
+                                handleGoogleSignIn={handleGoogleSignIn}
+                                isLoading={isLoading}
+                                data={data}
+                                setUseEmailSignIn={setUseEmailSignIn}
+                            />
+                        )}
+                    </div>
+                </DrawerContent>
+            </Drawer>
+        );
+    }
+
     return (
         <Dialog open={true} onOpenChange={props.onOpenChange}>
             <DialogContent
                 className={`flex flex-col gap-4 max-w-xl ${!useEmailSignIn ? "p-0 pb-4 m-0" : ""}`}
             >
                 <div>
-                    {/* <DialogHeader>
-                        <DialogTitle>Sign in to Khoj to continue</DialogTitle>
-                    </DialogHeader>
-                    <DialogDescription className="py-4">
-                        {props.loginRedirectMessage}.
-                    </DialogDescription> */}
-
                     {useEmailSignIn && (
                         <EmailSignInContext
                             email={email}
