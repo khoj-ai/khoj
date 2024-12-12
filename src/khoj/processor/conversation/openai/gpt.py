@@ -128,7 +128,7 @@ def send_message_to_model(
     # Get Response from GPT
     return completion_with_backoff(
         messages=messages,
-        model=model,
+        model_name=model,
         openai_api_key=api_key,
         temperature=temperature,
         api_base_url=api_base_url,

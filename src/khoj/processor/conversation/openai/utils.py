@@ -40,7 +40,13 @@ openai_clients: Dict[str, openai.OpenAI] = {}
     reraise=True,
 )
 def completion_with_backoff(
-    messages, model, temperature=0, openai_api_key=None, api_base_url=None, model_kwargs=None, tracer: dict = {}
+    messages,
+    model_name: str,
+    temperature=0,
+    openai_api_key=None,
+    api_base_url=None,
+    model_kwargs: dict = {},
+    tracer: dict = {},
 ) -> str:
     client_key = f"{openai_api_key}--{api_base_url}"
     client: openai.OpenAI | None = openai_clients.get(client_key)
@@ -56,7 +62,7 @@ def completion_with_backoff(
 
     # Update request parameters for compatability with o1 model series
     # Refer: https://platform.openai.com/docs/guides/reasoning/beta-limitations
-    if model.startswith("o1"):
+    if model_name.startswith("o1"):
         temperature = 1
         model_kwargs.pop("stop", None)
         model_kwargs.pop("response_format", None)
@@ -66,12 +72,12 @@ def completion_with_backoff(
 
     chat: ChatCompletion | openai.Stream[ChatCompletionChunk] = client.chat.completions.create(
         messages=formatted_messages,  # type: ignore
-        model=model,  # type: ignore
+        model=model_name,  # type: ignore
         stream=stream,
         stream_options={"include_usage": True} if stream else {},
         temperature=temperature,
         timeout=20,
-        **(model_kwargs or dict()),
+        **model_kwargs,
     )
 
     aggregated_response = ""
@@ -91,10 +97,10 @@ def completion_with_backoff(
     # Calculate cost of chat
     input_tokens = chunk.usage.prompt_tokens if hasattr(chunk, "usage") and chunk.usage else 0
     output_tokens = chunk.usage.completion_tokens if hasattr(chunk, "usage") and chunk.usage else 0
-    tracer["usage"] = get_chat_usage_metrics(model, input_tokens, output_tokens, tracer.get("usage"))
+    tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, tracer.get("usage"))
 
     # Save conversation trace
-    tracer["chat_model"] = model
+    tracer["chat_model"] = model_name
     tracer["temperature"] = temperature
     if is_promptrace_enabled():
         commit_conversation_trace(messages, aggregated_response, tracer)
@@ -139,11 +145,11 @@ def chat_completion_with_backoff(
 def llm_thread(
     g,
     messages,
-    model_name,
+    model_name: str,
     temperature,
     openai_api_key=None,
     api_base_url=None,
-    model_kwargs=None,
+    model_kwargs: dict = {},
     tracer: dict = {},
 ):
     try:
@@ -177,7 +183,7 @@ def llm_thread(
             stream_options={"include_usage": True} if stream else {},
             temperature=temperature,
             timeout=20,
-            **(model_kwargs or dict()),
+            **model_kwargs,
         )
 
         aggregated_response = ""

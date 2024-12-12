@@ -204,10 +204,10 @@ def initialization(interactive: bool = True):
             ai_model_api = AiModelApi.objects.create(api_key=api_key, name=provider_name, api_base_url=api_base_url)
 
         if interactive:
-            chat_model_names = input(
+            user_chat_models = input(
                 f"Enter the {provider_name} chat models you want to use (default: {','.join(default_chat_models)}): "
             )
-            chat_models = chat_model_names.split(",") if chat_model_names != "" else default_chat_models
+            chat_models = user_chat_models.split(",") if user_chat_models != "" else default_chat_models
             chat_models = [model.strip() for model in chat_models]
         else:
             chat_models = default_chat_models
@@ -255,14 +255,14 @@ def initialization(interactive: bool = True):
                     )
 
                     # Add new models
-                    for model in available_models:
-                        if not existing_models.filter(name=model).exists():
+                    for model_name in available_models:
+                        if not existing_models.filter(name=model_name).exists():
                             ChatModel.objects.create(
-                                name=model,
+                                name=model_name,
                                 model_type=ChatModel.ModelType.OPENAI,
-                                max_prompt_size=model_to_prompt_size.get(model),
-                                vision_enabled=model in default_openai_chat_models,
-                                tokenizer=model_to_tokenizer.get(model),
+                                max_prompt_size=model_to_prompt_size.get(model_name),
+                                vision_enabled=model_name in default_openai_chat_models,
+                                tokenizer=model_to_tokenizer.get(model_name),
                                 ai_model_api=config,
                             )
 

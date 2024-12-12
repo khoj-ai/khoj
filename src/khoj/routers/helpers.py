@@ -985,7 +985,7 @@ async def send_message_to_model_wrapper(
         return send_message_to_model_offline(
             messages=truncated_messages,
             loaded_model=loaded_model,
-            model=chat_model_name,
+            model_name=chat_model_name,
             max_prompt_size=max_tokens,
             streaming=False,
             response_type=response_type,
@@ -1101,7 +1101,7 @@ def send_message_to_model_wrapper_sync(
         return send_message_to_model_offline(
             messages=truncated_messages,
             loaded_model=loaded_model,
-            model=chat_model_name,
+            model_name=chat_model_name,
             max_prompt_size=max_tokens,
             streaming=False,
             response_type=response_type,
@@ -1251,7 +1251,7 @@ def generate_chat_response(
                 conversation_log=meta_log,
                 completion_func=partial_completion,
                 conversation_commands=conversation_commands,
-                model=chat_model.name,
+                model_name=chat_model.name,
                 max_prompt_size=chat_model.max_prompt_size,
                 tokenizer_name=chat_model.tokenizer,
                 location_data=location_data,
