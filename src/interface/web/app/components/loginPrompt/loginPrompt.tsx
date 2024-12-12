@@ -147,9 +147,7 @@ export default function LoginPrompt(props: LoginPromptProps) {
     if (props.isMobileWidth) {
         return (
             <Drawer open={true} onOpenChange={props.onOpenChange}>
-                <DrawerContent
-                    className={`flex flex-col gap-4 max-w-xl ${!useEmailSignIn ? "p-0 pb-4 m-0" : ""}`}
-                >
+                <DrawerContent className={`flex flex-col gap-4 max-w-xl`}>
                     <div>
                         {useEmailSignIn && (
                             <EmailSignInContext
@@ -238,7 +236,7 @@ function EmailSignInContext({
     handleMagicLinkSignIn: () => void;
 }) {
     return (
-        <div className="flex flex-col gap-4 py-4">
+        <div className="flex flex-col gap-4 p-4">
             <Button
                 variant="ghost"
                 className="w-fit p-0 m-0 flex gap-2 items-center justify-center text-sm absolute top-5 left-5"
@@ -328,7 +326,7 @@ function MainSignInContext({
     setUseEmailSignIn: (useEmailSignIn: boolean) => void;
 }) {
     return (
-        <div>
+        <div className="flex flex-col gap-4 p-4">
             <div className="relative w-full h-80 overflow-hidden rounded-t-lg">
                 {tips.map((tip, index) => (
                     <img
@@ -362,7 +360,7 @@ function MainSignInContext({
             </div>
             <div className="flex flex-col gap-4 py-4 text-center align-middle items-center">
                 <GoogleSignIn onLoad={handleGoogleScriptLoad} />
-                {/* <div id="g_id_signin" /> */}
+                <div id="g_id_signin" />
                 <Button
                     variant="outline"
                     className="w-[300px] p-6 flex gap-2 items-center justify-center"
