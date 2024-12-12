@@ -113,7 +113,8 @@ jobs:
           khoj --anonymous-mode --non-interactive &
 
           # Start code sandbox
-          npm run dev --prefix terrarium &
+          npm install -g pm2
+          pm2 start src/index.ts --interpreter ts-node --exp-backoff-restart-delay=100 --name sandbox --cwd terrarium
 
           # Wait for server to be ready
           timeout=120
