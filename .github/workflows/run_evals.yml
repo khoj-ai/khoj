@@ -114,7 +114,7 @@ jobs:
 
           # Start code sandbox
           npm install -g pm2
-          pm2 start src/index.ts --interpreter ts-node --exp-backoff-restart-delay=100 --name sandbox --cwd terrarium
+          npm run ci --prefix terrarium
 
           # Wait for server to be ready
           timeout=120
