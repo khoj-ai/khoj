@@ -307,7 +307,7 @@ Using Ollama? See the [Ollama Integration](/advanced/ollama) section for more cu
    - Give the configuration a friendly name like `OpenAI`
    - (Optional) Set the API base URL. It is only relevant if you're using another OpenAI-compatible proxy server like [Ollama](/advanced/ollama) or [LMStudio](/advanced/lmstudio).<br />
 ![example configuration for ai model api](/img/example_openai_processor_config.png)
-2. Create a new [chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/add)
+2. Create a new [chat model](http://localhost:42110/server/admin/database/chatmodel/add)
     - Set the `chat-model` field to an [OpenAI chat model](https://platform.openai.com/docs/models). Example: `gpt-4o`.
     - Make sure to set the `model-type` field to `OpenAI`.
     - If your model supports vision, set the `vision enabled` field to `true`. This is currently only supported for OpenAI models with vision capabilities.
@@ -318,7 +318,7 @@ Using Ollama? See the [Ollama Integration](/advanced/ollama) section for more cu
 1. Create a new [AI Model API](http://localhost:42110/server/admin/database/aimodelapi/add) in the server admin settings.
    - Add your [Anthropic API key](https://console.anthropic.com/account/keys)
    - Give the configuration a friendly name like `Anthropic`. Do not configure the API base url.
-2. Create a new [chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/add)
+2. Create a new [chat model](http://localhost:42110/server/admin/database/chatmodel/add)
     - Set the `chat-model` field to an [Anthropic chat model](https://docs.anthropic.com/en/docs/about-claude/models#model-names). Example: `claude-3-5-sonnet-20240620`.
     - Set the `model-type` field to `Anthropic`.
     - Set the `ai model api` field to the Anthropic AI Model API you created in step 1.
@@ -327,7 +327,7 @@ Using Ollama? See the [Ollama Integration](/advanced/ollama) section for more cu
 1. Create a new [AI Model API](http://localhost:42110/server/admin/database/aimodelapi/add) in the server admin settings.
    - Add your [Gemini API key](https://aistudio.google.com/app/apikey)
    - Give the configuration a friendly name like `Gemini`. Do not configure the API base url.
-2. Create a new [chat model options](http://localhost:42110/server/admin/database/chatmodeloptions/add)
+2. Create a new [chat model](http://localhost:42110/server/admin/database/chatmodel/add)
     - Set the `chat-model` field to a [Google Gemini chat model](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models#gemini-models). Example: `gemini-1.5-flash`.
     - Set the `model-type` field to `Gemini`.
     - Set the `ai model api` field to the Gemini AI Model API you created in step 1.
@@ -343,7 +343,7 @@ Offline chat stays completely private and can work without internet using any op
 :::
 
 1. Get the name of your preferred chat model from [HuggingFace](https://huggingface.co/models?pipeline_tag=text-generation&library=gguf). *Most GGUF format chat models are supported*.
-2. Open the [create chat model page](http://localhost:42110/server/admin/database/chatmodeloptions/add/) on the admin panel
+2. Open the [create chat model page](http://localhost:42110/server/admin/database/chatmodel/add/) on the admin panel
 3. Set the `chat-model` field to the name of your preferred chat model
    - Make sure the `model-type` is set to `Offline`
 4. Set the newly added chat model as your preferred model in your [User chat settings](http://localhost:42110/settings) and [Server chat settings](http://localhost:42110/server/admin/database/serverchatsettings/).

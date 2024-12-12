@@ -6,7 +6,7 @@ from django.utils.timezone import make_aware
 
 from khoj.database.models import (
     AiModelApi,
-    ChatModelOptions,
+    ChatModel,
     Conversation,
     KhojApiUser,
     KhojUser,
@@ -18,27 +18,27 @@ from khoj.database.models import (
 from khoj.processor.conversation.utils import message_to_log
 
 
-def get_chat_provider(default: ChatModelOptions.ModelType | None = ChatModelOptions.ModelType.OFFLINE):
+def get_chat_provider(default: ChatModel.ModelType | None = ChatModel.ModelType.OFFLINE):
     provider = os.getenv("KHOJ_TEST_CHAT_PROVIDER")
-    if provider and provider in ChatModelOptions.ModelType:
-        return ChatModelOptions.ModelType(provider)
+    if provider and provider in ChatModel.ModelType:
+        return ChatModel.ModelType(provider)
     elif os.getenv("OPENAI_API_KEY"):
-        return ChatModelOptions.ModelType.OPENAI
+        return ChatModel.ModelType.OPENAI
     elif os.getenv("GEMINI_API_KEY"):
-        return ChatModelOptions.ModelType.GOOGLE
+        return ChatModel.ModelType.GOOGLE
     elif os.getenv("ANTHROPIC_API_KEY"):
-        return ChatModelOptions.ModelType.ANTHROPIC
+        return ChatModel.ModelType.ANTHROPIC
     else:
         return default
 
 
-def get_chat_api_key(provider: ChatModelOptions.ModelType = None):
+def get_chat_api_key(provider: ChatModel.ModelType = None):
     provider = provider or get_chat_provider()
-    if provider == ChatModelOptions.ModelType.OPENAI:
+    if provider == ChatModel.ModelType.OPENAI:
         return os.getenv("OPENAI_API_KEY")
-    elif provider == ChatModelOptions.ModelType.GOOGLE:
+    elif provider == ChatModel.ModelType.GOOGLE:
         return os.getenv("GEMINI_API_KEY")
-    elif provider == ChatModelOptions.ModelType.ANTHROPIC:
+    elif provider == ChatModel.ModelType.ANTHROPIC:
         return os.getenv("ANTHROPIC_API_KEY")
     else:
         return os.getenv("OPENAI_API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("ANTHROPIC_API_KEY")
@@ -83,13 +83,13 @@ class AiModelApiFactory(factory.django.DjangoModelFactory):
     api_key = get_chat_api_key()
 
 
-class ChatModelOptionsFactory(factory.django.DjangoModelFactory):
+class ChatModelFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = ChatModelOptions
+        model = ChatModel
 
     max_prompt_size = 20000
     tokenizer = None
-    chat_model = "bartowski/Meta-Llama-3.2-3B-Instruct-GGUF"
+    name = "bartowski/Meta-Llama-3.2-3B-Instruct-GGUF"
     model_type = get_chat_provider()
     ai_model_api = factory.LazyAttribute(lambda obj: AiModelApiFactory() if get_chat_api_key() else None)
 
@@ -99,7 +99,7 @@ class UserConversationProcessorConfigFactory(factory.django.DjangoModelFactory):
         model = UserConversationConfig
 
     user = factory.SubFactory(UserFactory)
-    setting = factory.SubFactory(ChatModelOptionsFactory)
+    setting = factory.SubFactory(ChatModelFactory)
 
 
 class ConversationFactory(factory.django.DjangoModelFactory):

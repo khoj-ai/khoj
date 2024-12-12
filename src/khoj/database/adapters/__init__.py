@@ -36,7 +36,7 @@ from torch import Tensor
 from khoj.database.models import (
     Agent,
     AiModelApi,
-    ChatModelOptions,
+    ChatModel,
     ClientApplication,
     Conversation,
     Entry,
@@ -736,8 +736,8 @@ class AgentAdapters:
 
     @staticmethod
     def create_default_agent(user: KhojUser):
-        default_conversation_config = ConversationAdapters.get_default_conversation_config(user)
-        if default_conversation_config is None:
+        default_chat_model = ConversationAdapters.get_default_chat_model(user)
+        if default_chat_model is None:
             logger.info("No default conversation config found, skipping default agent creation")
             return None
         default_personality = prompts.personality.format(current_date="placeholder", day_of_week="placeholder")
@@ -746,7 +746,7 @@ class AgentAdapters:
 
         if agent:
             agent.personality = default_personality
-            agent.chat_model = default_conversation_config
+            agent.chat_model = default_chat_model
             agent.slug = AgentAdapters.DEFAULT_AGENT_SLUG
             agent.name = AgentAdapters.DEFAULT_AGENT_NAME
             agent.privacy_level = Agent.PrivacyLevel.PUBLIC
@@ -760,7 +760,7 @@ class AgentAdapters:
                 name=AgentAdapters.DEFAULT_AGENT_NAME,
                 privacy_level=Agent.PrivacyLevel.PUBLIC,
                 managed_by_admin=True,
-                chat_model=default_conversation_config,
+                chat_model=default_chat_model,
                 personality=default_personality,
                 slug=AgentAdapters.DEFAULT_AGENT_SLUG,
             )
@@ -787,7 +787,7 @@ class AgentAdapters:
         output_modes: List[str],
         slug: Optional[str] = None,
     ):
-        chat_model_option = await ChatModelOptions.objects.filter(chat_model=chat_model).afirst()
+        chat_model_option = await ChatModel.objects.filter(name=chat_model).afirst()
 
         # Slug will be None for new agents, which will trigger a new agent creation with a generated, immutable slug
         agent, created = await Agent.objects.filter(slug=slug, creator=user).aupdate_or_create(
@@ -972,29 +972,29 @@ class ConversationAdapters:
 
     @staticmethod
     @require_valid_user
-    def has_any_conversation_config(user: KhojUser):
-        return ChatModelOptions.objects.filter(user=user).exists()
+    def has_any_chat_model(user: KhojUser):
+        return ChatModel.objects.filter(user=user).exists()
 
     @staticmethod
-    def get_all_conversation_configs():
-        return ChatModelOptions.objects.all()
+    def get_all_chat_models():
+        return ChatModel.objects.all()
 
     @staticmethod
-    async def aget_all_conversation_configs():
-        return await sync_to_async(list)(ChatModelOptions.objects.prefetch_related("ai_model_api").all())
+    async def aget_all_chat_models():
+        return await sync_to_async(list)(ChatModel.objects.prefetch_related("ai_model_api").all())
 
     @staticmethod
     def get_vision_enabled_config():
-        conversation_configurations = ConversationAdapters.get_all_conversation_configs()
-        for config in conversation_configurations:
+        chat_models = ConversationAdapters.get_all_chat_models()
+        for config in chat_models:
             if config.vision_enabled:
                 return config
         return None
 
     @staticmethod
     async def aget_vision_enabled_config():
-        conversation_configurations = await ConversationAdapters.aget_all_conversation_configs()
-        for config in conversation_configurations:
+        chat_models = await ConversationAdapters.aget_all_chat_models()
+        for config in chat_models:
             if config.vision_enabled:
                 return config
         return None
@@ -1010,7 +1010,7 @@ class ConversationAdapters:
     @staticmethod
     @arequire_valid_user
     async def aset_user_conversation_processor(user: KhojUser, conversation_processor_config_id: int):
-        config = await ChatModelOptions.objects.filter(id=conversation_processor_config_id).afirst()
+        config = await ChatModel.objects.filter(id=conversation_processor_config_id).afirst()
         if not config:
             return None
         new_config = await UserConversationConfig.objects.aupdate_or_create(user=user, defaults={"setting": config})
@@ -1026,24 +1026,24 @@ class ConversationAdapters:
         return new_config
 
     @staticmethod
-    def get_conversation_config(user: KhojUser):
+    def get_chat_model(user: KhojUser):
         subscribed = is_user_subscribed(user)
         if not subscribed:
-            return ConversationAdapters.get_default_conversation_config(user)
+            return ConversationAdapters.get_default_chat_model(user)
         config = UserConversationConfig.objects.filter(user=user).first()
         if config:
             return config.setting
-        return ConversationAdapters.get_advanced_conversation_config(user)
+        return ConversationAdapters.get_advanced_chat_model(user)
 
     @staticmethod
-    async def aget_conversation_config(user: KhojUser):
+    async def aget_chat_model(user: KhojUser):
         subscribed = await ais_user_subscribed(user)
         if not subscribed:
-            return await ConversationAdapters.aget_default_conversation_config(user)
+            return await ConversationAdapters.aget_default_chat_model(user)
         config = await UserConversationConfig.objects.filter(user=user).prefetch_related("setting").afirst()
         if config:
             return config.setting
-        return ConversationAdapters.aget_advanced_conversation_config(user)
+        return ConversationAdapters.aget_advanced_chat_model(user)
 
     @staticmethod
     async def aget_voice_model_config(user: KhojUser) -> Optional[VoiceModelOption]:
@@ -1064,7 +1064,7 @@ class ConversationAdapters:
         return VoiceModelOption.objects.first()
 
     @staticmethod
-    def get_default_conversation_config(user: KhojUser = None):
+    def get_default_chat_model(user: KhojUser = None):
         """Get default conversation config. Prefer chat model by server admin > user > first created chat model"""
         # Get the server chat settings
         server_chat_settings = ServerChatSettings.objects.first()
@@ -1084,10 +1084,10 @@ class ConversationAdapters:
             return user_chat_settings.setting
 
         # Get the first chat model if even the user chat settings are not set
-        return ChatModelOptions.objects.filter().first()
+        return ChatModel.objects.filter().first()
 
     @staticmethod
-    async def aget_default_conversation_config(user: KhojUser = None):
+    async def aget_default_chat_model(user: KhojUser = None):
         """Get default conversation config. Prefer chat model by server admin > user > first created chat model"""
         # Get the server chat settings
         server_chat_settings: ServerChatSettings = (
@@ -1117,17 +1117,17 @@ class ConversationAdapters:
             return user_chat_settings.setting
 
         # Get the first chat model if even the user chat settings are not set
-        return await ChatModelOptions.objects.filter().prefetch_related("ai_model_api").afirst()
+        return await ChatModel.objects.filter().prefetch_related("ai_model_api").afirst()
 
     @staticmethod
-    def get_advanced_conversation_config(user: KhojUser):
+    def get_advanced_chat_model(user: KhojUser):
         server_chat_settings = ServerChatSettings.objects.first()
         if server_chat_settings is not None and server_chat_settings.chat_advanced is not None:
             return server_chat_settings.chat_advanced
-        return ConversationAdapters.get_default_conversation_config(user)
+        return ConversationAdapters.get_default_chat_model(user)
 
     @staticmethod
-    async def aget_advanced_conversation_config(user: KhojUser = None):
+    async def aget_advanced_chat_model(user: KhojUser = None):
         server_chat_settings: ServerChatSettings = (
             await ServerChatSettings.objects.filter()
             .prefetch_related("chat_advanced", "chat_advanced__ai_model_api")
@@ -1135,7 +1135,7 @@ class ConversationAdapters:
         )
         if server_chat_settings is not None and server_chat_settings.chat_advanced is not None:
             return server_chat_settings.chat_advanced
-        return await ConversationAdapters.aget_default_conversation_config(user)
+        return await ConversationAdapters.aget_default_chat_model(user)
 
     @staticmethod
     async def aget_server_webscraper():
@@ -1247,16 +1247,16 @@ class ConversationAdapters:
 
     @staticmethod
     def get_conversation_processor_options():
-        return ChatModelOptions.objects.all()
+        return ChatModel.objects.all()
 
     @staticmethod
-    def set_conversation_processor_config(user: KhojUser, new_config: ChatModelOptions):
+    def set_user_chat_model(user: KhojUser, chat_model: ChatModel):
         user_conversation_config, _ = UserConversationConfig.objects.get_or_create(user=user)
-        user_conversation_config.setting = new_config
+        user_conversation_config.setting = chat_model
         user_conversation_config.save()
 
     @staticmethod
-    async def aget_user_conversation_config(user: KhojUser):
+    async def aget_user_chat_model(user: KhojUser):
         config = (
             await UserConversationConfig.objects.filter(user=user).prefetch_related("setting__ai_model_api").afirst()
         )
@@ -1288,33 +1288,33 @@ class ConversationAdapters:
         return random.sample(all_questions, max_results)
 
     @staticmethod
-    def get_valid_conversation_config(user: KhojUser, conversation: Conversation):
+    def get_valid_chat_model(user: KhojUser, conversation: Conversation):
         agent: Agent = conversation.agent if AgentAdapters.get_default_agent() != conversation.agent else None
         if agent and agent.chat_model:
-            conversation_config = conversation.agent.chat_model
+            chat_model = conversation.agent.chat_model
         else:
-            conversation_config = ConversationAdapters.get_conversation_config(user)
+            chat_model = ConversationAdapters.get_chat_model(user)
 
-        if conversation_config is None:
-            conversation_config = ConversationAdapters.get_default_conversation_config()
+        if chat_model is None:
+            chat_model = ConversationAdapters.get_default_chat_model()
 
-        if conversation_config.model_type == ChatModelOptions.ModelType.OFFLINE:
+        if chat_model.model_type == ChatModel.ModelType.OFFLINE:
             if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
-                chat_model = conversation_config.chat_model
-                max_tokens = conversation_config.max_prompt_size
-                state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
+                chat_model_name = chat_model.name
+                max_tokens = chat_model.max_prompt_size
+                state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model_name, max_tokens)
 
-            return conversation_config
+            return chat_model
 
         if (
-            conversation_config.model_type
+            chat_model.model_type
             in [
-                ChatModelOptions.ModelType.ANTHROPIC,
-                ChatModelOptions.ModelType.OPENAI,
-                ChatModelOptions.ModelType.GOOGLE,
+                ChatModel.ModelType.ANTHROPIC,
+                ChatModel.ModelType.OPENAI,
+                ChatModel.ModelType.GOOGLE,
             ]
-        ) and conversation_config.ai_model_api:
-            return conversation_config
+        ) and chat_model.ai_model_api:
+            return chat_model
 
         else:
             raise ValueError("Invalid conversation config - either configure offline chat or openai chat")

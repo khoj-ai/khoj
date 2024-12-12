@@ -56,7 +56,7 @@ from khoj.database.adapters import (
 )
 from khoj.database.models import (
     Agent,
-    ChatModelOptions,
+    ChatModel,
     ClientApplication,
     Conversation,
     GithubConfig,
@@ -133,40 +133,40 @@ def is_query_empty(query: str) -> bool:
     return is_none_or_empty(query.strip())
 
 
-def validate_conversation_config(user: KhojUser):
-    default_config = ConversationAdapters.get_default_conversation_config(user)
+def validate_chat_model(user: KhojUser):
+    default_chat_model = ConversationAdapters.get_default_chat_model(user)
 
-    if default_config is None:
+    if default_chat_model is None:
         raise HTTPException(status_code=500, detail="Contact the server administrator to add a chat model.")
 
-    if default_config.model_type == "openai" and not default_config.ai_model_api:
+    if default_chat_model.model_type == "openai" and not default_chat_model.ai_model_api:
         raise HTTPException(status_code=500, detail="Contact the server administrator to add a chat model.")
 
 
 async def is_ready_to_chat(user: KhojUser):
-    user_conversation_config = await ConversationAdapters.aget_user_conversation_config(user)
-    if user_conversation_config == None:
-        user_conversation_config = await ConversationAdapters.aget_default_conversation_config(user)
+    user_chat_model = await ConversationAdapters.aget_user_chat_model(user)
+    if user_chat_model == None:
+        user_chat_model = await ConversationAdapters.aget_default_chat_model(user)
 
-    if user_conversation_config and user_conversation_config.model_type == ChatModelOptions.ModelType.OFFLINE:
-        chat_model = user_conversation_config.chat_model
-        max_tokens = user_conversation_config.max_prompt_size
+    if user_chat_model and user_chat_model.model_type == ChatModel.ModelType.OFFLINE:
+        chat_model_name = user_chat_model.name
+        max_tokens = user_chat_model.max_prompt_size
         if state.offline_chat_processor_config is None:
             logger.info("Loading Offline Chat Model...")
-            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
+            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model_name, max_tokens)
         return True
 
     if (
-        user_conversation_config
+        user_chat_model
         and (
-            user_conversation_config.model_type
+            user_chat_model.model_type
             in [
-                ChatModelOptions.ModelType.OPENAI,
-                ChatModelOptions.ModelType.ANTHROPIC,
-                ChatModelOptions.ModelType.GOOGLE,
+                ChatModel.ModelType.OPENAI,
+                ChatModel.ModelType.ANTHROPIC,
+                ChatModel.ModelType.GOOGLE,
             ]
         )
-        and user_conversation_config.ai_model_api
+        and user_chat_model.ai_model_api
     ):
         return True
 
@@ -942,120 +942,124 @@ async def send_message_to_model_wrapper(
     query_files: str = None,
     tracer: dict = {},
 ):
-    conversation_config: ChatModelOptions = await ConversationAdapters.aget_default_conversation_config(user)
-    vision_available = conversation_config.vision_enabled
+    chat_model: ChatModel = await ConversationAdapters.aget_default_chat_model(user)
+    vision_available = chat_model.vision_enabled
     if not vision_available and query_images:
-        logger.warning(f"Vision is not enabled for default model: {conversation_config.chat_model}.")
+        logger.warning(f"Vision is not enabled for default model: {chat_model.name}.")
         vision_enabled_config = await ConversationAdapters.aget_vision_enabled_config()
         if vision_enabled_config:
-            conversation_config = vision_enabled_config
+            chat_model = vision_enabled_config
             vision_available = True
     if vision_available and query_images:
-        logger.info(f"Using {conversation_config.chat_model} model to understand {len(query_images)} images.")
+        logger.info(f"Using {chat_model.name} model to understand {len(query_images)} images.")
 
     subscribed = await ais_user_subscribed(user)
-    chat_model = conversation_config.chat_model
+    chat_model_name = chat_model.name
     max_tokens = (
-        conversation_config.subscribed_max_prompt_size
-        if subscribed and conversation_config.subscribed_max_prompt_size
-        else conversation_config.max_prompt_size
+        chat_model.subscribed_max_prompt_size
+        if subscribed and chat_model.subscribed_max_prompt_size
+        else chat_model.max_prompt_size
     )
-    tokenizer = conversation_config.tokenizer
-    model_type = conversation_config.model_type
-    vision_available = conversation_config.vision_enabled
+    tokenizer = chat_model.tokenizer
+    model_type = chat_model.model_type
+    vision_available = chat_model.vision_enabled
 
-    if model_type == ChatModelOptions.ModelType.OFFLINE:
+    if model_type == ChatModel.ModelType.OFFLINE:
         if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
-            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
+            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model_name, max_tokens)
 
         loaded_model = state.offline_chat_processor_config.loaded_model
         truncated_messages = generate_chatml_messages_with_context(
             user_message=query,
             context_message=context,
             system_message=system_message,
-            model_name=chat_model,
+            model_name=chat_model_name,
             loaded_model=loaded_model,
             tokenizer_name=tokenizer,
             max_prompt_size=max_tokens,
             vision_enabled=vision_available,
-            model_type=conversation_config.model_type,
+            model_type=chat_model.model_type,
             query_files=query_files,
         )
 
         return send_message_to_model_offline(
             messages=truncated_messages,
             loaded_model=loaded_model,
-            model=chat_model,
+            model_name=chat_model_name,
             max_prompt_size=max_tokens,
             streaming=False,
             response_type=response_type,
             tracer=tracer,
         )
 
-    elif model_type == ChatModelOptions.ModelType.OPENAI:
-        openai_chat_config = conversation_config.ai_model_api
+    elif model_type == ChatModel.ModelType.OPENAI:
+        openai_chat_config = chat_model.ai_model_api
         api_key = openai_chat_config.api_key
         api_base_url = openai_chat_config.api_base_url
         truncated_messages = generate_chatml_messages_with_context(
             user_message=query,
             context_message=context,
             system_message=system_message,
-            model_name=chat_model,
+            model_name=chat_model_name,
             max_prompt_size=max_tokens,
             tokenizer_name=tokenizer,
             vision_enabled=vision_available,
             query_images=query_images,
-            model_type=conversation_config.model_type,
+            model_type=chat_model.model_type,
             query_files=query_files,
         )
 
         return send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
-            model=chat_model,
+            model=chat_model_name,
             response_type=response_type,
             api_base_url=api_base_url,
             tracer=tracer,
         )
-    elif model_type == ChatModelOptions.ModelType.ANTHROPIC:
-        api_key = conversation_config.ai_model_api.api_key
+    elif model_type == ChatModel.ModelType.ANTHROPIC:
+        api_key = chat_model.ai_model_api.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=query,
             context_message=context,
             system_message=system_message,
-            model_name=chat_model,
+            model_name=chat_model_name,
             max_prompt_size=max_tokens,
             tokenizer_name=tokenizer,
             vision_enabled=vision_available,
             query_images=query_images,
-            model_type=conversation_config.model_type,
+            model_type=chat_model.model_type,
             query_files=query_files,
         )
 
         return anthropic_send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
-            model=chat_model,
+            model=chat_model_name,
             response_type=response_type,
             tracer=tracer,
         )
-    elif model_type == ChatModelOptions.ModelType.GOOGLE:
-        api_key = conversation_config.ai_model_api.api_key
+    elif model_type == ChatModel.ModelType.GOOGLE:
+        api_key = chat_model.ai_model_api.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=query,
             context_message=context,
             system_message=system_message,
-            model_name=chat_model,
+            model_name=chat_model_name,
             max_prompt_size=max_tokens,
             tokenizer_name=tokenizer,
             vision_enabled=vision_available,
             query_images=query_images,
-            model_type=conversation_config.model_type,
+            model_type=chat_model.model_type,
             query_files=query_files,
         )
 
         return gemini_send_message_to_model(
-            messages=truncated_messages, api_key=api_key, model=chat_model, response_type=response_type, tracer=tracer
+            messages=truncated_messages,
+            api_key=api_key,
+            model=chat_model_name,
+            response_type=response_type,
+            tracer=tracer,
         )
     else:
         raise HTTPException(status_code=500, detail="Invalid conversation config")
@@ -1069,99 +1073,99 @@ def send_message_to_model_wrapper_sync(
     query_files: str = "",
     tracer: dict = {},
 ):
-    conversation_config: ChatModelOptions = ConversationAdapters.get_default_conversation_config(user)
+    chat_model: ChatModel = ConversationAdapters.get_default_chat_model(user)
 
-    if conversation_config is None:
+    if chat_model is None:
         raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
 
-    chat_model = conversation_config.chat_model
-    max_tokens = conversation_config.max_prompt_size
-    vision_available = conversation_config.vision_enabled
+    chat_model_name = chat_model.name
+    max_tokens = chat_model.max_prompt_size
+    vision_available = chat_model.vision_enabled
 
-    if conversation_config.model_type == ChatModelOptions.ModelType.OFFLINE:
+    if chat_model.model_type == ChatModel.ModelType.OFFLINE:
         if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
-            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model, max_tokens)
+            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model_name, max_tokens)
 
         loaded_model = state.offline_chat_processor_config.loaded_model
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
             system_message=system_message,
-            model_name=chat_model,
+            model_name=chat_model_name,
             loaded_model=loaded_model,
             max_prompt_size=max_tokens,
             vision_enabled=vision_available,
-            model_type=conversation_config.model_type,
+            model_type=chat_model.model_type,
             query_files=query_files,
         )
 
         return send_message_to_model_offline(
             messages=truncated_messages,
             loaded_model=loaded_model,
-            model=chat_model,
+            model_name=chat_model_name,
             max_prompt_size=max_tokens,
             streaming=False,
             response_type=response_type,
             tracer=tracer,
         )
 
-    elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
-        api_key = conversation_config.ai_model_api.api_key
+    elif chat_model.model_type == ChatModel.ModelType.OPENAI:
+        api_key = chat_model.ai_model_api.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
             system_message=system_message,
-            model_name=chat_model,
+            model_name=chat_model_name,
             max_prompt_size=max_tokens,
             vision_enabled=vision_available,
-            model_type=conversation_config.model_type,
+            model_type=chat_model.model_type,
             query_files=query_files,
         )
 
         openai_response = send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
-            model=chat_model,
+            model=chat_model_name,
             response_type=response_type,
             tracer=tracer,
         )
 
         return openai_response
 
-    elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
-        api_key = conversation_config.ai_model_api.api_key
+    elif chat_model.model_type == ChatModel.ModelType.ANTHROPIC:
+        api_key = chat_model.ai_model_api.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
             system_message=system_message,
-            model_name=chat_model,
+            model_name=chat_model_name,
             max_prompt_size=max_tokens,
             vision_enabled=vision_available,
-            model_type=conversation_config.model_type,
+            model_type=chat_model.model_type,
             query_files=query_files,
         )
 
         return anthropic_send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
-            model=chat_model,
+            model=chat_model_name,
             response_type=response_type,
             tracer=tracer,
         )
 
-    elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
-        api_key = conversation_config.ai_model_api.api_key
+    elif chat_model.model_type == ChatModel.ModelType.GOOGLE:
+        api_key = chat_model.ai_model_api.api_key
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
             system_message=system_message,
-            model_name=chat_model,
+            model_name=chat_model_name,
             max_prompt_size=max_tokens,
             vision_enabled=vision_available,
-            model_type=conversation_config.model_type,
+            model_type=chat_model.model_type,
             query_files=query_files,
         )
 
         return gemini_send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
-            model=chat_model,
+            model=chat_model_name,
             response_type=response_type,
             tracer=tracer,
         )
@@ -1229,15 +1233,15 @@ def generate_chat_response(
             online_results = {}
             code_results = {}
 
-        conversation_config = ConversationAdapters.get_valid_conversation_config(user, conversation)
-        vision_available = conversation_config.vision_enabled
+        chat_model = ConversationAdapters.get_valid_chat_model(user, conversation)
+        vision_available = chat_model.vision_enabled
         if not vision_available and query_images:
             vision_enabled_config = ConversationAdapters.get_vision_enabled_config()
             if vision_enabled_config:
-                conversation_config = vision_enabled_config
+                chat_model = vision_enabled_config
                 vision_available = True
 
-        if conversation_config.model_type == "offline":
+        if chat_model.model_type == "offline":
             loaded_model = state.offline_chat_processor_config.loaded_model
             chat_response = converse_offline(
                 user_query=query_to_run,
@@ -1247,9 +1251,9 @@ def generate_chat_response(
                 conversation_log=meta_log,
                 completion_func=partial_completion,
                 conversation_commands=conversation_commands,
-                model=conversation_config.chat_model,
-                max_prompt_size=conversation_config.max_prompt_size,
-                tokenizer_name=conversation_config.tokenizer,
+                model_name=chat_model.name,
+                max_prompt_size=chat_model.max_prompt_size,
+                tokenizer_name=chat_model.tokenizer,
                 location_data=location_data,
                 user_name=user_name,
                 agent=agent,
@@ -1259,10 +1263,10 @@ def generate_chat_response(
                 tracer=tracer,
             )
 
-        elif conversation_config.model_type == ChatModelOptions.ModelType.OPENAI:
-            openai_chat_config = conversation_config.ai_model_api
+        elif chat_model.model_type == ChatModel.ModelType.OPENAI:
+            openai_chat_config = chat_model.ai_model_api
             api_key = openai_chat_config.api_key
-            chat_model = conversation_config.chat_model
+            chat_model_name = chat_model.name
             chat_response = converse_openai(
                 compiled_references,
                 query_to_run,
@@ -1270,13 +1274,13 @@ def generate_chat_response(
                 online_results=online_results,
                 code_results=code_results,
                 conversation_log=meta_log,
-                model=chat_model,
+                model=chat_model_name,
                 api_key=api_key,
                 api_base_url=openai_chat_config.api_base_url,
                 completion_func=partial_completion,
                 conversation_commands=conversation_commands,
-                max_prompt_size=conversation_config.max_prompt_size,
-                tokenizer_name=conversation_config.tokenizer,
+                max_prompt_size=chat_model.max_prompt_size,
+                tokenizer_name=chat_model.tokenizer,
                 location_data=location_data,
                 user_name=user_name,
                 agent=agent,
@@ -1288,8 +1292,8 @@ def generate_chat_response(
                 tracer=tracer,
             )
 
-        elif conversation_config.model_type == ChatModelOptions.ModelType.ANTHROPIC:
-            api_key = conversation_config.ai_model_api.api_key
+        elif chat_model.model_type == ChatModel.ModelType.ANTHROPIC:
+            api_key = chat_model.ai_model_api.api_key
             chat_response = converse_anthropic(
                 compiled_references,
                 query_to_run,
@@ -1297,12 +1301,12 @@ def generate_chat_response(
                 online_results=online_results,
                 code_results=code_results,
                 conversation_log=meta_log,
-                model=conversation_config.chat_model,
+                model=chat_model.name,
                 api_key=api_key,
                 completion_func=partial_completion,
                 conversation_commands=conversation_commands,
-                max_prompt_size=conversation_config.max_prompt_size,
-                tokenizer_name=conversation_config.tokenizer,
+                max_prompt_size=chat_model.max_prompt_size,
+                tokenizer_name=chat_model.tokenizer,
                 location_data=location_data,
                 user_name=user_name,
                 agent=agent,
@@ -1313,20 +1317,20 @@ def generate_chat_response(
                 program_execution_context=program_execution_context,
                 tracer=tracer,
             )
-        elif conversation_config.model_type == ChatModelOptions.ModelType.GOOGLE:
-            api_key = conversation_config.ai_model_api.api_key
+        elif chat_model.model_type == ChatModel.ModelType.GOOGLE:
+            api_key = chat_model.ai_model_api.api_key
             chat_response = converse_gemini(
                 compiled_references,
                 query_to_run,
                 online_results,
                 code_results,
                 meta_log,
-                model=conversation_config.chat_model,
+                model=chat_model.name,
                 api_key=api_key,
                 completion_func=partial_completion,
                 conversation_commands=conversation_commands,
-                max_prompt_size=conversation_config.max_prompt_size,
-                tokenizer_name=conversation_config.tokenizer,
+                max_prompt_size=chat_model.max_prompt_size,
+                tokenizer_name=chat_model.tokenizer,
                 location_data=location_data,
                 user_name=user_name,
                 agent=agent,
@@ -1339,7 +1343,7 @@ def generate_chat_response(
                 tracer=tracer,
             )
 
-        metadata.update({"chat_model": conversation_config.chat_model})
+        metadata.update({"chat_model": chat_model.name})
 
     except Exception as e:
         logger.error(e, exc_info=True)
@@ -1939,13 +1943,13 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
     current_notion_config = get_user_notion_config(user)
     notion_token = current_notion_config.token if current_notion_config else ""
 
-    selected_chat_model_config = ConversationAdapters.get_conversation_config(
+    selected_chat_model_config = ConversationAdapters.get_chat_model(
         user
-    ) or ConversationAdapters.get_default_conversation_config(user)
+    ) or ConversationAdapters.get_default_chat_model(user)
     chat_models = ConversationAdapters.get_conversation_processor_options().all()
     chat_model_options = list()
     for chat_model in chat_models:
-        chat_model_options.append({"name": chat_model.chat_model, "id": chat_model.id})
+        chat_model_options.append({"name": chat_model.name, "id": chat_model.id})
 
     selected_paint_model_config = ConversationAdapters.get_user_text_to_image_model_config(user)
     paint_model_options = ConversationAdapters.get_text_to_image_model_options().all()
