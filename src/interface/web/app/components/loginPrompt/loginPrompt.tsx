@@ -4,6 +4,7 @@ import styles from "./loginPrompt.module.css";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import Autoplay from "embla-carousel-autoplay";
 import {
     ArrowLeft,
     ArrowsClockwise,
@@ -11,14 +12,20 @@ import {
     PaperPlaneTilt,
     PencilSimple,
     Spinner,
-    CaretLeft,
-    CaretRight,
 } from "@phosphor-icons/react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { GoogleSignIn } from "./GoogleSignIn";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
+import {
+    Carousel,
+    CarouselContent,
+    CarouselItem,
+    CarouselNext,
+    CarouselPrevious,
+} from "@/components/ui/carousel";
+import { Card, CardContent } from "@/components/ui/card";
 
 export interface LoginPromptProps {
     loginRedirectMessage: string;
@@ -45,19 +52,6 @@ export default function LoginPrompt(props: LoginPromptProps) {
     const [email, setEmail] = useState("");
     const [checkEmail, setCheckEmail] = useState(false);
     const [recheckEmail, setRecheckEmail] = useState(false);
-
-    const [currentTip, setCurrentTip] = useState(0);
-    const [autoRotate, setAutoRotate] = useState(true);
-
-    // Add these handler functions in your component
-    const nextSlide = () => {
-        setCurrentTip((prev) => (prev + 1) % tips.length);
-        setAutoRotate(false);
-    };
-    const prevSlide = () => {
-        setCurrentTip((prev) => (prev - 1 + tips.length) % tips.length);
-        setAutoRotate(false);
-    };
 
     useEffect(() => {
         const google = (window as any).google;
@@ -121,22 +115,6 @@ export default function LoginPrompt(props: LoginPromptProps) {
         });
     };
 
-    const tips = [
-        { src: "/documents_tip.png", alt: "Documents tip" },
-        { src: "/personalize_tip.png", alt: "Personalize tip" },
-        { src: "/automate_tip.png", alt: "Automate tip" },
-    ];
-
-    useEffect(() => {
-        if (!autoRotate) return;
-
-        const timer = setInterval(() => {
-            setCurrentTip((prev) => (prev + 1) % tips.length);
-        }, 3000); // Rotate every 3 seconds
-
-        return () => clearInterval(timer);
-    }, [autoRotate]);
-
     function handleMagicLinkSignIn() {
         fetch("/auth/magic", {
             method: "POST",
@@ -183,10 +161,6 @@ export default function LoginPrompt(props: LoginPromptProps) {
                         )}
                         {!useEmailSignIn && (
                             <MainSignInContext
-                                tips={tips}
-                                currentTip={currentTip}
-                                nextSlide={nextSlide}
-                                prevSlide={prevSlide}
                                 handleGoogleScriptLoad={handleGoogleScriptLoad}
                                 handleGoogleSignIn={handleGoogleSignIn}
                                 isLoading={isLoading}
@@ -221,10 +195,6 @@ export default function LoginPrompt(props: LoginPromptProps) {
                     )}
                     {!useEmailSignIn && (
                         <MainSignInContext
-                            tips={tips}
-                            currentTip={currentTip}
-                            nextSlide={nextSlide}
-                            prevSlide={prevSlide}
                             handleGoogleScriptLoad={handleGoogleScriptLoad}
                             handleGoogleSignIn={handleGoogleSignIn}
                             isLoading={isLoading}
@@ -327,10 +297,6 @@ function EmailSignInContext({
 }
 
 function MainSignInContext({
-    tips,
-    currentTip,
-    nextSlide,
-    prevSlide,
     handleGoogleScriptLoad,
     handleGoogleSignIn,
     isLoading,
@@ -338,10 +304,6 @@ function MainSignInContext({
     setUseEmailSignIn,
     isMobileWidth,
 }: {
-    tips: { src: string; alt: string }[];
-    currentTip: number;
-    nextSlide: () => void;
-    prevSlide: () => void;
     handleGoogleScriptLoad: () => void;
     handleGoogleSignIn: () => void;
     isLoading: boolean;
@@ -349,37 +311,43 @@ function MainSignInContext({
     setUseEmailSignIn: (useEmailSignIn: boolean) => void;
     isMobileWidth: boolean;
 }) {
+    const plugin = useRef(Autoplay({ delay: 2000, stopOnInteraction: true }));
+
+    const tips = [
+        { src: "/documents_tip.png", alt: "Documents tip" },
+        { src: "/personalize_tip.png", alt: "Personalize tip" },
+        { src: "/automate_tip.png", alt: "Automate tip" },
+    ];
+
     return (
         <div className="flex flex-col gap-4 p-4">
             {!isMobileWidth && (
-                <div className="relative w-full h-80 overflow-hidden rounded-t-lg">
-                    {tips.map((tip, index) => (
-                        <img
-                            key={tip.src}
-                            src={tip.src}
-                            alt={tip.alt}
-                            className={`absolute w-full h-full object-cover transition-all duration-500 ease-in-out ${
-                                index === currentTip
-                                    ? "opacity-100 translate-x-0"
-                                    : index < currentTip
-                                      ? "opacity-0 -translate-x-full"
-                                      : "opacity-0 translate-x-full"
-                            }`}
-                        />
-                    ))}
-                    <Button
-                        onClick={prevSlide}
-                        className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white/90 rounded-full p-2 shadow-lg"
-                    >
-                        <CaretLeft className="text-black h-6 w-6" />
-                    </Button>
-                    <Button
-                        onClick={nextSlide}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white/90 rounded-full p-2 shadow-lg"
-                    >
-                        <CaretRight className="text-black h-6 w-6" />
-                    </Button>
-                </div>
+                <Carousel
+                    plugins={[plugin.current]}
+                    className="w-full"
+                    onMouseEnter={plugin.current.stop}
+                    onMouseLeave={plugin.current.reset}
+                >
+                    <CarouselContent>
+                        {tips.map((tip, index) => (
+                            <CarouselItem key={index}>
+                                <div className="p-1">
+                                    <Card>
+                                        <CardContent className="flex items-center justify-center rounded-b-none rounded-t-lg p-0">
+                                            <img
+                                                src={tip.src}
+                                                alt={tip.alt}
+                                                className="w-full h-auto"
+                                            />
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            </CarouselItem>
+                        ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="absolute left-0" />
+                    <CarouselNext className="absolute right-0" />
+                </Carousel>
             )}
             <div className="flex flex-col gap-4 text-center p-4">
                 <div className="text-center font-bold text-lg">
@@ -436,7 +404,7 @@ function MainSignInContext({
                 </Button>
 
                 <Button
-                    variant="default"
+                    variant="secondary"
                     className="w-[300px] p-6 flex gap-2 items-center justify-center"
                     onClick={() => {
                         setUseEmailSignIn(true);

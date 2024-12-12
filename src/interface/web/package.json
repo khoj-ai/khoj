@@ -45,6 +45,8 @@
         "cmdk": "^1.0.0",
         "cronstrue": "^2.50.0",
         "dompurify": "^3.1.6",
+        "embla-carousel-autoplay": "^8.5.1",
+        "embla-carousel-react": "^8.5.1",
         "eslint": "^8",
         "eslint-config-next": "14.2.3",
         "input-otp": "^1.2.4",
