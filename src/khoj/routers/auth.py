@@ -140,6 +140,51 @@ async def delete_token(request: Request, token: str):
     return await delete_khoj_token(user=request.user.object, token=token)
 
 
+@auth_router.post("/redirect")
+async def auth_post(request: Request):
+    # This is maintained for compatibility with the /login endpoint
+    form = await request.form()
+    next_url = get_next_url(request)
+    for q in request.query_params:
+        if not q == "next":
+            next_url += f"&{q}={request.query_params[q]}"
+
+    credential = form.get("credential")
+
+    csrf_token_cookie = request.cookies.get("g_csrf_token")
+    if not csrf_token_cookie:
+        logger.info("Missing CSRF token. Redirecting user to login page")
+        return RedirectResponse(url=next_url)
+    csrf_token_body = form.get("g_csrf_token")
+    if not csrf_token_body:
+        logger.info("Missing CSRF token body. Redirecting user to login page")
+        return RedirectResponse(url=next_url)
+    if csrf_token_cookie != csrf_token_body:
+        return Response("Invalid CSRF token", status_code=400)
+
+    try:
+        idinfo = id_token.verify_oauth2_token(credential, google_requests.Request(), os.environ["GOOGLE_CLIENT_ID"])
+    except OAuthError as error:
+        return HTMLResponse(f"<h1>{error.error}</h1>")
+    khoj_user = await get_or_create_user(idinfo)
+
+    if khoj_user:
+        request.session["user"] = dict(idinfo)
+
+        if datetime.timedelta(minutes=3) > (datetime.datetime.now(datetime.timezone.utc) - khoj_user.date_joined):
+            asyncio.create_task(send_welcome_email(idinfo["name"], idinfo["email"]))
+            update_telemetry_state(
+                request=request,
+                telemetry_type="api",
+                api="create_user__google",
+                metadata={"server_id": str(khoj_user.uuid)},
+            )
+            logger.log(logging.INFO, f"🥳 New User Created: {khoj_user.uuid}")
+            return RedirectResponse(url=next_url, status_code=HTTP_302_FOUND)
+
+    return RedirectResponse(url=next_url, status_code=HTTP_302_FOUND)
+
+
 @auth_router.get("/redirect")
 async def auth(request: Request):
     next_url = get_next_url(request)

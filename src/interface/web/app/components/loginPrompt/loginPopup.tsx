@@ -16,7 +16,7 @@ export default function LoginPopup(props: LoginPopupProps) {
             <div className="flex flex-col items-start justify-center">
                 <CardHeader className="p-0 text-xl">Welcome to Khoj!</CardHeader>
                 <CardDescription>
-                    Get started with Khoj's AI-powered research assistant now.
+                    Get started with Khoj, your AI-powered research assistant, now.
                 </CardDescription>
             </div>
             <Button
