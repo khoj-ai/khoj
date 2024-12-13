@@ -358,14 +358,14 @@ function MainSignInContext({
                                 <div className="relative p-0">
                                     <Card>
                                         <CardContent className="flex flex-col items-center justify-center rounded-b-none rounded-t-lg p-0">
-                                            <div className="flex items-center justify-center text-black text-center p-4">
-                                                {tip.description}
-                                            </div>
                                             <img
                                                 src={tip.src}
                                                 alt={tip.alt}
                                                 className="w-full h-auto rounded-b-none rounded-t-lg"
                                             />
+                                            <div className="absolute bottom-1 flex items-center justify-center text-white bg-black bg-opacity-50 text-center mx-auto rounded-lg p-4">
+                                                {tip.description}
+                                            </div>
                                         </CardContent>
                                     </Card>
                                 </div>
