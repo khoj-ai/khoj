@@ -64,7 +64,7 @@ async def send_welcome_email(name, email):
 
     resend.Emails.send(
         {
-            "sender": "team@khoj.dev",
+            "sender": os.environ.get("RESEND_EMAIL", "team@khoj.dev"),
             "to": email,
             "subject": f"{name}, four ways to use Khoj" if name else "Four ways to use Khoj",
             "html": html_content,
@@ -92,7 +92,7 @@ async def send_query_feedback(uquery, kquery, sentiment, user_email):
 
     logger.info(f"Sending feedback email for query {uquery}")
 
-    # rendering feedback email using feedback.html as template
+    # render feedback email using feedback.html as template
     template = env.get_template("feedback.html")
     html_content = template.render(
         uquery=uquery if not is_none_or_empty(uquery) else "N/A",
@@ -100,10 +100,10 @@ async def send_query_feedback(uquery, kquery, sentiment, user_email):
         sentiment=sentiment if not is_none_or_empty(sentiment) else "N/A",
         user_email=user_email if not is_none_or_empty(user_email) else "N/A",
     )
-    # send feedback from two fixed accounts
+    # send feedback to fixed account
     r = resend.Emails.send(
         {
-            "sender": "saba@khoj.dev",
+            "sender": os.environ.get("RESEND_EMAIL", "noreply@khoj.dev"),
             "to": "team@khoj.dev",
             "subject": f"User Feedback",
             "html": html_content,
@@ -130,7 +130,7 @@ def send_task_email(name, email, query, result, subject, is_image=False):
 
     r = resend.Emails.send(
         {
-            "sender": "Khoj <khoj@khoj.dev>",
+            "sender": f'Khoj <{os.environ.get("RESEND_EMAIL", "khoj@khoj.dev")}>',
             "to": email,
             "subject": f"✨ {subject}",
             "html": html_content,
