@@ -732,6 +732,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             <Button
                                 variant="ghost"
                                 className="float-right justify-center gap-1 flex items-center p-1.5 mr-2 h-fit"
+                                disabled={props.sendDisabled || !props.isLoggedIn}
                                 onClick={() => {
                                     setUseResearchMode(!useResearchMode);
                                     chatInputRef?.current?.focus();

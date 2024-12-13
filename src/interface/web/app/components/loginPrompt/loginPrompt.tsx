@@ -145,7 +145,7 @@ export default function LoginPrompt(props: LoginPromptProps) {
     if (props.isMobileWidth) {
         return (
             <Drawer open={true} onOpenChange={props.onOpenChange}>
-                <DrawerContent className={`flex flex-col gap-4 max-w-xl`}>
+                <DrawerContent className={`flex flex-col gap-4 w-full`}>
                     <div>
                         {useEmailSignIn && (
                             <EmailSignInContext
@@ -178,7 +178,7 @@ export default function LoginPrompt(props: LoginPromptProps) {
     return (
         <Dialog open={true} onOpenChange={props.onOpenChange}>
             <DialogContent
-                className={`flex flex-col gap-4 max-w-xl ${!useEmailSignIn ? "p-0 pb-4 m-0" : ""}`}
+                className={`flex flex-col gap-4 ${!useEmailSignIn ? "p-0 pb-4 m-0 max-w-xl" : "w-fit"}`}
             >
                 <div>
                     {useEmailSignIn && (
@@ -239,55 +239,60 @@ function EmailSignInContext({
                 <ArrowLeft className="h-6 w-6" />
             </Button>
             <div>
-                <div className="text-center font-bold text-lg">Sign in with Email</div>
+                <div className="text-center font-bold text-xl">Get started with Khoj</div>
             </div>
             <div className="text-center text-sm text-muted-foreground">
                 {checkEmail
                     ? recheckEmail
-                        ? "A new link has been sent. Click on the link in your email to sign-in"
-                        : "Click on the link in your email to sign-in"
+                        ? `A new link has been sent to ${email}. Click on the link in your email to sign-in`
+                        : `A sign-in link has been sent to ${email}. Click on the link in your email to sign-in`
                     : "You will receive a sign-in link on the email address you provide below"}
             </div>
-            <Input
-                placeholder="Email"
-                className="p-6"
-                disabled={checkEmail}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-            />
-            <Button
-                variant="default"
-                className="p-6"
-                onClick={handleMagicLinkSignIn}
-                disabled={!email}
-            >
-                <PaperPlaneTilt className="h-6 w-6 mr-2" />
-                {checkEmail ? "Check your email" : "Send sign in link"}
-            </Button>
+            {!checkEmail && (
+                <>
+                    <Input
+                        placeholder="Email"
+                        className="p-6 w-[300px] mx-auto rounded-lg"
+                        disabled={checkEmail}
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                    />
+                    <Button
+                        variant="default"
+                        className="p-6 w-[300px] mx-auto flex gap-2 items-center justify-center rounded-lg"
+                        onClick={handleMagicLinkSignIn}
+                        disabled={checkEmail}
+                    >
+                        <PaperPlaneTilt className="h-6 w-6 mr-2" />
+                        {checkEmail ? "Check your email" : "Send sign in link"}
+                    </Button>
+                </>
+            )}
+
             {checkEmail && (
-                <div className="flex items-center justify-center gap-4 text-muted-foreground">
+                <div className="flex items-center justify-center gap-4 text-muted-foreground flex-col md:flex-row">
                     <Button
                         variant="ghost"
-                        className="p-0"
+                        className="p-0 text-orange-500"
                         disabled={recheckEmail}
                         onClick={() => {
                             handleMagicLinkSignIn();
                         }}
                     >
-                        <ArrowsClockwise className="h-6 w-6 mr-2" />
+                        <ArrowsClockwise className="h-6 w-6 mr-2 text-gray-500" />
                         Resend email
                     </Button>
-                    <LineVertical className="h-6 w-6" />
+                    <LineVertical className="h-6 w-6 hidden md:block" />
                     <Button
                         variant="ghost"
-                        className="p-0"
+                        className="p-0 text-orange-500"
                         disabled={recheckEmail}
                         onClick={() => {
                             setEmail("");
                             setCheckEmail(false);
                         }}
                     >
-                        <PencilSimple className="h-6 w-6 mr-2" />
+                        <PencilSimple className="h-6 w-6 mr-2 text-gray-500" />
                         Use a different email
                     </Button>
                 </div>
@@ -311,12 +316,25 @@ function MainSignInContext({
     setUseEmailSignIn: (useEmailSignIn: boolean) => void;
     isMobileWidth: boolean;
 }) {
-    const plugin = useRef(Autoplay({ delay: 2000, stopOnInteraction: true }));
+    const plugin = useRef(Autoplay({ delay: 3500, stopOnInteraction: true }));
+    const [showArrows, setShowArrows] = useState(false);
 
     const tips = [
-        { src: "/documents_tip.png", alt: "Documents tip" },
-        { src: "/personalize_tip.png", alt: "Personalize tip" },
-        { src: "/automate_tip.png", alt: "Automate tip" },
+        {
+            src: "https://assets.khoj.dev/sign_in_demos/research_mode.gif",
+            alt: "Research tip",
+            description: "Use research mode to find answers to your questions",
+        },
+        {
+            src: "https://assets.khoj.dev/sign_in_demos/custom_agents.gif",
+            alt: "Personalize tip",
+            description: "Personalize your Khoj experience by creating custom agents",
+        },
+        {
+            src: "https://assets.khoj.dev/sign_in_demos/docment_questions.gif",
+            alt: "Document tip",
+            description: "Understand and create documents to expand your knowledge base",
+        },
     ];
 
     return (
@@ -325,15 +343,24 @@ function MainSignInContext({
                 <Carousel
                     plugins={[plugin.current]}
                     className="w-full"
-                    onMouseEnter={plugin.current.stop}
-                    onMouseLeave={plugin.current.reset}
+                    onMouseEnter={() => {
+                        plugin.current.stop();
+                        setShowArrows(true);
+                    }}
+                    onMouseLeave={() => {
+                        plugin.current.play();
+                        setShowArrows(false);
+                    }}
                 >
                     <CarouselContent>
                         {tips.map((tip, index) => (
                             <CarouselItem key={index}>
-                                <div className="p-0">
+                                <div className="relative p-0">
                                     <Card>
-                                        <CardContent className="flex items-center justify-center rounded-b-none rounded-t-lg p-0">
+                                        <CardContent className="flex flex-col items-center justify-center rounded-b-none rounded-t-lg p-0">
+                                            <div className="flex items-center justify-center text-black text-center p-4">
+                                                {tip.description}
+                                            </div>
                                             <img
                                                 src={tip.src}
                                                 alt={tip.alt}
@@ -345,21 +372,25 @@ function MainSignInContext({
                             </CarouselItem>
                         ))}
                     </CarouselContent>
-                    <CarouselPrevious className="absolute left-0" />
-                    <CarouselNext className="absolute right-0" />
+                    {showArrows && (
+                        <>
+                            <CarouselPrevious className="absolute left-0" />
+                            <CarouselNext className="absolute right-0" />
+                        </>
+                    )}
                 </Carousel>
             )}
-            <div className="flex flex-col gap-4 text-center p-4">
-                <div className="text-center font-bold text-lg">
-                    Sign in to unlock your second brain
+            <div className="flex flex-col gap-4 text-center p-2">
+                <div className="text-center font-bold text-xl">
+                    Sign in for free to unlock your second brain
                 </div>
             </div>
-            <div className="flex flex-col gap-4 py-4 text-center align-middle items-center">
+            <div className="flex flex-col gap-8 pb-4 text-center align-middle items-center">
                 <GoogleSignIn onLoad={handleGoogleScriptLoad} />
                 {/* <div id="g_id_signin" /> */}
                 <Button
                     variant="outline"
-                    className="w-[300px] p-6 flex gap-2 items-center justify-center"
+                    className="w-[300px] p-8 flex gap-2 items-center justify-center rounded-lg"
                     onClick={handleGoogleSignIn}
                     disabled={isLoading || !data?.google}
                 >
@@ -405,7 +436,7 @@ function MainSignInContext({
 
                 <Button
                     variant="outline"
-                    className="w-[300px] p-6 flex gap-2 items-center justify-center"
+                    className="w-[300px] p-8 flex gap-2 items-center justify-center rounded-lg"
                     onClick={() => {
                         setUseEmailSignIn(true);
                     }}
@@ -414,7 +445,7 @@ function MainSignInContext({
                     Continue with Email
                 </Button>
             </div>
-            <div className="text-center text-muted-foreground text-xs">
+            <div className="text-center text-muted-foreground text-sm mb-[20px]">
                 By logging in, you agree to our{" "}
                 <Link href="https://khoj.dev/terms-of-service">Terms of Service</Link>. See{" "}
                 <Link href="https://khoj.dev/privacy-policy">Privacy Policy</Link>.
