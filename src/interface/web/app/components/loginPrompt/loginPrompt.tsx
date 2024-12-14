@@ -145,7 +145,7 @@ export default function LoginPrompt(props: LoginPromptProps) {
     if (props.isMobileWidth) {
         return (
             <Drawer open={true} onOpenChange={props.onOpenChange}>
-                <DrawerContent className={`flex flex-col gap-4 w-full`}>
+                <DrawerContent className={`flex flex-col gap-4 w-full mb-4`}>
                     <div>
                         {useEmailSignIn && (
                             <EmailSignInContext
@@ -231,7 +231,7 @@ function EmailSignInContext({
         <div className="flex flex-col gap-4 p-4">
             <Button
                 variant="ghost"
-                className="w-fit p-0 m-0 flex gap-2 items-center justify-center text-sm absolute top-5 left-5"
+                className="w-fit p-1 m-0 flex gap-2 items-center justify-center text-sm absolute top-5 left-5 h-fit rounded-full border border-gray-200"
                 onClick={() => {
                     setUseEmailSignIn(false);
                 }}
@@ -245,7 +245,7 @@ function EmailSignInContext({
                 {checkEmail
                     ? recheckEmail
                         ? `A new link has been sent to ${email}. Click on the link in your email to sign-in`
-                        : `A sign-in link has been sent to ${email}. Click on the link in your email to sign-in`
+                        : `A one time sign in link has been sent to ${email}. Click on it to sign in on any browser.`
                     : "You will receive a sign-in link on the email address you provide below"}
             </div>
             {!checkEmail && (
@@ -255,6 +255,11 @@ function EmailSignInContext({
                         className="p-6 w-[300px] mx-auto rounded-lg"
                         disabled={checkEmail}
                         value={email}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                handleMagicLinkSignIn();
+                            }
+                        }}
                         onChange={(e) => setEmail(e.target.value)}
                     />
                     <Button
@@ -263,7 +268,7 @@ function EmailSignInContext({
                         onClick={handleMagicLinkSignIn}
                         disabled={checkEmail}
                     >
-                        <PaperPlaneTilt className="h-6 w-6 mr-2" />
+                        <PaperPlaneTilt className="h-6 w-6 mr-2 font-bold" />
                         {checkEmail ? "Check your email" : "Send sign in link"}
                     </Button>
                 </>
@@ -282,7 +287,7 @@ function EmailSignInContext({
                         <ArrowsClockwise className="h-6 w-6 mr-2 text-gray-500" />
                         Resend email
                     </Button>
-                    <LineVertical className="h-6 w-6 hidden md:block" />
+                    <LineVertical className="h-6 w-6 hidden md:block opacity-50" />
                     <Button
                         variant="ghost"
                         className="p-0 text-orange-500"
@@ -316,24 +321,25 @@ function MainSignInContext({
     setUseEmailSignIn: (useEmailSignIn: boolean) => void;
     isMobileWidth: boolean;
 }) {
-    const plugin = useRef(Autoplay({ delay: 3500, stopOnInteraction: true }));
+    const plugin = useRef(Autoplay({ delay: 4000, stopOnInteraction: true }));
     const [showArrows, setShowArrows] = useState(false);
 
     const tips = [
         {
             src: "https://assets.khoj.dev/sign_in_demos/research_mode.gif",
             alt: "Research tip",
-            description: "Use research mode to find answers to your questions",
+            description: "Perform deeper research to get informed, accurate answers.",
         },
         {
             src: "https://assets.khoj.dev/sign_in_demos/custom_agents.gif",
             alt: "Personalize tip",
-            description: "Personalize your Khoj experience by creating custom agents",
+            description:
+                "Create AI agents and customize their personality to discuss homework, office work or a hobby.",
         },
         {
             src: "https://assets.khoj.dev/sign_in_demos/docment_questions.gif",
             alt: "Document tip",
-            description: "Understand and create documents to expand your knowledge base",
+            description: "Get verifiable answers from across the internet and your documents.",
         },
     ];
 
@@ -363,7 +369,7 @@ function MainSignInContext({
                                                 alt={tip.alt}
                                                 className="w-full h-auto rounded-b-none rounded-t-lg"
                                             />
-                                            <div className="absolute bottom-1 flex items-center justify-center text-white bg-black bg-opacity-50 text-center mx-auto rounded-lg p-4">
+                                            <div className="absolute bottom-0 flex items-center justify-center text-white bg-gradient-to-t from-black to-transparent text-center w-full p-4 py-6">
                                                 {tip.description}
                                             </div>
                                         </CardContent>
@@ -382,7 +388,7 @@ function MainSignInContext({
             )}
             <div className="flex flex-col gap-4 text-center p-2">
                 <div className="text-center font-bold text-xl">
-                    Sign in for free to unlock your second brain
+                    Sign in to unlock your second brain
                 </div>
             </div>
             <div className="flex flex-col gap-8 pb-4 text-center align-middle items-center">
@@ -390,7 +396,7 @@ function MainSignInContext({
                 {/* <div id="g_id_signin" /> */}
                 <Button
                     variant="outline"
-                    className="w-[300px] p-8 flex gap-2 items-center justify-center rounded-lg"
+                    className="w-[300px] p-8 flex gap-2 items-center justify-center rounded-lg font-bold"
                     onClick={handleGoogleSignIn}
                     disabled={isLoading || !data?.google}
                 >
@@ -436,7 +442,7 @@ function MainSignInContext({
 
                 <Button
                     variant="outline"
-                    className="w-[300px] p-8 flex gap-2 items-center justify-center rounded-lg"
+                    className="w-[300px] p-8 flex gap-2 items-center justify-center rounded-lg font-bold"
                     onClick={() => {
                         setUseEmailSignIn(true);
                     }}
