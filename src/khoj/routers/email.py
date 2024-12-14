@@ -41,13 +41,13 @@ async def send_magic_link_email(email, unique_id, host):
 
     template = env.get_template("magic_link.html")
 
-    html_content = template.render(link=f"{host}auth/magic?code={unique_id}")
+    html_content = template.render(link=f"{host}auth/magic?code={unique_id}", code=unique_id)
 
     resend.Emails.send(
         {
             "sender": os.environ.get("RESEND_EMAIL", "noreply@khoj.dev"),
             "to": email,
-            "subject": "Your Sign-In Link for Khoj 🚀",
+            "subject": f"{unique_id} - Sign in to Khoj 🚀",
             "html": html_content,
         }
     )

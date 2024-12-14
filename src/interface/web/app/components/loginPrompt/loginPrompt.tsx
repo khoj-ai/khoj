@@ -26,6 +26,7 @@ import {
     CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Card, CardContent } from "@/components/ui/card";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 export interface LoginPromptProps {
     loginRedirectMessage: string;
@@ -227,6 +228,34 @@ function EmailSignInContext({
     setRecheckEmail: (recheckEmail: boolean) => void;
     handleMagicLinkSignIn: () => void;
 }) {
+    const [otp, setOTP] = useState("");
+    const [otpError, setOTPError] = useState("");
+
+    function checkOTPAndRedirect() {
+        const verifyUrl = `/auth/magic?code=${otp}`;
+
+        fetch(verifyUrl, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        })
+            .then((res) => {
+                if (res.ok) {
+                    // Check if the response is a redirect
+                    if (res.redirected) {
+                        window.location.href = res.url;
+                    }
+                } else {
+                    setOTPError("Invalid OTP");
+                    throw new Error("Failed to verify OTP");
+                }
+            })
+            .catch((err) => {
+                console.error(err);
+            });
+    }
+
     return (
         <div className="flex flex-col gap-4 p-4">
             <Button
@@ -244,9 +273,9 @@ function EmailSignInContext({
             <div className="text-center text-sm text-muted-foreground">
                 {checkEmail
                     ? recheckEmail
-                        ? `A new link has been sent to ${email}. Click on the link in your email to sign-in`
-                        : `A one time sign in link has been sent to ${email}. Click on it to sign in on any browser.`
-                    : "You will receive a sign-in link on the email address you provide below"}
+                        ? `A new link has been sent to ${email}.`
+                        : `A one time sign in code has been sent to ${email}.`
+                    : "You will receive a sign-in code on the email address you provide below"}
             </div>
             {!checkEmail && (
                 <>
@@ -269,9 +298,34 @@ function EmailSignInContext({
                         disabled={checkEmail}
                     >
                         <PaperPlaneTilt className="h-6 w-6 mr-2 font-bold" />
-                        {checkEmail ? "Check your email" : "Send sign in link"}
+                        {checkEmail ? "Check your email" : "Send sign in code"}
                     </Button>
                 </>
+            )}
+            {checkEmail && (
+                <div className="flex items-center justify-center gap-4 text-muted-foreground flex-col">
+                    <InputOTP
+                        autoFocus={true}
+                        maxLength={6}
+                        value={otp || ""}
+                        onChange={setOTP}
+                        onComplete={() =>
+                            setTimeout(() => {
+                                checkOTPAndRedirect();
+                            }, 1000)
+                        }
+                    >
+                        <InputOTPGroup>
+                            <InputOTPSlot index={0} />
+                            <InputOTPSlot index={1} />
+                            <InputOTPSlot index={2} />
+                            <InputOTPSlot index={3} />
+                            <InputOTPSlot index={4} />
+                            <InputOTPSlot index={5} />
+                        </InputOTPGroup>
+                    </InputOTP>
+                    <div className="text-red-500 text-sm">{otpError}</div>
+                </div>
             )}
 
             {checkEmail && (
