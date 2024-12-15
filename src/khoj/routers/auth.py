@@ -99,8 +99,8 @@ async def login_magic_link(request: Request, form: MagicLinkForm):
 
 
 @auth_router.get("/magic")
-async def sign_in_with_magic_link(request: Request, code: str):
-    user = await aget_user_validated_by_email_verification_code(code)
+async def sign_in_with_magic_link(request: Request, code: str, email: str):
+    user = await aget_user_validated_by_email_verification_code(code, email)
     if user:
         id_info = {
             "email": user.email,

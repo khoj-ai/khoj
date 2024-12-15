@@ -232,7 +232,7 @@ function EmailSignInContext({
     const [otpError, setOTPError] = useState("");
 
     function checkOTPAndRedirect() {
-        const verifyUrl = `/auth/magic?code=${otp}`;
+        const verifyUrl = `/auth/magic?code=${otp}&email=${email}`;
 
         fetch(verifyUrl, {
             method: "GET",
