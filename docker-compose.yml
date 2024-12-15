@@ -18,6 +18,15 @@ services:
     image: ghcr.io/khoj-ai/terrarium:latest
     ports:
       - "8080:8080"
+  search:
+    image: docker.io/searxng/searxng:latest
+    ports:
+      - "42113:8080"
+    volumes:
+      - khoj_search:/etc/searxng
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:42113/
+      - SEARXNG_SECRET_KEY=change_me_to_something_random  # Change this in production
   server:
     depends_on:
       database:
@@ -51,6 +60,8 @@ services:
       - KHOJ_ADMIN_PASSWORD=password
       # Default URL of Terrarium, the Python sandbox used by Khoj to run code. Its container is specified above
       - KHOJ_TERRARIUM_URL=http://host.docker.internal:8080
+      # Default URL of SearxNG, the default web search engine used by Khoj. Its container is specified above
+      - KHOJ_SEARXNG_URL=http://host.docker.internal:42113
       # Uncomment line below to use with Ollama running on your local machine at localhost:11434.
       # Change URL to use with other OpenAI API compatible providers like VLLM, LMStudio etc.
       # - OPENAI_API_BASE=http://host.docker.internal:11434/v1/
@@ -93,3 +104,4 @@ volumes:
   khoj_config:
   khoj_db:
   khoj_models:
+  khoj_search:
