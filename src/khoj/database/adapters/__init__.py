@@ -437,8 +437,12 @@ def is_user_subscribed(user: KhojUser) -> bool:
     return subscribed
 
 
-async def get_user_by_email(email: str) -> KhojUser:
+async def aget_user_by_email(email: str) -> KhojUser:
     return await KhojUser.objects.filter(email=email).afirst()
+
+
+def get_user_by_email(email: str) -> KhojUser:
+    return KhojUser.objects.filter(email=email).first()
 
 
 async def aget_user_by_uuid(uuid: str) -> KhojUser:

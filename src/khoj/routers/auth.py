@@ -5,7 +5,7 @@ import os
 from typing import Optional
 
 import requests
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, EmailStr
 from starlette.authentication import requires
 from starlette.config import Config
@@ -22,7 +22,11 @@ from khoj.database.adapters import (
     get_or_create_user,
 )
 from khoj.routers.email import send_magic_link_email, send_welcome_email
-from khoj.routers.helpers import get_next_url, update_telemetry_state
+from khoj.routers.helpers import (
+    EmailVerificationApiRateLimiter,
+    get_next_url,
+    update_telemetry_state,
+)
 from khoj.utils import state
 
 logger = logging.getLogger(__name__)
@@ -99,7 +103,14 @@ async def login_magic_link(request: Request, form: MagicLinkForm):
 
 
 @auth_router.get("/magic")
-async def sign_in_with_magic_link(request: Request, code: str, email: str):
+async def sign_in_with_magic_link(
+    request: Request,
+    code: str,
+    email: str,
+    rate_limiter=Depends(
+        EmailVerificationApiRateLimiter(requests=10, window=60 * 60 * 24, slug="magic_link_verification")
+    ),
+):
     user = await aget_user_validated_by_email_verification_code(code, email)
     if user:
         id_info = {
@@ -108,7 +119,7 @@ async def sign_in_with_magic_link(request: Request, code: str, email: str):
 
         request.session["user"] = dict(id_info)
         return RedirectResponse(url="/")
-    return RedirectResponse(request.app.url_path_for("login_page"))
+    return Response(status_code=401)
 
 
 @auth_router.post("/token")

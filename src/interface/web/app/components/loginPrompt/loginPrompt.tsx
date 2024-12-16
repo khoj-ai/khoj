@@ -36,6 +36,8 @@ export interface LoginPromptProps {
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
+const ALLOWED_OTP_ATTEMPTS = 5;
+
 interface Provider {
     client_id: string;
     redirect_uri: string;
@@ -230,9 +232,15 @@ function EmailSignInContext({
 }) {
     const [otp, setOTP] = useState("");
     const [otpError, setOTPError] = useState("");
+    const [numFailures, setNumFailures] = useState(0);
 
     function checkOTPAndRedirect() {
         const verifyUrl = `/auth/magic?code=${otp}&email=${email}`;
+
+        if (numFailures >= ALLOWED_OTP_ATTEMPTS) {
+            setOTPError("Too many failed attempts. Please try again tomorrow.");
+            return;
+        }
 
         fetch(verifyUrl, {
             method: "GET",
@@ -246,8 +254,16 @@ function EmailSignInContext({
                     if (res.redirected) {
                         window.location.href = res.url;
                     }
+                } else if (res.status === 401) {
+                    setOTPError("Invalid OTP.");
+                    setNumFailures(numFailures + 1);
+                    if (numFailures + 1 >= ALLOWED_OTP_ATTEMPTS) {
+                        setOTPError("Too many failed attempts. Please try again tomorrow.");
+                    }
+                } else if (res.status === 429) {
+                    setOTPError("Too many failed attempts. Please try again tomorrow.");
+                    setNumFailures(ALLOWED_OTP_ATTEMPTS);
                 } else {
-                    setOTPError("Invalid OTP");
                     throw new Error("Failed to verify OTP");
                 }
             })
@@ -309,6 +325,7 @@ function EmailSignInContext({
                         maxLength={6}
                         value={otp || ""}
                         onChange={setOTP}
+                        disabled={numFailures >= ALLOWED_OTP_ATTEMPTS}
                         onComplete={() =>
                             setTimeout(() => {
                                 checkOTPAndRedirect();
@@ -324,7 +341,11 @@ function EmailSignInContext({
                             <InputOTPSlot index={5} />
                         </InputOTPGroup>
                     </InputOTP>
-                    <div className="text-red-500 text-sm">{otpError}</div>
+                    {otpError && (
+                        <div className="text-red-500 text-sm">
+                            {otpError} {ALLOWED_OTP_ATTEMPTS - numFailures} remaining attempts.
+                        </div>
+                    )}
                 </div>
             )}
 
