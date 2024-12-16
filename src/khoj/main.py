@@ -191,7 +191,7 @@ def run(should_start_server=True):
     app.mount(f"/static", StaticFiles(directory=static_dir), name=static_dir)
 
     # Configure Middleware
-    configure_middleware(app)
+    configure_middleware(app, state.ssl_config)
 
     initialize_server(args.config)
 

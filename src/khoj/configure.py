@@ -24,6 +24,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.middleware import Middleware
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -43,7 +44,6 @@ from khoj.database.adapters import (
 from khoj.database.models import ClientApplication, KhojUser, ProcessLock, Subscription
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
 from khoj.routers.api_content import configure_content, configure_search
-from khoj.routers.helpers import update_telemetry_state
 from khoj.routers.twilio import is_twilio_enabled
 from khoj.utils import constants, state
 from khoj.utils.config import SearchType
@@ -343,7 +343,7 @@ def configure_routes(app):
         logger.info("📞 Enabled Twilio")
 
 
-def configure_middleware(app):
+def configure_middleware(app, ssl_enabled: bool = False):
     class NextJsMiddleware(Middleware):
         async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
             if scope["type"] == "http" and scope["path"].startswith("/_next"):
@@ -354,6 +354,8 @@ def configure_middleware(app):
             super().__init__(app)
             self.app = app
 
+    if ssl_enabled:
+        app.add_middleware(HTTPSRedirectMiddleware)
     app.add_middleware(AsyncCloseConnectionsMiddleware)
     app.add_middleware(AuthenticationMiddleware, backend=UserAuthenticationBackend())
     app.add_middleware(NextJsMiddleware)
