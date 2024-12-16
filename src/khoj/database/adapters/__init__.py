@@ -240,7 +240,7 @@ async def aget_or_create_user_by_email(email: str) -> tuple[KhojUser, bool]:
     if user:
         # Generate a secure 6-digit numeric code
         user.email_verification_code = f"{secrets.randbelow(1000000):06}"
-        user.email_verification_code_expiry = datetime.now(tz=timezone.utc) + timedelta(minutes=30)
+        user.email_verification_code_expiry = datetime.now(tz=timezone.utc) + timedelta(minutes=5)
         await user.asave()
 
     user_subscription = await Subscription.objects.filter(user=user).afirst()
