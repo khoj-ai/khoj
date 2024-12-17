@@ -147,7 +147,7 @@ class KhojUserAdmin(UserAdmin, unfold_admin.ModelAdmin):
             if user.email:
                 host = request.get_host()
                 unique_id = user.email_verification_code
-                login_url = f"{host}/auth/magic?code={unique_id}"
+                login_url = f"{host}/auth/magic?code={unique_id}&email={user.email}"
                 messages.info(request, f"Email login URL for {user.email}: {login_url}")
 
     get_email_login_url.short_description = "Get email login URL"  # type: ignore
