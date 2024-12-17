@@ -14,8 +14,18 @@ Try it out yourself! https://app.khoj.dev
 
 ## Self-Hosting
 
-Online search can work even with self-hosting! Khoj uses [JinaAI's reader API](https://jina.ai/reader/) to search online and read webpages by default. You can get a free API key via https://jina.ai/reader. Set the `JINA_API_KEY` environment variable to your Jina AI reader API key to enable online search.
+### Search
 
-To improve online search, set the `SERPER_DEV_API_KEY` environment variable to your [Serper.dev](https://serper.dev/) API key. These search results include additional context like answer box, knowledge graph etc.
+Online search can work even with self-hosting! You have a few options:
 
-For advanced webpage reading, set the `OLOSTEP_API_KEY` environment variable to your [Olostep](https://www.olostep.com/) API key. This has a higher success rate at reading webpages than the default webpage reader.
+- If you're using Docker, online search should work out of the box with [searxng](https://github.com/searxng/searxng) using our standard `docker-compose.yml`.
+- For a non-local, free solution, you can use [JinaAI's reader API](https://jina.ai/reader/) to search online and read webpages. You can get a free API key via https://jina.ai/reader. Set the `JINA_API_KEY` environment variable to your Jina AI reader API key to enable online search.
+- To get production-grade, fast online search, set the `SERPER_DEV_API_KEY` environment variable to your [Serper.dev](https://serper.dev/) API key. These search results include additional context like answer box, knowledge graph etc.
+
+### Webpage Reading
+
+Out of the box, you **don't have to do anything to enable webpage reading**. Khoj will automatically read webpages by using the `requests` library. To get more distributed and scalable webpage reading, you can use the following options:
+
+- If you're using Jina AI's reader API for search, it should work automatically for webpage reading as well.
+- For scalable webpage scraping, you can use [Firecrawl](https://www.firecrawl.dev/). Create a new [Webscraper](http://localhost:42110/server/admin/database/webscraper/add/). Set your Firecrawl API key to the Api Key field, and set the type to Firecrawl.
+- For advanced webpage reading, you can use [Olostep](https://www.olostep.com/). This has a higher success rate at reading webpages than the default webpage readers. Create a new [Webscraper](http://localhost:42110/server/admin/database/webscraper/add/). Set your Olostep API key to the Api Key field, and set the type to Olostep.
