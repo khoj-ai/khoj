@@ -1,4 +1,4 @@
-<p align="center"><img src="src/khoj/interface/web/assets/icons/khoj-logo-sideways-500.png" width="230" alt="Khoj Logo"></p>
+<p align="center"><img src="https://assets.khoj.dev/khoj-logo-sideways-1200x540.png" width="230" alt="Khoj Logo"></p>
 
 <div align="center">
 
