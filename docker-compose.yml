@@ -26,7 +26,6 @@ services:
       - khoj_search:/etc/searxng
     environment:
       - SEARXNG_BASE_URL=http://localhost:42113/
-      - SEARXNG_SECRET_KEY=change_me_to_something_random  # Change this in production
   server:
     depends_on:
       database:
