@@ -75,6 +75,7 @@ jobs:
 
       - name: 📦 Publish Python Package to PyPI
         if: startsWith(github.ref, 'refs/tags') || github.ref == 'refs/heads/master'
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@release/v1.12
         with:
           skip-existing: true
+          print-hash: true
