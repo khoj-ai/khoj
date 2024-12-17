@@ -102,8 +102,14 @@ async def search_online(
         async for event in send_status_func(f"**Searching the Internet for**: {subqueries_str}"):
             yield {ChatEvent.STATUS: event}
 
+    if SERPER_DEV_API_KEY:
+        search_func = search_with_serper
+    elif JINA_API_KEY:
+        search_func = search_with_jina
+    else:
+        search_func = search_with_searxng
+
     with timer(f"Internet searches for {subqueries} took", logger):
-        search_func = search_with_google if SERPER_DEV_API_KEY else search_with_jina
         search_tasks = [search_func(subquery, location) for subquery in subqueries]
         search_results = await asyncio.gather(*search_tasks)
         response_dict = {subquery: search_result for subquery, search_result in search_results}
@@ -148,7 +154,48 @@ async def search_online(
     yield response_dict
 
 
-async def search_with_google(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:
+async def search_with_searxng(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:
+    """Search using local SearXNG instance."""
+    # Use environment variable or default to localhost
+    searxng_url = os.getenv("KHOJ_SEARXNG_URL", "http://localhost:42113")
+    search_url = f"{searxng_url}/search"
+    country_code = location.country_code.lower() if location and location.country_code else "us"
+
+    params = {"q": query, "format": "html", "language": "en", "country": country_code, "categories": "general"}
+
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(search_url, params=params) as response:
+                if response.status != 200:
+                    logger.error(f"SearXNG search failed to call {searxng_url}: {await response.text()}")
+                    return query, {}
+
+                html_content = await response.text()
+
+                soup = BeautifulSoup(html_content, "html.parser")
+                organic_results = []
+
+                for result in soup.find_all("article", class_="result"):
+                    title_elem = result.find("a", rel="noreferrer")
+                    if title_elem:
+                        title = title_elem.text.strip()
+                        link = title_elem["href"]
+
+                        description_elem = result.find("p", class_="content")
+                        description = description_elem.text.strip() if description_elem else None
+
+                        organic_results.append({"title": title, "link": link, "description": description})
+
+                extracted_search_result = {"organic": organic_results}
+
+                return query, extracted_search_result
+
+        except Exception as e:
+            logger.error(f"Error searching with SearXNG: {str(e)}")
+            return query, {}
+
+
+async def search_with_serper(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:
     country_code = location.country_code.lower() if location and location.country_code else "us"
     payload = json.dumps({"q": query, "gl": country_code})
     headers = {"X-API-KEY": SERPER_DEV_API_KEY, "Content-Type": "application/json"}
