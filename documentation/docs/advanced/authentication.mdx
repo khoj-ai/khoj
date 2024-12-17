@@ -11,23 +11,6 @@ By default, most of the instructions for self-hosting Khoj assume a single user,
 Remove the `--anonymous-mode` flag from your khoj start up command or docker-compose file to enable authentication.
 :::
 
-For either of these methods, you'll need to use the prod version of the Khoj package. You can install it as below:
-
-<Tabs groupId="server" queryString>
-  <TabItem value="docker" label="Docker">
-  Update your `docker-compose.yml` to use the prod image
-      ```bash
-      image: ghcr.io/khoj-ai/khoj-cloud:latest
-      ```
-  </TabItem>
-
-  <TabItem value="pip" label="Pip">
-  ```bash
-  pip install khoj[prod]
-  ```
-  </TabItem>
-</Tabs>
-
 ## Using Magic Links
 The most secure way to do this is to integrate with [Resend](https://resend.com).
 
@@ -61,6 +44,23 @@ It's still possible to use the magic links feature without Resend, but you'll ne
     A given magic link can only be used once. If the user tries to use it again, they'll be redirected to the login page to get a new magic link.
 
 ## Using Google OAuth
+
+For this method, you'll need to use the prod version of the Khoj package. You can install it as below:
+
+<Tabs groupId="server" queryString>
+  <TabItem value="docker" label="Docker">
+  Update your `docker-compose.yml` to use the prod image
+      ```bash
+      image: ghcr.io/khoj-ai/khoj-cloud:latest
+      ```
+  </TabItem>
+
+  <TabItem value="pip" label="Pip">
+  ```bash
+  pip install khoj[prod]
+  ```
+  </TabItem>
+</Tabs>
 
 To set up your self-hosted Khoj with Google Auth, you need to create a project in the Google Cloud Console and enable the Google Auth API.
 

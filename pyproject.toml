@@ -90,6 +90,7 @@ dependencies = [
     "docx2txt == 0.8",
     "google-generativeai == 0.8.3",
     "pyjson5 == 1.6.7",
+    "resend == 1.0.1",
 ]
 dynamic = ["version"]
 
@@ -108,7 +109,6 @@ prod = [
     "stripe == 7.3.0",
     "twilio == 8.11",
     "boto3 >= 1.34.57",
-    "resend == 1.0.1",
 ]
 dev = [
     "khoj[prod]",
