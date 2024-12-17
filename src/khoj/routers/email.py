@@ -33,7 +33,7 @@ def is_resend_enabled():
 
 
 async def send_magic_link_email(email, unique_id, host):
-    sign_in_link = f"{host}auth/magic?code={unique_id}"
+    sign_in_link = f"{host}auth/magic?code={unique_id}&email={email}"
 
     if not is_resend_enabled():
         logger.debug(f"Email sending disabled. Share this sign-in link with the user: {sign_in_link}")
@@ -41,13 +41,13 @@ async def send_magic_link_email(email, unique_id, host):
 
     template = env.get_template("magic_link.html")
 
-    html_content = template.render(link=f"{host}auth/magic?code={unique_id}")
+    html_content = template.render(link=f"{host}auth/magic?code={unique_id}", code=unique_id)
 
     resend.Emails.send(
         {
             "sender": os.environ.get("RESEND_EMAIL", "noreply@khoj.dev"),
             "to": email,
-            "subject": "Your Sign-In Link for Khoj 🚀",
+            "subject": f"Your login code to Khoj",
             "html": html_content,
         }
     )

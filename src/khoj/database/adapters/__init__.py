@@ -238,7 +238,9 @@ async def aget_or_create_user_by_email(email: str) -> tuple[KhojUser, bool]:
     await user.asave()
 
     if user:
-        user.email_verification_code = secrets.token_urlsafe(18)
+        # Generate a secure 6-digit numeric code
+        user.email_verification_code = f"{secrets.randbelow(1000000):06}"
+        user.email_verification_code_expiry = datetime.now(tz=timezone.utc) + timedelta(minutes=5)
         await user.asave()
 
     user_subscription = await Subscription.objects.filter(user=user).afirst()
@@ -267,16 +269,19 @@ async def astart_trial_subscription(user: KhojUser) -> Subscription:
     return subscription
 
 
-async def aget_user_validated_by_email_verification_code(code: str) -> KhojUser:
-    user = await KhojUser.objects.filter(email_verification_code=code).afirst()
+async def aget_user_validated_by_email_verification_code(code: str, email: str) -> tuple[Optional[KhojUser], bool]:
+    user = await KhojUser.objects.filter(email_verification_code=code, email=email).afirst()
     if not user:
-        return None
+        return None, False
+
+    if user.email_verification_code_expiry < datetime.now(tz=timezone.utc):
+        return user, True
 
     user.email_verification_code = None
     user.verified_email = True
     await user.asave()
 
-    return user
+    return user, False
 
 
 async def create_user_by_google_token(token: dict) -> KhojUser:
@@ -432,8 +437,12 @@ def is_user_subscribed(user: KhojUser) -> bool:
     return subscribed
 
 
-async def get_user_by_email(email: str) -> KhojUser:
+async def aget_user_by_email(email: str) -> KhojUser:
     return await KhojUser.objects.filter(email=email).afirst()
+
+
+def get_user_by_email(email: str) -> KhojUser:
+    return KhojUser.objects.filter(email=email).first()
 
 
 async def aget_user_by_uuid(uuid: str) -> KhojUser:

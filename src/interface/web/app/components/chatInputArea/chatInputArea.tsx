@@ -408,6 +408,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
             {showLoginPrompt && loginRedirectMessage && (
                 <LoginPrompt
                     onOpenChange={setShowLoginPrompt}
+                    isMobileWidth={props.isMobileWidth}
                     loginRedirectMessage={loginRedirectMessage}
                 />
             )}
@@ -628,7 +629,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                         <Button
                             variant={"ghost"}
                             className="!bg-none p-0 m-2 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
-                            disabled={props.sendDisabled}
+                            disabled={props.sendDisabled || !props.isLoggedIn}
                             onClick={handleFileButtonClick}
                         >
                             <Paperclip className="w-8 h-8" />
@@ -668,7 +669,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                             onClick={() => {
                                                 setRecording(!recording);
                                             }}
-                                            disabled={props.sendDisabled}
+                                            disabled={props.sendDisabled || !props.isLoggedIn}
                                         >
                                             <Stop weight="fill" className="w-6 h-6" />
                                         </Button>
@@ -698,6 +699,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                             <Button
                                                 variant="default"
                                                 className={`${!message || recording || "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                                                disabled={props.sendDisabled || !props.isLoggedIn}
                                                 onClick={() => {
                                                     setMessage("Listening...");
                                                     setRecording(!recording);
@@ -717,6 +719,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                         )}
                         <Button
                             className={`${(!message || recording) && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                            disabled={props.sendDisabled || !props.isLoggedIn}
                             onClick={onSendMessage}
                         >
                             <ArrowUp className="w-6 h-6" weight="bold" />
@@ -729,6 +732,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             <Button
                                 variant="ghost"
                                 className="float-right justify-center gap-1 flex items-center p-1.5 mr-2 h-fit"
+                                disabled={props.sendDisabled || !props.isLoggedIn}
                                 onClick={() => {
                                     setUseResearchMode(!useResearchMode);
                                     chatInputRef?.current?.focus();
