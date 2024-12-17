@@ -49,6 +49,7 @@ from khoj.database.adapters import (
     ais_user_subscribed,
     create_khoj_token,
     get_khoj_tokens,
+    get_user_by_email,
     get_user_name,
     get_user_notion_config,
     get_user_subscription_state,
@@ -1361,6 +1362,49 @@ class FeedbackData(BaseModel):
     uquery: str
     kquery: str
     sentiment: str
+
+
+class EmailVerificationApiRateLimiter:
+    def __init__(self, requests: int, window: int, slug: str):
+        self.requests = requests
+        self.window = window
+        self.slug = slug
+
+    def __call__(self, request: Request):
+        # Rate limiting disabled if billing is disabled
+        if state.billing_enabled is False:
+            return
+
+        # Extract the email query parameter
+        email = request.query_params.get("email")
+
+        if email:
+            logger.info(f"Email query parameter: {email}")
+
+        user: KhojUser = get_user_by_email(email)
+
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found.",
+            )
+
+        # Remove requests outside of the time window
+        cutoff = datetime.now(tz=timezone.utc) - timedelta(seconds=self.window)
+        count_requests = UserRequests.objects.filter(user=user, created_at__gte=cutoff, slug=self.slug).count()
+
+        # Check if the user has exceeded the rate limit
+        if count_requests >= self.requests:
+            logger.info(
+                f"Rate limit: {count_requests}/{self.requests} requests not allowed in {self.window} seconds for email: {email}."
+            )
+            raise HTTPException(
+                status_code=429,
+                detail="Ran out of login attempts",
+            )
+
+        # Add the current request to the db
+        UserRequests.objects.create(user=user, slug=self.slug)
 
 
 class ApiUserRateLimiter:

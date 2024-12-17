@@ -34,6 +34,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { AgentCard } from "@/app/components/agentCard/agentCard";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import LoginPopup from "./components/loginPrompt/loginPopup";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -217,7 +218,14 @@ function ChatBodyData(props: ChatBodyDataProps) {
             {showLoginPrompt && (
                 <LoginPrompt
                     onOpenChange={setShowLoginPrompt}
+                    isMobileWidth={props.isMobileWidth}
                     loginRedirectMessage={"Login to your second brain"}
+                />
+            )}
+            {!props.isLoggedIn && (
+                <LoginPopup
+                    isMobileWidth={props.isMobileWidth}
+                    setShowLoginPrompt={setShowLoginPrompt}
                 />
             )}
             <div className={`w-full text-center justify-end content-end`}>

@@ -4,20 +4,29 @@ import "./globals.css";
 import { ContentSecurityPolicy } from "./common/layoutHelper";
 
 export const metadata: Metadata = {
-    title: "Khoj AI - Home",
-    description: "Your Second Brain.",
+    title: "Khoj AI - Ask Anything",
+    description:
+        "Khoj is a personal research assistant. It helps you understand better and create faster.",
     icons: {
         icon: "/static/assets/icons/khoj_lantern.ico",
         apple: "/static/assets/icons/khoj_lantern_256x256.png",
     },
     manifest: "/static/khoj.webmanifest",
+    keywords:
+        "research assistant, productivity, AI, Khoj, open source, model agnostic, research, productivity tool, personal assistant, personal research assistant, personal productivity assistant",
     openGraph: {
         siteName: "Khoj AI",
         title: "Khoj AI",
-        description: "Your Second Brain.",
+        description:
+            "Khoj is a personal research assistant. It helps you understand better and create faster.",
         url: "https://app.khoj.dev",
         type: "website",
         images: [
+            {
+                url: "https://assets.khoj.dev/khoj_hero.png",
+                width: 940,
+                height: 525,
+            },
             {
                 url: "https://assets.khoj.dev/khoj_lantern_256x256.png",
                 width: 256,

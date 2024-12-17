@@ -143,6 +143,7 @@ function CreateAgentCard(props: CreateAgentCardProps) {
                     <LoginPrompt
                         loginRedirectMessage="Sign in to start chatting with a specialized agent"
                         onOpenChange={setShowLoginPrompt}
+                        isMobileWidth={props.isMobileWidth}
                     />
                 )}
                 <AgentModificationForm
@@ -317,6 +318,7 @@ export default function Agents() {
                         <LoginPrompt
                             loginRedirectMessage="Sign in to start chatting with a specialized agent"
                             onOpenChange={setShowLoginPrompt}
+                            isMobileWidth={isMobileWidth}
                         />
                     )}
                     <Alert className="bg-secondary border-none my-4">

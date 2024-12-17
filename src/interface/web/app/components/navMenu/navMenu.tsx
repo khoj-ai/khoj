@@ -25,6 +25,8 @@ import {
 import { Moon, Sun, UserCircle, Question, GearFine, ArrowRight, Code } from "@phosphor-icons/react";
 import { KhojAgentLogo, KhojAutomationLogo, KhojSearchLogo } from "../logo/khojLogo";
 import { useIsMobileWidth } from "@/app/common/utils";
+import LoginPrompt from "../loginPrompt/loginPrompt";
+import { Button } from "@/components/ui/button";
 
 function SubscriptionBadge({ is_active }: { is_active: boolean }) {
     return (
@@ -51,6 +53,7 @@ export default function NavMenu() {
     const [darkMode, setDarkMode] = useState(false);
     const [initialLoadDone, setInitialLoadDone] = useState(false);
     const isMobileWidth = useIsMobileWidth();
+    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
     useEffect(() => {
         if (localStorage.getItem("theme") === "dark") {
@@ -87,6 +90,13 @@ export default function NavMenu() {
 
     return (
         <div className={styles.titleBar}>
+            {showLoginPrompt && (
+                <LoginPrompt
+                    onOpenChange={setShowLoginPrompt}
+                    isMobileWidth={isMobileWidth}
+                    loginRedirectMessage={"Login to your second brain"}
+                />
+            )}
             {isMobileWidth ? (
                 <DropdownMenu>
                     <DropdownMenuTrigger>
@@ -197,12 +207,16 @@ export default function NavMenu() {
                                 </DropdownMenuItem>
                             ) : (
                                 <DropdownMenuItem>
-                                    <Link href="/login" className="no-underline w-full">
-                                        <div className="flex flex-rows">
+                                    <Button
+                                        variant={"ghost"}
+                                        onClick={() => setShowLoginPrompt(true)}
+                                        className="no-underline w-full text-left p-0 content-start justify-start items-start h-fit"
+                                    >
+                                        <div className="flex flex-rows text-left content-start justify-start items-start p-0">
                                             <ArrowRight className="w-6 h-6" />
                                             <p className="ml-3 font-semibold">Login</p>
                                         </div>
-                                    </Link>
+                                    </Button>
                                 </DropdownMenuItem>
                             )}
                         </>
@@ -323,12 +337,16 @@ export default function NavMenu() {
                                     </MenubarItem>
                                 ) : (
                                     <MenubarItem>
-                                        <Link href="/login" className="no-underline w-full">
-                                            <div className="flex flex-rows">
+                                        <Button
+                                            variant={"ghost"}
+                                            onClick={() => setShowLoginPrompt(true)}
+                                            className="no-underline w-full text-left p-0 content-start justify-start items-start h-fit"
+                                        >
+                                            <div className="flex flex-rows text-left content-start justify-start items-start p-0">
                                                 <ArrowRight className="w-6 h-6" />
                                                 <p className="ml-3 font-semibold">Login</p>
                                             </div>
-                                        </Link>
+                                        </Button>
                                     </MenubarItem>
                                 )}
                             </>

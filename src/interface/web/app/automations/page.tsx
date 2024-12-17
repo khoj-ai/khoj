@@ -1064,6 +1064,7 @@ export default function Automations() {
                         <LoginPrompt
                             loginRedirectMessage={"Create an account to make your own automation"}
                             onOpenChange={setShowLoginPrompt}
+                            isMobileWidth={isMobileWidth}
                         />
                     )}
                     <Alert className="bg-secondary border-none my-4">
