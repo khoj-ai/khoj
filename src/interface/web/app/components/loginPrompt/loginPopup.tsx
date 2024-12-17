@@ -35,7 +35,7 @@ function PopUpContent(props: LoginPopupProps) {
             <div className="flex flex-col items-start justify-center gap-8 md:gap-2">
                 <CardHeader className="p-0 text-xl font-bold">Welcome to Khoj!</CardHeader>
                 <CardDescription>
-                    Sign in to get started with Khoj, your AI-powered knowledge assistant.
+                    Sign in to get started with Khoj, your AI research assistant.
                 </CardDescription>
             </div>
             <Button
