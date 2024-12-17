@@ -27,7 +27,6 @@ from khoj.processor.conversation.utils import (
 from khoj.utils import state
 from khoj.utils.helpers import (
     get_chat_usage_metrics,
-    in_debug_mode,
     is_none_or_empty,
     is_promptrace_enabled,
 )

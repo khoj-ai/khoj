@@ -23,7 +23,6 @@ from khoj.utils import state
 from khoj.utils.constants import empty_escape_sequences
 from khoj.utils.helpers import (
     ConversationCommand,
-    in_debug_mode,
     is_none_or_empty,
     is_promptrace_enabled,
     truncate_code_context,
