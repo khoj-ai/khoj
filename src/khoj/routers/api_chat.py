@@ -724,7 +724,16 @@ async def chat(
                 yield result
             return
 
-        conversation_commands = [get_conversation_command(query=q, any_references=True)]
+        # Automated tasks are handled before to allow mixing them with other conversation commands
+        cmds_to_rate_limit = []
+        is_automated_task = False
+        if q.startswith("/automated_task"):
+            is_automated_task = True
+            q = q.replace("/automated_task", "").lstrip()
+            cmds_to_rate_limit += [ConversationCommand.AutomatedTask]
+
+        # Extract conversation command from query
+        conversation_commands = [get_conversation_command(query=q)]
 
         conversation = await ConversationAdapters.aget_conversation_by_user(
             user,
@@ -757,11 +766,8 @@ async def chat(
         location = None
         if city or region or country or country_code:
             location = LocationData(city=city, region=region, country=country, country_code=country_code)
-
         user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
         meta_log = conversation.conversation_log
-        is_automated_task = conversation_commands == [ConversationCommand.AutomatedTask]
 
         researched_results = ""
         online_results: Dict = dict()
@@ -778,7 +784,7 @@ async def chat(
         generated_excalidraw_diagram: str = None
         program_execution_context: List[str] = []
 
-        if conversation_commands == [ConversationCommand.Default] or is_automated_task:
+        if conversation_commands == [ConversationCommand.Default]:
             chosen_io = await aget_data_sources_and_output_format(
                 q,
                 meta_log,
@@ -799,7 +805,8 @@ async def chat(
             async for result in send_event(ChatEvent.STATUS, f"**Selected Tools:** {conversation_commands_str}"):
                 yield result
 
-        for cmd in conversation_commands:
+        cmds_to_rate_limit += conversation_commands
+        for cmd in cmds_to_rate_limit:
             try:
                 await conversation_command_rate_limiter.update_and_check_if_valid(request, cmd)
                 q = q.replace(f"/{cmd.value}", "").strip()
