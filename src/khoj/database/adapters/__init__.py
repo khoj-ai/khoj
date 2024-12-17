@@ -275,7 +275,7 @@ async def aget_user_validated_by_email_verification_code(code: str, email: str) 
         return None, False
 
     if user.email_verification_code_expiry < datetime.now(tz=timezone.utc):
-        return None, True
+        return user, True
 
     user.email_verification_code = None
     user.verified_email = True
