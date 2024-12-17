@@ -231,7 +231,7 @@ def get_next_url(request: Request) -> str:
     return urljoin(str(request.base_url).rstrip("/"), next_path)
 
 
-def get_conversation_command(query: str, any_references: bool = False) -> ConversationCommand:
+def get_conversation_command(query: str) -> ConversationCommand:
     if query.startswith("/notes"):
         return ConversationCommand.Notes
     elif query.startswith("/help"):
@@ -254,9 +254,6 @@ def get_conversation_command(query: str, any_references: bool = False) -> Conver
         return ConversationCommand.Code
     elif query.startswith("/research"):
         return ConversationCommand.Research
-    # If no relevant notes found for the given query
-    elif not any_references:
-        return ConversationCommand.General
     else:
         return ConversationCommand.Default
 
@@ -408,42 +405,39 @@ async def aget_data_sources_and_output_format(
         response = clean_json(response)
         response = json.loads(response)
 
-        selected_sources = [q.strip() for q in response.get("source", []) if q.strip()]
-        selected_output = response.get("output", "text").strip()  # Default to text output
+        chosen_sources = [s.strip() for s in response.get("source", []) if s.strip()]
+        chosen_output = response.get("output", "text").strip()  # Default to text output
 
-        if not isinstance(selected_sources, list) or not selected_sources or len(selected_sources) == 0:
+        if is_none_or_empty(chosen_sources) or not isinstance(chosen_sources, list):
             raise ValueError(
-                f"Invalid response for determining relevant tools: {selected_sources}. Raw Response: {response}"
+                f"Invalid response for determining relevant tools: {chosen_sources}. Raw Response: {response}"
             )
 
-        result: Dict = {"sources": [], "output": None if not is_task else ConversationCommand.AutomatedTask}
-        for selected_source in selected_sources:
-            # Add a double check to verify it's in the agent list, because the LLM sometimes gets confused by the tool options.
-            if (
-                selected_source in source_options.keys()
-                and isinstance(result["sources"], list)
-                and (len(agent_sources) == 0 or selected_source in agent_sources)
-            ):
-                # Check whether the tool exists as a valid ConversationCommand
-                result["sources"].append(ConversationCommand(selected_source))
+        output_mode = ConversationCommand.Text
+        # Verify selected output mode is enabled for the agent, as the LLM can sometimes get confused by the tool options.
+        if chosen_output in output_options.keys() and (len(agent_outputs) == 0 or chosen_output in agent_outputs):
+            # Ensure that the chosen output mode exists as a valid ConversationCommand
+            output_mode = ConversationCommand(chosen_output)
 
-        # Add a double check to verify it's in the agent list, because the LLM sometimes gets confused by the tool options.
-        if selected_output in output_options.keys() and (len(agent_outputs) == 0 or selected_output in agent_outputs):
-            # Check whether the tool exists as a valid ConversationCommand
-            result["output"] = ConversationCommand(selected_output)
+        data_sources = []
+        # Verify selected data sources are enabled for the agent, as the LLM can sometimes get confused by the tool options.
+        for chosen_source in chosen_sources:
+            # Ensure that the chosen data source exists as a valid ConversationCommand
+            if chosen_source in source_options.keys() and (len(agent_sources) == 0 or chosen_source in agent_sources):
+                data_sources.append(ConversationCommand(chosen_source))
 
-        if is_none_or_empty(result):
+        # Fallback to default sources if the inferred data sources are unset or invalid
+        if is_none_or_empty(data_sources):
             if len(agent_sources) == 0:
-                result = {"sources": [ConversationCommand.Default], "output": ConversationCommand.Text}
+                data_sources = [ConversationCommand.Default]
             else:
-                result = {"sources": [ConversationCommand.General], "output": ConversationCommand.Text}
+                data_sources = [ConversationCommand.General]
     except Exception as e:
         logger.error(f"Invalid response for determining relevant tools: {response}. Error: {e}", exc_info=True)
-        sources = agent_sources if len(agent_sources) > 0 else [ConversationCommand.Default]
-        output = agent_outputs[0] if len(agent_outputs) > 0 else ConversationCommand.Text
-        result = {"sources": sources, "output": output}
+        data_sources = agent_sources if len(agent_sources) > 0 else [ConversationCommand.Default]
+        output_mode = agent_outputs[0] if len(agent_outputs) > 0 else ConversationCommand.Text
 
-    return result
+    return {"sources": data_sources, "output": output_mode}
 
 
 async def infer_webpage_urls(
@@ -1686,7 +1680,7 @@ def scheduled_chat(
             last_run_time = datetime.strptime(last_run_time, "%Y-%m-%d %I:%M %p %Z").replace(tzinfo=timezone.utc)
 
             # If the last run time was within the last 6 hours, don't run it again. This helps avoid multithreading issues and rate limits.
-            if (datetime.now(timezone.utc) - last_run_time).total_seconds() < 21600:
+            if (datetime.now(timezone.utc) - last_run_time).total_seconds() < 6 * 60 * 60:
                 logger.info(f"Skipping scheduled chat {job_id} as the next run time is in the future.")
                 return
 
