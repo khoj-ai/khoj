@@ -6,7 +6,7 @@ import { ContentSecurityPolicy } from "@/app/common/layoutHelper";
 export const metadata: Metadata = {
     title: "Khoj AI - Ask Anything",
     description:
-        "Ask anything. Khoj will use the internet and your docs to answer, paint and even automate stuff for you.",
+        "Ask anything. Research answers from across the internet and your documents, draft messages, summarize documents, generate paintings and chat with personal agents.",
     icons: {
         icon: "/static/assets/icons/khoj_lantern.ico",
         apple: "/static/assets/icons/khoj_lantern_256x256.png",
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
         siteName: "Khoj AI",
         title: "Khoj AI - Ask Anything",
         description:
-            "Ask anything. Khoj will use the internet and your docs to answer, paint and even automate stuff for you.",
+            "Ask anything. Research answers from across the internet and your documents, draft messages, summarize documents, generate paintings and chat with personal agents.",
         url: "https://app.khoj.dev/chat",
         type: "website",
         images: [

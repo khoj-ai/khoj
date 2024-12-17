@@ -6,17 +6,19 @@ import { ContentSecurityPolicy } from "./common/layoutHelper";
 export const metadata: Metadata = {
     title: "Khoj AI - Ask Anything",
     description:
-        "Khoj is a model-agnostic, open-source personal research assistant. It helps you understand, create, and generate faster.",
+        "Khoj is a personal research assistant. It helps you understand better and create faster.",
     icons: {
         icon: "/static/assets/icons/khoj_lantern.ico",
         apple: "/static/assets/icons/khoj_lantern_256x256.png",
     },
     manifest: "/static/khoj.webmanifest",
+    keywords:
+        "research assistant, productivity, AI, Khoj, open source, model agnostic, research, productivity tool, personal assistant, personal research assistant, personal productivity assistant",
     openGraph: {
         siteName: "Khoj AI",
         title: "Khoj AI",
         description:
-            "Khoj is a model-agnostic, open-source personal research assistant. It helps you understand, create, and generate faster.",
+            "Khoj is a personal research assistant. It helps you understand better and create faster.",
         url: "https://app.khoj.dev",
         type: "website",
         images: [

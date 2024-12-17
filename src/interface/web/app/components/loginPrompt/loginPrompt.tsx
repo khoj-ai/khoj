@@ -150,7 +150,7 @@ export default function LoginPrompt(props: LoginPromptProps) {
             <Drawer open={true} onOpenChange={props.onOpenChange}>
                 <DrawerContent className={`flex flex-col gap-4 w-full mb-4`}>
                     <div>
-                        {useEmailSignIn && (
+                        {useEmailSignIn ? (
                             <EmailSignInContext
                                 email={email}
                                 setEmail={setEmail}
@@ -161,8 +161,7 @@ export default function LoginPrompt(props: LoginPromptProps) {
                                 setRecheckEmail={setRecheckEmail}
                                 handleMagicLinkSignIn={handleMagicLinkSignIn}
                             />
-                        )}
-                        {!useEmailSignIn && (
+                        ) : (
                             <MainSignInContext
                                 handleGoogleScriptLoad={handleGoogleScriptLoad}
                                 handleGoogleSignIn={handleGoogleSignIn}
@@ -184,7 +183,7 @@ export default function LoginPrompt(props: LoginPromptProps) {
                 className={`flex flex-col gap-4 ${!useEmailSignIn ? "p-0 pb-4 m-0 max-w-xl" : "w-fit"}`}
             >
                 <div>
-                    {useEmailSignIn && (
+                    {useEmailSignIn ? (
                         <EmailSignInContext
                             email={email}
                             setEmail={setEmail}
@@ -195,8 +194,7 @@ export default function LoginPrompt(props: LoginPromptProps) {
                             setRecheckEmail={setRecheckEmail}
                             handleMagicLinkSignIn={handleMagicLinkSignIn}
                         />
-                    )}
-                    {!useEmailSignIn && (
+                    ) : (
                         <MainSignInContext
                             handleGoogleScriptLoad={handleGoogleScriptLoad}
                             handleGoogleSignIn={handleGoogleSignIn}
@@ -403,18 +401,17 @@ function MainSignInContext({
         {
             src: "https://assets.khoj.dev/sign_in_demos/research_mode.gif",
             alt: "Research tip",
-            description: "Perform deeper research to get informed, accurate answers.",
+            description: "Simplify Deep Work",
         },
         {
             src: "https://assets.khoj.dev/sign_in_demos/custom_agents.gif",
             alt: "Personalize tip",
-            description:
-                "Create AI agents and customize their personality to discuss homework, office work or a hobby.",
+            description: "Personalize your AI",
         },
         {
             src: "https://assets.khoj.dev/sign_in_demos/docment_questions.gif",
             alt: "Document tip",
-            description: "Get verifiable answers from across the internet and your documents.",
+            description: "Ask Anything",
         },
     ];
 
@@ -473,7 +470,12 @@ function MainSignInContext({
                     variant="outline"
                     className="w-[300px] p-8 flex gap-2 items-center justify-center rounded-lg font-bold"
                     onClick={handleGoogleSignIn}
-                    disabled={isLoading || !data?.google}
+                    disabled={
+                        isLoading ||
+                        !data?.google ||
+                        !data?.google.client_id ||
+                        !data?.google.redirect_uri
+                    }
                 >
                     {isLoading ? (
                         <Spinner className="h-6 w-6" />

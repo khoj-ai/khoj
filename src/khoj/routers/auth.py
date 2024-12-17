@@ -157,7 +157,7 @@ async def auth_post(request: Request):
     form = await request.form()
     next_url = get_next_url(request)
     for q in request.query_params:
-        if not q == "next":
+        if q != "next":
             next_url += f"&{q}={request.query_params[q]}"
 
     credential = form.get("credential")
@@ -202,7 +202,7 @@ async def auth(request: Request):
     for q in request.query_params:
         if q in ["code", "state", "scope", "authuser", "prompt", "session_state", "access_type"]:
             continue
-        if not q == "next":
+        if q != "next":
             next_url += f"&{q}={request.query_params[q]}"
 
     code = request.query_params.get("code")

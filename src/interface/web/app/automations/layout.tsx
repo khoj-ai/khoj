@@ -6,7 +6,8 @@ import { ContentSecurityPolicy } from "../common/layoutHelper";
 
 export const metadata: Metadata = {
     title: "Khoj AI - Automations",
-    description: "Use Automations with Khoj to simplify the process of running repetitive tasks.",
+    description:
+        "Use Khoj Automations to get tailored research and event based notifications directly in your inbox.",
     icons: {
         icon: "/static/assets/icons/khoj_lantern.ico",
         apple: "/static/assets/icons/khoj_lantern_256x256.png",
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
         siteName: "Khoj AI",
         title: "Khoj AI - Automations",
         description:
-            "Use Automations with Khoj to simplify the process of running repetitive tasks.",
+            "Use Khoj Automations to get tailored research and event based notifications directly in your inbox.",
         url: "https://app.khoj.dev/automations",
         type: "website",
         images: [

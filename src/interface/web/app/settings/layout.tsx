@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     openGraph: {
         siteName: "Khoj AI",
         title: "Khoj AI - Settings",
-        description: "Setup, configure, and personalize Khoj. your AI-powered research assistant.",
+        description: "Setup, configure, and personalize Khoj, your AI research assistant.",
         url: "https://app.khoj.dev/settings",
         type: "website",
         images: [
