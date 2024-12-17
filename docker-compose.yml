@@ -31,7 +31,7 @@ services:
     depends_on:
       database:
         condition: service_healthy
-    # Use the following line to use the latest version of khoj. Otherwise, it will build from source. Set this to ghcr.io/khoj-ai/khoj-cloud if you want to use the prod image.
+    # Use the following line to use the latest version of khoj. Otherwise, it will build from source. Set this to ghcr.io/khoj-ai/khoj-cloud:latest if you want to use the prod image.
     image: ghcr.io/khoj-ai/khoj:latest
     # Uncomment the following line to build from source. This will take a few minutes. Comment the next two lines out if you want to use the official image.
     # build:
@@ -96,7 +96,7 @@ services:
       # Telemetry helps us prioritize feature development and understand how people are using Khoj
       # Read more at https://docs.khoj.dev/miscellaneous/telemetry
       # - KHOJ_TELEMETRY_DISABLE=True
-    # Comment out this line when you're using the official ghcr.io/khoj-ai/khoj-cloud prod image.
+    # Comment out this line when you're using the official ghcr.io/khoj-ai/khoj-cloud:latest prod image.
     command: --host="0.0.0.0" --port=42110 -vv --anonymous-mode --non-interactive
 
 
