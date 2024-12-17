@@ -216,19 +216,28 @@ async def auth(request: Request):
     base_url = str(request.base_url).rstrip("/")
     redirect_uri = f"{base_url}{request.app.url_path_for('auth')}"
 
+    payload = {
+        "code": code,
+        "client_id": os.environ["GOOGLE_CLIENT_ID"],
+        "client_secret": os.environ["GOOGLE_CLIENT_SECRET"],
+        "redirect_uri": redirect_uri,
+        "grant_type": "authorization_code",
+    }
+
     verified_data = requests.post(
         "https://oauth2.googleapis.com/token",
         headers={"Content-Type": "application/x-www-form-urlencoded"},
-        data={
-            "code": code,
-            "client_id": os.environ["GOOGLE_CLIENT_ID"],
-            "client_secret": os.environ["GOOGLE_CLIENT_SECRET"],
-            "redirect_uri": redirect_uri,
-            "grant_type": "authorization_code",
-        },
+        data=payload,
     )
 
-    verified_data.raise_for_status()
+    if verified_data.status_code != 200:
+        logger.error(f"Token request failed: {verified_data.text}")
+        try:
+            error_json = verified_data.json()
+            logger.error(f"Error response JSON for Google verification: {error_json}")
+        except ValueError:
+            logger.error("Response content is not valid JSON")
+        verified_data.raise_for_status()
 
     credential = verified_data.json().get("id_token")
 
