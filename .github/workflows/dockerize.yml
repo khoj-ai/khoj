@@ -135,6 +135,7 @@ jobs:
         run: |
           docker buildx imagetools create \
             -t ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }} \
+            -t ghcr.io/${{ github.repository }}:${{ github.ref_type == 'tag' && 'latest' || env.DOCKER_IMAGE_TAG }} \
             ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}-amd64 \
             ghcr.io/${{ github.repository }}:${{ env.DOCKER_IMAGE_TAG }}-arm64
 
@@ -143,5 +144,6 @@ jobs:
         run: |
           docker buildx imagetools create \
             -t ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }} \
+            -t ghcr.io/${{ github.repository }}-cloud:${{ github.ref_type == 'tag' && 'latest' || env.DOCKER_IMAGE_TAG }} \
             ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}-amd64 \
             ghcr.io/${{ github.repository }}-cloud:${{ env.DOCKER_IMAGE_TAG }}-arm64
