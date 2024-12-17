@@ -111,8 +111,13 @@ async def sign_in_with_magic_link(
         EmailVerificationApiRateLimiter(requests=10, window=60 * 60 * 24, slug="magic_link_verification")
     ),
 ):
-    user = await aget_user_validated_by_email_verification_code(code, email)
+    user, code_is_expired = await aget_user_validated_by_email_verification_code(code, email)
+
     if user:
+        if code_is_expired:
+            request.session["user"] = {}
+            return Response(status_code=403)
+
         id_info = {
             "email": user.email,
         }

@@ -269,19 +269,19 @@ async def astart_trial_subscription(user: KhojUser) -> Subscription:
     return subscription
 
 
-async def aget_user_validated_by_email_verification_code(code: str, email: str) -> KhojUser:
+async def aget_user_validated_by_email_verification_code(code: str, email: str) -> tuple[Optional[KhojUser], bool]:
     user = await KhojUser.objects.filter(email_verification_code=code, email=email).afirst()
     if not user:
-        return None
+        return None, False
 
     if user.email_verification_code_expiry < datetime.now(tz=timezone.utc):
-        return None
+        return None, True
 
     user.email_verification_code = None
     user.verified_email = True
     await user.asave()
 
-    return user
+    return user, False
 
 
 async def create_user_by_google_token(token: dict) -> KhojUser:

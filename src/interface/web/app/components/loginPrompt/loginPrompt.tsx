@@ -261,6 +261,8 @@ function EmailSignInContext({
                 } else if (res.status === 429) {
                     setOTPError("Too many failed attempts. Please try again tomorrow.");
                     setNumFailures(ALLOWED_OTP_ATTEMPTS);
+                } else if (res.status === 403) {
+                    setOTPError("OTP expired. Please request a new one.");
                 } else {
                     throw new Error("Failed to verify OTP");
                 }
