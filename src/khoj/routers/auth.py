@@ -237,7 +237,6 @@ async def auth(request: Request):
 
     if verified_data.status_code != 200:
         logger.error(f"Token request failed: {verified_data.text}")
-        logger.error(f"Payload sent: {payload}")
         try:
             error_json = verified_data.json()
             logger.error(f"Error response JSON for Google verification: {error_json}")
