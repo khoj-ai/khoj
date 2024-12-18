@@ -639,7 +639,7 @@ def verify_public_conversation(sender, instance, **kwargs):
 
     # check if this is a new instance
     if instance._state.adding:
-        slug = re.sub(r"\W+", "-", instance.slug.lower())[:50]
+        slug = re.sub(r"\W+", "-", instance.slug.lower())[:50] if instance.slug else uuid.uuid4().hex
         observed_random_id = set()
         while PublicConversation.objects.filter(slug=slug).exists():
             try:
