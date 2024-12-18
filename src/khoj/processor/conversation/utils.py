@@ -54,7 +54,7 @@ model_to_prompt_size = {
     # OpenAI Models
     "gpt-4o": 20000,
     "gpt-4o-mini": 20000,
-    "o1-preview": 20000,
+    "o1": 20000,
     "o1-mini": 20000,
     # Google Models
     "gemini-1.5-flash": 20000,

@@ -58,13 +58,17 @@ def completion_with_backoff(
         openai_clients[client_key] = client
 
     formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
-    stream = True
 
     # Update request parameters for compatability with o1 model series
     # Refer: https://platform.openai.com/docs/guides/reasoning/beta-limitations
-    if model_name.startswith("o1"):
+    stream = True
+    model_kwargs["stream_options"] = {"include_usage": True}
+    if model_name == "o1":
         temperature = 1
-        model_kwargs.pop("stop", None)
+        stream = False
+        model_kwargs.pop("stream_options", None)
+    elif model_name.startswith("o1"):
+        temperature = 1
         model_kwargs.pop("response_format", None)
 
     if os.getenv("KHOJ_LLM_SEED"):
@@ -74,7 +78,6 @@ def completion_with_backoff(
         messages=formatted_messages,  # type: ignore
         model=model_name,  # type: ignore
         stream=stream,
-        stream_options={"include_usage": True} if stream else {},
         temperature=temperature,
         timeout=20,
         **model_kwargs,
@@ -165,13 +168,17 @@ def llm_thread(
             client = openai_clients[client_key]
 
         formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
-        stream = True
 
         # Update request parameters for compatability with o1 model series
         # Refer: https://platform.openai.com/docs/guides/reasoning/beta-limitations
-        if model_name.startswith("o1"):
+        stream = True
+        model_kwargs["stream_options"] = {"include_usage": True}
+        if model_name == "o1":
             temperature = 1
-            model_kwargs.pop("stop", None)
+            stream = False
+            model_kwargs.pop("stream_options", None)
+        elif model_name.startswith("o1-"):
+            temperature = 1
             model_kwargs.pop("response_format", None)
 
         if os.getenv("KHOJ_LLM_SEED"):
@@ -181,7 +188,6 @@ def llm_thread(
             messages=formatted_messages,
             model=model_name,  # type: ignore
             stream=stream,
-            stream_options={"include_usage": True} if stream else {},
             temperature=temperature,
             timeout=20,
             **model_kwargs,
