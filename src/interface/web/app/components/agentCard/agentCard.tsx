@@ -321,9 +321,7 @@ export function AgentCard(props: AgentCardProps) {
     }
 
     return (
-        <Card
-            className={`shadow-sm bg-gradient-to-b from-white 20% to-${props.data.color ? props.data.color : "gray"}-100/50 dark:from-[hsl(var(--background))] dark:to-${props.data.color ? props.data.color : "gray"}-950/50 rounded-xl hover:shadow-md`}
-        >
+        <Card className={`shadow-md rounded-xl hover:shadow-lg dark:bg-muted`}>
             {showLoginPrompt && (
                 <LoginPrompt
                     loginRedirectMessage={`Sign in to start chatting with ${props.data.name}`}
@@ -404,7 +402,7 @@ export function AgentCard(props: AgentCardProps) {
                                 </div>
                             )}
                             {(props.showChatButton ?? true) && (
-                                <div className="float-right">
+                                <div className="float-right ml-2">
                                     {props.userProfile ? (
                                         <Button
                                             className={`bg-[hsl(var(--background))] w-10 h-10 p-0 rounded-xl border dark:border-neutral-700 shadow-sm hover:bg-stone-100 dark:hover:bg-neutral-900`}
@@ -733,7 +731,11 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                                     memorable.
                                 </FormDescription>
                                 <FormControl>
-                                    <Input placeholder="Biologist" {...field} />
+                                    <Input
+                                        className="dark:bg-muted"
+                                        placeholder="Biologist"
+                                        {...field}
+                                    />
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -765,7 +767,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                                     disabled={!props.isSubscribed}
                                 >
                                     <FormControl>
-                                        <SelectTrigger className="text-left">
+                                        <SelectTrigger className="text-left dark:bg-muted">
                                             <SelectValue />
                                         </SelectTrigger>
                                     </FormControl>
@@ -825,7 +827,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                                 </FormDescription>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
-                                        <SelectTrigger className="w-[200px]">
+                                        <SelectTrigger className="w-[200px] dark:bg-muted">
                                             <SelectValue placeholder="private" />
                                         </SelectTrigger>
                                     </FormControl>
@@ -855,7 +857,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                                 <FormLabel>Color</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
-                                        <SelectTrigger className="w-[200px]">
+                                        <SelectTrigger className="w-[200px] dark:bg-muted">
                                             <SelectValue placeholder="Color" />
                                         </SelectTrigger>
                                     </FormControl>
@@ -889,7 +891,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                                 <FormLabel>Icon</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
-                                        <SelectTrigger className="w-[200px]">
+                                        <SelectTrigger className="w-[200px] dark:bg-muted">
                                             <SelectValue placeholder="Icon" />
                                         </SelectTrigger>
                                     </FormControl>
@@ -930,6 +932,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                                 </FormDescription>
                                 <FormControl>
                                     <Textarea
+                                        className="dark:bg-muted"
                                         placeholder="You are an excellent biologist, at the top of your field in marine biology."
                                         {...field}
                                     />
@@ -953,7 +956,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                                     <a href="/settings">Manage data</a>.
                                 </FormDescription>
                                 <Collapsible>
-                                    <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2">
+                                    <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2 bg-muted p-2 rounded-lg">
                                         <CaretUpDown />
                                         {field.value && field.value.length > 0
                                             ? `${field.value.length} files selected`
@@ -1085,7 +1088,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                                     <b>Default:</b> No limitations.
                                 </FormDescription>
                                 <Collapsible>
-                                    <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2">
+                                    <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2 bg-muted p-2 rounded-lg">
                                         <CaretUpDown />
                                         {field.value && field.value.length > 0
                                             ? `${field.value.length} tools selected`
@@ -1171,7 +1174,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                                     <b>Default:</b> No limitations.
                                 </FormDescription>
                                 <Collapsible>
-                                    <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2">
+                                    <CollapsibleTrigger className="flex items-center justify-between text-sm gap-2 bg-muted p-2 rounded-lg">
                                         <CaretUpDown />
                                         {field.value && field.value.length > 0
                                             ? `${field.value.length} modes selected`

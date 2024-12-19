@@ -320,9 +320,7 @@ function AutomationsCard(props: AutomationsCardProps) {
     }
 
     return (
-        <Card
-            className={`bg-secondary h-full shadow-sm rounded-lg bg-gradient-to-b from-background to-slate-50 dark:to-gray-950 border ${styles.automationCard}`}
-        >
+        <Card className={`h-full shadow-md rounded-lg dark:bg-muted ${styles.automationCard}`}>
             <CardHeader>
                 <CardTitle className="line-clamp-2 leading-normal flex justify-between">
                     {updatedAutomationData?.subject || automation.subject}
@@ -884,13 +882,13 @@ function metadataMap(ipLocationData: LocationData, authenticatedData: UserProfil
     return (
         <div className="flex flex-wrap gap-2 items-center justify-start">
             {authenticatedData ? (
-                <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm">
+                <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm dark:bg-muted">
                     <Envelope className="h-4 w-4 mr-2 inline text-orange-500 shadow-sm" />
                     {authenticatedData.email}
                 </span>
             ) : null}
             {ipLocationData && (
-                <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm">
+                <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm dark:bg-muted">
                     <MapPinSimple className="h-4 w-4 mr-2 inline text-purple-500" />
                     {ipLocationData
                         ? `${ipLocationData.city}, ${ipLocationData.country}`
@@ -898,7 +896,7 @@ function metadataMap(ipLocationData: LocationData, authenticatedData: UserProfil
                 </span>
             )}
             {ipLocationData && (
-                <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm">
+                <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm dark:bg-muted">
                     <Clock className="h-4 w-4 mr-2 inline text-green-500" />
                     {ipLocationData ? `${ipLocationData.timezone}` : "Unknown"}
                 </span>
@@ -1039,13 +1037,13 @@ export default function Automations() {
                         <h1 className="text-3xl flex items-center">Automations</h1>
                         <div className="flex flex-wrap gap-2 items-center justify-start">
                             {authenticatedData ? (
-                                <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm">
+                                <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm dark:bg-muted">
                                     <Envelope className="h-4 w-4 mr-2 inline text-orange-500 shadow-sm" />
                                     {authenticatedData.email}
                                 </span>
                             ) : null}
                             {locationData && (
-                                <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm">
+                                <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm dark:bg-muted">
                                     <MapPinSimple className="h-4 w-4 mr-2 inline text-purple-500" />
                                     {locationData
                                         ? `${locationData.city}, ${locationData.country}`
@@ -1053,7 +1051,7 @@ export default function Automations() {
                                 </span>
                             )}
                             {locationData && (
-                                <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm">
+                                <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm dark:bg-muted">
                                     <Clock className="h-4 w-4 mr-2 inline text-green-500" />
                                     {locationData ? `${locationData.timezone}` : "Unknown"}
                                 </span>
@@ -1076,7 +1074,6 @@ export default function Automations() {
                         </AlertDescription>
                     </Alert>
                     <div className="flex justify-between items-center py-4">
-                        <h3 className="text-xl">Your Creations</h3>
                         {authenticatedData ? (
                             <AutomationComponentWrapper
                                 isMobileWidth={isMobileWidth}
@@ -1110,35 +1107,6 @@ export default function Automations() {
                             setNewAutomationData={setNewAutomationData}
                         />
                     </Suspense>
-                    {(!personalAutomations || personalAutomations.length === 0) &&
-                        allNewAutomations.length == 0 &&
-                        !isLoading && (
-                            <div className="px-4">
-                                So empty! Create your own automation to get started.
-                                <div className="mt-4">
-                                    {authenticatedData ? (
-                                        <AutomationComponentWrapper
-                                            isMobileWidth={isMobileWidth}
-                                            callToAction="Design Automation"
-                                            createNew={true}
-                                            setIsCreating={setIsCreating}
-                                            setShowLoginPrompt={setShowLoginPrompt}
-                                            setNewAutomationData={setNewAutomationData}
-                                            authenticatedData={authenticatedData}
-                                            isCreating={isCreating}
-                                            ipLocationData={locationData}
-                                        />
-                                    ) : (
-                                        <Button
-                                            onClick={() => setShowLoginPrompt(true)}
-                                            variant={"default"}
-                                        >
-                                            Design
-                                        </Button>
-                                    )}
-                                </div>
-                            </div>
-                        )}
                     {isLoading && <InlineLoading message="booting up your automations" />}
                     <div className={`${styles.automationsLayout}`}>
                         {personalAutomations &&
@@ -1165,7 +1133,7 @@ export default function Automations() {
                             />
                         ))}
                     </div>
-                    <h3 className="text-xl py-4">Try these out</h3>
+                    <h3 className="text-xl py-4">Explore</h3>
                     <div className={`${styles.automationsLayout}`}>
                         {suggestedAutomations.map((automation) => (
                             <AutomationsCard

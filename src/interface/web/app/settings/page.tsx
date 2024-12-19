@@ -512,7 +512,7 @@ export default function SettingsView() {
     const isMobileWidth = useIsMobileWidth();
 
     const cardClassName =
-        "w-full lg:w-1/3 grid grid-flow-column border border-gray-300 shadow-md rounded-lg bg-gradient-to-b from-background to-gray-50 dark:to-gray-950 border border-opacity-50";
+        "w-full lg:w-1/3 grid grid-flow-column border border-gray-300 shadow-md rounded-lg border dark:border-none dark:bg-muted border-opacity-50";
 
     useEffect(() => {
         setUserConfig(initialUserConfig);
@@ -1293,9 +1293,9 @@ export default function SettingsView() {
                                 <div id="clients" className="text-2xl">
                                     Clients
                                 </div>
-                                <div className="cards flex flex-wrap gap-8">
+                                <div className="cards flex flex-col flex-wrap gap-8">
                                     {!userConfig.anonymous_mode && (
-                                        <Card className="grid grid-flow-column border border-gray-300 shadow-md rounded-lg bg-gradient-to-b from-background to-gray-50 dark:to-gray-950">
+                                        <Card className="grid grid-flow-column border border-gray-300 shadow-md rounded-lg dark:bg-muted dark:border-none border-opacity-50 lg:w-2/3">
                                             <CardHeader className="text-xl grid grid-flow-col grid-cols-[1fr_auto] pb-0">
                                                 <span className="flex flex-wrap">
                                                     <Key className="h-7 w-7 mr-2" />
@@ -1377,7 +1377,7 @@ export default function SettingsView() {
                                             <CardFooter className="flex flex-wrap gap-4"></CardFooter>
                                         </Card>
                                     )}
-                                    <Card className={cardClassName}>
+                                    <Card className={`${cardClassName} lg:w-2/3`}>
                                         <CardHeader className="text-xl flex flex-row">
                                             <WhatsappLogo className="h-7 w-7 mr-2" />
                                             Chat on Whatsapp
