@@ -91,6 +91,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import ShareLink from "@/app/components/shareLink/shareLink";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 export interface AgentData {
     slug: string;
     name: string;
@@ -427,7 +429,9 @@ export function AgentCard(props: AgentCardProps) {
                         </div>
                         {props.editCard ? (
                             <DialogContent
-                                className={"lg:max-w-screen-lg overflow-y-scroll max-h-screen"}
+                                className={
+                                    "lg:max-w-screen-lg py-4 overflow-y-scroll h-4/6 rounded-lg flex flex-col"
+                                }
                             >
                                 <DialogTitle>
                                     Edit <b>{props.data.name}</b>
@@ -534,11 +538,12 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
         { name: "persona", label: "Personality" },
     ];
 
-    const advancedFields = [
-        { name: "files", label: "Knowledge Base" },
+    const toolsFields = [
         { name: "input_tools", label: "Input Tools" },
         { name: "output_modes", label: "Output Modes" },
     ];
+
+    const knowledgeBaseFields = [{ name: "files", label: "Knowledge Base" }];
 
     const customizationFields = [
         { name: "color", label: "Color" },
@@ -548,9 +553,10 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
     ];
 
     const formGroups = [
-        { fields: basicFields, label: "Basic Settings" },
-        { fields: customizationFields, label: "Customization & Access" },
-        { fields: advancedFields, label: "Advanced Settings" },
+        { fields: basicFields, label: "Basic Settings", tabName: "basic" },
+        { fields: customizationFields, label: "Customization & Access", tabName: "customize" },
+        { fields: knowledgeBaseFields, label: "Knowledge Base", tabName: "knowledge" },
+        { fields: toolsFields, label: "Tools Settings", tabName: "tools" },
     ];
 
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -749,7 +755,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                         control={props.form.control}
                         name="chat_model"
                         render={({ field }) => (
-                            <FormItem className="space-y-1 grid gap-2">
+                            <FormItem className="my-3 grid gap-2">
                                 <FormLabel>Chat Model</FormLabel>
                                 <FormDescription>
                                     {!props.isSubscribed ? (
@@ -796,7 +802,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                         control={props.form.control}
                         name="privacy_level"
                         render={({ field }) => (
-                            <FormItem className="space-y-1 grid gap-2">
+                            <FormItem className="my-3 grid gap-2">
                                 <FormLabel>
                                     <div>Privacy Level</div>
                                 </FormLabel>
@@ -1080,7 +1086,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                         control={props.form.control}
                         name="input_tools"
                         render={({ field }) => (
-                            <FormItem className="flex flex-col gap-2">
+                            <FormItem className="flex flex-col gap-2 my-2">
                                 <FormLabel>Restrict Input Tools</FormLabel>
                                 <FormDescription>
                                     Which knowledge retrieval tools should this agent be limited to?
@@ -1166,7 +1172,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                         control={props.form.control}
                         name="output_modes"
                         render={({ field }) => (
-                            <FormItem className="flex flex-col gap-2">
+                            <FormItem className="flex flex-col gap-2 my-2">
                                 <FormLabel>Restrict Output Modes</FormLabel>
                                 <FormDescription>
                                     Which output modes should this agent be limited to?
@@ -1252,10 +1258,32 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
 
     return (
         <Form {...props.form}>
-            <form onSubmit={props.form.handleSubmit(handleSubmit)} className="space-y-6">
-                <div className="space-y-6">{formGroups[currentStep].label}</div>
-                {currentStep < formGroups.length &&
-                    formGroups[currentStep].fields.map((field) => renderFormField(field.name))}
+            <form
+                onSubmit={props.form.handleSubmit(handleSubmit)}
+                className="space-y-6 h-full flex flex-col justify-between"
+            >
+                <Tabs defaultValue="basic" value={formGroups[currentStep].tabName}>
+                    <TabsList className="grid grid-cols-2 md:grid-cols-4 gap-2 h-fit">
+                        {formGroups.map((group) => (
+                            <TabsTrigger
+                                key={group.tabName}
+                                value={group.tabName}
+                                onClick={() =>
+                                    setCurrentStep(
+                                        formGroups.findIndex((g) => g.tabName === group.tabName),
+                                    )
+                                }
+                            >
+                                {group.label}
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
+                    {formGroups.map((group) => (
+                        <TabsContent key={group.tabName} value={group.tabName}>
+                            {group.fields.map((field) => renderFormField(field.name))}
+                        </TabsContent>
+                    ))}
+                </Tabs>
                 <div className="flex justify-between mt-4">
                     <Button
                         type="button"
