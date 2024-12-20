@@ -395,13 +395,13 @@ function AutomationsCard(props: AutomationsCardProps) {
             </CardContent>
             <CardFooter className="flex flex-col items-start md:flex-row md:justify-between md:items-center gap-2">
                 <div className="flex gap-2">
-                    <div className="flex items-center bg-blue-50 rounded-lg p-1.5 border-blue-200 border dark:bg-blue-800 dark:border-blue-500">
+                    <div className="flex items-center rounded-lg p-1.5 border-blue-200 border dark:border-blue-500">
                         <CalendarCheck className="h-4 w-4 mr-2 text-blue-700 dark:text-blue-300" />
                         <div className="text-s text-blue-700 dark:text-blue-300">
                             {timeRecurrence}
                         </div>
                     </div>
-                    <div className="flex items-center bg-purple-50 rounded-lg p-1.5 border-purple-200 border dark:bg-purple-800 dark:border-purple-500">
+                    <div className="flex items-center rounded-lg p-1.5 border-purple-200 border dark:border-purple-500">
                         <ClockAfternoon className="h-4 w-4 mr-2 text-purple-700 dark:text-purple-300" />
                         <div className="text-s text-purple-700 dark:text-purple-300">
                             {intervalString}
