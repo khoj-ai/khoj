@@ -86,12 +86,6 @@ div.homeGreetings {
     grid-template-rows: 1fr 2fr;
 }
 
-div.sidePanel {
-    position: fixed;
-    height: 100%;
-    z-index: 1;
-}
-
 @media screen and (max-width: 768px) {
     div.chatBody {
         grid-template-columns: 0fr 1fr;
@@ -100,10 +94,6 @@ div.sidePanel {
     div.chatBoxBody {
         width: 100%;
         grid-template-rows: auto;
-    }
-
-    div.sidePanel {
-        position: relative;
     }
 
     div.chatBox {

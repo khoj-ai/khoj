@@ -22,12 +22,6 @@ div.pageLayout {
     margin-bottom: 2rem;
 }
 
-div.sidePanel {
-    position: fixed;
-    height: 100%;
-    z-index: 1;
-}
-
 button.infoButton {
     border: none;
     background-color: transparent !important;
@@ -57,10 +51,5 @@ div.agentList {
 
     div.pageLayout {
         max-width: 90vw;
-    }
-
-    div.sidePanel {
-        position: relative;
-        height: 100%;
     }
 }
