@@ -1651,12 +1651,15 @@ def should_notify(original_query: str, executed_query: str, ai_response: str, us
     with timer("Chat actor: Decide to notify user of automation response", logger):
         try:
             # TODO Replace with async call so we don't have to maintain a sync version
-            response = send_message_to_model_wrapper_sync(to_notify_or_not, user)
+            response = send_message_to_model_wrapper_sync(to_notify_or_not, user=user)
             should_notify_result = "no" not in response.lower()
             logger.info(f'Decided to {"not " if not should_notify_result else ""}notify user of automation response.')
             return should_notify_result
-        except:
-            logger.warning(f"Fallback to notify user of automation response as failed to infer should notify or not.")
+        except Exception as e:
+            logger.warning(
+                f"Fallback to notify user of automation response as failed to infer should notify or not. {e}",
+                exc_info=True,
+            )
             return True
 
 
