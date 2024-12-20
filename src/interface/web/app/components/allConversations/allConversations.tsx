@@ -791,7 +791,7 @@ function ChatSessionsModal({ data, sideBarOpen }: ChatSessionsModalProps) {
             >
                 <span className="flex items-center gap-1">
                     <ChatsCircle className="inline h-4 w-4 mr-1" />
-                    {sideBarOpen ? "Find Conversations" : ""}
+                    {sideBarOpen ? "Find Conversation" : ""}
                 </span>
             </DialogTrigger>
             <DialogContent>

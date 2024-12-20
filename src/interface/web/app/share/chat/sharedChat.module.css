@@ -1,5 +1,5 @@
 div.main {
-    height: 100vh;
+    height: 100%;
     color: hsla(var(--foreground));
     margin-left: auto;
     margin-right: auto;
@@ -96,11 +96,6 @@ div.agentIndicator {
     div.chatBody {
         grid-template-columns: 0fr 1fr;
     }
-
-    div.chatBox {
-        padding: 0;
-        height: min-content;
-    }
 }
 
 @media screen and (max-width: 768px) {
@@ -110,11 +105,6 @@ div.agentIndicator {
 
     div.chatBoxBody {
         width: 100%;
-    }
-
-    div.chatBox {
-        padding: 0;
-        height: min-content;
     }
 
     div.chatLayout {

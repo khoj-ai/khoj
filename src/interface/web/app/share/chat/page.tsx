@@ -92,7 +92,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 />
             </div>
             <div
-                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-t-2xl rounded-b-none md:rounded-xl h-fit ${chatHistoryCustomClassName} mr-auto ml-auto`}
+                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-2xl md:rounded-xl h-fit ${chatHistoryCustomClassName} mr-auto ml-auto`}
             >
                 <ChatInputArea
                     isLoggedIn={props.isLoggedIn}
@@ -193,7 +193,7 @@ export default function SharedChat() {
                 <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
                     <SidebarTrigger className="-ml-1" />
                     <Separator orientation="vertical" className="mr-2 h-4" />
-                    {conversationId && (
+                    {paramSlug && (
                         <div
                             className={`${styles.chatTitleWrapper} text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mx-2 md:mr-8 col-auto h-fit`}
                         >
@@ -217,19 +217,6 @@ export default function SharedChat() {
                     <title>{title}</title>
                     <div className={styles.chatBox}>
                         <div className={styles.chatBoxBody}>
-                            {!isMobileWidth && title && (
-                                <div
-                                    className={`${styles.chatTitleWrapper} text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mr-8 pt-6 col-auto h-fit`}
-                                >
-                                    {title && (
-                                        <h2
-                                            className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden`}
-                                        >
-                                            {title}
-                                        </h2>
-                                    )}
-                                </div>
-                            )}
                             <Suspense fallback={<Loading />}>
                                 <ChatBodyData
                                     conversationId={conversationId}
