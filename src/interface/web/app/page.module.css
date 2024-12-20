@@ -93,10 +93,6 @@ div.sidePanel {
 }
 
 @media screen and (max-width: 768px) {
-    div.inputBox {
-        margin-bottom: 0px;
-    }
-
     div.chatBody {
         grid-template-columns: 0fr 1fr;
     }

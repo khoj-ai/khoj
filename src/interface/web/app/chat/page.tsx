@@ -149,7 +149,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 />
             </div>
             <div
-                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-t-2xl rounded-b-none md:rounded-xl h-fit ${chatHistoryCustomClassName} mr-auto ml-auto`}
+                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-2xl md:rounded-xl h-fit ${chatHistoryCustomClassName} mr-auto ml-auto`}
             >
                 <ChatInputArea
                     agentColor={agentMetadata?.color}
@@ -395,7 +395,7 @@ export default function Chat() {
                     <div className={styles.chatBoxBody}>
                         {conversationId && (
                             <div
-                                className={`${styles.chatTitleWrapper} text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mx-2 md:mr-8 md:pt-6 col-auto h-fit`}
+                                className={`${styles.chatTitleWrapper} text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mx-2 md:mr-8 pt-1 md:pt-6 col-auto h-fit`}
                             >
                                 {title && (
                                     <h2

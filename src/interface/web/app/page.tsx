@@ -367,7 +367,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             {props.isMobileWidth && (
                 <>
                     <div
-                        className={`${styles.inputBox} pt-1 shadow-[0_-20px_25px_-5px_rgba(0,0,0,0.1)] dark:bg-neutral-700 bg-background align-middle items-center justify-center pb-3 mx-1 rounded-t-2xl rounded-b-none`}
+                        className={`${styles.inputBox} pt-1 shadow-[0_-20px_25px_-5px_rgba(0,0,0,0.1)] dark:bg-neutral-700 bg-background align-middle items-center justify-center pb-3 mx-1 rounded-2xl mb-2`}
                     >
                         <ScrollArea className="w-full max-w-[85vw]">
                             <div className="flex gap-2 items-center justify-left pt-1 pb-2 px-12">
