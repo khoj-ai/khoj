@@ -386,7 +386,7 @@ export default function Chat() {
     return (
         <SidebarProvider>
             <AppSidebar conversationId={conversationId || ""} />
-            <SidebarTrigger />
+            <SidebarTrigger className="pt-4" />
             <div className={`${styles.main} ${styles.chatLayout}`}>
                 <title>
                     {`${defaultTitle}${!!title && title !== defaultTitle ? `: ${title}` : ""}`}
@@ -395,7 +395,7 @@ export default function Chat() {
                     <div className={styles.chatBoxBody}>
                         {conversationId && (
                             <div
-                                className={`${styles.chatTitleWrapper} text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mx-2 md:mr-8 pt-1 md:pt-6 col-auto h-fit`}
+                                className={`${styles.chatTitleWrapper} text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mx-2 md:mr-8 col-auto h-fit`}
                             >
                                 {title && (
                                     <h2

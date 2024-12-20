@@ -464,13 +464,6 @@ export default function Home() {
             <SidebarTrigger />
             <div className={`${styles.main} ${styles.chatLayout}`}>
                 <title>Khoj AI - Your Second Brain</title>
-                {/* <div className={`${styles.sidePanel}`}>
-                <SidePanel
-                    conversationId={conversationId}
-                    uploadedFiles={[]}
-                    isMobileWidth={isMobileWidth}
-                />
-            </div> */}
                 <div className={`${styles.chatBox}`}>
                     <div className={`${styles.chatBoxBody}`}>
                         <ChatBodyData
