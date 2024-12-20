@@ -2,9 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 
-import { useAuthenticatedData } from "../common/auth";
 import { useEffect, useRef, useState } from "react";
-import SidePanel from "../components/sidePanel/chatHistorySidePanel";
 import styles from "./search.module.css";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -229,9 +227,6 @@ export default function Search() {
 
     return (
         <div>
-            <div className={`h-full ${styles.sidePanel}`}>
-                <SidePanel conversationId={null} uploadedFiles={[]} isMobileWidth={isMobileWidth} />
-            </div>
             <div className={`${styles.searchLayout}`}>
                 <div className="md:w-3/4 sm:w-full mx-auto pt-6 md:pt-8">
                     <div className="p-4 md:w-3/4 sm:w-full mx-auto">

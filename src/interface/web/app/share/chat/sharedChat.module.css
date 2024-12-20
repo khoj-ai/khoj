@@ -1,6 +1,8 @@
 div.main {
     height: 100vh;
     color: hsla(var(--foreground));
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .suggestions {

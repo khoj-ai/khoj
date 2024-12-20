@@ -19,7 +19,6 @@ import { z } from "zod";
 import { Dialog, DialogContent, DialogHeader, DialogTrigger } from "@/components/ui/dialog";
 import LoginPrompt from "../components/loginPrompt/loginPrompt";
 import { InlineLoading } from "../components/loading/loading";
-import SidePanel from "../components/sidePanel/chatHistorySidePanel";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useIsMobileWidth } from "../common/utils";
 import {
@@ -30,6 +29,8 @@ import {
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "../components/appSidebar/appSidebar";
 
 export interface AgentData {
     slug: string;
@@ -276,107 +277,113 @@ export default function Agents() {
     );
 
     return (
-        <main className={`w-full mx-auto`}>
-            <div className={`grid w-full mx-auto`}>
-                <div className={`${styles.sidePanel} top-0`}>
-                    <SidePanel
-                        conversationId={null}
-                        uploadedFiles={[]}
-                        isMobileWidth={isMobileWidth}
-                    />
-                </div>
-                <div className={`${styles.pageLayout} w-full`}>
-                    <div className={`pt-6 md:pt-8 flex justify-between`}>
-                        <h1 className="text-3xl flex items-center">Agents</h1>
-                        <div className="ml-auto float-right border p-2 pt-3 rounded-xl font-bold hover:bg-stone-100 dark:hover:bg-neutral-900">
-                            <CreateAgentCard
-                                data={{
-                                    slug: "",
-                                    name: "",
-                                    persona: "",
-                                    color: "",
-                                    icon: "",
-                                    privacy_level: "private",
-                                    managed_by_admin: false,
-                                    chat_model: "",
-                                    input_tools: [],
-                                    output_modes: [],
-                                }}
-                                userProfile={authenticatedData}
+        <SidebarProvider>
+            <AppSidebar conversationId={""} />
+            <SidebarTrigger />
+            <main className={`w-full mx-auto`}>
+                <div className={`grid w-full mx-auto`}>
+                    <div className={`${styles.pageLayout} w-full`}>
+                        <div className={`pt-6 md:pt-8 flex justify-between`}>
+                            <h1 className="text-3xl flex items-center">Agents</h1>
+                            <div className="ml-auto float-right border p-2 pt-3 rounded-xl font-bold hover:bg-stone-100 dark:hover:bg-neutral-900">
+                                <CreateAgentCard
+                                    data={{
+                                        slug: "",
+                                        name: "",
+                                        persona: "",
+                                        color: "",
+                                        icon: "",
+                                        privacy_level: "private",
+                                        managed_by_admin: false,
+                                        chat_model: "",
+                                        input_tools: [],
+                                        output_modes: [],
+                                    }}
+                                    userProfile={authenticatedData}
+                                    isMobileWidth={isMobileWidth}
+                                    filesOptions={filesData || []}
+                                    modelOptions={userConfig?.chat_model_options || []}
+                                    selectedChatModelOption={defaultModelOption?.name || ""}
+                                    isSubscribed={isSubscribed}
+                                    setAgentChangeTriggered={setAgentChangeTriggered}
+                                    inputToolOptions={agentConfigurationOptions?.input_tools || {}}
+                                    outputModeOptions={
+                                        agentConfigurationOptions?.output_modes || {}
+                                    }
+                                />
+                            </div>
+                        </div>
+                        {showLoginPrompt && (
+                            <LoginPrompt
+                                loginRedirectMessage="Sign in to start chatting with a specialized agent"
+                                onOpenChange={setShowLoginPrompt}
                                 isMobileWidth={isMobileWidth}
-                                filesOptions={filesData || []}
-                                modelOptions={userConfig?.chat_model_options || []}
-                                selectedChatModelOption={defaultModelOption?.name || ""}
-                                isSubscribed={isSubscribed}
-                                setAgentChangeTriggered={setAgentChangeTriggered}
-                                inputToolOptions={agentConfigurationOptions?.input_tools || {}}
-                                outputModeOptions={agentConfigurationOptions?.output_modes || {}}
                             />
-                        </div>
-                    </div>
-                    {showLoginPrompt && (
-                        <LoginPrompt
-                            loginRedirectMessage="Sign in to start chatting with a specialized agent"
-                            onOpenChange={setShowLoginPrompt}
-                            isMobileWidth={isMobileWidth}
-                        />
-                    )}
-                    <Alert className="bg-secondary border-none my-4">
-                        <AlertDescription>
-                            <Lightning weight={"fill"} className="h-4 w-4 text-purple-400 inline" />
-                            <span className="font-bold">How it works</span> Use any of these
-                            specialized personas to tune your conversation to your needs.
-                        </AlertDescription>
-                    </Alert>
-                    <div className="pt-6 md:pt-8">
-                        <div className={`${styles.agentList}`}>
-                            {personalAgents.map((agent) => (
-                                <AgentCard
-                                    key={agent.slug}
-                                    data={agent}
-                                    userProfile={authenticatedData}
-                                    isMobileWidth={isMobileWidth}
-                                    filesOptions={filesData ?? []}
-                                    selectedChatModelOption={defaultModelOption?.name || ""}
-                                    isSubscribed={isSubscribed}
-                                    setAgentChangeTriggered={setAgentChangeTriggered}
-                                    modelOptions={userConfig?.chat_model_options || []}
-                                    editCard={true}
-                                    agentSlug={agentSlug || ""}
-                                    inputToolOptions={agentConfigurationOptions?.input_tools || {}}
-                                    outputModeOptions={
-                                        agentConfigurationOptions?.output_modes || {}
-                                    }
+                        )}
+                        <Alert className="bg-secondary border-none my-4">
+                            <AlertDescription>
+                                <Lightning
+                                    weight={"fill"}
+                                    className="h-4 w-4 text-purple-400 inline"
                                 />
-                            ))}
+                                <span className="font-bold">How it works</span> Use any of these
+                                specialized personas to tune your conversation to your needs.
+                            </AlertDescription>
+                        </Alert>
+                        <div className="pt-6 md:pt-8">
+                            <div className={`${styles.agentList}`}>
+                                {personalAgents.map((agent) => (
+                                    <AgentCard
+                                        key={agent.slug}
+                                        data={agent}
+                                        userProfile={authenticatedData}
+                                        isMobileWidth={isMobileWidth}
+                                        filesOptions={filesData ?? []}
+                                        selectedChatModelOption={defaultModelOption?.name || ""}
+                                        isSubscribed={isSubscribed}
+                                        setAgentChangeTriggered={setAgentChangeTriggered}
+                                        modelOptions={userConfig?.chat_model_options || []}
+                                        editCard={true}
+                                        agentSlug={agentSlug || ""}
+                                        inputToolOptions={
+                                            agentConfigurationOptions?.input_tools || {}
+                                        }
+                                        outputModeOptions={
+                                            agentConfigurationOptions?.output_modes || {}
+                                        }
+                                    />
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                    <div className="pt-6 md:pt-8">
-                        <h2 className="text-2xl">Explore</h2>
-                        <div className={`${styles.agentList}`}>
-                            {publicAgents.map((agent) => (
-                                <AgentCard
-                                    key={agent.slug}
-                                    data={agent}
-                                    userProfile={authenticatedData}
-                                    isMobileWidth={isMobileWidth}
-                                    editCard={false}
-                                    filesOptions={filesData ?? []}
-                                    selectedChatModelOption={defaultModelOption?.name || ""}
-                                    isSubscribed={isSubscribed}
-                                    setAgentChangeTriggered={setAgentChangeTriggered}
-                                    modelOptions={userConfig?.chat_model_options || []}
-                                    agentSlug={agentSlug || ""}
-                                    inputToolOptions={agentConfigurationOptions?.input_tools || {}}
-                                    outputModeOptions={
-                                        agentConfigurationOptions?.output_modes || {}
-                                    }
-                                />
-                            ))}
+                        <div className="pt-6 md:pt-8">
+                            <h2 className="text-2xl">Explore</h2>
+                            <div className={`${styles.agentList}`}>
+                                {publicAgents.map((agent) => (
+                                    <AgentCard
+                                        key={agent.slug}
+                                        data={agent}
+                                        userProfile={authenticatedData}
+                                        isMobileWidth={isMobileWidth}
+                                        editCard={false}
+                                        filesOptions={filesData ?? []}
+                                        selectedChatModelOption={defaultModelOption?.name || ""}
+                                        isSubscribed={isSubscribed}
+                                        setAgentChangeTriggered={setAgentChangeTriggered}
+                                        modelOptions={userConfig?.chat_model_options || []}
+                                        agentSlug={agentSlug || ""}
+                                        inputToolOptions={
+                                            agentConfigurationOptions?.input_tools || {}
+                                        }
+                                        outputModeOptions={
+                                            agentConfigurationOptions?.output_modes || {}
+                                        }
+                                    />
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </main>
+            </main>
+        </SidebarProvider>
     );
 }

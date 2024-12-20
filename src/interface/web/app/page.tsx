@@ -9,7 +9,6 @@ import { ArrowCounterClockwise } from "@phosphor-icons/react";
 
 import { Card, CardTitle } from "@/components/ui/card";
 import SuggestionCard from "@/app/components/suggestions/suggestionCard";
-import SidePanel from "@/app/components/sidePanel/chatHistorySidePanel";
 import Loading from "@/app/components/loading/loading";
 import {
     AttachedFileText,
@@ -35,6 +34,8 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { AgentCard } from "@/app/components/agentCard/agentCard";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import LoginPopup from "./components/loginPrompt/loginPopup";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "./components/appSidebar/appSidebar";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -458,28 +459,32 @@ export default function Home() {
     }
 
     return (
-        <div className={`${styles.main} ${styles.chatLayout}`}>
-            <title>Khoj AI - Your Second Brain</title>
-            <div className={`${styles.sidePanel}`}>
+        <SidebarProvider>
+            <AppSidebar conversationId={conversationId} />
+            <SidebarTrigger />
+            <div className={`${styles.main} ${styles.chatLayout}`}>
+                <title>Khoj AI - Your Second Brain</title>
+                {/* <div className={`${styles.sidePanel}`}>
                 <SidePanel
                     conversationId={conversationId}
                     uploadedFiles={[]}
                     isMobileWidth={isMobileWidth}
                 />
-            </div>
-            <div className={`${styles.chatBox}`}>
-                <div className={`${styles.chatBoxBody}`}>
-                    <ChatBodyData
-                        isLoggedIn={authenticatedData !== null}
-                        chatOptionsData={chatOptionsData}
-                        setUploadedFiles={setUploadedFiles}
-                        isMobileWidth={isMobileWidth}
-                        onConversationIdChange={handleConversationIdChange}
-                        userConfig={userConfig}
-                        isLoadingUserConfig={isLoadingUserConfig}
-                    />
+            </div> */}
+                <div className={`${styles.chatBox}`}>
+                    <div className={`${styles.chatBoxBody}`}>
+                        <ChatBodyData
+                            isLoggedIn={authenticatedData !== null}
+                            chatOptionsData={chatOptionsData}
+                            setUploadedFiles={setUploadedFiles}
+                            isMobileWidth={isMobileWidth}
+                            onConversationIdChange={handleConversationIdChange}
+                            userConfig={userConfig}
+                            isLoadingUserConfig={isLoadingUserConfig}
+                        />
+                    </div>
                 </div>
             </div>
-        </div>
+        </SidebarProvider>
     );
 }

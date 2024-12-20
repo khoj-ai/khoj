@@ -1,6 +1,8 @@
 div.main {
     height: 100dvh;
     color: hsla(var(--foreground));
+    margin-left: auto;
+    margin-right: auto;
 }
 
 div.suggestions {
@@ -110,7 +112,7 @@ div.sidePanel {
 
     div.chatBox {
         padding: 0;
-        height: 100%;
+        height: 100vh;
     }
 
     div.chatLayout {

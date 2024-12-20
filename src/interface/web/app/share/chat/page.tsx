@@ -3,7 +3,6 @@
 import styles from "./sharedChat.module.css";
 import React, { Suspense, useEffect, useRef, useState } from "react";
 
-import SidePanel from "../../components/sidePanel/chatHistorySidePanel";
 import ChatHistory from "../../components/chatHistory/chatHistory";
 import Loading from "../../components/loading/loading";
 
@@ -19,6 +18,8 @@ import {
 } from "@/app/components/chatInputArea/chatInputArea";
 import { StreamMessage } from "@/app/components/chatMessage/chatMessage";
 import { AgentData } from "@/app/agents/page";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/app/components/appSidebar/appSidebar";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -184,47 +185,43 @@ export default function SharedChat() {
     }
 
     return (
-        <div className={`${styles.main} ${styles.chatLayout}`}>
-            <title>{title}</title>
-            <div className={styles.sidePanel}>
-                <SidePanel
-                    conversationId={conversationId ?? null}
-                    uploadedFiles={[]}
-                    isMobileWidth={isMobileWidth}
-                />
-            </div>
-
-            <div className={styles.chatBox}>
-                <div className={styles.chatBoxBody}>
-                    {!isMobileWidth && title && (
-                        <div
-                            className={`${styles.chatTitleWrapper} text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mr-8 pt-6 col-auto h-fit`}
-                        >
-                            {title && (
-                                <h2
-                                    className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden`}
-                                >
-                                    {title}
-                                </h2>
-                            )}
-                        </div>
-                    )}
-                    <Suspense fallback={<Loading />}>
-                        <ChatBodyData
-                            conversationId={conversationId}
-                            streamedMessages={messages}
-                            setQueryToProcess={setQueryToProcess}
-                            isLoggedIn={authenticatedData !== null}
-                            publicConversationSlug={paramSlug}
-                            chatOptionsData={chatOptionsData}
-                            setTitle={setTitle}
-                            setUploadedFiles={setUploadedFiles}
-                            isMobileWidth={isMobileWidth}
-                            setImages={setImages}
-                        />
-                    </Suspense>
+        <SidebarProvider>
+            <AppSidebar conversationId={conversationId || ""} />
+            <SidebarTrigger />
+            <div className={`${styles.main} ${styles.chatLayout}`}>
+                <title>{title}</title>
+                <div className={styles.chatBox}>
+                    <div className={styles.chatBoxBody}>
+                        {!isMobileWidth && title && (
+                            <div
+                                className={`${styles.chatTitleWrapper} text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mr-8 pt-6 col-auto h-fit`}
+                            >
+                                {title && (
+                                    <h2
+                                        className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden`}
+                                    >
+                                        {title}
+                                    </h2>
+                                )}
+                            </div>
+                        )}
+                        <Suspense fallback={<Loading />}>
+                            <ChatBodyData
+                                conversationId={conversationId}
+                                streamedMessages={messages}
+                                setQueryToProcess={setQueryToProcess}
+                                isLoggedIn={authenticatedData !== null}
+                                publicConversationSlug={paramSlug}
+                                chatOptionsData={chatOptionsData}
+                                setTitle={setTitle}
+                                setUploadedFiles={setUploadedFiles}
+                                isMobileWidth={isMobileWidth}
+                                setImages={setImages}
+                            />
+                        </Suspense>
+                    </div>
                 </div>
             </div>
-        </div>
+        </SidebarProvider>
     );
 }
