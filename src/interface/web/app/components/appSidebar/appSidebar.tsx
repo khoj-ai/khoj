@@ -86,12 +86,20 @@ export function AppSidebar(props: AppSidebarProps) {
             <SidebarHeader>
                 <SidebarMenu className="p-0 m-0">
                     <SidebarMenuItem className="p-0 m-0">
-                        <SidebarMenuButton asChild>
-                            <a className="flex items-center gap-2 no-underline" href="/">
-                                <KhojLogo className="w-14 h-auto" />
-                                <span className="text-lg">Khoj</span>
-                            </a>
-                        </SidebarMenuButton>
+                        {open ? (
+                            <SidebarMenuButton>
+                                <a className="p-0 no-underline" href="/">
+                                    <KhojLogoType className="h-auto w-16" />
+                                </a>
+                            </SidebarMenuButton>
+                        ) : (
+                            <SidebarMenuButton asChild>
+                                <a className="flex items-center gap-2 no-underline" href="/">
+                                    <KhojLogo className="w-14 h-auto" />
+                                    <span className="text-lg">Khoj</span>
+                                </a>
+                            </SidebarMenuButton>
+                        )}
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarHeader>

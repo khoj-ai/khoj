@@ -637,9 +637,15 @@ export function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
             )}
             <DropdownMenu onOpenChange={(open) => setIsOpen(open)} open={isOpen}>
                 <DropdownMenuTrigger asChild>
-                    <SidebarMenuAction>
-                        <DotsThreeVertical className={`${size}`} />
-                    </SidebarMenuAction>
+                    {props.sizing === "lg" || props.sizing === "md" ? (
+                        <Button className="p-0 text-sm h-auto" variant={"ghost"}>
+                            <DotsThreeVertical className={`${size}`} />
+                        </Button>
+                    ) : (
+                        <SidebarMenuAction asChild>
+                            <DotsThreeVertical className={`${size}`} />
+                        </SidebarMenuAction>
+                    )}
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="right" align="start">
                     <DropdownMenuItem onClick={() => setIsRenaming(true)}>
