@@ -29,6 +29,8 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { getIconFromFilename } from "../common/iconUtils";
 import { useIsMobileWidth } from "../common/utils";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "../components/appSidebar/appSidebar";
 
 interface AdditionalData {
     file: string;
@@ -226,104 +228,108 @@ export default function Search() {
     }, [searchQuery]);
 
     return (
-        <div>
-            <div className={`${styles.searchLayout}`}>
-                <div className="md:w-3/4 sm:w-full mx-auto pt-6 md:pt-8">
-                    <div className="p-4 md:w-3/4 sm:w-full mx-auto">
-                        <div className="flex justify-between items-center border-2 border-muted p-1 gap-1 rounded-lg">
-                            <Input
-                                autoFocus={true}
-                                className="border-none pl-4"
-                                onChange={(e) => setSearchQuery(e.currentTarget.value)}
-                                onKeyDown={(e) => e.key === "Enter" && search()}
-                                type="search"
-                                placeholder="Search Documents"
-                            />
-                            <button
-                                className="px-2 gap-2 inline-flex items-center rounded border-l border-gray-300 hover:text-gray-500"
-                                onClick={() => search()}
-                            >
-                                <MagnifyingGlass className="h-4 w-4" />
-                                <span>Find</span>
-                            </button>
-                        </div>
-                        {focusSearchResult && (
-                            <div className="mt-4">
-                                <Button
-                                    onClick={() => setFocusSearchResult(null)}
-                                    className="mb-4"
-                                    variant={"outline"}
+        <SidebarProvider>
+            <AppSidebar conversationId={""} />
+            <SidebarTrigger />
+            <div>
+                <div className={`${styles.searchLayout}`}>
+                    <div className="md:w-3/4 sm:w-full mx-auto pt-6 md:pt-8">
+                        <div className="p-4 md:w-3/4 sm:w-full mx-auto">
+                            <div className="flex justify-between items-center border-2 border-muted p-1 gap-1 rounded-lg">
+                                <Input
+                                    autoFocus={true}
+                                    className="border-none pl-4"
+                                    onChange={(e) => setSearchQuery(e.currentTarget.value)}
+                                    onKeyDown={(e) => e.key === "Enter" && search()}
+                                    type="search"
+                                    placeholder="Search Documents"
+                                />
+                                <button
+                                    className="px-2 gap-2 inline-flex items-center rounded border-l border-gray-300 hover:text-gray-500"
+                                    onClick={() => search()}
                                 >
-                                    <ArrowLeft className="inline mr-2" />
-                                    Back
-                                </Button>
-                                {focusNote(focusSearchResult)}
+                                    <MagnifyingGlass className="h-4 w-4" />
+                                    <span>Find</span>
+                                </button>
                             </div>
-                        )}
-                        {!focusSearchResult && searchResults && searchResults.length > 0 && (
-                            <div className="mt-4 max-w-[92vw] break-all">
-                                <ScrollArea className="h-[80vh]">
-                                    {searchResults.map((result, index) => {
-                                        return (
-                                            <Note
-                                                key={result["corpus-id"]}
-                                                note={result}
-                                                setFocusSearchResult={setFocusSearchResult}
-                                            />
-                                        );
-                                    })}
-                                </ScrollArea>
-                            </div>
-                        )}
-                        {searchResults == null && (
-                            <Card className="flex flex-col items-center justify-center border-none shadow-none">
-                                <CardHeader className="flex flex-col items-center justify-center">
-                                    <CardDescription className="border-muted-foreground border w-fit rounded-lg mb-2 text-center text-lg p-4">
-                                        <FileMagnifyingGlass
-                                            weight="fill"
-                                            className="text-muted-foreground h-10 w-10"
-                                        />
-                                    </CardDescription>
-                                    <CardTitle className="text-center">
-                                        Search across your documents
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent className="text-muted-foreground items-center justify-center text-center flex">
-                                    <Lightbulb className="inline mr-2" /> {exampleQuery}
-                                </CardContent>
-                            </Card>
-                        )}
-                        {searchResults && searchResults.length === 0 && (
-                            <Card className="flex flex-col items-center justify-center border-none shadow-none">
-                                <CardHeader className="flex flex-col items-center justify-center">
-                                    <CardDescription className="border-muted-foreground border w-fit rounded-lg mb-2 text-center text-lg p-4">
-                                        <FileDashed
-                                            weight="fill"
-                                            className="text-muted-foreground h-10 w-10"
-                                        />
-                                    </CardDescription>
-                                    <CardTitle className="text-center">
-                                        No documents found
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-muted-foreground items-center justify-center text-center flex">
-                                        To use search, upload your docs to your account.
-                                    </div>
-                                    <Link
-                                        href="https://docs.khoj.dev/data-sources/share_your_data"
-                                        className="no-underline"
+                            {focusSearchResult && (
+                                <div className="mt-4">
+                                    <Button
+                                        onClick={() => setFocusSearchResult(null)}
+                                        className="mb-4"
+                                        variant={"outline"}
                                     >
-                                        <div className="mt-4 text-center text-secondary-foreground bg-secondary w-fit m-auto p-2 rounded-lg">
-                                            Learn More
+                                        <ArrowLeft className="inline mr-2" />
+                                        Back
+                                    </Button>
+                                    {focusNote(focusSearchResult)}
+                                </div>
+                            )}
+                            {!focusSearchResult && searchResults && searchResults.length > 0 && (
+                                <div className="mt-4 max-w-[92vw] break-all">
+                                    <ScrollArea className="h-[80vh]">
+                                        {searchResults.map((result, index) => {
+                                            return (
+                                                <Note
+                                                    key={result["corpus-id"]}
+                                                    note={result}
+                                                    setFocusSearchResult={setFocusSearchResult}
+                                                />
+                                            );
+                                        })}
+                                    </ScrollArea>
+                                </div>
+                            )}
+                            {searchResults == null && (
+                                <Card className="flex flex-col items-center justify-center border-none shadow-none">
+                                    <CardHeader className="flex flex-col items-center justify-center">
+                                        <CardDescription className="border-muted-foreground border w-fit rounded-lg mb-2 text-center text-lg p-4">
+                                            <FileMagnifyingGlass
+                                                weight="fill"
+                                                className="text-muted-foreground h-10 w-10"
+                                            />
+                                        </CardDescription>
+                                        <CardTitle className="text-center">
+                                            Search across your documents
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="text-muted-foreground items-center justify-center text-center flex">
+                                        <Lightbulb className="inline mr-2" /> {exampleQuery}
+                                    </CardContent>
+                                </Card>
+                            )}
+                            {searchResults && searchResults.length === 0 && (
+                                <Card className="flex flex-col items-center justify-center border-none shadow-none">
+                                    <CardHeader className="flex flex-col items-center justify-center">
+                                        <CardDescription className="border-muted-foreground border w-fit rounded-lg mb-2 text-center text-lg p-4">
+                                            <FileDashed
+                                                weight="fill"
+                                                className="text-muted-foreground h-10 w-10"
+                                            />
+                                        </CardDescription>
+                                        <CardTitle className="text-center">
+                                            No documents found
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-muted-foreground items-center justify-center text-center flex">
+                                            To use search, upload your docs to your account.
                                         </div>
-                                    </Link>
-                                </CardContent>
-                            </Card>
-                        )}
+                                        <Link
+                                            href="https://docs.khoj.dev/data-sources/share_your_data"
+                                            className="no-underline"
+                                        >
+                                            <div className="mt-4 text-center text-secondary-foreground bg-secondary w-fit m-auto p-2 rounded-lg">
+                                                Learn More
+                                            </div>
+                                        </Link>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </SidebarProvider>
     );
 }
