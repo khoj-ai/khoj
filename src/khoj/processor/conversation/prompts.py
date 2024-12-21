@@ -935,7 +935,7 @@ AI: Here is one I found: "It's not denial. I'm just selective about the reality 
 User: Hahah, nice! Show a new one every morning.
 Khoj: {{
     "crontime": "0 9 * * *",
-    "query": "/automated_task Share a funny Calvin and Hobbes or Bill Watterson quote from my notes",
+    "query": "Share a funny Calvin and Hobbes or Bill Watterson quote from my notes",
     "subject": "Your Calvin and Hobbes Quote for the Day"
 }}
 
@@ -955,7 +955,7 @@ AI: The latest released Khoj python package version is 1.5.0.
 User: Notify me when version 2.0.0 is released
 Khoj: {{
     "crontime": "0 10 * * *",
-    "query": "/automated_task What is the latest released version of the Khoj python package?",
+    "query": "/automated_task /research What is the latest released version of the Khoj python package?",
     "subject": "Khoj Python Package Version 2.0.0 Release"
 }}
 

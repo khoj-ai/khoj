@@ -47,6 +47,7 @@ from khoj.routers.helpers import (
     acreate_title_from_query,
     get_user_config,
     schedule_automation,
+    schedule_query,
     update_telemetry_state,
 )
 from khoj.search_filter.date_filter import DateFilter
@@ -584,11 +585,15 @@ async def post_automation(
     if not cron_descriptor.get_description(crontime):
         return Response(content="Invalid crontime", status_code=400)
 
+    # Infer subject, query to run
+    _, query_to_run, generated_subject = await schedule_query(q, conversation_history={}, user=user)
+    subject = subject or generated_subject
+
     # Normalize query parameters
     # Add /automated_task prefix to query if not present
-    q = q.strip()
-    if not q.startswith("/automated_task"):
-        query_to_run = f"/automated_task {q}"
+    query_to_run = query_to_run.strip()
+    if not query_to_run.startswith("/automated_task"):
+        query_to_run = f"/automated_task {query_to_run}"
 
     # Normalize crontime for AP Scheduler CronTrigger
     crontime = crontime.strip()
@@ -603,23 +608,18 @@ async def post_automation(
     minute_value = crontime.split(" ")[0]
     if not minute_value.isdigit():
         return Response(
-            content="Recurrence of every X minutes is unsupported. Please create a less frequent schedule.",
+            content="Minute level recurrence is unsupported. Please create a less frequent schedule.",
             status_code=400,
         )
 
-    if not subject:
-        subject = await acreate_title_from_query(q, user)
-
-    title = f"Automation: {subject}"
-
     # Create new Conversation Session associated with this new task
+    title = f"Automation: {subject}"
     conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app, title=title)
-
-    calling_url = request.url.replace(query=f"{request.url.query}")
 
     # Schedule automation with query_to_run, timezone, subject directly provided by user
     try:
         # Use the query to run as the scheduling request if the scheduling request is unset
+        calling_url = request.url.replace(query=f"{request.url.query}")
         automation = await schedule_automation(
             query_to_run, subject, crontime, timezone, q, user, calling_url, str(conversation.id)
         )
@@ -665,7 +665,7 @@ def trigger_manual_job(
 
 @api.put("/automation", response_class=Response)
 @requires(["authenticated"])
-def edit_job(
+async def edit_job(
     request: Request,
     automation_id: str,
     q: Optional[str],
@@ -686,16 +686,20 @@ def edit_job(
 
     # Check, get automation to edit
     try:
-        automation: Job = AutomationAdapters.get_automation(user, automation_id)
+        automation: Job = await AutomationAdapters.aget_automation(user, automation_id)
     except ValueError as e:
         logger.error(f"Error editing automation {automation_id} for {user.email}: {e}", exc_info=True)
         return Response(content="Invalid automation", status_code=403)
 
+    # Infer subject, query to run
+    _, query_to_run, _ = await schedule_query(q, conversation_history={}, user=user)
+    subject = subject
+
     # Normalize query parameters
     # Add /automated_task prefix to query if not present
-    q = q.strip()
-    if not q.startswith("/automated_task"):
-        query_to_run = f"/automated_task {q}"
+    query_to_run = query_to_run.strip()
+    if not query_to_run.startswith("/automated_task"):
+        query_to_run = f"/automated_task {query_to_run}"
     # Normalize crontime for AP Scheduler CronTrigger
     crontime = crontime.strip()
     if len(crontime.split(" ")) > 5:
@@ -724,13 +728,15 @@ def edit_job(
         title = f"Automation: {subject}"
 
         # Create new Conversation Session associated with this new task
-        conversation = ConversationAdapters.create_conversation_session(user, request.user.client_app, title=title)
+        conversation = await ConversationAdapters.acreate_conversation_session(
+            user, request.user.client_app, title=title
+        )
 
         conversation_id = str(conversation.id)
         automation_metadata["conversation_id"] = conversation_id
 
     # Modify automation with updated query, subject
-    automation.modify(
+    await sync_to_async(automation.modify)(
         name=json.dumps(automation_metadata),
         kwargs={
             "query_to_run": query_to_run,
@@ -746,11 +752,11 @@ def edit_job(
     user_timezone = pytz.timezone(timezone)
     trigger = CronTrigger.from_crontab(crontime, user_timezone)
     if automation.trigger != trigger:
-        automation.reschedule(trigger=trigger)
+        await sync_to_async(automation.reschedule)(trigger=trigger)
 
     # Collate info about the updated user automation
-    automation = AutomationAdapters.get_automation(user, automation.id)
-    automation_info = AutomationAdapters.get_automation_metadata(user, automation)
+    automation = await AutomationAdapters.aget_automation(user, automation.id)
+    automation_info = await sync_to_async(AutomationAdapters.get_automation_metadata)(user, automation)
 
     # Return modified automation information as a JSON response
     return Response(content=json.dumps(automation_info), media_type="application/json", status_code=200)

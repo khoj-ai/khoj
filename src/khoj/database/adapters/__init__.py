@@ -1784,6 +1784,19 @@ class AutomationAdapters:
         return automation
 
     @staticmethod
+    async def aget_automation(user: KhojUser, automation_id: str) -> Job:
+        # Perform validation checks
+        # Check if user is allowed to delete this automation id
+        if not automation_id.startswith(f"automation_{user.uuid}_"):
+            raise ValueError("Invalid automation id")
+        # Check if automation with this id exist
+        automation: Job = await sync_to_async(state.scheduler.get_job)(job_id=automation_id)
+        if not automation:
+            raise ValueError("Invalid automation id")
+
+        return automation
+
+    @staticmethod
     def delete_automation(user: KhojUser, automation_id: str):
         # Get valid, user-owned automation
         automation: Job = AutomationAdapters.get_automation(user, automation_id)
