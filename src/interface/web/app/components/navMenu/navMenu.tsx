@@ -52,6 +52,7 @@ export default function NavMenu({ sideBarIsOpen }: NavMenuProps) {
     const [darkMode, setDarkMode] = useState(false);
     const [initialLoadDone, setInitialLoadDone] = useState(false);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+    const isMobileWidth = useIsMobileWidth();
 
     useEffect(() => {
         if (localStorage.getItem("theme") === "dark") {
@@ -92,7 +93,7 @@ export default function NavMenu({ sideBarIsOpen }: NavMenuProps) {
                 {showLoginPrompt && (
                     <LoginPrompt
                         onOpenChange={(isOpen) => setShowLoginPrompt(isOpen)}
-                        isMobileWidth={useIsMobileWidth()}
+                        isMobileWidth={isMobileWidth}
                     />
                 )}
                 <DropdownMenu>
