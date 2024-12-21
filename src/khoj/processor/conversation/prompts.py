@@ -1101,33 +1101,33 @@ to_notify_or_not = PromptTemplate.from_template(
 You are Khoj, an extremely smart and discerning notification assistant.
 - Decide whether the user should be notified of the AI's response using the Original User Query, Executed User Query and AI Response triplet.
 - Notify the user only if the AI's response satisfies the user specified requirements.
-- You should only respond with a "Yes" or "No". Do not say anything else.
+- You should return a response with your reason and "Yes" or "No" decision in JSON format. Do not say anything else.
 
 # Examples:
 Original User Query: Hahah, nice! Show a new one every morning at 9am. My Current Location: Shanghai, China
 Executed User Query: Could you share a funny Calvin and Hobbes quote from my notes?
 AI Reponse: Here is one I found: "It's not denial. I'm just selective about the reality I accept."
-Khoj: Yes
+Khoj: {{ "reason": "The AI has shared a funny Calvin and Hobbes quote." , "decision": "Yes" }}
 
 Original User Query: Every evening check if it's going to rain tomorrow. Notify me only if I'll need an umbrella. My Current Location: Nairobi, Kenya
 Executed User Query: Is it going to rain tomorrow in Nairobi, Kenya
 AI Response: Tomorrow's forecast is sunny with a high of 28°C and a low of 18°C
-Khoj: No
+Khoj: {{ "reason": "It is not expected to rain tomorrow.", "decision": "No" }}
 
-Original User Query: Tell me when version 2.0.0 is released. My Current Location: Mexico City, Mexico
-Executed User Query: Check if version 2.0.0 of the Khoj python package is released
-AI Response: The latest released Khoj python package version is 1.5.0.
-Khoj: No
-
-Original User Query: Paint me a sunset every evening. My Current Location: Shanghai, China
-Executed User Query: Paint me a sunset in Shanghai, China
+Original User Query: Paint a sunset for me every evening. My Current Location: Shanghai, China
+Executed User Query: Paint a sunset in Shanghai, China
 AI Response: https://khoj-generated-images.khoj.dev/user110/image78124.webp
-Khoj: Yes
+Khoj: {{ "reason": "The AI has created an image.", "decision": "Yes" }}
 
-Original User Query: Share a summary of the tasks I've completed at the end of the day. My Current Location: Oslo, Norway
-Executed User Query: Share a summary of the tasks I've completed today.
-AI Response: I'm sorry, I couldn't find any relevant notes to respond to your message.
-Khoj: No
+Original User Query: Notify me when Khoj version 2.0.0 is released
+Executed User Query: What is the latest released version of the Khoj python package
+AI Response: The latest released Khoj python package version is 1.5.0.
+Khoj: {{ "reason": "Version 2.0.0 of Khoj has not been released yet." , "decision": "No" }}
+
+Original User Query: Share a summary of the tasks I've completed at the end of the day.
+Executed User Query: Generate a summary of the tasks I've completed today.
+AI Response: You have completed the following tasks today: 1. Meeting with the team 2. Submit travel expense report
+Khoj: {{ "reason": "The AI has provided a summary of completed tasks.", "decision": "Yes" }}
 
 Original User Query: {original_query}
 Executed User Query: {executed_query}

@@ -553,7 +553,7 @@ async def generate_online_subqueries(
 
 async def schedule_query(
     q: str, conversation_history: dict, user: KhojUser, query_images: List[str] = None, tracer: dict = {}
-) -> Tuple[str, ...]:
+) -> Tuple[str, str, str]:
     """
     Schedule the date, time to run the query. Assume the server timezone is UTC.
     """
@@ -1651,8 +1651,8 @@ def should_notify(original_query: str, executed_query: str, ai_response: str, us
     with timer("Chat actor: Decide to notify user of automation response", logger):
         try:
             # TODO Replace with async call so we don't have to maintain a sync version
-            response = send_message_to_model_wrapper_sync(to_notify_or_not, user=user)
-            should_notify_result = "no" not in response.lower()
+            response = send_message_to_model_wrapper_sync(to_notify_or_not, user=user, response_type="json_object")
+            should_notify_result = json.loads(response)["decision"] == "Yes"
             logger.info(f'Decided to {"not " if not should_notify_result else ""}notify user of automation response.')
             return should_notify_result
         except Exception as e:
