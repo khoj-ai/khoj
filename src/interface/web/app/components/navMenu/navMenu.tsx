@@ -1,19 +1,9 @@
 "use client";
 
-import styles from "./navMenu.module.css";
 import Link from "next/link";
 import { useAuthenticatedData } from "@/app/common/auth";
 import { useState, useEffect } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-
-import {
-    Menubar,
-    MenubarContent,
-    MenubarItem,
-    MenubarMenu,
-    MenubarSeparator,
-    MenubarTrigger,
-} from "@/components/ui/menubar";
 
 import {
     DropdownMenu,
@@ -22,8 +12,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Moon, Sun, UserCircle, Question, GearFine, ArrowRight, Code } from "@phosphor-icons/react";
-import { KhojAgentLogo, KhojAutomationLogo, KhojSearchLogo } from "../logo/khojLogo";
+import { Moon, Sun, UserCircle, Question, ArrowRight, Code } from "@phosphor-icons/react";
 import { useIsMobileWidth } from "@/app/common/utils";
 import LoginPrompt from "../loginPrompt/loginPrompt";
 import { Button } from "@/components/ui/button";
@@ -55,10 +44,13 @@ interface NavMenuProps {
 }
 
 export default function NavMenu({ sideBarIsOpen }: NavMenuProps) {
-    const userData = useAuthenticatedData();
+    const {
+        data: userData,
+        error: authenticationError,
+        isLoading: authenticationLoading,
+    } = useAuthenticatedData();
     const [darkMode, setDarkMode] = useState(false);
     const [initialLoadDone, setInitialLoadDone] = useState(false);
-    const isMobileWidth = useIsMobileWidth();
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
     useEffect(() => {
@@ -97,6 +89,12 @@ export default function NavMenu({ sideBarIsOpen }: NavMenuProps) {
     return (
         <SidebarMenu className="border-none p-0 m-0">
             <SidebarMenuItem className="p-0 m-0">
+                {showLoginPrompt && (
+                    <LoginPrompt
+                        onOpenChange={(isOpen) => setShowLoginPrompt(isOpen)}
+                        isMobileWidth={useIsMobileWidth()}
+                    />
+                )}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <SidebarMenuButton className="p-0 m-0 rounded-lg" asChild>

@@ -193,7 +193,11 @@ export default function Chat() {
             timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         },
     };
-    const authenticatedData = useAuthenticatedData();
+    const {
+        data: authenticatedData,
+        error: authenticationError,
+        isLoading: authenticationLoading,
+    } = useAuthenticatedData();
     const isMobileWidth = useIsMobileWidth();
 
     useEffect(() => {
@@ -425,7 +429,7 @@ export default function Chat() {
                         <div className={styles.chatBoxBody}>
                             <Suspense fallback={<Loading />}>
                                 <ChatBodyData
-                                    isLoggedIn={authenticatedData !== null}
+                                    isLoggedIn={authenticatedData ? true : false}
                                     streamedMessages={messages}
                                     setStreamedMessages={setMessages}
                                     chatOptionsData={chatOptionsData}
