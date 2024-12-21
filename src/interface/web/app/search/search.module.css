@@ -2,22 +2,11 @@ div.searchLayout {
     display: grid;
     grid-template-columns: 1fr;
     gap: 1rem;
-    height: 100vh;
-}
-
-div.sidePanel {
-    position: fixed;
     height: 100%;
-    z-index: 1;
 }
 
 @media screen and (max-width: 768px) {
     div.searchLayout {
         gap: 0;
-    }
-
-    div.sidePanel {
-        position: relative;
-        height: 100%;
     }
 }

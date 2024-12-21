@@ -27,6 +27,8 @@ import { KhojAgentLogo, KhojAutomationLogo, KhojSearchLogo } from "../logo/khojL
 import { useIsMobileWidth } from "@/app/common/utils";
 import LoginPrompt from "../loginPrompt/loginPrompt";
 import { Button } from "@/components/ui/button";
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
+import { ChevronUp } from "lucide-react";
 
 function SubscriptionBadge({ is_active }: { is_active: boolean }) {
     return (
@@ -48,7 +50,11 @@ function VersionBadge({ version }: { version: string }) {
     );
 }
 
-export default function NavMenu() {
+interface NavMenuProps {
+    sideBarIsOpen: boolean;
+}
+
+export default function NavMenu({ sideBarIsOpen }: NavMenuProps) {
     const userData = useAuthenticatedData();
     const [darkMode, setDarkMode] = useState(false);
     const [initialLoadDone, setInitialLoadDone] = useState(false);
@@ -89,31 +95,34 @@ export default function NavMenu() {
     }
 
     return (
-        <div className={styles.titleBar}>
-            {showLoginPrompt && (
-                <LoginPrompt
-                    onOpenChange={setShowLoginPrompt}
-                    isMobileWidth={isMobileWidth}
-                    loginRedirectMessage={"Login to your second brain"}
-                />
-            )}
-            {isMobileWidth ? (
+        <SidebarMenu className="border-none p-0 m-0">
+            <SidebarMenuItem className="p-0 m-0">
                 <DropdownMenu>
-                    <DropdownMenuTrigger>
-                        {userData ? (
-                            <Avatar
-                                className={`h-10 w-10 border-2 ${userData.is_active ? "border-yellow-500" : "border-stone-700 dark:border-stone-300"}`}
-                            >
-                                <AvatarImage src={userData?.photo} alt="user profile" />
-                                <AvatarFallback className="bg-transparent hover:bg-muted">
-                                    {userData?.username[0].toUpperCase()}
-                                </AvatarFallback>
-                            </Avatar>
-                        ) : (
-                            <UserCircle className="h-10 w-10" />
-                        )}
+                    <DropdownMenuTrigger asChild>
+                        <SidebarMenuButton className="p-0 m-0 rounded-lg" asChild>
+                            {userData ? (
+                                <span className="flex items-center gap-2">
+                                    <Avatar
+                                        className={`${sideBarIsOpen ? "h-8 w-8" : "h-6 w-6"} border-2 ${userData.is_active ? "border-yellow-500" : "border-stone-700 dark:border-stone-300"}`}
+                                    >
+                                        <AvatarImage src={userData?.photo} alt="user profile" />
+                                        <AvatarFallback className="bg-transparent hover:bg-muted">
+                                            {userData?.username[0].toUpperCase()}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    {sideBarIsOpen && (
+                                        <>
+                                            <p>{userData?.username}</p>
+                                            <ChevronUp className="w-6 h-6" />
+                                        </>
+                                    )}
+                                </span>
+                            ) : (
+                                <UserCircle className="w-10 h-10" />
+                            )}
+                        </SidebarMenuButton>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="gap-2">
+                    <DropdownMenuContent align="end" className="rounded-xl gap-2">
                         <DropdownMenuItem className="w-full">
                             <div className="flex flex-col">
                                 <p className="font-semibold">{userData?.email}</p>
@@ -123,10 +132,10 @@ export default function NavMenu() {
                                 )}
                             </div>
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
+                        <DropdownMenuSeparator className="dark:bg-white height-[2px] bg-black" />
                         <DropdownMenuItem
                             onClick={() => setDarkMode(!darkMode)}
-                            className="w-full cursor-pointer"
+                            className="w-full hover:cursor-pointer"
                         >
                             <div className="flex flex-rows">
                                 {darkMode ? (
@@ -140,220 +149,51 @@ export default function NavMenu() {
                             </div>
                         </DropdownMenuItem>
                         <DropdownMenuItem>
-                            <Link href="/agents" className="no-underline w-full">
+                            <Link href="https://docs.khoj.dev" className="no-underline w-full">
                                 <div className="flex flex-rows">
-                                    <KhojAgentLogo className="w-6 h-6" />
-                                    <p className="ml-3 font-semibold">Agents</p>
+                                    <Question className="w-6 h-6" />
+                                    <p className="ml-3 font-semibold">Help</p>
                                 </div>
                             </Link>
                         </DropdownMenuItem>
+
                         <DropdownMenuItem>
-                            <Link href="/automations" className="no-underline w-full">
-                                <div className="flex flex-rows">
-                                    <KhojAutomationLogo className="w-6 h-6" />
-                                    <p className="ml-3 font-semibold">Automations</p>
-                                </div>
-                            </Link>
-                        </DropdownMenuItem>
-                        {userData && (
-                            <DropdownMenuItem>
-                                <Link href="/search" className="no-underline w-full">
-                                    <div className="flex flex-rows">
-                                        <KhojSearchLogo className="w-6 h-6" />
-                                        <p className="ml-3 font-semibold">Search</p>
-                                    </div>
-                                </Link>
-                            </DropdownMenuItem>
-                        )}
-                        {userData && (
-                            <DropdownMenuItem>
-                                <Link href="/settings" className="no-underline w-full">
-                                    <div className="flex flex-rows">
-                                        <GearFine className="w-6 h-6" />
-                                        <p className="ml-3 font-semibold">Settings</p>
-                                    </div>
-                                </Link>
-                            </DropdownMenuItem>
-                        )}
-                        <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem>
-                                <Link href="https://docs.khoj.dev" className="no-underline w-full">
-                                    <div className="flex flex-rows">
-                                        <Question className="w-6 h-6" />
-                                        <p className="ml-3 font-semibold">Help</p>
-                                    </div>
-                                </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                                <Link
-                                    href="https://github.com/khoj-ai/khoj/releases"
-                                    className="no-underline w-full"
-                                >
-                                    <div className="flex flex-rows">
-                                        <Code className="w-6 h-6" />
-                                        <p className="ml-3 font-semibold">Releases</p>
-                                    </div>
-                                </Link>
-                            </DropdownMenuItem>
-                            {userData ? (
-                                <DropdownMenuItem>
-                                    <Link href="/auth/logout" className="no-underline w-full">
-                                        <div className="flex flex-rows">
-                                            <ArrowRight className="w-6 h-6" />
-                                            <p className="ml-3 font-semibold">Logout</p>
-                                        </div>
-                                    </Link>
-                                </DropdownMenuItem>
-                            ) : (
-                                <DropdownMenuItem>
-                                    <Button
-                                        variant={"ghost"}
-                                        onClick={() => setShowLoginPrompt(true)}
-                                        className="no-underline w-full text-left p-0 content-start justify-start items-start h-fit"
-                                    >
-                                        <div className="flex flex-rows text-left content-start justify-start items-start p-0">
-                                            <ArrowRight className="w-6 h-6" />
-                                            <p className="ml-3 font-semibold">Login</p>
-                                        </div>
-                                    </Button>
-                                </DropdownMenuItem>
-                            )}
-                        </>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            ) : (
-                <Menubar className="border-none">
-                    <MenubarMenu>
-                        <MenubarTrigger>
-                            {userData ? (
-                                <Avatar
-                                    className={`h-10 w-10 border-2 ${userData.is_active ? "border-yellow-500" : "border-stone-700 dark:border-stone-300"}`}
-                                >
-                                    <AvatarImage src={userData?.photo} alt="user profile" />
-                                    <AvatarFallback className="bg-transparent hover:bg-muted">
-                                        {userData?.username[0].toUpperCase()}
-                                    </AvatarFallback>
-                                </Avatar>
-                            ) : (
-                                <UserCircle className="w-10 h-10" />
-                            )}
-                        </MenubarTrigger>
-                        <MenubarContent align="end" className="rounded-xl gap-2">
-                            <MenubarItem className="w-full">
-                                <div className="flex flex-col">
-                                    <p className="font-semibold">{userData?.email}</p>
-                                    <SubscriptionBadge is_active={userData?.is_active ?? false} />
-                                    {userData?.khoj_version && (
-                                        <VersionBadge version={userData?.khoj_version} />
-                                    )}
-                                </div>
-                            </MenubarItem>
-                            <MenubarSeparator className="dark:bg-white height-[2px] bg-black" />
-                            <MenubarItem
-                                onClick={() => setDarkMode(!darkMode)}
-                                className="w-full hover:cursor-pointer"
+                            <Link
+                                href="https://github.com/khoj-ai/khoj/releases"
+                                className="no-underline w-full"
                             >
                                 <div className="flex flex-rows">
-                                    {darkMode ? (
-                                        <Sun className="w-6 h-6" />
-                                    ) : (
-                                        <Moon className="w-6 h-6" />
-                                    )}
-                                    <p className="ml-3 font-semibold">
-                                        {darkMode ? "Light Mode" : "Dark Mode"}
-                                    </p>
+                                    <Code className="w-6 h-6" />
+                                    <p className="ml-3 font-semibold">Releases</p>
                                 </div>
-                            </MenubarItem>
-                            <MenubarItem>
-                                <Link href="/agents" className="no-underline w-full">
+                            </Link>
+                        </DropdownMenuItem>
+                        {userData ? (
+                            <DropdownMenuItem>
+                                <Link href="/auth/logout" className="no-underline w-full">
                                     <div className="flex flex-rows">
-                                        <KhojAgentLogo className="w-6 h-6" />
-                                        <p className="ml-3 font-semibold">Agents</p>
+                                        <ArrowRight className="w-6 h-6" />
+                                        <p className="ml-3 font-semibold">Logout</p>
                                     </div>
                                 </Link>
-                            </MenubarItem>
-                            <MenubarItem>
-                                <Link href="/automations" className="no-underline w-full">
-                                    <div className="flex flex-rows">
-                                        <KhojAutomationLogo className="w-6 h-6" />
-                                        <p className="ml-3 font-semibold">Automations</p>
+                            </DropdownMenuItem>
+                        ) : (
+                            <DropdownMenuItem>
+                                <Button
+                                    variant={"ghost"}
+                                    onClick={() => setShowLoginPrompt(true)}
+                                    className="no-underline w-full text-left p-0 content-start justify-start items-start h-fit"
+                                >
+                                    <div className="flex flex-rows text-left content-start justify-start items-start p-0">
+                                        <ArrowRight className="w-6 h-6" />
+                                        <p className="ml-3 font-semibold">Login</p>
                                     </div>
-                                </Link>
-                            </MenubarItem>
-                            {userData && (
-                                <MenubarItem>
-                                    <Link href="/search" className="no-underline w-full">
-                                        <div className="flex flex-rows">
-                                            <KhojSearchLogo className="w-6 h-6" />
-                                            <p className="ml-3 font-semibold">Search</p>
-                                        </div>
-                                    </Link>
-                                </MenubarItem>
-                            )}
-                            {userData && (
-                                <MenubarItem>
-                                    <Link href="/settings" className="no-underline w-full">
-                                        <div className="flex flex-rows">
-                                            <GearFine className="w-6 h-6" />
-                                            <p className="ml-3 font-semibold">Settings</p>
-                                        </div>
-                                    </Link>
-                                </MenubarItem>
-                            )}
-                            <>
-                                <MenubarSeparator className="dark:bg-white height-[2px] bg-black" />
-                                <MenubarItem>
-                                    <Link
-                                        href="https://docs.khoj.dev"
-                                        className="no-underline w-full"
-                                    >
-                                        <div className="flex flex-rows">
-                                            <Question className="w-6 h-6" />
-                                            <p className="ml-3 font-semibold">Help</p>
-                                        </div>
-                                    </Link>
-                                </MenubarItem>
-
-                                <MenubarItem>
-                                    <Link
-                                        href="https://github.com/khoj-ai/khoj/releases"
-                                        className="no-underline w-full"
-                                    >
-                                        <div className="flex flex-rows">
-                                            <Code className="w-6 h-6" />
-                                            <p className="ml-3 font-semibold">Releases</p>
-                                        </div>
-                                    </Link>
-                                </MenubarItem>
-                                {userData ? (
-                                    <MenubarItem>
-                                        <Link href="/auth/logout" className="no-underline w-full">
-                                            <div className="flex flex-rows">
-                                                <ArrowRight className="w-6 h-6" />
-                                                <p className="ml-3 font-semibold">Logout</p>
-                                            </div>
-                                        </Link>
-                                    </MenubarItem>
-                                ) : (
-                                    <MenubarItem>
-                                        <Button
-                                            variant={"ghost"}
-                                            onClick={() => setShowLoginPrompt(true)}
-                                            className="no-underline w-full text-left p-0 content-start justify-start items-start h-fit"
-                                        >
-                                            <div className="flex flex-rows text-left content-start justify-start items-start p-0">
-                                                <ArrowRight className="w-6 h-6" />
-                                                <p className="ml-3 font-semibold">Login</p>
-                                            </div>
-                                        </Button>
-                                    </MenubarItem>
-                                )}
-                            </>
-                        </MenubarContent>
-                    </MenubarMenu>
-                </Menubar>
-            )}
-        </div>
+                                </Button>
+                            </DropdownMenuItem>
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </SidebarMenuItem>
+        </SidebarMenu>
     );
 }

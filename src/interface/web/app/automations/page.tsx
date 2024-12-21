@@ -66,8 +66,11 @@ import LoginPrompt from "../components/loginPrompt/loginPrompt";
 import { useToast } from "@/components/ui/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import SidePanel from "../components/sidePanel/chatHistorySidePanel";
 import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "../components/appSidebar/appSidebar";
+import { Separator } from "@/components/ui/separator";
+import { KhojLogoType } from "../components/logo/khojLogo";
 
 const automationsFetcher = () =>
     window
@@ -392,13 +395,13 @@ function AutomationsCard(props: AutomationsCardProps) {
             </CardContent>
             <CardFooter className="flex flex-col items-start md:flex-row md:justify-between md:items-center gap-2">
                 <div className="flex gap-2">
-                    <div className="flex items-center bg-blue-50 rounded-lg p-1.5 border-blue-200 border dark:bg-blue-800 dark:border-blue-500">
+                    <div className="flex items-center rounded-lg p-1.5 border-blue-200 border dark:border-blue-500">
                         <CalendarCheck className="h-4 w-4 mr-2 text-blue-700 dark:text-blue-300" />
                         <div className="text-s text-blue-700 dark:text-blue-300">
                             {timeRecurrence}
                         </div>
                     </div>
-                    <div className="flex items-center bg-purple-50 rounded-lg p-1.5 border-purple-200 border dark:bg-purple-800 dark:border-purple-500">
+                    <div className="flex items-center rounded-lg p-1.5 border-purple-200 border dark:border-purple-500">
                         <ClockAfternoon className="h-4 w-4 mr-2 text-purple-700 dark:text-purple-300" />
                         <div className="text-s text-purple-700 dark:text-purple-300">
                             {intervalString}
@@ -1023,134 +1026,147 @@ export default function Automations() {
         return <InlineLoading message="Oops, something went wrong. Please refresh the page." />;
 
     return (
-        <main className={`w-full mx-auto`}>
-            <div className={`grid w-full mx-auto`}>
-                <div className={`${styles.sidePanel} top-0`}>
-                    <SidePanel
-                        conversationId={null}
-                        uploadedFiles={[]}
-                        isMobileWidth={isMobileWidth}
-                    />
-                </div>
-                <div className={`${styles.pageLayout} w-full`}>
-                    <div className="pt-6 md:pt-8 grid gap-1 md:flex md:justify-between">
-                        <h1 className="text-3xl flex items-center">Automations</h1>
-                        <div className="flex flex-wrap gap-2 items-center justify-start">
-                            {authenticatedData ? (
-                                <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm dark:bg-muted">
-                                    <Envelope className="h-4 w-4 mr-2 inline text-orange-500 shadow-sm" />
-                                    {authenticatedData.email}
-                                </span>
-                            ) : null}
-                            {locationData && (
-                                <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm dark:bg-muted">
-                                    <MapPinSimple className="h-4 w-4 mr-2 inline text-purple-500" />
-                                    {locationData
-                                        ? `${locationData.city}, ${locationData.country}`
-                                        : "Unknown"}
-                                </span>
-                            )}
-                            {locationData && (
-                                <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm dark:bg-muted">
-                                    <Clock className="h-4 w-4 mr-2 inline text-green-500" />
-                                    {locationData ? `${locationData.timezone}` : "Unknown"}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                    {showLoginPrompt && (
-                        <LoginPrompt
-                            loginRedirectMessage={"Create an account to make your own automation"}
-                            onOpenChange={setShowLoginPrompt}
-                            isMobileWidth={isMobileWidth}
-                        />
+        <SidebarProvider>
+            <AppSidebar conversationId={""} />
+            <SidebarInset>
+                <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+                    <SidebarTrigger className="-ml-1" />
+                    <Separator orientation="vertical" className="mr-2 h-4" />
+                    {isMobileWidth ? (
+                        <KhojLogoType className="h-auto w-16" />
+                    ) : (
+                        <h2 className="text-lg">Automations</h2>
                     )}
-                    <Alert className="bg-secondary border-none my-4">
-                        <AlertDescription>
-                            <Lightning weight={"fill"} className="h-4 w-4 text-purple-400 inline" />
-                            <span className="font-bold">How it works</span> Automations help you
-                            structure your time by automating tasks you do regularly. Build your
-                            own, or try out our presets. Get results straight to your inbox.
-                        </AlertDescription>
-                    </Alert>
-                    <div className="flex justify-between items-center py-4">
-                        {authenticatedData ? (
-                            <AutomationComponentWrapper
-                                isMobileWidth={isMobileWidth}
-                                callToAction="Create Automation"
-                                createNew={true}
-                                setIsCreating={setIsCreating}
-                                setShowLoginPrompt={setShowLoginPrompt}
-                                setNewAutomationData={setNewAutomationData}
-                                authenticatedData={authenticatedData}
-                                isCreating={isCreating}
-                                ipLocationData={locationData}
-                            />
-                        ) : (
-                            <Button
-                                className="shadow-sm"
-                                onClick={() => setShowLoginPrompt(true)}
-                                variant={"outline"}
-                            >
-                                <Plus className="h-4 w-4 mr-2" />
-                                Create Automation
-                            </Button>
-                        )}
-                    </div>
-                    <Suspense>
-                        <SharedAutomationCard
-                            isMobileWidth={isMobileWidth}
-                            authenticatedData={authenticatedData}
-                            locationData={locationData}
-                            isLoggedIn={authenticatedData ? true : false}
-                            setShowLoginPrompt={setShowLoginPrompt}
-                            setNewAutomationData={setNewAutomationData}
-                        />
-                    </Suspense>
-                    {isLoading && <InlineLoading message="booting up your automations" />}
-                    <div className={`${styles.automationsLayout}`}>
-                        {personalAutomations &&
-                            personalAutomations.map((automation) => (
-                                <AutomationsCard
+                </header>
+                <main className={`w-full mx-auto`}>
+                    <div className={`grid w-full mx-auto`}>
+                        <div className={`${styles.pageLayout} w-full`}>
+                            <div className="pt-6 md:pt-8 grid gap-1 md:flex md:justify-between">
+                                <h1 className="text-3xl flex items-center">Automations</h1>
+                                <div className="flex flex-wrap gap-2 items-center justify-start">
+                                    {authenticatedData ? (
+                                        <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm dark:bg-muted">
+                                            <Envelope className="h-4 w-4 mr-2 inline text-orange-500 shadow-sm" />
+                                            {authenticatedData.email}
+                                        </span>
+                                    ) : null}
+                                    {locationData && (
+                                        <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm dark:bg-muted">
+                                            <MapPinSimple className="h-4 w-4 mr-2 inline text-purple-500" />
+                                            {locationData
+                                                ? `${locationData.city}, ${locationData.country}`
+                                                : "Unknown"}
+                                        </span>
+                                    )}
+                                    {locationData && (
+                                        <span className="rounded-lg text-sm border-secondary border p-1 flex items-center shadow-sm dark:bg-muted">
+                                            <Clock className="h-4 w-4 mr-2 inline text-green-500" />
+                                            {locationData ? `${locationData.timezone}` : "Unknown"}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                            {showLoginPrompt && (
+                                <LoginPrompt
+                                    loginRedirectMessage={
+                                        "Create an account to make your own automation"
+                                    }
+                                    onOpenChange={setShowLoginPrompt}
                                     isMobileWidth={isMobileWidth}
-                                    key={automation.id}
+                                />
+                            )}
+                            <Alert className="bg-secondary border-none my-4">
+                                <AlertDescription>
+                                    <Lightning
+                                        weight={"fill"}
+                                        className="h-4 w-4 text-purple-400 inline"
+                                    />
+                                    <span className="font-bold">How it works</span> Automations help
+                                    you structure your time by automating tasks you do regularly.
+                                    Build your own, or try out our presets. Get results straight to
+                                    your inbox.
+                                </AlertDescription>
+                            </Alert>
+                            <div className="flex justify-between items-center py-4">
+                                {authenticatedData ? (
+                                    <AutomationComponentWrapper
+                                        isMobileWidth={isMobileWidth}
+                                        callToAction="Create Automation"
+                                        createNew={true}
+                                        setIsCreating={setIsCreating}
+                                        setShowLoginPrompt={setShowLoginPrompt}
+                                        setNewAutomationData={setNewAutomationData}
+                                        authenticatedData={authenticatedData}
+                                        isCreating={isCreating}
+                                        ipLocationData={locationData}
+                                    />
+                                ) : (
+                                    <Button
+                                        className="shadow-sm"
+                                        onClick={() => setShowLoginPrompt(true)}
+                                        variant={"outline"}
+                                    >
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Create Automation
+                                    </Button>
+                                )}
+                            </div>
+                            <Suspense>
+                                <SharedAutomationCard
+                                    isMobileWidth={isMobileWidth}
                                     authenticatedData={authenticatedData}
-                                    automation={automation}
                                     locationData={locationData}
                                     isLoggedIn={authenticatedData ? true : false}
                                     setShowLoginPrompt={setShowLoginPrompt}
+                                    setNewAutomationData={setNewAutomationData}
                                 />
-                            ))}
-                        {allNewAutomations.map((automation) => (
-                            <AutomationsCard
-                                isMobileWidth={isMobileWidth}
-                                key={automation.id}
-                                authenticatedData={authenticatedData}
-                                automation={automation}
-                                locationData={locationData}
-                                isLoggedIn={authenticatedData ? true : false}
-                                setShowLoginPrompt={setShowLoginPrompt}
-                            />
-                        ))}
+                            </Suspense>
+                            {isLoading && <InlineLoading message="booting up your automations" />}
+                            <div className={`${styles.automationsLayout}`}>
+                                {personalAutomations &&
+                                    personalAutomations.map((automation) => (
+                                        <AutomationsCard
+                                            isMobileWidth={isMobileWidth}
+                                            key={automation.id}
+                                            authenticatedData={authenticatedData}
+                                            automation={automation}
+                                            locationData={locationData}
+                                            isLoggedIn={authenticatedData ? true : false}
+                                            setShowLoginPrompt={setShowLoginPrompt}
+                                        />
+                                    ))}
+                                {allNewAutomations.map((automation) => (
+                                    <AutomationsCard
+                                        isMobileWidth={isMobileWidth}
+                                        key={automation.id}
+                                        authenticatedData={authenticatedData}
+                                        automation={automation}
+                                        locationData={locationData}
+                                        isLoggedIn={authenticatedData ? true : false}
+                                        setShowLoginPrompt={setShowLoginPrompt}
+                                    />
+                                ))}
+                            </div>
+                            <h3 className="text-xl py-4">Explore</h3>
+                            <div className={`${styles.automationsLayout}`}>
+                                {suggestedAutomations.map((automation) => (
+                                    <AutomationsCard
+                                        isMobileWidth={isMobileWidth}
+                                        setNewAutomationData={setNewAutomationData}
+                                        key={automation.id}
+                                        authenticatedData={authenticatedData}
+                                        automation={automation}
+                                        locationData={locationData}
+                                        isLoggedIn={authenticatedData ? true : false}
+                                        setShowLoginPrompt={setShowLoginPrompt}
+                                        suggestedCard={true}
+                                    />
+                                ))}
+                            </div>
+                        </div>
                     </div>
-                    <h3 className="text-xl py-4">Explore</h3>
-                    <div className={`${styles.automationsLayout}`}>
-                        {suggestedAutomations.map((automation) => (
-                            <AutomationsCard
-                                isMobileWidth={isMobileWidth}
-                                setNewAutomationData={setNewAutomationData}
-                                key={automation.id}
-                                authenticatedData={authenticatedData}
-                                automation={automation}
-                                locationData={locationData}
-                                isLoggedIn={authenticatedData ? true : false}
-                                setShowLoginPrompt={setShowLoginPrompt}
-                                suggestedCard={true}
-                            />
-                        ))}
-                    </div>
-                </div>
-            </div>
-        </main>
+                </main>
+            </SidebarInset>
+        </SidebarProvider>
     );
 }

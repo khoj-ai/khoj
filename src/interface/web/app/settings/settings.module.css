@@ -16,12 +16,6 @@ div.phoneInput {
     padding: 0rem;
 }
 
-div.sidePanel {
-    position: fixed;
-    height: 100%;
-    z-index: 1;
-}
-
 div.phoneInput input {
     width: 100%;
     padding: 0.5rem;
@@ -30,11 +24,6 @@ div.phoneInput input {
 }
 
 @media screen and (max-width: 768px) {
-    div.sidePanel {
-        position: relative;
-        height: 100%;
-    }
-
     div.contentBody {
         margin-left: 0;
         margin-top: 0;

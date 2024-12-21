@@ -74,6 +74,14 @@ p.session {
     font-size: small;
 }
 
+p.compressed {
+    width: 12rem;
+}
+
+p.expanded {
+    max-width: 20rem;
+}
+
 div.header {
     display: grid;
     grid-template-columns: 1fr auto;

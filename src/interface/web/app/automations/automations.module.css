@@ -15,12 +15,6 @@ div.pageLayout {
     margin-bottom: 2rem;
 }
 
-div.sidePanel {
-    position: fixed;
-    height: 100%;
-    z-index: 1;
-}
-
 @media screen and (max-width: 768px) {
     div.automationsLayout {
         grid-template-columns: 1fr;
@@ -28,10 +22,5 @@ div.sidePanel {
 
     div.pageLayout {
         max-width: 90vw;
-    }
-
-    div.sidePanel {
-        position: relative;
-        height: 100%;
     }
 }
