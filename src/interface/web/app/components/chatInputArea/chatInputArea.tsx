@@ -409,7 +409,6 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                 <LoginPrompt
                     onOpenChange={setShowLoginPrompt}
                     isMobileWidth={props.isMobileWidth}
-                    loginRedirectMessage={loginRedirectMessage}
                 />
             )}
             {uploading && (

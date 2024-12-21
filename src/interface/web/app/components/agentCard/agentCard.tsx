@@ -326,7 +326,6 @@ export function AgentCard(props: AgentCardProps) {
         <Card className={`shadow-md rounded-xl hover:shadow-lg dark:bg-muted`}>
             {showLoginPrompt && (
                 <LoginPrompt
-                    loginRedirectMessage={`Sign in to start chatting with ${props.data.name}`}
                     onOpenChange={setShowLoginPrompt}
                     isMobileWidth={props.isMobileWidth}
                 />

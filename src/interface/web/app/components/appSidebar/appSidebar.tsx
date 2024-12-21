@@ -1,18 +1,14 @@
-import { Calendar, Home, Inbox, Search, Settings } from "lucide-react";
-
 import {
     Sidebar,
     SidebarContent,
     SidebarFooter,
     SidebarGroup,
     SidebarGroupContent,
-    SidebarGroupLabel,
     SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import Link from "next/link";
 import {
     KhojAgentLogo,
     KhojAutomationLogo,
@@ -21,12 +17,12 @@ import {
     KhojSearchLogo,
 } from "../logo/khojLogo";
 import { Gear } from "@phosphor-icons/react/dist/ssr";
-import { House, Plus } from "@phosphor-icons/react";
+import { Plus } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
-import { useAuthenticatedData } from "@/app/common/auth";
 import AllConversations from "../allConversations/allConversations";
 import NavMenu from "../navMenu/navMenu";
 import { useSidebar } from "@/components/ui/sidebar";
+import { useIsMobileWidth } from "@/app/common/utils";
 
 // Menu items.
 const items = [
@@ -66,20 +62,10 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar(props: AppSidebarProps) {
-    const [isMobileWidth, setIsMobileWidth] = useState(false);
+    const isMobileWidth = useIsMobileWidth();
 
     const { state, open, setOpen, openMobile, setOpenMobile, isMobile, toggleSidebar } =
         useSidebar();
-
-    useEffect(() => {
-        const handleResize = () => {
-            setIsMobileWidth(window.innerWidth < 768);
-        };
-
-        handleResize();
-        window.addEventListener("resize", handleResize);
-        return () => window.removeEventListener("resize", handleResize);
-    }, []);
 
     return (
         <Sidebar collapsible={"icon"} variant="sidebar">

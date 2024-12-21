@@ -3,7 +3,6 @@
 import styles from "./sidePanel.module.css";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRef } from "react";
 
 import { mutate } from "swr";
 
@@ -102,14 +101,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { modifyFileFilterForConversation } from "@/app/common/chatFunctions";
 import { ScrollAreaScrollbar } from "@radix-ui/react-scroll-area";
-import { KhojLogoType } from "@/app/components/logo/khojLogo";
-import NavMenu from "@/app/components/navMenu/navMenu";
 import { getIconFromIconName } from "@/app/common/iconUtils";
-import LoginPrompt from "../loginPrompt/loginPrompt";
 import {
     SidebarGroup,
     SidebarGroupLabel,
-    SidebarMenu,
     SidebarMenuAction,
     SidebarMenuButton,
     SidebarMenuItem,
@@ -908,9 +903,12 @@ export default function AllConversations(props: SidePanelProps) {
     const [data, setData] = useState<ChatHistory[] | null>(null);
     const [organizedData, setOrganizedData] = useState<GroupedChatHistory | null>(null);
     const [subsetOrganizedData, setSubsetOrganizedData] = useState<GroupedChatHistory | null>(null);
-    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
-    const authenticatedData = useAuthenticatedData();
+    const {
+        data: authenticatedData,
+        error: authenticationError,
+        isLoading: authenticationLoading,
+    } = useAuthenticatedData();
     const { data: chatSessions, isLoading } = useChatSessionsFetchRequest(
         authenticatedData ? `/api/chat/sessions` : "",
     );

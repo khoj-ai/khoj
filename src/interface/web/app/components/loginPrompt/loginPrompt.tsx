@@ -29,7 +29,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 export interface LoginPromptProps {
-    loginRedirectMessage: string;
     onOpenChange: (open: boolean) => void;
     isMobileWidth?: boolean;
 }

@@ -222,7 +222,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 <LoginPrompt
                     onOpenChange={setShowLoginPrompt}
                     isMobileWidth={props.isMobileWidth}
-                    loginRedirectMessage={"Login to your second brain"}
                 />
             )}
             {!props.isLoggedIn && (
@@ -425,7 +424,11 @@ export default function Home() {
     const { userConfig: initialUserConfig, isLoadingUserConfig } = useUserConfig(true);
     const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
 
-    const authenticatedData = useAuthenticatedData();
+    const {
+        data: authenticatedData,
+        error: authenticationError,
+        isLoading: authenticationLoading,
+    } = useAuthenticatedData();
 
     const handleConversationIdChange = (newConversationId: string) => {
         setConversationID(newConversationId);
@@ -477,15 +480,17 @@ export default function Home() {
                     <title>Khoj AI - Your Second Brain</title>
                     <div className={`${styles.chatBox}`}>
                         <div className={`${styles.chatBoxBody}`}>
-                            <ChatBodyData
-                                isLoggedIn={authenticatedData !== null}
-                                chatOptionsData={chatOptionsData}
-                                setUploadedFiles={setUploadedFiles}
-                                isMobileWidth={isMobileWidth}
-                                onConversationIdChange={handleConversationIdChange}
-                                userConfig={userConfig}
-                                isLoadingUserConfig={isLoadingUserConfig}
-                            />
+                            {!authenticationLoading && (
+                                <ChatBodyData
+                                    isLoggedIn={authenticatedData ? true : false}
+                                    chatOptionsData={chatOptionsData}
+                                    setUploadedFiles={setUploadedFiles}
+                                    isMobileWidth={isMobileWidth}
+                                    onConversationIdChange={handleConversationIdChange}
+                                    userConfig={userConfig}
+                                    isLoadingUserConfig={isLoadingUserConfig}
+                                />
+                            )}
                         </div>
                     </div>
                 </div>

@@ -123,7 +123,11 @@ export default function SharedChat() {
     const [paramSlug, setParamSlug] = useState<string | undefined>(undefined);
     const [images, setImages] = useState<string[]>([]);
 
-    const authenticatedData = useAuthenticatedData();
+    const {
+        data: authenticatedData,
+        error: authenticationError,
+        isLoading: authenticationLoading,
+    } = useAuthenticatedData();
     const isMobileWidth = useIsMobileWidth();
 
     useEffect(() => {
@@ -222,7 +226,7 @@ export default function SharedChat() {
                                     conversationId={conversationId}
                                     streamedMessages={messages}
                                     setQueryToProcess={setQueryToProcess}
-                                    isLoggedIn={authenticatedData !== null}
+                                    isLoggedIn={authenticatedData ? true : false}
                                     publicConversationSlug={paramSlug}
                                     chatOptionsData={chatOptionsData}
                                     setTitle={setTitle}

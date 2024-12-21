@@ -38,7 +38,6 @@ import {
     Key,
     Palette,
     UserCircle,
-    FileMagnifyingGlass,
     Trash,
     Copy,
     CreditCard,
@@ -499,7 +498,6 @@ enum PhoneNumberValidationState {
 }
 
 export default function SettingsView() {
-    const [title, setTitle] = useState("Settings");
     const { apiKeys, generateAPIKey, copyAPIKey, deleteAPIKey } = useApiKeys();
     const { userConfig: initialUserConfig } = useUserConfig(true);
     const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
@@ -513,6 +511,8 @@ export default function SettingsView() {
     const [isManageFilesModalOpen, setIsManageFilesModalOpen] = useState(false);
     const { toast } = useToast();
     const isMobileWidth = useIsMobileWidth();
+
+    const title = "Settings";
 
     const cardClassName =
         "w-full lg:w-1/3 grid grid-flow-column border border-gray-300 shadow-md rounded-lg border dark:border-none dark:bg-muted border-opacity-50";
