@@ -82,7 +82,6 @@ export function AppSidebar(props: AppSidebarProps) {
                             <SidebarMenuButton asChild>
                                 <a className="flex items-center gap-2 no-underline" href="/">
                                     <KhojLogo className="w-14 h-auto" />
-                                    <span className="text-lg">Khoj</span>
                                 </a>
                             </SidebarMenuButton>
                         )}
