@@ -515,7 +515,7 @@ export default function SettingsView() {
     const title = "Settings";
 
     const cardClassName =
-        "w-full lg:w-1/3 grid grid-flow-column border border-gray-300 shadow-md rounded-lg border dark:border-none dark:bg-muted border-opacity-50";
+        "w-full lg:w-5/12 grid grid-flow-column border border-gray-300 shadow-md rounded-lg border dark:border-none dark:bg-muted border-opacity-50";
 
     useEffect(() => {
         setUserConfig(initialUserConfig);

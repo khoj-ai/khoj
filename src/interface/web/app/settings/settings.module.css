@@ -8,8 +8,6 @@ div.page {
 div.contentBody {
     display: grid;
     margin: auto;
-    margin-left: 20vw;
-    margin-top: 1rem;
 }
 
 div.phoneInput {
