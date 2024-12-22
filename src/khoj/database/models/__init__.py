@@ -685,6 +685,7 @@ class Entry(DbBaseModel):
     file_type = models.CharField(max_length=30, choices=EntryType.choices, default=EntryType.PLAINTEXT)
     file_path = models.CharField(max_length=400, default=None, null=True, blank=True)
     file_name = models.CharField(max_length=400, default=None, null=True, blank=True)
+    named_entities = models.JSONField(default=dict, blank=True)
     url = models.URLField(max_length=400, default=None, null=True, blank=True)
     hashed_value = models.CharField(max_length=100)
     corpus_id = models.UUIDField(default=uuid.uuid4, editable=False)

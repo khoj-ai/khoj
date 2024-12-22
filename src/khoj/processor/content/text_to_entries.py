@@ -1,11 +1,13 @@
+import functools
 import hashlib
 import logging
 import re
 import uuid
 from abc import ABC, abstractmethod
 from itertools import repeat
-from typing import Any, Callable, List, Set, Tuple
+from typing import Any, Callable, Dict, List, Set, Tuple
 
+from gliner import GLiNER
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from tqdm import tqdm
 
@@ -25,6 +27,9 @@ logger = logging.getLogger(__name__)
 
 
 class TextToEntries(ABC):
+    # Named entity recognition model. Lazy load to avoid loading on import
+    ner_model = None
+
     def __init__(self, config: Any = None):
         self.embeddings_model = state.embeddings_model
         self.config = config
@@ -152,18 +157,23 @@ class TextToEntries(ABC):
         with timer("Generated embeddings for entries to add to database in", logger):
             entries_to_process = [hash_to_current_entries[hashed_val] for hashed_val in hashes_to_process]
             data_to_embed = [getattr(entry, key) for entry in entries_to_process]
+            named_entities = self.extract_ner(data_to_embed)
             embeddings += self.embeddings_model[model.name].embed_documents(data_to_embed)
 
         added_entries: list[DbEntry] = []
         with timer("Added entries to database in", logger):
             num_items = len(hashes_to_process)
             assert num_items == len(embeddings)
+            assert num_items == len(named_entities)
             batch_size = min(200, num_items)
-            entry_batches = zip(hashes_to_process, embeddings)
+            entry_batches = zip(hashes_to_process, embeddings, named_entities)
+            total_batches = num_items // batch_size
 
-            for entry_batch in tqdm(batcher(entry_batches, batch_size), desc="Add entries to database"):
+            for entry_batch in tqdm(
+                batcher(entry_batches, batch_size), total=total_batches, desc="Add entries to database"
+            ):
                 batch_embeddings_to_create: List[DbEntry] = []
-                for entry_hash, new_entry in entry_batch:
+                for entry_hash, new_entry, entry_entities in entry_batch:
                     entry = hash_to_current_entries[entry_hash]
                     batch_embeddings_to_create.append(
                         DbEntry(
@@ -178,6 +188,7 @@ class TextToEntries(ABC):
                             hashed_value=entry_hash,
                             corpus_id=entry.corpus_id,
                             search_model=model,
+                            named_entities=entry_entities,
                         )
                     )
                 try:
@@ -294,3 +305,56 @@ class TextToEntries(ABC):
     @staticmethod
     def clean_field(field: str) -> str:
         return field.replace("\0", "") if not is_none_or_empty(field) else ""
+
+    @staticmethod
+    @functools.lru_cache(maxsize=1)  # Cache the model loading
+    def get_model():
+        """Get or initialize model for named entity recognition"""
+        if TextToEntries.ner_model is None:
+            TextToEntries.ner_model = GLiNER.from_pretrained(
+                "gliner-community/gliner_small-v2.5",
+                load_tokenizer=True,
+                device=state.device,
+                compile_torch_model=state.device == "cuda",  # Enable torch.compile
+            )
+            # Optimize model for inference
+            TextToEntries.ner_model.to(state.device)
+            TextToEntries.ner_model.eval()
+        return TextToEntries.ner_model
+
+    @staticmethod
+    def process_entity_batch(entity_predictions: List[Dict[str, str]]) -> Dict[str, List[str]]:
+        """Process single batch of entity predictions"""
+        persons = {entity["text"].lower() for entity in entity_predictions if entity["label"] == "Person"}
+        teams = {
+            entity["text"].lower()
+            for entity in entity_predictions
+            if entity["label"] in ["Team", "Group", "Department", "Organization"]
+        }
+        projects = {entity["text"].lower() for entity in entity_predictions if entity["label"] == "Project"}
+        locations = {entity["text"].lower() for entity in entity_predictions if entity["label"] == "Location"}
+
+        return {
+            "people": list(persons),
+            "teams": list(teams),
+            "locations": list(locations),
+            "projects": list(projects),
+        }
+
+    @staticmethod
+    def extract_ner(texts: List[str], batch_size: int = 10) -> List[Dict[str, List[str]]]:
+        """Extract named entities using optimized inference"""
+        labels = ["Person", "Team", "Group", "Department", "Location", "Project", "Organization"]
+        model = TextToEntries.get_model()
+        entities_by_entry: List[Dict[str, List[str]]] = []
+        total_batches = len(texts) // batch_size
+
+        # Predict named entities from the text in batches
+        with timer("Infer named entities in entry", logger, device=model.device, log_level=logging.DEBUG):
+            for texts_batch in tqdm(
+                batcher(texts, batch_size), total=total_batches, desc="Extract named entities from entries"
+            ):
+                predictions = model.batch_predict_entities(list(texts_batch), labels, flat_ner=True, multi_label=True)
+                entities_by_entry += list(map(TextToEntries.process_entity_batch, predictions))
+
+        return entities_by_entry

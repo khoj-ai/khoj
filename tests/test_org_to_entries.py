@@ -372,6 +372,26 @@ def test_get_org_files(tmp_path):
     assert set(extracted_org_files.keys()) == expected_files
 
 
+def test_named_entity_extraction_from_entries():
+    "Extract named entities from org entries."
+    # Arrange
+    entry = f"""
+* Heading 1
+** Sub-Heading 1.1
+I was born in 1990 in New York. My Dad was a technician for ibm on the IC20 team building the first ENIAC. My Mum was a post FIRE travelling nurse with the Red Cross working at Masai Mara National Park in Kenya
+"""
+    # Act
+    # Extract Named Entities from specified Org files
+    extracted_entities = OrgToEntries.extract_ner([entry])
+
+    # Assert
+    assert len(extracted_entities) == 1
+    assert set(extracted_entities[0]["locations"]) == {"new york", "kenya", "masai mara national park"}
+    assert set(extracted_entities[0]["teams"]) == {"ic20 team", "red cross", "ibm"}
+    assert set(extracted_entities[0]["people"]) == {"mum", "dad"}
+    assert set(extracted_entities[0]["projects"]) == {"eniac", "fire"}
+
+
 def test_extract_entries_with_different_level_headings(tmp_path):
     "Extract org entries with different level headings."
     # Arrange
