@@ -3,9 +3,6 @@ import { noto_sans, noto_sans_arabic } from "@/app/fonts";
 import "./globals.css";
 import { ContentSecurityPolicy } from "./common/layoutHelper";
 
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/app/components/appSidebar/appSidebar";
-
 export const metadata: Metadata = {
     title: "Khoj AI - Ask Anything",
     description:

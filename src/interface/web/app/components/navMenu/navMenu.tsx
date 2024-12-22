@@ -43,7 +43,7 @@ interface NavMenuProps {
     sideBarIsOpen: boolean;
 }
 
-export default function NavMenu({ sideBarIsOpen }: NavMenuProps) {
+export default function FooterMenu({ sideBarIsOpen }: NavMenuProps) {
     const {
         data: userData,
         error: authenticationError,
@@ -106,13 +106,13 @@ export default function NavMenu({ sideBarIsOpen }: NavMenuProps) {
                                     >
                                         <AvatarImage src={userData?.photo} alt="user profile" />
                                         <AvatarFallback className="bg-transparent hover:bg-muted">
-                                            {userData?.username[0].toUpperCase()}
+                                            {userData.username[0].toUpperCase()}
                                         </AvatarFallback>
                                     </Avatar>
                                     {sideBarIsOpen && (
                                         <>
                                             <p>{userData?.username}</p>
-                                            <ChevronUp className="w-6 h-6" />
+                                            <ChevronUp className="w-6 h-6 ml-auto" />
                                         </>
                                     )}
                                 </span>
