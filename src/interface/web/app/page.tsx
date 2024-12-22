@@ -323,11 +323,11 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         />
                     </div>
                 )}
-                <div
-                    className={`${styles.suggestions} w-full ${props.isMobileWidth ? "grid grid-cols-2" : "grid grid-cols-3"} justify-center items-center`}
-                >
-                    {stepTwoSuggestionOptions.length == 0 &&
-                        stepOneSuggestionOptions.map((suggestion, index) => (
+                {stepTwoSuggestionOptions.length == 0 && (
+                    <div
+                        className={`${styles.suggestions} w-full ${props.isMobileWidth ? "grid grid-cols-2" : "grid grid-cols-3"} justify-center items-center`}
+                    >
+                        {stepOneSuggestionOptions.map((suggestion, index) => (
                             <div
                                 key={`${suggestion.type} ${suggestion.actionTagline}`}
                                 onClick={(event) => {
@@ -348,7 +348,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
                                 />
                             </div>
                         ))}
-                </div>
+                    </div>
+                )}
                 {stepTwoSuggestionOptions.length == 0 &&
                     stepOneSuggestionOptions.length < stepOneSuggestions.length && (
                         <div className="flex items-center justify-center margin-auto">
@@ -369,6 +370,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                             setSelectedStepOneSuggestion(null);
                             setStepTwoSuggestionOptions([]);
                             setChatInputFocus(ChatInputFocus.MESSAGE);
+                            setPrefilledMessage("");
                         }}
                     />
                 )}

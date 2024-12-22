@@ -138,6 +138,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     useEffect(() => {
         if (props.prefillMessage) {
             setMessage(props.prefillMessage);
+            chatInputRef?.current?.focus();
         }
     }, [props.prefillMessage]);
 

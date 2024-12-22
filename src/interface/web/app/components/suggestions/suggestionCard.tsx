@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription } from "@/components/ui/card";
 
 import styles from "./suggestions.module.css";
 import { convertSuggestionTitleToIconClass } from "./suggestionsData";
-import { ArrowLeft, ArrowRight } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight, MagicWand } from "@phosphor-icons/react";
 
 interface StepOneSuggestionCardProps {
     title: string;
@@ -47,10 +47,10 @@ export function StepTwoSuggestionCard(data: StepTwoSuggestionCardProps) {
     return (
         <Card className={cardClassName}>
             <div className="flex w-full items-center">
-                <CardContent className="m-0 p-2 w-full flex flex-row items-center">
-                    <ArrowRight
+                <CardContent className="m-0 p-1 w-full flex flex-row items-center">
+                    <MagicWand
                         weight="thin"
-                        className="w-6 h-6 text-muted-foreground inline-flex mr-1 text-opacity-40"
+                        className="w-4 h-4 text-muted-foreground inline-flex mr-1 text-opacity-40"
                     />
                     <CardDescription
                         className={`sm:line-clamp-2 md:line-clamp-4 break-words whitespace-pre-wrap max-w-full text-sm text-wrap text-black dark:text-white`}
@@ -64,7 +64,7 @@ export function StepTwoSuggestionCard(data: StepTwoSuggestionCardProps) {
 }
 
 export function StepOneSuggestionRevertCard(data: StepOneSuggestionRevertCardProps) {
-    const cardClassName = `${styles.card} md:w-full md:h-fit sm:w-full h-fit md:w-[200px] cursor-pointer m-2 md:p-2 animate-fade-in-up border-none`;
+    const cardClassName = `${styles.card} md:w-full md:h-fit sm:w-full h-fit md:w-fit cursor-pointer m-2 md:p-2 animate-fade-in-up border-none shadow-none`;
     const descriptionClassName = `${styles.text} dark:text-white`;
 
     return (
