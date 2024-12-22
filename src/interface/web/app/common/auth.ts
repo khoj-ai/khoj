@@ -23,6 +23,10 @@ export function useAuthenticatedData() {
         revalidateOnFocus: false,
     });
 
+    if (data?.detail === "Forbidden") {
+        return { data: null, error: "Forbidden", isLoading: false };
+    }
+
     return { data, error, isLoading };
 }
 
