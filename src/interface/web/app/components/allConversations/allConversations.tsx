@@ -883,13 +883,9 @@ const fetchChatHistory = async (url: string) => {
 };
 
 export const useChatSessionsFetchRequest = (url: string) => {
-    const { data, error } = useSWR<ChatHistory[]>(url, fetchChatHistory);
+    const { data, isLoading, error } = useSWR<ChatHistory[]>(url, fetchChatHistory);
 
-    return {
-        data,
-        isLoading: !error && !data,
-        isError: error,
-    };
+    return { data, isLoading, error };
 };
 
 interface SidePanelProps {
@@ -965,10 +961,12 @@ export default function AllConversations(props: SidePanelProps) {
 
     return (
         <SidebarGroup>
-            <SidebarGroupLabel className="!p-0 m-0 px-0">Conversations</SidebarGroupLabel>
             <div className={`flex justify-between flex-col`}>
                 {authenticatedData && (
                     <>
+                        <SidebarGroupLabel className="!p-0 m-0 px-0">
+                            Conversations
+                        </SidebarGroupLabel>
                         <div
                             className={`${props.sideBarOpen ? "border-l-2 border-light-blue-500 border-opacity-25 " : ""}`}
                         >

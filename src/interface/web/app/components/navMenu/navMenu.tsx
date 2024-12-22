@@ -43,7 +43,7 @@ interface NavMenuProps {
     sideBarIsOpen: boolean;
 }
 
-export default function NavMenu({ sideBarIsOpen }: NavMenuProps) {
+export default function FooterMenu({ sideBarIsOpen }: NavMenuProps) {
     const {
         data: userData,
         error: authenticationError,
