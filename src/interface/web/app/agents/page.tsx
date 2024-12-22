@@ -140,7 +140,11 @@ function CreateAgentCard(props: CreateAgentCardProps) {
                     Create Agent
                 </div>
             </DialogTrigger>
-            <DialogContent className={"lg:max-w-screen-lg overflow-y-scroll max-h-screen"}>
+            <DialogContent
+                className={
+                    "lg:max-w-screen-lg py-4 overflow-y-scroll h-full md:h-4/6 rounded-lg flex flex-col"
+                }
+            >
                 <DialogHeader>Create Agent</DialogHeader>
                 {!props.userProfile && showLoginPrompt && (
                     <LoginPrompt
