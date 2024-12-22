@@ -22,7 +22,7 @@ export enum SuggestionType {
 export interface StepOneSuggestion {
     type: SuggestionType;
     color: string;
-    description: string;
+    actionTagline: string;
     focus: ChatInputFocus;
 }
 
@@ -46,7 +46,7 @@ addSuggestionColorMap(SuggestionType.Food, "yellow");
 addSuggestionColorMap(SuggestionType.Interviewing, "orange");
 addSuggestionColorMap(SuggestionType.Home, "green");
 addSuggestionColorMap(SuggestionType.Fun, "fuchsia");
-addSuggestionColorMap(SuggestionType.Code, "purple");
+addSuggestionColorMap(SuggestionType.Code, "teal");
 addSuggestionColorMap(SuggestionType.Finance, "green");
 addSuggestionColorMap(SuggestionType.Math, "blue");
 addSuggestionColorMap(SuggestionType.Image, "red");
@@ -74,86 +74,99 @@ export function convertSuggestionTitleToIconClass(title: string, color: string) 
     if (title === SuggestionType.Math)
         return getIconFromIconName("MathOperations", color, "w-6", "h-6");
     if (title === SuggestionType.Image) return getIconFromIconName("Image", color, "w-6", "h-6");
+    if (title === SuggestionType.Document) return getIconFromIconName("File", color, "w-6", "h-6");
     else return getIconFromIconName("Lightbulb", color, "w-6", "h-6");
 }
 
 export const stepOneSuggestions: StepOneSuggestion[] = [
     {
+        type: SuggestionType.Document,
+        actionTagline: "Summarize text",
+        color: suggestionToColorMap[SuggestionType.Document] || DEFAULT_COLOR,
+        focus: ChatInputFocus.FILE,
+    },
+    {
+        type: SuggestionType.Code,
+        actionTagline: "Write code",
+        color: suggestionToColorMap[SuggestionType.Code] || DEFAULT_COLOR,
+        focus: ChatInputFocus.MESSAGE,
+    },
+    {
+        type: SuggestionType.Learning,
+        actionTagline: "Explain concept",
+        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
+        focus: ChatInputFocus.MESSAGE,
+    },
+    {
         type: SuggestionType.Paint,
-        description: "Create image",
+        actionTagline: "Create image",
         color: suggestionToColorMap[SuggestionType.Paint] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
     },
     {
-        type: SuggestionType.Document,
-        description: "Summarize text",
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        focus: ChatInputFocus.FILE,
-    },
-    {
         type: SuggestionType.Travel,
-        description: "Find a place",
+        actionTagline: "Find a place",
         color: suggestionToColorMap[SuggestionType.Travel] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
     },
     {
         type: SuggestionType.Language,
-        description: "Translate text",
+        actionTagline: "Translate text",
         color: suggestionToColorMap[SuggestionType.Language] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
     },
     {
         type: SuggestionType.PopCulture,
-        description: "Find a movie",
+        actionTagline: "Find a movie",
         color: suggestionToColorMap[SuggestionType.PopCulture] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
     },
     {
         type: SuggestionType.Food,
-        description: "Find a recipe",
+        actionTagline: "Find a recipe",
         color: suggestionToColorMap[SuggestionType.Food] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
     },
     {
         type: SuggestionType.Interviewing,
-        description: "Prepare for interview",
+        actionTagline: "Career advice",
         color: suggestionToColorMap[SuggestionType.Interviewing] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
     },
     {
         type: SuggestionType.Fun,
-        description: "Find a game",
+        actionTagline: "Get creative",
         color: suggestionToColorMap[SuggestionType.Fun] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
     },
     {
-        type: SuggestionType.Code,
-        description: "Write code",
-        color: suggestionToColorMap[SuggestionType.Code] || DEFAULT_COLOR,
-        focus: ChatInputFocus.MESSAGE,
-    },
-    {
         type: SuggestionType.Finance,
-        description: "Create chart",
+        actionTagline: "Explain money",
         color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
     },
     {
         type: SuggestionType.Math,
-        description: "Solve a problem",
+        actionTagline: "Explain math",
         color: suggestionToColorMap[SuggestionType.Math] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
     },
     {
         type: SuggestionType.Image,
-        description: "Explain image",
+        actionTagline: "Explain image",
         color: suggestionToColorMap[SuggestionType.Image] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
     },
     {
-        type: SuggestionType.Learning,
-        description: "Explain concept",
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
+        type: SuggestionType.Health,
+        actionTagline: "Improve health",
+        color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
+        focus: ChatInputFocus.MESSAGE,
+    },
+    {
+        type: SuggestionType.Home,
+        actionTagline: "Improve home",
+        color: suggestionToColorMap[SuggestionType.Home] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
     },
 ];
@@ -169,6 +182,12 @@ export const stepTwoSuggestion: { [key: string]: StepTwoSuggestion[] } = {
         {
             prompt: "Paint a neon-lit street scene with reflections in the rain.",
         },
+        {
+            prompt: "Paint a portrait of a person with a unique hairstyle.",
+        },
+        {
+            prompt: "Paint a landscape of a forest with a hidden waterfall.",
+        },
     ],
     [SuggestionType.Travel]: [
         {
@@ -177,13 +196,31 @@ export const stepTwoSuggestion: { [key: string]: StepTwoSuggestion[] } = {
         {
             prompt: "Find the top-rated coffee shops in Seattle.",
         },
+        {
+            prompt: "Research the best hiking trails in the Swiss Alps.",
+        },
+        {
+            prompt: "What is the best time of year to visit Bali?",
+        },
+        {
+            prompt: "Find the best hidden gems in Nairobi.",
+        },
     ],
     [SuggestionType.Health]: [
         {
-            prompt: "Generate a weekly meal plan with recipes.",
+            prompt: "Explain to me how to improve my posture.",
+        },
+        {
+            prompt: "Tell me how what I eat affects my insulin levels.",
         },
         {
             prompt: "Suggest healthy meal prep ideas for a busy work week.",
+        },
+        {
+            prompt: "Recommend good exercises to improve my flexibility.",
+        },
+        {
+            prompt: "Explain the benefits of a plant-based diet",
         },
     ],
     [SuggestionType.Learning]: [
@@ -193,6 +230,15 @@ export const stepTwoSuggestion: { [key: string]: StepTwoSuggestion[] } = {
         {
             prompt: "Summarize the biography of this figure: https://en.wikipedia.org/wiki/Jean_Baptiste_Point_du_Sable",
         },
+        {
+            prompt: "Explain the concept of 'machine learning' in simple terms.",
+        },
+        {
+            prompt: "Find the best resources to learn about the history of the Roman Empire.",
+        },
+        {
+            prompt: "Explain the concept of 'quantum entanglement' in simple terms.",
+        },
     ],
     [SuggestionType.Language]: [
         {
@@ -200,6 +246,15 @@ export const stepTwoSuggestion: { [key: string]: StepTwoSuggestion[] } = {
         },
         {
             prompt: "Tell me how to greet someone in Arabic.",
+        },
+        {
+            prompt: "Explain the difference between the words 'ser' and 'estar' in Spanish.",
+        },
+        {
+            prompt: "Translate the following text into French: 'Where is the nearest metro station?'",
+        },
+        {
+            prompt: "Translate the following text into Japanese: 'I am learning Japanese.'",
         },
     ],
     [SuggestionType.PopCulture]: [
@@ -209,6 +264,15 @@ export const stepTwoSuggestion: { [key: string]: StepTwoSuggestion[] } = {
         {
             prompt: "Research the latest trends in K-pop and its global influence.",
         },
+        {
+            prompt: "Explain the plot of the movie 'Doctor Zhivago' in detail.",
+        },
+        {
+            prompt: "What fashion is trending in jackets this season?",
+        },
+        {
+            prompt: "Find the best indie movies of the last year",
+        },
     ],
     [SuggestionType.Food]: [
         {
@@ -216,6 +280,15 @@ export const stepTwoSuggestion: { [key: string]: StepTwoSuggestion[] } = {
         },
         {
             prompt: "Suggest a healthy alternative to a popular fast food dish.",
+        },
+        {
+            prompt: "Find the best recipe for a vegan chocolate cake.",
+        },
+        {
+            prompt: "Suggest a recipe for a quick and easy weeknight dinner.",
+        },
+        {
+            prompt: "Create a diagram that explains how to make a traditional Italian lasagna.",
         },
     ],
     [SuggestionType.Interviewing]: [
@@ -225,6 +298,15 @@ export const stepTwoSuggestion: { [key: string]: StepTwoSuggestion[] } = {
         {
             prompt: "What information should I include in a CV for a PhD application?",
         },
+        {
+            prompt: "Suggest questions to ask during a job interview.",
+        },
+        {
+            prompt: "What are the best ways to prepare for a technical interview?",
+        },
+        {
+            prompt: "How can I improve my public speaking skills for an interview?",
+        },
     ],
     [SuggestionType.Home]: [
         {
@@ -232,6 +314,15 @@ export const stepTwoSuggestion: { [key: string]: StepTwoSuggestion[] } = {
         },
         {
             prompt: "Suggest ways to reduce plastic waste in daily life.",
+        },
+        {
+            prompt: "Create a list of eco-friendly home cleaning products.",
+        },
+        {
+            prompt: "Suggest ways to make a small apartment feel more spacious.",
+        },
+        {
+            prompt: "Recommend ways to reduce energy consumption in a home.",
         },
     ],
     [SuggestionType.Fun]: [
@@ -241,21 +332,48 @@ export const stepTwoSuggestion: { [key: string]: StepTwoSuggestion[] } = {
         {
             prompt: "Create a list of fun activities for a family game night.",
         },
+        {
+            prompt: "Give me three questions that can help me get to know someone better.",
+        },
+        {
+            prompt: "Suggest fun activities for a group of friends on a rainy day.",
+        },
+        {
+            prompt: "How can I improve my drawing skills?",
+        },
     ],
     [SuggestionType.Code]: [
         {
-            prompt: "Provide tips for writing an effective resume.",
+            prompt: "Teach me how to write a simple 'Hello World' program in Python.",
+        },
+        {
+            prompt: "Write a single page application using vanilla HTML, CSS, and JavaScript that displays a list of items.",
         },
         {
             prompt: "Explain the concept of recursion with a simple coding example.",
         },
+        {
+            prompt: "Create a simple calculator app using React.",
+        },
+        {
+            prompt: "Write a function that takes an array of numbers and returns the sum of all the numbers.",
+        },
     ],
     [SuggestionType.Finance]: [
         {
-            prompt: "Explain the concept of compound interest and its importance in long-term savings.",
+            prompt: "Create a chart to explain the concept of compound interest and its importance in long-term savings.",
         },
         {
             prompt: "Provide an overview of different types of retirement accounts (e.g., 401(k), IRA, Roth IRA).",
+        },
+        {
+            prompt: "Explain the concept of diversification and its importance in investing.",
+        },
+        {
+            prompt: "Create a budgeting plan for someone who wants to save money for a vacation.",
+        },
+        {
+            prompt: "Explain the difference between a stock and a bond.",
         },
     ],
     [SuggestionType.Math]: [
@@ -265,6 +383,15 @@ export const stepTwoSuggestion: { [key: string]: StepTwoSuggestion[] } = {
         {
             prompt: "Develop a hands-on experiment to demonstrate the concept of density to middle schoolers.",
         },
+        {
+            prompt: "Explain the concept of a derivative and its applications in real life.",
+        },
+        {
+            prompt: "Create a lesson plan to teach students about the Pythagorean theorem.",
+        },
+        {
+            prompt: "Explain the concept of a limit in calculus and its importance in mathematics.",
+        },
     ],
     [SuggestionType.Image]: [
         {
@@ -273,6 +400,15 @@ export const stepTwoSuggestion: { [key: string]: StepTwoSuggestion[] } = {
         {
             prompt: "Show me how I can improve this UI design",
         },
+        {
+            prompt: "Explain the significance of this historical painting",
+        },
+        {
+            prompt: "What emotions does this artwork evoke?",
+        },
+        {
+            prompt: "What is the story behind this sculpture?",
+        },
     ],
     [SuggestionType.Document]: [
         {
@@ -280,6 +416,15 @@ export const stepTwoSuggestion: { [key: string]: StepTwoSuggestion[] } = {
         },
         {
             prompt: "Provide a detailed explanation about the topic of this document.",
+        },
+        {
+            prompt: "Create a visual representation of the information in this document.",
+        },
+        {
+            prompt: "Find the main arguments in this document.",
+        },
+        {
+            prompt: "Explain the relevance of this document to the topic at hand.",
         },
     ],
 };

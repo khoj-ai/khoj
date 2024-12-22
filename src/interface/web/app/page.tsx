@@ -77,7 +77,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     const [processingMessage, setProcessingMessage] = useState(false);
     const [greeting, setGreeting] = useState("");
     const [stepOneSuggestionOptions, setStepOneSuggestionOptions] = useState<StepOneSuggestion[]>(
-        [],
+        stepOneSuggestions.slice(0, 3),
     );
     const [stepTwoSuggestionOptions, setStepTwoSuggestionOptions] = useState<StepTwoSuggestion[]>(
         [],
@@ -123,11 +123,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
         router.push(`/agents?agent=${agentSlug}`);
     };
 
-    function shuffleAndSetOptions() {
-        const shuffled = FisherYatesShuffle(stepOneSuggestions);
-        setStepOneSuggestionOptions(shuffled.slice(0, 3));
-    }
-
     useEffect(() => {
         if (props.isLoadingUserConfig) return;
 
@@ -151,12 +146,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
         const greeting = greetings[Math.floor(Math.random() * greetings.length)];
         setGreeting(greeting);
     }, [props.isLoadingUserConfig, props.userConfig]);
-
-    useEffect(() => {
-        if (props.chatOptionsData) {
-            shuffleAndSetOptions();
-        }
-    }, [props.chatOptionsData]);
 
     useEffect(() => {
         const agents = (agentsData || []).filter((agent) => agent !== null && agent !== undefined);
@@ -217,19 +206,15 @@ function ChatBodyData(props: ChatBodyDataProps) {
     function clickStepOneSuggestion(suggestion: StepOneSuggestion) {
         let message_str = "";
         let prompt =
-            suggestion.description.charAt(0).toLowerCase() + suggestion.description.slice(1);
+            suggestion.actionTagline.charAt(0).toLowerCase() + suggestion.actionTagline.slice(1);
 
-        if (suggestion.type === "Paint") {
-            message_str = "/image " + prompt;
-        } else {
-            message_str = prompt;
-        }
+        message_str = prompt;
 
         setPrefilledMessage(message_str);
         const stepTwoSuggestions = getStepTwoSuggestions(suggestion.type);
         setSelectedStepOneSuggestion(suggestion);
         setStepTwoSuggestionOptions(stepTwoSuggestions);
-        setChatInputFocus(ChatInputFocus.FILE);
+        setChatInputFocus(suggestion.focus);
     }
 
     return (
@@ -345,12 +330,12 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     </div>
                 )}
                 <div
-                    className={`${styles.suggestions} w-full ${props.isMobileWidth ? "grid" : "grid grid-cols-3"} justify-center items-center`}
+                    className={`${styles.suggestions} w-full ${props.isMobileWidth ? "grid grid-cols-2" : "grid grid-cols-3"} justify-center items-center`}
                 >
                     {stepTwoSuggestionOptions.length == 0 &&
                         stepOneSuggestionOptions.map((suggestion, index) => (
                             <div
-                                key={`${suggestion.type} ${suggestion.description}`}
+                                key={`${suggestion.type} ${suggestion.actionTagline}`}
                                 onClick={(event) => {
                                     if (props.isLoggedIn) {
                                         clickStepOneSuggestion(suggestion);
@@ -364,7 +349,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                                 <StepOneSuggestionCard
                                     key={suggestion.type + Math.random()}
                                     title={suggestion.type}
-                                    body={suggestion.description}
+                                    body={suggestion.actionTagline}
                                     color={suggestion.color}
                                 />
                             </div>
@@ -384,7 +369,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 {selectedStepOneSuggestion && (
                     <StepOneSuggestionRevertCard
                         title={selectedStepOneSuggestion.type}
-                        body={selectedStepOneSuggestion.description}
+                        body={selectedStepOneSuggestion.actionTagline}
                         color={selectedStepOneSuggestion.color}
                         onClick={() => {
                             setSelectedStepOneSuggestion(null);
@@ -395,7 +380,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 )}
                 {stepTwoSuggestionOptions.length > 0 && (
                     <div
-                        className={`w-full ${props.isMobileWidth ? "grid" : "grid grid-cols-1"} justify-center items-center gap-2 pt-2`}
+                        className={`w-full ${props.isMobileWidth ? "grid" : "grid grid-cols-1"} justify-center items-center gap-2 p-2`}
                     >
                         {stepTwoSuggestionOptions.map((suggestion, index) => (
                             <div

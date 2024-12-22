@@ -171,6 +171,9 @@ const iconMap: IconMap = {
     Image: (color: string, width: string, height: string) => (
         <Image className={`${width} ${height} ${color} mr-2`} />
     ),
+    File: (color: string, width: string, height: string) => (
+        <File className={`${width} ${height} ${color} mr-2`} />
+    ),
 };
 
 export function getIconForSlashCommand(command: string, customClassName: string | null = null) {
