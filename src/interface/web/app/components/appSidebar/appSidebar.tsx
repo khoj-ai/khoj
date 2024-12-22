@@ -68,7 +68,7 @@ export function AppSidebar(props: AppSidebarProps) {
         useSidebar();
 
     return (
-        <Sidebar collapsible={"icon"} variant="sidebar">
+        <Sidebar collapsible={"icon"} variant="sidebar" className="md:py-2">
             <SidebarHeader>
                 <SidebarMenu className="p-0 m-0">
                     <SidebarMenuItem className="p-0 m-0">
