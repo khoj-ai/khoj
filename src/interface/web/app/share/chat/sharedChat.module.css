@@ -62,6 +62,7 @@ div.chatLayout {
     display: grid;
     grid-template-columns: auto 1fr;
     gap: 1rem;
+    width: 100%;
 }
 
 div.chatBox {

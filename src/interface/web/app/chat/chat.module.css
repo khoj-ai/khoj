@@ -64,9 +64,10 @@ div.chatBody {
 
 div.chatLayout {
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: 1fr;
     gap: 1rem;
     padding-top: 1rem;
+    width: 100%;
 }
 
 div.chatBox {
