@@ -1,14 +1,7 @@
 import { getIconFromIconName } from "@/app/common/iconUtils";
-
-export interface Suggestion {
-    type: string;
-    color: string;
-    description: string;
-    link: string;
-}
+import { ChatInputFocus } from "../chatInputArea/chatInputArea";
 
 export enum SuggestionType {
-    Automation = "Automation",
     Paint = "Paint",
     Travel = "Travel",
     Health = "Health",
@@ -22,6 +15,19 @@ export enum SuggestionType {
     Fun = "Fun",
     Code = "Code",
     Finance = "Finance",
+    Document = "Document",
+    Image = "Image",
+}
+
+export interface StepOneSuggestion {
+    type: SuggestionType;
+    color: string;
+    description: string;
+    focus: ChatInputFocus;
+}
+
+export interface StepTwoSuggestion {
+    prompt: string;
 }
 
 const suggestionToColorMap: { [key in SuggestionType]?: string } = {};
@@ -30,7 +36,6 @@ function addSuggestionColorMap(type: SuggestionType, color: string) {
     suggestionToColorMap[type] = color;
 }
 
-addSuggestionColorMap(SuggestionType.Automation, "blue");
 addSuggestionColorMap(SuggestionType.Paint, "indigo");
 addSuggestionColorMap(SuggestionType.Travel, "yellow");
 addSuggestionColorMap(SuggestionType.Health, "teal");
@@ -44,12 +49,12 @@ addSuggestionColorMap(SuggestionType.Fun, "fuchsia");
 addSuggestionColorMap(SuggestionType.Code, "purple");
 addSuggestionColorMap(SuggestionType.Finance, "green");
 addSuggestionColorMap(SuggestionType.Math, "blue");
+addSuggestionColorMap(SuggestionType.Image, "red");
+addSuggestionColorMap(SuggestionType.Document, "orange");
 
 const DEFAULT_COLOR = "orange";
 
 export function convertSuggestionTitleToIconClass(title: string, color: string) {
-    if (title === SuggestionType.Automation)
-        return getIconFromIconName("Robot", color, "w-6", "h-6");
     if (title === SuggestionType.Paint) return getIconFromIconName("Palette", color, "w-6", "h-6");
     if (title === SuggestionType.PopCulture)
         return getIconFromIconName("Confetti", color, "w-6", "h-6");
@@ -68,806 +73,217 @@ export function convertSuggestionTitleToIconClass(title: string, color: string) 
     if (title === SuggestionType.Finance) return getIconFromIconName("Wallet", color, "w-6", "h-6");
     if (title === SuggestionType.Math)
         return getIconFromIconName("MathOperations", color, "w-6", "h-6");
+    if (title === SuggestionType.Image) return getIconFromIconName("Image", color, "w-6", "h-6");
     else return getIconFromIconName("Lightbulb", color, "w-6", "h-6");
 }
 
-export const suggestionsData: Suggestion[] = [
-    {
-        type: SuggestionType.Automation,
-        color: suggestionToColorMap[SuggestionType.Automation] || DEFAULT_COLOR,
-        description: "Send me a summary of HackerNews every morning.",
-        link: "/automations?subject=Summarizing%20Top%20Headlines%20from%20HackerNews&query=Summarize%20the%20top%20headlines%20on%20HackerNews&crontime=00%207%20*%20*%20*",
-    },
-    {
-        type: SuggestionType.Automation,
-        color: suggestionToColorMap[SuggestionType.Automation] || DEFAULT_COLOR,
-        description: "Compose a bedtime story that a five-year-old might enjoy.",
-        link: "/automations?subject=Daily%20Bedtime%20Story&query=Compose%20a%20bedtime%20story%20that%20a%20five-year-old%20might%20enjoy.%20It%20should%20not%20exceed%20five%20paragraphs.%20Appeal%20to%20the%20imagination%2C%20but%20weave%20in%20learnings.&crontime=0%2021%20*%20*%20*",
-    },
+export const stepOneSuggestions: StepOneSuggestion[] = [
     {
         type: SuggestionType.Paint,
+        description: "Create image",
         color: suggestionToColorMap[SuggestionType.Paint] || DEFAULT_COLOR,
-        description: "Paint a picture of a sunset but it's made of stained glass tiles",
-        link: "",
+        focus: ChatInputFocus.MESSAGE,
     },
     {
-        type: SuggestionType.Travel,
-        color: suggestionToColorMap[SuggestionType.Travel] || DEFAULT_COLOR,
-        description: "Search for the best attractions in Austria Hungary",
-        link: "",
-    },
-    {
-        type: SuggestionType.Health,
-        color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
-        description: "Generate a weekly meal plan with recipes.",
-        link: "/automations?subject=Weekly Meal Plan&query=Create a weekly meal plan with 7 dinner recipes, including ingredients and brief instructions. Focus on balanced, healthy meals.&crontime=0 18 * * 0",
-    },
-    {
-        type: SuggestionType.Paint,
-        color: suggestionToColorMap[SuggestionType.Paint] || DEFAULT_COLOR,
-        description: "Paint a futuristic cityscape with flying cars.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Travel,
-        color: suggestionToColorMap[SuggestionType.Travel] || DEFAULT_COLOR,
-        description: "Find the top-rated coffee shops in Seattle.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Automation,
-        color: suggestionToColorMap[SuggestionType.Automation] || DEFAULT_COLOR,
-        description: "Send daily motivational quotes.",
-        link: "/automations?subject=Daily Motivation&query=Provide an inspiring quote for the day along with a brief explanation of its meaning.&crontime=0 7 * * *",
-    },
-    {
-        type: SuggestionType.Paint,
-        color: suggestionToColorMap[SuggestionType.Paint] || DEFAULT_COLOR,
-        description: "Create an abstract representation of jazz music.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
+        type: SuggestionType.Document,
+        description: "Summarize text",
         color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Research the history of the Eiffel Tower.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Automation,
-        color: suggestionToColorMap[SuggestionType.Automation] || DEFAULT_COLOR,
-        description: "Compile a weekly news summary.",
-        link: "/automations?subject=Weekly News Digest&query=Summarize the top 5 most important news stories of the week across various categories.&crontime=0 18 * * 5",
-    },
-    {
-        type: SuggestionType.Paint,
-        color: suggestionToColorMap[SuggestionType.Paint] || DEFAULT_COLOR,
-        description: "Paint a portrait of a cat wearing a Victorian-era costume.",
-        link: "",
+        focus: ChatInputFocus.FILE,
     },
     {
         type: SuggestionType.Travel,
+        description: "Find a place",
         color: suggestionToColorMap[SuggestionType.Travel] || DEFAULT_COLOR,
-        description: "Find beginner-friendly hiking trails near Los Angeles.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Automation,
-        color: suggestionToColorMap[SuggestionType.Automation] || DEFAULT_COLOR,
-        description: "Generate a daily writing prompt.",
-        link: "/automations?subject=Daily Writing Prompt&query=Create an engaging writing prompt suitable for short story or journal writing.&crontime=0 9 * * *",
-    },
-    {
-        type: SuggestionType.Paint,
-        color: suggestionToColorMap[SuggestionType.Paint] || DEFAULT_COLOR,
-        description: "Create a surrealist landscape inspired by Salvador Dali.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Research the benefits and drawbacks of electric vehicles.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Automation,
-        color: suggestionToColorMap[SuggestionType.Automation] || DEFAULT_COLOR,
-        description: "Send weekly language learning tips for Spanish.",
-        link: "/automations?subject=Spanish Learning Tips&query=Provide a useful Spanish language learning tip, including vocabulary, grammar, or cultural insight.&crontime=0 19 * * 2",
-    },
-    {
-        type: SuggestionType.Paint,
-        color: suggestionToColorMap[SuggestionType.Paint] || DEFAULT_COLOR,
-        description: "Paint a scene from a fairy tale in the style of Studio Ghibli.",
-        link: "",
-    },
-    {
-        type: SuggestionType.PopCulture,
-        color: "yellow",
-        description: "Find the best-rated science fiction books of the last decade.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Paint,
-        color: suggestionToColorMap[SuggestionType.Paint] || DEFAULT_COLOR,
-        description: "Paint a still life of exotic fruits in a neon color palette.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Travel,
-        color: suggestionToColorMap[SuggestionType.Travel] || DEFAULT_COLOR,
-        description: "Research the most eco-friendly cities in Europe.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Automation,
-        color: suggestionToColorMap[SuggestionType.Automation] || DEFAULT_COLOR,
-        description: "Send daily reminders for habit tracking.",
-        link: "/automations?subject=Habit Tracker&query=Generate a daily reminder to track habits, including a motivational message.&crontime=0 20 * * *",
-    },
-    {
-        type: SuggestionType.Paint,
-        color: suggestionToColorMap[SuggestionType.Paint] || DEFAULT_COLOR,
-        description: "Create a digital painting of a cyberpunk street market.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description:
-            "Summarize the biography of this figure: https://en.wikipedia.org/wiki/Jean_Baptiste_Point_du_Sable",
-        link: "",
+        focus: ChatInputFocus.MESSAGE,
     },
     {
         type: SuggestionType.Language,
-        color: "blue",
-        description: "Send daily Spanish phrases used in Latin America.",
-        link: "/automations?subject=Daily Latin American Spanish&query=Provide a common Spanish phrase or slang term used in Latin America, its meaning, and an example of usage. Include which countries it's most common in.&crontime=0 8 * * *",
-    },
-    {
-        type: SuggestionType.Paint,
-        color: suggestionToColorMap[SuggestionType.Paint] || DEFAULT_COLOR,
-        description: "Create a vibrant painting inspired by Frida Kahlo's style.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Food,
-        color: suggestionToColorMap[SuggestionType.Food] || DEFAULT_COLOR,
-        description: "Find the best empanada recipe from Colombia.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Automation,
-        color: suggestionToColorMap[SuggestionType.Automation] || DEFAULT_COLOR,
-        description: "Weekly update on the Brazilian startup ecosystems.",
-        link: "/automations?subject=LatAm Startup News&query=Provide a summary of the most significant developments in Latin American startup ecosystems this week. Include notable funding rounds, expansions, or policy changes.&crontime=0 18 * * 5",
-    },
-    {
-        type: SuggestionType.Paint,
-        color: suggestionToColorMap[SuggestionType.Paint] || DEFAULT_COLOR,
-        description:
-            "Paint a colorful scene of a traditional Day of the Dead celebration in Mexico.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Language,
+        description: "Translate text",
         color: suggestionToColorMap[SuggestionType.Language] || DEFAULT_COLOR,
-        description: "Daily Swahili phrase with English translation.",
-        link: "/automations?subject=Daily Swahili Lesson&query=Provide a common Swahili phrase or proverb, its English translation, and a brief explanation of its cultural significance in East Africa.&crontime=0 7 * * *",
-    },
-    {
-        type: SuggestionType.Paint,
-        color: suggestionToColorMap[SuggestionType.Paint] || DEFAULT_COLOR,
-        description: "Create a digital painting of the Serengeti during wildebeest migration.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Research the top M-Pesa alternatives in East Africa.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Automation,
-        color: suggestionToColorMap[SuggestionType.Automation] || DEFAULT_COLOR,
-        description: "Weekly update on East African tech startups and innovations.",
-        link: "/automations?subject=East African Tech News&query=Summarize the most significant developments in East African tech startups and innovations this week. Include notable funding rounds, new product launches, or policy changes affecting the tech ecosystem.&crontime=0 18 * * 5",
-    },
-    {
-        type: SuggestionType.Paint,
-        color: suggestionToColorMap[SuggestionType.Paint] || DEFAULT_COLOR,
-        description: "Paint a colorful scene inspired by Maasai traditional clothing and jewelry.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Automation,
-        color: suggestionToColorMap[SuggestionType.Automation] || DEFAULT_COLOR,
-        description: "Weekly summary of EU policy changes and their impact.",
-        link: "/automations?subject=EU Policy Update&query=Summarize the most significant EU policy changes or proposals from this week. Explain their potential impact on European citizens and businesses.&crontime=0 17 * * 5",
-    },
-    {
-        type: SuggestionType.Paint,
-        color: suggestionToColorMap[SuggestionType.Paint] || DEFAULT_COLOR,
-        description: "Paint a digital landscape of the Northern Lights over the Norwegian fjords.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Automation,
-        color: suggestionToColorMap[SuggestionType.Automation] || DEFAULT_COLOR,
-        description: "Daily East Asian proverb with explanation.",
-        link: "/automations?subject=East Asian Wisdom&query=Provide a proverb from an East Asian language (rotating through Chinese, Japanese, Korean, etc.), its English translation, and a brief explanation of its cultural significance and practical application.&crontime=0 7 * * *",
-    },
-    {
-        type: SuggestionType.Paint,
-        color: suggestionToColorMap[SuggestionType.Paint] || DEFAULT_COLOR,
-        description:
-            "Create a digital painting in the style of traditional Chinese ink wash landscape.",
-        link: "",
+        focus: ChatInputFocus.MESSAGE,
     },
     {
         type: SuggestionType.PopCulture,
-        color: "yellow",
-        description: "Research the latest trends in K-pop and its global influence.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Automation,
-        color: suggestionToColorMap[SuggestionType.Automation] || DEFAULT_COLOR,
-        description: "Weekly summary of technological innovations from East Asian tech giants.",
-        link: "/automations?subject=East Asian Tech Update&query=Summarize the most significant technological innovations or product launches from major East Asian tech companies (e.g., Samsung, Sony, Alibaba, Tencent) this week. Explain their potential impact on global markets.&crontime=0 18 * * 5",
-    },
-    {
-        type: SuggestionType.Paint,
-        color: suggestionToColorMap[SuggestionType.Paint] || DEFAULT_COLOR,
-        description: "Paint a vibrant scene of a Japanese cherry blossom festival.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Automation,
-        color: suggestionToColorMap[SuggestionType.Automation] || DEFAULT_COLOR,
-        description: "Daily South Asian recipe with cultural significance.",
-        link: "/automations?subject=South Asian Culinary Journey&query=Provide a traditional South Asian recipe (rotating through Indian, Pakistani, Bangladeshi, Sri Lankan, etc. cuisines), including ingredients, brief instructions, and its cultural significance or origin story.&crontime=0 10 * * *",
-    },
-    {
-        type: SuggestionType.PopCulture,
+        description: "Find a movie",
         color: suggestionToColorMap[SuggestionType.PopCulture] || DEFAULT_COLOR,
-        description: "Research the impact of Bollywood on global cinema and fashion.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Automation,
-        color: suggestionToColorMap[SuggestionType.Automation] || DEFAULT_COLOR,
-        description: "Weekly update on South Asian startup ecosystems and innovations.",
-        link: "/automations?subject=South Asian Startup Pulse&query=Summarize the most significant developments in South Asian startup ecosystems this week. Include notable funding rounds, innovative solutions to local challenges, and any policy changes affecting the tech landscape in countries like India, Bangladesh, Pakistan, and Sri Lanka.&crontime=0 18 * * 5",
-    },
-    {
-        type: SuggestionType.Interviewing,
-        color: suggestionToColorMap[SuggestionType.Interviewing] || DEFAULT_COLOR,
-        description: "Create interview prep questions for a consulting job.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Interviewing,
-        color: suggestionToColorMap[SuggestionType.Interviewing] || DEFAULT_COLOR,
-        description: "What information should I include in a CV for a PhD application?",
-        link: "",
-    },
-    {
-        type: SuggestionType.Home,
-        color: suggestionToColorMap[SuggestionType.Home] || DEFAULT_COLOR,
-        description: "Recommend plants that can grow well indoors.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Health,
-        color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
-        description: "Suggest healthy meal prep ideas for a busy work week.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "List effective time management techniques for students.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Provide tips for improving public speaking skills.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Recommend books for learning about personal finance.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Home,
-        color: suggestionToColorMap[SuggestionType.Home] || DEFAULT_COLOR,
-        description: "Suggest ways to reduce plastic waste in daily life.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Health,
-        color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
-        description: "Create a beginner's guide to meditation and mindfulness.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Health,
-        color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
-        description: "Give me some tips for improving my sleep quality.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Health,
-        color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
-        description: "What are weight loss strategies supported by clinical studies?",
-        link: "",
-    },
-    {
-        type: SuggestionType.Fun,
-        color: suggestionToColorMap[SuggestionType.Fun] || DEFAULT_COLOR,
-        description: "List creative date ideas for couples on a budget.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Code,
-        color: suggestionToColorMap[SuggestionType.Interviewing] || DEFAULT_COLOR,
-        description: "Provide tips for writing an effective resume.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Code,
-        color: suggestionToColorMap[SuggestionType.Code] || DEFAULT_COLOR,
-        description: "Explain the concept of recursion with a simple coding example.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Code,
-        color: suggestionToColorMap[SuggestionType.Code] || DEFAULT_COLOR,
-        description:
-            "Provide a coding challenge to reverse a string without using built-in functions.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Code,
-        color: suggestionToColorMap[SuggestionType.Code] || DEFAULT_COLOR,
-        description: "Explain the difference between 'let', 'const', and 'var' in JavaScript.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Code,
-        color: suggestionToColorMap[SuggestionType.Code] || DEFAULT_COLOR,
-        description:
-            "Create a coding exercise to implement a basic sorting algorithm (e.g., bubble sort).",
-        link: "",
-    },
-    {
-        type: SuggestionType.Code,
-        color: suggestionToColorMap[SuggestionType.Code] || DEFAULT_COLOR,
-        description: "Explain object-oriented programming principles with a simple class example.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Code,
-        color: suggestionToColorMap[SuggestionType.Code] || DEFAULT_COLOR,
-        description:
-            "Provide a coding challenge to find the longest palindromic substring in a given string.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Code,
-        color: suggestionToColorMap[SuggestionType.Code] || DEFAULT_COLOR,
-        description:
-            "Explain the concept of asynchronous programming with a JavaScript Promise example.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Code,
-        color: suggestionToColorMap[SuggestionType.Code] || DEFAULT_COLOR,
-        description:
-            "Create a coding exercise to implement a basic data structure (e.g., linked list or stack).",
-        link: "",
-    },
-    {
-        type: SuggestionType.Code,
-        color: suggestionToColorMap[SuggestionType.Code] || DEFAULT_COLOR,
-        description:
-            "Explain the time and space complexity of common algorithms (e.g., binary search).",
-        link: "",
-    },
-    {
-        type: SuggestionType.Code,
-        color: suggestionToColorMap[SuggestionType.Code] || DEFAULT_COLOR,
-        description:
-            "Provide a coding challenge to implement a simple REST API using Node.js and Express.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Code,
-        color: suggestionToColorMap[SuggestionType.Code] || DEFAULT_COLOR,
-        description: "Compare popular web frameworks in Rust and Python",
-        link: "",
-    },
-    {
-        type: SuggestionType.Travel,
-        color: suggestionToColorMap[SuggestionType.Travel] || DEFAULT_COLOR,
-        description: "Craft an off-beat itinerary for a weekend in Lagos, Nigeria.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Language,
-        color: suggestionToColorMap[SuggestionType.Language] || DEFAULT_COLOR,
-        description: "Teach me about declensions in Latin.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Break down the concept of photosynthesis for a middle school student.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Use the Socratic method to explore the causes of World War I.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Explain the water cycle using an analogy suitable for elementary students.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description:
-            "Guide a high school student through solving a quadratic equation step-by-step.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description:
-            "Create a series of questions to help a student discover the principles of basic economics.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description:
-            "Develop a hands-on experiment to demonstrate the concept of density to middle schoolers.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Use guided discovery to help a student understand the structure of DNA.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description:
-            "Create a personalized learning plan for a student struggling with grammar concepts.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description:
-            "Design a series of questions to encourage critical thinking about climate change.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description:
-            "Develop a step-by-step guide for conducting a basic science experiment on plant growth.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Health,
-        color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
-        description: "Provide a detailed explanation about how to manage type 2 diabetes.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Health,
-        color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
-        description: "Explain the effects a stroke might have on the body.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Health,
-        color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
-        description: "Describe the recommended steps for preventing heart disease.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Health,
-        color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
-        description:
-            "Explain the differences between various types of headaches and their treatments.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Health,
-        color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
-        description: "Provide an overview of the most effective stress management techniques.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Health,
-        color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
-        description: "Explain the importance of vaccination and how vaccines work.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Health,
-        color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
-        description: "Describe the symptoms and treatment options for depression.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Health,
-        color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
-        description: "Explain the process of digestion and common digestive disorders.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Health,
-        color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
-        description:
-            "Provide an overview of the different types of cancer screenings and their importance.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Health,
-        color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
-        description: "Explain the effects of sleep deprivation on physical and mental health.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Fun,
-        color: suggestionToColorMap[SuggestionType.Fun] || DEFAULT_COLOR,
-        description: "Create a list of fun activities for a family game night.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Finance,
-        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
-        description:
-            "Explain the concept of compound interest and its importance in long-term savings.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Finance,
-        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
-        description:
-            "Provide an overview of different types of retirement accounts (e.g., 401(k), IRA, Roth IRA).",
-        link: "",
-    },
-    {
-        type: SuggestionType.Finance,
-        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
-        description: "Describe strategies for creating and sticking to a personal budget.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Finance,
-        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
-        description: "Explain the basics of stock market investing for beginners.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Finance,
-        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
-        description: "Outline the pros and cons of renting vs. buying a home.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Finance,
-        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
-        description:
-            "Describe different methods for paying off debt, such as the snowball and avalanche methods.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Finance,
-        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
-        description: "Explain the importance of an emergency fund and how to build one.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Finance,
-        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
-        description:
-            "Provide an overview of different types of insurance and their importance in financial planning.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Finance,
-        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
-        description: "Explain the concept of diversification in investment portfolios.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Finance,
-        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
-        description: "Describe strategies for minimizing tax liability legally.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Finance,
-        color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
-        description: "Draw a diagram illustrating the flow of money in a personal budget.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Draw a mind map summarizing key concepts from the Industrial Revolution.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Draw a diagram of the life cycle of a flowering plant.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Draw a diagram illustrating the structure of the United States government.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Code,
-        color: suggestionToColorMap[SuggestionType.Code] || DEFAULT_COLOR,
-        description: "Draw a diagram illustrating the architecture of a computer network.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Health,
-        color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
-        description: "Draw a diagram of the digestive system.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Travel,
-        color: suggestionToColorMap[SuggestionType.Travel] || DEFAULT_COLOR,
-        description: "Create a sample flow chart of a travel itinerary for CDMX.",
-        link: "",
+        focus: ChatInputFocus.MESSAGE,
     },
     {
         type: SuggestionType.Food,
+        description: "Find a recipe",
         color: suggestionToColorMap[SuggestionType.Food] || DEFAULT_COLOR,
-        description: "Draw a diagram illustrating the steps in a recipe for lasagna.",
-        link: "",
+        focus: ChatInputFocus.MESSAGE,
+    },
+    {
+        type: SuggestionType.Interviewing,
+        description: "Prepare for interview",
+        color: suggestionToColorMap[SuggestionType.Interviewing] || DEFAULT_COLOR,
+        focus: ChatInputFocus.MESSAGE,
     },
     {
         type: SuggestionType.Fun,
+        description: "Find a game",
         color: suggestionToColorMap[SuggestionType.Fun] || DEFAULT_COLOR,
-        description: "Draw a diagram of a basketball court, labeling the different positions.",
-        link: "",
+        focus: ChatInputFocus.MESSAGE,
     },
     {
         type: SuggestionType.Code,
+        description: "Write code",
         color: suggestionToColorMap[SuggestionType.Code] || DEFAULT_COLOR,
-        description: "Draw a diagram of a simple electrical circuit.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Draw a diagram illustrating the notes on a musical staff.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Draw a plot diagram of A Tale of Two Cities.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Draw a timeline of major events in World War II.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Draw a free-body diagram of a falling object.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Draw the Lewis structure of a water molecule.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Draw a diagram of the layers of the Earth.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Draw a diagram of the solar system.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Draw a graph of the equation y = x^2.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Math,
-        color: suggestionToColorMap[SuggestionType.Math] || DEFAULT_COLOR,
-        description: "Create a chart for the sine and cosine functions over one period.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Create a bar chart comparing the average monthly temperatures of two cities.",
-        link: "",
+        focus: ChatInputFocus.MESSAGE,
     },
     {
         type: SuggestionType.Finance,
+        description: "Create chart",
         color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
-        description: "Create a line chart showing the GDP growth rate over the last decade.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Create a chart for historical rainfall in Karachi last year.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description:
-            "Create a chart showing the trend in smartphone usage in Korea over the past five years.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description:
-            "Create a chart comparing the performance statistics of Lebron James and Kobe Bryant.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Create a chart showing historical casualties in major wars.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Create a chart illustrating the relationship between velocity and time.",
-        link: "",
-    },
-    {
-        type: SuggestionType.Learning,
-        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
-        description: "Create a chart showing the frequency of earthquakes over the past century.",
-        link: "",
+        focus: ChatInputFocus.MESSAGE,
     },
     {
         type: SuggestionType.Math,
+        description: "Solve a problem",
         color: suggestionToColorMap[SuggestionType.Math] || DEFAULT_COLOR,
-        description: "Create a scatter plot of a set of random data points.",
-        link: "",
+        focus: ChatInputFocus.MESSAGE,
+    },
+    {
+        type: SuggestionType.Image,
+        description: "Explain image",
+        color: suggestionToColorMap[SuggestionType.Image] || DEFAULT_COLOR,
+        focus: ChatInputFocus.MESSAGE,
+    },
+    {
+        type: SuggestionType.Learning,
+        description: "Explain concept",
+        color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
+        focus: ChatInputFocus.MESSAGE,
     },
 ];
+
+export const stepTwoSuggestion: { [key: string]: StepTwoSuggestion[] } = {
+    [SuggestionType.Paint]: [
+        {
+            prompt: "Paint a picture of a sunset but it's made of stained glass tiles.",
+        },
+        {
+            prompt: "Paint a futuristic cityscape with flying cars.",
+        },
+        {
+            prompt: "Paint a neon-lit street scene with reflections in the rain.",
+        },
+    ],
+    [SuggestionType.Travel]: [
+        {
+            prompt: "Search for the best attractions in Austria Hungary.",
+        },
+        {
+            prompt: "Find the top-rated coffee shops in Seattle.",
+        },
+    ],
+    [SuggestionType.Health]: [
+        {
+            prompt: "Generate a weekly meal plan with recipes.",
+        },
+        {
+            prompt: "Suggest healthy meal prep ideas for a busy work week.",
+        },
+    ],
+    [SuggestionType.Learning]: [
+        {
+            prompt: "Research the history of the Eiffel Tower.",
+        },
+        {
+            prompt: "Summarize the biography of this figure: https://en.wikipedia.org/wiki/Jean_Baptiste_Point_du_Sable",
+        },
+    ],
+    [SuggestionType.Language]: [
+        {
+            prompt: "Translate the following text into Spanish: 'Hello, how are you?'",
+        },
+        {
+            prompt: "Tell me how to greet someone in Arabic.",
+        },
+    ],
+    [SuggestionType.PopCulture]: [
+        {
+            prompt: "Find the best-rated science fiction books of the last decade.",
+        },
+        {
+            prompt: "Research the latest trends in K-pop and its global influence.",
+        },
+    ],
+    [SuggestionType.Food]: [
+        {
+            prompt: "Find the best empanada recipe from Colombia.",
+        },
+        {
+            prompt: "Suggest a healthy alternative to a popular fast food dish.",
+        },
+    ],
+    [SuggestionType.Interviewing]: [
+        {
+            prompt: "Create interview prep questions for a consulting job.",
+        },
+        {
+            prompt: "What information should I include in a CV for a PhD application?",
+        },
+    ],
+    [SuggestionType.Home]: [
+        {
+            prompt: "Recommend plants that can grow well indoors.",
+        },
+        {
+            prompt: "Suggest ways to reduce plastic waste in daily life.",
+        },
+    ],
+    [SuggestionType.Fun]: [
+        {
+            prompt: "List creative date ideas for couples on a budget.",
+        },
+        {
+            prompt: "Create a list of fun activities for a family game night.",
+        },
+    ],
+    [SuggestionType.Code]: [
+        {
+            prompt: "Provide tips for writing an effective resume.",
+        },
+        {
+            prompt: "Explain the concept of recursion with a simple coding example.",
+        },
+    ],
+    [SuggestionType.Finance]: [
+        {
+            prompt: "Explain the concept of compound interest and its importance in long-term savings.",
+        },
+        {
+            prompt: "Provide an overview of different types of retirement accounts (e.g., 401(k), IRA, Roth IRA).",
+        },
+    ],
+    [SuggestionType.Math]: [
+        {
+            prompt: "Create a series of questions to help a student discover the principles of basic economics.",
+        },
+        {
+            prompt: "Develop a hands-on experiment to demonstrate the concept of density to middle schoolers.",
+        },
+    ],
+    [SuggestionType.Image]: [
+        {
+            prompt: "Explain what is happening in this photograph",
+        },
+        {
+            prompt: "Show me how I can improve this UI design",
+        },
+    ],
+    [SuggestionType.Document]: [
+        {
+            prompt: "Summarize the key concepts in this document.",
+        },
+        {
+            prompt: "Provide a detailed explanation about the topic of this document.",
+        },
+    ],
+};
+
+export function getStepTwoSuggestions(type: string): StepTwoSuggestion[] {
+    return stepTwoSuggestion[type] || [];
+}

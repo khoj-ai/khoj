@@ -65,6 +65,12 @@ export interface AttachedFileText {
     size: number;
 }
 
+export enum ChatInputFocus {
+    MESSAGE = "message",
+    FILE = "file",
+    RESEARCH = "research",
+}
+
 interface ChatInputProps {
     sendMessage: (message: string) => void;
     sendImage: (image: string) => void;
@@ -77,11 +83,15 @@ interface ChatInputProps {
     agentColor?: string;
     isResearchModeEnabled?: boolean;
     setTriggeredAbort: (value: boolean) => void;
+    prefillMessage?: string;
+    focus?: ChatInputFocus;
 }
 
 export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((props, ref) => {
     const [message, setMessage] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const fileInputButtonRef = useRef<HTMLButtonElement>(null);
+    const researchModeRef = useRef<HTMLButtonElement>(null);
 
     const [warning, setWarning] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -124,6 +134,22 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
             return () => clearInterval(interval);
         }
     }, [uploading]);
+
+    useEffect(() => {
+        if (props.prefillMessage) {
+            setMessage(props.prefillMessage);
+        }
+    }, [props.prefillMessage]);
+
+    useEffect(() => {
+        if (props.focus === ChatInputFocus.MESSAGE) {
+            chatInputRef?.current?.focus();
+        } else if (props.focus === ChatInputFocus.FILE) {
+            fileInputButtonRef.current?.focus();
+        } else if (props.focus === ChatInputFocus.RESEARCH) {
+            researchModeRef.current?.focus();
+        }
+    }, [props.focus]);
 
     useEffect(() => {
         async function fetchImageData() {
@@ -630,6 +656,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             className="!bg-none p-0 m-2 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
                             disabled={props.sendDisabled || !props.isLoggedIn}
                             onClick={handleFileButtonClick}
+                            ref={fileInputButtonRef}
                         >
                             <Paperclip className="w-8 h-8" />
                         </Button>
@@ -732,6 +759,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                 variant="ghost"
                                 className="float-right justify-center gap-1 flex items-center p-1.5 mr-2 h-fit"
                                 disabled={props.sendDisabled || !props.isLoggedIn}
+                                ref={researchModeRef}
                                 onClick={() => {
                                     setUseResearchMode(!useResearchMode);
                                     chatInputRef?.current?.focus();
