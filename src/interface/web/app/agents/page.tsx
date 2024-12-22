@@ -300,35 +300,37 @@ export default function Agents() {
                             <div className={`pt-6 md:pt-8 flex justify-between`}>
                                 <h1 className="text-3xl flex items-center">Agents</h1>
                                 <div className="ml-auto float-right border p-2 pt-3 rounded-xl font-bold hover:bg-stone-100 dark:hover:bg-neutral-900">
-                                    {authenticatedData && (
-                                        <CreateAgentCard
-                                            data={{
-                                                slug: "",
-                                                name: "",
-                                                persona: "",
-                                                color: "",
-                                                icon: "",
-                                                privacy_level: "private",
-                                                managed_by_admin: false,
-                                                chat_model: "",
-                                                input_tools: [],
-                                                output_modes: [],
-                                            }}
-                                            userProfile={authenticatedData}
-                                            isMobileWidth={isMobileWidth}
-                                            filesOptions={filesData || []}
-                                            modelOptions={userConfig?.chat_model_options || []}
-                                            selectedChatModelOption={defaultModelOption?.name || ""}
-                                            isSubscribed={isSubscribed}
-                                            setAgentChangeTriggered={setAgentChangeTriggered}
-                                            inputToolOptions={
-                                                agentConfigurationOptions?.input_tools || {}
-                                            }
-                                            outputModeOptions={
-                                                agentConfigurationOptions?.output_modes || {}
-                                            }
-                                        />
-                                    )}
+                                    <CreateAgentCard
+                                        data={{
+                                            slug: "",
+                                            name: "",
+                                            persona: "",
+                                            color: "",
+                                            icon: "",
+                                            privacy_level: "private",
+                                            managed_by_admin: false,
+                                            chat_model: "",
+                                            input_tools: [],
+                                            output_modes: [],
+                                        }}
+                                        userProfile={
+                                            authenticationLoading
+                                                ? null
+                                                : (authenticatedData ?? null)
+                                        }
+                                        isMobileWidth={isMobileWidth}
+                                        filesOptions={filesData || []}
+                                        modelOptions={userConfig?.chat_model_options || []}
+                                        selectedChatModelOption={defaultModelOption?.name || ""}
+                                        isSubscribed={isSubscribed}
+                                        setAgentChangeTriggered={setAgentChangeTriggered}
+                                        inputToolOptions={
+                                            agentConfigurationOptions?.input_tools || {}
+                                        }
+                                        outputModeOptions={
+                                            agentConfigurationOptions?.output_modes || {}
+                                        }
+                                    />
                                 </div>
                             </div>
                             {showLoginPrompt && (
