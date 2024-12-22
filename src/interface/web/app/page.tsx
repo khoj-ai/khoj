@@ -204,13 +204,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }, []);
 
     function clickStepOneSuggestion(suggestion: StepOneSuggestion) {
-        let message_str = "";
-        let prompt =
-            suggestion.actionTagline.charAt(0).toLowerCase() + suggestion.actionTagline.slice(1);
-
-        message_str = prompt;
-
-        setPrefilledMessage(message_str);
+        setPrefilledMessage(suggestion.intent);
         const stepTwoSuggestions = getStepTwoSuggestions(suggestion.type);
         setSelectedStepOneSuggestion(suggestion);
         setStepTwoSuggestionOptions(stepTwoSuggestions);

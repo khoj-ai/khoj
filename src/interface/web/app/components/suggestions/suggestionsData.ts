@@ -24,6 +24,7 @@ export interface StepOneSuggestion {
     color: string;
     actionTagline: string;
     focus: ChatInputFocus;
+    intent: string;
 }
 
 export interface StepTwoSuggestion {
@@ -84,90 +85,105 @@ export const stepOneSuggestions: StepOneSuggestion[] = [
         actionTagline: "Summarize text",
         color: suggestionToColorMap[SuggestionType.Document] || DEFAULT_COLOR,
         focus: ChatInputFocus.FILE,
+        intent: "Summarize this document",
     },
     {
         type: SuggestionType.Code,
         actionTagline: "Write code",
         color: suggestionToColorMap[SuggestionType.Code] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
+        intent: "Write a program that",
     },
     {
         type: SuggestionType.Learning,
         actionTagline: "Explain concept",
         color: suggestionToColorMap[SuggestionType.Learning] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
+        intent: "I want to understand a concept",
     },
     {
         type: SuggestionType.Paint,
         actionTagline: "Create image",
         color: suggestionToColorMap[SuggestionType.Paint] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
+        intent: "Paint a picture of",
     },
     {
         type: SuggestionType.Travel,
         actionTagline: "Find a place",
         color: suggestionToColorMap[SuggestionType.Travel] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
+        intent: "Find a place that is",
     },
     {
         type: SuggestionType.Language,
         actionTagline: "Translate text",
         color: suggestionToColorMap[SuggestionType.Language] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
+        intent: "Translate this text",
     },
     {
         type: SuggestionType.PopCulture,
-        actionTagline: "Find a movie",
+        actionTagline: "Explain a trend",
         color: suggestionToColorMap[SuggestionType.PopCulture] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
+        intent: "Tell me more about this phenomenon",
     },
     {
         type: SuggestionType.Food,
         actionTagline: "Find a recipe",
         color: suggestionToColorMap[SuggestionType.Food] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
+        intent: "Find a recipe for",
     },
     {
         type: SuggestionType.Interviewing,
         actionTagline: "Career advice",
         color: suggestionToColorMap[SuggestionType.Interviewing] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
+        intent: "Help me prepare for an interview",
     },
     {
         type: SuggestionType.Fun,
         actionTagline: "Get creative",
         color: suggestionToColorMap[SuggestionType.Fun] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
+        intent: "Suggest a fun activity",
     },
     {
         type: SuggestionType.Finance,
         actionTagline: "Explain money",
         color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
+        intent: "Help me build mental models for finance",
     },
     {
         type: SuggestionType.Math,
         actionTagline: "Explain math",
         color: suggestionToColorMap[SuggestionType.Math] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
+        intent: "Help me understand the math behind",
     },
     {
         type: SuggestionType.Image,
         actionTagline: "Explain image",
         color: suggestionToColorMap[SuggestionType.Image] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
+        intent: "Explain the significance of this image",
     },
     {
         type: SuggestionType.Health,
         actionTagline: "Improve health",
         color: suggestionToColorMap[SuggestionType.Health] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
+        intent: "Help me improve my health",
     },
     {
         type: SuggestionType.Home,
         actionTagline: "Improve home",
         color: suggestionToColorMap[SuggestionType.Home] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
+        intent: "Help me improve my home",
     },
 ];
 
