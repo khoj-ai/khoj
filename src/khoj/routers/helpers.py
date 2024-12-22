@@ -1634,6 +1634,25 @@ class CommonQueryParamsClass:
 CommonQueryParams = Annotated[CommonQueryParamsClass, Depends()]
 
 
+def format_automation_response(scheduling_request: str, executed_query: str, ai_response: str, user: KhojUser) -> bool:
+    """
+    Format the AI response to send in automation email to user.
+    """
+    name = get_user_name(user)
+    if name:
+        username = prompts.user_name.format(name=name)
+
+    automation_format_prompt = prompts.automation_format_prompt.format(
+        original_query=scheduling_request,
+        executed_query=executed_query,
+        response=ai_response,
+        username=username,
+    )
+
+    with timer("Chat actor: Format automation response", logger):
+        return send_message_to_model_wrapper_sync(automation_format_prompt, user=user)
+
+
 def should_notify(original_query: str, executed_query: str, ai_response: str, user: KhojUser) -> bool:
     """
     Decide whether to notify the user of the AI response.
@@ -1651,9 +1670,13 @@ def should_notify(original_query: str, executed_query: str, ai_response: str, us
     with timer("Chat actor: Decide to notify user of automation response", logger):
         try:
             # TODO Replace with async call so we don't have to maintain a sync version
-            response = send_message_to_model_wrapper_sync(to_notify_or_not, user=user, response_type="json_object")
-            should_notify_result = json.loads(response)["decision"] == "Yes"
-            logger.info(f'Decided to {"not " if not should_notify_result else ""}notify user of automation response.')
+            raw_response = send_message_to_model_wrapper_sync(to_notify_or_not, user=user, response_type="json_object")
+            response = json.loads(raw_response)
+            should_notify_result = response["decision"] == "Yes"
+            reason = response.get("reason", "unknown")
+            logger.info(
+                f'Decided to {"not " if not should_notify_result else ""}notify user of automation response because of reason: {reason}.'
+            )
             return should_notify_result
         except Exception as e:
             logger.warning(
@@ -1754,10 +1777,12 @@ def scheduled_chat(
     if should_notify(
         original_query=scheduling_request, executed_query=cleaned_query, ai_response=ai_response, user=user
     ):
+        formatted_response = format_automation_response(scheduling_request, cleaned_query, ai_response, user)
+
         if is_resend_enabled():
-            send_task_email(user.get_short_name(), user.email, cleaned_query, ai_response, subject, is_image)
+            send_task_email(user.get_short_name(), user.email, cleaned_query, formatted_response, subject, is_image)
         else:
-            return raw_response
+            return formatted_response
 
 
 async def create_automation(
