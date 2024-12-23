@@ -49,7 +49,6 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "./components/appSidebar/appSidebar";
 import { Separator } from "@/components/ui/separator";
 import { KhojLogoType } from "./components/logo/khojLogo";
-import { Button } from "@/components/ui/button";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -61,17 +60,9 @@ interface ChatBodyDataProps {
     isLoadingUserConfig: boolean;
 }
 
-function FisherYatesShuffle(array: any[]) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
-}
-
 function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState("");
-    const [prefilledMessage, setPrefilledMessage] = useState("");
+    const [prefillMessage, setPrefillMessage] = useState("");
     const [chatInputFocus, setChatInputFocus] = useState<ChatInputFocus>(ChatInputFocus.MESSAGE);
     const [images, setImages] = useState<string[]>([]);
     const [processingMessage, setProcessingMessage] = useState(false);
@@ -156,7 +147,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
         // generate colored icons for the available agents
         const agentIcons = agents.map((agent) => getIconFromIconName(agent.icon, agent.color)!);
         setAgentIcons(agentIcons);
-    }, [agentsData, props.isMobileWidth]);
+    }, [agentsData]);
 
     function showAllSuggestionsCards() {
         setStepOneSuggestionOptions(stepOneSuggestions);
@@ -204,7 +195,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }, []);
 
     function clickStepOneSuggestion(suggestion: StepOneSuggestion) {
-        setPrefilledMessage(suggestion.intent);
+        setPrefillMessage(suggestion.intent);
         const stepTwoSuggestions = getStepTwoSuggestions(suggestion.type);
         setSelectedStepOneSuggestion(suggestion);
         setStepTwoSuggestionOptions(stepTwoSuggestions);
@@ -308,7 +299,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     >
                         <ChatInputArea
                             isLoggedIn={props.isLoggedIn}
-                            prefillMessage={prefilledMessage}
+                            prefillMessage={prefillMessage}
                             focus={chatInputFocus}
                             sendMessage={(message) => setMessage(message)}
                             sendImage={(image) => setImages((prevImages) => [...prevImages, image])}
@@ -367,10 +358,10 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         body={selectedStepOneSuggestion.actionTagline}
                         color={selectedStepOneSuggestion.color}
                         onClick={() => {
+                            setPrefillMessage("");
                             setSelectedStepOneSuggestion(null);
                             setStepTwoSuggestionOptions([]);
                             setChatInputFocus(ChatInputFocus.MESSAGE);
-                            setPrefilledMessage("");
                         }}
                     />
                 )}

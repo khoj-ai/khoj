@@ -440,7 +440,7 @@ export const stepTwoSuggestion: { [key: string]: StepTwoSuggestion[] } = {
             prompt: "Find the main arguments in this document.",
         },
         {
-            prompt: "Explain the relevance of this document to the topic at hand.",
+            prompt: "Explain the relevance of this document to various other disciplines.",
         },
     ],
 };
