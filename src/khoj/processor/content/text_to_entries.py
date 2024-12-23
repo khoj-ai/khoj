@@ -7,7 +7,9 @@ from abc import ABC, abstractmethod
 from itertools import repeat
 from typing import Any, Callable, Dict, List, Set, Tuple
 
-from gliner import GLiNER
+import spacy
+import spacy.cli.download
+import spacy_curated_transformers
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from tqdm import tqdm
 
@@ -307,54 +309,60 @@ class TextToEntries(ABC):
         return field.replace("\0", "") if not is_none_or_empty(field) else ""
 
     @staticmethod
+    def ensure_model_downloaded():
+        """Ensure the required spaCy model is downloaded"""
+        try:
+            spacy.load("en_core_web_trf")
+        except OSError:
+            logger.info("Downloading spaCy model for named entity extraction...")
+            spacy.cli.download("en_core_web_trf")
+
+    @staticmethod
     @functools.lru_cache(maxsize=1)  # Cache the model loading
     def get_model():
         """Get or initialize model for named entity recognition"""
         if TextToEntries.ner_model is None:
-            TextToEntries.ner_model = GLiNER.from_pretrained(
-                "gliner-community/gliner_small-v2.5",
-                load_tokenizer=True,
-                device=state.device,
-                compile_torch_model=state.device == "cuda",  # Enable torch.compile
+            # Ensure model is downloaded
+            TextToEntries.ensure_model_downloaded()
+
+            # Load named entity recognition model
+            # Only keep NER to speed up inference
+            spacy.prefer_gpu()
+            TextToEntries.ner_model = spacy.load(
+                "en_core_web_trf", disable=["tagger", "parser", "attribute_ruler", "lemmatizer"]
             )
-            # Optimize model for inference
-            TextToEntries.ner_model.to(state.device)
-            TextToEntries.ner_model.eval()
         return TextToEntries.ner_model
 
     @staticmethod
-    def process_entity_batch(entity_predictions: List[Dict[str, str]]) -> Dict[str, List[str]]:
-        """Process single batch of entity predictions"""
-        persons = {entity["text"].lower() for entity in entity_predictions if entity["label"] == "Person"}
-        teams = {
-            entity["text"].lower()
-            for entity in entity_predictions
-            if entity["label"] in ["Team", "Group", "Department", "Organization"]
+    def process_entity_batch(entities: List[Dict[str, str]]) -> Dict[str, List[str]]:
+        """Process single batch of entity predictions into categories"""
+        persons = {ent["text"].lower() for ent in entities if ent["label"] in ["PERSON", "ORG", "NORP"]}
+        locations = {ent["text"].lower() for ent in entities if ent["label"] in ["GPE", "LOC", "FAC"]}
+        projects = {
+            ent["text"].lower() for ent in entities if ent["label"] in ["WORK_OF_ART", "LAW", "EVENT", "PRODUCT"]
         }
-        projects = {entity["text"].lower() for entity in entity_predictions if entity["label"] == "Project"}
-        locations = {entity["text"].lower() for entity in entity_predictions if entity["label"] == "Location"}
-
-        return {
-            "people": list(persons),
-            "teams": list(teams),
-            "locations": list(locations),
-            "projects": list(projects),
-        }
+        if state.verbose > 1:
+            logger.debug(f"Extracted\nPersons: {persons}\nLocations: {locations}\nProjects: {projects}\n\n")
+        return {"people": list(persons), "locations": list(locations), "projects": list(projects)}
 
     @staticmethod
-    def extract_ner(texts: List[str], batch_size: int = 10) -> List[Dict[str, List[str]]]:
+    def extract_ner(texts: List[str], batch_size: int = 32) -> List[Dict[str, List[str]]]:
         """Extract named entities using optimized inference"""
-        labels = ["Person", "Team", "Group", "Department", "Location", "Project", "Organization"]
         model = TextToEntries.get_model()
         entities_by_entry: List[Dict[str, List[str]]] = []
-        total_batches = len(texts) // batch_size
 
         # Predict named entities from the text in batches
-        with timer("Infer named entities in entry", logger, device=model.device, log_level=logging.DEBUG):
-            for texts_batch in tqdm(
-                batcher(texts, batch_size), total=total_batches, desc="Extract named entities from entries"
+        with timer("Infer named entities in entry", logger, log_level=logging.DEBUG):
+            for doc in tqdm(
+                model.pipe(texts, batch_size=batch_size), total=len(texts), desc="Extract named entities from entries"
             ):
-                predictions = model.batch_predict_entities(list(texts_batch), labels, flat_ner=True, multi_label=True)
-                entities_by_entry += list(map(TextToEntries.process_entity_batch, predictions))
+                # Get standard named entities
+                predictions = [
+                    {"text": ent.text, "label": ent.label_}
+                    for ent in doc.ents
+                    if ent.label_
+                    in ["PERSON", "ORG", "NORP", "GPE", "LOC", "FAC", "WORK_OF_ART", "LAW", "EVENT", "PRODUCT"]
+                ]
+                entities_by_entry.append(TextToEntries.process_entity_batch(predictions))
 
         return entities_by_entry

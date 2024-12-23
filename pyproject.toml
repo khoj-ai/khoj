@@ -51,6 +51,8 @@ dependencies = [
     "pyyaml ~= 6.0",
     "rich >= 13.3.1",
     "schedule == 1.1.0",
+    "spacy[transformers] >= 3.8.2",
+    "spacy-curated-transformers >= 0.2.2",
     "sentence-transformers == 3.0.1",
     "einops == 0.8.0",
     "transformers >= 4.28.0",
