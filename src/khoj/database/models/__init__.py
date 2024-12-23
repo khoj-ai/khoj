@@ -691,6 +691,8 @@ class Entry(DbBaseModel):
     search_model = models.ForeignKey(SearchModelConfig, on_delete=models.SET_NULL, default=None, null=True, blank=True)
 
     def save(self, *args, **kwargs):
+        if not self.user and not self.agent:
+            raise ValidationError("An Entry must be associated with either a user or an agent.")
         if self.user and self.agent:
             raise ValidationError("An Entry cannot be associated with both a user and an agent.")
 
