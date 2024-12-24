@@ -299,6 +299,7 @@ function EmailSignInContext({
                         className="p-6 w-[300px] mx-auto rounded-lg"
                         disabled={checkEmail}
                         value={email}
+                        autoFocus={true}
                         onKeyDown={(e) => {
                             if (e.key === "Enter") {
                                 handleMagicLinkSignIn();

@@ -5,17 +5,28 @@ import "katex/dist/katex.min.css";
 
 import React, { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
-import { ArrowCounterClockwise } from "@phosphor-icons/react";
+import { ArrowsVertical } from "@phosphor-icons/react";
 
 import { Card, CardTitle } from "@/components/ui/card";
-import SuggestionCard from "@/app/components/suggestions/suggestionCard";
+import {
+    StepOneSuggestionCard,
+    StepOneSuggestionRevertCard,
+    StepTwoSuggestionCard,
+} from "@/app/components/suggestions/suggestionCard";
 import Loading from "@/app/components/loading/loading";
 import {
     AttachedFileText,
     ChatInputArea,
+    ChatInputFocus,
     ChatOptions,
 } from "@/app/components/chatInputArea/chatInputArea";
-import { Suggestion, suggestionsData } from "@/app/components/suggestions/suggestionsData";
+import {
+    StepOneSuggestion,
+    stepOneSuggestions,
+    StepTwoSuggestion,
+    getStepTwoSuggestions,
+    SuggestionType,
+} from "@/app/components/suggestions/suggestionsData";
 import LoginPrompt from "@/app/components/loginPrompt/loginPrompt";
 
 import {
@@ -49,20 +60,21 @@ interface ChatBodyDataProps {
     isLoadingUserConfig: boolean;
 }
 
-function FisherYatesShuffle(array: any[]) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
-}
-
 function ChatBodyData(props: ChatBodyDataProps) {
     const [message, setMessage] = useState("");
+    const [prefillMessage, setPrefillMessage] = useState("");
+    const [chatInputFocus, setChatInputFocus] = useState<ChatInputFocus>(ChatInputFocus.MESSAGE);
     const [images, setImages] = useState<string[]>([]);
     const [processingMessage, setProcessingMessage] = useState(false);
     const [greeting, setGreeting] = useState("");
-    const [shuffledOptions, setShuffledOptions] = useState<Suggestion[]>([]);
+    const [stepOneSuggestionOptions, setStepOneSuggestionOptions] = useState<StepOneSuggestion[]>(
+        stepOneSuggestions.slice(0, 3),
+    );
+    const [stepTwoSuggestionOptions, setStepTwoSuggestionOptions] = useState<StepTwoSuggestion[]>(
+        [],
+    );
+    const [selectedStepOneSuggestion, setSelectedStepOneSuggestion] =
+        useState<StepOneSuggestion | null>(null);
     const [hoveredAgent, setHoveredAgent] = useState<string | null>(null);
     const debouncedHoveredAgent = useDebounce(hoveredAgent, 500);
     const [isPopoverOpen, setIsPopoverOpen] = useState(false);
@@ -102,11 +114,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
         router.push(`/agents?agent=${agentSlug}`);
     };
 
-    function shuffleAndSetOptions() {
-        const shuffled = FisherYatesShuffle(suggestionsData);
-        setShuffledOptions(shuffled.slice(0, 3));
-    }
-
     useEffect(() => {
         if (props.isLoadingUserConfig) return;
 
@@ -132,12 +139,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }, [props.isLoadingUserConfig, props.userConfig]);
 
     useEffect(() => {
-        if (props.chatOptionsData) {
-            shuffleAndSetOptions();
-        }
-    }, [props.chatOptionsData]);
-
-    useEffect(() => {
         const agents = (agentsData || []).filter((agent) => agent !== null && agent !== undefined);
         setAgents(agents);
         // set the first agent, which is always the default agent, as the default for chat
@@ -146,10 +147,10 @@ function ChatBodyData(props: ChatBodyDataProps) {
         // generate colored icons for the available agents
         const agentIcons = agents.map((agent) => getIconFromIconName(agent.icon, agent.color)!);
         setAgentIcons(agentIcons);
-    }, [agentsData, props.isMobileWidth]);
+    }, [agentsData]);
 
-    function shuffleSuggestionsCards() {
-        shuffleAndSetOptions();
+    function showAllSuggestionsCards() {
+        setStepOneSuggestionOptions(stepOneSuggestions);
     }
 
     useEffect(() => {
@@ -193,27 +194,12 @@ function ChatBodyData(props: ChatBodyDataProps) {
         return () => scrollAreaEl?.removeEventListener("scroll", handleScroll);
     }, []);
 
-    function fillArea(link: string, type: string, prompt: string) {
-        if (!link) {
-            let message_str = "";
-            prompt = prompt.charAt(0).toLowerCase() + prompt.slice(1);
-
-            if (type === "Online Search") {
-                message_str = "/online " + prompt;
-            } else if (type === "Paint") {
-                message_str = "/image " + prompt;
-            } else {
-                message_str = prompt;
-            }
-            // Get the textarea element
-            const message_area = document.getElementById("message") as HTMLTextAreaElement;
-
-            if (message_area) {
-                // Update the value directly
-                message_area.value = message_str;
-                setMessage(message_str);
-            }
-        }
+    function clickStepOneSuggestion(suggestion: StepOneSuggestion) {
+        setPrefillMessage(suggestion.intent);
+        const stepTwoSuggestions = getStepTwoSuggestions(suggestion.type);
+        setSelectedStepOneSuggestion(suggestion);
+        setStepTwoSuggestionOptions(stepTwoSuggestions);
+        setChatInputFocus(suggestion.focus);
     }
 
     return (
@@ -306,13 +292,15 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     </ScrollArea>
                 )}
             </div>
-            <div className={`mx-auto ${props.isMobileWidth ? "w-full" : "w-fit max-w-screen-md"}`}>
+            <div className={`mx-auto ${props.isMobileWidth ? "w-full" : "w-full max-w-screen-md"}`}>
                 {!props.isMobileWidth && (
                     <div
                         className={`w-full ${styles.inputBox} shadow-lg bg-background align-middle items-center justify-center px-3 py-1 dark:bg-neutral-700 border-stone-100 dark:border-none dark:shadow-none rounded-2xl`}
                     >
                         <ChatInputArea
                             isLoggedIn={props.isLoggedIn}
+                            prefillMessage={prefillMessage}
+                            focus={chatInputFocus}
                             sendMessage={(message) => setMessage(message)}
                             sendImage={(image) => setImages((prevImages) => [...prevImages, image])}
                             sendDisabled={processingMessage}
@@ -326,44 +314,77 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         />
                     </div>
                 )}
-                <div
-                    className={`${styles.suggestions} w-full ${props.isMobileWidth ? "grid" : "flex flex-row"} justify-center items-center`}
-                >
-                    {shuffledOptions.map((suggestion, index) => (
-                        <div
-                            key={`${suggestion.type} ${suggestion.description}`}
-                            onClick={(event) => {
-                                if (props.isLoggedIn) {
-                                    fillArea(
-                                        suggestion.link,
-                                        suggestion.type,
-                                        suggestion.description,
-                                    );
-                                } else {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                    setShowLoginPrompt(true);
-                                }
-                            }}
-                        >
-                            <SuggestionCard
-                                key={suggestion.type + Math.random()}
-                                title={suggestion.type}
-                                body={suggestion.description}
-                                link={suggestion.link}
-                                color={suggestion.color}
-                            />
-                        </div>
-                    ))}
-                </div>
-                <div className="flex items-center justify-center margin-auto">
-                    <button
-                        onClick={shuffleSuggestionsCards}
-                        className="m-2 p-1.5 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm text-stone-500 dark:text-stone-300 dark:border-neutral-700"
+                {stepTwoSuggestionOptions.length == 0 && (
+                    <div
+                        className={`${styles.suggestions} w-full ${props.isMobileWidth ? (stepOneSuggestions.length > 3 ? "grid grid-cols-2" : "grid grid-cols-3") : "grid grid-cols-3"} "justify-center items-center"`}
                     >
-                        More Ideas <ArrowCounterClockwise className="h-4 w-4 inline" />
-                    </button>
-                </div>
+                        {stepOneSuggestionOptions.map((suggestion, index) => (
+                            <div
+                                key={`${suggestion.type} ${suggestion.actionTagline}`}
+                                onClick={(event) => {
+                                    if (props.isLoggedIn) {
+                                        clickStepOneSuggestion(suggestion);
+                                    } else {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        setShowLoginPrompt(true);
+                                    }
+                                }}
+                            >
+                                <StepOneSuggestionCard
+                                    key={suggestion.type + Math.random()}
+                                    title={suggestion.type}
+                                    body={suggestion.actionTagline}
+                                    color={suggestion.color}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                )}
+                {stepTwoSuggestionOptions.length == 0 &&
+                    stepOneSuggestionOptions.length < stepOneSuggestions.length && (
+                        <div className="flex items-center justify-center margin-auto">
+                            <button
+                                onClick={showAllSuggestionsCards}
+                                className="m-2 p-1.5 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm text-stone-500 dark:text-stone-300 dark:border-neutral-700"
+                            >
+                                Show All <ArrowsVertical className="h-4 w-4 inline" />
+                            </button>
+                        </div>
+                    )}
+                {selectedStepOneSuggestion && (
+                    <StepOneSuggestionRevertCard
+                        title={selectedStepOneSuggestion.type}
+                        body={selectedStepOneSuggestion.actionTagline}
+                        color={selectedStepOneSuggestion.color}
+                        onClick={() => {
+                            setPrefillMessage("");
+                            setSelectedStepOneSuggestion(null);
+                            setStepTwoSuggestionOptions([]);
+                            setChatInputFocus(ChatInputFocus.MESSAGE);
+                        }}
+                    />
+                )}
+                {stepTwoSuggestionOptions.length > 0 && (
+                    <div
+                        className={`w-full ${props.isMobileWidth ? "grid" : "grid grid-cols-1"} justify-center items-center gap-2 p-2`}
+                    >
+                        {stepTwoSuggestionOptions.map((suggestion, index) => (
+                            <div
+                                key={`${suggestion.prompt} ${index}`}
+                                className={`w-full cursor-pointer animate-fade-in-up`}
+                                onClick={(event) => {
+                                    setMessage(suggestion.prompt);
+                                }}
+                            >
+                                <StepTwoSuggestionCard
+                                    key={suggestion.prompt}
+                                    prompt={suggestion.prompt}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
             {props.isMobileWidth && (
                 <>

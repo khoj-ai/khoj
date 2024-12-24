@@ -92,6 +92,7 @@ import ShareLink from "@/app/components/shareLink/shareLink";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export interface AgentData {
     slug: string;
@@ -453,7 +454,9 @@ export function AgentCard(props: AgentCardProps) {
                                 <DialogHeader>
                                     <div className="flex items-center">
                                         {getIconFromIconName(props.data.icon, props.data.color)}
-                                        <p className="font-bold text-lg">{props.data.name}</p>
+                                        <p className="font-bold text-lg">
+                                            <DialogTitle>{props.data.name}</DialogTitle>
+                                        </p>
                                     </div>
                                 </DialogHeader>
                                 <div className="max-h-[60vh] overflow-y-scroll text-neutral-500 dark:text-white">
@@ -649,6 +652,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
     };
 
     const handleSubmit = (values: any) => {
+        console.log("Submitting", values);
         props.onSubmit(values);
         setIsSaving(true);
     };
@@ -937,7 +941,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                                 </FormDescription>
                                 <FormControl>
                                     <Textarea
-                                        className="dark:bg-muted"
+                                        className="dark:bg-muted focus:outline-none focus-visible:border-orange-500 focus-visible:border-2"
                                         placeholder="You are an excellent biologist, at the top of your field in marine biology."
                                         {...field}
                                     />
@@ -967,7 +971,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                                             ? `${field.value.length} files selected`
                                             : "Select files"}
                                     </CollapsibleTrigger>
-                                    <CollapsibleContent>
+                                    <CollapsibleContent className="m-1">
                                         <Command>
                                             <AlertDialog open={warning !== null || error != null}>
                                                 <AlertDialogContent>
@@ -1040,6 +1044,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                                                         <CommandItem
                                                             value={file}
                                                             key={file}
+                                                            className="break-all"
                                                             onSelect={() => {
                                                                 const currentFiles =
                                                                     props.form.getValues("files") ||
@@ -1257,83 +1262,88 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
 
     return (
         <Form {...props.form}>
-            <form
-                onSubmit={props.form.handleSubmit(handleSubmit)}
-                className="space-y-6 pb-4 h-full flex flex-col justify-between"
-            >
-                <Tabs defaultValue="basic" value={formGroups[currentStep].tabName}>
-                    <TabsList className="grid grid-cols-2 md:grid-cols-4 gap-2 h-fit">
+            <ScrollArea className="h-full">
+                <form
+                    onSubmit={props.form.handleSubmit(handleSubmit)}
+                    className="space-y-6 pb-4 px-4 h-full flex flex-col justify-between"
+                >
+                    <Tabs defaultValue="basic" value={formGroups[currentStep].tabName}>
+                        <TabsList className="grid grid-cols-2 md:grid-cols-4 gap-2 h-fit">
+                            {formGroups.map((group) => (
+                                <TabsTrigger
+                                    key={group.tabName}
+                                    value={group.tabName}
+                                    className={`text-center ${areRequiredFieldsCompletedForCurrentStep(group) ? "" : "text-red-500"}`}
+                                    onClick={() =>
+                                        setCurrentStep(
+                                            formGroups.findIndex(
+                                                (g) => g.tabName === group.tabName,
+                                            ),
+                                        )
+                                    }
+                                >
+                                    {group.label}{" "}
+                                    {!areRequiredFieldsCompletedForCurrentStep(group) && "*"}
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
                         {formGroups.map((group) => (
-                            <TabsTrigger
-                                key={group.tabName}
-                                value={group.tabName}
-                                className={`text-center ${areRequiredFieldsCompletedForCurrentStep(group) ? "" : "text-red-500"}`}
-                                onClick={() =>
-                                    setCurrentStep(
-                                        formGroups.findIndex((g) => g.tabName === group.tabName),
-                                    )
-                                }
-                            >
-                                {group.label}{" "}
-                                {!areRequiredFieldsCompletedForCurrentStep(group) && "*"}
-                            </TabsTrigger>
+                            <TabsContent key={group.tabName} value={group.tabName}>
+                                {group.fields.map((field) => renderFormField(field.name))}
+                            </TabsContent>
                         ))}
-                    </TabsList>
-                    {formGroups.map((group) => (
-                        <TabsContent key={group.tabName} value={group.tabName}>
-                            {group.fields.map((field) => renderFormField(field.name))}
-                        </TabsContent>
-                    ))}
-                </Tabs>
-                <div className="flex justify-between mt-4">
+                    </Tabs>
+
+                    {props.errors && (
+                        <Alert className="bg-secondary border-none my-4">
+                            <AlertDescription className="flex items-center gap-1">
+                                <ShieldWarning
+                                    weight="fill"
+                                    className="h-4 w-4 text-yellow-400 inline"
+                                />
+                                <span>{props.errors}</span>
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                </form>
+            </ScrollArea>
+            <div className="flex justify-between mt-1 left-0 right-0 bg-background p-1">
+                <Button
+                    type="button"
+                    variant={"outline"}
+                    onClick={handlePrevious}
+                    disabled={currentStep === 0}
+                    className={`items-center ${isSaving ? "bg-stone-100 dark:bg-neutral-900" : ""} text-white ${colorOptionClassName}`}
+                >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Previous
+                </Button>
+                {currentStep < formGroups.length - 1 ? (
                     <Button
                         type="button"
                         variant={"outline"}
-                        onClick={handlePrevious}
-                        disabled={currentStep === 0}
+                        onClick={handleNext}
+                        disabled={
+                            !areRequiredFieldsCompletedForCurrentStep(formGroups[currentStep])
+                        }
                         className={`items-center ${isSaving ? "bg-stone-100 dark:bg-neutral-900" : ""} text-white ${colorOptionClassName}`}
                     >
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Previous
+                        Continue
+                        <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
-                    {currentStep < formGroups.length - 1 ? (
-                        <Button
-                            type="button"
-                            variant={"outline"}
-                            onClick={handleNext}
-                            disabled={
-                                !areRequiredFieldsCompletedForCurrentStep(formGroups[currentStep])
-                            }
-                            className={`items-center ${isSaving ? "bg-stone-100 dark:bg-neutral-900" : ""} text-white ${colorOptionClassName}`}
-                        >
-                            Continue
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                        </Button>
-                    ) : (
-                        <Button
-                            type="submit"
-                            variant={"outline"}
-                            disabled={isSaving}
-                            className={`items-center ${isSaving ? "bg-stone-100 dark:bg-neutral-900" : ""} text-white ${colorOptionClassName}`}
-                        >
-                            <FloppyDisk className="h-4 w-4 mr-2" />
-                            {isSaving ? "Booting..." : "Save"}
-                        </Button>
-                    )}
-                </div>
-
-                {props.errors && (
-                    <Alert className="bg-secondary border-none my-4">
-                        <AlertDescription className="flex items-center gap-1">
-                            <ShieldWarning
-                                weight="fill"
-                                className="h-4 w-4 text-yellow-400 inline"
-                            />
-                            <span>{props.errors}</span>
-                        </AlertDescription>
-                    </Alert>
+                ) : (
+                    <Button
+                        type="submit"
+                        variant={"outline"}
+                        disabled={isSaving}
+                        onClick={props.form.handleSubmit(handleSubmit)}
+                        className={`items-center ${isSaving ? "bg-stone-100 dark:bg-neutral-900" : ""} text-white ${colorOptionClassName}`}
+                    >
+                        <FloppyDisk className="h-4 w-4 mr-2" />
+                        {isSaving ? "Booting..." : "Save"}
+                    </Button>
                 )}
-            </form>
+            </div>
         </Form>
     );
 }

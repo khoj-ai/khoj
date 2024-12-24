@@ -98,16 +98,24 @@ div.homeGreetings {
 
     div.chatBox {
         padding: 0;
-        height: 100vh;
+        height: 100%;
     }
 
     div.chatLayout {
         gap: 0;
-        grid-template-columns: 1fr;
-        grid-template-rows: auto 1fr;
+        display: flex;
+        height: 100%;
     }
 
     div.homeGreetings {
-        grid-template-rows: auto 1fr;
+        display: flex;
+        flex-direction: column;
+    }
+
+    div.inputBox {
+        margin-bottom: 0;
+        height: fit-content;
+        align-items: flex-end;
+        margin-top: auto;
     }
 }

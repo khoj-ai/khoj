@@ -104,7 +104,7 @@ export default function FooterMenu({ sideBarIsOpen }: NavMenuProps) {
                                     <Avatar
                                         className={`${sideBarIsOpen ? "h-8 w-8" : "h-6 w-6"} border-2 ${userData.is_active ? "border-yellow-500" : "border-stone-700 dark:border-stone-300"}`}
                                     >
-                                        <AvatarImage src={userData?.photo} alt="user profile" />
+                                        <AvatarImage src={userData.photo} alt="user profile" />
                                         <AvatarFallback className="bg-transparent hover:bg-muted">
                                             {userData.username[0].toUpperCase()}
                                         </AvatarFallback>
