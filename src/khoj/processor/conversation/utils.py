@@ -34,7 +34,6 @@ from khoj.search_filter.word_filter import WordFilter
 from khoj.utils import state
 from khoj.utils.helpers import (
     ConversationCommand,
-    in_debug_mode,
     is_none_or_empty,
     is_promptrace_enabled,
     merge_dicts,
@@ -47,28 +46,27 @@ logger = logging.getLogger(__name__)
 try:
     from git import Repo
 except ImportError:
-    if in_debug_mode():
-        logger.warning("GitPython not installed. `pip install gitpython` to enable prompt tracer.")
+    if is_promptrace_enabled():
+        logger.warning("GitPython not installed. `pip install gitpython` to use prompt tracer.")
 
 model_to_prompt_size = {
     # OpenAI Models
-    "gpt-4o": 20000,
-    "gpt-4o-mini": 20000,
-    "o1-preview": 20000,
-    "o1-mini": 20000,
+    "gpt-4o": 60000,
+    "gpt-4o-mini": 60000,
+    "o1": 20000,
+    "o1-mini": 60000,
     # Google Models
-    "gemini-1.5-flash": 20000,
-    "gemini-1.5-pro": 20000,
+    "gemini-1.5-flash": 60000,
+    "gemini-1.5-pro": 60000,
     # Anthropic Models
-    "claude-3-5-sonnet-20241022": 20000,
-    "claude-3-5-haiku-20241022": 20000,
+    "claude-3-5-sonnet-20241022": 60000,
+    "claude-3-5-haiku-20241022": 60000,
     # Offline Models
-    "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF": 20000,
+    "Qwen/Qwen2.5-14B-Instruct-GGUF": 20000,
     "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF": 20000,
     "bartowski/Llama-3.2-3B-Instruct-GGUF": 20000,
     "bartowski/gemma-2-9b-it-GGUF": 6000,
     "bartowski/gemma-2-2b-it-GGUF": 6000,
-    "Qwen/Qwen2.5-14B-Instruct-GGUF": 20000,
 }
 model_to_tokenizer: Dict[str, str] = {}
 
