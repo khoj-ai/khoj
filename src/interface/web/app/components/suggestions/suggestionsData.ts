@@ -82,10 +82,10 @@ export function convertSuggestionTitleToIconClass(title: string, color: string) 
 export const stepOneSuggestions: StepOneSuggestion[] = [
     {
         type: SuggestionType.Document,
-        actionTagline: "Summarize text",
+        actionTagline: "Analyze document",
         color: suggestionToColorMap[SuggestionType.Document] || DEFAULT_COLOR,
         focus: ChatInputFocus.FILE,
-        intent: "Summarize this document",
+        intent: "Read this document and explain",
     },
     {
         type: SuggestionType.Code,
@@ -152,7 +152,7 @@ export const stepOneSuggestions: StepOneSuggestion[] = [
     // },
     {
         type: SuggestionType.Finance,
-        actionTagline: "Explain money",
+        actionTagline: "Explain finance",
         color: suggestionToColorMap[SuggestionType.Finance] || DEFAULT_COLOR,
         focus: ChatInputFocus.MESSAGE,
         intent: "Help me build mental models for finance",
@@ -241,19 +241,19 @@ export const stepTwoSuggestion: { [key: string]: StepTwoSuggestion[] } = {
     ],
     [SuggestionType.Learning]: [
         {
-            prompt: "Research the history of the Eiffel Tower.",
+            prompt: "/research look up how Alpha Fold works and explain it to me.",
         },
         {
-            prompt: "Summarize the biography of this figure: https://en.wikipedia.org/wiki/Jean_Baptiste_Point_du_Sable",
+            prompt: "Explain the key equations of general relativity.",
         },
         {
             prompt: "Explain the concept of 'machine learning' in simple terms.",
         },
         {
-            prompt: "Find the best resources to learn about the history of the Roman Empire.",
+            prompt: "What are the key principles of Stoicism?",
         },
         {
-            prompt: "Explain the concept of 'quantum entanglement' in simple terms.",
+            prompt: "/research what are the causes behind the breakthroughs in AI in the last 5 years.",
         },
     ],
     [SuggestionType.Language]: [
