@@ -136,13 +136,13 @@ export const stepOneSuggestions: StepOneSuggestion[] = [
     //     focus: ChatInputFocus.MESSAGE,
     //     intent: "Find a recipe for",
     // },
-    {
-        type: SuggestionType.Interviewing,
-        actionTagline: "Career advice",
-        color: suggestionToColorMap[SuggestionType.Interviewing] || DEFAULT_COLOR,
-        focus: ChatInputFocus.MESSAGE,
-        intent: "Help me prepare for an interview",
-    },
+    // {
+    //     type: SuggestionType.Interviewing,
+    //     actionTagline: "Career advice",
+    //     color: suggestionToColorMap[SuggestionType.Interviewing] || DEFAULT_COLOR,
+    //     focus: ChatInputFocus.MESSAGE,
+    //     intent: "Help me prepare for an interview",
+    // },
     // {
     //     type: SuggestionType.Fun,
     //     actionTagline: "Get creative",
@@ -168,7 +168,7 @@ export const stepOneSuggestions: StepOneSuggestion[] = [
         type: SuggestionType.Image,
         actionTagline: "Analyze image",
         color: suggestionToColorMap[SuggestionType.Image] || DEFAULT_COLOR,
-        focus: ChatInputFocus.MESSAGE,
+        focus: ChatInputFocus.FILE,
         intent: "Explain the significance of this image",
     },
     {
@@ -178,13 +178,13 @@ export const stepOneSuggestions: StepOneSuggestion[] = [
         focus: ChatInputFocus.MESSAGE,
         intent: "Help me improve my health",
     },
-    {
-        type: SuggestionType.Home,
-        actionTagline: "Improve home",
-        color: suggestionToColorMap[SuggestionType.Home] || DEFAULT_COLOR,
-        focus: ChatInputFocus.MESSAGE,
-        intent: "Help me improve my home",
-    },
+    // {
+    //     type: SuggestionType.Home,
+    //     actionTagline: "Improve home",
+    //     color: suggestionToColorMap[SuggestionType.Home] || DEFAULT_COLOR,
+    //     focus: ChatInputFocus.MESSAGE,
+    //     intent: "Help me improve my home",
+    // },
 ];
 
 export const stepTwoSuggestion: { [key: string]: StepTwoSuggestion[] } = {
@@ -420,10 +420,10 @@ export const stepTwoSuggestion: { [key: string]: StepTwoSuggestion[] } = {
             prompt: "Explain the significance of this historical painting",
         },
         {
-            prompt: "What emotions does this artwork evoke?",
+            prompt: "Can you explain this physics diagram to me?",
         },
         {
-            prompt: "What is the story behind this sculpture?",
+            prompt: "Explain this meme to me",
         },
     ],
     [SuggestionType.Document]: [

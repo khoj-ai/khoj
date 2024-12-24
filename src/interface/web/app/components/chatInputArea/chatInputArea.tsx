@@ -651,15 +651,24 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                     />
 
                     <div className="flex items-center">
-                        <Button
-                            variant={"ghost"}
-                            className="!bg-none p-0 m-2 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
-                            disabled={props.sendDisabled || !props.isLoggedIn}
-                            onClick={handleFileButtonClick}
-                            ref={fileInputButtonRef}
-                        >
-                            <Paperclip className="w-8 h-8" />
-                        </Button>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant={"ghost"}
+                                        className="!bg-none p-0 m-2 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
+                                        disabled={props.sendDisabled || !props.isLoggedIn}
+                                        onClick={handleFileButtonClick}
+                                        ref={fileInputButtonRef}
+                                    >
+                                        <Paperclip className="w-8 h-8" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    Attach a PDF, plain text file, or image
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                     <div className="flex-grow flex flex-col w-full gap-1.5 relative">
                         <Textarea
