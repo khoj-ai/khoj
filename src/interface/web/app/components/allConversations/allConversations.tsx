@@ -420,9 +420,6 @@ interface SessionsAndFilesProps {
 function SessionsAndFiles(props: SessionsAndFilesProps) {
     return (
         <div>
-            {props.data && props.data.length > 5 && (
-                <ChatSessionsModal data={props.organizedData} sideBarOpen={props.sideBarOpen} />
-            )}
             {props.sideBarOpen && (
                 <ScrollArea>
                     <ScrollAreaScrollbar
@@ -460,6 +457,9 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                                 ))}
                     </div>
                 </ScrollArea>
+            )}
+            {props.data && props.data.length > 5 && (
+                <ChatSessionsModal data={props.organizedData} sideBarOpen={props.sideBarOpen} />
             )}
         </div>
     );
@@ -786,7 +786,7 @@ function ChatSessionsModal({ data, sideBarOpen }: ChatSessionsModalProps) {
             >
                 <span className="flex items-center gap-1">
                     <ChatsCircle className="inline h-4 w-4 mr-1" />
-                    {sideBarOpen ? "Find Conversation" : ""}
+                    {sideBarOpen ? "All Conversations" : ""}
                 </span>
             </DialogTrigger>
             <DialogContent>
