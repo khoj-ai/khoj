@@ -13,6 +13,7 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse, RedirectResponse, Response
 from starlette.status import HTTP_302_FOUND
 
+from khoj.app.settings import DISABLE_HTTPS
 from khoj.database.adapters import (
     acreate_khoj_token,
     aget_or_create_user_by_email,
@@ -28,7 +29,6 @@ from khoj.routers.helpers import (
     update_telemetry_state,
 )
 from khoj.utils import state
-from khoj.utils.helpers import in_debug_mode
 
 logger = logging.getLogger(__name__)
 
@@ -216,7 +216,7 @@ async def auth(request: Request):
     # 1. Construct the full redirect URI including domain
     base_url = str(request.base_url).rstrip("/")
 
-    if not in_debug_mode():
+    if not DISABLE_HTTPS:
         base_url = base_url.replace("http://", "https://")
 
     redirect_uri = f"{base_url}{request.app.url_path_for('auth')}"
