@@ -9,7 +9,6 @@ import { ArrowCounterClockwise } from "@phosphor-icons/react";
 
 import { Card, CardTitle } from "@/components/ui/card";
 import SuggestionCard from "@/app/components/suggestions/suggestionCard";
-import SidePanel from "@/app/components/sidePanel/chatHistorySidePanel";
 import Loading from "@/app/components/loading/loading";
 import {
     AttachedFileText,
@@ -35,6 +34,10 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { AgentCard } from "@/app/components/agentCard/agentCard";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import LoginPopup from "./components/loginPrompt/loginPopup";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "./components/appSidebar/appSidebar";
+import { Separator } from "@/components/ui/separator";
+import { KhojLogoType } from "./components/logo/khojLogo";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -366,7 +369,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             {props.isMobileWidth && (
                 <>
                     <div
-                        className={`${styles.inputBox} pt-1 shadow-[0_-20px_25px_-5px_rgba(0,0,0,0.1)] dark:bg-neutral-700 bg-background align-middle items-center justify-center pb-3 mx-1 rounded-t-2xl rounded-b-none`}
+                        className={`${styles.inputBox} pt-1 shadow-[0_-20px_25px_-5px_rgba(0,0,0,0.1)] dark:bg-neutral-700 bg-background align-middle items-center justify-center pb-3 mx-1 rounded-2xl mb-2`}
                     >
                         <ScrollArea className="w-full max-w-[85vw]">
                             <div className="flex gap-2 items-center justify-left pt-1 pb-2 px-12">
@@ -458,28 +461,35 @@ export default function Home() {
     }
 
     return (
-        <div className={`${styles.main} ${styles.chatLayout}`}>
-            <title>Khoj AI - Your Second Brain</title>
-            <div className={`${styles.sidePanel}`}>
-                <SidePanel
-                    conversationId={conversationId}
-                    uploadedFiles={[]}
-                    isMobileWidth={isMobileWidth}
-                />
-            </div>
-            <div className={`${styles.chatBox}`}>
-                <div className={`${styles.chatBoxBody}`}>
-                    <ChatBodyData
-                        isLoggedIn={authenticatedData !== null}
-                        chatOptionsData={chatOptionsData}
-                        setUploadedFiles={setUploadedFiles}
-                        isMobileWidth={isMobileWidth}
-                        onConversationIdChange={handleConversationIdChange}
-                        userConfig={userConfig}
-                        isLoadingUserConfig={isLoadingUserConfig}
-                    />
+        <SidebarProvider>
+            <AppSidebar conversationId={conversationId} />
+            <SidebarInset>
+                <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+                    <SidebarTrigger className="-ml-1" />
+                    <Separator orientation="vertical" className="mr-2 h-4" />
+                    {isMobileWidth ? (
+                        <KhojLogoType className="h-auto w-16" />
+                    ) : (
+                        <h2 className="text-lg">Ask Anything</h2>
+                    )}
+                </header>
+                <div className={`${styles.main} ${styles.chatLayout}`}>
+                    <title>Khoj AI - Your Second Brain</title>
+                    <div className={`${styles.chatBox}`}>
+                        <div className={`${styles.chatBoxBody}`}>
+                            <ChatBodyData
+                                isLoggedIn={authenticatedData !== null}
+                                chatOptionsData={chatOptionsData}
+                                setUploadedFiles={setUploadedFiles}
+                                isMobileWidth={isMobileWidth}
+                                onConversationIdChange={handleConversationIdChange}
+                                userConfig={userConfig}
+                                isLoadingUserConfig={isLoadingUserConfig}
+                            />
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </SidebarInset>
+        </SidebarProvider>
     );
 }

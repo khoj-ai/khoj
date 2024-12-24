@@ -60,6 +60,7 @@ import {
     NotePencil,
     FunnelSimple,
     MagnifyingGlass,
+    ChatsCircle,
 } from "@phosphor-icons/react";
 
 interface ChatHistory {
@@ -71,7 +72,6 @@ interface ChatHistory {
     compressed: boolean;
     created: string;
     updated: string;
-    showSidePanel: (isEnabled: boolean) => void;
 }
 
 import {
@@ -106,6 +106,15 @@ import { KhojLogoType } from "@/app/components/logo/khojLogo";
 import NavMenu from "@/app/components/navMenu/navMenu";
 import { getIconFromIconName } from "@/app/common/iconUtils";
 import LoginPrompt from "../loginPrompt/loginPrompt";
+import {
+    SidebarGroup,
+    SidebarGroupLabel,
+    SidebarMenu,
+    SidebarMenuAction,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    SidebarMenuSkeleton,
+} from "@/components/ui/sidebar";
 
 // Define a fetcher function
 const fetcher = (url: string) =>
@@ -403,7 +412,6 @@ function FilesMenu(props: FilesMenuProps) {
 }
 
 interface SessionsAndFilesProps {
-    setEnabled: (enabled: boolean) => void;
     subsetOrganizedData: GroupedChatHistory | null;
     organizedData: GroupedChatHistory | null;
     data: ChatHistory[] | null;
@@ -411,32 +419,28 @@ interface SessionsAndFilesProps {
     conversationId: string | null;
     uploadedFiles: string[];
     isMobileWidth: boolean;
+    sideBarOpen: boolean;
 }
 
 function SessionsAndFiles(props: SessionsAndFilesProps) {
     return (
-        <>
-            <div>
-                {props.data && props.data.length > 5 && (
-                    <ChatSessionsModal
-                        data={props.organizedData}
-                        showSidePanel={props.setEnabled}
-                    />
-                )}
+        <div>
+            {props.data && props.data.length > 5 && (
+                <ChatSessionsModal data={props.organizedData} sideBarOpen={props.sideBarOpen} />
+            )}
+            {props.sideBarOpen && (
                 <ScrollArea>
                     <ScrollAreaScrollbar
                         orientation="vertical"
                         className="h-full w-2.5 border-l border-l-transparent p-[1px]"
                     />
-                    <div className={styles.sessionsList}>
+                    <div className="p-0 m-0">
                         {props.subsetOrganizedData != null &&
                             Object.keys(props.subsetOrganizedData)
                                 .filter((tg) => tg !== "All Time")
                                 .map((timeGrouping) => (
-                                    <div key={timeGrouping} className={`my-4`}>
-                                        <div
-                                            className={`text-muted-foreground text-sm font-bold p-[0.5rem]`}
-                                        >
+                                    <div key={timeGrouping} className={`my-1`}>
+                                        <div className={`text-muted-foreground text-xs p-[0.5rem]`}>
                                             {timeGrouping}
                                         </div>
                                         {props.subsetOrganizedData &&
@@ -454,7 +458,6 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                                                         agent_name={chatHistory.agent_name}
                                                         agent_color={chatHistory.agent_color}
                                                         agent_icon={chatHistory.agent_icon}
-                                                        showSidePanel={props.setEnabled}
                                                     />
                                                 ),
                                             )}
@@ -462,13 +465,8 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                                 ))}
                     </div>
                 </ScrollArea>
-            </div>
-            <FilesMenu
-                conversationId={props.conversationId}
-                uploadedFiles={props.uploadedFiles}
-                isMobileWidth={props.isMobileWidth}
-            />
-        </>
+            )}
+        </div>
     );
 }
 
@@ -638,41 +636,37 @@ export function ChatSessionActionMenu(props: ChatSessionActionMenuProps) {
                 </Button>
             )}
             <DropdownMenu onOpenChange={(open) => setIsOpen(open)} open={isOpen}>
-                <DropdownMenuTrigger>
-                    <DotsThreeVertical className={`${size}`} />
+                <DropdownMenuTrigger asChild>
+                    {props.sizing === "lg" || props.sizing === "md" ? (
+                        <Button className="p-0 text-sm h-auto" variant={"ghost"}>
+                            <DotsThreeVertical className={`${size}`} />
+                        </Button>
+                    ) : (
+                        <SidebarMenuAction asChild>
+                            <DotsThreeVertical className={`${size}`} />
+                        </SidebarMenuAction>
+                    )}
                 </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                    <DropdownMenuItem>
-                        <Button
-                            className="p-0 text-sm h-auto"
-                            variant={"ghost"}
-                            onClick={() => setIsRenaming(true)}
-                        >
+                <DropdownMenuContent side="right" align="start">
+                    <DropdownMenuItem onClick={() => setIsRenaming(true)}>
+                        <span className="flex items-center">
                             <Pencil className={`mr-2 ${size}`} />
                             Rename
-                        </Button>
+                        </span>
                     </DropdownMenuItem>
                     {props.sizing === "sm" && (
-                        <DropdownMenuItem>
-                            <Button
-                                className="p-0 text-sm h-auto"
-                                variant={"ghost"}
-                                onClick={() => setIsSharing(true)}
-                            >
+                        <DropdownMenuItem onClick={() => setIsSharing(true)}>
+                            <span className="flex items-center">
                                 <Share className={`mr-2 ${size}`} />
                                 Share
-                            </Button>
+                            </span>
                         </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem>
-                        <Button
-                            className="p-0 text-sm h-auto text-rose-300 hover:text-rose-400"
-                            variant={"ghost"}
-                            onClick={() => setIsDeleting(true)}
-                        >
+                    <DropdownMenuItem onClick={() => setIsDeleting(true)}>
+                        <span className="flex items-center">
                             <Trash className={`mr-2 ${size}`} />
                             Delete
-                        </Button>
+                        </span>
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
@@ -686,30 +680,36 @@ function ChatSession(props: ChatHistory) {
     var currConversationId =
         new URLSearchParams(window.location.search).get("conversationId") || "-1";
     return (
-        <div
+        <SidebarMenuItem
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             key={props.conversation_id}
             className={`${styles.session} ${props.compressed ? styles.compressed : "!max-w-full"} ${isHovered ? `${styles.sessionHover}` : ""} ${currConversationId === props.conversation_id && currConversationId != "-1" ? "dark:bg-neutral-800 bg-white" : ""}`}
         >
-            <Link
-                href={`/chat?conversationId=${props.conversation_id}`}
-                onClick={() => props.showSidePanel(false)}
-            >
-                <p className={styles.session}>{title}</p>
-            </Link>
+            <SidebarMenuButton asChild>
+                <Link
+                    href={`/chat?conversationId=${props.conversation_id}`}
+                    className="flex items-center gap-2 no-underline"
+                >
+                    <p
+                        className={`${styles.session} ${props.compressed ? styles.compressed : styles.expanded}`}
+                    >
+                        {title}
+                    </p>
+                </Link>
+            </SidebarMenuButton>
             <ChatSessionActionMenu
                 conversationId={props.conversation_id}
                 setTitle={setTitle}
                 sizing="sm"
             />
-        </div>
+        </SidebarMenuItem>
     );
 }
 
 interface ChatSessionsModalProps {
     data: GroupedChatHistory | null;
-    showSidePanel: (isEnabled: boolean) => void;
+    sideBarOpen: boolean;
 }
 
 interface AgentStyle {
@@ -717,7 +717,7 @@ interface AgentStyle {
     icon: string;
 }
 
-function ChatSessionsModal({ data, showSidePanel }: ChatSessionsModalProps) {
+function ChatSessionsModal({ data, sideBarOpen }: ChatSessionsModalProps) {
     const [agentsFilter, setAgentsFilter] = useState<string[]>([]);
     const [agentOptions, setAgentOptions] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState<string>("");
@@ -786,10 +786,12 @@ function ChatSessionsModal({ data, showSidePanel }: ChatSessionsModalProps) {
 
     return (
         <Dialog>
-            <DialogTrigger className="flex text-left text-medium text-gray-500 hover:text-gray-300 cursor-pointer my-1 text-sm p-[0.1rem]">
+            <DialogTrigger
+                className={`flex text-left text-medium text-gray-500 hover:text-gray-300 cursor-pointer my-1 text-sm ${sideBarOpen ? "p-[0.5rem] " : "p-[0.1rem]"}`}
+            >
                 <span className="flex items-center gap-1">
-                    <MagnifyingGlass className="inline h-4 w-4 mr-1" weight="bold" /> Find
-                    Conversation
+                    <ChatsCircle className="inline h-4 w-4 mr-1" />
+                    {sideBarOpen ? "Find Conversation" : ""}
                 </span>
             </DialogTrigger>
             <DialogContent>
@@ -814,7 +816,6 @@ function ChatSessionsModal({ data, showSidePanel }: ChatSessionsModalProps) {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent>
-                                    {/* <ScrollArea className="h-[200px]"> */}
                                     <DropdownMenuLabel>Agents</DropdownMenuLabel>
                                     <DropdownMenuSeparator />
                                     {agentOptions.map((agent) => (
@@ -841,7 +842,6 @@ function ChatSessionsModal({ data, showSidePanel }: ChatSessionsModalProps) {
                                             </div>
                                         </DropdownMenuCheckboxItem>
                                     ))}
-                                    {/* </ScrollArea> */}
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </div>
@@ -865,7 +865,6 @@ function ChatSessionsModal({ data, showSidePanel }: ChatSessionsModalProps) {
                                                 agent_name={chatHistory.agent_name}
                                                 agent_color={chatHistory.agent_color}
                                                 agent_icon={chatHistory.agent_icon}
-                                                showSidePanel={showSidePanel}
                                             />
                                         ))}
                                     </div>
@@ -902,17 +901,17 @@ interface SidePanelProps {
     conversationId: string | null;
     uploadedFiles: string[];
     isMobileWidth: boolean;
+    sideBarOpen: boolean;
 }
 
-export default function SidePanel(props: SidePanelProps) {
+export default function AllConversations(props: SidePanelProps) {
     const [data, setData] = useState<ChatHistory[] | null>(null);
     const [organizedData, setOrganizedData] = useState<GroupedChatHistory | null>(null);
     const [subsetOrganizedData, setSubsetOrganizedData] = useState<GroupedChatHistory | null>(null);
-    const [enabled, setEnabled] = useState(false);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
     const authenticatedData = useAuthenticatedData();
-    const { data: chatSessions } = useChatSessionsFetchRequest(
+    const { data: chatSessions, isLoading } = useChatSessionsFetchRequest(
         authenticatedData ? `/api/chat/sessions` : "",
     );
 
@@ -953,135 +952,49 @@ export default function SidePanel(props: SidePanelProps) {
         }
     }, [chatSessions]);
 
+    if (isLoading) {
+        return (
+            <SidebarGroup className="p-0 m-0">
+                <SidebarGroupLabel className="!p-0 m-0 px-0">Conversations</SidebarGroupLabel>
+                {Array.from({ length: 5 }).map((_, index) => (
+                    <SidebarMenuItem key={index} className="p-0 list-none m-0">
+                        <SidebarMenuSkeleton showIcon />
+                    </SidebarMenuItem>
+                ))}
+            </SidebarGroup>
+        );
+    }
+
     return (
-        <div
-            className={`${styles.panel} ${enabled ? styles.expanded : styles.collapsed} ${props.isMobileWidth ? "mt-0" : "mt-1"}`}
-        >
-            {showLoginPrompt && (
-                <LoginPrompt
-                    loginRedirectMessage="Sign in to start chatting"
-                    onOpenChange={setShowLoginPrompt}
-                    isMobileWidth={props.isMobileWidth}
-                />
-            )}
-            <div className={`flex justify-between flex-row`}>
-                {props.isMobileWidth ? (
-                    <Drawer
-                        open={enabled}
-                        onOpenChange={(open) => {
-                            if (!enabled) setEnabled(false);
-                            setEnabled(open);
-                        }}
-                    >
-                        <DrawerTrigger>
-                            <Sidebar className="h-6 w-6 mx-2" weight="thin" />
-                        </DrawerTrigger>
-                        <DrawerContent>
-                            <DrawerHeader>
-                                <DrawerTitle>Sessions and Files</DrawerTitle>
-                                <DrawerDescription>
-                                    View all conversation sessions and manage conversation file
-                                    filters
-                                </DrawerDescription>
-                            </DrawerHeader>
-                            {authenticatedData ? (
-                                <div className={`${styles.panelWrapper}`}>
-                                    <SessionsAndFiles
-                                        setEnabled={setEnabled}
-                                        subsetOrganizedData={subsetOrganizedData}
-                                        organizedData={organizedData}
-                                        data={data}
-                                        uploadedFiles={props.uploadedFiles}
-                                        userProfile={authenticatedData}
-                                        conversationId={props.conversationId}
-                                        isMobileWidth={props.isMobileWidth}
-                                    />
-                                </div>
-                            ) : (
-                                <div className={`${styles.panelWrapper}`}>
-                                    {" "}
-                                    {/* Redirect to login page */}
-                                    <Button
-                                        variant="default"
-                                        onClick={() => setShowLoginPrompt(true)}
-                                    >
-                                        <UserCirclePlus className="h-4 w-4 mr-1" />
-                                        Sign Up
-                                    </Button>
-                                </div>
-                            )}
-                            <DrawerFooter>
-                                <DrawerClose>
-                                    <Button variant="outline">Done</Button>
-                                </DrawerClose>
-                            </DrawerFooter>
-                        </DrawerContent>
-                    </Drawer>
-                ) : (
-                    <div className={`grid grid-flow-col gap-4 w-fit`}>
-                        <Link href="/" className="content-center">
-                            <KhojLogoType />
-                        </Link>
-                        <div className="grid grid-flow-col gap-2 items-center">
-                            <Link className="mx-4" href="/">
-                                {enabled ? (
-                                    <NotePencil className="h-6 w-6" weight="fill" />
-                                ) : (
-                                    <NotePencil className="h-6 w-6" color="gray" />
-                                )}
-                            </Link>
-                            <button className={styles.button} onClick={() => setEnabled(!enabled)}>
-                                {enabled ? (
-                                    <Sidebar className="h-6 w-6" weight="fill" />
-                                ) : (
-                                    <Sidebar className="h-6 w-6" color="gray" />
-                                )}
-                            </button>
+        <SidebarGroup>
+            <SidebarGroupLabel className="!p-0 m-0 px-0">Conversations</SidebarGroupLabel>
+            <div className={`flex justify-between flex-col`}>
+                {authenticatedData && (
+                    <>
+                        <div
+                            className={`${props.sideBarOpen ? "border-l-2 border-light-blue-500 border-opacity-25 " : ""}`}
+                        >
+                            <SessionsAndFiles
+                                subsetOrganizedData={subsetOrganizedData}
+                                organizedData={organizedData}
+                                data={data}
+                                uploadedFiles={props.uploadedFiles}
+                                userProfile={authenticatedData}
+                                conversationId={props.conversationId}
+                                isMobileWidth={props.isMobileWidth}
+                                sideBarOpen={props.sideBarOpen}
+                            />
                         </div>
-                        <div className="fixed right-0 top-[0.9rem] w-fit h-fit">
-                            <NavMenu />
-                        </div>
-                    </div>
+                        {props.sideBarOpen && (
+                            <FilesMenu
+                                conversationId={props.conversationId}
+                                uploadedFiles={props.uploadedFiles}
+                                isMobileWidth={props.isMobileWidth}
+                            />
+                        )}
+                    </>
                 )}
-                {props.isMobileWidth && (
-                    <Link href="/" className="content-center h-fit self-center">
-                        <KhojLogoType />
-                    </Link>
-                )}
-                {props.isMobileWidth && <NavMenu />}
             </div>
-            {authenticatedData && !props.isMobileWidth && enabled && (
-                <div className={`${styles.panelWrapper}`}>
-                    <SessionsAndFiles
-                        setEnabled={setEnabled}
-                        subsetOrganizedData={subsetOrganizedData}
-                        organizedData={organizedData}
-                        data={data}
-                        uploadedFiles={props.uploadedFiles}
-                        userProfile={authenticatedData}
-                        conversationId={props.conversationId}
-                        isMobileWidth={props.isMobileWidth}
-                    />
-                </div>
-            )}
-            {!authenticatedData && enabled && !props.isMobileWidth && (
-                <div className={`${styles.panelWrapper}`}>
-                    <Link href="/" className="flex flex-col content-start items-start no-underline">
-                        <Button variant="ghost">
-                            <House className="h-4 w-4 mr-1" />
-                            Home
-                        </Button>
-                        <Button variant="ghost">
-                            <StackPlus className="h-4 w-4 mr-1" />
-                            New Conversation
-                        </Button>
-                    </Link>{" "}
-                    <Button variant="default" onClick={() => setShowLoginPrompt(true)}>
-                        <UserCirclePlus className="h-4 w-4 mr-1" />
-                        Sign Up
-                    </Button>
-                </div>
-            )}
-        </div>
+        </SidebarGroup>
     );
 }

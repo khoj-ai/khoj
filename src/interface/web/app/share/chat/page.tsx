@@ -3,7 +3,6 @@
 import styles from "./sharedChat.module.css";
 import React, { Suspense, useEffect, useRef, useState } from "react";
 
-import SidePanel from "../../components/sidePanel/chatHistorySidePanel";
 import ChatHistory from "../../components/chatHistory/chatHistory";
 import Loading from "../../components/loading/loading";
 
@@ -19,6 +18,10 @@ import {
 } from "@/app/components/chatInputArea/chatInputArea";
 import { StreamMessage } from "@/app/components/chatMessage/chatMessage";
 import { AgentData } from "@/app/agents/page";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/app/components/appSidebar/appSidebar";
+import { Separator } from "@/components/ui/separator";
+import { KhojLogoType } from "@/app/components/logo/khojLogo";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -89,7 +92,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 />
             </div>
             <div
-                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-t-2xl rounded-b-none md:rounded-xl h-fit ${chatHistoryCustomClassName} mr-auto ml-auto`}
+                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-2xl md:rounded-xl h-fit ${chatHistoryCustomClassName} mr-auto ml-auto`}
             >
                 <ChatInputArea
                     isLoggedIn={props.isLoggedIn}
@@ -184,47 +187,54 @@ export default function SharedChat() {
     }
 
     return (
-        <div className={`${styles.main} ${styles.chatLayout}`}>
-            <title>{title}</title>
-            <div className={styles.sidePanel}>
-                <SidePanel
-                    conversationId={conversationId ?? null}
-                    uploadedFiles={[]}
-                    isMobileWidth={isMobileWidth}
-                />
-            </div>
-
-            <div className={styles.chatBox}>
-                <div className={styles.chatBoxBody}>
-                    {!isMobileWidth && title && (
+        <SidebarProvider>
+            <AppSidebar conversationId={conversationId || ""} />
+            <SidebarInset>
+                <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+                    <SidebarTrigger className="-ml-1" />
+                    <Separator orientation="vertical" className="mr-2 h-4" />
+                    {paramSlug && (
                         <div
-                            className={`${styles.chatTitleWrapper} text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mr-8 pt-6 col-auto h-fit`}
+                            className={`${styles.chatTitleWrapper} text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mx-2 md:mr-8 col-auto h-fit`}
                         >
-                            {title && (
-                                <h2
-                                    className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden`}
-                                >
-                                    {title}
-                                </h2>
+                            {isMobileWidth ? (
+                                <KhojLogoType className="h-auto w-16" />
+                            ) : (
+                                title && (
+                                    <>
+                                        <h2
+                                            className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden mr-4`}
+                                        >
+                                            {title}
+                                        </h2>
+                                    </>
+                                )
                             )}
                         </div>
                     )}
-                    <Suspense fallback={<Loading />}>
-                        <ChatBodyData
-                            conversationId={conversationId}
-                            streamedMessages={messages}
-                            setQueryToProcess={setQueryToProcess}
-                            isLoggedIn={authenticatedData !== null}
-                            publicConversationSlug={paramSlug}
-                            chatOptionsData={chatOptionsData}
-                            setTitle={setTitle}
-                            setUploadedFiles={setUploadedFiles}
-                            isMobileWidth={isMobileWidth}
-                            setImages={setImages}
-                        />
-                    </Suspense>
+                </header>
+                <div className={`${styles.main} ${styles.chatLayout}`}>
+                    <title>{title}</title>
+                    <div className={styles.chatBox}>
+                        <div className={styles.chatBoxBody}>
+                            <Suspense fallback={<Loading />}>
+                                <ChatBodyData
+                                    conversationId={conversationId}
+                                    streamedMessages={messages}
+                                    setQueryToProcess={setQueryToProcess}
+                                    isLoggedIn={authenticatedData !== null}
+                                    publicConversationSlug={paramSlug}
+                                    chatOptionsData={chatOptionsData}
+                                    setTitle={setTitle}
+                                    setUploadedFiles={setUploadedFiles}
+                                    isMobileWidth={isMobileWidth}
+                                    setImages={setImages}
+                                />
+                            </Suspense>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </SidebarInset>
+        </SidebarProvider>
     );
 }

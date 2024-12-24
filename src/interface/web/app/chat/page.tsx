@@ -3,7 +3,6 @@
 import styles from "./chat.module.css";
 import React, { Suspense, useEffect, useRef, useState } from "react";
 
-import SidePanel, { ChatSessionActionMenu } from "../components/sidePanel/chatHistorySidePanel";
 import ChatHistory from "../components/chatHistory/chatHistory";
 import { useSearchParams } from "next/navigation";
 import Loading from "../components/loading/loading";
@@ -26,6 +25,11 @@ import {
 } from "../components/chatInputArea/chatInputArea";
 import { useAuthenticatedData } from "../common/auth";
 import { AgentData } from "../agents/page";
+import { ChatSessionActionMenu } from "../components/allConversations/allConversations";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "../components/appSidebar/appSidebar";
+import { Separator } from "@/components/ui/separator";
+import { KhojLogoType } from "../components/logo/khojLogo";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -147,7 +151,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 />
             </div>
             <div
-                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-t-2xl rounded-b-none md:rounded-xl h-fit ${chatHistoryCustomClassName} mr-auto ml-auto`}
+                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-2xl md:rounded-xl h-fit ${chatHistoryCustomClassName} mr-auto ml-auto`}
             >
                 <ChatInputArea
                     agentColor={agentMetadata?.color}
@@ -382,54 +386,62 @@ export default function Chat() {
     if (isLoading) return <Loading />;
 
     return (
-        <div className={`${styles.main} ${styles.chatLayout}`}>
-            <title>
-                {`${defaultTitle}${!!title && title !== defaultTitle ? `: ${title}` : ""}`}
-            </title>
-            <div className={isMobileWidth ? "h-1" : "h-auto"}>
-                <SidePanel
-                    conversationId={conversationId}
-                    uploadedFiles={[]}
-                    isMobileWidth={isMobileWidth}
-                />
-            </div>
-            <div className={styles.chatBox}>
-                <div className={styles.chatBoxBody}>
+        <SidebarProvider>
+            <AppSidebar conversationId={conversationId || ""} />
+            <SidebarInset>
+                <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+                    <SidebarTrigger className="-ml-1" />
+                    <Separator orientation="vertical" className="mr-2 h-4" />
                     {conversationId && (
                         <div
-                            className={`${styles.chatTitleWrapper} text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mx-2 md:mr-8 md:pt-6 col-auto h-fit`}
+                            className={`${styles.chatTitleWrapper} text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mx-2 md:mr-8 col-auto h-fit`}
                         >
-                            {title && (
-                                <h2
-                                    className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden`}
-                                >
-                                    {title}
-                                </h2>
+                            {isMobileWidth ? (
+                                <KhojLogoType className="h-auto w-16" />
+                            ) : (
+                                title && (
+                                    <>
+                                        <h2
+                                            className={`text-lg text-ellipsis whitespace-nowrap overflow-x-hidden mr-4`}
+                                        >
+                                            {title}
+                                        </h2>
+                                        <ChatSessionActionMenu
+                                            conversationId={conversationId}
+                                            setTitle={setTitle}
+                                            sizing={"md"}
+                                        />
+                                    </>
+                                )
                             )}
-                            <ChatSessionActionMenu
-                                conversationId={conversationId}
-                                setTitle={setTitle}
-                                sizing={isMobileWidth ? "sm" : "md"}
-                            />
                         </div>
                     )}
-                    <Suspense fallback={<Loading />}>
-                        <ChatBodyData
-                            isLoggedIn={authenticatedData !== null}
-                            streamedMessages={messages}
-                            setStreamedMessages={setMessages}
-                            chatOptionsData={chatOptionsData}
-                            setTitle={setTitle}
-                            setQueryToProcess={setQueryToProcess}
-                            setUploadedFiles={setUploadedFiles}
-                            isMobileWidth={isMobileWidth}
-                            onConversationIdChange={handleConversationIdChange}
-                            setImages={setImages}
-                            setTriggeredAbort={setTriggeredAbort}
-                        />
-                    </Suspense>
+                </header>
+                <div className={`${styles.main} ${styles.chatLayout}`}>
+                    <title>
+                        {`${defaultTitle}${!!title && title !== defaultTitle ? `: ${title}` : ""}`}
+                    </title>
+                    <div className={styles.chatBox}>
+                        <div className={styles.chatBoxBody}>
+                            <Suspense fallback={<Loading />}>
+                                <ChatBodyData
+                                    isLoggedIn={authenticatedData !== null}
+                                    streamedMessages={messages}
+                                    setStreamedMessages={setMessages}
+                                    chatOptionsData={chatOptionsData}
+                                    setTitle={setTitle}
+                                    setQueryToProcess={setQueryToProcess}
+                                    setUploadedFiles={setUploadedFiles}
+                                    isMobileWidth={isMobileWidth}
+                                    onConversationIdChange={handleConversationIdChange}
+                                    setImages={setImages}
+                                    setTriggeredAbort={setTriggeredAbort}
+                                />
+                            </Suspense>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </SidebarInset>
+        </SidebarProvider>
     );
 }

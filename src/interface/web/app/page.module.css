@@ -1,6 +1,8 @@
 div.main {
-    height: 100dvh;
+    height: 100%;
     color: hsla(var(--foreground));
+    margin-left: auto;
+    margin-right: auto;
 }
 
 div.suggestions {
@@ -84,17 +86,7 @@ div.homeGreetings {
     grid-template-rows: 1fr 2fr;
 }
 
-div.sidePanel {
-    position: fixed;
-    height: 100%;
-    z-index: 1;
-}
-
 @media screen and (max-width: 768px) {
-    div.inputBox {
-        margin-bottom: 0px;
-    }
-
     div.chatBody {
         grid-template-columns: 0fr 1fr;
     }
@@ -104,13 +96,9 @@ div.sidePanel {
         grid-template-rows: auto;
     }
 
-    div.sidePanel {
-        position: relative;
-    }
-
     div.chatBox {
         padding: 0;
-        height: 100%;
+        height: 100vh;
     }
 
     div.chatLayout {
