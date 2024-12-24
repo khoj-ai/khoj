@@ -652,6 +652,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
     };
 
     const handleSubmit = (values: any) => {
+        console.log("Submitting", values);
         props.onSubmit(values);
         setIsSaving(true);
     };
@@ -1335,6 +1336,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                         type="submit"
                         variant={"outline"}
                         disabled={isSaving}
+                        onClick={props.form.handleSubmit(handleSubmit)}
                         className={`items-center ${isSaving ? "bg-stone-100 dark:bg-neutral-900" : ""} text-white ${colorOptionClassName}`}
                     >
                         <FloppyDisk className="h-4 w-4 mr-2" />
