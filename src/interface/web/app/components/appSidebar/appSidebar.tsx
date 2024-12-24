@@ -1,18 +1,14 @@
-import { Calendar, Home, Inbox, Search, Settings } from "lucide-react";
-
 import {
     Sidebar,
     SidebarContent,
     SidebarFooter,
     SidebarGroup,
     SidebarGroupContent,
-    SidebarGroupLabel,
     SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import Link from "next/link";
 import {
     KhojAgentLogo,
     KhojAutomationLogo,
@@ -21,12 +17,15 @@ import {
     KhojSearchLogo,
 } from "../logo/khojLogo";
 import { Gear } from "@phosphor-icons/react/dist/ssr";
-import { House, Plus } from "@phosphor-icons/react";
+import { Plus } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
-import { useAuthenticatedData } from "@/app/common/auth";
 import AllConversations from "../allConversations/allConversations";
-import NavMenu from "../navMenu/navMenu";
+import FooterMenu from "../navMenu/navMenu";
 import { useSidebar } from "@/components/ui/sidebar";
+import { useIsMobileWidth } from "@/app/common/utils";
+import { UserPlusIcon } from "lucide-react";
+import { useAuthenticatedData } from "@/app/common/auth";
+import LoginPrompt from "../loginPrompt/loginPrompt";
 
 // Menu items.
 const items = [
@@ -66,23 +65,22 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar(props: AppSidebarProps) {
-    const [isMobileWidth, setIsMobileWidth] = useState(false);
+    const isMobileWidth = useIsMobileWidth();
+    const { data, isLoading, error } = useAuthenticatedData();
 
     const { state, open, setOpen, openMobile, setOpenMobile, isMobile, toggleSidebar } =
         useSidebar();
 
-    useEffect(() => {
-        const handleResize = () => {
-            setIsMobileWidth(window.innerWidth < 768);
-        };
+    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
-        handleResize();
-        window.addEventListener("resize", handleResize);
-        return () => window.removeEventListener("resize", handleResize);
-    }, []);
+    useEffect(() => {
+        if (!isLoading && !data) {
+            setShowLoginPrompt(true);
+        }
+    }, [isLoading, data]);
 
     return (
-        <Sidebar collapsible={"icon"} variant="sidebar">
+        <Sidebar collapsible={"icon"} variant="sidebar" className="md:py-2">
             <SidebarHeader>
                 <SidebarMenu className="p-0 m-0">
                     <SidebarMenuItem className="p-0 m-0">
@@ -96,7 +94,6 @@ export function AppSidebar(props: AppSidebarProps) {
                             <SidebarMenuButton asChild>
                                 <a className="flex items-center gap-2 no-underline" href="/">
                                     <KhojLogo className="w-14 h-auto" />
-                                    <span className="text-lg">Khoj</span>
                                 </a>
                             </SidebarMenuButton>
                         )}
@@ -104,9 +101,29 @@ export function AppSidebar(props: AppSidebarProps) {
                 </SidebarMenu>
             </SidebarHeader>
             <SidebarContent>
+                {showLoginPrompt && (
+                    <LoginPrompt
+                        onOpenChange={(isOpen) => setShowLoginPrompt(isOpen)}
+                        isMobileWidth={isMobileWidth}
+                    />
+                )}
                 <SidebarGroup>
                     <SidebarGroupContent>
                         <SidebarMenu className="p-0 m-0">
+                            {!isLoading && !data && (
+                                <SidebarMenuItem className="p-0 m-0 list-none">
+                                    <SidebarMenuButton
+                                        asChild
+                                        variant={"default"}
+                                        onClick={() => setShowLoginPrompt(true)}
+                                    >
+                                        <div>
+                                            <UserPlusIcon />
+                                            <span>Sign up to get started</span>
+                                        </div>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            )}
                             {items.map((item) => (
                                 <SidebarMenuItem key={item.title} className="p-0 list-none m-0">
                                     <SidebarMenuButton asChild>
@@ -131,7 +148,7 @@ export function AppSidebar(props: AppSidebarProps) {
                 </SidebarGroup>
             </SidebarContent>
             <SidebarFooter>
-                <NavMenu sideBarIsOpen={open} />
+                <FooterMenu sideBarIsOpen={open} />
             </SidebarFooter>
         </Sidebar>
     );

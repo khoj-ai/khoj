@@ -140,11 +140,14 @@ function CreateAgentCard(props: CreateAgentCardProps) {
                     Create Agent
                 </div>
             </DialogTrigger>
-            <DialogContent className={"lg:max-w-screen-lg overflow-y-scroll max-h-screen"}>
+            <DialogContent
+                className={
+                    "lg:max-w-screen-lg py-4 overflow-y-scroll h-full md:h-4/6 rounded-lg flex flex-col"
+                }
+            >
                 <DialogHeader>Create Agent</DialogHeader>
                 {!props.userProfile && showLoginPrompt && (
                     <LoginPrompt
-                        loginRedirectMessage="Sign in to start chatting with a specialized agent"
                         onOpenChange={setShowLoginPrompt}
                         isMobileWidth={props.isMobileWidth}
                     />
@@ -174,7 +177,11 @@ export default function Agents() {
     const { data, error, mutate } = useSWR<AgentData[]>("agents", agentsFetcher, {
         revalidateOnFocus: false,
     });
-    const authenticatedData = useAuthenticatedData();
+    const {
+        data: authenticatedData,
+        error: authenticationError,
+        isLoading: authenticationLoading,
+    } = useAuthenticatedData();
     const { userConfig } = useUserConfig(true);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
     const isMobileWidth = useIsMobileWidth();
@@ -310,7 +317,11 @@ export default function Agents() {
                                             input_tools: [],
                                             output_modes: [],
                                         }}
-                                        userProfile={authenticatedData}
+                                        userProfile={
+                                            authenticationLoading
+                                                ? null
+                                                : (authenticatedData ?? null)
+                                        }
                                         isMobileWidth={isMobileWidth}
                                         filesOptions={filesData || []}
                                         modelOptions={userConfig?.chat_model_options || []}
@@ -328,7 +339,6 @@ export default function Agents() {
                             </div>
                             {showLoginPrompt && (
                                 <LoginPrompt
-                                    loginRedirectMessage="Sign in to start chatting with a specialized agent"
                                     onOpenChange={setShowLoginPrompt}
                                     isMobileWidth={isMobileWidth}
                                 />
@@ -345,53 +355,59 @@ export default function Agents() {
                             </Alert>
                             <div className="pt-6 md:pt-8">
                                 <div className={`${styles.agentList}`}>
-                                    {personalAgents.map((agent) => (
-                                        <AgentCard
-                                            key={agent.slug}
-                                            data={agent}
-                                            userProfile={authenticatedData}
-                                            isMobileWidth={isMobileWidth}
-                                            filesOptions={filesData ?? []}
-                                            selectedChatModelOption={defaultModelOption?.name || ""}
-                                            isSubscribed={isSubscribed}
-                                            setAgentChangeTriggered={setAgentChangeTriggered}
-                                            modelOptions={userConfig?.chat_model_options || []}
-                                            editCard={true}
-                                            agentSlug={agentSlug || ""}
-                                            inputToolOptions={
-                                                agentConfigurationOptions?.input_tools || {}
-                                            }
-                                            outputModeOptions={
-                                                agentConfigurationOptions?.output_modes || {}
-                                            }
-                                        />
-                                    ))}
+                                    {authenticatedData &&
+                                        personalAgents.map((agent) => (
+                                            <AgentCard
+                                                key={agent.slug}
+                                                data={agent}
+                                                userProfile={authenticatedData}
+                                                isMobileWidth={isMobileWidth}
+                                                filesOptions={filesData ?? []}
+                                                selectedChatModelOption={
+                                                    defaultModelOption?.name || ""
+                                                }
+                                                isSubscribed={isSubscribed}
+                                                setAgentChangeTriggered={setAgentChangeTriggered}
+                                                modelOptions={userConfig?.chat_model_options || []}
+                                                editCard={true}
+                                                agentSlug={agentSlug || ""}
+                                                inputToolOptions={
+                                                    agentConfigurationOptions?.input_tools || {}
+                                                }
+                                                outputModeOptions={
+                                                    agentConfigurationOptions?.output_modes || {}
+                                                }
+                                            />
+                                        ))}
                                 </div>
                             </div>
                             <div className="pt-6 md:pt-8">
                                 <h2 className="text-2xl">Explore</h2>
                                 <div className={`${styles.agentList}`}>
-                                    {publicAgents.map((agent) => (
-                                        <AgentCard
-                                            key={agent.slug}
-                                            data={agent}
-                                            userProfile={authenticatedData}
-                                            isMobileWidth={isMobileWidth}
-                                            editCard={false}
-                                            filesOptions={filesData ?? []}
-                                            selectedChatModelOption={defaultModelOption?.name || ""}
-                                            isSubscribed={isSubscribed}
-                                            setAgentChangeTriggered={setAgentChangeTriggered}
-                                            modelOptions={userConfig?.chat_model_options || []}
-                                            agentSlug={agentSlug || ""}
-                                            inputToolOptions={
-                                                agentConfigurationOptions?.input_tools || {}
-                                            }
-                                            outputModeOptions={
-                                                agentConfigurationOptions?.output_modes || {}
-                                            }
-                                        />
-                                    ))}
+                                    {!authenticationLoading &&
+                                        publicAgents.map((agent) => (
+                                            <AgentCard
+                                                key={agent.slug}
+                                                data={agent}
+                                                userProfile={authenticatedData || null}
+                                                isMobileWidth={isMobileWidth}
+                                                editCard={false}
+                                                filesOptions={filesData ?? []}
+                                                selectedChatModelOption={
+                                                    defaultModelOption?.name || ""
+                                                }
+                                                isSubscribed={isSubscribed}
+                                                setAgentChangeTriggered={setAgentChangeTriggered}
+                                                modelOptions={userConfig?.chat_model_options || []}
+                                                agentSlug={agentSlug || ""}
+                                                inputToolOptions={
+                                                    agentConfigurationOptions?.input_tools || {}
+                                                }
+                                                outputModeOptions={
+                                                    agentConfigurationOptions?.output_modes || {}
+                                                }
+                                            />
+                                        ))}
                                 </div>
                             </div>
                         </div>

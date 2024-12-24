@@ -980,7 +980,11 @@ function AutomationComponentWrapper(props: AutomationComponentWrapperProps) {
 }
 
 export default function Automations() {
-    const authenticatedData = useAuthenticatedData();
+    const {
+        data: authenticatedData,
+        error: authenticationError,
+        isLoading: authenticationLoading,
+    } = useAuthenticatedData();
     const {
         data: personalAutomations,
         error,
@@ -1068,9 +1072,6 @@ export default function Automations() {
                             </div>
                             {showLoginPrompt && (
                                 <LoginPrompt
-                                    loginRedirectMessage={
-                                        "Create an account to make your own automation"
-                                    }
                                     onOpenChange={setShowLoginPrompt}
                                     isMobileWidth={isMobileWidth}
                                 />
@@ -1114,7 +1115,7 @@ export default function Automations() {
                             <Suspense>
                                 <SharedAutomationCard
                                     isMobileWidth={isMobileWidth}
-                                    authenticatedData={authenticatedData}
+                                    authenticatedData={authenticatedData || null}
                                     locationData={locationData}
                                     isLoggedIn={authenticatedData ? true : false}
                                     setShowLoginPrompt={setShowLoginPrompt}
@@ -1123,7 +1124,8 @@ export default function Automations() {
                             </Suspense>
                             {isLoading && <InlineLoading message="booting up your automations" />}
                             <div className={`${styles.automationsLayout}`}>
-                                {personalAutomations &&
+                                {authenticatedData &&
+                                    personalAutomations &&
                                     personalAutomations.map((automation) => (
                                         <AutomationsCard
                                             isMobileWidth={isMobileWidth}
@@ -1135,17 +1137,18 @@ export default function Automations() {
                                             setShowLoginPrompt={setShowLoginPrompt}
                                         />
                                     ))}
-                                {allNewAutomations.map((automation) => (
-                                    <AutomationsCard
-                                        isMobileWidth={isMobileWidth}
-                                        key={automation.id}
-                                        authenticatedData={authenticatedData}
-                                        automation={automation}
-                                        locationData={locationData}
-                                        isLoggedIn={authenticatedData ? true : false}
-                                        setShowLoginPrompt={setShowLoginPrompt}
-                                    />
-                                ))}
+                                {authenticatedData &&
+                                    allNewAutomations.map((automation) => (
+                                        <AutomationsCard
+                                            isMobileWidth={isMobileWidth}
+                                            key={automation.id}
+                                            authenticatedData={authenticatedData}
+                                            automation={automation}
+                                            locationData={locationData}
+                                            isLoggedIn={authenticatedData ? true : false}
+                                            setShowLoginPrompt={setShowLoginPrompt}
+                                        />
+                                    ))}
                             </div>
                             <h3 className="text-xl py-4">Explore</h3>
                             <div className={`${styles.automationsLayout}`}>
@@ -1154,7 +1157,7 @@ export default function Automations() {
                                         isMobileWidth={isMobileWidth}
                                         setNewAutomationData={setNewAutomationData}
                                         key={automation.id}
-                                        authenticatedData={authenticatedData}
+                                        authenticatedData={authenticatedData || null}
                                         automation={automation}
                                         locationData={locationData}
                                         isLoggedIn={authenticatedData ? true : false}

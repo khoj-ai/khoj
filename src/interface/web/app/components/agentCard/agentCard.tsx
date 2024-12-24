@@ -326,7 +326,6 @@ export function AgentCard(props: AgentCardProps) {
         <Card className={`shadow-md rounded-xl hover:shadow-lg dark:bg-muted`}>
             {showLoginPrompt && (
                 <LoginPrompt
-                    loginRedirectMessage={`Sign in to start chatting with ${props.data.name}`}
                     onOpenChange={setShowLoginPrompt}
                     isMobileWidth={props.isMobileWidth}
                 />
@@ -430,7 +429,7 @@ export function AgentCard(props: AgentCardProps) {
                         {props.editCard ? (
                             <DialogContent
                                 className={
-                                    "lg:max-w-screen-lg py-4 overflow-y-scroll h-4/6 rounded-lg flex flex-col"
+                                    "lg:max-w-screen-lg py-4 overflow-y-scroll h-full md:h-4/6 rounded-lg flex flex-col"
                                 }
                             >
                                 <DialogTitle>
@@ -536,6 +535,8 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
     const basicFields = [
         { name: "name", label: "Name" },
         { name: "persona", label: "Personality" },
+        { name: "color", label: "Color" },
+        { name: "icon", label: "Icon" },
     ];
 
     const toolsFields = [
@@ -546,17 +547,15 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
     const knowledgeBaseFields = [{ name: "files", label: "Knowledge Base" }];
 
     const customizationFields = [
-        { name: "color", label: "Color" },
-        { name: "icon", label: "Icon" },
         { name: "chat_model", label: "Chat Model" },
         { name: "privacy_level", label: "Privacy Level" },
     ];
 
     const formGroups = [
-        { fields: basicFields, label: "Basic Settings", tabName: "basic" },
-        { fields: customizationFields, label: "Customization & Access", tabName: "customize" },
-        { fields: knowledgeBaseFields, label: "Knowledge Base", tabName: "knowledge" },
-        { fields: toolsFields, label: "Tools Settings", tabName: "tools" },
+        { fields: basicFields, label: "1. Basic Settings", tabName: "basic" },
+        { fields: customizationFields, label: "2. Model & Privacy", tabName: "customize" },
+        { fields: knowledgeBaseFields, label: "3. Knowledge Base", tabName: "knowledge" },
+        { fields: toolsFields, label: "4. Tools", tabName: "tools" },
     ];
 
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -755,7 +754,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                         control={props.form.control}
                         name="chat_model"
                         render={({ field }) => (
-                            <FormItem className="my-3 grid gap-2">
+                            <FormItem className="my-2 grid gap-2">
                                 <FormLabel>Chat Model</FormLabel>
                                 <FormDescription>
                                     {!props.isSubscribed ? (
@@ -802,7 +801,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                         control={props.form.control}
                         name="privacy_level"
                         render={({ field }) => (
-                            <FormItem className="my-3 grid gap-2">
+                            <FormItem className="my-2 grid gap-2">
                                 <FormLabel>
                                     <div>Privacy Level</div>
                                 </FormLabel>
@@ -859,7 +858,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                         control={props.form.control}
                         name="color"
                         render={({ field }) => (
-                            <FormItem className="space-y-3">
+                            <FormItem className="space-y-3 my-2">
                                 <FormLabel>Color</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
@@ -893,7 +892,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                         control={props.form.control}
                         name="icon"
                         render={({ field }) => (
-                            <FormItem className="space-y-3">
+                            <FormItem className="space-y-3 my-2">
                                 <FormLabel>Icon</FormLabel>
                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
@@ -929,12 +928,12 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                         control={props.form.control}
                         name="persona"
                         render={({ field }) => (
-                            <FormItem className="space-y-1 grid gap-2">
+                            <FormItem className="space-y-1 my-2 grid gap-2">
                                 <FormLabel>Personality</FormLabel>
                                 <FormDescription>
                                     What is the personality, thought process, or tuning of this
-                                    agent? Get creative; this is how you can influence the agent
-                                    constitution.
+                                    agent? This is where you can provide any instructions to the
+                                    agent.
                                 </FormDescription>
                                 <FormControl>
                                     <Textarea
@@ -955,7 +954,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                         control={props.form.control}
                         name="files"
                         render={({ field }) => (
-                            <FormItem className="flex flex-col gap-2">
+                            <FormItem className="my-2 flex flex-col gap-2">
                                 <FormLabel>Knowledge Base</FormLabel>
                                 <FormDescription>
                                     Which information should be part of its digital brain?{" "}
@@ -1260,7 +1259,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
         <Form {...props.form}>
             <form
                 onSubmit={props.form.handleSubmit(handleSubmit)}
-                className="space-y-6 h-full flex flex-col justify-between"
+                className="space-y-6 pb-4 h-full flex flex-col justify-between"
             >
                 <Tabs defaultValue="basic" value={formGroups[currentStep].tabName}>
                     <TabsList className="grid grid-cols-2 md:grid-cols-4 gap-2 h-fit">
@@ -1268,13 +1267,15 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                             <TabsTrigger
                                 key={group.tabName}
                                 value={group.tabName}
+                                className={`text-center ${areRequiredFieldsCompletedForCurrentStep(group) ? "" : "text-red-500"}`}
                                 onClick={() =>
                                     setCurrentStep(
                                         formGroups.findIndex((g) => g.tabName === group.tabName),
                                     )
                                 }
                             >
-                                {group.label}
+                                {group.label}{" "}
+                                {!areRequiredFieldsCompletedForCurrentStep(group) && "*"}
                             </TabsTrigger>
                         ))}
                     </TabsList>
@@ -1305,7 +1306,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                             }
                             className={`items-center ${isSaving ? "bg-stone-100 dark:bg-neutral-900" : ""} text-white ${colorOptionClassName}`}
                         >
-                            Next
+                            Continue
                             <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
                     ) : (
