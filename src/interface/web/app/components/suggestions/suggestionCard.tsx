@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription } from "@/components/ui/card";
 
 import styles from "./suggestions.module.css";
 import { convertSuggestionTitleToIconClass } from "./suggestionsData";
-import { ArrowLeft, ArrowRight, MagicWand, XCircle } from "@phosphor-icons/react";
+import { MagicWand, XCircle } from "@phosphor-icons/react";
 
 interface StepOneSuggestionCardProps {
     title: string;

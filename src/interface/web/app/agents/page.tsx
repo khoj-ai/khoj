@@ -33,6 +33,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "../components/appSidebar/appSidebar";
 import { Separator } from "@/components/ui/separator";
 import { KhojLogoType } from "../components/logo/khojLogo";
+import { DialogTitle } from "@radix-ui/react-dialog";
 
 export interface AgentData {
     slug: string;
@@ -145,7 +146,9 @@ function CreateAgentCard(props: CreateAgentCardProps) {
                     "lg:max-w-screen-lg py-4 overflow-y-scroll h-full md:h-4/6 rounded-lg flex flex-col"
                 }
             >
-                <DialogHeader>Create Agent</DialogHeader>
+                <DialogHeader>
+                    <DialogTitle>Create Agent</DialogTitle>
+                </DialogHeader>
                 {!props.userProfile && showLoginPrompt && (
                     <LoginPrompt
                         onOpenChange={setShowLoginPrompt}

@@ -454,7 +454,9 @@ export function AgentCard(props: AgentCardProps) {
                                 <DialogHeader>
                                     <div className="flex items-center">
                                         {getIconFromIconName(props.data.icon, props.data.color)}
-                                        <p className="font-bold text-lg">{props.data.name}</p>
+                                        <p className="font-bold text-lg">
+                                            <DialogTitle>{props.data.name}</DialogTitle>
+                                        </p>
                                     </div>
                                 </DialogHeader>
                                 <div className="max-h-[60vh] overflow-y-scroll text-neutral-500 dark:text-white">
@@ -938,7 +940,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                                 </FormDescription>
                                 <FormControl>
                                     <Textarea
-                                        className="dark:bg-muted"
+                                        className="dark:bg-muted focus:outline-none focus-visible:border-orange-500 focus-visible:border-2"
                                         placeholder="You are an excellent biologist, at the top of your field in marine biology."
                                         {...field}
                                     />
@@ -1262,7 +1264,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
             <ScrollArea className="h-full">
                 <form
                     onSubmit={props.form.handleSubmit(handleSubmit)}
-                    className="space-y-6 pb-4 h-full flex flex-col justify-between"
+                    className="space-y-6 pb-4 px-4 h-full flex flex-col justify-between"
                 >
                     <Tabs defaultValue="basic" value={formGroups[currentStep].tabName}>
                         <TabsList className="grid grid-cols-2 md:grid-cols-4 gap-2 h-fit">
@@ -1304,7 +1306,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                     )}
                 </form>
             </ScrollArea>
-            <div className="flex justify-between mt-1 left-0 right-0 bg-white p-1">
+            <div className="flex justify-between mt-1 left-0 right-0 bg-background p-1">
                 <Button
                     type="button"
                     variant={"outline"}
