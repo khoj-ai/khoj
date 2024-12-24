@@ -461,7 +461,7 @@ Khoj: {{"queries": ["Who did I visit the Angkor Wat Temple in Cambodia with?"]}}
 A: You visited the Angkor Wat Temple in Cambodia with Pablo, Namita and Xi.
 
 Q: What national parks did I go to last year?
-Khoj: {{"queries": ["National park I visited in {last_new_year} dt>='{last_new_year_date}' dt<'{current_new_year_date}'"]}}
+Khoj: {{"queries": ["National park I visited in {last_new_year} date>='{last_new_year_date}' date<'{current_new_year_date}'"]}}
 A: You visited the Grand Canyon and Yellowstone National Park in {last_new_year}.
 
 Q: How can you help me?
@@ -473,7 +473,7 @@ Khoj: {{"queries": ["What is the size of a tennis ball?", "What is the trunk siz
 A: 1085 tennis balls will fit in the trunk of a Honda Civic
 
 Q: Share some random, interesting experiences from this month
-Khoj: {{"queries": ["Exciting travel adventures from {current_month}", "Fun social events dt>='{current_month}-01' dt<'{current_date}'", "Intense emotional experiences in {current_month}"]}}
+Khoj: {{"queries": ["Exciting travel adventures from {current_month}", "Fun social events date>='{current_month}-01' date<'{current_date}'", "Intense emotional experiences in {current_month}"]}}
 A: You had a great time at the local beach with your friends, attended a music concert and had a deep conversation with your friend, Khalid.
 
 Q: Is Bob older than Tom?
@@ -485,8 +485,8 @@ Khoj: {{"queries": ["What is Bob's age?", "What is Tom's age?"]}}
 A: Bob is {bob_tom_age_difference} years older than Tom. As Bob is {bob_age} years old and Tom is 30 years old.
 
 Q: Who all did I meet here yesterday?
-Khoj: {{"queries": ["Met in {location} on {yesterday_date} dt>='{yesterday_date}' dt<'{current_date}'"]}}
-A: Yesterday's note mentions your visit to your local beach with Ram and Shyam.
+Khoj: {{"queries": ["People I met in {location} date>='{yesterday_date}' date<'{current_date}'"]}}
+A: Your notes mention you went to the botanical garden with Ram and Shyam.
 
 Actual
 ---
@@ -515,11 +515,15 @@ User's Location: {location}
 Here are some examples of how you can construct search queries to answer the user's question:
 
 User: How was my trip to Cambodia?
-Assistant: {{"queries": ["How was my trip to Cambodia?", "Angkor Wat temple visit", "Flight to Phnom Penh", "Expenses in Cambodia", "Stay in Cambodia"]}}
-A: The trip was amazing. You went to the Angkor Wat temple and it was beautiful.
+Assistant: {{"queries": ["How was my trip to Cambodia?", "Angkor Wat temple visit", "Flight to Phnom Penh", "Expenses in location='Cambodia'", "Stay in Cambodia", "My Travel experience. location='Cambodia'"]}}
+A: The trip was amazing. You went to the Angkor Wat temple with Pablo, Namita and Xi.
+
+Q: Share all the cafes that pablo and I visited near the temple?
+Assistant: {{"queries": ["people:'Pablo' location:'Angkor Vat Temple'", "Cafes visited near Angkor Vat Temple. people:'Pablo'"]}}
+A: You had lunch at the Angkor Forest cafe and coffee at the Lotus cafe with Pablo near Angkor Vat.
 
 User: What national parks did I go to last year?
-Assistant: {{"queries": ["National park I visited in {last_new_year} dt>='{last_new_year_date}' dt<'{current_new_year_date}'"]}}
+Assistant: {{"queries": ["National park I visited in {last_new_year} date>='{last_new_year_date}' date<'{current_new_year_date}'"]}}
 A: You visited the Grand Canyon and Yellowstone National Park in {last_new_year}.
 
 User: How can you help me?
@@ -527,11 +531,11 @@ Assistant: {{"queries": ["Social relationships", "Physical and mental health", "
 A: I can help you live healthier and happier across work and personal life
 
 User: Who all did I meet here yesterday?
-Assistant: {{"queries": ["Met in {location} on {yesterday_date} dt>='{yesterday_date}' dt<'{current_date}'"]}}
-A: Yesterday's note mentions your visit to your local beach with Ram and Shyam.
+Assistant: {{"queries": ["People I met in {location} date>='{yesterday_date}' date<'{current_date}'"]}}
+A: Your notes mention you went to the botanical garden with Ram and Shyam.
 
 User: Share some random, interesting experiences from this month
-Assistant: {{"queries": ["Exciting travel adventures from {current_month}", "Fun social events dt>='{current_month}-01' dt<'{current_date}'", "Intense emotional experiences in {current_month}"]}}
+Assistant: {{"queries": ["Exciting travel adventures from {current_month}", "Fun social events date>='{current_month}-01' date<'{current_date}'", "Intense emotional experiences in {current_month}"]}}
 A: You had a great time at the local beach with your friends, attended a music concert and had a deep conversation with your friend, Khalid.
 
 """.strip()

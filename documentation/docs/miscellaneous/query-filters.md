@@ -10,9 +10,9 @@ Use structured query syntax to filter entries from your knowledge based used by 
   - Entries that contain term_to_include: `+"term_to_include"`
   - Entries that contain term_to_exclude: `-"term_to_exclude"`
 - **Date Filter**: Get entries containing dates in YYYY-MM-DD format from specified date (range)
-  - Entries from April 1st 1984: `dt:"1984-04-01"`
-  - Entries after March 31st 1984: `dt>="1984-04-01"`
-  - Entries before April 2nd 1984 : `dt<="1984-04-01"`
+  - Entries from April 1st 1984: `date="1984-04-01"`
+  - Entries after March 31st 1984: `date>="1984-04-01"`
+  - Entries before April 2nd 1984 : `date<="1984-04-01"`
 - **File Filter**: Get entries from a specified file
   - Entries from incoming.org file: `file:"incoming.org"`
 - Combined Example
