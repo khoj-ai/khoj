@@ -5,7 +5,7 @@ import "katex/dist/katex.min.css";
 
 import React, { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
-import { ArrowCounterClockwise } from "@phosphor-icons/react";
+import { ArrowsVertical } from "@phosphor-icons/react";
 
 import { Card, CardTitle } from "@/components/ui/card";
 import {
@@ -316,7 +316,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 )}
                 {stepTwoSuggestionOptions.length == 0 && (
                     <div
-                        className={`${styles.suggestions} w-full ${props.isMobileWidth ? "grid grid-cols-2" : "grid grid-cols-3"} justify-center items-center`}
+                        className={`${styles.suggestions} w-full ${props.isMobileWidth ? (stepOneSuggestions.length > 3 ? "grid grid-cols-2" : "grid grid-cols-3") : "grid grid-cols-3"} "justify-center items-center"`}
                     >
                         {stepOneSuggestionOptions.map((suggestion, index) => (
                             <div
@@ -348,7 +348,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                                 onClick={showAllSuggestionsCards}
                                 className="m-2 p-1.5 rounded-lg dark:hover:bg-[var(--background-color)] hover:bg-stone-100 border border-stone-100 text-sm text-stone-500 dark:text-stone-300 dark:border-neutral-700"
                             >
-                                More Actions <ArrowCounterClockwise className="h-4 w-4 inline" />
+                                Show All <ArrowsVertical className="h-4 w-4 inline" />
                             </button>
                         </div>
                     )}
