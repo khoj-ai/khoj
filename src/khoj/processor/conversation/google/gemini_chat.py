@@ -91,10 +91,10 @@ def extract_questions_gemini(
         attached_file_context=query_files,
     )
 
-    messages = []
-
-    messages.append(ChatMessage(content=prompt, role="user"))
-    messages.append(ChatMessage(content=system_prompt, role="system"))
+    messages = [
+        ChatMessage(content=system_prompt, role="system"),
+        ChatMessage(content=prompt, role="user"),
+    ]
 
     response = gemini_send_message_to_model(
         messages, api_key, model, response_type="json_object", temperature=temperature, tracer=tracer
