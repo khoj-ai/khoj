@@ -18,10 +18,10 @@ logger = logging.getLogger(__name__)
 class DateFilter(BaseFilter):
     # Date Range Filter Regexes
     # Example filter queries:
-    # - dt>="yesterday" dt<"tomorrow"
-    # - dt>="last week"
-    # - dt:"2 years ago"
-    date_regex = r"dt([:><=]{1,2})[\"'‘’](.*?)[\"'‘’]"
+    # - date>="yesterday" dt<"tomorrow"
+    # - date>="last week"
+    # - date="2 years ago"
+    date_regex = r"date([><=]{1,2})[\"'‘’](.*?)[\"'‘’]"
 
     def __init__(self, entry_key="compiled"):
         self.entry_key = entry_key
