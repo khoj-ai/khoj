@@ -442,7 +442,11 @@ Construct search queries to retrieve relevant information to answer the user's q
 - You will be provided example and actual past user questions(Q), search queries(Khoj) and answers(A) for context.
 - Add as much context from the previous questions and answers as required into your search queries.
 - Break your search down into multiple search queries from a diverse set of lenses to retrieve all related documents.
-- Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
+- Add date, location, person or project fields to your search queries from questions and answers when required to retrieve the relevant information. For example:
+  - date='2024-04-01' will retrieve include documents that mention that the date 1st April 2024.
+  - location='San Diego' will limit results to documents that mention the location San Diego.
+  - person='Rockefeller' will limit results to documents that mention the person, team, department, organization or any social group name Rockefeller.
+  - project='Bloom' will limit results to documents that mention the project, product or event named Bloom.
 - When asked a meta, vague or random questions, search for a variety of broad topics to answer the user's question.
 {personality_context}
 What searches will you perform to answer the user's question? Respond with search queries as list of strings in a JSON object.
@@ -453,12 +457,12 @@ User's Location: {location}
 Examples
 ---
 Q: How was my trip to Cambodia?
-Khoj: {{"queries": ["How was my trip to Cambodia?", "Angkor Wat temple visit", "Flight to Phnom Penh", "Expenses in Cambodia", "Stay in Cambodia"]}}
-A: The trip was amazing. You went to the Angkor Wat temple and it was beautiful.
+Khoj: {{"queries": ["How was my trip to Cambodia?", "My Travel experiences. location='Cambodia'", "Flight to Cambodia", "Expenses in Cambodia", "Stay in Cambodia, Angkor Vat, Phnom Penh"]}}
+A: The trip was amazing. You went to the Angkor Wat temple with Pablo, Namita and Xi.
 
-Q: Who did i visit that temple with?
-Khoj: {{"queries": ["Who did I visit the Angkor Wat Temple in Cambodia with?"]}}
-A: You visited the Angkor Wat Temple in Cambodia with Pablo, Namita and Xi.
+Q: Share all the cafes we visited near the temple?
+Khoj: {{"queries": ["person='Pablo' person='Namita' person='Xi' location='Angkor Vat Temple'", "Cafes visited near Angkor Vat Temple"]}}
+A: You had lunch at the Angkor Forest cafe and coffee at the Lotus cafe with Pablo near Angkor Vat.
 
 Q: What national parks did I go to last year?
 Khoj: {{"queries": ["National park I visited in {last_new_year} date>='{last_new_year_date}' date<'{current_new_year_date}'"]}}
@@ -469,24 +473,20 @@ Khoj: {{"queries": ["Social relationships", "Physical and mental health", "Educa
 A: I can help you live healthier and happier across work and personal life
 
 Q: How many tennis balls fit in the back of a 2002 Honda Civic?
-Khoj: {{"queries": ["What is the size of a tennis ball?", "What is the trunk size of a 2002 Honda Civic?"]}}
+Khoj: {{"queries": ["What is the size of a tennis ball?", "What is the trunk size of a 2002 Honda Civic? project='Honda Civic 2002'"]}}
 A: 1085 tennis balls will fit in the trunk of a Honda Civic
 
 Q: Share some random, interesting experiences from this month
 Khoj: {{"queries": ["Exciting travel adventures from {current_month}", "Fun social events date>='{current_month}-01' date<'{current_date}'", "Intense emotional experiences in {current_month}"]}}
 A: You had a great time at the local beach with your friends, attended a music concert and had a deep conversation with your friend, Khalid.
 
-Q: Is Bob older than Tom?
-Khoj: {{"queries": ["When was Bob born?", "What is Tom's age?"]}}
-A: Yes, Bob is older than Tom. As Bob was born on 1984-01-01 and Tom is 30 years old.
+Q: Who all did I meet here yesterday?
+Khoj: {{"queries": ["People I met in {location} date>='{yesterday_date}' date<'{current_date}'", "Who did I meet on {yesterday_date}? location='{location}'"]}}
+A: Your notes mention you went to the botanical garden with Ram and Shyam.
 
 Q: What is their age difference?
-Khoj: {{"queries": ["What is Bob's age?", "What is Tom's age?"]}}
-A: Bob is {bob_tom_age_difference} years older than Tom. As Bob is {bob_age} years old and Tom is 30 years old.
-
-Q: Who all did I meet here yesterday?
-Khoj: {{"queries": ["People I met in {location} date>='{yesterday_date}' date<'{current_date}'"]}}
-A: Your notes mention you went to the botanical garden with Ram and Shyam.
+Khoj: {{"queries": ["When was Ram born? person='Ram'", "What is Shyam's age? person='Shyam'"]}}
+A: Ram is {ram_shyam_age_difference} years older than Shyam. As Ram is {ram_age} years old and Shyam is 30 years old.
 
 Actual
 ---
@@ -503,7 +503,11 @@ Construct search queries to retrieve relevant information to answer the user's q
 - You will be provided past questions(User), search queries(Assistant) and answers(A) for context.
 - Add as much context from the previous questions and answers as required into your search queries.
 - Break your search down into multiple search queries from a diverse set of lenses to retrieve all related documents.
-- Add date filters to your search queries from questions and answers when required to retrieve the relevant information.
+- Add dates, locations, persons or teams fields to your search queries when required to retrieve the relevant information. For example:
+  - date='2024-04-01' will retrieve include documents that mention that the date 1st April 2024.
+  - location='San Diego' will limit results to documents that mention the location San Diego.
+  - person='Alice' will limit results to documents that mention the person Alice.
+  - team='marketing' will limit results to documents that mention the marketing team, department, group or organization.
 - When asked a meta, vague or random questions, search for a variety of broad topics to answer the user's question.
 {personality_context}
 What searches will you perform to answer the users question? Respond with a JSON object with the key "queries" mapping to a list of searches you would perform on the user's knowledge base. Just return the queries and nothing else.
@@ -515,11 +519,11 @@ User's Location: {location}
 Here are some examples of how you can construct search queries to answer the user's question:
 
 User: How was my trip to Cambodia?
-Assistant: {{"queries": ["How was my trip to Cambodia?", "Angkor Wat temple visit", "Flight to Phnom Penh", "Expenses in location='Cambodia'", "Stay in Cambodia", "My Travel experience. location='Cambodia'"]}}
+Assistant: {{"queries": ["How was my trip to Cambodia?", "My Travel experiences. location='Cambodia'", "Flight to Cambodia", "Expenses in Cambodia", "Stay in Cambodia, Angkor Vat, Phnom Penh"]}}
 A: The trip was amazing. You went to the Angkor Wat temple with Pablo, Namita and Xi.
 
-Q: Share all the cafes that pablo and I visited near the temple?
-Assistant: {{"queries": ["people:'Pablo' location:'Angkor Vat Temple'", "Cafes visited near Angkor Vat Temple. people:'Pablo'"]}}
+Q: Share all the cafes we visited near the temple?
+Assistant: {{"queries": ["person='Pablo' person='Namita' person='Xi' location='Angkor Vat Temple'", "Cafes visited near Angkor Vat Temple"]}}
 A: You had lunch at the Angkor Forest cafe and coffee at the Lotus cafe with Pablo near Angkor Vat.
 
 User: What national parks did I go to last year?
@@ -531,8 +535,12 @@ Assistant: {{"queries": ["Social relationships", "Physical and mental health", "
 A: I can help you live healthier and happier across work and personal life
 
 User: Who all did I meet here yesterday?
-Assistant: {{"queries": ["People I met in {location} date>='{yesterday_date}' date<'{current_date}'"]}}
+Assistant: {{"queries": ["People I met in {location} date>='{yesterday_date}' date<'{current_date}'", "Who did I meet on {yesterday_date}? location='{location}'"]}}
 A: Your notes mention you went to the botanical garden with Ram and Shyam.
+
+Q: What is their age difference?
+Assistant: {{"queries": ["When was Ram born? person='Ram'", "What is Shyam's age? person='Shyam'"]}}
+A: Ram is {ram_shyam_age_difference} years older than Shyam. As Ram is {ram_age} years old and Shyam is 30 years old.
 
 User: Share some random, interesting experiences from this month
 Assistant: {{"queries": ["Exciting travel adventures from {current_month}", "Fun social events date>='{current_month}-01' date<'{current_date}'", "Intense emotional experiences in {current_month}"]}}

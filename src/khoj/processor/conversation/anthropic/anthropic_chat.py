@@ -72,6 +72,8 @@ def extract_questions_anthropic(
         last_new_year_date=last_new_year.strftime("%Y-%m-%d"),
         current_new_year_date=current_new_year.strftime("%Y-%m-%d"),
         yesterday_date=(today - timedelta(days=1)).strftime("%Y-%m-%d"),
+        ram_shyam_age_difference={current_new_year.year - 1984 - 30},
+        ram_age={current_new_year.year - 1984},
         location=location,
         username=username,
         personality_context=personality_context,
