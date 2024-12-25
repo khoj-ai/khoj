@@ -65,6 +65,9 @@ from khoj.database.models import (
 from khoj.processor.conversation import prompts
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
+from khoj.search_filter.location_filter import LocationFilter
+from khoj.search_filter.person_filter import PersonFilter
+from khoj.search_filter.project_filter import ProjectFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.utils import state
 from khoj.utils.config import OfflineChatProcessorModel
@@ -1491,6 +1494,9 @@ class EntryAdapters:
     word_filter = WordFilter()
     file_filter = FileFilter()
     date_filter = DateFilter()
+    person_filter = PersonFilter()
+    project_filter = ProjectFilter()
+    location_filter = LocationFilter()
 
     @staticmethod
     @require_valid_user
@@ -1624,6 +1630,9 @@ class EntryAdapters:
         word_filters = EntryAdapters.word_filter.get_filter_terms(query)
         file_filters = EntryAdapters.file_filter.get_filter_terms(query)
         date_filters = EntryAdapters.date_filter.get_query_date_range(query)
+        person_filters = EntryAdapters.person_filter.get_filter_terms(query)
+        project_filters = EntryAdapters.project_filter.get_filter_terms(query)
+        location_filters = EntryAdapters.location_filter.get_filter_terms(query)
 
         owner_filter = Q()
 
@@ -1635,8 +1644,39 @@ class EntryAdapters:
         if owner_filter == Q():
             return Entry.objects.none()
 
-        if len(word_filters) == 0 and len(file_filters) == 0 and len(date_filters) == 0:
+        if (
+            len(word_filters) == 0
+            and len(file_filters) == 0
+            and len(date_filters) == 0
+            and len(person_filters) == 0
+            and len(project_filters) == 0
+            and len(location_filters) == 0
+        ):
             return Entry.objects.filter(owner_filter)
+
+        for term in location_filters:
+            if term.startswith("-"):
+                q_filter_terms &= ~Q(named_entities__locations__contains=[term[1:]])
+            elif term.startswith("+"):
+                q_filter_terms &= Q(named_entities__locations__contains=[term[1:]])
+            else:
+                q_filter_terms &= Q(named_entities__locations__contains=[term])
+
+        for term in person_filters:
+            if term.startswith("-"):
+                q_filter_terms &= ~Q(named_entities__people__contains=[term[1:]])
+            elif term.startswith("+"):
+                q_filter_terms &= Q(named_entities__people__contains=[term[1:]])
+            else:
+                q_filter_terms &= Q(named_entities__people__contains=[term])
+
+        for term in project_filters:
+            if term.startswith("-"):
+                q_filter_terms &= ~Q(named_entities__projects__contains=[term[1:]])
+            elif term.startswith("+"):
+                q_filter_terms &= Q(named_entities__projects__contains=[term[1:]])
+            else:
+                q_filter_terms &= Q(named_entities__projects__contains=[term])
 
         for term in word_filters:
             if term.startswith("+"):
