@@ -30,6 +30,9 @@ from khoj.processor.conversation.offline.utils import download_model, infer_max_
 from khoj.search_filter.base_filter import BaseFilter
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
+from khoj.search_filter.location_filter import LocationFilter
+from khoj.search_filter.person_filter import PersonFilter
+from khoj.search_filter.project_filter import ProjectFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.utils import state
 from khoj.utils.helpers import (
@@ -642,7 +645,14 @@ def load_complex_json(json_str):
 def defilter_query(query: str):
     """Remove any query filters in query"""
     defiltered_query = query
-    filters: List[BaseFilter] = [WordFilter(), FileFilter(), DateFilter()]
+    filters: List[BaseFilter] = [
+        WordFilter(),
+        FileFilter(),
+        DateFilter(),
+        PersonFilter(),
+        ProjectFilter(),
+        LocationFilter(),
+    ]
     for filter in filters:
         defiltered_query = filter.defilter(defiltered_query)
     return defiltered_query

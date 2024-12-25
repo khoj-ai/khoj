@@ -51,6 +51,9 @@ from khoj.routers.helpers import (
 )
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
+from khoj.search_filter.location_filter import LocationFilter
+from khoj.search_filter.person_filter import PersonFilter
+from khoj.search_filter.project_filter import ProjectFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.search_type import text_search
 from khoj.utils import state
@@ -139,7 +142,7 @@ async def execute_search(
 
     # Encode query with filter terms removed
     defiltered_query = user_query
-    for filter in [DateFilter(), WordFilter(), FileFilter()]:
+    for filter in [DateFilter(), WordFilter(), FileFilter(), PersonFilter(), ProjectFilter(), LocationFilter()]:
         defiltered_query = filter.defilter(defiltered_query)
 
     encoded_asymmetric_query = None
