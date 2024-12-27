@@ -269,6 +269,7 @@ interface AutomationsCardProps {
     isLoggedIn: boolean;
     setShowLoginPrompt: (showLoginPrompt: boolean) => void;
     authenticatedData: UserProfile | null;
+    setToastMessage: (toastMessage: string) => void;
 }
 
 function AutomationsCard(props: AutomationsCardProps) {
@@ -277,8 +278,6 @@ function AutomationsCard(props: AutomationsCardProps) {
         null,
     );
     const [isDeleted, setIsDeleted] = useState(false);
-    const [toastMessage, setToastMessage] = useState("");
-    const { toast } = useToast();
 
     const automation = props.automation;
 
@@ -305,18 +304,6 @@ function AutomationsCard(props: AutomationsCardProps) {
             setIntervalString(`Monthly on the ${dayOfMonth}`);
         }
     }, [updatedAutomationData, automation]);
-
-    useEffect(() => {
-        const toastTitle = `Automation: ${updatedAutomationData?.subject || automation.subject}`;
-        if (toastMessage) {
-            toast({
-                title: toastTitle,
-                description: toastMessage,
-                action: <ToastAction altText="Dismiss">Ok</ToastAction>,
-            });
-            setToastMessage("");
-        }
-    }, [toastMessage, updatedAutomationData, automation, toast]);
 
     if (isDeleted) {
         return null;
@@ -346,6 +333,7 @@ function AutomationsCard(props: AutomationsCardProps) {
                                     isCreating={isEditing}
                                     automation={updatedAutomationData || automation}
                                     ipLocationData={props.locationData}
+                                    setToastMessage={props.setToastMessage}
                                 />
                             )}
                             <ShareLink
@@ -365,7 +353,10 @@ function AutomationsCard(props: AutomationsCardProps) {
                                     variant={"outline"}
                                     className="justify-start"
                                     onClick={() => {
-                                        sendAPreview(automation.id.toString(), setToastMessage);
+                                        sendAPreview(
+                                            automation.id.toString(),
+                                            props.setToastMessage,
+                                        );
                                     }}
                                 >
                                     <Play className="h-4 w-4 mr-2" />
@@ -420,6 +411,7 @@ function AutomationsCard(props: AutomationsCardProps) {
                         isCreating={isEditing}
                         automation={automation}
                         ipLocationData={props.locationData}
+                        setToastMessage={props.setToastMessage}
                     />
                 )}
             </CardFooter>
@@ -434,6 +426,7 @@ interface SharedAutomationCardProps {
     setShowLoginPrompt: (showLoginPrompt: boolean) => void;
     authenticatedData: UserProfile | null;
     isMobileWidth: boolean;
+    setToastMessage: (toastMessage: string) => void;
 }
 
 function SharedAutomationCard(props: SharedAutomationCardProps) {
@@ -470,6 +463,7 @@ function SharedAutomationCard(props: SharedAutomationCardProps) {
             isCreating={isCreating}
             automation={automation}
             ipLocationData={props.locationData}
+            setToastMessage={props.setToastMessage}
         />
     ) : null;
 }
@@ -492,6 +486,7 @@ interface EditCardProps {
     isLoggedIn: boolean;
     setShowLoginPrompt: (showLoginPrompt: boolean) => void;
     authenticatedData: UserProfile | null;
+    setToastMessage: (toastMessage: string) => void;
 }
 
 function EditCard(props: EditCardProps) {
@@ -552,6 +547,15 @@ function EditCard(props: EditCardProps) {
                     crontime: data.crontime,
                     next: data.next,
                 });
+            })
+            .catch((error) => {
+                console.error("Error saving automation:", error);
+                // Reset saving state
+                props.setIsEditing(false);
+                // Show error message
+                props.setToastMessage(
+                    "Sorry, something went wrong. Try again or contact team@khoj.dev.",
+                );
             });
     };
 
@@ -919,6 +923,7 @@ interface AutomationComponentWrapperProps {
     isCreating: boolean;
     ipLocationData: LocationData | null | undefined;
     automation?: AutomationsData;
+    setToastMessage: (toastMessage: string) => void;
 }
 
 function AutomationComponentWrapper(props: AutomationComponentWrapperProps) {
@@ -946,6 +951,7 @@ function AutomationComponentWrapper(props: AutomationComponentWrapperProps) {
                     setShowLoginPrompt={props.setShowLoginPrompt}
                     setUpdatedAutomationData={props.setNewAutomationData}
                     locationData={props.ipLocationData}
+                    setToastMessage={props.setToastMessage}
                 />
             </DrawerContent>
         </Drawer>
@@ -973,6 +979,7 @@ function AutomationComponentWrapper(props: AutomationComponentWrapperProps) {
                     setShowLoginPrompt={props.setShowLoginPrompt}
                     setUpdatedAutomationData={props.setNewAutomationData}
                     locationData={props.ipLocationData}
+                    setToastMessage={props.setToastMessage}
                 />
             </DialogContent>
         </Dialog>
@@ -1000,6 +1007,8 @@ export default function Automations() {
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
     const isMobileWidth = useIsMobileWidth();
     const { locationData, locationDataError, locationDataLoading } = useIPLocationData();
+    const [toastMessage, setToastMessage] = useState("");
+    const { toast } = useToast();
 
     useEffect(() => {
         if (newAutomationData) {
@@ -1025,6 +1034,19 @@ export default function Automations() {
             );
         }
     }, [personalAutomations, allNewAutomations]);
+
+    useEffect(() => {
+        const toastTitle = `Automation`;
+        if (toastMessage) {
+            toast({
+                title: toastTitle,
+                description: toastMessage,
+                action: <ToastAction altText="Dismiss">Ok</ToastAction>,
+                variant: toastMessage.includes("Sorry") ? "destructive" : "default",
+            });
+            setToastMessage("");
+        }
+    }, [toastMessage]);
 
     if (error)
         return <InlineLoading message="Oops, something went wrong. Please refresh the page." />;
@@ -1100,6 +1122,7 @@ export default function Automations() {
                                         authenticatedData={authenticatedData}
                                         isCreating={isCreating}
                                         ipLocationData={locationData}
+                                        setToastMessage={setToastMessage}
                                     />
                                 ) : (
                                     <Button
@@ -1120,6 +1143,7 @@ export default function Automations() {
                                     isLoggedIn={authenticatedData ? true : false}
                                     setShowLoginPrompt={setShowLoginPrompt}
                                     setNewAutomationData={setNewAutomationData}
+                                    setToastMessage={setToastMessage}
                                 />
                             </Suspense>
                             {isLoading && <InlineLoading message="booting up your automations" />}
@@ -1135,6 +1159,7 @@ export default function Automations() {
                                             locationData={locationData}
                                             isLoggedIn={authenticatedData ? true : false}
                                             setShowLoginPrompt={setShowLoginPrompt}
+                                            setToastMessage={setToastMessage}
                                         />
                                     ))}
                                 {authenticatedData &&
@@ -1147,6 +1172,7 @@ export default function Automations() {
                                             locationData={locationData}
                                             isLoggedIn={authenticatedData ? true : false}
                                             setShowLoginPrompt={setShowLoginPrompt}
+                                            setToastMessage={setToastMessage}
                                         />
                                     ))}
                             </div>
@@ -1163,6 +1189,7 @@ export default function Automations() {
                                         isLoggedIn={authenticatedData ? true : false}
                                         setShowLoginPrompt={setShowLoginPrompt}
                                         suggestedCard={true}
+                                        setToastMessage={setToastMessage}
                                     />
                                 ))}
                             </div>
