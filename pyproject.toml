@@ -41,7 +41,7 @@ dependencies = [
     "defusedxml == 0.7.1",
     "fastapi >= 0.110.0",
     "python-multipart >= 0.0.7",
-    "jinja2 == 3.1.4",
+    "jinja2 == 3.1.5",
     "openai >= 1.0.0",
     "tiktoken >= 0.3.2",
     "tenacity >= 8.2.2",
