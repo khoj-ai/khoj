@@ -1741,7 +1741,7 @@ class AutomationAdapters:
         return {
             "id": automation.id,
             "subject": automation_metadata["subject"],
-            "query_to_run": re.sub(r"^/automated_task\s*", "", automation_metadata["query_to_run"]),
+            "query_to_run": automation_metadata["query_to_run"],
             "scheduling_request": automation_metadata["scheduling_request"],
             "schedule": schedule,
             "crontime": crontime,
