@@ -551,9 +551,37 @@ async def generate_online_subqueries(
         return {q}
 
 
-async def schedule_query(
+def schedule_query(
     q: str, conversation_history: dict, user: KhojUser, query_images: List[str] = None, tracer: dict = {}
-) -> Tuple[str, ...]:
+) -> Tuple[str, str, str]:
+    """
+    Schedule the date, time to run the query. Assume the server timezone is UTC.
+    """
+    chat_history = construct_chat_history(conversation_history)
+
+    crontime_prompt = prompts.crontime_prompt.format(
+        query=q,
+        chat_history=chat_history,
+    )
+
+    raw_response = send_message_to_model_wrapper_sync(
+        crontime_prompt, query_images=query_images, response_type="json_object", user=user, tracer=tracer
+    )
+
+    # Validate that the response is a non-empty, JSON-serializable list
+    try:
+        raw_response = raw_response.strip()
+        response: Dict[str, str] = json.loads(clean_json(raw_response))
+        if not response or not isinstance(response, Dict) or len(response) != 3:
+            raise AssertionError(f"Invalid response for scheduling query : {response}")
+        return response.get("crontime"), response.get("query"), response.get("subject")
+    except Exception:
+        raise AssertionError(f"Invalid response for scheduling query: {raw_response}")
+
+
+async def aschedule_query(
+    q: str, conversation_history: dict, user: KhojUser, query_images: List[str] = None, tracer: dict = {}
+) -> Tuple[str, str, str]:
     """
     Schedule the date, time to run the query. Assume the server timezone is UTC.
     """
@@ -571,7 +599,7 @@ async def schedule_query(
     # Validate that the response is a non-empty, JSON-serializable list
     try:
         raw_response = raw_response.strip()
-        response: Dict[str, str] = json.loads(raw_response)
+        response: Dict[str, str] = json.loads(clean_json(raw_response))
         if not response or not isinstance(response, Dict) or len(response) != 3:
             raise AssertionError(f"Invalid response for scheduling query : {response}")
         return response.get("crontime"), response.get("query"), response.get("subject")
@@ -1065,6 +1093,7 @@ def send_message_to_model_wrapper_sync(
     system_message: str = "",
     response_type: str = "text",
     user: KhojUser = None,
+    query_images: List[str] = None,
     query_files: str = "",
     tracer: dict = {},
 ):
@@ -1090,6 +1119,7 @@ def send_message_to_model_wrapper_sync(
             max_prompt_size=max_tokens,
             vision_enabled=vision_available,
             model_type=chat_model.model_type,
+            query_images=query_images,
             query_files=query_files,
         )
 
@@ -1112,6 +1142,7 @@ def send_message_to_model_wrapper_sync(
             max_prompt_size=max_tokens,
             vision_enabled=vision_available,
             model_type=chat_model.model_type,
+            query_images=query_images,
             query_files=query_files,
         )
 
@@ -1134,6 +1165,7 @@ def send_message_to_model_wrapper_sync(
             max_prompt_size=max_tokens,
             vision_enabled=vision_available,
             model_type=chat_model.model_type,
+            query_images=query_images,
             query_files=query_files,
         )
 
@@ -1154,6 +1186,7 @@ def send_message_to_model_wrapper_sync(
             max_prompt_size=max_tokens,
             vision_enabled=vision_available,
             model_type=chat_model.model_type,
+            query_images=query_images,
             query_files=query_files,
         )
 
@@ -1634,6 +1667,25 @@ class CommonQueryParamsClass:
 CommonQueryParams = Annotated[CommonQueryParamsClass, Depends()]
 
 
+def format_automation_response(scheduling_request: str, executed_query: str, ai_response: str, user: KhojUser) -> bool:
+    """
+    Format the AI response to send in automation email to user.
+    """
+    name = get_user_name(user)
+    if name:
+        username = prompts.user_name.format(name=name)
+
+    automation_format_prompt = prompts.automation_format_prompt.format(
+        original_query=scheduling_request,
+        executed_query=executed_query,
+        response=ai_response,
+        username=username,
+    )
+
+    with timer("Chat actor: Format automation response", logger):
+        return send_message_to_model_wrapper_sync(automation_format_prompt, user=user)
+
+
 def should_notify(original_query: str, executed_query: str, ai_response: str, user: KhojUser) -> bool:
     """
     Decide whether to notify the user of the AI response.
@@ -1651,12 +1703,19 @@ def should_notify(original_query: str, executed_query: str, ai_response: str, us
     with timer("Chat actor: Decide to notify user of automation response", logger):
         try:
             # TODO Replace with async call so we don't have to maintain a sync version
-            response = send_message_to_model_wrapper_sync(to_notify_or_not, user)
-            should_notify_result = "no" not in response.lower()
-            logger.info(f'Decided to {"not " if not should_notify_result else ""}notify user of automation response.')
+            raw_response = send_message_to_model_wrapper_sync(to_notify_or_not, user=user, response_type="json_object")
+            response = json.loads(raw_response)
+            should_notify_result = response["decision"] == "Yes"
+            reason = response.get("reason", "unknown")
+            logger.info(
+                f'Decided to {"not " if not should_notify_result else ""}notify user of automation response because of reason: {reason}.'
+            )
             return should_notify_result
-        except:
-            logger.warning(f"Fallback to notify user of automation response as failed to infer should notify or not.")
+        except Exception as e:
+            logger.warning(
+                f"Fallback to notify user of automation response as failed to infer should notify or not. {e}",
+                exc_info=True,
+            )
             return True
 
 
@@ -1751,10 +1810,12 @@ def scheduled_chat(
     if should_notify(
         original_query=scheduling_request, executed_query=cleaned_query, ai_response=ai_response, user=user
     ):
+        formatted_response = format_automation_response(scheduling_request, cleaned_query, ai_response, user)
+
         if is_resend_enabled():
-            send_task_email(user.get_short_name(), user.email, cleaned_query, ai_response, subject, is_image)
+            send_task_email(user.get_short_name(), user.email, cleaned_query, formatted_response, subject, is_image)
         else:
-            return raw_response
+            return formatted_response
 
 
 async def create_automation(
@@ -1766,12 +1827,66 @@ async def create_automation(
     conversation_id: str = None,
     tracer: dict = {},
 ):
-    crontime, query_to_run, subject = await schedule_query(q, meta_log, user, tracer=tracer)
-    job = await schedule_automation(query_to_run, subject, crontime, timezone, q, user, calling_url, conversation_id)
+    crontime, query_to_run, subject = await aschedule_query(q, meta_log, user, tracer=tracer)
+    job = await aschedule_automation(query_to_run, subject, crontime, timezone, q, user, calling_url, conversation_id)
     return job, crontime, query_to_run, subject
 
 
-async def schedule_automation(
+def schedule_automation(
+    query_to_run: str,
+    subject: str,
+    crontime: str,
+    timezone: str,
+    scheduling_request: str,
+    user: KhojUser,
+    calling_url: URL,
+    conversation_id: str,
+):
+    # Disable minute level automation recurrence
+    minute_value = crontime.split(" ")[0]
+    if not minute_value.isdigit():
+        # Run automation at some random minute (to distribute request load) instead of running every X minutes
+        crontime = " ".join([str(math.floor(random() * 60))] + crontime.split(" ")[1:])
+
+    user_timezone = pytz.timezone(timezone)
+    trigger = CronTrigger.from_crontab(crontime, user_timezone)
+    trigger.jitter = 60
+    # Generate id and metadata used by task scheduler and process locks for the task runs
+    job_metadata = json.dumps(
+        {
+            "query_to_run": query_to_run,
+            "scheduling_request": scheduling_request,
+            "subject": subject,
+            "crontime": crontime,
+            "conversation_id": str(conversation_id),
+        }
+    )
+    query_id = hashlib.md5(f"{query_to_run}_{crontime}".encode("utf-8")).hexdigest()
+    job_id = f"automation_{user.uuid}_{query_id}"
+    job = state.scheduler.add_job(
+        run_with_process_lock,
+        trigger=trigger,
+        args=(
+            scheduled_chat,
+            f"{ProcessLock.Operation.SCHEDULED_JOB}_{user.uuid}_{query_id}",
+        ),
+        kwargs={
+            "query_to_run": query_to_run,
+            "scheduling_request": scheduling_request,
+            "subject": subject,
+            "user": user,
+            "calling_url": calling_url,
+            "job_id": job_id,
+            "conversation_id": conversation_id,
+        },
+        id=job_id,
+        name=job_metadata,
+        max_instances=2,  # Allow second instance to kill any previous instance with stale lock
+    )
+    return job
+
+
+async def aschedule_automation(
     query_to_run: str,
     subject: str,
     crontime: str,

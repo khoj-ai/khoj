@@ -636,11 +636,11 @@ async def test_infer_webpage_urls_actor_extracts_correct_links(chat_client, defa
         ),
     ],
 )
-async def test_infer_task_scheduling_request(
+def test_infer_task_scheduling_request(
     chat_client, user_query, expected_crontime, expected_qs, unexpected_qs, default_user2
 ):
     # Act
-    crontime, inferred_query, _ = await schedule_query(user_query, {}, default_user2)
+    crontime, inferred_query, _ = schedule_query(user_query, {}, default_user2)
     inferred_query = inferred_query.lower()
 
     # Assert

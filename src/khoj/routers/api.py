@@ -38,15 +38,15 @@ from khoj.processor.conversation.offline.chat_model import extract_questions_off
 from khoj.processor.conversation.offline.whisper import transcribe_audio_offline
 from khoj.processor.conversation.openai.gpt import extract_questions
 from khoj.processor.conversation.openai.whisper import transcribe_audio
-from khoj.processor.conversation.utils import defilter_query
+from khoj.processor.conversation.utils import clean_json, defilter_query
 from khoj.routers.helpers import (
     ApiUserRateLimiter,
     ChatEvent,
     CommonQueryParams,
     ConversationCommandRateLimiter,
-    acreate_title_from_query,
     get_user_config,
     schedule_automation,
+    schedule_query,
     update_telemetry_state,
 )
 from khoj.search_filter.date_filter import DateFilter
@@ -566,7 +566,7 @@ def delete_automation(request: Request, automation_id: str) -> Response:
 
 @api.post("/automation", response_class=Response)
 @requires(["authenticated"])
-async def post_automation(
+def post_automation(
     request: Request,
     q: str,
     crontime: str,
@@ -584,11 +584,15 @@ async def post_automation(
     if not cron_descriptor.get_description(crontime):
         return Response(content="Invalid crontime", status_code=400)
 
+    # Infer subject, query to run
+    _, query_to_run, generated_subject = schedule_query(q, conversation_history={}, user=user)
+    subject = subject or generated_subject
+
     # Normalize query parameters
     # Add /automated_task prefix to query if not present
-    q = q.strip()
-    if not q.startswith("/automated_task"):
-        query_to_run = f"/automated_task {q}"
+    query_to_run = query_to_run.strip()
+    if not query_to_run.startswith("/automated_task"):
+        query_to_run = f"/automated_task {query_to_run}"
 
     # Normalize crontime for AP Scheduler CronTrigger
     crontime = crontime.strip()
@@ -603,24 +607,19 @@ async def post_automation(
     minute_value = crontime.split(" ")[0]
     if not minute_value.isdigit():
         return Response(
-            content="Recurrence of every X minutes is unsupported. Please create a less frequent schedule.",
+            content="Minute level recurrence is unsupported. Please create a less frequent schedule.",
             status_code=400,
         )
 
-    if not subject:
-        subject = await acreate_title_from_query(q, user)
-
-    title = f"Automation: {subject}"
-
     # Create new Conversation Session associated with this new task
-    conversation = await ConversationAdapters.acreate_conversation_session(user, request.user.client_app, title=title)
-
-    calling_url = request.url.replace(query=f"{request.url.query}")
+    title = f"Automation: {subject}"
+    conversation = ConversationAdapters.create_conversation_session(user, request.user.client_app, title=title)
 
     # Schedule automation with query_to_run, timezone, subject directly provided by user
     try:
         # Use the query to run as the scheduling request if the scheduling request is unset
-        automation = await schedule_automation(
+        calling_url = request.url.replace(query=f"{request.url.query}")
+        automation = schedule_automation(
             query_to_run, subject, crontime, timezone, q, user, calling_url, str(conversation.id)
         )
     except Exception as e:
@@ -691,11 +690,15 @@ def edit_job(
         logger.error(f"Error editing automation {automation_id} for {user.email}: {e}", exc_info=True)
         return Response(content="Invalid automation", status_code=403)
 
+    # Infer subject, query to run
+    _, query_to_run, _ = schedule_query(q, conversation_history={}, user=user)
+    subject = subject
+
     # Normalize query parameters
     # Add /automated_task prefix to query if not present
-    q = q.strip()
-    if not q.startswith("/automated_task"):
-        query_to_run = f"/automated_task {q}"
+    query_to_run = query_to_run.strip()
+    if not query_to_run.startswith("/automated_task"):
+        query_to_run = f"/automated_task {query_to_run}"
     # Normalize crontime for AP Scheduler CronTrigger
     crontime = crontime.strip()
     if len(crontime.split(" ")) > 5:
@@ -713,7 +716,7 @@ def edit_job(
         )
 
     # Construct updated automation metadata
-    automation_metadata = json.loads(automation.name)
+    automation_metadata: dict[str, str] = json.loads(clean_json(automation.name))
     automation_metadata["scheduling_request"] = q
     automation_metadata["query_to_run"] = query_to_run
     automation_metadata["subject"] = subject.strip()

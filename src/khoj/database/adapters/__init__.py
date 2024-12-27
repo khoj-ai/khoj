@@ -1741,7 +1741,7 @@ class AutomationAdapters:
         return {
             "id": automation.id,
             "subject": automation_metadata["subject"],
-            "query_to_run": re.sub(r"^/automated_task\s*", "", automation_metadata["query_to_run"]),
+            "query_to_run": automation_metadata["query_to_run"],
             "scheduling_request": automation_metadata["scheduling_request"],
             "schedule": schedule,
             "crontime": crontime,
@@ -1778,6 +1778,19 @@ class AutomationAdapters:
             raise ValueError("Invalid automation id")
         # Check if automation with this id exist
         automation: Job = state.scheduler.get_job(job_id=automation_id)
+        if not automation:
+            raise ValueError("Invalid automation id")
+
+        return automation
+
+    @staticmethod
+    async def aget_automation(user: KhojUser, automation_id: str) -> Job:
+        # Perform validation checks
+        # Check if user is allowed to delete this automation id
+        if not automation_id.startswith(f"automation_{user.uuid}_"):
+            raise ValueError("Invalid automation id")
+        # Check if automation with this id exist
+        automation: Job = await sync_to_async(state.scheduler.get_job)(job_id=automation_id)
         if not automation:
             raise ValueError("Invalid automation id")
 
