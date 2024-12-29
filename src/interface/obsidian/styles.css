@@ -443,6 +443,14 @@ div.selected-conversation {
     font-weight: 600;
 }
 
+.khoj-result-file.in-vault {
+    color: var(--color-green);
+}
+
+.khoj-result-file.not-in-vault {
+    color: var(--color-blue);
+}
+
 .khoj-result-entry {
     color: var(--text-muted);
     margin-left: 2em;
@@ -803,4 +811,51 @@ img.copy-icon {
 .folder-suggest-item {
     padding: 4px 8px;
     display: block;
+}
+
+/* Animation de chargement */
+.khoj-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.khoj-loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--background-modifier-border);
+    border-top: 3px solid var(--text-accent);
+    border-radius: 50%;
+    animation: khoj-spin 1s linear infinite;
+}
+
+@keyframes khoj-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Research Spinner */
+.search-loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--background-modifier-border);
+    border-top: 3px solid var(--text-accent);
+    border-radius: 50%;
+    animation: search-spin 0.8s linear infinite;
+}
+
+@keyframes search-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }

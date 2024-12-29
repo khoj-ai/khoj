@@ -1,4 +1,4 @@
-import { App, SuggestModal, request, MarkdownRenderer, Instruction, Platform } from 'obsidian';
+import { App, SuggestModal, request, MarkdownRenderer, Instruction, Platform, Notice } from 'obsidian';
 import { KhojSetting } from 'src/settings';
 import { supportedBinaryFileTypes, createNoteAndCloseModal, getFileFromPath, getLinkToEntry, supportedImageFilesTypes } from 'src/utils';
 
@@ -13,6 +13,9 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
     find_similar_notes: boolean;
     query: string = "";
     app: App;
+    currentController: AbortController | null = null;  // Pour annuler les requêtes
+    isLoading: boolean = false;
+    loadingEl: HTMLElement;
 
     constructor(app: App, setting: KhojSetting, find_similar_notes: boolean = false) {
         super(app);
@@ -22,6 +25,24 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
 
         // Hide input element in Similar Notes mode
         this.inputEl.hidden = this.find_similar_notes;
+
+        // Create loading element
+        this.loadingEl = createDiv({ cls: "search-loading" });
+        const spinnerEl = this.loadingEl.createDiv({ cls: "search-loading-spinner" });
+
+        this.loadingEl.style.position = "absolute";
+        this.loadingEl.style.top = "50%";
+        this.loadingEl.style.left = "50%";
+        this.loadingEl.style.transform = "translate(-50%, -50%)";
+        this.loadingEl.style.zIndex = "1000";
+        this.loadingEl.style.display = "none";
+
+        // Ajouter l'élément au modal
+        this.modalEl.appendChild(this.loadingEl);
+
+        // Customize empty state message
+        // @ts-ignore - Accès à la propriété privée pour personnaliser le message
+        this.emptyStateText = "";
 
         // Register Modal Keybindings to Rerank Results
         this.scope.register(['Mod'], 'Enter', async () => {
@@ -66,6 +87,101 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
         this.setPlaceholder('Search with Khoj...');
     }
 
+    // Check if the file exists in the vault
+    private isFileInVault(filePath: string): boolean {
+        // Normalize the path to handle different separators
+        const normalizedPath = filePath.replace(/\\/g, '/');
+
+        // Check if the file exists in the vault
+        return this.app.vault.getFiles().some(file =>
+            file.path === normalizedPath
+        );
+    }
+
+    async getSuggestions(query: string): Promise<SearchResult[]> {
+        // Ne pas afficher le chargement si la requête est vide
+        if (!query.trim()) {
+            this.isLoading = false;
+            this.updateLoadingState();
+            return [];
+        }
+
+        // Show loading state
+        this.isLoading = true;
+        this.updateLoadingState();
+
+        // Cancel previous request if it exists
+        if (this.currentController) {
+            this.currentController.abort();
+        }
+
+        try {
+            // Create a new controller for this request
+            this.currentController = new AbortController();
+
+            // Setup Query Khoj backend for search results
+            let encodedQuery = encodeURIComponent(query);
+            let searchUrl = `${this.setting.khojUrl}/api/search?q=${encodedQuery}&n=${this.setting.resultsCount}&r=${this.rerank}&client=obsidian`;
+            let headers = {
+                'Authorization': `Bearer ${this.setting.khojApiKey}`,
+            }
+
+            // Get search results from Khoj backend
+            const response = await fetch(searchUrl, {
+                headers: headers,
+                signal: this.currentController.signal
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            // Parse search results
+            let results = data
+                .filter((result: any) =>
+                    !this.find_similar_notes || !result.additional.file.endsWith(this.app.workspace.getActiveFile()?.path)
+                )
+                .map((result: any) => {
+                    return {
+                        entry: result.entry,
+                        file: result.additional.file,
+                        inVault: this.isFileInVault(result.additional.file)
+                    } as SearchResult & { inVault: boolean };
+                })
+                .sort((a: SearchResult & { inVault: boolean }, b: SearchResult & { inVault: boolean }) => {
+                    if (a.inVault === b.inVault) return 0;
+                    return a.inVault ? -1 : 1;
+                });
+
+            this.query = query;
+
+            // Hide loading state only on successful completion
+            this.isLoading = false;
+            this.updateLoadingState();
+
+            return results;
+        } catch (error) {
+            // Ignore cancellation errors and keep loading state
+            if (error.name === 'AbortError') {
+                // When cancelling, we don't want to render anything
+                return undefined as any;
+            }
+
+            // For other errors, hide loading state
+            console.error('Search error:', error);
+            this.isLoading = false;
+            this.updateLoadingState();
+            return [];
+        }
+    }
+
+    private updateLoadingState() {
+        // Show or hide loading element
+        this.loadingEl.style.display = this.isLoading ? "block" : "none";
+    }
+
     async onOpen() {
         if (this.find_similar_notes) {
             // If markdown file is currently active
@@ -86,25 +202,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
         }
     }
 
-    async getSuggestions(query: string): Promise<SearchResult[]> {
-        // Setup Query Khoj backend for search results
-        let encodedQuery = encodeURIComponent(query);
-        let searchUrl = `${this.setting.khojUrl}/api/search?q=${encodedQuery}&n=${this.setting.resultsCount}&r=${this.rerank}&client=obsidian`;
-        let headers = { 'Authorization': `Bearer ${this.setting.khojApiKey}` }
-
-        // Get search results from Khoj backend
-        let response = await request({ url: `${searchUrl}`, headers: headers });
-
-        // Parse search results
-        let results = JSON.parse(response)
-            .filter((result: any) => !this.find_similar_notes || !result.additional.file.endsWith(this.app.workspace.getActiveFile()?.path))
-            .map((result: any) => { return { entry: result.entry, file: result.additional.file } as SearchResult; });
-
-        this.query = query;
-        return results;
-    }
-
-    async renderSuggestion(result: SearchResult, el: HTMLElement) {
+    async renderSuggestion(result: SearchResult & { inVault: boolean }, el: HTMLElement) {
         // Max number of lines to render
         let lines_to_render = 8;
 
@@ -112,13 +210,25 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
         let os_path_separator = result.file.includes('\\') ? '\\' : '/';
         let filename = result.file.split(os_path_separator).pop();
 
-        // Show filename of each search result for context
-        el.createEl("div",{ cls: 'khoj-result-file' }).setText(filename ?? "");
+        // Show filename of each search result for context with appropriate color
+        const fileEl = el.createEl("div", {
+            cls: `khoj-result-file ${result.inVault ? 'in-vault' : 'not-in-vault'}`
+        });
+        fileEl.setText(filename ?? "");
+
+        // Add a visual indication for files not in vault
+        if (!result.inVault) {
+            fileEl.createSpan({
+                text: " (not in vault)",
+                cls: "khoj-result-file-status"
+            });
+        }
+
         let result_el = el.createEl("div", { cls: 'khoj-result-entry' })
 
         let resultToRender = "";
         let fileExtension = filename?.split(".").pop() ?? "";
-        if (supportedImageFilesTypes.includes(fileExtension) && filename) {
+        if (supportedImageFilesTypes.includes(fileExtension) && filename && result.inVault) {
             let linkToEntry: string = filename;
             let imageFiles = this.app.vault.getFiles().filter(file => supportedImageFilesTypes.includes(fileExtension));
             // Find vault file of chosen search result
@@ -140,7 +250,13 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
         MarkdownRenderer.renderMarkdown(resultToRender, result_el, result.file, null);
     }
 
-    async onChooseSuggestion(result: SearchResult, _: MouseEvent | KeyboardEvent) {
+    async onChooseSuggestion(result: SearchResult & { inVault: boolean }, _: MouseEvent | KeyboardEvent) {
+        // Only open files that are in the vault
+        if (!result.inVault) {
+            new Notice("This file is not in your vault");
+            return;
+        }
+
         // Get all markdown, pdf and image files in vault
         const mdFiles = this.app.vault.getMarkdownFiles();
         const binaryFiles = this.app.vault.getFiles().filter(file => supportedBinaryFileTypes.includes(file.extension));
