@@ -26,6 +26,7 @@ export interface KhojSetting {
     syncFileType: SyncFileTypes;
     userInfo: UserInfo | null;
     syncFolders: string[];
+    syncInterval: number;
 }
 
 export const DEFAULT_SETTINGS: KhojSetting = {
@@ -42,6 +43,7 @@ export const DEFAULT_SETTINGS: KhojSetting = {
     },
     userInfo: null,
     syncFolders: [],
+    syncInterval: 60,
 }
 
 export class KhojSettingTab extends PluginSettingTab {
@@ -156,6 +158,28 @@ export class KhojSettingTab extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.plugin.settings.autoConfigure = value;
                     await this.plugin.saveSettings();
+                }));
+
+        // Add setting for sync interval
+        const syncIntervalValues = [1, 5, 10, 20, 30, 45, 60, 120, 1440];
+        new Setting(containerEl)
+            .setName('Sync Interval')
+            .setDesc('Minutes between automatic synchronizations')
+            .addDropdown(dropdown => dropdown
+                .addOptions(Object.fromEntries(
+                    syncIntervalValues.map(value => [
+                        value.toString(),
+                        value === 1 ? '1 minute' :
+                            value === 1440 ? '24 hours' :
+                                `${value} minutes`
+                    ])
+                ))
+                .setValue(this.plugin.settings.syncInterval.toString())
+                .onChange(async (value) => {
+                    this.plugin.settings.syncInterval = parseInt(value);
+                    await this.plugin.saveSettings();
+                    // Redémarrer le timer avec le nouvel intervalle
+                    this.plugin.restartSyncTimer();
                 }));
 
         // Add setting to manage sync folders

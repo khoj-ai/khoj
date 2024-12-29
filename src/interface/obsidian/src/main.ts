@@ -43,8 +43,8 @@ export default class Khoj extends Plugin {
                     this.app.vault,
                     this.settings,
                     this.settings.lastSync,
-                    false, // regenerate = false pour ne synchroniser que les nouvelles modifications
-                    true  // userTriggered = true pour afficher une notification
+                    false,
+                    true
                 );
             }
         });
@@ -59,12 +59,32 @@ export default class Khoj extends Plugin {
         // Add a settings tab so the user can configure khoj
         this.addSettingTab(new KhojSettingTab(this.app, this));
 
-        // Add scheduled job to update index every 60 minutes
+        // Démarrer le timer de synchronisation
+        this.startSyncTimer();
+    }
+
+    // Méthode pour démarrer le timer de synchronisation
+    private startSyncTimer() {
+        // Nettoyer l'ancien timer s'il existe
+        if (this.indexingTimer) {
+            clearInterval(this.indexingTimer);
+        }
+
+        // Démarrer un nouveau timer avec l'intervalle configuré
         this.indexingTimer = setInterval(async () => {
             if (this.settings.autoConfigure) {
-                this.settings.lastSync = await updateContentIndex(this.app.vault, this.settings, this.settings.lastSync);
+                this.settings.lastSync = await updateContentIndex(
+                    this.app.vault,
+                    this.settings,
+                    this.settings.lastSync
+                );
             }
-        }, 60 * 60 * 1000);
+        }, this.settings.syncInterval * 60 * 1000); // Convertir les minutes en millisecondes
+    }
+
+    // Méthode publique pour redémarrer le timer (appelée depuis les paramètres)
+    public restartSyncTimer() {
+        this.startSyncTimer();
     }
 
     async loadSettings() {
@@ -77,7 +97,7 @@ export default class Khoj extends Plugin {
     }
 
     async saveSettings() {
-        this.saveData(this.settings);
+        await this.saveData(this.settings);
     }
 
     async onunload() {
