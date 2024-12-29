@@ -34,6 +34,21 @@ export default class Khoj extends Plugin {
             callback: () => { this.activateView(KhojView.CHAT); }
         });
 
+        // Add sync command to manually sync new changes
+        this.addCommand({
+            id: 'sync',
+            name: 'Sync new changes',
+            callback: async () => {
+                this.settings.lastSync = await updateContentIndex(
+                    this.app.vault,
+                    this.settings,
+                    this.settings.lastSync,
+                    false, // regenerate = false pour ne synchroniser que les nouvelles modifications
+                    true  // userTriggered = true pour afficher une notification
+                );
+            }
+        });
+
         this.registerView(KhojView.CHAT, (leaf) => new KhojChatView(leaf, this.settings));
 
         // Create an icon in the left ribbon.
