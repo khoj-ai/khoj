@@ -9,7 +9,7 @@ export function getVaultAbsolutePath(vault: Vault): string {
     return '';
 }
 
-function fileExtensionToMimeType (extension: string): string {
+function fileExtensionToMimeType(extension: string): string {
     switch (extension) {
         case 'pdf':
             return 'application/pdf';
@@ -28,7 +28,7 @@ function fileExtensionToMimeType (extension: string): string {
     }
 }
 
-function filenameToMimeType (filename: TFile): string {
+function filenameToMimeType(filename: TFile): string {
     switch (filename.extension) {
         case 'pdf':
             return 'application/pdf';
@@ -63,15 +63,24 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
     // Get all markdown, pdf files in the vault
     console.log(`Khoj: Updating Khoj content index...`)
     const files = vault.getFiles()
-                        // Filter supported file types for syncing
-                        .filter(file => supportedFileTypes.includes(file.extension))
-                        // Filter user configured file types for syncing
-                        .filter(file => {
-                            if (fileTypeToExtension.markdown.includes(file.extension)) return setting.syncFileType.markdown;
-                            if (fileTypeToExtension.pdf.includes(file.extension)) return setting.syncFileType.pdf;
-                            if (fileTypeToExtension.image.includes(file.extension)) return setting.syncFileType.images;
-                            return false;
-                        });
+        // Filter supported file types for syncing
+        .filter(file => supportedFileTypes.includes(file.extension))
+        // Filter user configured file types for syncing
+        .filter(file => {
+            if (fileTypeToExtension.markdown.includes(file.extension)) return setting.syncFileType.markdown;
+            if (fileTypeToExtension.pdf.includes(file.extension)) return setting.syncFileType.pdf;
+            if (fileTypeToExtension.image.includes(file.extension)) return setting.syncFileType.images;
+            return false;
+        })
+        // Filter files based on specified folders
+        .filter(file => {
+            // Si aucun dossier n'est spécifié, synchroniser tous les fichiers
+            if (setting.syncFolders.length === 0) return true;
+            // Sinon, vérifier si le fichier est dans un des dossiers spécifiés
+            return setting.syncFolders.some(folder =>
+                file.path.startsWith(folder + '/') || file.path === folder
+            );
+        });
 
     let countOfFilesToIndex = 0;
     let countOfFilesToDelete = 0;
@@ -81,7 +90,7 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
     const fileData = [];
     for (const file of files) {
         // Only push files that have been modified since last sync if not regenerating
-        if (!regenerate && file.stat.mtime < (lastSync.get(file) ?? 0)){
+        if (!regenerate && file.stat.mtime < (lastSync.get(file) ?? 0)) {
             continue;
         }
 
@@ -89,7 +98,7 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
         const encoding = supportedBinaryFileTypes.includes(file.extension) ? "binary" : "utf8";
         const mimeType = fileExtensionToMimeType(file.extension) + (encoding === "utf8" ? "; charset=UTF-8" : "");
         const fileContent = encoding == 'binary' ? await vault.readBinary(file) : await vault.read(file);
-        fileData.push({blob: new Blob([fileContent], { type: mimeType }), path: file.path});
+        fileData.push({ blob: new Blob([fileContent], { type: mimeType }), path: file.path });
     }
 
     // Add any previously synced files to be deleted to multipart form data
@@ -98,13 +107,13 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
         if (!files.includes(lastSyncedFile)) {
             countOfFilesToDelete++;
             let fileObj = new Blob([""], { type: filenameToMimeType(lastSyncedFile) });
-            fileData.push({blob: fileObj, path: lastSyncedFile.path});
+            fileData.push({ blob: fileObj, path: lastSyncedFile.path });
             filesToDelete.push(lastSyncedFile);
         }
     }
 
     // Iterate through all indexable files in vault, 1000 at a time
-    let responses: string[]  = [];
+    let responses: string[] = [];
     let error_message = null;
     for (let i = 0; i < fileData.length; i += 1000) {
         const filesGroup = fileData.slice(i, i + 1000);
@@ -166,17 +175,17 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
     }
 
     // Update last sync time for each successfully indexed file
-   files
-    .filter(file => responses.find(response => response.includes(file.path)))
-    .reduce((newSync, file) => {
-        newSync.set(file, new Date().getTime());
-        return newSync;
-    }, lastSync);
+    files
+        .filter(file => responses.find(response => response.includes(file.path)))
+        .reduce((newSync, file) => {
+            newSync.set(file, new Date().getTime());
+            return newSync;
+        }, lastSync);
 
     // Remove files that were deleted from last sync
     filesToDelete
-    .filter(file => responses.find(response => response.includes(file.path)))
-    .forEach(file => lastSync.delete(file));
+        .filter(file => responses.find(response => response.includes(file.path)))
+        .forEach(file => lastSync.delete(file));
 
     if (error_message) {
         new Notice(error_message);
@@ -188,31 +197,30 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
     return lastSync;
 }
 
-export async function openKhojPluginSettings(): Promise<void>
- {
-     const setting = this.app.setting;
-     await setting.open();
-     setting.openTabById('khoj');
+export async function openKhojPluginSettings(): Promise<void> {
+    const setting = this.app.setting;
+    await setting.open();
+    setting.openTabById('khoj');
 }
 
 export async function createNote(name: string, newLeaf = false): Promise<void> {
     try {
-      let pathPrefix: string
-      switch (this.app.vault.getConfig('newFileLocation')) {
-        case 'current':
-          pathPrefix = (this.app.workspace.getActiveFile()?.parent.path ?? '') + '/'
-          break
-        case 'folder':
-          pathPrefix = this.app.vault.getConfig('newFileFolderPath') + '/'
-          break
-        default: // 'root'
-          pathPrefix = ''
-          break
-      }
-      await this.app.workspace.openLinkText(`${pathPrefix}${name}.md`, '', newLeaf)
+        let pathPrefix: string
+        switch (this.app.vault.getConfig('newFileLocation')) {
+            case 'current':
+                pathPrefix = (this.app.workspace.getActiveFile()?.parent.path ?? '') + '/'
+                break
+            case 'folder':
+                pathPrefix = this.app.vault.getConfig('newFileFolderPath') + '/'
+                break
+            default: // 'root'
+                pathPrefix = ''
+                break
+        }
+        await this.app.workspace.openLinkText(`${pathPrefix}${name}.md`, '', newLeaf)
     } catch (e) {
-      console.error('Khoj: Could not create note.\n' + (e as any).message);
-      throw e
+        console.error('Khoj: Could not create note.\n' + (e as any).message);
+        throw e
     }
 }
 
@@ -236,7 +244,7 @@ export async function canConnectToBackend(
     let userInfo: UserInfo | null = null;
 
     if (!!khojUrl) {
-        let headers  = !!khojApiKey ? { "Authorization": `Bearer ${khojApiKey}` } : undefined;
+        let headers = !!khojApiKey ? { "Authorization": `Bearer ${khojApiKey}` } : undefined;
         try {
             let response = await request({ url: `${khojUrl}/api/v1/user`, method: "GET", headers: headers })
             connectedToBackend = true;
@@ -387,7 +395,7 @@ function copyParentText(event: MouseEvent, message: string, originalButton: stri
 }
 
 export function createCopyParentText(message: string, originalButton: string = 'copy-plus') {
-    return function(event: MouseEvent) {
+    return function (event: MouseEvent) {
         return copyParentText(event, message, originalButton);
     }
 }
@@ -406,7 +414,7 @@ export function pasteTextAtCursor(text: string | undefined) {
     // If there is a selection, replace it with the text
     if (editor?.getSelection()) {
         editor.replaceSelection(text);
-    // If there is no selection, insert the text at the cursor position
+        // If there is no selection, insert the text at the cursor position
     } else if (cursor) {
         editor.replaceRange(text, cursor);
     }
