@@ -48,7 +48,7 @@ To see other notes similar to the current one, run *Khoj: Find Similar Notes* fr
 ### Search
 Run *Khoj: Search* from the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
 
-See [Khoj Search](/features/search) for more details. Use [query filters](/miscellaneous/advanced#query-filters) to limit entries to search
+See [Khoj Search](/features/search) for more details. Use [query filters](/miscellaneous/query-filters) to limit entries to search
 
 [search_demo](https://user-images.githubusercontent.com/6413477/218801155-cd67e8b4-a770-404a-8179-d6b61caa0f93.mp4 ':include :type=mp4')
 

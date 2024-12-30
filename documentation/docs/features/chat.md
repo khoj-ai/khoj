@@ -22,7 +22,7 @@ See [the setup guide](/get-started/setup.mdx) to configure your chat models.
     - **On Web**: Open [/chat](https://app.khoj.dev/chat) in your web browser
     - **On Obsidian**: Search for *Khoj: Chat* in the [Command Palette](https://help.obsidian.md/Plugins/Command+palette)
     - **On Emacs**: Run `M-x khoj <user-query>`
-2. Enter your queries to chat with Khoj. Use [slash commands](#commands) and [query filters](/miscellaneous/advanced#query-filters) to change what Khoj uses to respond
+2. Enter your queries to chat with Khoj. Use [slash commands](#commands) and [query filters](/miscellaneous/query-filters) to change what Khoj uses to respond
 
 
 #### Details
@@ -30,7 +30,7 @@ See [the setup guide](/get-started/setup.mdx) to configure your chat models.
 2. These notes, the last few messages and associated metadata is passed to the enabled chat model along with your query to generate a response
 
 #### Conversation File Filters
-You can use conversation file filters to limit the notes used in the chat response. To do so, use the left panel in the web UI. Alternatively, you can also use [query filters](/miscellaneous/advanced#query-filters) to limit the notes used in the chat response.
+You can use conversation file filters to limit the notes used in the chat response. To do so, use the left panel in the web UI. Alternatively, you can also use [query filters](/miscellaneous/query-filters) to limit the notes used in the chat response.
 
 <img src="/img/file_filters_conversation.png" alt="Conversation File Filter" style={{width: '400px'}}/>
 

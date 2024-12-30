@@ -17,10 +17,10 @@ You have a couple of image generation options.
 We support most state of the art image generation models, including Ideogram, Flux, and Stable Diffusion. These will run using [Replicate](https://replicate.com). Here's how to set them up:
 
 1. Get a Replicate API key [here](https://replicate.com/account/api-tokens).
-1. Create a new [Text to Image Model](http://localhost:42110/server/admin/database/texttoimagemodelconfig/). Set the `type` to `Replicate`. Use any of the model names you see [on this list](https://replicate.com/pricing#image-models).
+2. Create a new [Text to Image Model](http://localhost:42110/server/admin/database/texttoimagemodelconfig/). Set the `type` to `Replicate`. Use any of the model names you see [on this list](https://replicate.com/pricing#image-models). We recommend the `model name` `black-forest-labs/flux-1.1-pro` from [Replicate](https://replicate.com/black-forest-labs/flux-1.1-pro).
 
 ### OpenAI
 
 1. Get [an OpenAI API key](https://platform.openai.com/settings/organization/api-keys).
-2. Setup your OpenAI API key, if you haven't already. See instructions [here](/get-started/setup#2-configure)
-3. Create a text to image config at http://localhost:42110/server/admin/database/texttoimagemodelconfig/. We recommend the `model name` `dall-e-3`. Make sure to associate it with the OpenAI API chat configuration you setup in step 2 with `Openai config` field.
+2. Setup your OpenAI API key, if you haven't already. See instructions [here](/get-started/setup#add-chat-models)
+3. Create a text to image config at http://localhost:42110/server/admin/database/texttoimagemodelconfig/. Use `model name` `dall-e-3` to you use openai for image generation. Make sure to set the `Ai model api` field to the the OpenAI AI model api you setup in step 2.

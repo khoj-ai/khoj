@@ -16,4 +16,4 @@ Go to https://app.khoj.dev/settings to connect your Notion workspace(s) to Khoj.
 4. In the first step, you generated an API key. Use the newly generated API Key in your Khoj settings, by default at [http://localhost:42110/settings#notion](http://localhost:42110/settings#notion). Click `Save`.
 5. Click `Configure` in http://localhost:42110/settings to index your Notion workspace(s).
 
-That's it! You should be ready to start searching and chatting. Make sure you've configured your [chat settings](/get-started/setup#2-configure).
+That's it! You should be ready to start searching and chatting. Make sure you've configured your [chat settings](/get-started/setup#use-khoj).

@@ -17,11 +17,11 @@ You can also click on the speaker icon next to any message to hear it out loud. 
 
 Voice chat will automatically be configured when you initialize the application. The default configuration will run locally. If you want to use the OpenAI whisper API for voice chat, you can set it up by following these steps:
 
-1. Setup your OpenAI API key. See instructions [here](/get-started/setup#2-configure).
+1. Setup your OpenAI API key. See instructions [here](/get-started/setup#add-chat-models).
 2. Create a new configuration at http://localhost:42110/server/admin/database/speechtotextmodeloptions/. We recommend the value `whisper-1` and model type `Openai`.
 
 If you want to use the Text to Speech feature, you can set it up by following these steps:
 
 1. Setup your account on [ElevenLabs.io](https://elevenlabs.io/).
 2. Configure your API key in your environment variables with the key `ELEVEN_LABS_API_KEY`.
-2. (Optional) Create a new [Voice model option](http://localhost:42110/server/admin/database/voicemodeloption/) with a specific voice ID from whichever voice you want to use. You can explore the options [here](https://elevenlabs.io/app/voice-library).
+3. (Optional) Create a new [Voice model option](http://localhost:42110/server/admin/database/voicemodeloption/) with a specific voice ID from whichever voice you want to use. You can explore the options [here](https://elevenlabs.io/app/voice-library).
