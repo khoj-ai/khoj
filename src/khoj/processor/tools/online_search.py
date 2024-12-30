@@ -40,7 +40,7 @@ FIRECRAWL_USE_LLM_EXTRACT = is_env_var_true("FIRECRAWL_USE_LLM_EXTRACT")
 
 OLOSTEP_QUERY_PARAMS = {
     "timeout": 35,  # seconds
-    "waitBeforeScraping": 1,  # seconds
+    "waitBeforeScraping": 0,  # seconds
     "saveHtml": "False",
     "saveMarkdown": "True",
     "removeCSSselectors": "default",
