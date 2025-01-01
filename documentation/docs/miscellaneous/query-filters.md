@@ -2,9 +2,7 @@
 sidebar_position: 3
 ---
 
-# Advanced Usage
-
-## Query Filters
+# Query Filters
 
 Use structured query syntax to filter entries from your knowledge based used by search results or chat responses.
 
