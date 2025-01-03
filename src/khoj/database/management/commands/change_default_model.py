@@ -44,6 +44,7 @@ class Command(BaseCommand):
                 entries = Entry.objects.filter(entry_filter)[start:end]
                 compiled_entries = [entry.compiled for entry in entries]
                 updated_entries: List[Entry] = []
+
                 try:
                     embeddings = embeddings_model.embed_documents(compiled_entries)
                 except Exception as e:
@@ -87,27 +88,21 @@ class Command(BaseCommand):
 
         current_default = get_default_search_model()
 
-        # TODO: Migrate all Entry objects to use the new default Search model
+        # Create an entry filter with no conditions
+        entry_filter = Q()
+        relevant_entries = Entry.objects.filter(entry_filter).all()
+        logger.info(f"Number of Entry objects to update: {relevant_entries.count()}")
 
-        all_agents = Agent.objects.all()
-        logger.info(f"Number of Agent objects to update: {all_agents.count()}")
-        for agent in all_agents:
-            entry_filter = Q(agent=agent)
-            relevant_entries = Entry.objects.filter(entry_filter).all()
-            logger.info(f"Number of Entry objects to update for agent {agent}: {relevant_entries.count()}")
-
-            if apply:
-                try:
-                    regenerate_entries(
-                        entry_filter,
-                        embeddings_model[new_default_search_model_config.name],
-                        new_default_search_model_config,
-                    )
-                    logger.info(
-                        f"Updated {relevant_entries.count()} Entry objects for agent {agent} to use the new default Search model."
-                    )
-                except Exception as e:
-                    logger.error(f"Error embedding documents: {e}")
+        if apply:
+            try:
+                regenerate_entries(
+                    entry_filter=entry_filter,
+                    embeddings_model=embeddings_model[new_default_search_model_config.name],
+                    search_model=new_default_search_model_config,
+                )
+            except Exception as e:
+                logger.error(f"Error updating Entry objects: {e}")
+                return
 
         if apply and current_default.id != new_default_search_model_config.id:
             # Get the existing default SearchModelConfig object and update its name
