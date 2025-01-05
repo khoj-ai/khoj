@@ -325,7 +325,7 @@ async def acheck_if_safe_prompt(system_prompt: str, user: KhojUser = None, lax: 
 
         response = response.strip()
         try:
-            response = clean_json(response)
+            response = json.loads(clean_json(response))
             is_safe = response.get("safe", "True") == "True"
             if not is_safe:
                 reason = response.get("reason", "")
