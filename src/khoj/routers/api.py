@@ -757,3 +757,19 @@ def edit_job(
 
     # Return modified automation information as a JSON response
     return Response(content=json.dumps(automation_info), media_type="application/json", status_code=200)
+
+
+@api.get("/file-suggestions", response_class=Response)
+@requires(["authenticated"])
+def get_file_suggestions(request: Request, q: str = ""):
+    """Get file suggestions for autocompletion based on the query prefix."""
+    user = request.user.object
+    file_list = EntryAdapters.get_all_filenames_by_source(user, "computer")
+    
+    # Filter files based on query prefix
+    suggestions = [f for f in file_list if f.lower().startswith(q.lower())]
+    
+    # Sort suggestions alphabetically and limit to top 10
+    suggestions = sorted(suggestions)[:10]
+    
+    return Response(content=json.dumps(suggestions), media_type="application/json")
