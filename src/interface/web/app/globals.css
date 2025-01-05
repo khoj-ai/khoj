@@ -373,6 +373,11 @@
         margin: revert;
     }
 
+    li {
+        list-style: revert;
+        list-style-type: none;
+    }
+
     body {
         @apply bg-background text-foreground;
     }
