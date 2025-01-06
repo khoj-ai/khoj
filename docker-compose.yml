@@ -28,7 +28,7 @@ services:
     volumes:
       - khoj_search:/etc/searxng
     environment:
-      - SEARXNG_BASE_URL=http://0.0.0.0:8080/
+      - SEARXNG_BASE_URL=http://localhost:8080/
   server:
     depends_on:
       database:
