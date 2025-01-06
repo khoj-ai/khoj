@@ -136,7 +136,15 @@ class KhojUserAdmin(UserAdmin, unfold_admin.ModelAdmin):
     fieldsets = (
         (
             "Personal info",
-            {"fields": ("phone_number", "email_verification_code", "verified_phone_number", "verified_email","email_verification_code_expiry")},
+            {
+                "fields": (
+                    "phone_number",
+                    "email_verification_code",
+                    "verified_phone_number",
+                    "verified_email",
+                    "email_verification_code_expiry",
+                )
+            },
         ),
     ) + UserAdmin.fieldsets
 
