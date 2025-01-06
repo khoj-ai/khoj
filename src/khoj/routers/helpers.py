@@ -1672,8 +1672,7 @@ def format_automation_response(scheduling_request: str, executed_query: str, ai_
     Format the AI response to send in automation email to user.
     """
     name = get_user_name(user)
-    if name:
-        username = prompts.user_name.format(name=name)
+    username = prompts.user_name.format(name=name) if name else ""
 
     automation_format_prompt = prompts.automation_format_prompt.format(
         original_query=scheduling_request,
@@ -1704,7 +1703,7 @@ def should_notify(original_query: str, executed_query: str, ai_response: str, us
         try:
             # TODO Replace with async call so we don't have to maintain a sync version
             raw_response = send_message_to_model_wrapper_sync(to_notify_or_not, user=user, response_type="json_object")
-            response = json.loads(raw_response)
+            response = json.loads(clean_json(raw_response))
             should_notify_result = response["decision"] == "Yes"
             reason = response.get("reason", "unknown")
             logger.info(
