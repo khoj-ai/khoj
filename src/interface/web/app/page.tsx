@@ -492,7 +492,9 @@ export default function Home() {
                     <SidebarTrigger className="-ml-1" />
                     <Separator orientation="vertical" className="mr-2 h-4" />
                     {isMobileWidth ? (
-                        <KhojLogoType className="h-auto w-16" />
+                        <a className="p-0 no-underline" href="/">
+                            <KhojLogoType className="h-auto w-16" />
+                        </a>
                     ) : (
                         <h2 className="text-lg">Ask Anything</h2>
                     )}

@@ -401,7 +401,9 @@ export default function Chat() {
                             className={`${styles.chatTitleWrapper} text-nowrap text-ellipsis overflow-hidden max-w-screen-md grid items-top font-bold mx-2 md:mr-8 col-auto h-fit`}
                         >
                             {isMobileWidth ? (
-                                <KhojLogoType className="h-auto w-16" />
+                                <a className="p-0 no-underline" href="/">
+                                    <KhojLogoType className="h-auto w-16" />
+                                </a>
                             ) : (
                                 title && (
                                     <>
