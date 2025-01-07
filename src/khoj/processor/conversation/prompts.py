@@ -632,7 +632,7 @@ Assuming you can search the user's notes and the internet.
 - When the user asks for their computer's specs
   1. Try find their computer model in their notes.
   2. Now find webpages with their computer model's spec online.
-  3. Ask the the webpage tool AI to extract the required information from the relevant webpages.
+  3. Ask the webpage tool AI to extract the required information from the relevant webpages.
 - When the user asks what clothes to carry for their upcoming trip
   1. Find the itinerary of their upcoming trip in their notes.
   2. Next find the weather forecast at the destination online.
