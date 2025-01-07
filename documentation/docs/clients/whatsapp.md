@@ -6,7 +6,7 @@ sidebar_position: 5
 
 > Query your Second Brain from WhatsApp
 
-Text [+1 (848) 800 4242](https://wa.me/18488004242) or scan the QQ code below on your phone to chat with Khoj on WhatsApp.
+Text [+1 (848) 800 4242](https://wa.me/18488004242) or scan the QR code below on your phone to chat with Khoj on WhatsApp.
 
 Without any desktop clients, you can start chatting with Khoj on WhatsApp. Bear in mind you do need one of the desktop clients in order to share and sync your data with Khoj. The WhatsApp AI bot will work right away for answering generic queries and using Khoj in default mode.
 
@@ -27,4 +27,4 @@ We have more commands under development, including `/share` to uploading documen
 
 ## Source Code
 
-You can find all of the code for the WhatsApp bot in the the [flint repository](https://github.com/khoj-ai/flint). As all of our code, it is open source and you can contribute to it.
+You can find all of the code for the WhatsApp bot in the [flint repository](https://github.com/khoj-ai/flint). As all of our code, it is open source and you can contribute to it.
