@@ -23,4 +23,4 @@ We support most state of the art image generation models, including Ideogram, Fl
 
 1. Get [an OpenAI API key](https://platform.openai.com/settings/organization/api-keys).
 2. Setup your OpenAI API key, if you haven't already. See instructions [here](/get-started/setup#add-chat-models)
-3. Create a text to image config at http://localhost:42110/server/admin/database/texttoimagemodelconfig/. Use `model name` `dall-e-3` to use openai for image generation. Make sure to set the `Ai model api` field to the the OpenAI AI model api you setup in step 2.
+3. Create a text to image config at http://localhost:42110/server/admin/database/texttoimagemodelconfig/. Use `model name` `dall-e-3` to use openai for image generation. Make sure to set the `Ai model api` field to the OpenAI AI model api you setup in step 2.
