@@ -59,18 +59,18 @@ export default class Khoj extends Plugin {
         // Add a settings tab so the user can configure khoj
         this.addSettingTab(new KhojSettingTab(this.app, this));
 
-        // Démarrer le timer de synchronisation
+        // Start the sync timer
         this.startSyncTimer();
     }
 
-    // Méthode pour démarrer le timer de synchronisation
+    // Method to start the sync timer
     private startSyncTimer() {
-        // Nettoyer l'ancien timer s'il existe
+        // Clean up the old timer if it exists
         if (this.indexingTimer) {
             clearInterval(this.indexingTimer);
         }
 
-        // Démarrer un nouveau timer avec l'intervalle configuré
+        // Start a new timer with the configured interval
         this.indexingTimer = setInterval(async () => {
             if (this.settings.autoConfigure) {
                 this.settings.lastSync = await updateContentIndex(
@@ -79,10 +79,10 @@ export default class Khoj extends Plugin {
                     this.settings.lastSync
                 );
             }
-        }, this.settings.syncInterval * 60 * 1000); // Convertir les minutes en millisecondes
+        }, this.settings.syncInterval * 60 * 1000); // Convert minutes to milliseconds
     }
 
-    // Méthode publique pour redémarrer le timer (appelée depuis les paramètres)
+    // Public method to restart the timer (called from settings)
     public restartSyncTimer() {
         this.startSyncTimer();
     }

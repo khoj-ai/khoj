@@ -13,7 +13,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
     find_similar_notes: boolean;
     query: string = "";
     app: App;
-    currentController: AbortController | null = null;  // Pour annuler les requêtes
+    currentController: AbortController | null = null;  // To cancel requests
     isLoading: boolean = false;
     loadingEl: HTMLElement;
 
@@ -37,11 +37,11 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
         this.loadingEl.style.zIndex = "1000";
         this.loadingEl.style.display = "none";
 
-        // Ajouter l'élément au modal
+        // Add the element to the modal
         this.modalEl.appendChild(this.loadingEl);
 
         // Customize empty state message
-        // @ts-ignore - Accès à la propriété privée pour personnaliser le message
+        // @ts-ignore - Access to private property to customize the message
         this.emptyStateText = "";
 
         // Register Modal Keybindings to Rerank Results
@@ -99,7 +99,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
     }
 
     async getSuggestions(query: string): Promise<SearchResult[]> {
-        // Ne pas afficher le chargement si la requête est vide
+        // Do not show loading if the query is empty
         if (!query.trim()) {
             this.isLoading = false;
             this.updateLoadingState();

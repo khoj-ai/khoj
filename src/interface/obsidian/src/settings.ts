@@ -178,7 +178,7 @@ export class KhojSettingTab extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.plugin.settings.syncInterval = parseInt(value);
                     await this.plugin.saveSettings();
-                    // Redémarrer le timer avec le nouvel intervalle
+                    // Restart the timer with the new interval
                     this.plugin.restartSyncTimer();
                 }));
 
@@ -311,13 +311,13 @@ class FolderSuggestModal extends SuggestModal<string> {
         const folders = new Set<string>();
         folders.add(''); // Root folder
 
-        // Récupérer tous les fichiers et extraire les chemins des dossiers
+        // Get all files and extract folder paths
         this.app.vault.getAllLoadedFiles().forEach(file => {
             const folderPath = file.parent?.path;
             if (folderPath) {
                 folders.add(folderPath);
 
-                // Ajouter aussi tous les dossiers parents
+                // Also add all parent folders
                 let parent = folderPath;
                 while (parent.includes('/')) {
                     parent = parent.substring(0, parent.lastIndexOf('/'));

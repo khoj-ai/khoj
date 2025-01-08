@@ -74,9 +74,9 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
         })
         // Filter files based on specified folders
         .filter(file => {
-            // Si aucun dossier n'est spécifié, synchroniser tous les fichiers
+            // If no folders are specified, sync all files
             if (setting.syncFolders.length === 0) return true;
-            // Sinon, vérifier si le fichier est dans un des dossiers spécifiés
+            // Otherwise, check if the file is in one of the specified folders
             return setting.syncFolders.some(folder =>
                 file.path.startsWith(folder + '/') || file.path === folder
             );

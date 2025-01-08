@@ -813,7 +813,7 @@ img.copy-icon {
     display: block;
 }
 
-/* Animation de chargement */
+/* Loading animation */
 .khoj-loading {
     display: flex;
     justify-content: center;
