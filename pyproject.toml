@@ -157,3 +157,69 @@ addopts = "--strict-markers"
 markers = [
     "chatquality: Evaluate chatbot capabilities and quality",
 ]
+
+# Documentation configuration
+[tool.sphinx]
+source-dir = "docs"
+build-dir = "docs/_build"
+config-dir = "docs"
+doctrees-dir = "docs/_build/doctrees"
+builder = "html"
+verbosity = 1
+
+# Flake8 configuration for linting
+[tool.flake8]
+max-line-length = 120
+ignore = ["E203", "W503"]
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    "src/khoj/interface/static",
+    "src/khoj/interface/templates",
+]
+
+# Coverage.py configuration for measuring code coverage
+[tool.coverage.run]
+branch = True
+source = ["src/khoj"]
+
+[tool.coverage.report]
+show_missing = True
+fail_under = 80
+omit = [
+    "src/khoj/__init__.py",
+    "tests/*",
+]
+exclude_lines = [
+    "# pragma: no cover",
+    "def __str__",
+    "if self.debug",
+]
+
+# Additional configurations for developers
+[tool.dev]
+prettier = true
+eslint = true
+
+# Optional [tool.pip-tools] section for managing dependencies
+[tool.pip-tools]
+install_command = "pip-sync"
+compile_command = "pip-compile --no-header --no-emit-index-url --resolver=backtracking --allow-unsafe"
+
+# Configuration for pytest-cov for detailed coverage reports
+[tool.pytest-cov]
+cov-report = term-missing
+cov-fail-under = 80
+
+# Custom scripts for development tasks
+[tool.scripts]
+format = "black src/khoj tests"
+lint = "flake8 src/khoj tests"
+test = "pytest"
+coverage = "pytest --cov=src/khoj --cov-report=html"
+
+# Additional hatch configuration for release automation
+[tool.hatch.release]
+auto-changelog = true
