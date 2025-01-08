@@ -167,7 +167,7 @@ doctrees-dir = "docs/_build/doctrees"
 builder = "html"
 verbosity = 1
 
-# Flake8 configuration for linting
+# Flake8 configuration for that linting
 [tool.flake8]
 max-line-length = 120
 ignore = ["E203", "W503"]
