@@ -5,6 +5,9 @@ LABEL repository="https://github.com/khoj-ai/khoj"
 LABEL org.opencontainers.image.source="https://github.com/khoj-ai/khoj"
 LABEL org.opencontainers.image.description="Your second brain, containerized for multi-user, cloud deployment"
 
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+
 # Install System Dependencies
 RUN apt update -y && apt -y install \
     python3-pip \
@@ -17,6 +20,10 @@ RUN apt update -y && apt -y install \
     # Required by llama-cpp-python pre-built wheels. See #1628
     musl-dev && \
     ln -s /usr/lib/x86_64-linux-musl/libc.so /lib/libc.musl-x86_64.so.1 && \
+    # Install additional tools
+    vim \
+    net-tools \
+    iputils-ping && \
     # Clean up
     apt clean && rm -rf /var/lib/apt/lists/*
 
@@ -30,7 +37,11 @@ ARG VERSION=0.0.0
 ENV PIP_EXTRA_INDEX_URL="https://download.pytorch.org/whl/cpu https://abetlen.github.io/llama-cpp-python/whl/cpu"
 # avoid downloading unused cuda specific python packages
 ENV CUDA_VISIBLE_DEVICES=""
-RUN sed -i "s/dynamic = \\[\"version\"\\]/version = \"$VERSION\"/" pyproject.toml && \
+RUN sed -i "s/dynamic = \
+
+\[\"version\"\\]
+
+/version = \"$VERSION\"/" pyproject.toml && \
     pip install --no-cache-dir -e .[prod]
 
 # Build Web App
@@ -56,9 +67,12 @@ COPY --from=web-app /app/src/interface/web/out ./src/khoj/interface/built
 COPY . .
 RUN cd src && python3 khoj/manage.py collectstatic --noinput
 
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 CMD curl -f http://localhost:${PORT}/health || exit 1
+
 # Run the Application
 # There are more arguments required for the application to run,
 # but those should be passed in through the docker-compose.yml file.
-ARG PORT
+ARG PORT=8000
 EXPOSE ${PORT}
 ENTRYPOINT ["gunicorn", "-c", "gunicorn-config.py", "src.khoj.main:app"]
