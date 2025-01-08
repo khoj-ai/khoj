@@ -19,7 +19,11 @@ from khoj.processor.conversation.utils import (
     ThreadedGenerator,
     commit_conversation_trace,
 )
-from khoj.utils.helpers import get_chat_usage_metrics, is_promptrace_enabled
+from khoj.utils.helpers import (
+    get_chat_usage_metrics,
+    get_openai_client,
+    is_promptrace_enabled,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -51,10 +55,7 @@ def completion_with_backoff(
     client_key = f"{openai_api_key}--{api_base_url}"
     client: openai.OpenAI | None = openai_clients.get(client_key)
     if not client:
-        client = openai.OpenAI(
-            api_key=openai_api_key,
-            base_url=api_base_url,
-        )
+        client = get_openai_client(openai_api_key, api_base_url)
         openai_clients[client_key] = client
 
     formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
@@ -158,14 +159,11 @@ def llm_thread(
 ):
     try:
         client_key = f"{openai_api_key}--{api_base_url}"
-        if client_key not in openai_clients:
-            client = openai.OpenAI(
-                api_key=openai_api_key,
-                base_url=api_base_url,
-            )
-            openai_clients[client_key] = client
-        else:
+        if client_key in openai_clients:
             client = openai_clients[client_key]
+        else:
+            client = get_openai_client(openai_api_key, api_base_url)
+            openai_clients[client_key] = client
 
         formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
 
