@@ -198,7 +198,7 @@ exclude_lines = [
     "if self.debug",
 ]
 
-# Additional configurations for developers
+# Additional configurations for the developers
 [tool.dev]
 prettier = true
 eslint = true
