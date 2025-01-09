@@ -1135,6 +1135,7 @@ def send_message_to_model_wrapper_sync(
 
     elif chat_model.model_type == ChatModel.ModelType.OPENAI:
         api_key = chat_model.ai_model_api.api_key
+        api_base_url = chat_model.ai_model_api.api_base_url
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
             system_message=system_message,
@@ -1149,6 +1150,7 @@ def send_message_to_model_wrapper_sync(
         openai_response = send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
+            api_base_url=api_base_url,
             model=chat_model_name,
             response_type=response_type,
             tracer=tracer,
