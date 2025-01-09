@@ -1014,8 +1014,6 @@ async def generate_mermaidjs_diagram_from_description(
         raw_response = await send_message_to_model_wrapper(query=mermaidjs_diagram_generation, user=user, tracer=tracer)
         return clean_mermaidjs(raw_response.strip())
 
-    return response
-
 
 async def generate_better_image_prompt(
     q: str,
