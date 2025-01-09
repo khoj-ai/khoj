@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import mermaid from "mermaid";
-import { Info } from "@phosphor-icons/react";
+import { Download, Info } from "@phosphor-icons/react";
+import { Button } from "@/components/ui/button";
 
 interface MermaidProps {
     chart: string;
@@ -41,8 +42,71 @@ const Mermaid: React.FC<MermaidProps> = ({ chart }) => {
         mermaid.contentLoaded();
     }, []);
 
+    const handleExport = async () => {
+        if (!elementRef.current) return;
+
+        try {
+            // Get SVG element
+            const svgElement = elementRef.current.querySelector("svg");
+            if (!svgElement) throw new Error("No SVG found");
+
+            // Get SVG viewBox dimensions
+            const viewBox = svgElement.getAttribute("viewBox")?.split(" ").map(Number) || [
+                0, 0, 0, 0,
+            ];
+            const [, , viewBoxWidth, viewBoxHeight] = viewBox;
+
+            // Create canvas with viewBox dimensions
+            const canvas = document.createElement("canvas");
+            const scale = 2; // For better resolution
+            canvas.width = viewBoxWidth * scale;
+            canvas.height = viewBoxHeight * scale;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) throw new Error("Failed to get canvas context");
+
+            // Convert SVG to data URL
+            const svgData = new XMLSerializer().serializeToString(svgElement);
+            const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+            const svgUrl = URL.createObjectURL(svgBlob);
+
+            // Create and load image
+            const img = new Image();
+            img.src = svgUrl;
+
+            await new Promise((resolve, reject) => {
+                img.onload = () => {
+                    // Scale context for better resolution
+                    ctx.scale(scale, scale);
+                    ctx.drawImage(img, 0, 0, viewBoxWidth, viewBoxHeight);
+
+                    canvas.toBlob((blob) => {
+                        if (!blob) {
+                            reject(new Error("Failed to create blob"));
+                            return;
+                        }
+
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `mermaid-diagram-${Date.now()}.png`;
+                        a.click();
+
+                        // Cleanup
+                        URL.revokeObjectURL(url);
+                        URL.revokeObjectURL(svgUrl);
+                        resolve(true);
+                    }, "image/png");
+                };
+
+                img.onerror = () => reject(new Error("Failed to load SVG"));
+            });
+        } catch (error) {
+            console.error("Error exporting diagram:", error);
+            setMermaidError("Failed to export diagram");
+        }
+    };
+
     useEffect(() => {
-        console.log("Rendering mermaid chart:", chart);
         if (elementRef.current) {
             elementRef.current.removeAttribute("data-processed");
 
@@ -78,6 +142,12 @@ const Mermaid: React.FC<MermaidProps> = ({ chart }) => {
                 >
                     {chart}
                 </div>
+            )}
+            {!mermaidError && (
+                <Button onClick={handleExport} variant={"secondary"} className="mt-3">
+                    <Download className="w-5 h-5" />
+                    Export as PNG
+                </Button>
             )}
         </div>
     );
