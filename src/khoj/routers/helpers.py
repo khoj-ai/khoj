@@ -1000,7 +1000,7 @@ async def generate_mermaidjs_diagram_from_description(
     user: KhojUser = None,
     agent: Agent = None,
     tracer: dict = {},
-) -> Dict[str, Any]:
+) -> str:
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
     )

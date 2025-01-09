@@ -428,27 +428,27 @@ pie title Pets adopted by volunteers
     "Rats" : 60
 
 flowchart TB
-    c1-->a2
-    subgraph one
-    a1-->a2
+    subgraph "Group 1"
+        a1["Start Node"] --> a2["End Node"]
     end
-    subgraph two
-    b1-->b2["this is b2"]
+    subgraph "Group 2"
+        b1["Process 1"] --> b2["Process 2"]
     end
-    subgraph three
-    c1["this is c1"]-->c2["this is c2"]
+    subgraph "Group 3"
+        c1["Input"] --> c2["Output"]
     end
-    one --> two
-    three --> two
-    two --> c2
+    a["Group 1"] --> b["Group 2"]
+    c["Group 3"] --> d["Group 2"]
 
 ----Process----
 Create your diagram with great composition and intuitiveness from the provided context and user prompt below.
 - You may use subgraphs to group elements together. Each subgraph must have a title.
-- **You must wrap ALL entity and node labels in double quotes**. For example, "Entity Name".
+- **You must wrap ALL entity and node labels in double quotes**, example: "My Node Label"
+- **All nodes MUST use the id["label"] format**. For example: node1["My Node Label"]
 - Custom style are not permitted. Default styles only.
 - JUST provide the diagram, no additional text or context. Say nothing else in your response except the diagram.
 - Keep diagrams simple - maximum 15 nodes
+- Every node inside a subgraph MUST use square bracket notation: id["label"]
 
 output: {query}
 
