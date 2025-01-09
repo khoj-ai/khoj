@@ -6,8 +6,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
-    networks:
-      - default
     volumes:
       - khoj_db:/var/lib/postgresql/data/
     healthcheck:
@@ -17,14 +15,10 @@ services:
       retries: 5
   sandbox:
     image: ghcr.io/khoj-ai/terrarium:latest
-    restart: always
-    networks:
-      - default
+    restart: unless-stopped
   search:
     image: docker.io/searxng/searxng:latest
-    restart: always
-    networks:
-      - default
+    restart: unless-stopped
     volumes:
       - khoj_search:/etc/searxng
     environment:
@@ -35,7 +29,7 @@ services:
         condition: service_healthy
     # Use the following line to use the latest version of khoj. Otherwise, it will build from source. Set this to ghcr.io/khoj-ai/khoj-cloud:latest if you want to use the prod image.
     image: ghcr.io/khoj-ai/khoj:latest
-    restart: always
+    restart: unless-stopped
     # Uncomment the following line to build from source. This will take a few minutes. Comment the next two lines out if you want to use the official image.
     # build:
       # context: .
@@ -45,11 +39,9 @@ services:
       #   change the port in the args in the build section,
       #   as well as the port in the command section to match
       - "42110:42110"
-    working_dir: /app
-    networks:
-      - default
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    working_dir: /app
     volumes:
       - khoj_config:/root/.khoj/
       - khoj_models:/root/.cache/torch/sentence_transformers
