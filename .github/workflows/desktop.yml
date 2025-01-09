@@ -60,7 +60,7 @@ jobs:
 
       - name: ⏫ Upload Mac ARM App
         if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           if-no-files-found: warn
           name: khoj-${{ github.ref_name }}-arm64.dmg
@@ -68,7 +68,7 @@ jobs:
 
       - name: ⏫ Upload Mac x64 App
         if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           if-no-files-found: warn
           name: khoj-${{ github.ref_name }}-x64.dmg
@@ -76,7 +76,7 @@ jobs:
 
       - name: ⏫ Upload Windows App
         if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           if-no-files-found: warn
           name: khoj-${{ github.ref_name }}-x64.exe
@@ -84,7 +84,7 @@ jobs:
 
       - name: ⏫ Upload Debian App
         if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           if-no-files-found: warn
           name: khoj-${{ github.ref_name }}-x64.deb
@@ -92,7 +92,7 @@ jobs:
 
       - name: ⏫ Upload Linux App Image
         if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           if-no-files-found: warn
           name: khoj-${{ github.ref_name }}-x64.AppImage

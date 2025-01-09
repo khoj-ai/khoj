@@ -35,21 +35,21 @@ jobs:
           yarn run build --if-present
 
       - name: ⏫ Upload Obsidian Plugin main.js
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
           name: main.js
           path: src/interface/obsidian/main.js
 
       - name: ⏫ Upload Obsidian Plugin manifest.json
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
           name: manifest.json
           path: src/interface/obsidian/manifest.json
 
       - name: ⏫ Upload Obsidian Plugin styles.css
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           if-no-files-found: error
           name: styles.css

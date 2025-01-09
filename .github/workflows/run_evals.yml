@@ -133,7 +133,7 @@ jobs:
 
       - name: Upload Results
         if: always()  # Upload results even if tests fail
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: eval-results-${{ steps.hatch.outputs.version }}-${{ matrix.khoj_mode }}-${{ matrix.dataset }}
           path: |
