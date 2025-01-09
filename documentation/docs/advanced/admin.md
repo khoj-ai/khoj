@@ -47,7 +47,7 @@ For each AI Model API you [add](http://localhost:42110/server/admin/database/aim
   ![example configuration for ai model api](/img/example_openai_processor_config.png)
 
 ### Search Model Configs
-Search models are used to generate vector embeddings of your documents for natural language search and chat. You can choose any [embeddings models on HuggingFace](https://huggingface.co/models?pipeline_tag=sentence-similarity) to try, use for your to create vector embeddings of your documents for natural language search and chat.
+Search models are used to generate vector embeddings of your documents for natural language search and chat. You can choose any [embeddings models on HuggingFace](https://huggingface.co/models?pipeline_tag=sentence-similarity) to create vector embeddings of your documents for natural language search and chat.
 
 <img src="/img/example_search_model_admin_settings.png" alt="Example Search Model Settings" style={{width: 500}} />
 
@@ -64,6 +64,9 @@ Add speech to text models with these settings. Khoj currently only supports whis
 ### Voice Model Options
 Add text to speech models with these settings. Khoj currently supports models from [ElevenLabs](https://elevenlabs.io/).
 
+### Reflective Questions
+This is a static list of starter question suggestions for each user. It is not current used in any client app. It used to be shown on the web app home page. We may turn it into a dynamic list of starter questions personalized to each users, say based on their recent conversations or synced knowledge base.
+
 ## User Data
 - Users, Entrys, Conversations, Subscriptions, Github configs, Notion configs, User search configs, User conversation configs, User voice configs
 
@@ -71,4 +74,4 @@ Add text to speech models with these settings. Khoj currently supports models fr
 - Process Locks: Persistent Locks for Automations
 - Client Applications:
 
-Client applications allow you to setup third party applications that can query your Khoj server using a client application ID + secret. The secret would go in a bearer token.
+  Client applications allow you to setup third party applications that can query your Khoj server using a client application ID + secret. The secret would go in a bearer token.
