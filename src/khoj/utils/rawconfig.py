@@ -66,7 +66,7 @@ class GithubRepoConfig(ConfigBase):
 
 
 class GithubContentConfig(ConfigBase):
-    pat_token: str
+    pat_token: Optional[str] = None
     repos: List[GithubRepoConfig]
 
 
