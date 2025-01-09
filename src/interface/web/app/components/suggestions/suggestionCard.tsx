@@ -20,7 +20,7 @@ interface StepTwoSuggestionCardProps {
 }
 
 export function StepOneSuggestionCard(data: StepOneSuggestionCardProps) {
-    const cardClassName = `${styles.card} md:w-full md:h-fit sm:w-full h-fit md:w-[200px] cursor-pointer md:p-2 animate-fade-in-up`;
+    const cardClassName = `${styles.card} md:w-full md:h-fit sm:w-full h-fit md:w-[200px] cursor-pointer md:p-2`;
     const descriptionClassName = `${styles.text} dark:text-white`;
 
     const cardContent = (

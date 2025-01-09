@@ -3,7 +3,7 @@ import "./globals.css";
 import styles from "./page.module.css";
 import "katex/dist/katex.min.css";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import useSWR from "swr";
 import { ArrowsVertical } from "@phosphor-icons/react";
 
@@ -58,6 +58,104 @@ interface ChatBodyDataProps {
     isLoggedIn: boolean;
     userConfig: UserConfig | null;
     isLoadingUserConfig: boolean;
+}
+
+function AgentCards({
+    agents,
+    agentIcons,
+    selectedAgent,
+    isPopoverOpen,
+    debouncedHoveredAgent,
+    setHoveredAgent,
+    setIsPopoverOpen,
+    setSelectedAgent,
+    chatInputRef,
+    openAgentEditCard,
+    userConfig,
+    isMobileWidth,
+}: {
+    agents: AgentData[];
+    agentIcons: JSX.Element[];
+    selectedAgent: string | null;
+    isPopoverOpen: boolean;
+    debouncedHoveredAgent: string | null;
+    setHoveredAgent: (agent: string | null) => void;
+    setIsPopoverOpen: (open: boolean) => void;
+    setSelectedAgent: (agent: string | null) => void;
+    chatInputRef: React.RefObject<HTMLTextAreaElement>;
+    openAgentEditCard: (slug: string) => void;
+    userConfig: UserConfig | null;
+    isMobileWidth?: boolean;
+}) {
+    return (
+        <ScrollArea className="w-full max-w-[600px] mx-auto">
+            <div className="flex pb-2 gap-2 items-center justify-center">
+                {agents.map((agent, index) => (
+                    <Popover
+                        key={`${index}-${agent.slug}`}
+                        open={isPopoverOpen && debouncedHoveredAgent === agent.slug}
+                        onOpenChange={(open) => {
+                            if (!open) {
+                                setHoveredAgent(null);
+                                setIsPopoverOpen(false);
+                            }
+                        }}
+                    >
+                        <PopoverTrigger asChild>
+                            <Card
+                                className={`${
+                                    selectedAgent === agent.slug
+                                        ? convertColorToBorderClass(agent.color)
+                                        : "border-stone-100 dark:border-neutral-700 text-muted-foreground"
+                                }
+                            hover:cursor-pointer rounded-lg px-2 py-2`}
+                                onDoubleClick={() => openAgentEditCard(agent.slug)}
+                                onClick={() => {
+                                    setSelectedAgent(agent.slug);
+                                    chatInputRef.current?.focus();
+                                    setHoveredAgent(null);
+                                    setIsPopoverOpen(false);
+                                }}
+                                onMouseEnter={() => setHoveredAgent(agent.slug)}
+                                onMouseLeave={() => {
+                                    setHoveredAgent(null);
+                                    setIsPopoverOpen(false);
+                                }}
+                            >
+                                <CardTitle className="text-center text-md font-medium flex justify-center items-center whitespace-nowrap">
+                                    {agentIcons[index]} {agent.name}
+                                </CardTitle>
+                            </Card>
+                        </PopoverTrigger>
+                        <PopoverContent
+                            className="w-80 p-0 border-none bg-transparent shadow-none"
+                            onMouseLeave={() => {
+                                setHoveredAgent(null);
+                                setIsPopoverOpen(false);
+                            }}
+                        >
+                            <AgentCard
+                                data={agent}
+                                userProfile={null}
+                                isMobileWidth={isMobileWidth || false}
+                                showChatButton={false}
+                                editCard={false}
+                                filesOptions={[]}
+                                selectedChatModelOption=""
+                                agentSlug=""
+                                isSubscribed={isUserSubscribed(userConfig)}
+                                setAgentChangeTriggered={() => {}}
+                                modelOptions={[]}
+                                inputToolOptions={{}}
+                                outputModeOptions={{}}
+                            />
+                        </PopoverContent>
+                    </Popover>
+                ))}
+            </div>
+            <ScrollBar orientation="horizontal" />
+        </ScrollArea>
+    );
 }
 
 function ChatBodyData(props: ChatBodyDataProps) {
@@ -223,73 +321,19 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     </h1>
                 </div>
                 {!props.isMobileWidth && (
-                    <ScrollArea className="w-full max-w-[600px] mx-auto">
-                        <div className="flex pb-2 gap-2 items-center justify-center">
-                            {agents.map((agent, index) => (
-                                <Popover
-                                    key={`${index}-${agent.slug}`}
-                                    open={isPopoverOpen && debouncedHoveredAgent === agent.slug}
-                                    onOpenChange={(open) => {
-                                        if (!open) {
-                                            setHoveredAgent(null);
-                                            setIsPopoverOpen(false);
-                                        }
-                                    }}
-                                >
-                                    <PopoverTrigger asChild>
-                                        <Card
-                                            className={`${
-                                                selectedAgent === agent.slug
-                                                    ? convertColorToBorderClass(agent.color)
-                                                    : "border-stone-100 dark:border-neutral-700 text-muted-foreground"
-                                            }
-                                            hover:cursor-pointer rounded-lg px-2 py-2`}
-                                            onDoubleClick={() => openAgentEditCard(agent.slug)}
-                                            onClick={() => {
-                                                setSelectedAgent(agent.slug);
-                                                chatInputRef.current?.focus();
-                                                setHoveredAgent(null);
-                                                setIsPopoverOpen(false);
-                                            }}
-                                            onMouseEnter={() => setHoveredAgent(agent.slug)}
-                                            onMouseLeave={() => {
-                                                setHoveredAgent(null);
-                                                setIsPopoverOpen(false);
-                                            }}
-                                        >
-                                            <CardTitle className="text-center text-md font-medium flex justify-center items-center whitespace-nowrap">
-                                                {agentIcons[index]} {agent.name}
-                                            </CardTitle>
-                                        </Card>
-                                    </PopoverTrigger>
-                                    <PopoverContent
-                                        className="w-80 p-0 border-none bg-transparent shadow-none"
-                                        onMouseLeave={() => {
-                                            setHoveredAgent(null);
-                                            setIsPopoverOpen(false);
-                                        }}
-                                    >
-                                        <AgentCard
-                                            data={agent}
-                                            userProfile={null}
-                                            isMobileWidth={props.isMobileWidth || false}
-                                            showChatButton={false}
-                                            editCard={false}
-                                            filesOptions={[]}
-                                            selectedChatModelOption=""
-                                            agentSlug=""
-                                            isSubscribed={isUserSubscribed(props.userConfig)}
-                                            setAgentChangeTriggered={() => {}}
-                                            modelOptions={[]}
-                                            inputToolOptions={{}}
-                                            outputModeOptions={{}}
-                                        />
-                                    </PopoverContent>
-                                </Popover>
-                            ))}
-                        </div>
-                        <ScrollBar orientation="horizontal" />
-                    </ScrollArea>
+                    <AgentCards
+                        agents={agents}
+                        agentIcons={agentIcons}
+                        selectedAgent={selectedAgent}
+                        isPopoverOpen={isPopoverOpen}
+                        debouncedHoveredAgent={debouncedHoveredAgent}
+                        setHoveredAgent={setHoveredAgent}
+                        setIsPopoverOpen={setIsPopoverOpen}
+                        setSelectedAgent={setSelectedAgent}
+                        chatInputRef={chatInputRef}
+                        openAgentEditCard={openAgentEditCard}
+                        userConfig={props.userConfig}
+                    />
                 )}
             </div>
             <div className={`mx-auto ${props.isMobileWidth ? "w-full" : "w-full max-w-screen-md"}`}>
