@@ -22,6 +22,7 @@ from time import perf_counter
 from typing import TYPE_CHECKING, Any, Optional, Union
 from urllib.parse import urlparse
 
+import openai
 import psutil
 import requests
 import torch
@@ -596,3 +597,20 @@ def get_chat_usage_metrics(
         "output_tokens": prev_usage["output_tokens"] + output_tokens,
         "cost": cost or get_cost_of_chat_message(model_name, input_tokens, output_tokens, prev_cost=prev_usage["cost"]),
     }
+
+
+def get_openai_client(api_key: str, api_base_url: str) -> Union[openai.OpenAI, openai.AzureOpenAI]:
+    """Get OpenAI or AzureOpenAI client based on the API Base URL"""
+    parsed_url = urlparse(api_base_url)
+    if parsed_url.hostname and parsed_url.hostname.endswith(".openai.azure.com"):
+        client = openai.AzureOpenAI(
+            api_key=api_key,
+            azure_endpoint=api_base_url,
+            api_version="2024-10-21",
+        )
+    else:
+        client = openai.OpenAI(
+            api_key=api_key,
+            base_url=api_base_url,
+        )
+    return client
