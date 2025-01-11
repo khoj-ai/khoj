@@ -32,18 +32,25 @@ class Command(BaseCommand):
         batch_size = 1000
         processed = 0
 
-        while True:
-            batch = orphaned_files[:batch_size]
-            if not batch:
+        while processed < total_orphaned:
+            # Get batch of IDs to process
+            batch_ids = list(orphaned_files.values_list("id", flat=True)[:batch_size])
+            if not batch_ids:
                 break
 
             if options["apply"]:
-                count = batch.delete()[0]
+                # Delete by ID to avoid slice/limit issues
+                count = FileObject.objects.filter(id__in=batch_ids).delete()[0]
                 processed += count
                 self.stdout.write(f"Deleted {processed}/{total_orphaned} orphaned FileObjects")
             else:
-                processed += len(batch)
+                processed += len(batch_ids)
                 self.stdout.write(f"Would delete {processed}/{total_orphaned} orphaned FileObjects")
+
+            # Re-query to get fresh state
+            orphaned_files = FileObject.objects.annotate(
+                has_entries=Exists(Entry.objects.filter(file_object=OuterRef("pk")))
+            ).filter(has_entries=False)
 
         action = "Deleted" if options["apply"] else "Would delete"
         self.stdout.write(self.style.SUCCESS(f"{action} {processed} orphaned FileObjects"))

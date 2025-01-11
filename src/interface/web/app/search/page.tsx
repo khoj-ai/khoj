@@ -17,7 +17,6 @@ import {
     ArrowLeft,
     ArrowRight,
     FileDashed,
-    FileMagnifyingGlass,
     GithubLogo,
     Lightbulb,
     LinkSimple,
@@ -26,31 +25,21 @@ import {
     NotionLogo,
     Eye,
     Trash,
-    ArrowsOutSimple,
     DotsThreeVertical,
     Waveform,
     Plus,
+    Download,
+    Brain,
+    Check,
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { getIconFromFilename } from "../common/iconUtils";
 import { formatDateTime, useIsMobileWidth } from "../common/utils";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "../components/appSidebar/appSidebar";
 import { Separator } from "@/components/ui/separator";
 import { KhojLogoType } from "../components/logo/khojLogo";
 import { InlineLoading } from "../components/loading/loading";
-import {
-    AlertDialog,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogCancel,
-    AlertDialogAction,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import {
     Dialog,
     DialogContent,
@@ -60,16 +49,13 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { Scroll } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { uploadDataForIndexing } from "../common/chatFunctions";
-import { CommandDialog } from "@/components/ui/command";
 import { Progress } from "@/components/ui/progress";
 interface AdditionalData {
     file: string;
@@ -102,25 +88,6 @@ function getNoteTypeIcon(source: string) {
     return <NoteBlank className="text-muted-foreground" />;
 }
 
-const naturalLanguageSearchQueryExamples = [
-    "What does the paper say about climate change?",
-    "Making a cappuccino at home",
-    "Benefits of eating mangoes",
-    "How to plan a wedding on a budget",
-    "Appointment with Dr. Makinde on 12th August",
-    "Class notes lecture 3 on quantum mechanics",
-    "Painting concepts for acrylics",
-    "Abstract from the paper attention is all you need",
-    "Climbing Everest without oxygen",
-    "Solving a rubik's cube in 30 seconds",
-    "Facts about the planet Mars",
-    "How to make a website using React",
-    "Fish at the bottom of the ocean",
-    "Fish farming Kenya 2021",
-    "How to make a cake without an oven",
-    "Installing a solar panel at home",
-];
-
 interface NoteResultProps {
     note: SearchResult;
     setFocusSearchResult: (note: SearchResult) => void;
@@ -132,7 +99,6 @@ function Note(props: NoteResultProps) {
     const fileName = isFileNameURL
         ? note.additional.heading
         : note.additional.file.split("/").pop();
-    const fileIcon = getIconFromFilename(fileName || ".txt", "h-4 w-4 inline mr-2");
 
     return (
         <Card className="bg-secondary h-full shadow-sm rounded-lg border border-muted mb-4 animate-fade-in-up">
@@ -153,8 +119,8 @@ function Note(props: NoteResultProps) {
                     <ArrowRight className="inline ml-2" />
                 </Button>
             </CardContent>
-            <CardFooter>
-                {isFileNameURL ? (
+            {isFileNameURL && (
+                <CardFooter>
                     <a
                         href={note.additional.file}
                         target="_blank"
@@ -163,13 +129,8 @@ function Note(props: NoteResultProps) {
                         <LinkSimple className="inline m-2" />
                         {note.additional.file}
                     </a>
-                ) : (
-                    <div className="bg-muted p-2 text-sm rounded-lg text-muted-foreground">
-                        {fileIcon}
-                        {note.additional.file}
-                    </div>
-                )}
-            </CardFooter>
+                </CardFooter>
+            )}
         </Card>
     );
 }
@@ -179,15 +140,14 @@ function focusNote(note: SearchResult) {
     const fileName = isFileNameURL
         ? note.additional.heading
         : note.additional.file.split("/").pop();
-    const fileIcon = getIconFromFilename(fileName || ".txt", "h-4 w-4 inline mr-2");
 
     return (
-        <Card className="bg-secondary h-full shadow-sm rounded-lg border border-muted mb-4">
+        <Card className="bg-secondary h-full shadow-sm rounded-lg border border-muted mb-4 animate-fade-in-up">
             <CardHeader>
                 <CardTitle>{fileName}</CardTitle>
             </CardHeader>
-            <CardFooter>
-                {isFileNameURL ? (
+            {isFileNameURL && (
+                <CardFooter>
                     <a
                         href={note.additional.file}
                         target="_blank"
@@ -196,13 +156,8 @@ function focusNote(note: SearchResult) {
                         <LinkSimple className="inline" />
                         {note.additional.file}
                     </a>
-                ) : (
-                    <div className="bg-muted p-3 text-sm rounded-lg text-muted-foreground flex items-center gap-2">
-                        {fileIcon}
-                        {note.additional.file}
-                    </div>
-                )}
-            </CardFooter>
+                </CardFooter>
+            )}
             <CardContent>
                 <div className="text-m">{note.entry}</div>
             </CardContent>
@@ -211,9 +166,8 @@ function focusNote(note: SearchResult) {
 }
 
 const UploadFiles: React.FC<{
-    onClose: () => void;
     setUploadedFiles: (files: string[]) => void;
-}> = ({ onClose, setUploadedFiles }) => {
+}> = ({ setUploadedFiles }) => {
     const [isDragAndDropping, setIsDragAndDropping] = useState(false);
 
     const [warning, setWarning] = useState<string | null>(null);
@@ -225,6 +179,11 @@ const UploadFiles: React.FC<{
     useEffect(() => {
         if (!uploading) {
             setProgressValue(0);
+            if (!warning && !error) {
+                // Force close the dialog by simulating a click on the escape key
+                const event = new KeyboardEvent("keydown", { key: "Escape" });
+                document.dispatchEvent(event);
+            }
         }
 
         if (uploading) {
@@ -278,16 +237,16 @@ const UploadFiles: React.FC<{
         <Dialog>
             <DialogTrigger asChild>
                 <Button variant={"secondary"} className="mt-4">
+                    <Brain className="h-4 w-4 mr-2" />
                     Add Documents
                 </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Build Knowledge Base</DialogTitle>
+                    <DialogTitle>Build Your Knowledge Base</DialogTitle>
                     <DialogDescription>
-                        Adding files to your Khoj knowledge base allows your AI to search through
-                        your own documents. This helps you get personalized answers, grounded in
-                        your own data.
+                        Add your files to supercharge Khoj's AI with your knowledge. Get instant,
+                        personalized answers powered by your own documents and data.
                     </DialogDescription>
                 </DialogHeader>
                 <div
@@ -344,7 +303,7 @@ const UploadFiles: React.FC<{
                         </div>
                     )}
                     <div
-                        className={`flex-none p-4 bg-secondary border-b ${isDragAndDropping ? "animate-pulse" : ""} rounded-lg`}
+                        className={`flex-none p-4 border-b ${isDragAndDropping ? "animate-pulse border-blue-500 bg-blue-500 bg-opacity-25" : "bg-secondary"} rounded-lg`}
                     >
                         <div className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg">
                             {isDragAndDropping ? (
@@ -379,8 +338,6 @@ export default function Search() {
     const [selectedFileFullText, setSelectedFileFullText] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
-    const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
-    const [filteredFiles, setFilteredFiles] = useState<string[]>([]);
 
     const { toast } = useToast();
 
@@ -407,36 +364,6 @@ export default function Search() {
                 console.error("Error:", error);
             });
     }
-
-    const deleteSelected = async () => {
-        let filesToDelete = selectedFiles.length > 0 ? selectedFiles : filteredFiles;
-
-        if (filesToDelete.length === 0) {
-            return;
-        }
-
-        try {
-            const response = await fetch("/api/content/files", {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ files: filesToDelete }),
-            });
-
-            if (!response.ok) throw new Error("Failed to delete files");
-
-            // Update the syncedFiles state
-            setUploadedFiles((prevFiles) =>
-                prevFiles.filter((file) => !filesToDelete.includes(file)),
-            );
-
-            // Reset selectedFiles
-            setSelectedFiles([]);
-        } catch (error) {
-            console.error("Error deleting files:", error);
-        }
-    };
 
     const fetchFiles = async () => {
         try {
@@ -466,6 +393,18 @@ export default function Search() {
             setError("Failed to load file");
             console.error("Error fetching file:", error);
         }
+    };
+
+    const handleDownload = (fileName: string, content: string) => {
+        const blob = new Blob([content], { type: "text/plain" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${fileName.split("/").pop()}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
     };
 
     useEffect(() => {
@@ -547,19 +486,20 @@ export default function Search() {
                             <KhojLogoType className="h-auto w-16" />
                         </a>
                     ) : (
-                        <h2 className="text-lg">Search</h2>
+                        <h2 className="text-lg">Search Your Knowledge Base</h2>
                     )}
                 </header>
                 <div>
                     <div className={`${styles.searchLayout}`}>
-                        <div className="md:w-3/4 sm:w-full mx-auto pt-6 md:pt-8">
-                            <div className="p-4 md:w-3/4 sm:w-full mx-auto">
+                        <div className="md:w-5/6 sm:w-full mx-auto pt-6 md:pt-8">
+                            <div className="p-4 w-full mx-auto">
                                 <div className="flex justify-between items-center border-2 border-muted p-1 gap-1 rounded-lg">
                                     <Input
                                         autoFocus={true}
                                         className="border-none pl-4 focus-visible:ring-transparent focus-visible:ring-offset-transparent"
                                         onChange={(e) => setSearchQuery(e.currentTarget.value)}
                                         onKeyDown={(e) => e.key === "Enter" && search()}
+                                        value={searchQuery}
                                         type="search"
                                         placeholder="Search Documents"
                                     />
@@ -572,10 +512,9 @@ export default function Search() {
                                         <span>Find</span>
                                     </Button>
                                 </div>
-                                <UploadFiles
-                                    onClose={() => {}}
-                                    setUploadedFiles={setUploadedFiles}
-                                />
+                                {searchResults === null && (
+                                    <UploadFiles setUploadedFiles={setUploadedFiles} />
+                                )}
                                 {searchResultsLoading && (
                                     <div className="mt-4 flex items-center justify-center">
                                         <InlineLoading
@@ -603,6 +542,14 @@ export default function Search() {
                                     searchResults &&
                                     searchResults.length > 0 && (
                                         <div className="mt-4 max-w-[92vw] break-all">
+                                            <Button
+                                                onClick={() => setSearchQuery("")}
+                                                className="mb-4"
+                                                variant={"outline"}
+                                            >
+                                                <ArrowLeft className="inline mr-2" />
+                                                See All
+                                            </Button>
                                             <ScrollArea className="h-[80vh]">
                                                 {searchResults.map((result, index) => {
                                                     return (
@@ -618,145 +565,138 @@ export default function Search() {
                                             </ScrollArea>
                                         </div>
                                     )}
-                                {searchResults === null && (
-                                    <div className="w-full mt-4">
-                                        {fileObjectsLoading && (
-                                            <div className="mt-4 flex items-center justify-center">
-                                                <InlineLoading
-                                                    className="mt-4"
-                                                    message={"Loading"}
-                                                    iconClassName="h-5 w-5"
-                                                />
-                                            </div>
-                                        )}
-                                        {error && <div className="text-red-500">{error}</div>}
+                                {!searchResultsLoading &&
+                                    searchResults === null &&
+                                    !searchQuery.trim() && (
+                                        <div className="w-full mt-4">
+                                            {fileObjectsLoading && (
+                                                <div className="mt-4 flex items-center justify-center">
+                                                    <InlineLoading
+                                                        className="mt-4"
+                                                        message={"Loading"}
+                                                        iconClassName="h-5 w-5"
+                                                    />
+                                                </div>
+                                            )}
+                                            {error && <div className="text-red-500">{error}</div>}
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {files.map((file, index) => (
-                                                <Card
-                                                    key={index}
-                                                    className="animate-fade-in-up bg-secondary h-52"
-                                                >
-                                                    <CardHeader className="p-2">
-                                                        <CardTitle
-                                                            className="flex items-center gap-2 justify-between"
-                                                            title={file.file_name}
-                                                        >
-                                                            <Dialog>
-                                                                <DialogTrigger asChild>
-                                                                    <div
-                                                                        className="text-sm font-medium truncate hover:text-clip hover:whitespace-normal cursor-pointer"
-                                                                        onClick={() => {
-                                                                            setSelectedFileFullText(
-                                                                                null,
-                                                                            );
-                                                                            setSelectedFile(
-                                                                                file.file_name,
-                                                                            );
-                                                                        }}
-                                                                    >
-                                                                        {file.file_name
-                                                                            .split("/")
-                                                                            .pop()}
-                                                                    </div>
-                                                                </DialogTrigger>
-                                                                <DialogContent>
-                                                                    <DialogHeader>
-                                                                        <DialogTitle>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                {files.map((file, index) => (
+                                                    <Card
+                                                        key={index}
+                                                        className="animate-fade-in-up bg-secondary h-52"
+                                                    >
+                                                        <CardHeader className="p-2">
+                                                            <CardTitle
+                                                                className="flex items-center gap-2 justify-between"
+                                                                title={file.file_name}
+                                                            >
+                                                                <Dialog>
+                                                                    <DialogTrigger asChild>
+                                                                        <div
+                                                                            className="text-sm font-medium truncate hover:text-clip hover:whitespace-normal cursor-pointer"
+                                                                            onClick={() => {
+                                                                                setSelectedFileFullText(
+                                                                                    null,
+                                                                                );
+                                                                                setSelectedFile(
+                                                                                    file.file_name,
+                                                                                );
+                                                                            }}
+                                                                        >
                                                                             {file.file_name
                                                                                 .split("/")
                                                                                 .pop()}
-                                                                        </DialogTitle>
-                                                                    </DialogHeader>
-                                                                    <ScrollArea className="h-[50vh]">
-                                                                        <p className="whitespace-pre-wrap break-words text-sm font-normal">
-                                                                            {!selectedFileFullText && (
-                                                                                <InlineLoading
-                                                                                    className="mt-4"
-                                                                                    message={
-                                                                                        "Loading"
-                                                                                    }
-                                                                                    iconClassName="h-5 w-5"
-                                                                                />
-                                                                            )}
-                                                                            {selectedFileFullText}
-                                                                        </p>
-                                                                    </ScrollArea>
-                                                                </DialogContent>
-                                                            </Dialog>
-                                                            <DropdownMenu>
-                                                                <DropdownMenuTrigger>
-                                                                    <Button variant={"ghost"}>
-                                                                        <DotsThreeVertical className="h-4 w-4" />
-                                                                    </Button>
-                                                                </DropdownMenuTrigger>
-                                                                <DropdownMenuContent className="flex flex-col gap-0 w-fit">
-                                                                    <DropdownMenuItem className="p-0">
-                                                                        <AlertDialog>
-                                                                            <AlertDialogTrigger>
-                                                                                <Button
-                                                                                    variant={
-                                                                                        "ghost"
-                                                                                    }
-                                                                                    className="flex items-center gap-2 p-1 text-sm"
-                                                                                >
-                                                                                    <Trash className="h-4 w-4" />
-                                                                                    <span className="text-xs">
-                                                                                        Delete
-                                                                                    </span>
-                                                                                </Button>
-                                                                            </AlertDialogTrigger>
-                                                                            <AlertDialogContent>
-                                                                                <AlertDialogHeader>
-                                                                                    <AlertDialogTitle>
-                                                                                        Delete File
-                                                                                    </AlertDialogTitle>
-                                                                                </AlertDialogHeader>
-                                                                                <AlertDialogDescription>
-                                                                                    Are you sure you
-                                                                                    want to delete
-                                                                                    this file?
-                                                                                </AlertDialogDescription>
-                                                                                <AlertDialogFooter>
-                                                                                    <AlertDialogCancel>
-                                                                                        Cancel
-                                                                                    </AlertDialogCancel>
-                                                                                    <AlertDialogAction
+                                                                        </div>
+                                                                    </DialogTrigger>
+                                                                    <DialogContent>
+                                                                        <DialogHeader>
+                                                                            <DialogTitle>
+                                                                                <div className="flex items-center gap-2">
+                                                                                    {file.file_name
+                                                                                        .split("/")
+                                                                                        .pop()}
+                                                                                    <Button
+                                                                                        variant={
+                                                                                            "ghost"
+                                                                                        }
+                                                                                        title="Download as plaintext"
                                                                                         onClick={() =>
-                                                                                            handleDelete(
+                                                                                            handleDownload(
                                                                                                 file.file_name,
+                                                                                                file.raw_text,
                                                                                             )
                                                                                         }
                                                                                     >
-                                                                                        {isDeleting
-                                                                                            ? "Deleting..."
-                                                                                            : "Delete"}
-                                                                                    </AlertDialogAction>
-                                                                                </AlertDialogFooter>
-                                                                            </AlertDialogContent>
-                                                                        </AlertDialog>
-                                                                    </DropdownMenuItem>
-                                                                </DropdownMenuContent>
-                                                            </DropdownMenu>
-                                                        </CardTitle>
-                                                    </CardHeader>
-                                                    <CardContent className="p-2">
-                                                        <ScrollArea className="h-24 bg-background rounded-lg">
-                                                            <p className="whitespace-pre-wrap break-words text-sm font-normal text-muted-foreground p-2 h-full">
-                                                                {file.raw_text.slice(0, 100)}...
-                                                            </p>
-                                                        </ScrollArea>
-                                                    </CardContent>
-                                                    <CardFooter className="flex justify-end gap-2 p-2">
-                                                        <div className="text-muted-foreground text-xs">
-                                                            {formatDateTime(file.updated_at)}
-                                                        </div>
-                                                    </CardFooter>
-                                                </Card>
-                                            ))}
+                                                                                        <Download className="h-4 w-4" />
+                                                                                    </Button>
+                                                                                </div>
+                                                                            </DialogTitle>
+                                                                        </DialogHeader>
+                                                                        <ScrollArea className="h-[50vh]">
+                                                                            <p className="whitespace-pre-wrap break-words text-sm font-normal">
+                                                                                {!selectedFileFullText && (
+                                                                                    <InlineLoading
+                                                                                        className="mt-4"
+                                                                                        message={
+                                                                                            "Loading"
+                                                                                        }
+                                                                                        iconClassName="h-5 w-5"
+                                                                                    />
+                                                                                )}
+                                                                                {
+                                                                                    selectedFileFullText
+                                                                                }
+                                                                            </p>
+                                                                        </ScrollArea>
+                                                                    </DialogContent>
+                                                                </Dialog>
+                                                                <DropdownMenu>
+                                                                    <DropdownMenuTrigger>
+                                                                        <Button variant={"ghost"}>
+                                                                            <DotsThreeVertical className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </DropdownMenuTrigger>
+                                                                    <DropdownMenuContent className="flex flex-col gap-0 w-fit">
+                                                                        <DropdownMenuItem className="p-0">
+                                                                            <Button
+                                                                                variant={"ghost"}
+                                                                                className="flex items-center gap-2 p-1 text-sm"
+                                                                                onClick={() => {
+                                                                                    handleDelete(
+                                                                                        file.file_name,
+                                                                                    );
+                                                                                }}
+                                                                            >
+                                                                                <Trash className="h-4 w-4" />
+                                                                                <span className="text-xs">
+                                                                                    {isDeleting
+                                                                                        ? "Deleting..."
+                                                                                        : "Delete"}
+                                                                                </span>
+                                                                            </Button>
+                                                                        </DropdownMenuItem>
+                                                                    </DropdownMenuContent>
+                                                                </DropdownMenu>
+                                                            </CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent className="p-2">
+                                                            <ScrollArea className="h-24 bg-background rounded-lg">
+                                                                <p className="whitespace-pre-wrap break-words text-sm font-normal text-muted-foreground p-2 h-full">
+                                                                    {file.raw_text.slice(0, 100)}...
+                                                                </p>
+                                                            </ScrollArea>
+                                                        </CardContent>
+                                                        <CardFooter className="flex justify-end gap-2 p-2">
+                                                            <div className="text-muted-foreground text-xs">
+                                                                {formatDateTime(file.updated_at)}
+                                                            </div>
+                                                        </CardFooter>
+                                                    </Card>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
                                 {searchResults && searchResults.length === 0 && (
                                     <Card className="flex flex-col items-center justify-center border-none shadow-none">
                                         <CardHeader className="flex flex-col items-center justify-center">

@@ -26,7 +26,6 @@ import { useIsMobileWidth } from "@/app/common/utils";
 import { UserPlusIcon } from "lucide-react";
 import { useAuthenticatedData } from "@/app/common/auth";
 import LoginPrompt from "../loginPrompt/loginPrompt";
-import { url } from "inspector";
 
 // Menu items.
 const items = [
