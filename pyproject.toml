@@ -91,6 +91,7 @@ dependencies = [
     "google-generativeai == 0.8.3",
     "pyjson5 == 1.6.7",
     "resend == 1.0.1",
+    "email-validator == 2.2.0",
 ]
 dynamic = ["version"]
 

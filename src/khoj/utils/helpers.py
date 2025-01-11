@@ -27,6 +27,7 @@ import psutil
 import requests
 import torch
 from asgiref.sync import sync_to_async
+from email_validator import EmailNotValidError, EmailUndeliverableError, validate_email
 from magika import Magika
 from PIL import Image
 from pytz import country_names, country_timezones
@@ -614,3 +615,13 @@ def get_openai_client(api_key: str, api_base_url: str) -> Union[openai.OpenAI, o
             base_url=api_base_url,
         )
     return client
+
+
+def normalize_email(email: str, check_deliverability=False) -> tuple[str, bool]:
+    """Normalize, validate and check deliverability of email address"""
+    lower_email = email.lower()
+    try:
+        valid_email = validate_email(lower_email, check_deliverability=check_deliverability)
+        return valid_email.normalized, True
+    except (EmailNotValidError, EmailUndeliverableError):
+        return lower_email, False
