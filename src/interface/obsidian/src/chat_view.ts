@@ -635,6 +635,22 @@ export class KhojChatView extends KhojPaneView {
         setIcon(pasteToFile, "clipboard-paste");
         pasteToFile.addEventListener('click', (event) => { pasteTextAtCursor(createCopyParentText(message, 'clipboard-paste')(event)); });
 
+    
+        // Add delete button
+        let deleteButton = this.contentEl.createEl('button');
+        deleteButton.classList.add("chat-action-button");
+        deleteButton.title = "Delete Message";
+        setIcon(deleteButton, "trash-2");
+        deleteButton.addEventListener('click', () => {
+            const messageEl = chatMessageBodyTextEl.closest('.khoj-chat-message');
+            if (messageEl) {
+                // Ask for confirmation before deleting
+                if (confirm('Are you sure you want to delete this message?')) {
+                    this.deleteMessage(messageEl as HTMLElement);
+                }
+            }
+        });
+
         // Only enable the speech feature if the user is subscribed
         let speechButton = null;
 
@@ -648,8 +664,7 @@ export class KhojChatView extends KhojPaneView {
         }
 
         // Append buttons to parent element
-        chatMessageBodyTextEl.append(copyButton, pasteToFile);
-
+        chatMessageBodyTextEl.append(copyButton, pasteToFile, deleteButton);
         if (speechButton) {
             chatMessageBodyTextEl.append(speechButton);
         }
@@ -1485,6 +1500,51 @@ export class KhojChatView extends KhojPaneView {
                 this.currentMessageIndex = -1;
                 chatInput.value = this.currentUserInput;
             }
+        }
+    }
+
+    // Add this new method to handle message deletion
+    async deleteMessage(messageEl: HTMLElement) {
+        const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
+        const conversationId = chatBodyEl.dataset.conversationId;
+        
+        // Get the turn_id from the message's data-meta attribute
+        const turnId = messageEl.getAttribute("data-meta");
+        if (!turnId || !conversationId) return;
+
+        try {
+            const response = await fetch(`${this.setting.khojUrl}/api/chat/conversation/message`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${this.setting.khojApiKey}`
+                },
+                body: JSON.stringify({
+                    conversation_id: conversationId,
+                    turn_id: turnId
+                })
+            });
+
+            if (response.ok) {
+                // Remove both the user message and Khoj response (the conversation turn)
+                const isKhojMessage = messageEl.classList.contains("khoj");
+                const messages = Array.from(chatBodyEl.getElementsByClassName("khoj-chat-message"));
+                const messageIndex = messages.indexOf(messageEl);
+                
+                if (isKhojMessage && messageIndex > 0) {
+                    // If it is a Khoj message, remove the previous user message too
+                    messages[messageIndex - 1].remove();
+                } else if (!isKhojMessage && messageIndex < messages.length - 1) {
+                    // If it is a user message, remove the next Khoj message too
+                    messages[messageIndex + 1].remove();
+                }
+                messageEl.remove();
+            } else {
+                this.flashStatusInChatInput("Failed to delete message");
+            }
+        } catch (error) {
+            console.error("Error deleting message:", error);
+            this.flashStatusInChatInput("Error deleting message");
         }
     }
 }
