@@ -54,6 +54,7 @@ import {
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
@@ -213,9 +214,6 @@ const UploadFiles: React.FC<{
     onClose: () => void;
     setUploadedFiles: (files: string[]) => void;
 }> = ({ onClose, setUploadedFiles }) => {
-    const [syncedFiles, setSyncedFiles] = useState<string[]>([]);
-    const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
-    const [searchQuery, setSearchQuery] = useState("");
     const [isDragAndDropping, setIsDragAndDropping] = useState(false);
 
     const [warning, setWarning] = useState<string | null>(null);
@@ -240,10 +238,6 @@ const UploadFiles: React.FC<{
             return () => clearInterval(interval);
         }
     }, [uploading]);
-
-    const filteredFiles = syncedFiles.filter((file) =>
-        file.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
 
     function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
         event.preventDefault();
@@ -281,47 +275,94 @@ const UploadFiles: React.FC<{
     }
 
     return (
-        <div
-            className={`flex flex-col h-full`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDragAndDropFiles}
-            onClick={openFileInput}
-        >
-            <input
-                type="file"
-                multiple
-                ref={fileInputRef}
-                style={{ display: "none" }}
-                onChange={handleFileChange}
-            />
-            <div className="flex-none p-4">
-                {uploading && (
-                    <Progress
-                        indicatorColor="bg-slate-500"
-                        className="w-full h-2 rounded-full"
-                        value={progressValue}
+        <Dialog>
+            <DialogTrigger>
+                <Button variant={"secondary"} className="mt-4">
+                    Add Documents
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Build Knowledge Base</DialogTitle>
+                    <DialogDescription>
+                        Adding files to your Khoj knowledge base allows your AI to search through
+                        your own documents. This helps you get personalized answers, grounded in
+                        your own data.
+                    </DialogDescription>
+                </DialogHeader>
+                <div
+                    className={`flex flex-col h-full`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDragAndDropFiles}
+                    onClick={openFileInput}
+                >
+                    <input
+                        type="file"
+                        multiple
+                        ref={fileInputRef}
+                        style={{ display: "none" }}
+                        onChange={handleFileChange}
                     />
-                )}
-            </div>
-            <div
-                className={`flex-none p-4 bg-secondary border-b ${isDragAndDropping ? "animate-pulse" : ""} rounded-lg`}
-            >
-                <div className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg">
-                    {isDragAndDropping ? (
-                        <div className="flex items-center justify-center w-full h-full">
-                            <Waveform className="h-6 w-6 mr-2" />
-                            <span>Drop files to upload</span>
-                        </div>
-                    ) : (
-                        <div className="flex items-center justify-center w-full h-full">
-                            <Plus className="h-6 w-6 mr-2" />
-                            <span>Drag and drop files here</span>
+                    <div className="flex-none p-4">
+                        {uploading && (
+                            <Progress
+                                indicatorColor="bg-slate-500"
+                                className="w-full h-2 rounded-full"
+                                value={progressValue}
+                            />
+                        )}
+                    </div>
+                    {warning && (
+                        <div className="flex-none p-4 border-b rounded-lg">
+                            <div className="flex items-center gap-2">
+                                <Lightbulb className="h-6 w-6" />
+                                <span>{warning}</span>
+                            </div>
+                            <Button
+                                onClick={() => setWarning(null)}
+                                className="mt-2"
+                                variant={"ghost"}
+                            >
+                                Dismiss
+                            </Button>
                         </div>
                     )}
+                    {error && (
+                        <div className="flex-none p-4 border-b rounded-lg">
+                            <div className="flex items-center gap-2">
+                                <Lightbulb className="h-6 w-6" />
+                                <span>{error}</span>
+                            </div>
+                            <Button
+                                onClick={() => setError(null)}
+                                className="mt-2"
+                                variant={"ghost"}
+                            >
+                                Dismiss
+                            </Button>
+                        </div>
+                    )}
+                    <div
+                        className={`flex-none p-4 bg-secondary border-b ${isDragAndDropping ? "animate-pulse" : ""} rounded-lg`}
+                    >
+                        <div className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg">
+                            {isDragAndDropping ? (
+                                <div className="flex items-center justify-center w-full h-full">
+                                    <Waveform className="h-6 w-6 mr-2" />
+                                    <span>Drop files to upload</span>
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-center w-full h-full">
+                                    <Plus className="h-6 w-6 mr-2" />
+                                    <span>Drag and drop files here</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     );
 };
 
@@ -598,12 +639,51 @@ export default function Search() {
                                                 >
                                                     <CardHeader className="p-2">
                                                         <CardTitle
-                                                            className="flex items-center gap-2"
+                                                            className="flex items-center gap-2 justify-between"
                                                             title={file.file_name}
                                                         >
-                                                            <div className="text-sm font-medium truncate hover:text-clip hover:whitespace-normal">
-                                                                {file.file_name.split("/").pop()}
-                                                            </div>
+                                                            <Dialog>
+                                                                <DialogTrigger asChild>
+                                                                    <div
+                                                                        className="text-sm font-medium truncate hover:text-clip hover:whitespace-normal cursor-pointer"
+                                                                        onClick={() => {
+                                                                            setSelectedFileFullText(
+                                                                                null,
+                                                                            );
+                                                                            setSelectedFile(
+                                                                                file.file_name,
+                                                                            );
+                                                                        }}
+                                                                    >
+                                                                        {file.file_name
+                                                                            .split("/")
+                                                                            .pop()}
+                                                                    </div>
+                                                                </DialogTrigger>
+                                                                <DialogContent>
+                                                                    <DialogHeader>
+                                                                        <DialogTitle>
+                                                                            {file.file_name
+                                                                                .split("/")
+                                                                                .pop()}
+                                                                        </DialogTitle>
+                                                                    </DialogHeader>
+                                                                    <ScrollArea className="h-[50vh]">
+                                                                        <p className="whitespace-pre-wrap break-words text-sm font-normal">
+                                                                            {!selectedFileFullText && (
+                                                                                <InlineLoading
+                                                                                    className="mt-4"
+                                                                                    message={
+                                                                                        "Loading"
+                                                                                    }
+                                                                                    iconClassName="h-5 w-5"
+                                                                                />
+                                                                            )}
+                                                                            {selectedFileFullText}
+                                                                        </p>
+                                                                    </ScrollArea>
+                                                                </DialogContent>
+                                                            </Dialog>
                                                             <DropdownMenu>
                                                                 <DropdownMenuTrigger>
                                                                     <Button variant={"ghost"}>
@@ -656,57 +736,13 @@ export default function Search() {
                                                                             </AlertDialogContent>
                                                                         </AlertDialog>
                                                                     </DropdownMenuItem>
-                                                                    <DropdownMenuItem className="p-0">
-                                                                        <Dialog>
-                                                                            <DialogTrigger>
-                                                                                <Button
-                                                                                    variant={
-                                                                                        "ghost"
-                                                                                    }
-                                                                                    className="flex items-center gap-2 p-1 text-sm"
-                                                                                    onClick={() => {
-                                                                                        setSelectedFileFullText(
-                                                                                            null,
-                                                                                        );
-                                                                                        setSelectedFile(
-                                                                                            file.file_name,
-                                                                                        );
-                                                                                    }}
-                                                                                >
-                                                                                    <ArrowsOutSimple className="h-4 w-4" />
-                                                                                    <span className="text-xs">
-                                                                                        View Full
-                                                                                        Text
-                                                                                    </span>
-                                                                                </Button>
-                                                                            </DialogTrigger>
-                                                                            <DialogContent>
-                                                                                <DialogHeader>
-                                                                                    <DialogTitle>
-                                                                                        {file.file_name
-                                                                                            .split(
-                                                                                                "/",
-                                                                                            )
-                                                                                            .pop()}
-                                                                                    </DialogTitle>
-                                                                                </DialogHeader>
-                                                                                <ScrollArea className="h-[50vh]">
-                                                                                    <p className="whitespace-pre-wrap break-words text-sm font-normal">
-                                                                                        {
-                                                                                            selectedFileFullText
-                                                                                        }
-                                                                                    </p>
-                                                                                </ScrollArea>
-                                                                            </DialogContent>
-                                                                        </Dialog>
-                                                                    </DropdownMenuItem>
                                                                 </DropdownMenuContent>
                                                             </DropdownMenu>
                                                         </CardTitle>
                                                     </CardHeader>
                                                     <CardContent className="p-2">
-                                                        <ScrollArea className="h-24">
-                                                            <p className="whitespace-pre-wrap break-words text-sm font-normal text-muted-foreground p-2 rounded-lg bg-background">
+                                                        <ScrollArea className="h-24 bg-background rounded-lg">
+                                                            <p className="whitespace-pre-wrap break-words text-sm font-normal text-muted-foreground p-2 h-full">
                                                                 {file.raw_text.slice(0, 100)}...
                                                             </p>
                                                         </ScrollArea>

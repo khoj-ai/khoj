@@ -1474,7 +1474,7 @@ class FileObjectAdapters:
     @staticmethod
     @arequire_valid_user
     async def aget_all_file_objects(user: KhojUser):
-        return await sync_to_async(list)(FileObject.objects.filter(user=user))
+        return await sync_to_async(list)(FileObject.objects.filter(user=user).order_by("-updated_at"))
 
     @staticmethod
     @arequire_valid_user
