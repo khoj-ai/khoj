@@ -276,7 +276,7 @@ const UploadFiles: React.FC<{
 
     return (
         <Dialog>
-            <DialogTrigger>
+            <DialogTrigger asChild>
                 <Button variant={"secondary"} className="mt-4">
                     Add Documents
                 </Button>

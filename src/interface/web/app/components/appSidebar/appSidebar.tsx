@@ -17,7 +17,7 @@ import {
     KhojSearchLogo,
 } from "../logo/khojLogo";
 import { Gear } from "@phosphor-icons/react/dist/ssr";
-import { Book, Plus } from "@phosphor-icons/react";
+import { Plus } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import AllConversations from "../allConversations/allConversations";
 import FooterMenu from "../navMenu/navMenu";
@@ -54,11 +54,6 @@ const items = [
         title: "Settings",
         url: "/settings",
         icon: Gear,
-    },
-    {
-        title: "Knowledge Base",
-        url: "/knowledge",
-        icon: Book,
     },
 ];
 
