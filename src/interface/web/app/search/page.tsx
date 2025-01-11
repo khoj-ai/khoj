@@ -245,8 +245,8 @@ const UploadFiles: React.FC<{
                 <DialogHeader>
                     <DialogTitle>Build Your Knowledge Base</DialogTitle>
                     <DialogDescription>
-                        Add your files to supercharge Khoj's AI with your knowledge. Get instant,
-                        personalized answers powered by your own documents and data.
+                        Add your files to supercharge Khoj`&apos;`s AI with your knowledge. Get
+                        instant, personalized answers powered by your own documents and data.
                     </DialogDescription>
                 </DialogHeader>
                 <div
