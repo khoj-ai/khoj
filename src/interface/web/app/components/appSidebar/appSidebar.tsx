@@ -17,7 +17,7 @@ import {
     KhojSearchLogo,
 } from "../logo/khojLogo";
 import { Gear } from "@phosphor-icons/react/dist/ssr";
-import { Plus } from "@phosphor-icons/react";
+import { Book, Plus } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import AllConversations from "../allConversations/allConversations";
 import FooterMenu from "../navMenu/navMenu";
@@ -26,6 +26,7 @@ import { useIsMobileWidth } from "@/app/common/utils";
 import { UserPlusIcon } from "lucide-react";
 import { useAuthenticatedData } from "@/app/common/auth";
 import LoginPrompt from "../loginPrompt/loginPrompt";
+import { url } from "inspector";
 
 // Menu items.
 const items = [
@@ -53,6 +54,11 @@ const items = [
         title: "Settings",
         url: "/settings",
         icon: Gear,
+    },
+    {
+        title: "Knowledge Base",
+        url: "/knowledge",
+        icon: Book,
     },
 ];
 
