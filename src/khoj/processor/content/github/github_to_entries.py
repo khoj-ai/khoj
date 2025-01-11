@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List, Tuple
 
 import requests
 from magika import Magika
@@ -11,7 +11,7 @@ from khoj.processor.content.markdown.markdown_to_entries import MarkdownToEntrie
 from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
 from khoj.processor.content.plaintext.plaintext_to_entries import PlaintextToEntries
 from khoj.processor.content.text_to_entries import TextToEntries
-from khoj.utils.helpers import timer
+from khoj.utils.helpers import is_none_or_empty, timer
 from khoj.utils.rawconfig import GithubContentConfig, GithubRepoConfig
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,8 @@ class GithubToEntries(TextToEntries):
             repos=repos,
         )
         self.session = requests.Session()
-        self.session.headers.update({"Authorization": f"token {self.config.pat_token}"})
+        if not is_none_or_empty(self.config.pat_token):
+            self.session.headers.update({"Authorization": f"token {self.config.pat_token}"})
 
     @staticmethod
     def wait_for_rate_limit_reset(response, func, *args, **kwargs):
@@ -49,9 +50,10 @@ class GithubToEntries(TextToEntries):
             return
 
     def process(self, files: dict[str, str], user: KhojUser, regenerate: bool = False) -> Tuple[int, int]:
-        if self.config.pat_token is None or self.config.pat_token == "":
-            logger.error(f"Github PAT token is not set. Skipping github content")
-            raise ValueError("Github PAT token is not set. Skipping github content")
+        if is_none_or_empty(self.config.pat_token):
+            logger.warning(
+                f"Github PAT token is not set. Private repositories cannot be indexed and lower rate limits apply."
+            )
         current_entries = []
         for repo in self.config.repos:
             current_entries += self.process_repo(repo)
@@ -114,7 +116,9 @@ class GithubToEntries(TextToEntries):
     def get_files(self, repo_url: str, repo: GithubRepoConfig):
         # Get the contents of the repository
         repo_content_url = f"{repo_url}/git/trees/{repo.branch}"
-        headers = {"Authorization": f"token {self.config.pat_token}"}
+        headers = {}
+        if not is_none_or_empty(self.config.pat_token):
+            headers = {"Authorization": f"token {self.config.pat_token}"}
         params = {"recursive": "true"}
         response = requests.get(repo_content_url, headers=headers, params=params)
         contents = response.json()

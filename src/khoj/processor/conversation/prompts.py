@@ -74,7 +74,7 @@ no_online_results_found = PromptTemplate.from_template(
 
 no_entries_found = PromptTemplate.from_template(
     """
-    It looks like you haven't added any notes yet. No worries, you can fix that by downloading the Khoj app from <a href=https://khoj.dev/downloads>here</a>.
+    It looks like you haven't synced any notes yet. No worries, you can fix that by downloading the Khoj app from <a href=https://khoj.dev/downloads#desktop>here</a>.
 """.strip()
 )
 

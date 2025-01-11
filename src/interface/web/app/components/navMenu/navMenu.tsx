@@ -167,16 +167,7 @@ export default function FooterMenu({ sideBarIsOpen }: NavMenuProps) {
                                 </div>
                             </Link>
                         </DropdownMenuItem>
-                        {userData ? (
-                            <DropdownMenuItem>
-                                <Link href="/auth/logout" className="no-underline w-full">
-                                    <div className="flex flex-rows">
-                                        <ArrowRight className="w-6 h-6" />
-                                        <p className="ml-3 font-semibold">Logout</p>
-                                    </div>
-                                </Link>
-                            </DropdownMenuItem>
-                        ) : (
+                        {!userData ? (
                             <DropdownMenuItem>
                                 <Button
                                     variant={"ghost"}
@@ -189,7 +180,16 @@ export default function FooterMenu({ sideBarIsOpen }: NavMenuProps) {
                                     </div>
                                 </Button>
                             </DropdownMenuItem>
-                        )}
+                        ) : userData.username !== "default" ? (
+                            <DropdownMenuItem>
+                                <Link href="/auth/logout" className="no-underline w-full">
+                                    <div className="flex flex-rows">
+                                        <ArrowRight className="w-6 h-6" />
+                                        <p className="ml-3 font-semibold">Logout</p>
+                                    </div>
+                                </Link>
+                            </DropdownMenuItem>
+                        ) : null}
                     </DropdownMenuContent>
                 </DropdownMenu>
             </SidebarMenuItem>

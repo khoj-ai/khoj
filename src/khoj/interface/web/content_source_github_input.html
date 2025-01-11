@@ -125,14 +125,6 @@
         event.preventDefault();
 
         const pat_token = document.getElementById("pat-token").value;
-
-        if (pat_token == "") {
-            document.getElementById("success").textContent = "❌ Please enter a Personal Access Token.";
-            document.getElementById("success").style.display = "block";
-            return;
-        }
-
-
         var cards = document.getElementById("repositories").getElementsByClassName("repo");
         var repos = [];
 

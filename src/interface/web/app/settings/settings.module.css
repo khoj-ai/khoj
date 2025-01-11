@@ -14,6 +14,11 @@ div.phoneInput {
     padding: 0rem;
 }
 
+:global(.dark) div.phoneInput :global(.iti__dropdown-content) {
+    --iti-dropdown-bg: hsl(var(--background));
+    --iti-hover-color: hsl(var(--accent));
+}
+
 div.phoneInput input {
     width: 100%;
     padding: 0.5rem;
