@@ -59,6 +59,8 @@ import {
     Check,
     CaretDown,
     Waveform,
+    EyeSlash,
+    Eye,
 } from "@phosphor-icons/react";
 
 import Loading from "../components/loading/loading";
@@ -492,6 +494,7 @@ const useApiKeys = () => {
 
 function ApiKeyCard() {
     const { apiKeys, generateAPIKey, copyAPIKey, deleteAPIKey } = useApiKeys();
+    const [visibleApiKeys, setVisibleApiKeys] = useState<Set<string>>(new Set());
     const { toast } = useToast();
 
     return (
@@ -521,10 +524,35 @@ function ApiKeyCard() {
                             <TableRow key={key.token}>
                                 <TableCell className="pl-0 py-3">{key.name}</TableCell>
                                 <TableCell className="grid grid-flow-col grid-cols-[1fr_auto] bg-secondary rounded-xl p-3 m-1">
-                                    <span>
-                                        {`${key.token.slice(0, 6)}...${key.token.slice(-4)}`}
+                                    <span className="font-mono text-left w-[50px] md:w-[400px]">
+                                        {visibleApiKeys.has(key.token)
+                                            ? key.token
+                                            : `${key.token.slice(0, 6)}...${key.token.slice(-4)}`}
                                     </span>
                                     <div className="grid grid-flow-col">
+                                        {visibleApiKeys.has(key.token) ? (
+                                            <EyeSlash
+                                                weight="bold"
+                                                className="h-4 w-4 mr-2 hover:bg-primary/40"
+                                                onClick={() =>
+                                                    setVisibleApiKeys((prev) => {
+                                                        const next = new Set(prev);
+                                                        next.delete(key.token);
+                                                        return next;
+                                                    })
+                                                }
+                                            />
+                                        ) : (
+                                            <Eye
+                                                weight="bold"
+                                                className="h-4 w-4 mr-2 hover:bg-primary/40"
+                                                onClick={() =>
+                                                    setVisibleApiKeys(
+                                                        new Set([...visibleApiKeys, key.token]),
+                                                    )
+                                                }
+                                            />
+                                        )}
                                         <Copy
                                             weight="bold"
                                             className="h-4 w-4 mr-2 hover:bg-primary/40"
