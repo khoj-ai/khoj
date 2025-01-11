@@ -86,12 +86,11 @@ async def login_magic_link(request: Request, form: MagicLinkForm):
         # Clear the session if user is already authenticated
         request.session.pop("user", None)
 
-    email = form.email
-    user, is_new = await aget_or_create_user_by_email(email)
-    unique_id = user.email_verification_code
+    user, is_new = await aget_or_create_user_by_email(form.email)
 
     if user:
-        await send_magic_link_email(email, unique_id, request.base_url)
+        unique_id = user.email_verification_code
+        await send_magic_link_email(user.email, unique_id, request.base_url)
         if is_new:
             update_telemetry_state(
                 request=request,

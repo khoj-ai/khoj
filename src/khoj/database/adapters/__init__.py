@@ -72,6 +72,7 @@ from khoj.utils.helpers import (
     generate_random_name,
     in_debug_mode,
     is_none_or_empty,
+    normalize_email,
     timer,
 )
 
@@ -231,17 +232,22 @@ async def acreate_user_by_phone_number(phone_number: str) -> KhojUser:
     return user
 
 
-async def aget_or_create_user_by_email(email: str) -> tuple[KhojUser, bool]:
+async def aget_or_create_user_by_email(input_email: str) -> tuple[KhojUser, bool]:
+    email, is_valid_email = normalize_email(input_email)
+    is_existing_user = await KhojUser.objects.filter(email=email).aexists()
+    # Validate email address of new users
+    if not is_existing_user and not is_valid_email:
+        logger.error(f"Account creation failed. Invalid email address: {email}")
+        return None, False
+
     user, is_new = await KhojUser.objects.filter(email=email).aupdate_or_create(
         defaults={"username": email, "email": email}
     )
-    await user.asave()
 
-    if user:
-        # Generate a secure 6-digit numeric code
-        user.email_verification_code = f"{secrets.randbelow(1000000):06}"
-        user.email_verification_code_expiry = datetime.now(tz=timezone.utc) + timedelta(minutes=5)
-        await user.asave()
+    # Generate a secure 6-digit numeric code
+    user.email_verification_code = f"{secrets.randbelow(1000000):06}"
+    user.email_verification_code_expiry = datetime.now(tz=timezone.utc) + timedelta(minutes=5)
+    await user.asave()
 
     user_subscription = await Subscription.objects.filter(user=user).afirst()
     if not user_subscription:
@@ -270,10 +276,15 @@ async def astart_trial_subscription(user: KhojUser) -> Subscription:
 
 
 async def aget_user_validated_by_email_verification_code(code: str, email: str) -> tuple[Optional[KhojUser], bool]:
-    user = await KhojUser.objects.filter(email_verification_code=code, email=email).afirst()
+    # Normalize the email address
+    normalized_email, _ = normalize_email(email)
+
+    # Check if verification code exists for the user
+    user = await KhojUser.objects.filter(email_verification_code=code, email=normalized_email).afirst()
     if not user:
         return None, False
 
+    # Check if the code has expired
     if user.email_verification_code_expiry < datetime.now(tz=timezone.utc):
         return user, True
 
@@ -348,6 +359,8 @@ async def set_user_subscription(
 ) -> tuple[Optional[Subscription], bool]:
     # Get or create the user object and their subscription
     user, is_new = await aget_or_create_user_by_email(email)
+    if not user:
+        return None, is_new
     user_subscription = await Subscription.objects.filter(user=user).afirst()
 
     # Update the user subscription state
