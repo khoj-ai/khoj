@@ -23,6 +23,7 @@ div.phoneInput input {
     width: 100%;
     padding: 0.5rem;
     border: 1px solid hsla(var(--border));
+    background-color: hsla(var(--background));
     border-radius: 0.25rem;
 }
 

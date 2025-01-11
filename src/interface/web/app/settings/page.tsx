@@ -523,7 +523,7 @@ function ApiKeyCard() {
                         {apiKeys.map((key) => (
                             <TableRow key={key.token}>
                                 <TableCell className="pl-0 py-3">{key.name}</TableCell>
-                                <TableCell className="grid grid-flow-col grid-cols-[1fr_auto] bg-secondary rounded-xl p-3 m-1">
+                                <TableCell className="grid grid-flow-col grid-cols-[1fr_auto] bg-secondary dark:bg-background rounded-xl p-3 m-1">
                                     <span className="font-mono text-left w-[50px] md:w-[400px]">
                                         {visibleApiKeys.has(key.token)
                                             ? key.token
@@ -611,7 +611,7 @@ export default function SettingsView() {
     const title = "Settings";
 
     const cardClassName =
-        "w-full lg:w-5/12 grid grid-flow-column border border-gray-300 shadow-md rounded-lg border dark:border-none dark:bg-muted border-opacity-50";
+        "w-full lg:w-5/12 grid grid-flow-column border border-gray-300 shadow-md rounded-lg border dark:border-none border-opacity-50 dark:bg-muted";
 
     useEffect(() => {
         setUserConfig(initialUserConfig);
