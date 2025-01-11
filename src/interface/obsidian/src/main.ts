@@ -34,6 +34,21 @@ export default class Khoj extends Plugin {
             callback: () => { this.activateView(KhojView.CHAT); }
         });
 
+        // Add sync command to manually sync new changes
+        this.addCommand({
+            id: 'sync',
+            name: 'Sync new changes',
+            callback: async () => {
+                this.settings.lastSync = await updateContentIndex(
+                    this.app.vault,
+                    this.settings,
+                    this.settings.lastSync,
+                    false,
+                    true
+                );
+            }
+        });
+
         this.registerView(KhojView.CHAT, (leaf) => new KhojChatView(leaf, this.settings));
 
         // Create an icon in the left ribbon.
@@ -44,12 +59,32 @@ export default class Khoj extends Plugin {
         // Add a settings tab so the user can configure khoj
         this.addSettingTab(new KhojSettingTab(this.app, this));
 
-        // Add scheduled job to update index every 60 minutes
+        // Start the sync timer
+        this.startSyncTimer();
+    }
+
+    // Method to start the sync timer
+    private startSyncTimer() {
+        // Clean up the old timer if it exists
+        if (this.indexingTimer) {
+            clearInterval(this.indexingTimer);
+        }
+
+        // Start a new timer with the configured interval
         this.indexingTimer = setInterval(async () => {
             if (this.settings.autoConfigure) {
-                this.settings.lastSync = await updateContentIndex(this.app.vault, this.settings, this.settings.lastSync);
+                this.settings.lastSync = await updateContentIndex(
+                    this.app.vault,
+                    this.settings,
+                    this.settings.lastSync
+                );
             }
-        }, 60 * 60 * 1000);
+        }, this.settings.syncInterval * 60 * 1000); // Convert minutes to milliseconds
+    }
+
+    // Public method to restart the timer (called from settings)
+    public restartSyncTimer() {
+        this.startSyncTimer();
     }
 
     async loadSettings() {
@@ -62,7 +97,7 @@ export default class Khoj extends Plugin {
     }
 
     async saveSettings() {
-        this.saveData(this.settings);
+        await this.saveData(this.settings);
     }
 
     async onunload() {
