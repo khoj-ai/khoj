@@ -41,6 +41,16 @@ interface Location {
     timezone: string;
 }
 
+interface RenderMessageOptions {
+    chatBodyEl: Element;
+    message: string;
+    sender: string;
+    dt?: Date;
+    raw?: boolean;
+    willReplace?: boolean;
+    isSystemMessage?: boolean;
+}
+
 export class KhojChatView extends KhojPaneView {
     result: string;
     setting: KhojSetting;
@@ -498,9 +508,19 @@ export class KhojChatView extends KhojPaneView {
             (images && images.length > 0) ||
             excalidrawDiagram) {
             let imageMarkdown = this.generateImageMarkdown(message, intentType ?? "", inferredQueries, conversationId, images, excalidrawDiagram);
-            chatMessageEl = this.renderMessage(chatEl, imageMarkdown, sender, dt);
+            chatMessageEl = this.renderMessage({
+                chatBodyEl: chatEl,
+                message: imageMarkdown,
+                sender,
+                dt
+            });
         } else {
-            chatMessageEl = this.renderMessage(chatEl, message, sender, dt);
+            chatMessageEl = this.renderMessage({
+                chatBodyEl: chatEl,
+                message,
+                sender,
+                dt
+            });
         }
 
         // If no document or online context is provided, skip rendering the reference section
@@ -550,7 +570,7 @@ export class KhojChatView extends KhojPaneView {
         return imageMarkdown;
     }
 
-    renderMessage(chatBodyEl: Element, message: string, sender: string, dt?: Date, raw: boolean = false, willReplace: boolean = true): Element {
+    renderMessage({ chatBodyEl, message, sender, dt, raw = false, willReplace = true, isSystemMessage = false }: RenderMessageOptions): Element {
         let message_time = this.formatDate(dt ?? new Date());
 
         // Append message to conversation history HTML element.
@@ -577,7 +597,7 @@ export class KhojChatView extends KhojPaneView {
 
         // Add action buttons to each chat message element
         if (willReplace === true) {
-            this.renderActionButtons(message, chatMessageBodyTextEl);
+            this.renderActionButtons(message, chatMessageBodyTextEl, isSystemMessage);
         }
 
         // Remove user-select: none property to make text selectable
@@ -621,7 +641,7 @@ export class KhojChatView extends KhojPaneView {
         this.scrollChatToBottom();
     }
 
-    renderActionButtons(message: string, chatMessageBodyTextEl: HTMLElement) {
+    renderActionButtons(message: string, chatMessageBodyTextEl: HTMLElement, isSystemMessage: boolean = false) {
         let copyButton = this.contentEl.createEl('button');
         copyButton.classList.add("chat-action-button");
         copyButton.title = "Copy Message to Clipboard";
@@ -637,19 +657,22 @@ export class KhojChatView extends KhojPaneView {
 
     
         // Add delete button
-        let deleteButton = this.contentEl.createEl('button');
-        deleteButton.classList.add("chat-action-button");
-        deleteButton.title = "Delete Message";
-        setIcon(deleteButton, "trash-2");
-        deleteButton.addEventListener('click', () => {
-            const messageEl = chatMessageBodyTextEl.closest('.khoj-chat-message');
-            if (messageEl) {
-                // Ask for confirmation before deleting
-                if (confirm('Are you sure you want to delete this message?')) {
-                    this.deleteMessage(messageEl as HTMLElement);
+        let deleteButton = null;
+        if (!isSystemMessage) {
+            deleteButton = this.contentEl.createEl('button');
+            deleteButton.classList.add("chat-action-button");
+            deleteButton.title = "Delete Message";
+            setIcon(deleteButton, "trash-2");
+            deleteButton.addEventListener('click', () => {
+                const messageEl = chatMessageBodyTextEl.closest('.khoj-chat-message');
+                if (messageEl) {
+                    // Ask for confirmation before deleting
+                    if (confirm('Are you sure you want to delete this message?')) {
+                        this.deleteMessage(messageEl as HTMLElement);
+                    }
                 }
-            }
-        });
+            });
+        }
 
         // Only enable the speech feature if the user is subscribed
         let speechButton = null;
@@ -664,7 +687,10 @@ export class KhojChatView extends KhojPaneView {
         }
 
         // Append buttons to parent element
-        chatMessageBodyTextEl.append(copyButton, pasteToFile, deleteButton);
+        chatMessageBodyTextEl.append(copyButton, pasteToFile);
+        if (deleteButton) {
+            chatMessageBodyTextEl.append(deleteButton);
+        }
         if (speechButton) {
             chatMessageBodyTextEl.append(speechButton);
         }
@@ -690,7 +716,7 @@ export class KhojChatView extends KhojPaneView {
         if (chatInput) {
             chatInput.placeholder = this.startingMessage;
         }
-        this.renderMessage(chatBodyEl, "Hey 👋🏾, what's up?", "khoj");
+        this.renderMessage({chatBodyEl, message: "Hey 👋🏾, what's up?", sender: "khoj", isSystemMessage: true});
     }
 
     async toggleChatSessions(forceShow: boolean = false): Promise<boolean> {
@@ -901,7 +927,12 @@ export class KhojChatView extends KhojPaneView {
             if (responseJson.detail) {
                 // If the server returns error details in response, render a setup hint.
                 let setupMsg = "Hi 👋🏾, to start chatting add available chat models options via [the Django Admin panel](/server/admin) on the Server";
-                this.renderMessage(chatBodyEl, setupMsg, "khoj", undefined);
+                this.renderMessage({
+                    chatBodyEl,
+                    message: setupMsg,
+                    sender: "khoj",
+                    isSystemMessage: true
+                });
 
                 return false;
             } else if (responseJson.response) {
@@ -944,7 +975,12 @@ export class KhojChatView extends KhojPaneView {
             }
         } catch (err) {
             let errorMsg = "Unable to get response from Khoj server ❤️‍🩹. Ensure server is running or contact developers for help at [team@khoj.dev](mailto:team@khoj.dev) or in [Discord](https://discord.gg/BDgyabRM6e)";
-            this.renderMessage(chatBodyEl, errorMsg, "khoj", undefined);
+            this.renderMessage({
+                chatBodyEl,
+                message: errorMsg,
+                sender: "khoj",
+                isSystemMessage: true
+            });
             return false;
         }
         return true;
@@ -1082,7 +1118,7 @@ export class KhojChatView extends KhojPaneView {
 
         // Render user query as chat message
         let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
-        this.renderMessage(chatBodyEl, query, "you");
+        this.renderMessage({chatBodyEl, message: query, sender: "you"});
 
         let conversationId = chatBodyEl.dataset.conversationId;
         if (!conversationId) {
