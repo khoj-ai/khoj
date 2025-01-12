@@ -1685,6 +1685,15 @@ class EntryAdapters:
 
     @staticmethod
     @require_valid_user
+    def get_all_filenames_by_type(user: KhojUser, file_type: str):
+        return (
+            Entry.objects.filter(user=user, file_type=file_type)
+            .distinct("file_path")
+            .values_list("file_path", flat=True)
+        )
+
+    @staticmethod
+    @require_valid_user
     def get_size_of_indexed_data_in_mb(user: KhojUser):
         entries = Entry.objects.filter(user=user).iterator()
         total_size = sum(sys.getsizeof(entry.compiled) for entry in entries)

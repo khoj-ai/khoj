@@ -401,6 +401,36 @@ async def get_file_object(
     )
 
 
+@api_content.delete("/type/{content_type}", status_code=200)
+@requires(["authenticated"])
+async def delete_content_type(
+    request: Request,
+    content_type: str,
+    client: Optional[str] = None,
+):
+    user = request.user.object
+    if content_type not in {s.value for s in SearchType}:
+        raise ValueError(f"Unsupported content type: {content_type}")
+    if content_type == "all":
+        await EntryAdapters.adelete_all_entries(user)
+    else:
+        # Delete file objects of the given type
+        file_list = await sync_to_async(list)(EntryAdapters.get_all_filenames_by_type(user, content_type))  # type: ignore[call-arg]
+        await FileObjectAdapters.adelete_file_objects_by_names(user, file_list)
+        # Delete entries of the given type
+        await EntryAdapters.adelete_all_entries(user, file_type=content_type)
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="delete_content_config",
+        client=client,
+        metadata={"content_type": content_type},
+    )
+
+    return {"status": "ok"}
+
+
 @api_content.get("/{content_source}", response_model=List[str])
 @requires(["authenticated"])
 async def get_content_source(
