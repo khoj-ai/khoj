@@ -224,3 +224,48 @@ class GithubToEntries(TextToEntries):
                 doc["content"], doc["path"], entries, entry_to_file_map
             )
         return entries, dict(entry_to_file_map)
+
+    def pull_data_to_repo(self, target_repo_url: str, target_repo_branch: str, target_repo_token: str):
+        # Clone the target repository
+        headers = {"Authorization": f"token {target_repo_token}"}
+        response = requests.get(f"{target_repo_url}/git/trees/{target_repo_branch}", headers=headers)
+        if response.status_code != 200:
+            raise Exception(f"Failed to clone target repository: {response.text}")
+
+        # Copy necessary data from this repository to the target repository
+        for repo in self.config.repos:
+            repo_url = f"https://api.github.com/repos/{repo.owner}/{repo.name}"
+            markdown_files, org_files, plaintext_files = self.get_files(repo_url, repo)
+            for file in markdown_files + org_files + plaintext_files:
+                file_path = file["path"].replace(f"https://github.com/{repo.owner}/{repo.name}/blob/{repo.branch}/", "")
+                response = requests.put(
+                    f"{target_repo_url}/contents/{file_path}",
+                    headers=headers,
+                    json={
+                        "message": f"Add {file_path}",
+                        "content": file["content"].encode("utf-8").decode("base64"),
+                        "branch": target_repo_branch,
+                    },
+                )
+                if response.status_code != 201:
+                    raise Exception(f"Failed to add file {file_path} to target repository: {response.text}")
+
+        # Commit and push the changes to the target repository
+        response = requests.post(
+            f"{target_repo_url}/git/commits",
+            headers=headers,
+            json={
+                "message": "Pull data from khoj-ai/khoj",
+                "branch": target_repo_branch,
+            },
+        )
+        if response.status_code != 201:
+            raise Exception(f"Failed to commit changes to target repository: {response.text}")
+
+        response = requests.post(
+            f"{target_repo_url}/git/refs/heads/{target_repo_branch}",
+            headers=headers,
+            json={"sha": response.json()["sha"]},
+        )
+        if response.status_code != 200:
+            raise Exception(f"Failed to push changes to target repository: {response.text}")

@@ -1,0 +1,51 @@
+name: Pull Data
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Runs daily at midnight
+  workflow_dispatch:
+
+jobs:
+  pull_data:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout khoj-ai/khoj repository
+      uses: actions/checkout@v2
+      with:
+        repository: khoj-ai/khoj
+        path: khoj
+
+    - name: Checkout target repository
+      uses: actions/checkout@v2
+      with:
+        repository: target-owner/target-repo
+        path: target
+
+    - name: Pull data from khoj-ai/khoj to target repository
+      run: |
+        python3 -c "
+import os
+from src.khoj.processor.content.github.github_to_entries import GithubToEntries
+config = {
+    'pat_token': os.getenv('GITHUB_PAT'),
+    'repos': [
+        {'owner': 'khoj-ai', 'name': 'khoj', 'branch': 'main'}
+    ]
+}
+github_to_entries = GithubToEntries(config)
+github_to_entries.pull_data_to_repo(
+    target_repo_url='https://api.github.com/repos/target-owner/target-repo',
+    target_repo_branch='main',
+    target_repo_token=os.getenv('TARGET_REPO_PAT')
+)
+        "
+
+    - name: Commit and push changes to target repository
+      run: |
+        cd target
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git add .
+        git commit -m 'Pull data from khoj-ai/khoj'
+        git push
