@@ -785,16 +785,21 @@ async def chat(
         program_execution_context: List[str] = []
 
         if conversation_commands == [ConversationCommand.Default]:
-            chosen_io = await aget_data_sources_and_output_format(
-                q,
-                meta_log,
-                is_automated_task,
-                user=user,
-                query_images=uploaded_images,
-                agent=agent,
-                query_files=attached_file_context,
-                tracer=tracer,
-            )
+            try:
+                chosen_io = await aget_data_sources_and_output_format(
+                    q,
+                    meta_log,
+                    is_automated_task,
+                    user=user,
+                    query_images=uploaded_images,
+                    agent=agent,
+                    query_files=attached_file_context,
+                    tracer=tracer,
+                )
+            except ValueError as e:
+                logger.error(f"Error getting data sources and output format: {e}. Falling back to default.")
+                conversation_commands = [ConversationCommand.General]
+
             conversation_commands = chosen_io.get("sources") + [chosen_io.get("output")]
 
             # If we're doing research, we don't want to do anything else

@@ -392,7 +392,8 @@ async def extract_references_and_questions(
 
     filters_in_query += " ".join([f'file:"{filter}"' for filter in conversation.file_filters])
     using_offline_chat = False
-    logger.debug(f"Filters in query: {filters_in_query}")
+    if is_none_or_empty(filters_in_query):
+        logger.debug(f"Filters in query: {filters_in_query}")
 
     personality_context = prompts.personality_context.format(personality=agent.personality) if agent else ""
 
