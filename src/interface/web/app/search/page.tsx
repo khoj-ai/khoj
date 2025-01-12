@@ -174,10 +174,9 @@ export default function Search() {
     const [focusSearchResult, setFocusSearchResult] = useState<SearchResult | null>(null);
     const [exampleQuery, setExampleQuery] = useState("");
     const [fileSuggestions, setFileSuggestions] = useState<string[]>([]);
+    const [allFiles, setAllFiles] = useState<string[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const suggestionsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
     const isMobileWidth = useIsMobileWidth();
 
     useEffect(() => {
@@ -186,7 +185,67 @@ export default function Search() {
                 Math.floor(Math.random() * naturalLanguageSearchQueryExamples.length)
             ],
         );
+
+        // Load all files once on page load
+        fetch('/api/content/computer', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            setAllFiles(data);
+        })
+        .catch(error => {
+            console.error('Error loading files:', error);
+        });
     }, []);
+
+    function getFileSuggestions(query: string) {
+        const fileFilterMatch = query.match(/file:([^"\s]*|"[^"]*")?/);
+        if (!fileFilterMatch) {
+            setFileSuggestions([]);
+            setShowSuggestions(false);
+            return;
+        }
+
+        const filePrefix = fileFilterMatch[1]?.replace(/^"|"$/g, '').trim() || '';
+        const filteredSuggestions = allFiles
+            .filter(file => file.toLowerCase().includes(filePrefix.toLowerCase()))
+            .sort()
+            .slice(0, 10);
+
+        setFileSuggestions(filteredSuggestions);
+        setShowSuggestions(true);
+    }
+
+    function handleSearchInputChange(value: string) {
+        setSearchQuery(value);
+
+        // Clear previous search timeout
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
+        }
+
+        // Get file suggestions immediately
+        getFileSuggestions(value);
+
+        // Debounce search
+        if (value.trim()) {
+            searchTimeoutRef.current = setTimeout(() => {
+                search();
+            }, 750);
+        }
+    }
+
+    function applySuggestion(suggestion: string) {
+        // Replace the file: filter with the selected suggestion
+        const newQuery = searchQuery.replace(/file:([^"\s]*|"[^"]*")?/, `file:"${suggestion}"`);
+        setSearchQuery(newQuery);
+        setShowSuggestions(false);
+        search();
+    }
 
     function search() {
         if (searchResultsLoading || !searchQuery.trim()) return;
@@ -206,63 +265,6 @@ export default function Search() {
             .catch((error) => {
                 console.error("Error:", error);
             });
-    }
-
-    function getFileSuggestions(query: string) {
-        // Get suggestions only if query starts with "file:"
-        if (!query.toLowerCase().startsWith("file:")) {
-            setFileSuggestions([]);
-            setShowSuggestions(false);
-            return;
-        }
-
-        const filePrefix = query.substring(5).trim(); // Remove "file:" prefix
-        const apiUrl = `/api/file-suggestions?q=${encodeURIComponent(filePrefix)}`;
-        
-        fetch(apiUrl, {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-            },
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                setFileSuggestions(data);
-                setShowSuggestions(true);
-            })
-            .catch((error) => {
-                console.error("Error:", error);
-            });
-    }
-
-    function handleSearchInputChange(value: string) {
-        setSearchQuery(value);
-
-        // Clear previous timeouts
-        if (searchTimeoutRef.current) {
-            clearTimeout(searchTimeoutRef.current);
-        }
-        if (suggestionsTimeoutRef.current) {
-            clearTimeout(suggestionsTimeoutRef.current);
-        }
-
-        // Get file suggestions immediately
-        suggestionsTimeoutRef.current = setTimeout(() => {
-            getFileSuggestions(value);
-        }, 100);
-
-        // Debounce search
-        if (value.trim()) {
-            searchTimeoutRef.current = setTimeout(() => {
-                search();
-            }, 750);
-        }
-    }
-
-    function applySuggestion(suggestion: string) {
-        setSearchQuery(`file:${suggestion}`);
-        setShowSuggestions(false);
-        search();
     }
 
     return (
