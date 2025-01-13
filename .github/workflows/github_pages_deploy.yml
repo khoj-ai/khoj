@@ -1,4 +1,4 @@
-name: build and deploy github pages for documentation
+name: deploy documentation
 on:
   push:
     branches:

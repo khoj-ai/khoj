@@ -52,6 +52,8 @@ import {
     Waveform,
     MagnifyingGlass,
     Brain,
+    EyeSlash,
+    Eye,
 } from "@phosphor-icons/react";
 
 import Loading from "../components/loading/loading";
@@ -182,6 +184,101 @@ const useApiKeys = () => {
     };
 };
 
+function ApiKeyCard() {
+    const { apiKeys, generateAPIKey, copyAPIKey, deleteAPIKey } = useApiKeys();
+    const [visibleApiKeys, setVisibleApiKeys] = useState<Set<string>>(new Set());
+    const { toast } = useToast();
+
+    return (
+        <Card className="grid grid-flow-column border border-gray-300 shadow-md rounded-lg dark:bg-muted dark:border-none border-opacity-50 lg:w-2/3">
+            <CardHeader className="text-xl grid grid-flow-col grid-cols-[1fr_auto] pb-0">
+                <span className="flex flex-wrap">
+                    <Key className="h-7 w-7 mr-2" />
+                    API Keys
+                </span>
+                <Button variant="secondary" className="!mt-0" onClick={generateAPIKey}>
+                    <Plus weight="bold" className="h-5 w-5 mr-2" />
+                    Generate Key
+                </Button>
+            </CardHeader>
+            <CardContent className="overflow-hidden grid gap-6">
+                <p className="text-md text-gray-400">
+                    Access Khoj from the{" "}
+                    <a href="https://docs.khoj.dev/clients/desktop" target="_blank">
+                        Desktop
+                    </a>
+                    , <a href="https://docs.khoj.dev/clients/obsidian">Obsidian</a>,{" "}
+                    <a href="https://docs.khoj.dev/clients/emacs">Emacs</a> apps and more.
+                </p>
+                <Table>
+                    <TableBody>
+                        {apiKeys.map((key) => (
+                            <TableRow key={key.token}>
+                                <TableCell className="pl-0 py-3">{key.name}</TableCell>
+                                <TableCell className="grid grid-flow-col grid-cols-[1fr_auto] bg-secondary dark:bg-background rounded-xl p-3 m-1">
+                                    <span className="font-mono text-left w-[50px] md:w-[400px]">
+                                        {visibleApiKeys.has(key.token)
+                                            ? key.token
+                                            : `${key.token.slice(0, 6)}...${key.token.slice(-4)}`}
+                                    </span>
+                                    <div className="grid grid-flow-col">
+                                        {visibleApiKeys.has(key.token) ? (
+                                            <EyeSlash
+                                                weight="bold"
+                                                className="h-4 w-4 mr-2 hover:bg-primary/40"
+                                                onClick={() =>
+                                                    setVisibleApiKeys((prev) => {
+                                                        const next = new Set(prev);
+                                                        next.delete(key.token);
+                                                        return next;
+                                                    })
+                                                }
+                                            />
+                                        ) : (
+                                            <Eye
+                                                weight="bold"
+                                                className="h-4 w-4 mr-2 hover:bg-primary/40"
+                                                onClick={() =>
+                                                    setVisibleApiKeys(
+                                                        new Set([...visibleApiKeys, key.token]),
+                                                    )
+                                                }
+                                            />
+                                        )}
+                                        <Copy
+                                            weight="bold"
+                                            className="h-4 w-4 mr-2 hover:bg-primary/40"
+                                            onClick={() => {
+                                                toast({
+                                                    title: `🔑 Copied API Key: ${key.name}`,
+                                                    description: `Set this API key in the Khoj apps you want to connect to this Khoj account`,
+                                                });
+                                                copyAPIKey(key.token);
+                                            }}
+                                        />
+                                        <Trash
+                                            weight="bold"
+                                            className="h-4 w-4 mr-2 md:ml-4 text-red-400 hover:bg-primary/40"
+                                            onClick={() => {
+                                                toast({
+                                                    title: `🔑 Deleted API Key: ${key.name}`,
+                                                    description: `Apps using this API key will no longer connect to this Khoj account`,
+                                                });
+                                                deleteAPIKey(key.token);
+                                            }}
+                                        />
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+            <CardFooter className="flex flex-wrap gap-4" />
+        </Card>
+    );
+}
+
 enum PhoneNumberValidationState {
     Setup = "setup",
     SendOTP = "otp",
@@ -190,7 +287,6 @@ enum PhoneNumberValidationState {
 }
 
 export default function SettingsView() {
-    const { apiKeys, generateAPIKey, copyAPIKey, deleteAPIKey } = useApiKeys();
     const { userConfig: initialUserConfig } = useUserConfig(true);
     const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
     const [name, setName] = useState<string | undefined>(undefined);
@@ -206,7 +302,7 @@ export default function SettingsView() {
     const title = "Settings";
 
     const cardClassName =
-        "w-full lg:w-5/12 grid grid-flow-column border border-gray-300 shadow-md rounded-lg border dark:border-none dark:bg-muted border-opacity-50";
+        "w-full lg:w-5/12 grid grid-flow-column border border-gray-300 shadow-md rounded-lg border dark:border-none border-opacity-50 dark:bg-muted";
 
     useEffect(() => {
         setUserConfig(initialUserConfig);
@@ -1018,92 +1114,7 @@ export default function SettingsView() {
                                             Clients
                                         </div>
                                         <div className="cards flex flex-col flex-wrap gap-8">
-                                            {!userConfig.anonymous_mode && (
-                                                <Card className="grid grid-flow-column border border-gray-300 shadow-md rounded-lg dark:bg-muted dark:border-none border-opacity-50 lg:w-2/3">
-                                                    <CardHeader className="text-xl grid grid-flow-col grid-cols-[1fr_auto] pb-0">
-                                                        <span className="flex flex-wrap">
-                                                            <Key className="h-7 w-7 mr-2" />
-                                                            API Keys
-                                                        </span>
-                                                        <Button
-                                                            variant="secondary"
-                                                            className="!mt-0"
-                                                            onClick={generateAPIKey}
-                                                        >
-                                                            <Plus
-                                                                weight="bold"
-                                                                className="h-5 w-5 mr-2"
-                                                            />
-                                                            Generate Key
-                                                        </Button>
-                                                    </CardHeader>
-                                                    <CardContent className="overflow-hidden grid gap-6">
-                                                        <p className="text-md text-gray-400">
-                                                            Access Khoj from the{" "}
-                                                            <a
-                                                                href="https://docs.khoj.dev/clients/Desktop"
-                                                                target="_blank"
-                                                            >
-                                                                Desktop
-                                                            </a>
-                                                            ,{" "}
-                                                            <a href="https://docs.khoj.dev/clients/Obsidian">
-                                                                Obsidian
-                                                            </a>
-                                                            ,{" "}
-                                                            <a href="https://docs.khoj.dev/clients/Emacs">
-                                                                Emacs
-                                                            </a>{" "}
-                                                            apps and more.
-                                                        </p>
-                                                        <Table>
-                                                            <TableBody>
-                                                                {apiKeys.map((key) => (
-                                                                    <TableRow key={key.token}>
-                                                                        <TableCell className="pl-0 py-3">
-                                                                            {key.name}
-                                                                        </TableCell>
-                                                                        <TableCell className="grid grid-flow-col grid-cols-[1fr_auto] bg-secondary rounded-xl p-3 m-1">
-                                                                            <span>
-                                                                                {`${key.token.slice(0, 6)}...${key.token.slice(-4)}`}
-                                                                            </span>
-                                                                            <div className="grid grid-flow-col">
-                                                                                <Copy
-                                                                                    weight="bold"
-                                                                                    className="h-4 w-4 mr-2 hover:bg-primary/40"
-                                                                                    onClick={() => {
-                                                                                        toast({
-                                                                                            title: `🔑 Copied API Key: ${key.name}`,
-                                                                                            description: `Set this API key in the Khoj apps you want to connect to this Khoj account`,
-                                                                                        });
-                                                                                        copyAPIKey(
-                                                                                            key.token,
-                                                                                        );
-                                                                                    }}
-                                                                                />
-                                                                                <Trash
-                                                                                    weight="bold"
-                                                                                    className="h-4 w-4 mr-2 md:ml-4 text-red-400 hover:bg-primary/40"
-                                                                                    onClick={() => {
-                                                                                        toast({
-                                                                                            title: `🔑 Deleted API Key: ${key.name}`,
-                                                                                            description: `Apps using this API key will no longer connect to this Khoj account`,
-                                                                                        });
-                                                                                        deleteAPIKey(
-                                                                                            key.token,
-                                                                                        );
-                                                                                    }}
-                                                                                />
-                                                                            </div>
-                                                                        </TableCell>
-                                                                    </TableRow>
-                                                                ))}
-                                                            </TableBody>
-                                                        </Table>
-                                                    </CardContent>
-                                                    <CardFooter className="flex flex-wrap gap-4"></CardFooter>
-                                                </Card>
-                                            )}
+                                            {!userConfig.anonymous_mode && <ApiKeyCard />}
                                             <Card className={`${cardClassName} lg:w-2/3`}>
                                                 <CardHeader className="text-xl flex flex-row">
                                                     <WhatsappLogo className="h-7 w-7 mr-2" />
