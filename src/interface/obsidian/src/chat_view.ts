@@ -655,7 +655,7 @@ export class KhojChatView extends KhojPaneView {
         setIcon(pasteToFile, "clipboard-paste");
         pasteToFile.addEventListener('click', (event) => { pasteTextAtCursor(createCopyParentText(message, 'clipboard-paste')(event)); });
 
-    
+
         // Add delete button
         let deleteButton = null;
         if (!isSystemMessage) {
@@ -1543,7 +1543,7 @@ export class KhojChatView extends KhojPaneView {
     async deleteMessage(messageEl: HTMLElement) {
         const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
         const conversationId = chatBodyEl.dataset.conversationId;
-        
+
         // Get the turn_id from the message's data-meta attribute
         const turnId = messageEl.getAttribute("data-meta");
         if (!turnId || !conversationId) return;
@@ -1566,7 +1566,7 @@ export class KhojChatView extends KhojPaneView {
                 const isKhojMessage = messageEl.classList.contains("khoj");
                 const messages = Array.from(chatBodyEl.getElementsByClassName("khoj-chat-message"));
                 const messageIndex = messages.indexOf(messageEl);
-                
+
                 if (isKhojMessage && messageIndex > 0) {
                     // If it is a Khoj message, remove the previous user message too
                     messages[messageIndex - 1].remove();
