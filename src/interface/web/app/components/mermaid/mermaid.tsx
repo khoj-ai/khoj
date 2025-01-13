@@ -117,7 +117,24 @@ const Mermaid: React.FC<MermaidProps> = ({ chart }) => {
                 .then(() => {
                     setMermaidError(null);
                 })
-                .catch((error) => {});
+                .catch((error) => {
+                    let errorMessage;
+                    try {
+                        errorMessage = typeof error === "string" ? JSON.parse(error) : error;
+                    } catch (e) {
+                        errorMessage = error?.toString() || "Unknown error";
+                    }
+
+                    console.log("Mermaid error message:", errorMessage);
+
+                    if (errorMessage.str !== "element is null") {
+                        setMermaidError(
+                            "Something went wrong while rendering the diagram. Please try again later or downvote the message if the issue persists.",
+                        );
+                    } else {
+                        setMermaidError(null);
+                    }
+                });
         }
     }, [chart]);
 
