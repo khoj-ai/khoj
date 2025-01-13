@@ -2,6 +2,7 @@ from __future__ import annotations  # to avoid quoting type hints
 
 import copy
 import datetime
+import importlib
 import io
 import ipaddress
 import logging
@@ -299,6 +300,8 @@ def log_telemetry(
 def get_device_memory() -> int:
     """Get device memory in GB"""
     device = get_device()
+    if device.type == "hpu":
+        return torch.hpu.get_device_properties(device).total_memory
     if device.type == "cuda":
         return torch.cuda.get_device_properties(device).total_memory
     elif device.type == "mps":
@@ -307,15 +310,32 @@ def get_device_memory() -> int:
         return psutil.virtual_memory().total
 
 
-def get_device() -> torch.device:
-    """Get device to run model on"""
+def get_device(preferred_device=None) -> torch.device:
+    """
+    Determine the appropriate device to use (cuda, hpu, or cpu).
+    Args:
+        preferred_device (str): User-preferred device ('cuda', 'hpu', or 'cpu').
+    Returns:
+        torch.device: 'cuda', 'hpu', 'mps' or 'cpu'.
+    """
+    # Check for HPU support
+    if importlib.util.find_spec("habana_frameworks") is not None:
+        from habana_frameworks.torch.utils.library_loader import load_habana_module
+
+        load_habana_module()
+        if torch.hpu.is_available():
+            if "hpu" in preferred_device or preferred_device is None:
+                return torch.device("hpu")
+    # Use CUDA GPU if available
     if torch.cuda.is_available():
-        # Use CUDA GPU
-        return torch.device("cuda:0")
+        if "cuda" in preferred_device or preferred_device is None:
+            return torch.device("cuda:0")
+    # Use Apple M1 Metal Acceleration if available
     elif torch.backends.mps.is_available():
-        # Use Apple M1 Metal Acceleration
-        return torch.device("mps")
+        if "mps" in preferred_device or preferred_device is None:
+            return torch.device("mps")
     else:
+        # Default to CPU
         return torch.device("cpu")
 
 
