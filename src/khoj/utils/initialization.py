@@ -267,7 +267,7 @@ def initialization(interactive: bool = True):
                             )
 
                     # Remove models that are no longer available
-                    existing_models.exclude(chat_model__in=available_models).delete()
+                    existing_models.exclude(name__in=available_models).delete()
 
                 except Exception as e:
                     logger.warning(f"Failed to update models for {config.name}: {str(e)}")
