@@ -487,7 +487,8 @@ export class KhojChatView extends KhojPaneView {
         inferredQueries?: string[],
         conversationId?: string,
         images?: string[],
-        excalidrawDiagram?: string
+        excalidrawDiagram?: string,
+        mermaidjsDiagram?: string
     ) {
         if (!message) return;
 
@@ -496,8 +497,9 @@ export class KhojChatView extends KhojPaneView {
             intentType?.includes("text-to-image") ||
             intentType === "excalidraw" ||
             (images && images.length > 0) ||
+            mermaidjsDiagram ||
             excalidrawDiagram) {
-            let imageMarkdown = this.generateImageMarkdown(message, intentType ?? "", inferredQueries, conversationId, images, excalidrawDiagram);
+            let imageMarkdown = this.generateImageMarkdown(message, intentType ?? "", inferredQueries, conversationId, images, excalidrawDiagram, mermaidjsDiagram);
             chatMessageEl = this.renderMessage(chatEl, imageMarkdown, sender, dt);
         } else {
             chatMessageEl = this.renderMessage(chatEl, message, sender, dt);
@@ -517,7 +519,7 @@ export class KhojChatView extends KhojPaneView {
         chatMessageBodyEl.appendChild(this.createReferenceSection(references));
     }
 
-    generateImageMarkdown(message: string, intentType: string, inferredQueries?: string[], conversationId?: string, images?: string[], excalidrawDiagram?: string): string {
+    generateImageMarkdown(message: string, intentType: string, inferredQueries?: string[], conversationId?: string, images?: string[], excalidrawDiagram?: string, mermaidjsDiagram?: string): string {
         let imageMarkdown = "";
         if (intentType === "text-to-image") {
             imageMarkdown = `![](data:image/png;base64,${message})`;
@@ -529,6 +531,8 @@ export class KhojChatView extends KhojPaneView {
             const domain = this.setting.khojUrl.endsWith("/") ? this.setting.khojUrl : `${this.setting.khojUrl}/`;
             const redirectMessage = `Hey, I'm not ready to show you diagrams yet here. But you can view it in ${domain}chat?conversationId=${conversationId}`;
             imageMarkdown = redirectMessage;
+        } else if (mermaidjsDiagram) {
+            imageMarkdown = "```mermaid\n" + mermaidjsDiagram + "\n```";
         } else if (images && images.length > 0) {
             imageMarkdown += images.map(image => `![](${image})`).join('\n\n');
             imageMarkdown += message;
@@ -901,6 +905,7 @@ export class KhojChatView extends KhojPaneView {
                         chatBodyEl.dataset.conversationId ?? "",
                         chatLog.images,
                         chatLog.excalidrawDiagram,
+                        chatLog.mermaidjsDiagram,
                     );
                     // push the user messages to the chat history
                     if (chatLog.by === "you") {
@@ -1005,7 +1010,7 @@ export class KhojChatView extends KhojPaneView {
     }
 
     handleJsonResponse(jsonData: any): void {
-        if (jsonData.image || jsonData.detail || jsonData.images || jsonData.excalidrawDiagram) {
+        if (jsonData.image || jsonData.detail || jsonData.images || jsonData.mermaidjsDiagram) {
             this.chatMessageState.rawResponse = this.handleImageResponse(jsonData, this.chatMessageState.rawResponse);
         } else if (jsonData.response) {
             this.chatMessageState.rawResponse = jsonData.response;
@@ -1395,6 +1400,8 @@ export class KhojChatView extends KhojPaneView {
             const domain = this.setting.khojUrl.endsWith("/") ? this.setting.khojUrl : `${this.setting.khojUrl}/`;
             const redirectMessage = `Hey, I'm not ready to show you diagrams yet here. But you can view it in ${domain}`;
             rawResponse += redirectMessage;
+        } else if (imageJson.mermaidjsDiagram) {
+            rawResponse += imageJson.mermaidjsDiagram;
         }
 
         // If response has detail field, response is an error message.

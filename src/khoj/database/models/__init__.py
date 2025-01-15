@@ -109,6 +109,7 @@ class ChatMessage(PydanticBaseModel):
     images: Optional[List[str]] = None
     queryFiles: Optional[List[Dict]] = None
     excalidrawDiagram: Optional[List[Dict]] = None
+    mermaidjsDiagram: str = None
     by: str
     turnId: Optional[str] = None
     intent: Optional[Intent] = None

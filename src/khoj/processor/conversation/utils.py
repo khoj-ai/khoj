@@ -266,7 +266,7 @@ def save_to_conversation_log(
     raw_query_files: List[FileAttachment] = [],
     generated_images: List[str] = [],
     raw_generated_files: List[FileAttachment] = [],
-    generated_excalidraw_diagram: str = None,
+    generated_mermaidjs_diagram: str = None,
     train_of_thought: List[Any] = [],
     tracer: Dict[str, Any] = {},
 ):
@@ -290,8 +290,8 @@ def save_to_conversation_log(
         "queryFiles": [file.model_dump(mode="json") for file in raw_generated_files],
     }
 
-    if generated_excalidraw_diagram:
-        khoj_message_metadata["excalidrawDiagram"] = generated_excalidraw_diagram
+    if generated_mermaidjs_diagram:
+        khoj_message_metadata["mermaidjsDiagram"] = generated_mermaidjs_diagram
 
     updated_conversation = message_to_log(
         user_message=q,
@@ -441,7 +441,7 @@ def generate_chatml_messages_with_context(
                 "query": chat.get("intent", {}).get("inferred-queries", [user_message])[0],
             }
 
-        if not is_none_or_empty(chat.get("excalidrawDiagram")) and role == "assistant":
+        if not is_none_or_empty(chat.get("mermaidjsDiagram")) and role == "assistant":
             generated_assets["diagram"] = {
                 "query": chat.get("intent", {}).get("inferred-queries", [user_message])[0],
             }
@@ -591,6 +591,11 @@ def reciprocal_conversation_to_chatml(message_pair):
 def clean_json(response: str):
     """Remove any markdown json codeblock and newline formatting if present. Useful for non schema enforceable models"""
     return response.strip().replace("\n", "").removeprefix("```json").removesuffix("```")
+
+
+def clean_mermaidjs(response: str):
+    """Remove any markdown mermaidjs codeblock and newline formatting if present. Useful for non schema enforceable models"""
+    return response.strip().removeprefix("```mermaid").removesuffix("```")
 
 
 def clean_code_python(code: str):
