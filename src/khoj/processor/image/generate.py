@@ -111,7 +111,7 @@ async def text_to_image(
         image_url = upload_image(webp_image_bytes, user.uuid)
 
     if not image_url:
-        image = base64.b64encode(webp_image_bytes).decode("utf-8")
+        image = f"data:image/webp;base64,{base64.b64encode(webp_image_bytes).decode('utf-8')}"
 
     yield image_url or image, status_code, image_prompt
 
