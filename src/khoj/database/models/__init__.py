@@ -566,6 +566,7 @@ class SpeechToTextModelOptions(DbBaseModel):
 
     model_name = models.CharField(max_length=200, default="base")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
+    ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
     def __str__(self):
         return f"{self.model_name} - {self.model_type}"
