@@ -524,21 +524,14 @@ export class KhojChatView extends KhojPaneView {
         } else if (intentType === "text-to-image2") {
             imageMarkdown = `![](${message})`;
         } else if (intentType === "text-to-image-v3") {
-            imageMarkdown = `![](data:image/webp;base64,${message})`;
+            imageMarkdown = `![](${message})`;
         } else if (intentType === "excalidraw" || excalidrawDiagram) {
             const domain = this.setting.khojUrl.endsWith("/") ? this.setting.khojUrl : `${this.setting.khojUrl}/`;
             const redirectMessage = `Hey, I'm not ready to show you diagrams yet here. But you can view it in ${domain}chat?conversationId=${conversationId}`;
             imageMarkdown = redirectMessage;
         } else if (images && images.length > 0) {
-            for (let image of images) {
-                if (image.startsWith("https://")) {
-                    imageMarkdown += `![](${image})\n\n`;
-                } else {
-                    imageMarkdown += `![](data:image/png;base64,${image})\n\n`;
-                }
-            }
-
-            imageMarkdown += `${message}`;
+            imageMarkdown += images.map(image => `![](${image})`).join('\n\n');
+            imageMarkdown += message;
         }
 
         if (images?.length === 0 && inferredQueries) {
@@ -1384,7 +1377,7 @@ export class KhojChatView extends KhojPaneView {
             } else if (imageJson.intentType === "text-to-image2") {
                 rawResponse += `![generated_image](${imageJson.image})`;
             } else if (imageJson.intentType === "text-to-image-v3") {
-                rawResponse = `![](data:image/webp;base64,${imageJson.image})`;
+                rawResponse = `![generated_image](${imageJson.image})`;
             } else if (imageJson.intentType === "excalidraw") {
                 const domain = this.setting.khojUrl.endsWith("/") ? this.setting.khojUrl : `${this.setting.khojUrl}/`;
                 const redirectMessage = `Hey, I'm not ready to show you diagrams yet here. But you can view it in ${domain}`;
@@ -1396,12 +1389,7 @@ export class KhojChatView extends KhojPaneView {
         } else if (imageJson.images) {
             // If response has images field, response is a list of generated images.
             imageJson.images.forEach((image: any) => {
-
-                if (image.startsWith("http")) {
-                    rawResponse += `![generated_image](${image})\n\n`;
-                } else {
-                    rawResponse += `![generated_image](data:image/png;base64,${image})\n\n`;
-                }
+                rawResponse += `![generated_image](${image})\n\n`;
             });
         } else if (imageJson.excalidrawDiagram) {
             const domain = this.setting.khojUrl.endsWith("/") ? this.setting.khojUrl : `${this.setting.khojUrl}/`;
