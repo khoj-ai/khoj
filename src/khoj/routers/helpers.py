@@ -1913,7 +1913,7 @@ def scheduled_chat(
     raw_response = requests.post(url, headers=headers, json=json_payload, allow_redirects=False)
 
     # Handle redirect manually if necessary
-    if raw_response.status_code in [301, 302]:
+    if raw_response.status_code in [301, 302, 308]:
         redirect_url = raw_response.headers["Location"]
         logger.info(f"Redirecting to {redirect_url}")
         raw_response = requests.post(redirect_url, headers=headers, json=json_payload)
