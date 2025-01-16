@@ -31,6 +31,7 @@ interface ChatMessageState {
     rawResponse: string;
     rawQuery: string;
     isVoice: boolean;
+    turnId: string;
 }
 
 interface Location {
@@ -45,6 +46,7 @@ interface RenderMessageOptions {
     chatBodyEl: Element;
     message: string;
     sender: string;
+    turnId?: string;
     dt?: Date;
     raw?: boolean;
     willReplace?: boolean;
@@ -490,6 +492,7 @@ export class KhojChatView extends KhojPaneView {
         chatEl: Element,
         message: string,
         sender: string,
+        turnId: string,
         context?: string[],
         onlineContext?: object,
         dt?: Date,
@@ -497,7 +500,7 @@ export class KhojChatView extends KhojPaneView {
         inferredQueries?: string[],
         conversationId?: string,
         images?: string[],
-        excalidrawDiagram?: string
+        excalidrawDiagram?: string,
     ) {
         if (!message) return;
 
@@ -512,14 +515,16 @@ export class KhojChatView extends KhojPaneView {
                 chatBodyEl: chatEl,
                 message: imageMarkdown,
                 sender,
-                dt
+                dt,
+                turnId
             });
         } else {
             chatMessageEl = this.renderMessage({
                 chatBodyEl: chatEl,
                 message,
                 sender,
-                dt
+                dt,
+                turnId
             });
         }
 
@@ -570,7 +575,7 @@ export class KhojChatView extends KhojPaneView {
         return imageMarkdown;
     }
 
-    renderMessage({ chatBodyEl, message, sender, dt, raw = false, willReplace = true, isSystemMessage = false }: RenderMessageOptions): Element {
+    renderMessage({ chatBodyEl, message, sender, dt, turnId, raw = false, willReplace = true, isSystemMessage = false }: RenderMessageOptions): Element {
         let message_time = this.formatDate(dt ?? new Date());
 
         // Append message to conversation history HTML element.
@@ -578,7 +583,8 @@ export class KhojChatView extends KhojPaneView {
         let chatMessageEl = chatBodyEl.createDiv({
             attr: {
                 "data-meta": message_time,
-                class: `khoj-chat-message ${sender}`
+                class: `khoj-chat-message ${sender}`,
+                ...(turnId && { "data-turnId": turnId })
             },
         })
         let chatMessageBodyEl = chatMessageEl.createDiv();
@@ -946,6 +952,7 @@ export class KhojChatView extends KhojPaneView {
                         chatBodyEl,
                         chatLog.message,
                         chatLog.by,
+                        chatLog.turnId,
                         chatLog.context,
                         chatLog.onlineContext,
                         new Date(chatLog.created),
@@ -1025,7 +1032,7 @@ export class KhojChatView extends KhojPaneView {
                 this.textToSpeech(this.chatMessageState.rawResponse);
 
             // Append any references after all the data has been streamed
-            this.finalizeChatBodyResponse(this.chatMessageState.references, this.chatMessageState.newResponseTextEl);
+            this.finalizeChatBodyResponse(this.chatMessageState.references, this.chatMessageState.newResponseTextEl, this.chatMessageState.turnId);
 
             const liveQuery = this.chatMessageState.rawQuery;
             // Reset variables
@@ -1038,6 +1045,7 @@ export class KhojChatView extends KhojPaneView {
                 rawQuery: liveQuery,
                 isVoice: false,
                 generatedAssets: "",
+                turnId: "",
             };
         } else if (chunk.type === "references") {
             this.chatMessageState.references = { "notes": chunk.data.context, "online": chunk.data.onlineContext };
@@ -1058,6 +1066,12 @@ export class KhojChatView extends KhojPaneView {
             } else {
                 this.chatMessageState.rawResponse += chunkData;
                 this.handleStreamResponse(this.chatMessageState.newResponseTextEl, this.chatMessageState.rawResponse + this.chatMessageState.generatedAssets, this.chatMessageState.loadingEllipsis);
+            }
+        } else if (chunk.type === "metadata") {
+            const { turnId } = chunk.data;
+            if (turnId) {
+                // Append turnId to chatMessageState
+                this.chatMessageState.turnId = turnId;
             }
         }
     }
@@ -1164,6 +1178,7 @@ export class KhojChatView extends KhojPaneView {
             rawResponse: "",
             isVoice: isVoice,
             generatedAssets: "",
+            turnId: "",
         };
 
         let response = await fetch(chatUrl, {
@@ -1466,9 +1481,14 @@ export class KhojChatView extends KhojPaneView {
         return rawResponse;
     }
 
-    finalizeChatBodyResponse(references: object, newResponseElement: HTMLElement | null) {
+    finalizeChatBodyResponse(references: object, newResponseElement: HTMLElement | null, turnId: string) {
         if (!!newResponseElement && references != null && Object.keys(references).length > 0) {
             newResponseElement.appendChild(this.createReferenceSection(references));
+        }
+        if (!!newResponseElement && turnId) {
+            // Set the turnId for the new response and the previous user message
+            newResponseElement.parentElement?.setAttribute("data-turnId", turnId);
+            newResponseElement.parentElement?.previousElementSibling?.setAttribute("data-turnId", turnId);
         }
         this.scrollChatToBottom();
         let chatInput = this.contentEl.getElementsByClassName("khoj-chat-input")[0];
@@ -1544,8 +1564,8 @@ export class KhojChatView extends KhojPaneView {
         const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
         const conversationId = chatBodyEl.dataset.conversationId;
 
-        // Get the turn_id from the message's data-meta attribute
-        const turnId = messageEl.getAttribute("data-meta");
+        // Get the turnId from the message's data-turn attribute
+        const turnId = messageEl.getAttribute("data-turnId");
         if (!turnId || !conversationId) return;
 
         try {
