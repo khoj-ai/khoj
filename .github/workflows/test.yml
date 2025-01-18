@@ -72,8 +72,8 @@ jobs:
       - name: ⬇️ Install pip
         run: |
           apt install -y python3-pip
-          python -m ensurepip --upgrade
-          python -m pip install --upgrade pip
+          python3 -m ensurepip --upgrade
+          python3 -m pip install --upgrade pip
 
       - name: ⬇️ Install Application
         env:
