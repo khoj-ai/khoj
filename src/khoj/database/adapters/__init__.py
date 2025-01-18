@@ -714,9 +714,12 @@ class AgentAdapters:
         public_query = Q(privacy_level=Agent.PrivacyLevel.PUBLIC)
         # TODO Update this to allow any public agent that's officially approved once that experience is launched
         public_query &= Q(managed_by_admin=True)
+
+        user_query = Q(creator=user)
+        user_query &= Q(is_hidden=False)
         if user:
             return (
-                Agent.objects.filter(public_query | Q(creator=user))
+                Agent.objects.filter(public_query | user_query)
                 .distinct()
                 .order_by("created_at")
                 .prefetch_related("creator", "chat_model", "fileobject_set")
@@ -808,6 +811,7 @@ class AgentAdapters:
         input_tools: List[str],
         output_modes: List[str],
         slug: Optional[str] = None,
+        is_hidden: Optional[bool] = False,
     ):
         chat_model_option = await ChatModel.objects.filter(name=chat_model).afirst()
 
@@ -823,6 +827,7 @@ class AgentAdapters:
                 "chat_model": chat_model_option,
                 "input_tools": input_tools,
                 "output_modes": output_modes,
+                "is_hidden": is_hidden,
             }
         )
 

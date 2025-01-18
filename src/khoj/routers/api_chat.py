@@ -474,6 +474,7 @@ async def create_chat_session(
     request: Request,
     common: CommonQueryParams,
     agent_slug: Optional[str] = None,
+    # Add parameters here to create a custom hidden agent on the fly
 ):
     user = request.user.object
 
@@ -865,7 +866,7 @@ async def chat(
             # and not triggered via slash command
             and not used_slash_summarize
             # but we can't actually summarize
-            and len(file_filters) != 1
+            and len(file_filters) == 0
         ):
             conversation_commands.remove(ConversationCommand.Summarize)
         elif ConversationCommand.Summarize in conversation_commands:

@@ -2231,7 +2231,14 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
     chat_models = ConversationAdapters.get_conversation_processor_options().all()
     chat_model_options = list()
     for chat_model in chat_models:
-        chat_model_options.append({"name": chat_model.name, "id": chat_model.id})
+        chat_model_options.append(
+            {
+                "name": chat_model.name,
+                "id": chat_model.id,
+                "strengths": chat_model.strengths,
+                "description": chat_model.description,
+            }
+        )
 
     selected_paint_model_config = ConversationAdapters.get_user_text_to_image_model_config(user)
     paint_model_options = ConversationAdapters.get_text_to_image_model_options().all()

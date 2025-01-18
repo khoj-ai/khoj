@@ -38,6 +38,7 @@ class ModifyAgentBody(BaseModel):
     input_tools: Optional[List[str]] = []
     output_modes: Optional[List[str]] = []
     slug: Optional[str] = None
+    is_hidden: Optional[bool] = False
 
 
 @api_agents.get("", response_class=Response)
@@ -214,6 +215,7 @@ async def create_agent(
         body.input_tools,
         body.output_modes,
         body.slug,
+        body.is_hidden,
     )
 
     agents_packet = {
@@ -229,6 +231,7 @@ async def create_agent(
         "files": body.files,
         "input_tools": agent.input_tools,
         "output_modes": agent.output_modes,
+        "is_hidden": agent.is_hidden,
     }
 
     return Response(content=json.dumps(agents_packet), media_type="application/json", status_code=200)

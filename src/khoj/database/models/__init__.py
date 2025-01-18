@@ -209,6 +209,8 @@ class ChatModel(DbBaseModel):
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
     vision_enabled = models.BooleanField(default=False)
     ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)
+    description = models.TextField(default=None, null=True, blank=True)
+    strengths = models.TextField(default=None, null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -286,6 +288,7 @@ class Agent(DbBaseModel):
         TEXT = "text"
         IMAGE = "image"
         AUTOMATION = "automation"
+        DIAGRAM = "diagram"
 
     creator = models.ForeignKey(
         KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True
@@ -304,6 +307,7 @@ class Agent(DbBaseModel):
     style_color = models.CharField(max_length=200, choices=StyleColorTypes.choices, default=StyleColorTypes.BLUE)
     style_icon = models.CharField(max_length=200, choices=StyleIconTypes.choices, default=StyleIconTypes.LIGHTBULB)
     privacy_level = models.CharField(max_length=30, choices=PrivacyLevel.choices, default=PrivacyLevel.PRIVATE)
+    is_hidden = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         is_new = self._state.adding
