@@ -25,8 +25,6 @@ interface ChatSideBarProps {
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export function ChatSidebar({ ...props }: ChatSideBarProps) {
-    const { data: agentConfigurationOptions, error: agentConfigurationOptionsError } =
-        useSWR<AgentConfigurationOptions>("/api/agents/options", fetcher);
 
     if (props.isMobileWidth) {
         return (
