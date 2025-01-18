@@ -184,7 +184,7 @@ interface FilesMenuProps {
     isMobileWidth: boolean;
 }
 
-function FilesMenu(props: FilesMenuProps) {
+export function FilesMenu(props: FilesMenuProps) {
     // Use SWR to fetch files
     const { data: files, error } = useSWR<string[]>("/api/content/computer", fetcher);
     const { data: selectedFiles, error: selectedFilesError } = useSWR(
@@ -981,13 +981,6 @@ export default function AllConversations(props: SidePanelProps) {
                                 sideBarOpen={props.sideBarOpen}
                             />
                         </div>
-                        {props.sideBarOpen && (
-                            <FilesMenu
-                                conversationId={props.conversationId}
-                                uploadedFiles={props.uploadedFiles}
-                                isMobileWidth={props.isMobileWidth}
-                            />
-                        )}
                     </>
                 )}
             </div>

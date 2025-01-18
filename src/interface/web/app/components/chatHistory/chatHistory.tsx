@@ -314,7 +314,15 @@ export default function ChatHistory(props: ChatHistoryProps) {
     }
 
     return (
-        <ScrollArea className={`h-[73vh] relative`} ref={scrollAreaRef}>
+        <ScrollArea
+            className={`
+            h-[calc(100svh-theme(spacing.44))]
+            sm:h-[calc(100svh-theme(spacing.44))]
+            md:h-[calc(100svh-theme(spacing.44))]
+            lg:h-[calc(100svh-theme(spacing.72))]
+        `}
+            ref={scrollAreaRef}>
+
             <div>
                 <div className={`${styles.chatHistory} ${props.customClassName}`}>
                     <div ref={sentinelRef} style={{ height: "1px" }}>
@@ -343,12 +351,12 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         index === data.chat.length - 2
                                             ? latestUserMessageRef
                                             : // attach ref to the newest fetched message to handle scroll on fetch
-                                              // note: stabilize index selection against last page having less messages than fetchMessageCount
-                                              index ===
+                                            // note: stabilize index selection against last page having less messages than fetchMessageCount
+                                            index ===
                                                 data.chat.length -
-                                                    (currentPage - 1) * fetchMessageCount
-                                              ? latestFetchedMessageRef
-                                              : null
+                                                (currentPage - 1) * fetchMessageCount
+                                                ? latestFetchedMessageRef
+                                                : null
                                     }
                                     isMobileWidth={isMobileWidth}
                                     chatMessage={chatMessage}

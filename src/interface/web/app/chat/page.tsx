@@ -30,6 +30,9 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "../components/appSidebar/appSidebar";
 import { Separator } from "@/components/ui/separator";
 import { KhojLogoType } from "../components/logo/khojLogo";
+import { Button } from "@/components/ui/button";
+import { Joystick } from "@phosphor-icons/react";
+import { ChatSidebar } from "../components/chatSidebar/chatSidebar";
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -43,6 +46,8 @@ interface ChatBodyDataProps {
     isLoggedIn: boolean;
     setImages: (images: string[]) => void;
     setTriggeredAbort: (triggeredAbort: boolean) => void;
+    isChatSideBarOpen: boolean;
+    onChatSideBarOpenChange: (open: boolean) => void;
 }
 
 function ChatBodyData(props: ChatBodyDataProps) {
@@ -138,37 +143,44 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }
 
     return (
-        <>
-            <div className={false ? styles.chatBody : styles.chatBodyFull}>
-                <ChatHistory
-                    conversationId={conversationId}
-                    setTitle={props.setTitle}
-                    setAgent={setAgentMetadata}
-                    pendingMessage={processingMessage ? message : ""}
-                    incomingMessages={props.streamedMessages}
-                    setIncomingMessages={props.setStreamedMessages}
-                    customClassName={chatHistoryCustomClassName}
-                />
+        <div className="flex flex-row h-full w-full">
+            <div className="flex flex-col h-full w-full">
+                <div className={false ? styles.chatBody : styles.chatBodyFull}>
+                    <ChatHistory
+                        conversationId={conversationId}
+                        setTitle={props.setTitle}
+                        setAgent={setAgentMetadata}
+                        pendingMessage={processingMessage ? message : ""}
+                        incomingMessages={props.streamedMessages}
+                        setIncomingMessages={props.setStreamedMessages}
+                        customClassName={chatHistoryCustomClassName}
+                    />
+                </div>
+                <div
+                    className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-2xl md:rounded-xl h-fit ${chatHistoryCustomClassName} mr-auto ml-auto`}
+                >
+                    <ChatInputArea
+                        agentColor={agentMetadata?.color}
+                        isLoggedIn={props.isLoggedIn}
+                        sendMessage={(message) => setMessage(message)}
+                        sendImage={(image) => setImages((prevImages) => [...prevImages, image])}
+                        sendDisabled={processingMessage}
+                        chatOptionsData={props.chatOptionsData}
+                        conversationId={conversationId}
+                        isMobileWidth={props.isMobileWidth}
+                        setUploadedFiles={props.setUploadedFiles}
+                        ref={chatInputRef}
+                        isResearchModeEnabled={isInResearchMode}
+                        setTriggeredAbort={props.setTriggeredAbort}
+                    />
+                </div>
             </div>
-            <div
-                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-2xl md:rounded-xl h-fit ${chatHistoryCustomClassName} mr-auto ml-auto`}
-            >
-                <ChatInputArea
-                    agentColor={agentMetadata?.color}
-                    isLoggedIn={props.isLoggedIn}
-                    sendMessage={(message) => setMessage(message)}
-                    sendImage={(image) => setImages((prevImages) => [...prevImages, image])}
-                    sendDisabled={processingMessage}
-                    chatOptionsData={props.chatOptionsData}
-                    conversationId={conversationId}
-                    isMobileWidth={props.isMobileWidth}
-                    setUploadedFiles={props.setUploadedFiles}
-                    ref={chatInputRef}
-                    isResearchModeEnabled={isInResearchMode}
-                    setTriggeredAbort={props.setTriggeredAbort}
-                />
-            </div>
-        </>
+            <ChatSidebar
+                conversationId={conversationId}
+                isOpen={props.isChatSideBarOpen}
+                onOpenChange={props.onChatSideBarOpenChange}
+                isMobileWidth={props.isMobileWidth} />
+        </div>
     );
 }
 
@@ -199,6 +211,7 @@ export default function Chat() {
         isLoading: authenticationLoading,
     } = useAuthenticatedData();
     const isMobileWidth = useIsMobileWidth();
+    const [isChatSideBarOpen, setIsChatSideBarOpen] = useState(false);
 
     useEffect(() => {
         fetch("/api/chat/options")
@@ -432,6 +445,16 @@ export default function Chat() {
                             )}
                         </div>
                     )}
+                    <div className="flex justify-end items-start gap-2 text-sm ml-auto">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-12 w-12 data-[state=open]:bg-accent"
+                            onClick={() => setIsChatSideBarOpen(!isChatSideBarOpen)}
+                        >
+                            <Joystick className="w-6 h-6" />
+                        </Button>
+                    </div>
                 </header>
                 <div className={`${styles.main} ${styles.chatLayout}`}>
                     <title>
@@ -452,12 +475,14 @@ export default function Chat() {
                                     onConversationIdChange={handleConversationIdChange}
                                     setImages={setImages}
                                     setTriggeredAbort={setTriggeredAbort}
+                                    isChatSideBarOpen={isChatSideBarOpen}
+                                    onChatSideBarOpenChange={setIsChatSideBarOpen}
                                 />
                             </Suspense>
                         </div>
                     </div>
                 </div>
             </SidebarInset>
-        </SidebarProvider>
+        </SidebarProvider >
     );
 }

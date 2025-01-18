@@ -171,7 +171,7 @@ function CreateAgentCard(props: CreateAgentCardProps) {
     );
 }
 
-interface AgentConfigurationOptions {
+export interface AgentConfigurationOptions {
     input_tools: { [key: string]: string };
     output_modes: { [key: string]: string };
 }
