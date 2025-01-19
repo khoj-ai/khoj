@@ -354,7 +354,7 @@ command_descriptions = {
 }
 
 command_descriptions_for_agent = {
-    ConversationCommand.General: "Agent can use the agents knowledge base and general knowledge.",
+    ConversationCommand.General: "Agent can use its own knowledge base and general knowledge.",
     ConversationCommand.Notes: "Agent can search the personal knowledge base for information, as well as its own.",
     ConversationCommand.Online: "Agent can search the internet for information.",
     ConversationCommand.Webpage: "Agent can read suggested web pages for information.",
@@ -388,7 +388,6 @@ mode_descriptions_for_llm = {
 mode_descriptions_for_agent = {
     ConversationCommand.Image: "Agent can generate images in response. It cannot not use this to generate charts and graphs.",
     ConversationCommand.Automation: "Agent can schedule a task to run at a scheduled date, time and frequency in response.",
-    ConversationCommand.Text: "Agent can generate text in response.",
     ConversationCommand.Diagram: "Agent can generate a visual representation that requires primitives like lines, rectangles, and text.",
 }
 
@@ -429,6 +428,18 @@ def generate_random_name():
 
     # Combine the words to form a name
     name = f"{adjective} {noun}"
+
+    return name
+
+
+def generate_random_internal_agent_name():
+    random_name = generate_random_name()
+
+    random_name.replace(" ", "_")
+
+    random_number = random.randint(1000, 9999)
+
+    name = f"{random_name}{random_number}"
 
     return name
 
