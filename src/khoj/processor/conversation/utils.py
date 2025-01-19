@@ -62,7 +62,7 @@ model_to_prompt_size = {
     "claude-3-5-sonnet-20241022": 60000,
     "claude-3-5-haiku-20241022": 60000,
     # Offline Models
-    "Qwen/Qwen2.5-14B-Instruct-GGUF": 20000,
+    "bartowski/Qwen2.5-14B-Instruct-GGUF": 20000,
     "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF": 20000,
     "bartowski/Llama-3.2-3B-Instruct-GGUF": 20000,
     "bartowski/gemma-2-9b-it-GGUF": 6000,
