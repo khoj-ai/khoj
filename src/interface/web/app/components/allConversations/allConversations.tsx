@@ -363,7 +363,7 @@ export function FilesMenu(props: FilesMenuProps) {
         <>
             <Popover open={isOpen} onOpenChange={setIsOpen}>
                 <PopoverTrigger asChild>
-                    <div className="w-auto bg-background border border-muted p-4 drop-shadow-sm rounded-2xl my-8">
+                    <div className="w-auto bg-background border border-muted p-4 drop-shadow-sm rounded-2xl">
                         <div className="flex items-center justify-between space-x-4">
                             <h4 className="text-sm font-semibold">
                                 {usingConversationContext ? "Manage Context" : "Files"}
@@ -424,7 +424,7 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                 <ScrollArea>
                     <ScrollAreaScrollbar
                         orientation="vertical"
-                        className="h-full w-2.5 border-l border-l-transparent p-[1px]"
+                        className="h-full w-2.5"
                     />
                     <div className="p-0 m-0">
                         {props.subsetOrganizedData != null &&

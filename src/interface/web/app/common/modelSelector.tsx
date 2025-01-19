@@ -28,22 +28,29 @@ import { ModelOptions, useChatModelOptions } from "./auth";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function ModelSelector({ ...props }: PopoverProps) {
+interface ModelSelectorProps extends PopoverProps {
+    onSelect: (model: ModelOptions) => void;
+    selectedModel?: string;
+    disabled?: boolean;
+}
+
+export function ModelSelector({ ...props }: ModelSelectorProps) {
     const [open, setOpen] = React.useState(false)
     const { models, isLoading, error } = useChatModelOptions();
     const [peekedModel, setPeekedModel] = useState<ModelOptions | undefined>(undefined);
     const [selectedModel, setSelectedModel] = useState<ModelOptions | undefined>(undefined);
 
     useEffect(() => {
-        if (models && models.length > 0) {
-            setSelectedModel(models[0])
+        if (!models?.length) return;
+
+        if (props.selectedModel) {
+            const model = models.find(model => model.name === props.selectedModel);
+            setSelectedModel(model || models[0]);
+            return;
         }
 
-        if (models && models.length > 0 && !selectedModel) {
-            setSelectedModel(models[0])
-        }
-
-    }, [models]);
+        setSelectedModel(models[0]);
+    }, [models, props.selectedModel]);
 
     if (isLoading) {
         return (
@@ -67,9 +74,10 @@ export function ModelSelector({ ...props }: PopoverProps) {
                         aria-expanded={open}
                         aria-label="Select a model"
                         className="w-full justify-between text-left"
+                        disabled={props.disabled ?? false}
                     >
                         <p className="truncate">
-                            {selectedModel ? selectedModel.name.substring(0,20) : "Select a model..."}
+                            {selectedModel ? selectedModel.name.substring(0, 20) : "Select a model..."}
                         </p>
                         <CaretUpDown className="opacity-50" />
                     </Button>
@@ -157,7 +165,7 @@ function ModelItem({ model, isSelected, onSelect, onPeek }: ModelItemProps) {
             key={model.id}
             onSelect={onSelect}
             ref={ref}
-            className="data-[selected=true]:bg-primary data-[selected=true]:text-primary-foreground"
+            className="data-[selected=true]:bg-muted data-[selected=true]:text-secondary-foreground"
         >
             {model.name}
             <Check

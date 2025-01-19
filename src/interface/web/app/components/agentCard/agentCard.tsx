@@ -103,10 +103,13 @@ export interface AgentData {
     privacy_level: string;
     files?: string[];
     creator?: string;
+    is_creator?: boolean;
     managed_by_admin: boolean;
     chat_model: string;
     input_tools: string[];
     output_modes: string[];
+    is_hidden: boolean;
+    has_files?: boolean;
 }
 
 async function openChat(slug: string, userData: UserProfile | null) {
