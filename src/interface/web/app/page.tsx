@@ -37,7 +37,7 @@ import {
 } from "@/app/common/auth";
 import { convertColorToBorderClass } from "@/app/common/colorUtils";
 import { getIconFromIconName } from "@/app/common/iconUtils";
-import { AgentData } from "@/app/agents/page";
+import { AgentData } from"@/app/components/agentCard/agentCard";
 import { createNewConversation } from "./common/chatFunctions";
 import { useDebounce, useIsMobileWidth } from "./common/utils";
 import { useRouter, useSearchParams } from "next/navigation";

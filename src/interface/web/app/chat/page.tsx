@@ -24,7 +24,9 @@ import {
     ChatOptions,
 } from "../components/chatInputArea/chatInputArea";
 import { useAuthenticatedData } from "../common/auth";
-import { AgentData } from "../agents/page";
+import {
+    AgentData,
+} from "@/app/components/agentCard/agentCard";
 import { ChatSessionActionMenu } from "../components/allConversations/allConversations";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "../components/appSidebar/appSidebar";
@@ -179,6 +181,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 conversationId={conversationId}
                 isOpen={props.isChatSideBarOpen}
                 onOpenChange={props.onChatSideBarOpenChange}
+                preexistingAgent={agentMetadata}
                 isMobileWidth={props.isMobileWidth} />
         </div>
     );
