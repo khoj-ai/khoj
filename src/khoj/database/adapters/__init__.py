@@ -69,6 +69,7 @@ from khoj.search_filter.word_filter import WordFilter
 from khoj.utils import state
 from khoj.utils.config import OfflineChatProcessorModel
 from khoj.utils.helpers import (
+    generate_random_internal_agent_name,
     generate_random_name,
     in_debug_mode,
     is_none_or_empty,
@@ -806,13 +807,15 @@ class AgentAdapters:
         privacy_level: str,
         icon: str,
         color: str,
-        chat_model: str,
+        chat_model: Optional[str],
         files: List[str],
         input_tools: List[str],
         output_modes: List[str],
         slug: Optional[str] = None,
         is_hidden: Optional[bool] = False,
     ):
+        if not chat_model:
+            chat_model = ConversationAdapters.get_default_chat_model(user)
         chat_model_option = await ChatModel.objects.filter(name=chat_model).afirst()
 
         # Slug will be None for new agents, which will trigger a new agent creation with a generated, immutable slug
@@ -861,6 +864,35 @@ class AgentAdapters:
 
                 # Bulk create entries
                 await Entry.objects.abulk_create(entries)
+
+        return agent
+
+    @staticmethod
+    @arequire_valid_user
+    async def aupdate_hidden_agent(
+        user: KhojUser,
+        slug: Optional[str] = None,
+        persona: Optional[str] = None,
+        chat_model: Optional[str] = None,
+        input_tools: Optional[List[str]] = None,
+        output_modes: Optional[List[str]] = None,
+    ):
+        random_name = generate_random_internal_agent_name()
+
+        agent = await AgentAdapters.aupdate_agent(
+            user=user,
+            name=random_name,
+            personality=persona,
+            privacy_level=Agent.PrivacyLevel.PRIVATE,
+            icon=Agent.StyleIconTypes.LIGHTBULB,
+            color=Agent.StyleColorTypes.BLUE,
+            chat_model=chat_model,
+            files=[],
+            input_tools=input_tools,
+            output_modes=output_modes,
+            slug=slug,
+            is_hidden=True,
+        )
 
         return agent
 

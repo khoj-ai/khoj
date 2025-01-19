@@ -285,7 +285,6 @@ class Agent(DbBaseModel):
 
     class OutputModeOptions(models.TextChoices):
         # These map to various ConversationCommand types
-        TEXT = "text"
         IMAGE = "image"
         AUTOMATION = "automation"
         DIAGRAM = "diagram"

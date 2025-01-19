@@ -223,13 +223,17 @@ def chat_history(
         if conversation.agent.privacy_level == Agent.PrivacyLevel.PRIVATE and conversation.agent.creator != user:
             conversation.agent = None
         else:
+            agent_has_files = EntryAdapters.agent_has_entries(conversation.agent)
             agent_metadata = {
                 "slug": conversation.agent.slug,
                 "name": conversation.agent.name,
-                "isCreator": conversation.agent.creator == user,
+                "is_creator": conversation.agent.creator == user,
                 "color": conversation.agent.style_color,
                 "icon": conversation.agent.style_icon,
                 "persona": conversation.agent.personality,
+                "is_hidden": conversation.agent.is_hidden,
+                "chat_model": conversation.agent.chat_model.name,
+                "has_files": agent_has_files,
             }
 
     meta_log = conversation.conversation_log
@@ -282,13 +286,17 @@ def get_shared_chat(
         if conversation.agent.privacy_level == Agent.PrivacyLevel.PRIVATE:
             conversation.agent = None
         else:
+            agent_has_files = EntryAdapters.agent_has_entries(conversation.agent)
             agent_metadata = {
                 "slug": conversation.agent.slug,
                 "name": conversation.agent.name,
-                "isCreator": conversation.agent.creator == user,
+                "is_creator": conversation.agent.creator == user,
                 "color": conversation.agent.style_color,
                 "icon": conversation.agent.style_icon,
                 "persona": conversation.agent.personality,
+                "is_hidden": conversation.agent.is_hidden,
+                "chat_model": conversation.agent.chat_model.name,
+                "has_files": agent_has_files,
             }
 
     meta_log = conversation.conversation_log

@@ -9,7 +9,7 @@ from fastapi import APIRouter, Request
 from fastapi.requests import Request
 from fastapi.responses import Response
 from pydantic import BaseModel
-from starlette.authentication import requires
+from starlette.authentication import has_required_scope, requires
 
 from khoj.database.adapters import AgentAdapters, ConversationAdapters
 from khoj.database.models import Agent, Conversation, KhojUser
@@ -39,6 +39,14 @@ class ModifyAgentBody(BaseModel):
     output_modes: Optional[List[str]] = []
     slug: Optional[str] = None
     is_hidden: Optional[bool] = False
+
+
+class ModifyHiddenAgentBody(BaseModel):
+    slug: str
+    persona: Optional[str] = None
+    chat_model: Optional[str] = None
+    input_tools: Optional[List[str]] = []
+    output_modes: Optional[List[str]] = []
 
 
 @api_agents.get("", response_class=Response)
@@ -183,6 +191,93 @@ async def delete_agent(
     return Response(content=json.dumps({"message": "Agent deleted."}), media_type="application/json", status_code=200)
 
 
+@api_agents.patch("/hidden", response_class=Response)
+@requires(["authenticated"])
+async def update_hidden_agent(
+    request: Request,
+    common: CommonQueryParams,
+    body: ModifyHiddenAgentBody,
+) -> Response:
+    user: KhojUser = request.user.object
+
+    subscribed = has_required_scope(request, ["premium"])
+    chat_model = body.chat_model if subscribed else None
+
+    selected_agent = await AgentAdapters.aget_agent_by_slug(body.slug, user)
+
+    if not selected_agent:
+        return Response(
+            content=json.dumps({"error": f"Agent with name {body.slug} not found."}),
+            media_type="application/json",
+            status_code=404,
+        )
+
+    agent = await AgentAdapters.aupdate_hidden_agent(
+        user,
+        body.slug,
+        body.persona,
+        chat_model,
+        body.input_tools,
+        body.output_modes,
+    )
+
+    agents_packet = {
+        "slug": agent.slug,
+        "name": agent.name,
+        "persona": agent.personality,
+        "creator": agent.creator.username if agent.creator else None,
+        "managed_by_admin": agent.managed_by_admin,
+        "color": agent.style_color,
+        "icon": agent.style_icon,
+        "privacy_level": agent.privacy_level,
+        "chat_model": agent.chat_model.name,
+        "files": body.files,
+        "input_tools": agent.input_tools,
+        "output_modes": agent.output_modes,
+    }
+
+    return Response(content=json.dumps(agents_packet), media_type="application/json", status_code=200)
+
+
+@api_agents.post("/hidden", response_class=Response)
+@requires(["authenticated"])
+async def create_hidden_agent(
+    request: Request,
+    common: CommonQueryParams,
+    body: ModifyHiddenAgentBody,
+) -> Response:
+    user: KhojUser = request.user.object
+
+    subscribed = has_required_scope(request, ["premium"])
+    chat_model = body.chat_model if subscribed else None
+
+    agent = await AgentAdapters.aupdate_hidden_agent(
+        user,
+        body.slug,
+        body.persona,
+        chat_model,
+        body.input_tools,
+        body.output_modes,
+    )
+
+    agents_packet = {
+        "slug": agent.slug,
+        "name": agent.name,
+        "persona": agent.personality,
+        "creator": agent.creator.username if agent.creator else None,
+        "managed_by_admin": agent.managed_by_admin,
+        "color": agent.style_color,
+        "icon": agent.style_icon,
+        "privacy_level": agent.privacy_level,
+        "chat_model": agent.chat_model.name,
+        "files": body.files,
+        "input_tools": agent.input_tools,
+        "output_modes": agent.output_modes,
+    }
+
+    return Response(content=json.dumps(agents_packet), media_type="application/json", status_code=200)
+
+
 @api_agents.post("", response_class=Response)
 @requires(["authenticated"])
 async def create_agent(
@@ -203,6 +298,9 @@ async def create_agent(
             status_code=400,
         )
 
+    subscribed = has_required_scope(request, ["premium"])
+    chat_model = body.chat_model if subscribed else None
+
     agent = await AgentAdapters.aupdate_agent(
         user,
         body.name,
@@ -210,7 +308,7 @@ async def create_agent(
         body.privacy_level,
         body.icon,
         body.color,
-        body.chat_model,
+        chat_model,
         body.files,
         body.input_tools,
         body.output_modes,
@@ -266,6 +364,9 @@ async def update_agent(
             status_code=404,
         )
 
+    subscribed = has_required_scope(request, ["premium"])
+    chat_model = body.chat_model if subscribed else None
+
     agent = await AgentAdapters.aupdate_agent(
         user,
         body.name,
@@ -273,7 +374,7 @@ async def update_agent(
         body.privacy_level,
         body.icon,
         body.color,
-        body.chat_model,
+        chat_model,
         body.files,
         body.input_tools,
         body.output_modes,
