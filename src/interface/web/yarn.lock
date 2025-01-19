@@ -593,7 +593,7 @@
     "@radix-ui/react-use-callback-ref" "1.1.0"
     "@radix-ui/react-use-layout-effect" "1.1.0"
 
-"@radix-ui/react-checkbox@^1.1.2":
+"@radix-ui/react-checkbox@^1.1.2", "@radix-ui/react-checkbox@^1.1.3":
   version "1.1.3"
   resolved "https://registry.yarnpkg.com/@radix-ui/react-checkbox/-/react-checkbox-1.1.3.tgz#0e2ab913fddf3c88603625f7a9457d73882c8a32"
   integrity sha512-HD7/ocp8f1B3e6OHygH0n7ZKjONkhciy1Nh0yuBgObqThc3oyx+vuMfFHKAknXRHHWVE9XvXStxJFyjUmB8PIw==
@@ -977,7 +977,7 @@
   dependencies:
     "@radix-ui/react-compose-refs" "1.1.1"
 
-"@radix-ui/react-switch@^1.1.1":
+"@radix-ui/react-switch@^1.1.1", "@radix-ui/react-switch@^1.1.2":
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@radix-ui/react-switch/-/react-switch-1.1.2.tgz#61323f4cccf25bf56c95fceb3b56ce1407bc9aec"
   integrity sha512-zGukiWHjEdBCRyXvKR6iXAQG6qXm2esuAD6kDOi9Cn+1X6ev3ASo4+CsYaD6Fov9r/AQFekqnD/7+V0Cs6/98g==
