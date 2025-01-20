@@ -109,6 +109,7 @@ class ChatMessage(PydanticBaseModel):
     images: Optional[List[str]] = None
     queryFiles: Optional[List[Dict]] = None
     excalidrawDiagram: Optional[List[Dict]] = None
+    mermaidjsDiagram: str = None
     by: str
     turnId: Optional[str] = None
     intent: Optional[Intent] = None
@@ -481,6 +482,11 @@ class SearchModelConfig(DbBaseModel):
     class ModelType(models.TextChoices):
         TEXT = "text"
 
+    class ApiType(models.TextChoices):
+        HUGGINGFACE = "huggingface"
+        OPENAI = "openai"
+        LOCAL = "local"
+
     # This is the model name exposed to users on their settings page
     name = models.CharField(max_length=200, default="default")
     # Type of content the model can generate embeddings for
@@ -501,6 +507,10 @@ class SearchModelConfig(DbBaseModel):
     embeddings_inference_endpoint = models.CharField(max_length=200, default=None, null=True, blank=True)
     # Inference server API Key to use for embeddings inference. Bi-encoder model should be hosted on this server
     embeddings_inference_endpoint_api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
+    # Inference server API type to use for embeddings inference.
+    embeddings_inference_endpoint_type = models.CharField(
+        max_length=200, choices=ApiType.choices, default=ApiType.LOCAL
+    )
     # Inference server API endpoint to use for embeddings inference. Cross-encoder model should be hosted on this server
     cross_encoder_inference_endpoint = models.CharField(max_length=200, default=None, null=True, blank=True)
     # Inference server API Key to use for embeddings inference. Cross-encoder model should be hosted on this server
@@ -557,6 +567,7 @@ class SpeechToTextModelOptions(DbBaseModel):
 
     model_name = models.CharField(max_length=200, default="base")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
+    ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
     def __str__(self):
         return f"{self.model_name} - {self.model_type}"

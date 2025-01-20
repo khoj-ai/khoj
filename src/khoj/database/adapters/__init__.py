@@ -1288,7 +1288,7 @@ class ConversationAdapters:
 
     @staticmethod
     async def get_speech_to_text_config():
-        return await SpeechToTextModelOptions.objects.filter().afirst()
+        return await SpeechToTextModelOptions.objects.filter().prefetch_related("ai_model_api").afirst()
 
     @staticmethod
     @arequire_valid_user

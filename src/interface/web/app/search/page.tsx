@@ -173,8 +173,10 @@ export default function Search() {
     const [searchResultsLoading, setSearchResultsLoading] = useState(false);
     const [focusSearchResult, setFocusSearchResult] = useState<SearchResult | null>(null);
     const [exampleQuery, setExampleQuery] = useState("");
+    const [fileSuggestions, setFileSuggestions] = useState<string[]>([]);
+    const [allFiles, setAllFiles] = useState<string[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
     const isMobileWidth = useIsMobileWidth();
 
     useEffect(() => {
@@ -183,7 +185,67 @@ export default function Search() {
                 Math.floor(Math.random() * naturalLanguageSearchQueryExamples.length)
             ],
         );
+
+        // Load all files once on page load
+        fetch('/api/content/computer', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            setAllFiles(data);
+        })
+        .catch(error => {
+            console.error('Error loading files:', error);
+        });
     }, []);
+
+    function getFileSuggestions(query: string) {
+        const fileFilterMatch = query.match(/file:([^"\s]*|"[^"]*")?/);
+        if (!fileFilterMatch) {
+            setFileSuggestions([]);
+            setShowSuggestions(false);
+            return;
+        }
+
+        const filePrefix = fileFilterMatch[1]?.replace(/^"|"$/g, '').trim() || '';
+        const filteredSuggestions = allFiles
+            .filter(file => file.toLowerCase().includes(filePrefix.toLowerCase()))
+            .sort()
+            .slice(0, 10);
+
+        setFileSuggestions(filteredSuggestions);
+        setShowSuggestions(true);
+    }
+
+    function handleSearchInputChange(value: string) {
+        setSearchQuery(value);
+
+        // Clear previous search timeout
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
+        }
+
+        // Get file suggestions immediately
+        getFileSuggestions(value);
+
+        // Debounce search
+        if (value.trim()) {
+            searchTimeoutRef.current = setTimeout(() => {
+                search();
+            }, 750);
+        }
+    }
+
+    function applySuggestion(suggestion: string) {
+        // Replace the file: filter with the selected suggestion
+        const newQuery = searchQuery.replace(/file:([^"\s]*|"[^"]*")?/, `file:"${suggestion}"`);
+        setSearchQuery(newQuery);
+        setShowSuggestions(false);
+        search();
+    }
 
     function search() {
         if (searchResultsLoading || !searchQuery.trim()) return;
@@ -205,30 +267,6 @@ export default function Search() {
             });
     }
 
-    useEffect(() => {
-        if (!searchQuery.trim()) {
-            return;
-        }
-
-        setFocusSearchResult(null);
-
-        if (searchTimeoutRef.current) {
-            clearTimeout(searchTimeoutRef.current);
-        }
-
-        if (searchQuery.trim()) {
-            searchTimeoutRef.current = setTimeout(() => {
-                search();
-            }, 750); // 1000 milliseconds = 1 second
-        }
-
-        return () => {
-            if (searchTimeoutRef.current) {
-                clearTimeout(searchTimeoutRef.current);
-            }
-        };
-    }, [searchQuery]);
-
     return (
         <SidebarProvider>
             <AppSidebar conversationId={""} />
@@ -249,14 +287,38 @@ export default function Search() {
                         <div className="md:w-3/4 sm:w-full mx-auto pt-6 md:pt-8">
                             <div className="p-4 md:w-3/4 sm:w-full mx-auto">
                                 <div className="flex justify-between items-center border-2 border-muted p-1 gap-1 rounded-lg">
-                                    <Input
-                                        autoFocus={true}
-                                        className="border-none pl-4"
-                                        onChange={(e) => setSearchQuery(e.currentTarget.value)}
-                                        onKeyDown={(e) => e.key === "Enter" && search()}
-                                        type="search"
-                                        placeholder="Search Documents"
-                                    />
+                                    <div className="relative flex-1">
+                                        <Input
+                                            autoFocus={true}
+                                            className="border-none pl-4"
+                                            onChange={(e) => handleSearchInputChange(e.currentTarget.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter") {
+                                                    if (showSuggestions && fileSuggestions.length > 0) {
+                                                        applySuggestion(fileSuggestions[0]);
+                                                    } else {
+                                                        search();
+                                                    }
+                                                }
+                                            }}
+                                            type="search"
+                                            placeholder="Search Documents (type 'file:' for file suggestions)"
+                                            value={searchQuery}
+                                        />
+                                        {showSuggestions && fileSuggestions.length > 0 && (
+                                            <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg">
+                                                {fileSuggestions.map((suggestion, index) => (
+                                                    <div
+                                                        key={index}
+                                                        className="px-4 py-2 hover:bg-muted cursor-pointer"
+                                                        onClick={() => applySuggestion(suggestion)}
+                                                    >
+                                                        {suggestion}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                     <button
                                         className="px-2 gap-2 inline-flex items-center rounded border-l border-gray-300 hover:text-gray-500"
                                         onClick={() => search()}
