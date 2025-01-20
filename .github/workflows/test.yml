@@ -67,7 +67,7 @@ jobs:
         env:
           DEBIAN_FRONTEND: noninteractive
         run : |
-          apt install -y postgresql postgresql-client && apt install -y postgresql-server-dev-14
+          apt install -y postgresql postgresql-client && apt install -y postgresql-server-dev-15
 
       - name: ⬇️ Install pip
         run: |
