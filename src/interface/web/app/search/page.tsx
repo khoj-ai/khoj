@@ -658,8 +658,7 @@ export default function Search() {
             });
 
             // Refresh files list
-            setPageNumber(0);
-            fetchFiles(0);
+            fetchFiles(pageNumber);
         } catch (error) {
             toast({
                 title: "Error deleting file",
