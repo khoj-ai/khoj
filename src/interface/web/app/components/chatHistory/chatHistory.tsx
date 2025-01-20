@@ -282,7 +282,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
     function constructAgentName() {
         if (!data || !data.agent || !data.agent?.name) return `Agent`;
         if (data.agent.is_hidden) return 'Khoj';
-        console.log(data.agent);
         return data.agent?.name;
     }
 

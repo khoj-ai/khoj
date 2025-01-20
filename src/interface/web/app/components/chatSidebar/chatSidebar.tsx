@@ -78,7 +78,6 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
 
     function setupAgentData() {
         if (agentData) {
-            setSelectedModel(agentData.chat_model);
             setInputTools(agentData.input_tools);
             if (agentData.input_tools === undefined || agentData.input_tools.length === 0) {
                 setInputTools(agentConfigurationOptions?.input_tools ? Object.keys(agentConfigurationOptions.input_tools) : []);
@@ -94,8 +93,11 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
 
             if (agentData.slug.toLowerCase() === "khoj") {
                 setIsDefaultAgent(true);
+                setSelectedModel(undefined);
+                setCustomPrompt(undefined);
             } else {
                 setCustomPrompt(agentData.persona);
+                setSelectedModel(agentData.chat_model);
             }
         }
     }

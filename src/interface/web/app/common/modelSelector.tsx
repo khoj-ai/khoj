@@ -24,7 +24,7 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 
-import { ModelOptions, useChatModelOptions } from "./auth";
+import { ModelOptions, useChatModelOptions, useUserConfig } from "./auth";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -39,6 +39,7 @@ export function ModelSelector({ ...props }: ModelSelectorProps) {
     const { models, isLoading, error } = useChatModelOptions();
     const [peekedModel, setPeekedModel] = useState<ModelOptions | undefined>(undefined);
     const [selectedModel, setSelectedModel] = useState<ModelOptions | undefined>(undefined);
+    const { userConfig } = useUserConfig();
 
     useEffect(() => {
         if (!models?.length) return;
@@ -47,10 +48,14 @@ export function ModelSelector({ ...props }: ModelSelectorProps) {
             const model = models.find(model => model.name === props.selectedModel);
             setSelectedModel(model || models[0]);
             return;
+        } else if (userConfig) {
+            const model = models.find(model => model.id === userConfig.selected_chat_model_config);
+            setSelectedModel(model || models[0]);
+            return;
         }
 
         setSelectedModel(models[0]);
-    }, [models, props.selectedModel]);
+    }, [models, props.selectedModel, userConfig]);
 
     useEffect(() => {
         if (selectedModel) {
