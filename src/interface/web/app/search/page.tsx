@@ -23,7 +23,6 @@ import {
     MagnifyingGlass,
     NoteBlank,
     NotionLogo,
-    Eye,
     Trash,
     DotsThreeVertical,
     Waveform,
@@ -31,6 +30,8 @@ import {
     Download,
     Brain,
     Check,
+    BoxArrowDown,
+    Funnel,
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -65,8 +66,23 @@ import {
     PaginationPrevious,
 } from "@/components/ui/pagination";
 
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command"
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"
+
 import { uploadDataForIndexing } from "../common/chatFunctions";
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 interface AdditionalData {
     file: string;
     source: string;
@@ -461,19 +477,93 @@ const UploadFiles: React.FC<{
     );
 };
 
+interface FileFilterComboBoxProps {
+    allFiles: string[];
+    onChooseFile: (file: string) => void;
+    isMobileWidth: boolean;
+    explicitFile?: string;
+}
+
+export function FileFilterComboBox(props: FileFilterComboBoxProps) {
+    const [open, setOpen] = useState(false)
+    const [value, setValue] = useState(props.explicitFile || "")
+
+    useEffect(() => {
+        if (props.explicitFile) {
+            setValue(props.explicitFile);
+        }
+    }, [props.explicitFile]);
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    className={`justify-between" ${props.isMobileWidth ? "w-full" : "w-[200px]"}`}
+                >
+                    {value
+                        ? (
+                            props.isMobileWidth ?
+                                "✔️"
+                                : "Selected"
+                        )
+                        : (
+                            props.isMobileWidth ?
+                                " "
+                                : "Select file"
+                        )
+                    }
+                    <Funnel className="opacity-50" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[200px] p-0">
+                <Command>
+                    <CommandInput placeholder="Search framework..." />
+                    <CommandList>
+                        <CommandEmpty>No framework found.</CommandEmpty>
+                        <CommandGroup>
+                            {props.allFiles.map((file) => (
+                                <CommandItem
+                                    key={file}
+                                    value={file}
+                                    onSelect={(currentValue) => {
+                                        setValue(currentValue === value ? "" : currentValue)
+                                        setOpen(false)
+                                        props.onChooseFile(currentValue)
+                                    }}
+                                >
+                                    {file}
+                                    <Check
+                                        className={cn(
+                                            "ml-auto",
+                                            value === file ? "opacity-100" : "opacity-0"
+                                        )}
+                                    />
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
+    )
+}
+
 export default function Search() {
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState<SearchResult[] | null>(null);
     const [searchResultsLoading, setSearchResultsLoading] = useState(false);
+    const searchInputRef = useRef<HTMLInputElement>(null);
     const [focusSearchResult, setFocusSearchResult] = useState<SearchResult | null>(null);
     const [files, setFiles] = useState<FileObject[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [fileObjectsLoading, setFileObjectsLoading] = useState(true);
-    const [fileSuggestions, setFileSuggestions] = useState<string[]>([]);
     const [allFiles, setAllFiles] = useState<string[]>([]);
-    const [showSuggestions, setShowSuggestions] = useState(false);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const [selectedFile, setSelectedFile] = useState<string | null>(null);
+    const [selectedFileFilter, setSelectedFileFilter] = useState<string | undefined>(undefined);
     const [selectedFileFullText, setSelectedFileFullText] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
@@ -501,30 +591,27 @@ export default function Search() {
             });
     }, []);
 
-    function getFileSuggestions(query: string) {
-        const fileFilterMatch = query.match(/file:([^"\s]*|"[^"]*")?/);
-        if (!fileFilterMatch) {
-            setFileSuggestions([]);
-            setShowSuggestions(false);
-            return;
+    useEffect(() => {
+        // Replace the file: filter with the selected suggestion
+        const fileFilterMatch = searchQuery.match(/file:([^"\s]*|"[^"]*")?/);
+
+        if (fileFilterMatch) {
+            const extractedFileFilter = fileFilterMatch[1];
+            // Strip the double quotes
+            const extractedFileFilterValue = extractedFileFilter?.replace(/"/g, "");
+
+            if (extractedFileFilterValue) {
+                setSelectedFileFilter(extractedFileFilterValue);
+            }
         }
+    }, [searchQuery]);
 
-        const filePrefix = fileFilterMatch[1]?.replace(/^"|"$/g, '').trim() || '';
-        const filteredSuggestions = allFiles
-            .filter(file => file.toLowerCase().includes(filePrefix.toLowerCase()))
-            .sort()
-            .slice(0, 10);
-
-        setFileSuggestions(filteredSuggestions);
-        setShowSuggestions(true);
-    }
 
     function handleSearchInputChange(value: string) {
         setSearchQuery(value);
 
         if (!value.trim()) {
             setSearchResults(null);
-            setShowSuggestions(false);
             return;
         }
 
@@ -532,9 +619,6 @@ export default function Search() {
         if (searchTimeoutRef.current) {
             clearTimeout(searchTimeoutRef.current);
         }
-
-        // Get file suggestions immediately
-        getFileSuggestions(value);
 
         // Debounce search
         if (value.trim()) {
@@ -545,10 +629,10 @@ export default function Search() {
     }
 
     function applySuggestion(suggestion: string) {
-        // Replace the file: filter with the selected suggestion
-        const newQuery = searchQuery.replace(/file:([^"\s]*|"[^"]*")?/, `file:"${suggestion}"`);
+        // Append the file: filter with the selected suggestion
+        const newQuery = `file:"${suggestion}" ${searchQuery}`;
         setSearchQuery(newQuery);
-        setShowSuggestions(false);
+        searchInputRef.current?.focus();
         search();
     }
 
@@ -687,49 +771,36 @@ export default function Search() {
                 </header>
                 <div>
                     <div className={`${styles.searchLayout}`}>
-                        <div className="md:w-5/6 sm:w-full mx-auto pt-6 md:pt-8">
+                        <div className="w-full md:w-5/6 mx-auto pt-6 md:pt-8">
                             <div className="p-4 w-full mx-auto">
-                                <div className="flex justify-between items-center border-2 border-muted p-1 gap-1 rounded-lg">
-                                    <div className="relative flex-1">
+                                <div className="flex justify-between items-center border-2 border-muted p-1 gap-1 rounded-lg flex-col md:flex-row">
+                                    <div className="relative flex-1 w-full">
                                         <Input
                                             autoFocus={true}
                                             className="border-none pl-4 focus-visible:ring-transparent focus-visible:ring-offset-transparent"
                                             onChange={(e) => handleSearchInputChange(e.currentTarget.value)}
                                             onKeyDown={(e) => {
                                                 if (e.key === "Enter") {
-                                                    if (showSuggestions && fileSuggestions.length > 0) {
-                                                        applySuggestion(fileSuggestions[0]);
-                                                    } else {
-                                                        search();
-                                                    }
+                                                    search();
                                                 }
                                             }}
+                                            ref={searchInputRef}
                                             type="search"
-                                            placeholder="Search Documents (type 'file:' for file suggestions)"
+                                            placeholder="Search Documents"
                                             value={searchQuery}
                                         />
-                                        {showSuggestions && fileSuggestions.length > 0 && (
-                                            <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg">
-                                                {fileSuggestions.map((suggestion, index) => (
-                                                    <div
-                                                        key={index}
-                                                        className="px-4 py-2 hover:bg-muted cursor-pointer"
-                                                        onClick={() => applySuggestion(suggestion)}
-                                                    >
-                                                        {suggestion}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
                                     </div>
-                                    <Button
-                                        className="px-2 gap-2 inline-flex rounded-none items-center border-l border-gray-300 hover:text-gray-500"
-                                        variant={"ghost"}
-                                        onClick={() => search()}
-                                    >
-                                        <MagnifyingGlass className="h-4 w-4" />
-                                        <span>Find</span>
-                                    </Button>
+                                    <div id="actions" className="flex gap-2">
+                                        <FileFilterComboBox allFiles={allFiles} onChooseFile={(file) => applySuggestion(file)} isMobileWidth={isMobileWidth} explicitFile={selectedFileFilter} />
+                                        <Button
+                                            className="px-2 gap-2 inline-flex rounded-none items-center border-l border-gray-300 hover:text-gray-500"
+                                            variant={"ghost"}
+                                            onClick={() => search()}
+                                        >
+                                            <MagnifyingGlass className="h-4 w-4" />
+                                            <span>Find</span>
+                                        </Button>
+                                    </div>
                                 </div>
                                 {searchResults === null && (
                                     <UploadFiles setUploadedFiles={setUploadedFiles} />
