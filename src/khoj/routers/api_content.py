@@ -332,7 +332,9 @@ def get_content_types(request: Request, client: Optional[str] = None):
 
 @api_content.get("/all", response_model=Dict[str, str])
 @requires(["authenticated"])
-async def get_all_content(request: Request, client: Optional[str] = None, truncated: Optional[bool] = True):
+async def get_all_content(
+    request: Request, client: Optional[str] = None, truncated: Optional[bool] = True, page: int = 0
+):
     user = request.user.object
 
     update_telemetry_state(
@@ -343,7 +345,12 @@ async def get_all_content(request: Request, client: Optional[str] = None, trunca
     )
 
     files_data = []
-    file_objects = await FileObjectAdapters.aget_all_file_objects(user)
+    page_size = 1
+
+    file_objects = await FileObjectAdapters.aget_all_file_objects(user, start=page * page_size, limit=page_size)
+
+    num_pages = await FileObjectAdapters.aget_number_of_pages(user, page_size)
+
     for file_object in file_objects:
         files_data.append(
             {
@@ -353,7 +360,12 @@ async def get_all_content(request: Request, client: Optional[str] = None, trunca
             }
         )
 
-    return Response(content=json.dumps(files_data), media_type="application/json", status_code=200)
+    data_packet = {
+        "files": files_data,
+        "num_pages": num_pages,
+    }
+
+    return Response(content=json.dumps(data_packet), media_type="application/json", status_code=200)
 
 
 @api_content.get("/file", response_model=Dict[str, str])

@@ -55,6 +55,16 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "@/components/ui/pagination";
+
 import { uploadDataForIndexing } from "../common/chatFunctions";
 import { Progress } from "@/components/ui/progress";
 interface AdditionalData {
@@ -86,6 +96,132 @@ function getNoteTypeIcon(source: string) {
         return <GithubLogo className="text-muted-foreground" />;
     }
     return <NoteBlank className="text-muted-foreground" />;
+}
+
+interface FileCardProps {
+    file: FileObject;
+    index: number;
+    setSelectedFile: (file: string) => void;
+    setSelectedFileFullText: (file: string) => void;
+    handleDownload: (fileName: string, content: string) => void;
+    handleDelete: (fileName: string) => void;
+    isDeleting: boolean;
+    selectedFileFullText: string | null;
+}
+
+function FileCard({ file, setSelectedFile, setSelectedFileFullText, handleDownload, handleDelete, isDeleting, selectedFileFullText }: FileCardProps) {
+    return (
+        <Card
+            className="animate-fade-in-up bg-secondary h-52"
+        >
+            <CardHeader className="p-2">
+                <CardTitle
+                    className="flex items-center gap-2 justify-between"
+                    title={file.file_name}
+                >
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <div
+                                className="text-sm font-medium truncate hover:text-clip hover:whitespace-normal cursor-pointer"
+                                onClick={() => {
+                                    setSelectedFileFullText(
+                                        '',
+                                    );
+                                    setSelectedFile(
+                                        file.file_name,
+                                    );
+                                }}
+                            >
+                                {file.file_name
+                                    .split("/")
+                                    .pop()}
+                            </div>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>
+                                    <div className="flex items-center gap-2">
+                                        {file.file_name
+                                            .split("/")
+                                            .pop()}
+                                        <Button
+                                            variant={
+                                                "ghost"
+                                            }
+                                            title="Download as plaintext"
+                                            onClick={() =>
+                                                handleDownload(
+                                                    file.file_name,
+                                                    file.raw_text,
+                                                )
+                                            }
+                                        >
+                                            <Download className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </DialogTitle>
+                            </DialogHeader>
+                            <ScrollArea className="h-[50vh]">
+                                <p className="whitespace-pre-wrap break-words text-sm font-normal">
+                                    {!selectedFileFullText && (
+                                        <InlineLoading
+                                            className="mt-4"
+                                            message={
+                                                "Loading"
+                                            }
+                                            iconClassName="h-5 w-5"
+                                        />
+                                    )}
+                                    {
+                                        selectedFileFullText
+                                    }
+                                </p>
+                            </ScrollArea>
+                        </DialogContent>
+                    </Dialog>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger>
+                            <Button variant={"ghost"}>
+                                <DotsThreeVertical className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="flex flex-col gap-0 w-fit">
+                            <DropdownMenuItem className="p-0">
+                                <Button
+                                    variant={"ghost"}
+                                    className="flex items-center gap-2 p-1 text-sm"
+                                    onClick={() => {
+                                        handleDelete(
+                                            file.file_name,
+                                        );
+                                    }}
+                                >
+                                    <Trash className="h-4 w-4" />
+                                    <span className="text-xs">
+                                        {isDeleting
+                                            ? "Deleting..."
+                                            : "Delete"}
+                                    </span>
+                                </Button>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="p-2">
+                <ScrollArea className="h-24 bg-background rounded-lg">
+                    <p className="whitespace-pre-wrap break-words text-sm font-normal text-muted-foreground p-2 h-full">
+                        {file.raw_text.slice(0, 100)}...
+                    </p>
+                </ScrollArea>
+            </CardContent>
+            <CardFooter className="flex justify-end gap-2 p-2">
+                <div className="text-muted-foreground text-xs">
+                    {formatDateTime(file.updated_at)}
+                </div>
+            </CardFooter>
+        </Card>
+    )
 }
 
 interface NoteResultProps {
@@ -338,6 +474,8 @@ export default function Search() {
     const [selectedFileFullText, setSelectedFileFullText] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+    const [pageNumber, setPageNumber] = useState(0);
+    const [numPages, setNumPages] = useState(1);
 
     const { toast } = useToast();
 
@@ -365,15 +503,22 @@ export default function Search() {
             });
     }
 
-    const fetchFiles = async () => {
+    const fetchFiles = async (currentPageNumber: number) => {
         try {
-            const response = await fetch("/api/content/all");
+            const url = `api/content/all?page=${currentPageNumber}`;
+            const response = await fetch(url);
             if (!response.ok) throw new Error("Failed to fetch files");
 
-            const filesList = await response.json();
+            const filesData = await response.json();
+            const filesList = filesData.files;
+            const totalPages = filesData.num_pages;
+
+            setNumPages(totalPages);
+
             if (Array.isArray(filesList)) {
                 setFiles(filesList.toSorted());
             }
+
         } catch (error) {
             setError("Failed to load files");
             console.error("Error fetching files:", error);
@@ -381,6 +526,10 @@ export default function Search() {
             setFileObjectsLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchFiles(pageNumber);
+    }, [pageNumber]);
 
     const fetchSpecificFile = async (fileName: string) => {
         try {
@@ -439,12 +588,13 @@ export default function Search() {
     }, [selectedFile]);
 
     useEffect(() => {
-        fetchFiles();
+        fetchFiles(pageNumber);
     }, []);
 
     useEffect(() => {
         if (uploadedFiles.length > 0) {
-            fetchFiles();
+            setPageNumber(0);
+            fetchFiles(0);
         }
     }, [uploadedFiles]);
 
@@ -462,7 +612,8 @@ export default function Search() {
             });
 
             // Refresh files list
-            fetchFiles();
+            setPageNumber(0);
+            fetchFiles(0);
         } catch (error) {
             toast({
                 title: "Error deleting file",
@@ -582,119 +733,85 @@ export default function Search() {
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                                 {files.map((file, index) => (
-                                                    <Card
+                                                    <FileCard
                                                         key={index}
-                                                        className="animate-fade-in-up bg-secondary h-52"
-                                                    >
-                                                        <CardHeader className="p-2">
-                                                            <CardTitle
-                                                                className="flex items-center gap-2 justify-between"
-                                                                title={file.file_name}
-                                                            >
-                                                                <Dialog>
-                                                                    <DialogTrigger asChild>
-                                                                        <div
-                                                                            className="text-sm font-medium truncate hover:text-clip hover:whitespace-normal cursor-pointer"
-                                                                            onClick={() => {
-                                                                                setSelectedFileFullText(
-                                                                                    null,
-                                                                                );
-                                                                                setSelectedFile(
-                                                                                    file.file_name,
-                                                                                );
-                                                                            }}
-                                                                        >
-                                                                            {file.file_name
-                                                                                .split("/")
-                                                                                .pop()}
-                                                                        </div>
-                                                                    </DialogTrigger>
-                                                                    <DialogContent>
-                                                                        <DialogHeader>
-                                                                            <DialogTitle>
-                                                                                <div className="flex items-center gap-2">
-                                                                                    {file.file_name
-                                                                                        .split("/")
-                                                                                        .pop()}
-                                                                                    <Button
-                                                                                        variant={
-                                                                                            "ghost"
-                                                                                        }
-                                                                                        title="Download as plaintext"
-                                                                                        onClick={() =>
-                                                                                            handleDownload(
-                                                                                                file.file_name,
-                                                                                                file.raw_text,
-                                                                                            )
-                                                                                        }
-                                                                                    >
-                                                                                        <Download className="h-4 w-4" />
-                                                                                    </Button>
-                                                                                </div>
-                                                                            </DialogTitle>
-                                                                        </DialogHeader>
-                                                                        <ScrollArea className="h-[50vh]">
-                                                                            <p className="whitespace-pre-wrap break-words text-sm font-normal">
-                                                                                {!selectedFileFullText && (
-                                                                                    <InlineLoading
-                                                                                        className="mt-4"
-                                                                                        message={
-                                                                                            "Loading"
-                                                                                        }
-                                                                                        iconClassName="h-5 w-5"
-                                                                                    />
-                                                                                )}
-                                                                                {
-                                                                                    selectedFileFullText
-                                                                                }
-                                                                            </p>
-                                                                        </ScrollArea>
-                                                                    </DialogContent>
-                                                                </Dialog>
-                                                                <DropdownMenu>
-                                                                    <DropdownMenuTrigger>
-                                                                        <Button variant={"ghost"}>
-                                                                            <DotsThreeVertical className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </DropdownMenuTrigger>
-                                                                    <DropdownMenuContent className="flex flex-col gap-0 w-fit">
-                                                                        <DropdownMenuItem className="p-0">
-                                                                            <Button
-                                                                                variant={"ghost"}
-                                                                                className="flex items-center gap-2 p-1 text-sm"
-                                                                                onClick={() => {
-                                                                                    handleDelete(
-                                                                                        file.file_name,
-                                                                                    );
-                                                                                }}
-                                                                            >
-                                                                                <Trash className="h-4 w-4" />
-                                                                                <span className="text-xs">
-                                                                                    {isDeleting
-                                                                                        ? "Deleting..."
-                                                                                        : "Delete"}
-                                                                                </span>
-                                                                            </Button>
-                                                                        </DropdownMenuItem>
-                                                                    </DropdownMenuContent>
-                                                                </DropdownMenu>
-                                                            </CardTitle>
-                                                        </CardHeader>
-                                                        <CardContent className="p-2">
-                                                            <ScrollArea className="h-24 bg-background rounded-lg">
-                                                                <p className="whitespace-pre-wrap break-words text-sm font-normal text-muted-foreground p-2 h-full">
-                                                                    {file.raw_text.slice(0, 100)}...
-                                                                </p>
-                                                            </ScrollArea>
-                                                        </CardContent>
-                                                        <CardFooter className="flex justify-end gap-2 p-2">
-                                                            <div className="text-muted-foreground text-xs">
-                                                                {formatDateTime(file.updated_at)}
-                                                            </div>
-                                                        </CardFooter>
-                                                    </Card>
+                                                        file={file}
+                                                        index={index}
+                                                        setSelectedFile={setSelectedFile}
+                                                        setSelectedFileFullText={setSelectedFileFullText}
+                                                        handleDownload={handleDownload}
+                                                        handleDelete={handleDelete}
+                                                        isDeleting={isDeleting}
+                                                        selectedFileFullText={selectedFileFullText}
+                                                    />
                                                 ))}
                                             </div>
+
+                                            <Pagination>
+                                                <PaginationContent>
+                                                    {/* Show prev button if not on first page */}
+                                                    {pageNumber > 0 && (
+                                                        <PaginationItem className="list-none">
+                                                            <PaginationPrevious onClick={() => setPageNumber(pageNumber - 1)} />
+                                                        </PaginationItem>
+                                                    )}
+
+                                                    {/* Show first page if not on first two pages */}
+                                                    {pageNumber > 1 && (
+                                                        <PaginationItem className="list-none">
+                                                            <PaginationLink onClick={() => setPageNumber(0)}>1</PaginationLink>
+                                                        </PaginationItem>
+                                                    )}
+
+                                                    {/* Show ellipsis if there's a gap */}
+                                                    {pageNumber > 2 && (
+                                                        <PaginationItem className="list-none">
+                                                            <PaginationEllipsis />
+                                                        </PaginationItem>
+                                                    )}
+
+                                                    {/* Show previous page if not on first page */}
+                                                    {pageNumber > 0 && (
+                                                        <PaginationItem className="list-none">
+                                                            <PaginationLink onClick={() => setPageNumber(pageNumber - 1)}>{pageNumber}</PaginationLink>
+                                                        </PaginationItem>
+                                                    )}
+
+                                                    {/* Current page */}
+                                                    <PaginationItem className="list-none">
+                                                        <PaginationLink isActive>{pageNumber + 1}</PaginationLink>
+                                                    </PaginationItem>
+
+                                                    {/* Show next page if not on last page */}
+                                                    {pageNumber < numPages - 1 && (
+                                                        <PaginationItem className="list-none">
+                                                            <PaginationLink onClick={() => setPageNumber(pageNumber + 1)}>{pageNumber + 2}</PaginationLink>
+                                                        </PaginationItem>
+                                                    )}
+
+                                                    {/* Show ellipsis if there's a gap before last page */}
+                                                    {pageNumber < numPages - 3 && (
+                                                        <PaginationItem className="list-none">
+                                                            <PaginationEllipsis />
+                                                        </PaginationItem>
+                                                    )}
+
+                                                    {/* Show last page if not on last two pages */}
+                                                    {pageNumber < numPages - 2 && (
+                                                        <PaginationItem className="list-none">
+                                                            <PaginationLink onClick={() => setPageNumber(numPages - 1)}>{numPages}</PaginationLink>
+                                                        </PaginationItem>
+                                                    )}
+
+                                                    {/* Show next button if not on last page */}
+                                                    {pageNumber < numPages - 1 && (
+                                                        <PaginationItem className="list-none">
+                                                            <PaginationNext onClick={() => setPageNumber(pageNumber + 1)} />
+                                                        </PaginationItem>
+                                                    )}
+                                                </PaginationContent>
+                                            </Pagination>
+
                                         </div>
                                     )}
                                 {searchResults && searchResults.length === 0 && (
