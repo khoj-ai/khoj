@@ -26,7 +26,7 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
-    container: ubuntu:jammy
+    container: ubuntu:latest
     strategy:
       fail-fast: false
       matrix:
