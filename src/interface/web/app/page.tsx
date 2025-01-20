@@ -486,7 +486,7 @@ export default function Home() {
     const [uploadedFiles, setUploadedFiles] = useState<AttachedFileText[] | null>(null);
     const isMobileWidth = useIsMobileWidth();
 
-    const { userConfig: initialUserConfig, isLoadingUserConfig } = useUserConfig(true);
+    const { data: initialUserConfig, isLoading: isLoadingUserConfig } = useUserConfig(true);
     const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
 
     const {

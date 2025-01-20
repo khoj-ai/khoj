@@ -90,15 +90,16 @@ export interface UserConfig {
 export function useUserConfig(detailed: boolean = false) {
     const url = `/api/settings?detailed=${detailed}`;
     const {
-        data: userConfig,
+        data,
         error,
-        isLoading: isLoadingUserConfig,
+        isLoading,
     } = useSWR<UserConfig>(url, fetcher, { revalidateOnFocus: false });
 
-    if (error || !userConfig || userConfig?.detail === "Forbidden")
-        return { userConfig: null, isLoadingUserConfig };
+    if (error || !data || data?.detail === "Forbidden") {
+        return { data: null, error, isLoading };
+    }
 
-    return { userConfig, isLoadingUserConfig };
+    return { data, error, isLoading };
 }
 
 export function useChatModelOptions() {

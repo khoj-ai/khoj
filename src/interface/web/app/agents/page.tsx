@@ -171,7 +171,7 @@ export default function Agents() {
         error: authenticationError,
         isLoading: authenticationLoading,
     } = useAuthenticatedData();
-    const { userConfig } = useUserConfig(true);
+    const { data: userConfig } = useUserConfig(true);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
     const isMobileWidth = useIsMobileWidth();
 

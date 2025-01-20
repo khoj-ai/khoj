@@ -17,14 +17,13 @@ import {
     CommandItem,
     CommandList,
 } from "@/components/ui/command";
-import { Label } from "@/components/ui/label";
 import {
     Popover,
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
 
-import { ModelOptions, useChatModelOptions, useUserConfig } from "./auth";
+import { ModelOptions, useUserConfig } from "./auth";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -36,26 +35,31 @@ interface ModelSelectorProps extends PopoverProps {
 
 export function ModelSelector({ ...props }: ModelSelectorProps) {
     const [open, setOpen] = React.useState(false)
-    const { models, isLoading, error } = useChatModelOptions();
     const [peekedModel, setPeekedModel] = useState<ModelOptions | undefined>(undefined);
     const [selectedModel, setSelectedModel] = useState<ModelOptions | undefined>(undefined);
-    const { userConfig } = useUserConfig();
+    const { data: userConfig, error, isLoading: isLoadingUserConfig } = useUserConfig(true);
+    const [models, setModels] = useState<ModelOptions[]>([]);
 
     useEffect(() => {
-        if (!models?.length) return;
+        if (isLoadingUserConfig) return;
 
-        if (props.selectedModel) {
-            const model = models.find(model => model.name === props.selectedModel);
-            setSelectedModel(model || models[0]);
+        if (userConfig) {
+            setModels(userConfig.chat_model_options);
+            const selectedChatModelOption = userConfig.chat_model_options.find(model => model.id === userConfig.selected_chat_model_config);
+            setSelectedModel(selectedChatModelOption);
             return;
-        } else if (userConfig) {
-            const model = models.find(model => model.id === userConfig.selected_chat_model_config);
-            setSelectedModel(model || models[0]);
-            return;
+        } else {
+            setSelectedModel(models[0]);
         }
 
-        setSelectedModel(models[0]);
     }, [models, props.selectedModel, userConfig]);
+
+    useEffect(() => {
+        if (props.selectedModel) {
+            const model = models.find(model => model.name === props.selectedModel);
+            setSelectedModel(model);
+        }
+    }, [props.selectedModel]);
 
     useEffect(() => {
         if (selectedModel) {
@@ -63,7 +67,7 @@ export function ModelSelector({ ...props }: ModelSelectorProps) {
         }
     }, [selectedModel]);
 
-    if (isLoading) {
+    if (isLoadingUserConfig) {
         return (
             <Skeleton className="w-full h-10" />
         );
