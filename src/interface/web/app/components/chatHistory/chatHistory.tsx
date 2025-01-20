@@ -17,7 +17,7 @@ import { Lightbulb, ArrowDown, XCircle } from "@phosphor-icons/react";
 
 import AgentProfileCard from "../profileCard/profileCard";
 import { getIconFromIconName } from "@/app/common/iconUtils";
-import { AgentData } from "@/app/agents/page";
+import { AgentData } from "../agentCard/agentCard";
 import React from "react";
 import { useIsMobileWidth } from "@/app/common/utils";
 import { Button } from "@/components/ui/button";
@@ -281,12 +281,20 @@ export default function ChatHistory(props: ChatHistoryProps) {
 
     function constructAgentName() {
         if (!data || !data.agent || !data.agent?.name) return `Agent`;
+        if (data.agent.is_hidden) return 'Khoj';
+        console.log(data.agent);
         return data.agent?.name;
     }
 
     function constructAgentPersona() {
-        if (!data || !data.agent || !data.agent?.persona)
+        if (!data || !data.agent) {
             return `Your agent is no longer available. You will be reset to the default agent.`;
+        }
+
+        if (!data.agent?.persona) {
+            return `You can set a persona for your agent in the Chat Options side panel.`;
+        }
+
         return data.agent?.persona;
     }
 

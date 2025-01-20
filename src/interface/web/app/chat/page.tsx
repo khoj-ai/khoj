@@ -181,7 +181,6 @@ function ChatBodyData(props: ChatBodyDataProps) {
                 conversationId={conversationId}
                 isOpen={props.isChatSideBarOpen}
                 onOpenChange={props.onChatSideBarOpenChange}
-                preexistingAgent={agentMetadata}
                 isMobileWidth={props.isMobileWidth} />
         </div>
     );

@@ -876,12 +876,13 @@ class AgentAdapters:
         chat_model: Optional[str] = None,
         input_tools: Optional[List[str]] = None,
         output_modes: Optional[List[str]] = None,
+        existing_agent: Optional[Agent] = None,
     ):
-        random_name = generate_random_internal_agent_name()
+        name = generate_random_internal_agent_name() if not existing_agent else existing_agent.name
 
         agent = await AgentAdapters.aupdate_agent(
             user=user,
-            name=random_name,
+            name=name,
             personality=persona,
             privacy_level=Agent.PrivacyLevel.PRIVATE,
             icon=Agent.StyleIconTypes.LIGHTBULB,

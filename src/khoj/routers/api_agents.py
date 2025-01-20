@@ -11,7 +11,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel
 from starlette.authentication import has_required_scope, requires
 
-from khoj.database.adapters import AgentAdapters, ConversationAdapters
+from khoj.database.adapters import AgentAdapters, ConversationAdapters, EntryAdapters
 from khoj.database.models import Agent, Conversation, KhojUser
 from khoj.routers.helpers import CommonQueryParams, acheck_if_safe_prompt
 from khoj.utils.helpers import (
@@ -42,7 +42,7 @@ class ModifyAgentBody(BaseModel):
 
 
 class ModifyHiddenAgentBody(BaseModel):
-    slug: str
+    slug: Optional[str] = None
     persona: Optional[str] = None
     chat_model: Optional[str] = None
     input_tools: Optional[List[str]] = []
@@ -98,6 +98,47 @@ async def all_agents(
     agents_packet.sort(key=lambda x: conversation_times.get(x["slug"]) or min_date, reverse=True)
     if default_agent_packet:
         agents_packet.insert(0, default_agent_packet)
+
+    return Response(content=json.dumps(agents_packet), media_type="application/json", status_code=200)
+
+
+@api_agents.get("/conversation", response_class=Response)
+@requires(["authenticated"])
+async def get_agent_by_conversation(
+    request: Request,
+    common: CommonQueryParams,
+    conversation_id: str,
+) -> Response:
+    user: KhojUser = request.user.object if request.user.is_authenticated else None
+    conversation = await ConversationAdapters.aget_conversation_by_user(user=user, conversation_id=conversation_id)
+
+    if not conversation:
+        return Response(
+            content=json.dumps({"error": f"Conversation with id {conversation_id} not found for user {user}."}),
+            media_type="application/json",
+            status_code=404,
+        )
+
+    agent = await AgentAdapters.aget_agent_by_slug(conversation.agent.slug, user)
+
+    has_files = agent.fileobject_set.exists()
+
+    agents_packet = {
+        "slug": agent.slug,
+        "name": agent.name,
+        "persona": agent.personality,
+        "creator": agent.creator.username if agent.creator else None,
+        "managed_by_admin": agent.managed_by_admin,
+        "color": agent.style_color,
+        "icon": agent.style_icon,
+        "privacy_level": agent.privacy_level,
+        "chat_model": agent.chat_model.name,
+        "has_files": has_files,
+        "input_tools": agent.input_tools,
+        "output_modes": agent.output_modes,
+        "is_creator": agent.creator == user,
+        "is_hidden": agent.is_hidden,
+    }
 
     return Response(content=json.dumps(agents_packet), media_type="application/json", status_code=200)
 
@@ -213,12 +254,13 @@ async def update_hidden_agent(
         )
 
     agent = await AgentAdapters.aupdate_hidden_agent(
-        user,
-        body.slug,
-        body.persona,
-        chat_model,
-        body.input_tools,
-        body.output_modes,
+        user=user,
+        slug=body.slug,
+        persona=body.persona,
+        chat_model=chat_model,
+        input_tools=body.input_tools,
+        output_modes=body.output_modes,
+        existing_agent=selected_agent,
     )
 
     agents_packet = {
@@ -226,12 +268,7 @@ async def update_hidden_agent(
         "name": agent.name,
         "persona": agent.personality,
         "creator": agent.creator.username if agent.creator else None,
-        "managed_by_admin": agent.managed_by_admin,
-        "color": agent.style_color,
-        "icon": agent.style_icon,
-        "privacy_level": agent.privacy_level,
         "chat_model": agent.chat_model.name,
-        "files": body.files,
         "input_tools": agent.input_tools,
         "output_modes": agent.output_modes,
     }
@@ -244,6 +281,7 @@ async def update_hidden_agent(
 async def create_hidden_agent(
     request: Request,
     common: CommonQueryParams,
+    conversation_id: str,
     body: ModifyHiddenAgentBody,
 ) -> Response:
     user: KhojUser = request.user.object
@@ -251,26 +289,44 @@ async def create_hidden_agent(
     subscribed = has_required_scope(request, ["premium"])
     chat_model = body.chat_model if subscribed else None
 
+    conversation = await ConversationAdapters.aget_conversation_by_user(user=user, conversation_id=conversation_id)
+    if not conversation:
+        return Response(
+            content=json.dumps({"error": f"Conversation with id {conversation_id} not found for user {user}."}),
+            media_type="application/json",
+            status_code=404,
+        )
+
+    if conversation.agent:
+        # If the conversation is not already associated with an agent (i.e., it's using the default agent ), we can create a new one
+        if conversation.agent.slug != AgentAdapters.DEFAULT_AGENT_SLUG:
+            return Response(
+                content=json.dumps(
+                    {"error": f"Conversation with id {conversation_id} already has an agent. Use the PATCH method."}
+                ),
+                media_type="application/json",
+                status_code=400,
+            )
+
     agent = await AgentAdapters.aupdate_hidden_agent(
-        user,
-        body.slug,
-        body.persona,
-        chat_model,
-        body.input_tools,
-        body.output_modes,
+        user=user,
+        slug=body.slug,
+        persona=body.persona,
+        chat_model=chat_model,
+        input_tools=body.input_tools,
+        output_modes=body.output_modes,
+        existing_agent=None,
     )
+
+    conversation.agent = agent
+    await conversation.asave()
 
     agents_packet = {
         "slug": agent.slug,
         "name": agent.name,
         "persona": agent.personality,
         "creator": agent.creator.username if agent.creator else None,
-        "managed_by_admin": agent.managed_by_admin,
-        "color": agent.style_color,
-        "icon": agent.style_icon,
-        "privacy_level": agent.privacy_level,
         "chat_model": agent.chat_model.name,
-        "files": body.files,
         "input_tools": agent.input_tools,
         "output_modes": agent.output_modes,
     }

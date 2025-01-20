@@ -303,7 +303,7 @@ class Agent(DbBaseModel):
     managed_by_admin = models.BooleanField(default=False)
     chat_model = models.ForeignKey(ChatModel, on_delete=models.CASCADE)
     slug = models.CharField(max_length=200, unique=True)
-    style_color = models.CharField(max_length=200, choices=StyleColorTypes.choices, default=StyleColorTypes.BLUE)
+    style_color = models.CharField(max_length=200, choices=StyleColorTypes.choices, default=StyleColorTypes.ORANGE)
     style_icon = models.CharField(max_length=200, choices=StyleIconTypes.choices, default=StyleIconTypes.LIGHTBULB)
     privacy_level = models.CharField(max_length=30, choices=PrivacyLevel.choices, default=PrivacyLevel.PRIVATE)
     is_hidden = models.BooleanField(default=False)

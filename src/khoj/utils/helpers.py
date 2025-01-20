@@ -435,7 +435,7 @@ def generate_random_name():
 def generate_random_internal_agent_name():
     random_name = generate_random_name()
 
-    random_name.replace(" ", "_")
+    random_name = random_name.replace(" ", "_")
 
     random_number = random.randint(1000, 9999)
 

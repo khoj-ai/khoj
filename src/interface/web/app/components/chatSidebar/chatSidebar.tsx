@@ -1,19 +1,19 @@
 "use client"
 
-import { ArrowsDownUp, Bell, CaretCircleDown, Sparkle } from "@phosphor-icons/react";
+import { ArrowsDownUp, CaretCircleDown, CircleNotch, Sparkle } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import { ModelSelector } from "@/app/common/modelSelector";
 import { FilesMenu } from "../allConversations/allConversations";
 import { AgentConfigurationOptions } from "@/app/agents/page";
 import useSWR from "swr";
+import { mutate } from "swr";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { AgentData } from "../agentCard/agentCard";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getIconForSlashCommand, getIconFromIconName } from "@/app/common/iconUtils";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,7 +22,6 @@ import { TooltipContent } from "@radix-ui/react-tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface ChatSideBarProps {
-    preexistingAgent?: AgentData | null;
     conversationId: string;
     isOpen: boolean;
     isMobileWidth?: boolean;
@@ -48,47 +47,162 @@ export function ChatSidebar({ ...props }: ChatSideBarProps) {
     }
 
     return (
-        <ChatSidebarInternal {...props} />
+        <div className="relative">
+            <ChatSidebarInternal {...props} />
+        </div>
     );
 }
 
 
 function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
-    const isEditable = props.preexistingAgent?.name.toLowerCase() === "khoj" || props.preexistingAgent?.is_hidden === true;
-    const isDefaultAgent = props.preexistingAgent?.name.toLowerCase() === "khoj";
+    const [isEditable, setIsEditable] = useState<boolean>(false);
+    const [isDefaultAgent, setIsDefaultAgent] = useState<boolean>(false);
     const { data: agentConfigurationOptions, error: agentConfigurationOptionsError } =
         useSWR<AgentConfigurationOptions>("/api/agents/options", fetcher);
 
-    const [customPrompt, setCustomPrompt] = useState<string | undefined>(!isDefaultAgent && props.preexistingAgent ? props.preexistingAgent.persona : "always respond in spanish");
-    const [selectedModel, setSelectedModel] = useState<string | undefined>(props.preexistingAgent?.chat_model);
-    const [inputTools, setInputTools] = useState<string[] | undefined>(props.preexistingAgent?.input_tools);
+    const { data: agentData, error: agentDataError } = useSWR<AgentData>(`/api/agents/conversation?conversation_id=${props.conversationId}`, fetcher);
 
+    const [customPrompt, setCustomPrompt] = useState<string | undefined>("");
+    const [selectedModel, setSelectedModel] = useState<string | undefined>();
+    const [inputTools, setInputTools] = useState<string[] | undefined>();
+    const [outputModes, setOutputModes] = useState<string[] | undefined>();
+    const [hasModified, setHasModified] = useState<boolean>(false);
 
-    function isValueChecked(value: string, existingSelections: string[] | undefined): boolean {
-        if (existingSelections === undefined || existingSelections === null || existingSelections.length === 0) {
-            return true;
+    const [isSaving, setIsSaving] = useState<boolean>(false);
+
+    function setupAgentData() {
+        if (agentData) {
+            setSelectedModel(agentData.chat_model);
+            setInputTools(agentData.input_tools);
+            if (agentData.input_tools === undefined || agentData.input_tools.length === 0) {
+                setInputTools(agentConfigurationOptions?.input_tools ? Object.keys(agentConfigurationOptions.input_tools) : []);
+            }
+            setOutputModes(agentData.output_modes);
+            if (agentData.output_modes === undefined || agentData.output_modes.length === 0) {
+                setOutputModes(agentConfigurationOptions?.output_modes ? Object.keys(agentConfigurationOptions.output_modes) : []);
+            }
+
+            if (agentData.name.toLowerCase() === "khoj" || agentData.is_hidden === true) {
+                setIsEditable(true);
+            }
+
+            if (agentData.slug.toLowerCase() === "khoj") {
+                setIsDefaultAgent(true);
+            } else {
+                setCustomPrompt(agentData.persona);
+            }
         }
+    }
+
+    useEffect(() => {
+        setupAgentData();
+    }, [agentData]);
+
+
+    function isValueChecked(value: string, existingSelections: string[]): boolean {
+        console.log("isValueChecked", value, existingSelections);
 
         return existingSelections.includes(value);
+    }
+
+    function handleCheckToggle(value: string, existingSelections: string[]): string[] {
+        console.log("handleCheckToggle", value, existingSelections);
+
+        setHasModified(true);
+
+        if (existingSelections.includes(value)) {
+            return existingSelections.filter((v) => v !== value);
+        }
+
+        return [...existingSelections, value];
+    }
+
+    function handleCustomPromptChange(value: string) {
+        setCustomPrompt(value);
+        setHasModified(true);
+    }
+
+    function handleSave() {
+        if (hasModified) {
+
+            if (agentData?.is_hidden === false) {
+                alert("This agent is not a hidden agent. It cannot be modified from this interface.");
+                return;
+            }
+
+            let mode = "PATCH";
+
+            if (isDefaultAgent) {
+                mode = "POST";
+            }
+
+            const data = {
+                persona: customPrompt,
+                chat_model: selectedModel,
+                input_tools: inputTools,
+                output_modes: outputModes,
+                ...(isDefaultAgent ? {} : { slug: agentData?.slug })
+            };
+
+            console.log("outgoing data payload", data);
+            setIsSaving(true);
+
+            const url = !isDefaultAgent ? `/api/agents/hidden` : `/api/agents/hidden?conversation_id=${props.conversationId}`;
+
+            // There are four scenarios here.
+            // 1. If the agent is a default agent, then we need to create a new agent just to associate with this conversation.
+            // 2. If the agent is not a default agent, then we need to update the existing hidden agent. This will be associated using the `slug` field.
+            // 3. If the agent is a "proper" agent and not a hidden agent, then it cannot be updated from this API.
+            // 4. The API is being called before the new conversation has been provisioned. If this happens, then create the agent and associate it with the conversation. Reroute the user to the new conversation page.
+            fetch(url, {
+                method: mode,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            })
+                .then((res) => {
+                    setIsSaving(false);
+                    res.json()
+                })
+                .then((data) => {
+                    mutate(`/api/agents/conversation?conversation_id=${props.conversationId}`);
+                    setHasModified(false);
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                    setIsSaving(false);
+                });
+        }
+    }
+
+    function handleReset() {
+        setupAgentData();
+        setHasModified(false);
+    }
+
+    function handleModelSelect(model: string) {
+        setSelectedModel(model);
+        setHasModified(true);
     }
 
     return (
         <Sidebar
             collapsible="none"
             className={`ml-auto opacity-30 rounded-lg p-2 transition-all transform duration-300 ease-in-out
-                               ${props.isOpen
-                    ? "translate-x-0 opacity-100 w-[300px]"
-                    : "translate-x-full opacity-0 w-0"}
-                               `}
+                ${props.isOpen
+                    ? "translate-x-0 opacity-100 w-[300px] relative"
+                    : "translate-x-full opacity-0 w-0 p-0 m-0 fixed"}
+                `}
             variant="floating">
             <SidebarContent>
                 <SidebarHeader>
                     {
-                        props.preexistingAgent && !isEditable ? (
+                        agentData && !isEditable ? (
                             <div className="flex items-center relative top-2">
-                                <a className="text-lg font-bold flex flex-row items-center" href={`/agents?agent=${props.preexistingAgent.slug}`}>
-                                    {getIconFromIconName(props.preexistingAgent.icon, props.preexistingAgent.color)}
-                                    {props.preexistingAgent.name}
+                                <a className="text-lg font-bold flex flex-row items-center" href={`/agents?agent=${agentData.slug}`}>
+                                    {getIconFromIconName(agentData.icon, agentData.color)}
+                                    {agentData.name}
                                 </a>
                             </div>
                         ) : (
@@ -103,7 +217,7 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                     <SidebarGroupContent className="gap-0">
                         <SidebarMenu className="p-0 m-0">
                             {
-                                props.preexistingAgent && props.preexistingAgent.has_files ? (
+                                agentData && agentData.has_files ? (
                                     <SidebarMenuItem key={"agent_knowledge"} className="list-none">
                                         <div className="flex items-center space-x-2 rounded-full">
                                             <div className="text-muted-foreground"><Sparkle /></div>
@@ -123,7 +237,7 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                                 <Textarea
                                     className="w-full h-32"
                                     value={customPrompt}
-                                    onChange={(e) => setCustomPrompt(e.target.value)}
+                                    onChange={(e) => handleCustomPromptChange(e.target.value)}
                                     readOnly={!isEditable}
                                     disabled={!isEditable} />
                             </SidebarMenuItem>
@@ -137,7 +251,7 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                             <SidebarMenuItem key={"model"} className="list-none">
                                 <ModelSelector
                                     disabled={!isEditable}
-                                    onSelect={(model) => setSelectedModel(model.name)}
+                                    onSelect={(model) => handleModelSelect(model.name)}
                                     selectedModel={selectedModel}
                                 />
                             </SidebarMenuItem>
@@ -154,68 +268,75 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                         </SidebarGroupLabel>
                         <CollapsibleContent>
                             <SidebarGroupContent>
-                                {
-                                    Object.entries(agentConfigurationOptions?.input_tools ?? {}).map(([key, value]) => {
-                                        return (
-                                            <Tooltip>
-                                                <TooltipTrigger key={key} asChild>
-                                                    <div className="flex items-center space-x-2 py-1 justify-between">
-                                                        <Label htmlFor={key} className="flex items-center gap-2 text-accent-foreground p-1 cursor-pointer">
-                                                            {getIconForSlashCommand(key)}
-                                                            <p className="text-sm my-auto flex items-center">
-                                                                {key}
-                                                            </p>
-                                                        </Label>
-                                                        <Checkbox
-                                                            id={key}
-                                                            className={`${isEditable ? "cursor-pointer" : ""}`}
-                                                            checked={isValueChecked(key, props.preexistingAgent?.input_tools)}
-                                                            onCheckedChange={() => { }}
-                                                            disabled={!isEditable}
-                                                        >
-                                                            {key}
-                                                        </Checkbox>
-                                                    </div>
-                                                </TooltipTrigger>
-                                                <TooltipContent sideOffset={5} side="left" align="start" className="text-sm bg-background text-foreground shadow-sm border border-slate-500 border-opacity-20 p-2 rounded-lg">
-                                                    {value}
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        );
+                                <SidebarMenu className="p-1 m-0">
+                                    {
+                                        Object.entries(agentConfigurationOptions?.input_tools ?? {}).map(([key, value]) => {
+                                            return (
+                                                <SidebarMenuItem key={key} className="list-none">
+                                                    <Tooltip>
+                                                        <TooltipTrigger key={key} asChild>
+                                                            <div className="flex items-center space-x-2 py-1 justify-between">
+                                                                <Label htmlFor={key} className="flex items-center gap-2 text-accent-foreground p-1 cursor-pointer">
+                                                                    {getIconForSlashCommand(key)}
+                                                                    <p className="text-sm my-auto flex items-center">
+                                                                        {key}
+                                                                    </p>
+                                                                </Label>
+                                                                <Checkbox
+                                                                    id={key}
+                                                                    className={`${isEditable ? "cursor-pointer" : ""}`}
+                                                                    checked={isValueChecked(key, inputTools ?? [])}
+                                                                    onCheckedChange={() => setInputTools(handleCheckToggle(key, inputTools ?? []))}
+                                                                    disabled={!isEditable}
+                                                                >
+                                                                    {key}
+                                                                </Checkbox>
+                                                            </div>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent sideOffset={5} side="left" align="start" className="text-sm bg-background text-foreground shadow-sm border border-slate-500 border-opacity-20 p-2 rounded-lg">
+                                                            {value}
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </SidebarMenuItem>
+                                            );
+                                        }
+                                        )
                                     }
-                                    )
-                                }
-                                {
-                                    Object.entries(agentConfigurationOptions?.output_modes ?? {}).map(([key, value]) => {
-                                        return (
-                                            <Tooltip>
-                                                <TooltipTrigger key={key} asChild>
-                                                    <div className="flex items-center space-x-2 py-1 justify-between">
-                                                        <Label htmlFor={key} className="flex items-center gap-2 p-1 rounded-lg cursor-pointer">
-                                                            {getIconForSlashCommand(key)}
-                                                            <p className="text-sm my-auto flex items-center">
-                                                                {key}
-                                                            </p>
-                                                        </Label>
-                                                        <Checkbox
-                                                            id={key}
-                                                            className={`${isEditable ? "cursor-pointer" : ""}`}
-                                                            checked={isValueChecked(key, props.preexistingAgent?.output_modes)}
-                                                            onCheckedChange={() => { }}
-                                                            disabled={!isEditable}
-                                                        >
-                                                            {key}
-                                                        </Checkbox>
-                                                    </div>
-                                                </TooltipTrigger>
-                                                <TooltipContent sideOffset={5} side="left" align="start" className="text-sm bg-background text-foreground shadow-sm border border-slate-500 border-opacity-20 p-2 rounded-lg">
-                                                    {value}
-                                                </TooltipContent>
-                                            </Tooltip>
-                                        );
+                                    {
+                                        Object.entries(agentConfigurationOptions?.output_modes ?? {}).map(([key, value]) => {
+                                            return (
+                                                <SidebarMenuItem key={key} className="list-none">
+                                                    <Tooltip>
+                                                        <TooltipTrigger key={key} asChild>
+                                                            <div className="flex items-center space-x-2 py-1 justify-between">
+                                                                <Label htmlFor={key} className="flex items-center gap-2 p-1 rounded-lg cursor-pointer">
+                                                                    {getIconForSlashCommand(key)}
+                                                                    <p className="text-sm my-auto flex items-center">
+                                                                        {key}
+                                                                    </p>
+                                                                </Label>
+                                                                <Checkbox
+                                                                    id={key}
+                                                                    className={`${isEditable ? "cursor-pointer" : ""}`}
+                                                                    checked={isValueChecked(key, outputModes ?? [])}
+                                                                    onCheckedChange={() => setOutputModes(handleCheckToggle(key, outputModes ?? []))}
+                                                                    disabled={!isEditable}
+                                                                >
+                                                                    {key}
+                                                                </Checkbox>
+                                                            </div>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent sideOffset={5} side="left" align="start" className="text-sm bg-background text-foreground shadow-sm border border-slate-500 border-opacity-20 p-2 rounded-lg">
+                                                            {value}
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </SidebarMenuItem>
+                                            );
+                                        }
+                                        )
                                     }
-                                    )
-                                }
+                                </SidebarMenu>
+
                             </SidebarGroupContent>
                         </CollapsibleContent>
                     </SidebarGroup>
@@ -239,13 +360,13 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                 <SidebarMenu className="p-0 m-0">
 
                     {
-                        (props.preexistingAgent && props.preexistingAgent.is_creator) ? (
+                        (agentData && !isEditable && agentData.is_creator) ? (
                             <SidebarMenuItem>
                                 <SidebarMenuButton asChild>
                                     <Button
                                         className="w-full"
                                         variant={"ghost"}
-                                        onClick={() => window.location.href = `/agents?agent=${props.preexistingAgent?.slug}`}
+                                        onClick={() => window.location.href = `/agents?agent=${agentData?.slug}`}
                                     >
                                         Manage
                                     </Button>
@@ -257,9 +378,9 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                                     <SidebarMenuButton asChild>
                                         <Button
                                             className="w-full"
-                                            onClick={() => { }}
+                                            onClick={() => handleReset()}
                                             variant={"ghost"}
-                                            disabled={!isEditable}
+                                            disabled={!isEditable || !hasModified}
                                         >
                                             Reset
                                         </Button>
@@ -270,10 +391,18 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                                         <Button
                                             className="w-full"
                                             variant={"secondary"}
-                                            onClick={() => { }}
-                                            disabled={!isEditable}
+                                            onClick={() => handleSave()}
+                                            disabled={!isEditable || !hasModified || isSaving}
                                         >
-                                            Save
+                                            {
+                                                isSaving ?
+                                                    <CircleNotch className="animate-spin" />
+                                                    :
+                                                    <ArrowsDownUp />
+                                            }
+                                            {
+                                                isSaving ? "Saving" : "Save"
+                                            }
                                         </Button>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
