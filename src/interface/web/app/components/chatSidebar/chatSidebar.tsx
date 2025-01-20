@@ -183,7 +183,9 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
 
     function handleModelSelect(model: string) {
         setSelectedModel(model);
-        setHasModified(true);
+        if (model !== agentData?.chat_model) {
+            setHasModified(true);
+        }
     }
 
     return (
