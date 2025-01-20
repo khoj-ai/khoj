@@ -79,7 +79,7 @@ jobs:
         env:
           PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu https://abetlen.github.io/llama-cpp-python/whl/cpu"
           CUDA_VISIBLE_DEVICES: ""
-        run: sed -i 's/dynamic = \["version"\]/version = "0.0.0"/' pyproject.toml && pip install --upgrade .[dev]
+        run: sed -i 's/dynamic = \["version"\]/version = "0.0.0"/' pyproject.toml && pip install --break-system-packages --upgrade .[dev]
 
       - name: 🧪 Test Application
         env:
