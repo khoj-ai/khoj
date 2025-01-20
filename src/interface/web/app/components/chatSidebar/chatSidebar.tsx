@@ -192,7 +192,7 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
             className={`ml-auto opacity-30 rounded-lg p-2 transition-all transform duration-300 ease-in-out
                 ${props.isOpen
                     ? "translate-x-0 opacity-100 w-[300px] relative"
-                    : "translate-x-full opacity-0 w-0 p-0 m-0 fixed"}
+                    : "translate-x-full opacity-0 w-0 p-0 m-0"}
                 `}
             variant="floating">
             <SidebarContent>
