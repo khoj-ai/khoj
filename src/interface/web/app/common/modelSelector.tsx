@@ -52,6 +52,12 @@ export function ModelSelector({ ...props }: ModelSelectorProps) {
         setSelectedModel(models[0]);
     }, [models, props.selectedModel]);
 
+    useEffect(() => {
+        if (selectedModel) {
+            props.onSelect(selectedModel);
+        }
+    }, [selectedModel]);
+
     if (isLoading) {
         return (
             <Skeleton className="w-full h-10" />

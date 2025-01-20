@@ -20,6 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 import { TooltipContent } from "@radix-ui/react-tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useAuthenticatedData } from "@/app/common/auth";
 
 interface ChatSideBarProps {
     conversationId: string;
@@ -61,6 +62,11 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
         useSWR<AgentConfigurationOptions>("/api/agents/options", fetcher);
 
     const { data: agentData, error: agentDataError } = useSWR<AgentData>(`/api/agents/conversation?conversation_id=${props.conversationId}`, fetcher);
+    const {
+        data: authenticatedData,
+        error: authenticationError,
+        isLoading: authenticationLoading,
+    } = useAuthenticatedData();
 
     const [customPrompt, setCustomPrompt] = useState<string | undefined>("");
     const [selectedModel, setSelectedModel] = useState<string | undefined>();
@@ -100,14 +106,10 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
 
 
     function isValueChecked(value: string, existingSelections: string[]): boolean {
-        console.log("isValueChecked", value, existingSelections);
-
         return existingSelections.includes(value);
     }
 
     function handleCheckToggle(value: string, existingSelections: string[]): string[] {
-        console.log("handleCheckToggle", value, existingSelections);
-
         setHasModified(true);
 
         if (existingSelections.includes(value)) {
@@ -124,8 +126,7 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
 
     function handleSave() {
         if (hasModified) {
-
-            if (agentData?.is_hidden === false) {
+            if (!isDefaultAgent && agentData?.is_hidden === false) {
                 alert("This agent is not a hidden agent. It cannot be modified from this interface.");
                 return;
             }
@@ -144,7 +145,6 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                 ...(isDefaultAgent ? {} : { slug: agentData?.slug })
             };
 
-            console.log("outgoing data payload", data);
             setIsSaving(true);
 
             const url = !isDefaultAgent ? `/api/agents/hidden` : `/api/agents/hidden?conversation_id=${props.conversationId}`;
@@ -250,7 +250,7 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                         <SidebarMenu className="p-0 m-0">
                             <SidebarMenuItem key={"model"} className="list-none">
                                 <ModelSelector
-                                    disabled={!isEditable}
+                                    disabled={!isEditable || !authenticatedData?.is_active}
                                     onSelect={(model) => handleModelSelect(model.name)}
                                     selectedModel={selectedModel}
                                 />
