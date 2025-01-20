@@ -345,7 +345,7 @@ async def get_all_content(
     )
 
     files_data = []
-    page_size = 1
+    page_size = 10
 
     file_objects = await FileObjectAdapters.aget_all_file_objects(user, start=page * page_size, limit=page_size)
 
