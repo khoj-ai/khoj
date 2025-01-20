@@ -280,8 +280,20 @@ def get_shared_chat(
 
     agent_metadata = None
     if conversation.agent:
-        if conversation.agent.privacy_level == Agent.PrivacyLevel.PRIVATE:
-            conversation.agent = None
+        if conversation.agent.privacy_level == Agent.PrivacyLevel.PRIVATE and conversation.agent.creator != user:
+            if conversation.agent.is_hidden:
+                default_agent = AgentAdapters.get_default_agent()
+                agent_metadata = {
+                    "slug": default_agent.slug,
+                    "name": default_agent.name,
+                    "is_creator": False,
+                    "color": default_agent.style_color,
+                    "icon": default_agent.style_icon,
+                    "persona": default_agent.personality,
+                    "is_hidden": default_agent.is_hidden,
+                }
+            else:
+                conversation.agent = None
         else:
             agent_metadata = {
                 "slug": conversation.agent.slug,

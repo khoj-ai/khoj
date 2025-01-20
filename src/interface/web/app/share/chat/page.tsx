@@ -79,36 +79,38 @@ function ChatBodyData(props: ChatBodyDataProps) {
     }
 
     return (
-        <>
-            <div className={false ? styles.chatBody : styles.chatBodyFull}>
-                <ChatHistory
-                    publicConversationSlug={props.publicConversationSlug}
-                    conversationId={props.conversationId || ""}
-                    setAgent={setAgentMetadata}
-                    setTitle={props.setTitle}
-                    pendingMessage={processingMessage ? message : ""}
-                    incomingMessages={props.streamedMessages}
-                    customClassName={chatHistoryCustomClassName}
-                />
+        <div className="flex flex-row h-full w-full">
+            <div className="flex flex-col h-full w-full">
+                <div className={false ? styles.chatBody : styles.chatBodyFull}>
+                    <ChatHistory
+                        publicConversationSlug={props.publicConversationSlug}
+                        conversationId={props.conversationId || ""}
+                        setAgent={setAgentMetadata}
+                        setTitle={props.setTitle}
+                        pendingMessage={processingMessage ? message : ""}
+                        incomingMessages={props.streamedMessages}
+                        customClassName={chatHistoryCustomClassName}
+                    />
+                </div>
+                <div
+                    className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-2xl md:rounded-xl h-fit ${chatHistoryCustomClassName} mr-auto ml-auto mt-auto`}
+                >
+                    <ChatInputArea
+                        isLoggedIn={props.isLoggedIn}
+                        sendMessage={(message) => setMessage(message)}
+                        sendImage={(image) => setImages((prevImages) => [...prevImages, image])}
+                        sendDisabled={processingMessage}
+                        chatOptionsData={props.chatOptionsData}
+                        conversationId={props.conversationId}
+                        agentColor={agentMetadata?.color}
+                        isMobileWidth={props.isMobileWidth}
+                        setUploadedFiles={props.setUploadedFiles}
+                        setTriggeredAbort={() => { }}
+                        ref={chatInputRef}
+                    />
+                </div>
             </div>
-            <div
-                className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-2xl md:rounded-xl h-fit ${chatHistoryCustomClassName} mr-auto ml-auto`}
-            >
-                <ChatInputArea
-                    isLoggedIn={props.isLoggedIn}
-                    sendMessage={(message) => setMessage(message)}
-                    sendImage={(image) => setImages((prevImages) => [...prevImages, image])}
-                    sendDisabled={processingMessage}
-                    chatOptionsData={props.chatOptionsData}
-                    conversationId={props.conversationId}
-                    agentColor={agentMetadata?.color}
-                    isMobileWidth={props.isMobileWidth}
-                    setUploadedFiles={props.setUploadedFiles}
-                    setTriggeredAbort={() => {}}
-                    ref={chatInputRef}
-                />
-            </div>
-        </>
+        </div>
     );
 }
 

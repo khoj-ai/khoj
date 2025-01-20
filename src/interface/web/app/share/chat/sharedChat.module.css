@@ -35,6 +35,7 @@ div.inputBox:focus {
 div.chatBodyFull {
     display: grid;
     grid-template-columns: 1fr;
+    height: auto;
 }
 
 button.inputBox {
