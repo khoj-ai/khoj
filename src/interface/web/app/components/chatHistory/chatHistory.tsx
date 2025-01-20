@@ -17,7 +17,7 @@ import { Lightbulb, ArrowDown, XCircle } from "@phosphor-icons/react";
 
 import AgentProfileCard from "../profileCard/profileCard";
 import { getIconFromIconName } from "@/app/common/iconUtils";
-import { AgentData } from "../agentCard/agentCard";
+import { AgentData } from "@/app/components/agentCard/agentCard";
 import React from "react";
 import { useIsMobileWidth } from "@/app/common/utils";
 import { Button } from "@/components/ui/button";

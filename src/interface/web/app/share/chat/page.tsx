@@ -17,7 +17,7 @@ import {
     ChatOptions,
 } from "@/app/components/chatInputArea/chatInputArea";
 import { StreamMessage } from "@/app/components/chatMessage/chatMessage";
-import { AgentData } from "@/app/agents/page";
+import { AgentData } from "@/app/components/agentCard/agentCard";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/app/components/appSidebar/appSidebar";
 import { Separator } from "@/components/ui/separator";
