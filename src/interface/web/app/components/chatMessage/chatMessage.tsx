@@ -36,7 +36,7 @@ import {
 import DOMPurify from "dompurify";
 import { InlineLoading } from "../loading/loading";
 import { convertColorToTextClass } from "@/app/common/colorUtils";
-import { AgentData } from "@/app/agents/page";
+import { AgentData } from "@/app/components/agentCard/agentCard";
 
 import renderMathInElement from "katex/contrib/auto-render";
 import "katex/dist/katex.min.css";
