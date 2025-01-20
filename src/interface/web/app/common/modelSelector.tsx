@@ -28,7 +28,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface ModelSelectorProps extends PopoverProps {
-    onSelect: (model: ModelOptions) => void;
+    onSelect: (model: ModelOptions, userModification: boolean) => void;
     selectedModel?: string;
     disabled?: boolean;
 }
@@ -51,7 +51,6 @@ export function ModelSelector({ ...props }: ModelSelectorProps) {
         } else {
             setSelectedModel(models[0]);
         }
-
     }, [models, props.selectedModel, userConfig]);
 
     useEffect(() => {
@@ -63,7 +62,8 @@ export function ModelSelector({ ...props }: ModelSelectorProps) {
 
     useEffect(() => {
         if (selectedModel) {
-            props.onSelect(selectedModel);
+            const userModification = selectedModel.id !== userConfig?.selected_chat_model_config;
+            props.onSelect(selectedModel, userModification);
         }
     }, [selectedModel]);
 

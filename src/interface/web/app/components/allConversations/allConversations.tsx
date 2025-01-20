@@ -46,20 +46,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import {
     ArrowRight,
-    ArrowLeft,
     ArrowDown,
     Spinner,
     Check,
     FolderPlus,
     DotsThreeVertical,
-    House,
-    StackPlus,
-    UserCirclePlus,
-    Sidebar,
-    NotePencil,
     FunnelSimple,
-    MagnifyingGlass,
     ChatsCircle,
+    Info,
 } from "@phosphor-icons/react";
 
 interface ChatHistory {
@@ -132,7 +126,7 @@ function renameConversation(conversationId: string, newTitle: string) {
         },
     })
         .then((response) => response.json())
-        .then((data) => {})
+        .then((data) => { })
         .catch((err) => {
             console.error(err);
             return;
@@ -171,7 +165,7 @@ function deleteConversation(conversationId: string) {
             response.json();
             mutate("/api/chat/sessions");
         })
-        .then((data) => {})
+        .then((data) => { })
         .catch((err) => {
             console.error(err);
             return;
@@ -237,8 +231,29 @@ export function FilesMenu(props: FilesMenuProps) {
         );
     };
 
-    if (error) return <div>Failed to load files</div>;
-    if (selectedFilesError) return <div>Failed to load selected files</div>;
+    if (error || selectedFilesError) {
+        return (
+            <div className="w-auto bg-background border border-muted p-4 drop-shadow-sm rounded-2xl">
+                <div className="flex items-center justify-between space-x-4">
+                    <h4 className="text-sm font-semibold">
+                        Context
+                        <p>
+                            <span className="text-muted-foreground text-xs">
+                                {
+                                    error ? "Failed to load files" : "Failed to load selected files"
+                                }
+                            </span>
+                        </p>
+                    </h4>
+                    <Button variant="ghost" size="sm" className="w-9 p-0">
+                        <Info className="h-4 w-4" />
+                        <span className="sr-only">Error Info</span>
+                    </Button>
+                </div>
+            </div>
+        )
+    }
+
     if (!files) return <InlineLoading />;
     if (!selectedFiles && props.conversationId) return <InlineLoading />;
 

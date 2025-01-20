@@ -183,9 +183,9 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
         setHasModified(false);
     }
 
-    function handleModelSelect(model: string) {
+    function handleModelSelect(model: string, userModification: boolean = true) {
         setSelectedModel(model);
-        if (model !== agentData?.chat_model) {
+        if (userModification) {
             setHasModified(true);
         }
     }
@@ -255,7 +255,7 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                             <SidebarMenuItem key={"model"} className="list-none">
                                 <ModelSelector
                                     disabled={!isEditable || !authenticatedData?.is_active}
-                                    onSelect={(model) => handleModelSelect(model.name)}
+                                    onSelect={(model, userModification) => handleModelSelect(model.name, userModification)}
                                     selectedModel={selectedModel}
                                 />
                             </SidebarMenuItem>
@@ -395,7 +395,7 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                                         <SidebarMenuItem>
                                             <SidebarMenuButton asChild>
                                                 <Button
-                                                    className="w-full"
+                                                    className={`w-full ${hasModified ? "bg-accent-foreground text-accent" : ""}`}
                                                     variant={"secondary"}
                                                     onClick={() => handleSave()}
                                                     disabled={!isEditable || !hasModified || isSaving}
