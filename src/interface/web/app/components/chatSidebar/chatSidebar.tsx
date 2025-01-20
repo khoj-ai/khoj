@@ -192,7 +192,7 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
             className={`ml-auto opacity-30 rounded-lg p-2 transition-all transform duration-300 ease-in-out
                 ${props.isOpen
                     ? "translate-x-0 opacity-100 w-[300px] relative"
-                    : "translate-x-full opacity-0 w-0 p-0 m-0"}
+                    : "translate-x-full opacity-100 w-0 p-0 m-0"}
                 `}
             variant="floating">
             <SidebarContent>
@@ -356,60 +356,64 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                     </SidebarGroupContent>
                 </SidebarGroup>
             </SidebarContent>
-            <SidebarFooter key={"actions"}>
-                <SidebarMenu className="p-0 m-0">
+            {
+                props.isOpen && (
+                    <SidebarFooter key={"actions"}>
+                        <SidebarMenu className="p-0 m-0">
 
-                    {
-                        (agentData && !isEditable && agentData.is_creator) ? (
-                            <SidebarMenuItem>
-                                <SidebarMenuButton asChild>
-                                    <Button
-                                        className="w-full"
-                                        variant={"ghost"}
-                                        onClick={() => window.location.href = `/agents?agent=${agentData?.slug}`}
-                                    >
-                                        Manage
-                                    </Button>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        ) :
-                            <>
-                                <SidebarMenuItem>
-                                    <SidebarMenuButton asChild>
-                                        <Button
-                                            className="w-full"
-                                            onClick={() => handleReset()}
-                                            variant={"ghost"}
-                                            disabled={!isEditable || !hasModified}
-                                        >
-                                            Reset
-                                        </Button>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                                <SidebarMenuItem>
-                                    <SidebarMenuButton asChild>
-                                        <Button
-                                            className="w-full"
-                                            variant={"secondary"}
-                                            onClick={() => handleSave()}
-                                            disabled={!isEditable || !hasModified || isSaving}
-                                        >
-                                            {
-                                                isSaving ?
-                                                    <CircleNotch className="animate-spin" />
-                                                    :
-                                                    <ArrowsDownUp />
-                                            }
-                                            {
-                                                isSaving ? "Saving" : "Save"
-                                            }
-                                        </Button>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            </>
-                    }
-                </SidebarMenu>
-            </SidebarFooter>
+                            {
+                                (agentData && !isEditable && agentData.is_creator) ? (
+                                    <SidebarMenuItem>
+                                        <SidebarMenuButton asChild>
+                                            <Button
+                                                className="w-full"
+                                                variant={"ghost"}
+                                                onClick={() => window.location.href = `/agents?agent=${agentData?.slug}`}
+                                            >
+                                                Manage
+                                            </Button>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                ) :
+                                    <>
+                                        <SidebarMenuItem>
+                                            <SidebarMenuButton asChild>
+                                                <Button
+                                                    className="w-full"
+                                                    onClick={() => handleReset()}
+                                                    variant={"ghost"}
+                                                    disabled={!isEditable || !hasModified}
+                                                >
+                                                    Reset
+                                                </Button>
+                                            </SidebarMenuButton>
+                                        </SidebarMenuItem>
+                                        <SidebarMenuItem>
+                                            <SidebarMenuButton asChild>
+                                                <Button
+                                                    className="w-full"
+                                                    variant={"secondary"}
+                                                    onClick={() => handleSave()}
+                                                    disabled={!isEditable || !hasModified || isSaving}
+                                                >
+                                                    {
+                                                        isSaving ?
+                                                            <CircleNotch className="animate-spin" />
+                                                            :
+                                                            <ArrowsDownUp />
+                                                    }
+                                                    {
+                                                        isSaving ? "Saving" : "Save"
+                                                    }
+                                                </Button>
+                                            </SidebarMenuButton>
+                                        </SidebarMenuItem>
+                                    </>
+                            }
+                        </SidebarMenu>
+                    </SidebarFooter>
+                )
+            }
         </Sidebar>
     )
 }
