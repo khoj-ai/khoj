@@ -484,7 +484,7 @@ interface FileFilterComboBoxProps {
     explicitFile?: string;
 }
 
-export function FileFilterComboBox(props: FileFilterComboBoxProps) {
+function FileFilterComboBox(props: FileFilterComboBoxProps) {
     const [open, setOpen] = useState(false)
     const [value, setValue] = useState(props.explicitFile || "")
 
