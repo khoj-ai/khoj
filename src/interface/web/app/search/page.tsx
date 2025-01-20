@@ -381,8 +381,8 @@ const UploadFiles: React.FC<{
                 <DialogHeader>
                     <DialogTitle>Build Your Knowledge Base</DialogTitle>
                     <DialogDescription>
-                        Add your files to supercharge Khoj`&apos;`s AI with your knowledge. Get
-                        instant, personalized answers powered by your own documents and data.
+                        Add context for your Khoj knowledge base.
+                        Quickly search and get personalized answers from your documents.
                     </DialogDescription>
                 </DialogHeader>
                 <div
@@ -576,7 +576,7 @@ export default function Search() {
 
     const fetchFiles = async (currentPageNumber: number) => {
         try {
-            const url = `api/content/all?page=${currentPageNumber}`;
+            const url = `api/content/files?page=${currentPageNumber}`;
             const response = await fetch(url);
             if (!response.ok) throw new Error("Failed to fetch files");
 

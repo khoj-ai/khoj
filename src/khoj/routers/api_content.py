@@ -330,9 +330,9 @@ def get_content_types(request: Request, client: Optional[str] = None):
     return list(configured_content_types & all_content_types)
 
 
-@api_content.get("/all", response_model=Dict[str, str])
+@api_content.get("/files", response_model=Dict[str, str])
 @requires(["authenticated"])
-async def get_all_content(
+async def get_all_files(
     request: Request, client: Optional[str] = None, truncated: Optional[bool] = True, page: int = 0
 ):
     user = request.user.object

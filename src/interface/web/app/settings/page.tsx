@@ -857,7 +857,7 @@ export default function SettingsView() {
                                         <div className="text-2xl">Content</div>
                                         <div className="cards flex flex-wrap gap-16">
                                             <Card id="computer" className={cardClassName}>
-                                                <CardHeader className="flex flex-row text-2xl">
+                                                <CardHeader className="flex flex-row text-xl">
                                                     <Brain className="h-8 w-8 mr-2" />
                                                     Knowledge Base
                                                     {userConfig.enabled_content_source.computer && (
