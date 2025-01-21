@@ -870,6 +870,35 @@ export default function Search() {
                                             )}
                                             {error && <div className="text-red-500">{error}</div>}
 
+                                            {!searchResults && !fileObjectsLoading && files.length === 0 && (
+                                                <Card className="flex flex-col items-center justify-center border-none shadow-none">
+                                                    <CardHeader className="flex flex-col items-center justify-center">
+                                                        <CardDescription className="border-muted-foreground border w-fit rounded-lg mb-2 text-center text-lg p-4">
+                                                            <FileDashed
+                                                                weight="fill"
+                                                                className="text-muted-foreground h-10 w-10"
+                                                            />
+                                                        </CardDescription>
+                                                        <CardTitle className="text-center">
+                                                            Let's get started!
+                                                        </CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent>
+                                                        <div className="text-muted-foreground items-center justify-center text-center flex">
+                                                            To use search, upload docs via the "Add Documents" button.
+                                                        </div>
+                                                        <Link
+                                                            href="https://docs.khoj.dev/data-sources/share_your_data"
+                                                            className="no-underline"
+                                                        >
+                                                            <div className="mt-4 text-center text-secondary-foreground bg-secondary w-fit m-auto p-2 rounded-lg">
+                                                                Learn More
+                                                            </div>
+                                                        </Link>
+                                                    </CardContent>
+                                                </Card>
+                                            )}
+
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                                 {files.map((file, index) => (
                                                     <FileCard
@@ -953,34 +982,7 @@ export default function Search() {
 
                                         </div>
                                     )}
-                                {searchResults && searchResults.length === 0 && (
-                                    <Card className="flex flex-col items-center justify-center border-none shadow-none">
-                                        <CardHeader className="flex flex-col items-center justify-center">
-                                            <CardDescription className="border-muted-foreground border w-fit rounded-lg mb-2 text-center text-lg p-4">
-                                                <FileDashed
-                                                    weight="fill"
-                                                    className="text-muted-foreground h-10 w-10"
-                                                />
-                                            </CardDescription>
-                                            <CardTitle className="text-center">
-                                                No documents found
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <div className="text-muted-foreground items-center justify-center text-center flex">
-                                                To use search, upload your docs to your account.
-                                            </div>
-                                            <Link
-                                                href="https://docs.khoj.dev/data-sources/share_your_data"
-                                                className="no-underline"
-                                            >
-                                                <div className="mt-4 text-center text-secondary-foreground bg-secondary w-fit m-auto p-2 rounded-lg">
-                                                    Learn More
-                                                </div>
-                                            </Link>
-                                        </CardContent>
-                                    </Card>
-                                )}
+
                             </div>
                         </div>
                     </div>
