@@ -327,6 +327,7 @@ class ProcessLock(DbBaseModel):
         INDEX_CONTENT = "index_content"
         SCHEDULED_JOB = "scheduled_job"
         SCHEDULE_LEADER = "schedule_leader"
+        APPLY_MIGRATIONS = "apply_migrations"
 
     # We need to make sure that some operations are thread-safe. To do so, add locks for potentially shared operations.
     # For example, we need to make sure that only one process is updating the embeddings at a time.
@@ -669,6 +670,14 @@ class ReflectiveQuestion(DbBaseModel):
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
 
+class FileObject(DbBaseModel):
+    # Contains the full text of a file that has associated Entry objects
+    file_name = models.CharField(max_length=400, default=None, null=True, blank=True)
+    raw_text = models.TextField()
+    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
+    agent = models.ForeignKey(Agent, on_delete=models.CASCADE, default=None, null=True, blank=True)
+
+
 class Entry(DbBaseModel):
     class EntryType(models.TextChoices):
         IMAGE = "image"
@@ -700,18 +709,11 @@ class Entry(DbBaseModel):
     hashed_value = models.CharField(max_length=100)
     corpus_id = models.UUIDField(default=uuid.uuid4, editable=False)
     search_model = models.ForeignKey(SearchModelConfig, on_delete=models.SET_NULL, default=None, null=True, blank=True)
+    file_object = models.ForeignKey(FileObject, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if self.user and self.agent:
             raise ValidationError("An Entry cannot be associated with both a user and an agent.")
-
-
-class FileObject(DbBaseModel):
-    # Same as Entry but raw will be a much larger string
-    file_name = models.CharField(max_length=400, default=None, null=True, blank=True)
-    raw_text = models.TextField()
-    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
-    agent = models.ForeignKey(Agent, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
 
 class EntryDates(DbBaseModel):
