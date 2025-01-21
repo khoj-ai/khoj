@@ -73,12 +73,8 @@ import {
     CommandInput,
     CommandItem,
     CommandList,
-} from "@/components/ui/command"
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover"
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { uploadDataForIndexing } from "../common/chatFunctions";
 import { Progress } from "@/components/ui/progress";
@@ -125,11 +121,17 @@ interface FileCardProps {
     selectedFileFullText: string | null;
 }
 
-function FileCard({ file, setSelectedFile, setSelectedFileFullText, handleDownload, handleDelete, isDeleting, selectedFileFullText }: FileCardProps) {
+function FileCard({
+    file,
+    setSelectedFile,
+    setSelectedFileFullText,
+    handleDownload,
+    handleDelete,
+    isDeleting,
+    selectedFileFullText,
+}: FileCardProps) {
     return (
-        <Card
-            className="animate-fade-in-up bg-secondary h-52"
-        >
+        <Card className="animate-fade-in-up bg-secondary h-52">
             <CardHeader className="p-2">
                 <CardTitle
                     className="flex items-center gap-2 justify-between"
@@ -140,36 +142,23 @@ function FileCard({ file, setSelectedFile, setSelectedFileFullText, handleDownlo
                             <div
                                 className="text-sm font-medium truncate hover:text-clip hover:whitespace-normal cursor-pointer"
                                 onClick={() => {
-                                    setSelectedFileFullText(
-                                        '',
-                                    );
-                                    setSelectedFile(
-                                        file.file_name,
-                                    );
+                                    setSelectedFileFullText("");
+                                    setSelectedFile(file.file_name);
                                 }}
                             >
-                                {file.file_name
-                                    .split("/")
-                                    .pop()}
+                                {file.file_name.split("/").pop()}
                             </div>
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
                                 <DialogTitle>
                                     <div className="flex items-center gap-2">
-                                        {file.file_name
-                                            .split("/")
-                                            .pop()}
+                                        {file.file_name.split("/").pop()}
                                         <Button
-                                            variant={
-                                                "ghost"
-                                            }
+                                            variant={"ghost"}
                                             title="Download as plaintext"
                                             onClick={() =>
-                                                handleDownload(
-                                                    file.file_name,
-                                                    file.raw_text,
-                                                )
+                                                handleDownload(file.file_name, file.raw_text)
                                             }
                                         >
                                             <Download className="h-4 w-4" />
@@ -182,15 +171,11 @@ function FileCard({ file, setSelectedFile, setSelectedFileFullText, handleDownlo
                                     {!selectedFileFullText && (
                                         <InlineLoading
                                             className="mt-4"
-                                            message={
-                                                "Loading"
-                                            }
+                                            message={"Loading"}
                                             iconClassName="h-5 w-5"
                                         />
                                     )}
-                                    {
-                                        selectedFileFullText
-                                    }
+                                    {selectedFileFullText}
                                 </p>
                             </ScrollArea>
                         </DialogContent>
@@ -207,16 +192,12 @@ function FileCard({ file, setSelectedFile, setSelectedFileFullText, handleDownlo
                                     variant={"ghost"}
                                     className="flex items-center gap-2 p-1 text-sm"
                                     onClick={() => {
-                                        handleDelete(
-                                            file.file_name,
-                                        );
+                                        handleDelete(file.file_name);
                                     }}
                                 >
                                     <Trash className="h-4 w-4" />
                                     <span className="text-xs">
-                                        {isDeleting
-                                            ? "Deleting..."
-                                            : "Delete"}
+                                        {isDeleting ? "Deleting..." : "Delete"}
                                     </span>
                                 </Button>
                             </DropdownMenuItem>
@@ -237,7 +218,7 @@ function FileCard({ file, setSelectedFile, setSelectedFileFullText, handleDownlo
                 </div>
             </CardFooter>
         </Card>
-    )
+    );
 }
 
 interface NoteResultProps {
@@ -397,8 +378,8 @@ const UploadFiles: React.FC<{
                 <DialogHeader>
                     <DialogTitle>Build Your Knowledge Base</DialogTitle>
                     <DialogDescription>
-                        Add context for your Khoj knowledge base.
-                        Quickly search and get personalized answers from your documents.
+                        Add context for your Khoj knowledge base. Quickly search and get
+                        personalized answers from your documents.
                     </DialogDescription>
                 </DialogHeader>
                 <div
@@ -485,8 +466,8 @@ interface FileFilterComboBoxProps {
 }
 
 function FileFilterComboBox(props: FileFilterComboBoxProps) {
-    const [open, setOpen] = useState(false)
-    const [value, setValue] = useState(props.explicitFile || "")
+    const [open, setOpen] = useState(false);
+    const [value, setValue] = useState(props.explicitFile || "");
 
     useEffect(() => {
         if (props.explicitFile) {
@@ -504,17 +485,12 @@ function FileFilterComboBox(props: FileFilterComboBoxProps) {
                     className={`justify-between" ${props.isMobileWidth ? "w-full" : "w-[200px]"}`}
                 >
                     {value
-                        ? (
-                            props.isMobileWidth ?
-                                "✔️"
-                                : "Selected"
-                        )
-                        : (
-                            props.isMobileWidth ?
-                                " "
-                                : "Select file"
-                        )
-                    }
+                        ? props.isMobileWidth
+                            ? "✔️"
+                            : "Selected"
+                        : props.isMobileWidth
+                          ? " "
+                          : "Select file"}
                     <Funnel className="opacity-50" />
                 </Button>
             </PopoverTrigger>
@@ -529,16 +505,16 @@ function FileFilterComboBox(props: FileFilterComboBoxProps) {
                                     key={file}
                                     value={file}
                                     onSelect={(currentValue) => {
-                                        setValue(currentValue === value ? "" : currentValue)
-                                        setOpen(false)
-                                        props.onChooseFile(currentValue)
+                                        setValue(currentValue === value ? "" : currentValue);
+                                        setOpen(false);
+                                        props.onChooseFile(currentValue);
                                     }}
                                 >
                                     {file}
                                     <Check
                                         className={cn(
                                             "ml-auto",
-                                            value === file ? "opacity-100" : "opacity-0"
+                                            value === file ? "opacity-100" : "opacity-0",
                                         )}
                                     />
                                 </CommandItem>
@@ -548,7 +524,7 @@ function FileFilterComboBox(props: FileFilterComboBoxProps) {
                 </Command>
             </PopoverContent>
         </Popover>
-    )
+    );
 }
 
 export default function Search() {
@@ -576,18 +552,18 @@ export default function Search() {
 
     useEffect(() => {
         // Load all files once on page load
-        fetch('/api/content/computer', {
-            method: 'GET',
+        fetch("/api/content/computer", {
+            method: "GET",
             headers: {
-                'Content-Type': 'application/json',
+                "Content-Type": "application/json",
             },
         })
-            .then(response => response.json())
-            .then(data => {
+            .then((response) => response.json())
+            .then((data) => {
                 setAllFiles(data);
             })
-            .catch(error => {
-                console.error('Error loading files:', error);
+            .catch((error) => {
+                console.error("Error loading files:", error);
             });
     }, []);
 
@@ -605,7 +581,6 @@ export default function Search() {
             }
         }
     }, [searchQuery]);
-
 
     function handleSearchInputChange(value: string) {
         setSearchQuery(value);
@@ -673,7 +648,6 @@ export default function Search() {
             if (Array.isArray(filesList)) {
                 setFiles(filesList.toSorted());
             }
-
         } catch (error) {
             setError("Failed to load files");
             console.error("Error fetching files:", error);
@@ -778,7 +752,9 @@ export default function Search() {
                                         <Input
                                             autoFocus={true}
                                             className="border-none pl-4 focus-visible:ring-transparent focus-visible:ring-offset-transparent"
-                                            onChange={(e) => handleSearchInputChange(e.currentTarget.value)}
+                                            onChange={(e) =>
+                                                handleSearchInputChange(e.currentTarget.value)
+                                            }
                                             onKeyDown={(e) => {
                                                 if (e.key === "Enter") {
                                                     search();
@@ -791,7 +767,12 @@ export default function Search() {
                                         />
                                     </div>
                                     <div id="actions" className="flex gap-2">
-                                        <FileFilterComboBox allFiles={allFiles} onChooseFile={(file) => applySuggestion(file)} isMobileWidth={isMobileWidth} explicitFile={selectedFileFilter} />
+                                        <FileFilterComboBox
+                                            allFiles={allFiles}
+                                            onChooseFile={(file) => applySuggestion(file)}
+                                            isMobileWidth={isMobileWidth}
+                                            explicitFile={selectedFileFilter}
+                                        />
                                         <Button
                                             className="px-2 gap-2 inline-flex rounded-none items-center border-l border-gray-300 hover:text-gray-500"
                                             variant={"ghost"}
@@ -870,34 +851,37 @@ export default function Search() {
                                             )}
                                             {error && <div className="text-red-500">{error}</div>}
 
-                                            {!searchResults && !fileObjectsLoading && files.length === 0 && (
-                                                <Card className="flex flex-col items-center justify-center border-none shadow-none">
-                                                    <CardHeader className="flex flex-col items-center justify-center">
-                                                        <CardDescription className="border-muted-foreground border w-fit rounded-lg mb-2 text-center text-lg p-4">
-                                                            <FileDashed
-                                                                weight="fill"
-                                                                className="text-muted-foreground h-10 w-10"
-                                                            />
-                                                        </CardDescription>
-                                                        <CardTitle className="text-center">
-                                                            Let's get started!
-                                                        </CardTitle>
-                                                    </CardHeader>
-                                                    <CardContent>
-                                                        <div className="text-muted-foreground items-center justify-center text-center flex">
-                                                            To use search, upload docs via the "Add Documents" button.
-                                                        </div>
-                                                        <Link
-                                                            href="https://docs.khoj.dev/data-sources/share_your_data"
-                                                            className="no-underline"
-                                                        >
-                                                            <div className="mt-4 text-center text-secondary-foreground bg-secondary w-fit m-auto p-2 rounded-lg">
-                                                                Learn More
+                                            {!searchResults &&
+                                                !fileObjectsLoading &&
+                                                files.length === 0 && (
+                                                    <Card className="flex flex-col items-center justify-center border-none shadow-none">
+                                                        <CardHeader className="flex flex-col items-center justify-center">
+                                                            <CardDescription className="border-muted-foreground border w-fit rounded-lg mb-2 text-center text-lg p-4">
+                                                                <FileDashed
+                                                                    weight="fill"
+                                                                    className="text-muted-foreground h-10 w-10"
+                                                                />
+                                                            </CardDescription>
+                                                            <CardTitle className="text-center">
+                                                                Let&apos;s get started!
+                                                            </CardTitle>
+                                                        </CardHeader>
+                                                        <CardContent>
+                                                            <div className="text-muted-foreground items-center justify-center text-center flex">
+                                                                To use search, upload docs via the
+                                                                &quot;Add Documents&quot; button.
                                                             </div>
-                                                        </Link>
-                                                    </CardContent>
-                                                </Card>
-                                            )}
+                                                            <Link
+                                                                href="https://docs.khoj.dev/data-sources/share_your_data"
+                                                                className="no-underline"
+                                                            >
+                                                                <div className="mt-4 text-center text-secondary-foreground bg-secondary w-fit m-auto p-2 rounded-lg">
+                                                                    Learn More
+                                                                </div>
+                                                            </Link>
+                                                        </CardContent>
+                                                    </Card>
+                                                )}
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                                 {files.map((file, index) => (
@@ -906,7 +890,9 @@ export default function Search() {
                                                         file={file}
                                                         index={index}
                                                         setSelectedFile={setSelectedFile}
-                                                        setSelectedFileFullText={setSelectedFileFullText}
+                                                        setSelectedFileFullText={
+                                                            setSelectedFileFullText
+                                                        }
                                                         handleDownload={handleDownload}
                                                         handleDelete={handleDelete}
                                                         isDeleting={isDeleting}
@@ -920,14 +906,22 @@ export default function Search() {
                                                     {/* Show prev button if not on first page */}
                                                     {pageNumber > 0 && (
                                                         <PaginationItem className="list-none">
-                                                            <PaginationPrevious onClick={() => setPageNumber(pageNumber - 1)} />
+                                                            <PaginationPrevious
+                                                                onClick={() =>
+                                                                    setPageNumber(pageNumber - 1)
+                                                                }
+                                                            />
                                                         </PaginationItem>
                                                     )}
 
                                                     {/* Show first page if not on first two pages */}
                                                     {pageNumber > 1 && (
                                                         <PaginationItem className="list-none">
-                                                            <PaginationLink onClick={() => setPageNumber(0)}>1</PaginationLink>
+                                                            <PaginationLink
+                                                                onClick={() => setPageNumber(0)}
+                                                            >
+                                                                1
+                                                            </PaginationLink>
                                                         </PaginationItem>
                                                     )}
 
@@ -941,19 +935,33 @@ export default function Search() {
                                                     {/* Show previous page if not on first page */}
                                                     {pageNumber > 0 && (
                                                         <PaginationItem className="list-none">
-                                                            <PaginationLink onClick={() => setPageNumber(pageNumber - 1)}>{pageNumber}</PaginationLink>
+                                                            <PaginationLink
+                                                                onClick={() =>
+                                                                    setPageNumber(pageNumber - 1)
+                                                                }
+                                                            >
+                                                                {pageNumber}
+                                                            </PaginationLink>
                                                         </PaginationItem>
                                                     )}
 
                                                     {/* Current page */}
                                                     <PaginationItem className="list-none">
-                                                        <PaginationLink isActive>{pageNumber + 1}</PaginationLink>
+                                                        <PaginationLink isActive>
+                                                            {pageNumber + 1}
+                                                        </PaginationLink>
                                                     </PaginationItem>
 
                                                     {/* Show next page if not on last page */}
                                                     {pageNumber < numPages - 1 && (
                                                         <PaginationItem className="list-none">
-                                                            <PaginationLink onClick={() => setPageNumber(pageNumber + 1)}>{pageNumber + 2}</PaginationLink>
+                                                            <PaginationLink
+                                                                onClick={() =>
+                                                                    setPageNumber(pageNumber + 1)
+                                                                }
+                                                            >
+                                                                {pageNumber + 2}
+                                                            </PaginationLink>
                                                         </PaginationItem>
                                                     )}
 
@@ -967,22 +975,30 @@ export default function Search() {
                                                     {/* Show last page if not on last two pages */}
                                                     {pageNumber < numPages - 2 && (
                                                         <PaginationItem className="list-none">
-                                                            <PaginationLink onClick={() => setPageNumber(numPages - 1)}>{numPages}</PaginationLink>
+                                                            <PaginationLink
+                                                                onClick={() =>
+                                                                    setPageNumber(numPages - 1)
+                                                                }
+                                                            >
+                                                                {numPages}
+                                                            </PaginationLink>
                                                         </PaginationItem>
                                                     )}
 
                                                     {/* Show next button if not on last page */}
                                                     {pageNumber < numPages - 1 && (
                                                         <PaginationItem className="list-none">
-                                                            <PaginationNext onClick={() => setPageNumber(pageNumber + 1)} />
+                                                            <PaginationNext
+                                                                onClick={() =>
+                                                                    setPageNumber(pageNumber + 1)
+                                                                }
+                                                            />
                                                         </PaginationItem>
                                                     )}
                                                 </PaginationContent>
                                             </Pagination>
-
                                         </div>
                                     )}
-
                             </div>
                         </div>
                     </div>
