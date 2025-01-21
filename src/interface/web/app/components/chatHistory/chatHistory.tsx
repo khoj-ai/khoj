@@ -40,6 +40,7 @@ interface ChatHistoryProps {
     publicConversationSlug?: string;
     setAgent: (agent: AgentData) => void;
     customClassName?: string;
+    setIsChatSideBarOpen?: (isOpen: boolean) => void;
 }
 
 interface TrainOfThoughtComponentProps {
@@ -149,6 +150,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                 latestUserMessageRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
             });
         }
+
     }, [data, currentPage]);
 
     useEffect(() => {
@@ -251,6 +253,9 @@ export default function ChatHistory(props: ChatHistoryProps) {
                         };
                         props.setAgent(chatData.response.agent);
                         setData(chatMetadata);
+                        if (props.setIsChatSideBarOpen) {
+                            props.setIsChatSideBarOpen(true);
+                        }
                     }
 
                     setHasMoreMessages(false);

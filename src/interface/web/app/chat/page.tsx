@@ -49,7 +49,7 @@ interface ChatBodyDataProps {
     setImages: (images: string[]) => void;
     setTriggeredAbort: (triggeredAbort: boolean) => void;
     isChatSideBarOpen: boolean;
-    onChatSideBarOpenChange: (open: boolean) => void;
+    setIsChatSideBarOpen: (open: boolean) => void;
 }
 
 function ChatBodyData(props: ChatBodyDataProps) {
@@ -156,6 +156,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         incomingMessages={props.streamedMessages}
                         setIncomingMessages={props.setStreamedMessages}
                         customClassName={chatHistoryCustomClassName}
+                        setIsChatSideBarOpen={props.setIsChatSideBarOpen}
                     />
                 </div>
                 <div
@@ -180,7 +181,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
             <ChatSidebar
                 conversationId={conversationId}
                 isOpen={props.isChatSideBarOpen}
-                onOpenChange={props.onChatSideBarOpenChange}
+                onOpenChange={props.setIsChatSideBarOpen}
                 isMobileWidth={props.isMobileWidth} />
         </div>
     );
@@ -478,7 +479,7 @@ export default function Chat() {
                                     setImages={setImages}
                                     setTriggeredAbort={setTriggeredAbort}
                                     isChatSideBarOpen={isChatSideBarOpen}
-                                    onChatSideBarOpenChange={setIsChatSideBarOpen}
+                                    setIsChatSideBarOpen={setIsChatSideBarOpen}
                                 />
                             </Suspense>
                         </div>
