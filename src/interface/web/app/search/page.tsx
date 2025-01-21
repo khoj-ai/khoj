@@ -496,9 +496,9 @@ function FileFilterComboBox(props: FileFilterComboBoxProps) {
             </PopoverTrigger>
             <PopoverContent className="w-[200px] p-0">
                 <Command>
-                    <CommandInput placeholder="Search framework..." />
+                    <CommandInput placeholder="Search files..." />
                     <CommandList>
-                        <CommandEmpty>No framework found.</CommandEmpty>
+                        <CommandEmpty>No files found.</CommandEmpty>
                         <CommandGroup>
                             {props.allFiles.map((file) => (
                                 <CommandItem
