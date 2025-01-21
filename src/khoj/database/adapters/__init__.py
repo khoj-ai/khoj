@@ -815,7 +815,7 @@ class AgentAdapters:
         is_hidden: Optional[bool] = False,
     ):
         if not chat_model:
-            chat_model = ConversationAdapters.get_default_chat_model(user)
+            chat_model = await ConversationAdapters.aget_default_chat_model(user)
         chat_model_option = await ChatModel.objects.filter(name=chat_model).afirst()
 
         # Slug will be None for new agents, which will trigger a new agent creation with a generated, immutable slug
