@@ -457,6 +457,7 @@ def chat_sessions(
         "updated_at",
         "agent__style_icon",
         "agent__style_color",
+        "agent__is_hidden",
     )
 
     session_values = [
@@ -468,6 +469,7 @@ def chat_sessions(
             "updated": session[6].strftime("%Y-%m-%d %H:%M:%S"),
             "agent_icon": session[7],
             "agent_color": session[8],
+            "agent_is_hidden": session[9],
         }
         for session in sessions
     ]

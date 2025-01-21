@@ -62,6 +62,7 @@ interface ChatHistory {
     agent_name: string;
     agent_icon: string;
     agent_color: string;
+    agent_is_hidden: boolean;
     compressed: boolean;
     created: string;
     updated: string;
@@ -465,6 +466,7 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                                                         agent_name={chatHistory.agent_name}
                                                         agent_color={chatHistory.agent_color}
                                                         agent_icon={chatHistory.agent_icon}
+                                                        agent_is_hidden={chatHistory.agent_is_hidden}
                                                     />
                                                 ),
                                             )}
@@ -694,7 +696,7 @@ function ChatSession(props: ChatHistory) {
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             key={props.conversation_id}
-            className={`${styles.session} ${props.compressed ? styles.compressed : "!max-w-full"} ${isHovered ? `${styles.sessionHover}` : ""} ${currConversationId === props.conversation_id && currConversationId != "-1" ? "dark:bg-neutral-800 bg-white" : ""}`}
+            className={`${styles.session} ${props.compressed ? styles.compressed : "!max-w-full"} ${isHovered ? `${styles.sessionHover}` : ""} ${currConversationId === props.conversation_id && currConversationId != "-1" ? "dark:bg-neutral-800 bg-white" : ""} m-1`}
         >
             <SidebarMenuButton asChild>
                 <Link
@@ -740,14 +742,21 @@ function ChatSessionsModal({ data, sideBarOpen }: ChatSessionsModalProps) {
             let agentNameToStyleMapLocal: Record<string, AgentStyle> = {};
             Object.keys(data).forEach((timeGrouping) => {
                 data[timeGrouping].forEach((chatHistory) => {
-                    if (!agents.includes(chatHistory.agent_name) && chatHistory.agent_name) {
+                    if (chatHistory.agent_is_hidden) return;
+                    if (!chatHistory.agent_color) return;
+                    if (!chatHistory.agent_name) return;
+                    if (!chatHistory.agent_icon) return;
+
+                    const agentName = chatHistory.agent_name;
+
+                    if (agentName && !agents.includes(agentName)) {
                         agents.push(chatHistory.agent_name);
 
                         agentNameToStyleMapLocal = {
                             ...agentNameToStyleMapLocal,
                             [chatHistory.agent_name]: {
-                                color: chatHistory.agent_color,
-                                icon: chatHistory.agent_icon,
+                                color: chatHistory.agent_color ?? "orange",
+                                icon: chatHistory.agent_icon ?? "Lightbulb",
                             },
                         };
                     }
@@ -875,6 +884,7 @@ function ChatSessionsModal({ data, sideBarOpen }: ChatSessionsModalProps) {
                                                 agent_name={chatHistory.agent_name}
                                                 agent_color={chatHistory.agent_color}
                                                 agent_icon={chatHistory.agent_icon}
+                                                agent_is_hidden={chatHistory.agent_is_hidden}
                                             />
                                         ))}
                                     </div>
