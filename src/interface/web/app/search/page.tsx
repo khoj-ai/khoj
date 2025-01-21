@@ -149,7 +149,7 @@ function FileCard({
                                 {file.file_name.split("/").pop()}
                             </div>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="max-w-fit">
                             <DialogHeader>
                                 <DialogTitle>
                                     <div className="flex items-center gap-2">
@@ -166,8 +166,8 @@ function FileCard({
                                     </div>
                                 </DialogTitle>
                             </DialogHeader>
-                            <ScrollArea className="h-[50vh]">
-                                <p className="whitespace-pre-wrap break-words text-sm font-normal">
+                            <ScrollArea className="h-[50vh] w-[80vw]">
+                                <p className="whitespace-pre-wrap break-words text-sm font-normal word-wrap">
                                     {!selectedFileFullText && (
                                         <InlineLoading
                                             className="mt-4"
@@ -462,21 +462,53 @@ interface FileFilterComboBoxProps {
     allFiles: string[];
     onChooseFile: (file: string) => void;
     isMobileWidth: boolean;
-    explicitFile?: string;
+    inputText?: string;
+    onClose: () => void;
 }
 
 function FileFilterComboBox(props: FileFilterComboBoxProps) {
     const [open, setOpen] = useState(false);
-    const [value, setValue] = useState(props.explicitFile || "");
+    const [value, setValue] = useState(props.inputText || "");
+    const [noMatchingFiles, setNoMatchingFiles] = useState(false);
+    const [inputText, setInputText] = useState("");
 
     useEffect(() => {
-        if (props.explicitFile) {
-            setValue(props.explicitFile);
+        if (props.inputText) {
+            if (props.inputText === "INITIALIZE") {
+                setOpen(true);
+                setInputText("");
+            } else {
+                setInputText(props.inputText);
+                if (props.allFiles.includes(props.inputText)) {
+                    setValue(props.inputText);
+                }
+            }
+        } else {
+            setInputText("");
         }
-    }, [props.explicitFile]);
+    }, [props.inputText]);
+
+    useEffect(() => {
+        if (inputText && !props.allFiles.includes(inputText)) {
+            setNoMatchingFiles(true);
+            setValue("");
+        } else if (!inputText) {
+            setNoMatchingFiles(false);
+            setValue("");
+        } else {
+            setNoMatchingFiles(false);
+            setValue(inputText);
+        }
+    }, [inputText, props.allFiles]);
+
+    useEffect(() => {
+        if (!open) {
+            props.onClose();
+        }
+    }, [open]);
 
     return (
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open || (noMatchingFiles && (!!inputText))} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
                 <Button
                     variant="outline"
@@ -489,14 +521,14 @@ function FileFilterComboBox(props: FileFilterComboBoxProps) {
                             ? "✔️"
                             : "Selected"
                         : props.isMobileWidth
-                          ? " "
-                          : "Select file"}
+                            ? " "
+                            : "Select file"}
                     <Funnel className="opacity-50" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[200px] p-0">
                 <Command>
-                    <CommandInput placeholder="Search files..." />
+                    <CommandInput placeholder="Search files..." value={inputText} onInput={(e) => setInputText(e.currentTarget.value)} />
                     <CommandList>
                         <CommandEmpty>No files found.</CommandEmpty>
                         <CommandGroup>
@@ -578,8 +610,11 @@ export default function Search() {
 
             if (extractedFileFilterValue) {
                 setSelectedFileFilter(extractedFileFilterValue);
+            } else {
+                setSelectedFileFilter("INITIALIZE");
             }
         }
+
     }, [searchQuery]);
 
     function handleSearchInputChange(value: string) {
@@ -604,8 +639,12 @@ export default function Search() {
     }
 
     function applySuggestion(suggestion: string) {
-        // Append the file: filter with the selected suggestion
-        const newQuery = `file:"${suggestion}" ${searchQuery}`;
+        // Scrub any existing `file:` filter
+        const fileFilterRegex = /file:([^"\s]*|"[^"]*")?/i;
+        const searchQueryWithoutFileFilter = searchQuery.replace(fileFilterRegex, "").trim();
+
+        // Prepend the file: filter with the selected suggestion
+        const newQuery = `file:"${suggestion}" ${searchQueryWithoutFileFilter}`;
         setSearchQuery(newQuery);
         searchInputRef.current?.focus();
         search();
@@ -771,7 +810,8 @@ export default function Search() {
                                             allFiles={allFiles}
                                             onChooseFile={(file) => applySuggestion(file)}
                                             isMobileWidth={isMobileWidth}
-                                            explicitFile={selectedFileFilter}
+                                            inputText={selectedFileFilter}
+                                            onClose={() => searchInputRef.current?.focus()}
                                         />
                                         <Button
                                             className="px-2 gap-2 inline-flex rounded-none items-center border-l border-gray-300 hover:text-gray-500"
