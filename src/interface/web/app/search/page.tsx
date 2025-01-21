@@ -916,7 +916,7 @@ export default function Search() {
                                             </div>
 
                                             <Pagination>
-                                                <PaginationContent>
+                                                <PaginationContent className="p-0">
                                                     {/* Show prev button if not on first page */}
                                                     {pageNumber > 0 && (
                                                         <PaginationItem className="list-none">
