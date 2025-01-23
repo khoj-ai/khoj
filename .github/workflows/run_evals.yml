@@ -77,7 +77,7 @@ jobs:
         run: |
           # install postgres and other dependencies
           sudo apt update && sudo apt install -y git python3-pip libegl1 sqlite3 libsqlite3-dev libsqlite3-0 ffmpeg libsm6 libxext6
-          sudo apt install -y postgresql postgresql-client && sudo apt install -y postgresql-server-dev-14
+          sudo apt install -y postgresql postgresql-client && sudo apt install -y postgresql-server-dev-16
           # upgrade pip
           python -m ensurepip --upgrade && python -m pip install --upgrade pip
           # install terrarium for code sandbox
