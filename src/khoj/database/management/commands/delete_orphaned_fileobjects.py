@@ -16,52 +16,6 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        apply = options["apply"]
-
-        mode = "UPDATE" if apply else "DRY RUN"
-        self.stdout.write(f"[{mode}] Processing entries with null file_objects...")
-
-        # Create lookup dictionary of all file objects
-        file_objects_map = {(fo.user_id, fo.file_name): fo for fo in FileObject.objects.all()}
-
-        chunk_size = 1000
-        processed = 0
-        processed_entry_ids = set()
-
-        while True:
-            entries = list(
-                Entry.objects.select_related("user")
-                .filter(file_object__isnull=True)
-                .exclude(id__in=processed_entry_ids)
-                .only("id", "user", "file_path")[:chunk_size]
-            )
-
-            if not entries:
-                break
-
-            processed_entry_ids.update([entry.id for entry in entries])
-            entries_to_update = []
-
-            for entry in entries:
-                try:
-                    file_object = file_objects_map.get((entry.user_id, entry.file_path))
-                    if file_object:
-                        entry.file_object = file_object
-                        entries_to_update.append(entry)
-                except Exception as e:
-                    self.stdout.write(self.style.WARNING(f"Error processing entry {entry.id}: {str(e)}"))
-                    continue
-
-            if entries_to_update and apply:
-                with transaction.atomic():
-                    Entry.objects.bulk_update(entries_to_update, ["file_object"], batch_size=chunk_size)
-
-            processed += len(entries)
-            self.stdout.write(f"Processed {processed} entries")
-
-        action = "Updated" if apply else "Would update"
-        self.stdout.write(self.style.SUCCESS(f"{action} {len(processed_entry_ids)} entries"))
-
         # Find FileObjects with no related entries using subquery
         orphaned_files = FileObject.objects.annotate(
             has_entries=Exists(Entry.objects.filter(file_object=OuterRef("pk")))
