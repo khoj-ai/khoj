@@ -293,7 +293,7 @@ class Agent(DbBaseModel):
         KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True
     )  # Creator will only be null when the agents are managed by admin
     name = models.CharField(max_length=200)
-    personality = models.TextField()
+    personality = models.TextField(default=None, null=True, blank=True)
     input_tools = ArrayField(
         models.CharField(max_length=200, choices=InputToolOptions.choices), default=list, null=True, blank=True
     )
