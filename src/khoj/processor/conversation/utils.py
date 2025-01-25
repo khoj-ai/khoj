@@ -1,4 +1,5 @@
 import base64
+import csv
 import json
 import logging
 import math
@@ -871,3 +872,51 @@ def messages_to_print(messages: list[ChatMessage], max_length: int = 70) -> str:
             return str(content)
 
     return "\n".join([f"{json.dumps(safe_serialize(message.content))[:max_length]}..." for message in messages])
+
+
+def commit_dataset_trace(
+    session: list[ChatMessage],
+    response: str | list[dict],
+    dataset_path: str = None,
+) -> str:
+    """
+    Save data trace of conversation step in CSV format. Useful for model training and debugging.
+    Returns the path to the data trace file.
+    """
+    # Infer repository path from environment variable or provided path
+    dataset_path = dataset_path if not is_none_or_empty(dataset_path) else os.getenv("DATATRACE_PATH")
+    if not dataset_path:
+        return None
+
+    # Normalize conversation session
+    session = [
+        ChatMessage(
+            content="\n\n".join(message.content) if isinstance(message.content, list) else message.content,
+            role=message.role,
+        )
+        for message in session
+    ]
+    # Extract system message as string from messages
+    system_message = "\n\n".join([message.content for message in session if message.role == "system"])
+    if is_none_or_empty(system_message):
+        system_message = session.pop(0).content
+
+    # Serialize conversation session as list of dictionaries format
+    session.append(ChatMessage(content=response, role="assistant"))
+    formatted_session = [{"from": message.role, "value": message.content} for message in session]
+    row = {
+        "system": system_message,
+        "conversations": json.dumps(formatted_session),
+    }
+
+    # Update and save dataset
+    os.makedirs(os.path.dirname(dataset_path), exist_ok=True)
+    with open(dataset_path, "a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=["system", "conversations"])
+        # Write header if file doesn't exist
+        if not os.path.isfile(dataset_path):
+            logger.debug(f"Creating new dataset at {dataset_path}")
+            writer.writeheader()
+        writer.writerow(row)
+
+    return dataset_path

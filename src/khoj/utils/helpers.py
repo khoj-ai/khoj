@@ -460,6 +460,12 @@ def is_promptrace_enabled():
     return not is_none_or_empty(os.getenv("PROMPTRACE_DIR"))
 
 
+def is_datatrace_enabled(tracer: dict):
+    """Check if Khoj is running with data tracing enabled.
+    Set DATATRACE_PATH environment variable to prompt tracing path to enable it."""
+    return tracer.get("save_to_dataset", False) and not is_none_or_empty(os.getenv("DATATRACE_PATH"))
+
+
 def is_valid_url(url: str) -> bool:
     """Check if a string is a valid URL"""
     try:
