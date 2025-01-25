@@ -707,26 +707,6 @@ Create a multi-step plan and intelligently iterate on the plan based on the retr
 - You are allowed upto {max_iterations} iterations to use the help of the provided tool AIs to answer the user's question.
 - Stop when you have the required information by returning a JSON object with an empty "tool" field. E.g., {{scratchpad: "I have all I need", tool: "", query: ""}}
 
-# Examples
-Assuming you can search the user's notes and the internet.
-- When the user asks for the population of their hometown
-  1. Try look up their hometown in their notes. Ask the note search AI to search for their birth certificate, childhood memories, school, resume etc.
-  2. If not found in their notes, try infer their hometown from their online social media profiles. Ask the online search AI to look for {username}'s biography, school, resume on linkedin, facebook, website etc.
-  3. Only then try find the latest population of their hometown by reading official websites with the help of the online search and web page reading AI.
-- When the user asks for their computer's specs
-  1. Try find their computer model in their notes.
-  2. Now find webpages with their computer model's spec online.
-  3. Ask the webpage tool AI to extract the required information from the relevant webpages.
-- When the user asks what clothes to carry for their upcoming trip
-  1. Find the itinerary of their upcoming trip in their notes.
-  2. Next find the weather forecast at the destination online.
-  3. Then find if they mentioned what clothes they own in their notes.
-
-# Background Context
-- Current Date: {day_of_week}, {current_date}
-- User Location: {location}
-- User Name: {username}
-
 # Available Tool AIs
 Which of the tool AIs listed below would you use to answer the user's question? You **only** have access to the following tool AIs:
 

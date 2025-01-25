@@ -76,10 +76,6 @@ async def apick_next_tool(
         tools=tool_options_str,
         chat_history=chat_history,
         personality_context=personality_context,
-        current_date=today.strftime("%Y-%m-%d"),
-        day_of_week=today.strftime("%A"),
-        username=user_name or "Unknown",
-        location=location_data,
         previous_iterations=previous_iterations_history,
         max_iterations=max_iterations,
     )
