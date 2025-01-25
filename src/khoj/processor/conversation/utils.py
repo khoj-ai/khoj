@@ -1,4 +1,5 @@
 import base64
+import csv
 import json
 import logging
 import math
@@ -11,6 +12,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from io import BytesIO
+from pathlib import Path
 from time import perf_counter
 from typing import Any, Callable, Dict, List, Optional
 
@@ -292,6 +294,74 @@ def save_to_conversation_log(
 
     if generated_mermaidjs_diagram:
         khoj_message_metadata["mermaidjsDiagram"] = generated_mermaidjs_diagram
+
+    # Get log file path in same directory as script
+    log_file = os.path.join(os.path.dirname(__file__), "research_execution.csv")
+
+    # Open in append mode
+    with open(log_file, "a+", newline="") as f:
+        writer = csv.writer(f)
+
+        # Write headers if file is empty
+        f.seek(0)
+        if not f.read():
+            writer.writerow(["timestamp", "query", "context", "response"])
+
+        EXCLUDED_PHRASES = [
+            "**Generating a well-informed response**",
+            "**Searching the Internet for**",
+            "**Running code snippet**",
+        ]
+
+        trains_of_thought = ""
+        for t in train_of_thought:
+            tot_contains_excluded_phrase = any(phrase in t["data"] for phrase in EXCLUDED_PHRASES)
+            if t["type"] == "status" and not tot_contains_excluded_phrase:
+                trains_of_thought += t["data"] + "\n\n"
+
+        # Write new row
+        writer.writerow(
+            [
+                datetime.now().isoformat(),
+                q,
+                trains_of_thought,
+                chat_response,
+            ]
+        )
+
+    # Formatted data
+    formatted_data_file = Path(__file__).parent / "research_execution.json"
+
+    # Create conversation object
+    new_conversation = {
+        "conversation": [
+            {"from": "user", "value": q},
+            {
+                "from": "assistant",
+                "value": f"<begin_of_thought>\n\n{trains_of_thought}<end_of_thought>\n\n<begin_of_solution>\n\n{chat_response}<end_of_solution>",
+            },
+        ]
+    }
+
+    # Load existing data or create new list
+    if formatted_data_file.exists():
+        with open(formatted_data_file) as f:
+            try:
+                conversations = json.load(f)
+            except json.JSONDecodeError:
+                conversations = []
+    else:
+        conversations = []
+
+    # Append new conversation
+    conversations.append(new_conversation)
+
+    # Write back atomically
+    temp_file = formatted_data_file.with_suffix(".tmp")
+    with open(temp_file, "w") as f:
+        json.dump(conversations, f, indent=2)
+
+    temp_file.replace(formatted_data_file)
 
     updated_conversation = message_to_log(
         user_message=q,
