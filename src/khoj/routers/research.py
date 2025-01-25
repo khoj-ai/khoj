@@ -60,7 +60,7 @@ async def apick_next_tool(
             tool_options_str += f'- "{tool.value}": "{description}"\n'
 
     # Construct chat history with user and iteration history with researcher agent for context
-    chat_history = construct_chat_history(conversation_history, agent_name=agent.name if agent else "Khoj")
+    chat_history = construct_chat_history(conversation_history)
     previous_iterations_history = construct_iteration_history(previous_iterations, prompts.previous_iteration)
 
     if query_images:

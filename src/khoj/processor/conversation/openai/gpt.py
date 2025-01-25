@@ -45,13 +45,10 @@ def extract_questions(
     """
     Infer search queries to retrieve relevant notes to answer user query
     """
-    location = f"{location_data}" if location_data else "Unknown"
-    username = prompts.user_name.format(name=user.get_full_name()) if user and user.get_full_name() else ""
-
     # Extract Past User Message and Inferred Questions from Conversation Log
     chat_history = "".join(
         [
-            f'Q: {chat["intent"]["query"]}\nKhoj: {{"queries": {chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}}}\nA: {chat["message"]}\n\n'
+            f'Q: {chat["intent"]["query"]}\S: {{"queries": {chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}}}\nA: {chat["message"]}\n\n'
             for chat in conversation_log.get("chat", [])[-4:]
             if chat["by"] == "khoj" and "to-image" not in chat["intent"].get("type")
         ]
@@ -60,23 +57,13 @@ def extract_questions(
     # Get dates relative to today for prompt creation
     today = datetime.today()
     current_new_year = today.replace(month=1, day=1)
-    last_new_year = current_new_year.replace(year=today.year - 1)
     temperature = 0.7
 
     prompt = prompts.extract_questions.format(
-        current_date=today.strftime("%Y-%m-%d"),
-        day_of_week=today.strftime("%A"),
-        current_month=today.strftime("%Y-%m"),
-        last_new_year=last_new_year.strftime("%Y"),
-        last_new_year_date=last_new_year.strftime("%Y-%m-%d"),
-        current_new_year_date=current_new_year.strftime("%Y-%m-%d"),
         bob_tom_age_difference={current_new_year.year - 1984 - 30},
         bob_age={current_new_year.year - 1984},
         chat_history=chat_history,
         text=text,
-        yesterday_date=(today - timedelta(days=1)).strftime("%Y-%m-%d"),
-        location=location,
-        username=username,
         personality_context=personality_context,
     )
 
@@ -176,10 +163,7 @@ def converse_openai(
             day_of_week=current_date.strftime("%A"),
         )
     else:
-        system_prompt = prompts.personality.format(
-            current_date=current_date.strftime("%Y-%m-%d"),
-            day_of_week=current_date.strftime("%A"),
-        )
+        system_prompt = prompts.personality.format()
 
     if location_data:
         location_prompt = prompts.user_location.format(location=f"{location_data}")

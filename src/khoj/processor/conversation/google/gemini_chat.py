@@ -186,10 +186,7 @@ def converse_gemini(
             day_of_week=current_date.strftime("%A"),
         )
     else:
-        system_prompt = prompts.personality.format(
-            current_date=current_date.strftime("%Y-%m-%d"),
-            day_of_week=current_date.strftime("%A"),
-        )
+        system_prompt = prompts.personality.format()
 
     system_prompt += f"{system_prompt}\n\n{prompts.gemini_verbose_language_personality}"
     if location_data:
