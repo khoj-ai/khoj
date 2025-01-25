@@ -163,15 +163,9 @@ def converse_openai(
             day_of_week=current_date.strftime("%A"),
         )
     else:
-        system_prompt = prompts.personality.format()
-
-    if location_data:
-        location_prompt = prompts.user_location.format(location=f"{location_data}")
-        system_prompt = f"{system_prompt}\n{location_prompt}"
-
-    if user_name:
-        user_name_prompt = prompts.user_name.format(name=user_name)
-        system_prompt = f"{system_prompt}\n{user_name_prompt}"
+        system_prompt = prompts.personality.format(
+            current_date=current_date.strftime("%Y-%m-%d"),
+        )
 
     # Get Conversation Primer appropriate to Conversation Type
     if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(references):

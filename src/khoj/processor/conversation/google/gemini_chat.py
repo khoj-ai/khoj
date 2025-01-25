@@ -67,14 +67,6 @@ def extract_questions_gemini(
 
     system_prompt = prompts.extract_questions_anthropic_system_prompt.format(
         current_date=today.strftime("%Y-%m-%d"),
-        day_of_week=today.strftime("%A"),
-        current_month=today.strftime("%Y-%m"),
-        last_new_year=last_new_year.strftime("%Y"),
-        last_new_year_date=last_new_year.strftime("%Y-%m-%d"),
-        current_new_year_date=current_new_year.strftime("%Y-%m-%d"),
-        yesterday_date=(today - timedelta(days=1)).strftime("%Y-%m-%d"),
-        location=location,
-        username=username,
         personality_context=personality_context,
     )
 
@@ -186,7 +178,7 @@ def converse_gemini(
             day_of_week=current_date.strftime("%A"),
         )
     else:
-        system_prompt = prompts.personality.format()
+        system_prompt = prompts.personality.format(current_date=current_date.strftime("%Y-%m-%d"))
 
     system_prompt += f"{system_prompt}\n\n{prompts.gemini_verbose_language_personality}"
     if location_data:
