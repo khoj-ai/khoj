@@ -18,10 +18,12 @@ from tenacity import (
 from khoj.processor.conversation.utils import (
     ThreadedGenerator,
     commit_conversation_trace,
+    commit_dataset_trace,
 )
 from khoj.utils.helpers import (
     get_chat_usage_metrics,
     get_openai_client,
+    is_datatrace_enabled,
     is_promptrace_enabled,
 )
 
@@ -81,6 +83,7 @@ def completion_with_backoff(
         stream=stream,
         temperature=temperature,
         timeout=20,
+        max_tokens=3000,
         **model_kwargs,
     )
 
@@ -112,6 +115,8 @@ def completion_with_backoff(
     tracer["temperature"] = temperature
     if is_promptrace_enabled():
         commit_conversation_trace(messages, aggregated_response, tracer)
+    if is_datatrace_enabled(tracer):
+        commit_dataset_trace(messages, aggregated_response)
 
     return aggregated_response
 

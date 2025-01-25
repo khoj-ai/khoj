@@ -85,6 +85,7 @@ async def apick_next_tool(
     )
 
     try:
+        tracer["save_to_dataset"] = True
         with timer("Chat actor: Infer information sources to refer", logger):
             response = await send_message_to_model_wrapper(
                 query=query,
@@ -95,6 +96,7 @@ async def apick_next_tool(
                 query_files=query_files,
                 tracer=tracer,
             )
+        tracer["save_to_dataset"] = False
     except Exception as e:
         logger.error(f"Failed to infer information sources to refer: {e}", exc_info=True)
         yield InformationCollectionIteration(

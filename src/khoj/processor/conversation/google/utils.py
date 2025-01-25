@@ -22,11 +22,13 @@ from tenacity import (
 from khoj.processor.conversation.utils import (
     ThreadedGenerator,
     commit_conversation_trace,
+    commit_dataset_trace,
     get_image_from_url,
 )
 from khoj.utils import state
 from khoj.utils.helpers import (
     get_chat_usage_metrics,
+    is_datatrace_enabled,
     is_none_or_empty,
     is_promptrace_enabled,
 )
@@ -90,6 +92,8 @@ def gemini_completion_with_backoff(
     tracer["temperature"] = temperature
     if is_promptrace_enabled():
         commit_conversation_trace(messages, response_text, tracer)
+    if is_datatrace_enabled(tracer):
+        commit_dataset_trace(messages, response_text)
 
     return response_text
 
