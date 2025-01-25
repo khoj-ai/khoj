@@ -73,7 +73,10 @@ def main():
     parser.add_argument("--datatrace_path", type=str, required=True, help="Path to datatrace CSV")
     parser.add_argument("--eval_path", type=str, required=True, help="Path to evaluation results CSV")
     parser.add_argument("--output_path", type=str, required=True, help="Path to save filtered dataset")
+    parser.add_argument("--repo_name", type=str, required=True, help="HuggingFace repo in user/dataset format")
     args = parser.parse_args()
+
+    hf_token = os.getenv("HF_TOKEN")
 
     try:
         # Load data
@@ -86,9 +89,19 @@ def main():
         # Convert to HF Dataset
         dataset = Dataset.from_pandas(good_rows)
 
-        # Save dataset
-        dataset.save_to_disk(args.output_path)
-        logging.info(f"Saved filtered dataset with {len(dataset)} rows to {args.output_path}")
+        # Push dataset to HF Hub
+        if args.repo_name and hf_token:
+            dataset.push_to_hub(
+                repo_id=args.repo_name,
+                token=hf_token,
+                private=True,
+                commit_message="Upload filtered research mode tool selection dataset",
+            )
+            logging.info(f"Pushed dataset with {len(dataset)} rows to {args.repo_name}")
+        # Save dataset to disk
+        elif args.output_path:
+            dataset.save_to_disk(args.output_path)
+            logging.info(f"Saved filtered dataset with {len(dataset)} rows to {args.output_path}")
 
     except Exception as e:
         logging.error(f"Error processing dataset: {str(e)}")
