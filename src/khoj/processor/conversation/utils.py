@@ -879,16 +879,18 @@ def commit_dataset_trace(
     response: str | list[dict],
     dataset_path: str = None,
 ) -> str:
-    """
-    Save data trace of conversation step in CSV format. Useful for model training and debugging.
-    Returns the path to the data trace file.
-    """
-    # Infer repository path from environment variable or provided path
+    """Save data trace of conversation step in JSONL format."""
     dataset_path = dataset_path if not is_none_or_empty(dataset_path) else os.getenv("DATATRACE_PATH")
     if not dataset_path:
         return None
 
-    # Normalize conversation session
+    # Ensure .jsonl extension
+    dataset_path = dataset_path if dataset_path.endswith(".jsonl") else f"{dataset_path}.jsonl"
+
+    # Create directory if needed
+    os.makedirs(os.path.dirname(dataset_path), exist_ok=True)
+
+    # Format the new record
     session = [
         ChatMessage(
             content="\n\n".join(message.content) if isinstance(message.content, list) else message.content,
@@ -896,27 +898,32 @@ def commit_dataset_trace(
         )
         for message in session
     ]
-    # Extract system message as string from messages
+
     system_message = "\n\n".join([message.content for message in session if message.role == "system"])
     if is_none_or_empty(system_message):
         system_message = session.pop(0).content
 
-    # Serialize conversation session as list of dictionaries format
     session.append(ChatMessage(content=response, role="assistant"))
     formatted_session = [{"from": message.role, "value": message.content} for message in session]
-    row = {
+
+    new_row = {
         "system": system_message,
-        "conversations": json.dumps(formatted_session),
+        "conversations": formatted_session,
     }
 
-    # Update and save dataset
-    os.makedirs(os.path.dirname(dataset_path), exist_ok=True)
-    with open(dataset_path, "a", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["system", "conversations"])
-        # Write header if file doesn't exist
-        if not os.path.isfile(dataset_path):
-            logger.debug(f"Creating new dataset at {dataset_path}")
-            writer.writeheader()
-        writer.writerow(row)
+    # Append single record atomically
+    temp_path = f"{dataset_path}.tmp"
+    with open(temp_path, "a", encoding="utf-8") as f:
+        json.dump(new_row, f, ensure_ascii=False)
+        f.write("\n")
+
+    if os.path.exists(dataset_path):
+        with open(dataset_path, "a", encoding="utf-8") as main_file:
+            with open(temp_path, "r", encoding="utf-8") as temp_file:
+                main_file.write(temp_file.read())
+    else:
+        os.replace(temp_path, dataset_path)
+
+    os.remove(temp_path)
 
     return dataset_path

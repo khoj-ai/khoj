@@ -19,6 +19,7 @@ import pandas as pd
 import requests
 import yaml
 from datasets import Dataset, load_dataset
+from dotenv import load_dotenv
 from tqdm import tqdm
 
 from khoj.utils.helpers import (
@@ -31,6 +32,9 @@ from khoj.utils.helpers import (
 # Configure root logger
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
+
+# Load environment variables
+load_dotenv()
 
 # Configuration
 KHOJ_URL = os.getenv("KHOJ_URL", "http://localhost:42110")
@@ -47,6 +51,9 @@ BATCH_SIZE = int(
     os.getenv("BATCH_SIZE", int(SAMPLE_SIZE) / 10 if SAMPLE_SIZE else 10)
 )  # Examples to evaluate in each batch
 SLEEP_SECONDS = 3 if KHOJ_MODE == "general" else 1  # Sleep between API calls to avoid rate limiting
+
+# Add at module level
+DF_LOCK = Lock()
 
 
 class Counter:
@@ -498,17 +505,19 @@ def evaluate_response_with_gemini(
         return None, f"Evaluation failed: {str(e)}", 0.0
 
 
-def process_batch(batch, batch_start, results, dataset_length, response_evaluator):
+def process_batch(batch, batch_start, results: pd.DataFrame, dataset_length, response_evaluator):
     global running_cost
     for idx, (prompt, answer, reasoning_type) in enumerate(batch):
         current_index = batch_start + idx
         logger.info(f"Processing example: {current_index}/{dataset_length}")
 
         # Trigger research mode if enabled
-        prompt = f"/{KHOJ_MODE} {prompt}" if KHOJ_MODE and not prompt.startswith(f"/{KHOJ_MODE}") else prompt
+        prompt_to_evaluate = (
+            f"/{KHOJ_MODE} {prompt}" if KHOJ_MODE and not prompt.startswith(f"/{KHOJ_MODE}") else prompt
+        )
 
         # Get agent response
-        response = get_agent_response(prompt)
+        response = get_agent_response(prompt_to_evaluate)
         agent_response = response["response"]
         agent_usage = response["usage"]
         agent_references = response["references"]
@@ -521,8 +530,9 @@ def process_batch(batch, batch_start, results, dataset_length, response_evaluato
             decision, explanation, eval_cost = response_evaluator(prompt, agent_response, answer, agent_references)
 
         # Store results
-        results.append(
-            {
+        # Thread-safe DataFrame modification
+        with DF_LOCK:
+            results.loc[current_index] = {
                 "index": current_index,
                 "prompt": prompt,
                 "ground_truth": answer,
@@ -531,9 +541,9 @@ def process_batch(batch, batch_start, results, dataset_length, response_evaluato
                 "evaluation_explanation": explanation,
                 "reasoning_type": reasoning_type,
                 "usage": agent_usage,
-                "references": agent_references,
             }
-        )
+
+        logger.info(f"Results: new_row: {results.to_dict()}")
 
         # Update running cost
         query_cost = float(agent_usage.get("cost", 0.0))
@@ -624,7 +634,7 @@ def main():
         return
 
     # Initialize variables
-    results = []
+
     dataset_length = len(dataset["Prompt"])
     if args.dataset == "gpqa":
         response_evaluator = evaluate_response_with_mcq_match
@@ -637,6 +647,20 @@ def main():
     else:
         response_evaluator = evaluate_response_with_gemini
 
+    results_df = pd.DataFrame(
+        index=range(dataset_length),
+        columns=[
+            "index",
+            "prompt",
+            "ground_truth",
+            "agent_response",
+            "evaluation_decision",
+            "evaluation_explanation",
+            "reasoning_type",
+            "usage",
+        ],
+    )
+
     # Process examples in batches
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = []
@@ -648,14 +672,14 @@ def main():
                 dataset["reasoning_types"][i : i + BATCH_SIZE],
             )
             futures.append(
-                executor.submit(process_batch, batch, batch_start, results, dataset_length, response_evaluator)
+                executor.submit(process_batch, batch, batch_start, results_df, dataset_length, response_evaluator)
             )
 
         # Wait for all futures to complete
         concurrent.futures.wait(futures)
 
     # Calculate metrics
-    df = pd.DataFrame(results)
+    df = results_df.copy()
     eval_df = df.dropna(subset=["evaluation_decision"])  # Exclude rows with missing evaluation decision
     accuracy = (eval_df["evaluation_decision"]).mean()
 
