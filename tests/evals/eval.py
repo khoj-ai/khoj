@@ -512,11 +512,12 @@ def process_batch(batch, batch_start, results: pd.DataFrame, dataset_length, res
         logger.info(f"Processing example: {current_index}/{dataset_length}")
 
         # Trigger research mode if enabled
-        # prompt = f"/{KHOJ_MODE} {prompt}" if KHOJ_MODE and not prompt.startswith(f"/{KHOJ_MODE}") else prompt
-        prompt = f"{prompt}"  # Temporary: We want to remove the prefix for training data construction
+        prompt_to_evaluate = (
+            f"/{KHOJ_MODE} {prompt}" if KHOJ_MODE and not prompt.startswith(f"/{KHOJ_MODE}") else prompt
+        )
 
         # Get agent response
-        response = get_agent_response(prompt)
+        response = get_agent_response(prompt_to_evaluate)
         agent_response = response["response"]
         agent_usage = response["usage"]
         agent_references = response["references"]
