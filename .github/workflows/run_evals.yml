@@ -33,6 +33,12 @@ on:
         default: 200
         type: number
 
+      hf_repo_name:
+        description: 'HuggingFace data tracer repo name to output the results'
+        required: false
+        default: 'khoj-ai/datatracer-frames'
+        type: string
+
 jobs:
   eval:
     runs-on: ubuntu-latest
@@ -130,6 +136,9 @@ jobs:
 
           # Run evals
           python tests/evals/eval.py -d ${{ matrix.dataset }}
+
+          # Run data tracer script to upload filtered results to hf repo passed as arg
+          python scripts/create_dataset_from_eval.py --repo_name ${{ inputs.hf_repo_name }} --eval_path ${{ matrix.dataset }}_evaluation_results_*.csv --datatrace_path datatracer.csv
 
       - name: Upload Results
         if: always()  # Upload results even if tests fail
