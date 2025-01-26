@@ -167,7 +167,7 @@ def converse_anthropic(
             day_of_week=current_date.strftime("%A"),
         )
     else:
-        system_prompt = prompts.personality.format()
+        system_prompt = prompts.personality.format(current_date=current_date.strftime("%Y-%m-%d"))
 
     # Get Conversation Primer appropriate to Conversation Type
     if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(references):
