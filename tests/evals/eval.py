@@ -230,7 +230,7 @@ def load_skythought_dataset():
     """
 
     try:
-        dataset = load_dataset("NovaSky-AI/Sky-T1_data_17k")
+        dataset = load_dataset("bespokelabs/Bespoke-Stratos-17k")
         # Use test split for evaluation. Sample and shuffle dataset if configured
         dataset = dataset.shuffle() if RANDOMIZE else dataset
 
