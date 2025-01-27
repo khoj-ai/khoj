@@ -74,6 +74,7 @@ def main():
     eval_path = os.getenv("EVAL_PATH")
     output_path = os.getenv("OUTPUT_PATH")
     repo_name = os.getenv("REPO_NAME")
+    thoughts_repo_name = os.getenv("THOUGHTS_REPO_NAME")
 
     # parser.add_argument("--datatrace_path", type=str, required=True, help="Path to datatrace CSV")
     # parser.add_argument("--eval_path", type=str, required=True, help="Path to evaluation results CSV")
@@ -121,21 +122,21 @@ def main():
             fullthoughts_df = fullthoughts_df[fullthoughts_df["prompt"].isin(good_rows["prompt"])]
 
             with tempfile.TemporaryDirectory() as tmp_dir:
-                json_path = os.path.join(tmp_dir, "thoughts.json")
+                json_path = os.path.join(tmp_dir, "data.json")
                 datatrace_df.to_json(json_path, orient="records", indent=2)
 
                 if repo_name and hf_token:
                     api = HfApi(token=hf_token)
                     api.upload_file(
                         path_or_fileobj=json_path,
-                        path_in_repo="thoughts.json",
-                        repo_id=repo_name,
+                        path_in_repo="data.json",
+                        repo_id=thoughts_repo_name,
                         repo_type="dataset",
                         commit_message="Upload filtered dataset as JSON",
                     )
                     logging.info(f"Pushed JSON dataset with {len(fullthoughts_df)} rows to {repo_name}")
                 elif output_path:
-                    output_json = os.path.join(output_path, "thoughts.json")
+                    output_json = os.path.join(output_path, "data.json")
                     fullthoughts_df.to_json(output_json, orient="records", indent=2)
                     logging.info(f"Saved JSON dataset with {len(fullthoughts_df)} rows to {output_json}")
 
