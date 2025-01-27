@@ -324,8 +324,13 @@ def save_to_conversation_log(
 
     formatted_assistant_response = f"<begin_of_thought>\n\n{trains_of_thought}<end_of_thought>\n\n<begin_of_solution>\n\n{chat_response}<end_of_solution>"
 
+    system_prompt = prompts.personality.format(
+        current_date=datetime.now().strftime("%Y-%m-%d"),
+    )
+
     session_messages = [
         ChatMessage(content=q, role="user"),
+        ChatMessage(content=system_prompt, role="system"),
     ]
 
     FULL_THOUGHTS_PATH = os.getenv("FULL_THOUGHTS_PATH", None)
@@ -334,7 +339,7 @@ def save_to_conversation_log(
         commit_dataset_trace(
             session_messages,
             formatted_assistant_response,
-            "tmp/full_thoughts.jsonl",
+            FULL_THOUGHTS_PATH,
         )
 
     if is_promptrace_enabled():
@@ -932,7 +937,9 @@ def commit_dataset_trace(
         system_message = session.pop(0).content
 
     session.append(ChatMessage(content=response, role="assistant"))
-    formatted_session = [{"from": message.role, "value": message.content} for message in session]
+    formatted_session = [
+        {"from": message.role, "value": message.content} for message in session if message.role in ["user", "assistant"]
+    ]
 
     new_row = {
         "system": system_message,
