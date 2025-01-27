@@ -119,11 +119,12 @@ def main():
         if fullthoughts_path:
             # Load fullthoughts dataset
             fullthoughts_df = load_dataset_from_jsonl(fullthoughts_path)
-            fullthoughts_df = fullthoughts_df[fullthoughts_df["prompt"].isin(good_rows["prompt"])]
+
+            good_rows = get_good_dataset_rows(fullthoughts_df, eval_df)
 
             with tempfile.TemporaryDirectory() as tmp_dir:
                 json_path = os.path.join(tmp_dir, "data.json")
-                datatrace_df.to_json(json_path, orient="records", indent=2)
+                good_rows.to_json(json_path, orient="records", indent=2)
 
                 if repo_name and hf_token:
                     api = HfApi(token=hf_token)
