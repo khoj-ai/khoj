@@ -18,7 +18,8 @@ import requests
 import yaml
 from datasets import Dataset, load_dataset
 from dotenv import load_dotenv
-from pylatexenc.latex2text import LatexNodes2Text
+from latex2sympy2_extended.latex2sympy2 import NormalizationConfig
+from math_verify import LatexExtractionConfig, parse, verify
 from tqdm import tqdm
 
 from khoj.utils.helpers import (
@@ -228,29 +229,6 @@ def load_skythought_dataset():
     <|begin_of_thought|> <thought> <|end_of_thought|> <|begin_of_solution|> <answer> <|end_of_solution|>
     """
 
-    def extract_boxed_content(text):
-        stack = []
-        i = 0
-        while i < len(text):
-            if text[i:].startswith("\\boxed{"):
-                i += 7  # Skip '\boxed{'
-                start = i
-                brace_count = 1
-                while i < len(text) and brace_count > 0:
-                    if text[i] == "{":
-                        brace_count += 1
-                    elif text[i] == "}":
-                        brace_count -= 1
-                    i += 1
-                if brace_count == 0:
-                    stack.append(text[start : i - 1])
-                continue
-            i += 1
-        return stack[0] if stack else None
-
-    def clean_latex(text):
-        return LatexNodes2Text().latex_to_text(text)
-
     try:
         dataset = load_dataset("NovaSky-AI/Sky-T1_data_17k")
         # Use test split for evaluation. Sample and shuffle dataset if configured
@@ -267,15 +245,9 @@ def load_skythought_dataset():
             assistant_response = d["conversations"][1]["value"]
             match = re.search(r"<\|begin_of_solution\|>\s*(.*?)\s*<\|end_of_solution\|>", assistant_response, re.DOTALL)
             answer = match.group(1) if match else None
-            # The final correct answer is within the `answer` variable, denoted by the word box in curly brackets, like `\boxed{correct answer}`` in the assistant response. Extract it.
-            box_answer = extract_boxed_content(answer) if answer else None
-            if not box_answer:
-                box_answer = extract_boxed_content(assistant_response) if assistant_response else None
-
-            if box_answer:
-                box_answer = box_answer.strip()
-                box_answer = clean_latex(box_answer)
-                formatted_data.append({"Prompt": user_prompt, "Answer": box_answer, "reasoning_types": "unknown"})
+            formatted_data.append(
+                {"Prompt": user_prompt, "Answer": answer or assistant_response, "reasoning_types": "unknown"}
+            )
 
         dataset = Dataset.from_list(formatted_data)
         return dataset[: int(SAMPLE_SIZE)] if SAMPLE_SIZE else dataset
@@ -459,7 +431,7 @@ def calculate_precision_recall(numerator: int, denominator: int) -> float:
         return numerator / denominator
 
 
-def calculate_fi(precision: float, recall: float) -> float:
+def calculate_f1(precision: float, recall: float) -> float:
     """Calculate F1 score from precision and recall"""
     return 2 * (precision * recall) / (precision + recall) if precision + recall > 0 else 0.0
 
@@ -482,7 +454,7 @@ def evaluate_response_for_ir(
         articles = get_articles_by_prompt_id(ground_truth)
         precision = calculate_precision_recall(count_of_correct_articles_used_by_agent, len(unique_file_refs))
         recall = calculate_precision_recall(count_of_correct_articles_used_by_agent, len(articles))
-        f1 = calculate_fi(precision, recall)
+        f1 = calculate_f1(precision, recall)
 
         explanation = (
             f"Information Retrieval F1 Score: {f1:.2%} Recall: {recall:.2%}, Precision: {precision:.2%}.\n"
@@ -503,6 +475,42 @@ def evaluate_response_for_ir(
     except Exception as e:
         logger.error(f"Error in IR evaluation: {e}")
         return None, f"Evaluation failed: {str(e)}", 0.0
+
+
+def evaluate_response_for_latex_match_with_llm_fallback(
+    query: str, agent_response: str, ground_truth: str, agent_references: dict = {}
+) -> tuple[bool | None, str, float]:
+    """Evaluate Khoj response against benchmark ground truth using string matching"""
+    # Initialize variables
+    cost = 0.0
+    extraction_config = [
+        LatexExtractionConfig(
+            normalization_config=NormalizationConfig(
+                basic_latex=True, boxed=True, equations=True, units=False, malformed_operators=False, nits=False
+            )
+        )
+    ]
+
+    try:
+        # Extract answer from agent response
+        extracted_answer = parse(agent_response, extraction_config)
+        extracted_ground_truth = parse(ground_truth, extraction_config)
+
+        # Check if extracted answer matches extracted ground truth
+        decision = verify(extracted_ground_truth, extracted_answer)
+
+        # Fallback to LLM for decision if parse & match fails
+        if not decision:
+            decision, explanation, cost = evaluate_response_with_gemini(
+                query, agent_response, ground_truth, agent_references
+            )
+        explanation = f"Agent response {'matches' if decision else 'does not match'} ground truth {ground_truth}"
+
+        # Return decision, explanation and cost in structured form
+        return float(decision), explanation, cost
+    except Exception as e:
+        logger.error(f"Error in evaluation: {e}")
+        return None, f"Evaluation failed: {str(e)}", cost
 
 
 def evaluate_response_with_mcq_match(
@@ -716,16 +724,15 @@ def main():
         return
 
     # Initialize variables
-
     dataset_length = len(dataset["Prompt"])
     if args.dataset == "gpqa":
         response_evaluator = evaluate_response_with_mcq_match
     elif args.dataset == "math500":
-        response_evaluator = partial(
-            evaluate_response_with_gemini, eval_model=os.getenv("GEMINI_EVAL_MODEL", "gemini-1.5-flash-002")
-        )
+        response_evaluator = evaluate_response_for_latex_match_with_llm_fallback
     elif args.dataset == "frames_ir":
         response_evaluator = evaluate_response_for_ir
+    elif args.dataset == "skythought":
+        response_evaluator = evaluate_response_for_latex_match_with_llm_fallback
     else:
         response_evaluator = evaluate_response_with_gemini
 
