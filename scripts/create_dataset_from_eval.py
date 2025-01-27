@@ -70,6 +70,7 @@ def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description="Create filtered dataset from evaluation results")
     datatrace_path = os.getenv("DATATRACE_PATH")
+    fullthoughts_path = os.getenv("FULLTHOUGHTS_PATH")
     eval_path = os.getenv("EVAL_PATH")
     output_path = os.getenv("OUTPUT_PATH")
     repo_name = os.getenv("REPO_NAME")
@@ -113,6 +114,30 @@ def main():
                 output_json = os.path.join(output_path, "data.json")
                 good_rows.to_json(output_json, orient="records", indent=2)
                 logging.info(f"Saved JSON dataset with {len(good_rows)} rows to {output_json}")
+
+        if fullthoughts_path:
+            # Load fullthoughts dataset
+            fullthoughts_df = load_dataset_from_jsonl(fullthoughts_path)
+            fullthoughts_df = fullthoughts_df[fullthoughts_df["prompt"].isin(good_rows["prompt"])]
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                json_path = os.path.join(tmp_dir, "thoughts.json")
+                datatrace_df.to_json(json_path, orient="records", indent=2)
+
+                if repo_name and hf_token:
+                    api = HfApi(token=hf_token)
+                    api.upload_file(
+                        path_or_fileobj=json_path,
+                        path_in_repo="thoughts.json",
+                        repo_id=repo_name,
+                        repo_type="dataset",
+                        commit_message="Upload filtered dataset as JSON",
+                    )
+                    logging.info(f"Pushed JSON dataset with {len(fullthoughts_df)} rows to {repo_name}")
+                elif output_path:
+                    output_json = os.path.join(output_path, "thoughts.json")
+                    fullthoughts_df.to_json(output_json, orient="records", indent=2)
+                    logging.info(f"Saved JSON dataset with {len(fullthoughts_df)} rows to {output_json}")
 
     except Exception as e:
         logging.error(f"Error processing dataset: {str(e)}")

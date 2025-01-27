@@ -328,11 +328,14 @@ def save_to_conversation_log(
         ChatMessage(content=q, role="user"),
     ]
 
-    commit_dataset_trace(
-        session_messages,
-        formatted_assistant_response,
-        "tmp/full_thoughts.jsonl",
-    )
+    FULL_THOUGHTS_PATH = os.getenv("FULL_THOUGHTS_PATH", None)
+
+    if FULL_THOUGHTS_PATH:
+        commit_dataset_trace(
+            session_messages,
+            formatted_assistant_response,
+            "tmp/full_thoughts.jsonl",
+        )
 
     if is_promptrace_enabled():
         merge_message_into_conversation_trace(q, chat_response, tracer)
