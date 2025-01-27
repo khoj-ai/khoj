@@ -5,6 +5,7 @@ from typing import Callable, Dict, List, Optional
 import yaml
 from fastapi import Request
 
+from khoj.database.adapters import EntryAdapters
 from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
@@ -54,7 +55,11 @@ async def apick_next_tool(
     tool_options = dict()
     tool_options_str = ""
     agent_tools = agent.input_tools if agent else []
+    user_has_entries = await EntryAdapters.auser_has_entries(user)
     for tool, description in function_calling_description_for_llm.items():
+        # Skip showing Notes tool as an option if user has no entries
+        if tool == ConversationCommand.Notes and not user_has_entries:
+            continue
         tool_options[tool.value] = description
         if len(agent_tools) == 0 or tool.value in agent_tools:
             tool_options_str += f'- "{tool.value}": "{description}"\n'

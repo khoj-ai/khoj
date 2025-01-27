@@ -357,8 +357,12 @@ async def aget_data_sources_and_output_format(
     source_options_str = ""
 
     agent_sources = agent.input_tools if agent else []
+    user_has_entries = await EntryAdapters.auser_has_entries(user)
 
     for source, description in tool_descriptions_for_llm.items():
+        # Skip showing Notes tool as an option if user has no entries
+        if source == ConversationCommand.Notes and not user_has_entries:
+            continue
         source_options[source.value] = description
         if len(agent_sources) == 0 or source.value in agent_sources:
             source_options_str += f'- "{source.value}": "{description}"\n'
