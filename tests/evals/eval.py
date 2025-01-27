@@ -257,6 +257,10 @@ def load_skythought_dataset():
 
         formatted_data = []
         for d in dataset["train"]:
+            if len(formatted_data) >= int(SAMPLE_SIZE):
+                # Exit loop if sample size is reached
+                break
+
             # Extract the answer from the assistant response
             user_prompt = d["conversations"][0]["value"]
             assistant_response = d["conversations"][1]["value"]
