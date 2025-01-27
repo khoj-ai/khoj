@@ -3,6 +3,7 @@ import base64
 import concurrent.futures
 import json
 import logging
+import multiprocessing
 import os
 import re
 import time
@@ -51,7 +52,6 @@ BATCH_SIZE = int(
     os.getenv("BATCH_SIZE", int(SAMPLE_SIZE) / 10 if SAMPLE_SIZE else 10)
 )  # Examples to evaluate in each batch
 SLEEP_SECONDS = 3 if KHOJ_MODE == "general" else 1  # Sleep between API calls to avoid rate limiting
-SELECTED_DATASETS = os.getenv("DATASETS", "skythought").split(",")
 
 # Add at module level
 DF_LOCK = Lock()
@@ -492,12 +492,13 @@ def evaluate_response_for_latex_match_with_llm_fallback(
     ]
 
     try:
-        # Extract answer from agent response
-        extracted_answer = parse(agent_response, extraction_config)
-        extracted_ground_truth = parse(ground_truth, extraction_config)
+        with multiprocessing.Pool(1) as pool:
+            # Extract answer from agent response - pass function and args separately
+            extracted_answer = pool.apply(parse, args=(agent_response, extraction_config))
+            extracted_ground_truth = pool.apply(parse, args=(ground_truth, extraction_config))
 
-        # Check if extracted answer matches extracted ground truth
-        decision = verify(extracted_ground_truth, extracted_answer)
+            # Check if extracted answer matches extracted ground truth
+            decision = pool.apply(verify, args=(extracted_ground_truth, extracted_answer))
 
         # Fallback to LLM for decision if parse & match fails
         if not decision:
@@ -698,28 +699,22 @@ def main():
 
     # Load dataset
     with timer(f"Loaded {args.dataset} dataset in", logger, log_level=logging.INFO):
-        if "frames" in SELECTED_DATASETS:
-            frames_dataset = load_frames_dataset()
-            dataset.update(frames_dataset)
-        if "simpleqa" in SELECTED_DATASETS:
-            simpleqa_dataset = load_simpleqa_dataset()
-            dataset.update(simpleqa_dataset)
-        if "gpqa" in SELECTED_DATASETS:
-            gpqa_dataset = load_gpqa_dataset()
-            dataset.update(gpqa_dataset)
-        if "math500" in SELECTED_DATASETS:
-            math500_dataset = load_math500_dataset()
-            dataset.update(math500_dataset)
-        if "skythought" in SELECTED_DATASETS:
-            skythought_dataset = load_skythought_dataset()
-            dataset.update(skythought_dataset)
-        if "frames_ir" in SELECTED_DATASETS:
+        if args.dataset == "frames":
+            dataset = load_frames_dataset()
+        elif args.dataset == "simpleqa":
+            dataset = load_simpleqa_dataset()
+        elif args.dataset == "gpqa":
+            dataset = load_gpqa_dataset()
+        elif args.dataset == "math500":
+            dataset = load_math500_dataset()
+        elif args.dataset == "skythought":
+            dataset = load_skythought_dataset()
+        elif args.dataset == "frames_ir":
             indexed = index_frames_kb()
             if indexed:
-                frames_ir_dataset = load_frames_dataset()
-                frames_ir_dataset["Answer"] = frames_ir_dataset.pop("Unnamed: 0")
-                dataset.update(frames_ir_dataset)
-
+                dataset = load_frames_dataset()
+                # Rename the index field, 'Unnamed: 0' to 'Answer' for IR evaluation
+                dataset["Answer"] = dataset["Unnamed: 0"]
     if dataset is None:
         return
 
