@@ -592,7 +592,7 @@ def process_batch(batch, batch_start, results: pd.DataFrame, dataset_length, res
     global running_cost
     for idx, (prompt, answer, reasoning_type) in enumerate(batch):
         current_index = batch_start + idx
-        logger.info(f"Processing example: {current_index}/{dataset_length}")
+        logger.info(f"Processing example: {current_index+1}/{dataset_length}")
 
         # Trigger research mode if enabled
         prompt_to_evaluate = (
@@ -746,14 +746,15 @@ def main():
     )
 
     # Process examples in batches
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    parallel_size = dataset_length // BATCH_SIZE
+    with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_size) as executor:
         futures = []
         for i in range(0, dataset_length, BATCH_SIZE):
-            batch_start = i
+            batch_start, batch_end = i, min(i + BATCH_SIZE, dataset_length)
             batch = zip(
-                dataset["Prompt"][i : i + BATCH_SIZE],
-                dataset["Answer"][i : i + BATCH_SIZE],
-                dataset["reasoning_types"][i : i + BATCH_SIZE],
+                dataset["Prompt"][batch_start:batch_end],
+                dataset["Answer"][batch_start:batch_end],
+                dataset["reasoning_types"][batch_start:batch_end],
             )
             futures.append(
                 executor.submit(process_batch, batch, batch_start, results_df, dataset_length, response_evaluator)
