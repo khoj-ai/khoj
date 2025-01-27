@@ -528,7 +528,7 @@ def evaluate_response_with_gemini(
     evaluation_prompt = f"""
     Compare the following agent response with the ground truth answer.
     Determine if the agent response contains the key information from the ground truth.
-    Focus on factual correctness rather than exact wording.
+    Focus on factual correctness rather than exact wording. The responses may be in Latex format.
 
     Query: {query}
     Agent Response: {agent_response}

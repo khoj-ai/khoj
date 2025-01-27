@@ -309,6 +309,31 @@ def save_to_conversation_log(
         user_message=q,
     )
 
+    EXCLUDED_PHRASES = [
+        "**Generating a well-informed response**",
+        "**Searching the Internet for**",
+        "**Running code snippet**",
+        "**Ran code snippets**",
+    ]
+
+    trains_of_thought = ""
+    for t in train_of_thought:
+        tot_contains_excluded_phrase = any(phrase in t["data"] for phrase in EXCLUDED_PHRASES)
+        if t["type"] == "status" and not tot_contains_excluded_phrase:
+            trains_of_thought += t["data"] + "\n\n"
+
+    formatted_assistant_response = f"<begin_of_thought>\n\n{trains_of_thought}<end_of_thought>\n\n<begin_of_solution>\n\n{chat_response}<end_of_solution>"
+
+    session_messages = [
+        ChatMessage(content=q, role="user"),
+    ]
+
+    commit_dataset_trace(
+        session_messages,
+        formatted_assistant_response,
+        "tmp/full_thoughts.jsonl",
+    )
+
     if is_promptrace_enabled():
         merge_message_into_conversation_trace(q, chat_response, tracer)
 
@@ -924,6 +949,9 @@ def commit_dataset_trace(
     else:
         os.replace(temp_path, dataset_path)
 
-    os.remove(temp_path)
+    try:
+        os.remove(temp_path)
+    except Exception as e:
+        logger.error(f"Failed to remove temporary file {temp_path}: {e}")
 
     return dataset_path
