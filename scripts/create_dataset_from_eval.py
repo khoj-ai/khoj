@@ -24,21 +24,30 @@ def load_dataset_from_jsonl(dataset_path: str) -> pd.DataFrame:
     return datatrace
 
 
-def load_eval_results_from_csv(eval_results_path: str) -> pd.DataFrame:
+def load_eval_results_from_csv(eval_results_paths: str | list[str]) -> pd.DataFrame:
     """
-    Load evaluation results from CSV into Pandas DataFrame.99
-    CSV rows should have the following columns:
-    index,prompt,ground_truth,agent_response,evaluation_decision,evaluation_explanation,reasoning_type,usage
+    Load evaluation results from one or more CSV files into a single Pandas DataFrame.
 
+    Args:
+        eval_results_paths: Single path string or list of paths to CSV files
 
+    Returns:
+        Combined DataFrame with all evaluation results
     """
-    if not os.path.exists(eval_results_path):
-        return pd.DataFrame()
+    # Convert single path to list
+    if isinstance(eval_results_paths, str):
+        eval_results_paths = [eval_results_paths]
 
-    # Read CSV
-    eval = pd.read_csv(eval_results_path)
+    # Initialize empty DataFrame
+    combined_df = pd.DataFrame()
 
-    return eval
+    # Load and concatenate each CSV file
+    for path in eval_results_paths:
+        if os.path.exists(path):
+            df = pd.read_csv(path)
+            combined_df = pd.concat([combined_df, df], ignore_index=True)
+
+    return combined_df
 
 
 def get_good_dataset_rows(datatrace: pd.DataFrame, eval: pd.DataFrame) -> pd.DataFrame:
@@ -71,7 +80,7 @@ def main():
     parser = argparse.ArgumentParser(description="Create filtered dataset from evaluation results")
     datatrace_path = os.getenv("DATATRACE_PATH")
     fullthoughts_path = os.getenv("FULLTHOUGHTS_PATH")
-    eval_path = os.getenv("EVAL_PATH")
+    eval_paths = os.getenv("EVAL_PATH").split(",") if os.getenv("EVAL_PATH") else None
     output_path = os.getenv("OUTPUT_PATH")
     repo_name = os.getenv("REPO_NAME")
     thoughts_repo_name = os.getenv("THOUGHTS_REPO_NAME")
@@ -87,7 +96,7 @@ def main():
     try:
         # Load data
         datatrace_df = load_dataset_from_jsonl(datatrace_path)
-        eval_df = load_eval_results_from_csv(eval_path)
+        eval_df = load_eval_results_from_csv(eval_paths)
 
         # Get filtered rows
         good_rows = get_good_dataset_rows(datatrace_df, eval_df)
