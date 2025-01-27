@@ -3,6 +3,7 @@ import datetime
 import logging
 import mimetypes
 import os
+import re
 from pathlib import Path
 from typing import Any, Callable, List, NamedTuple, Optional
 
@@ -127,21 +128,23 @@ async def generate_python_code(
     response = await send_message_to_model_wrapper(
         code_generation_prompt,
         query_images=query_images,
-        response_type="json_object",
         user=user,
         tracer=tracer,
         query_files=query_files,
     )
 
-    # Validate that the response is a non-empty, JSON-serializable list
-    response = load_complex_json(response)
-    code = response.get("code", "").strip()
-    input_files = response.get("input_files", [])
-    input_links = response.get("input_links", [])
+    # Extract python code wrapped in markdown code blocs from the response
+    code_blocks = re.findall(r"```(?:python)?\n(.*?)\n```", response, re.DOTALL)
+
+    if not code_blocks:
+        raise ValueError("No Python code blocks found in response")
+
+    # Join multiple code blocks with newlines and strip any leading/trailing whitespace
+    code = "\n".join(code_blocks).strip()
 
     if not isinstance(code, str) or is_none_or_empty(code):
         raise ValueError
-    return GeneratedCode(code, input_files, input_links)
+    return GeneratedCode(code, [], [])
 
 
 async def execute_sandboxed_python(code: str, input_data: list[dict], sandbox_url: str = SANDBOX_URL) -> dict[str, Any]:
