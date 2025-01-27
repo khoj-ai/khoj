@@ -243,7 +243,9 @@ def load_skythought_dataset():
             # Extract the answer from the assistant response
             user_prompt = d["conversations"][0]["value"]
             assistant_response = d["conversations"][1]["value"]
-            match = re.search(r"<\|begin_of_solution\|>\s*(.*?)\s*<\|end_of_solution\|>", assistant_response, re.DOTALL)
+            match = re.search(
+                r"<\|begin_of_solution\|>\s*([\s\S]*?)(?=\s*<\|end_of_solution\|>|\Z)", assistant_response, re.DOTALL
+            )
             answer = match.group(1) if match else None
             formatted_data.append(
                 {"Prompt": user_prompt, "Answer": answer or assistant_response, "reasoning_types": "unknown"}
@@ -626,7 +628,7 @@ def process_batch(batch, batch_start, results: pd.DataFrame, dataset_length, res
                 "usage": agent_usage,
             }
 
-        logger.info(f"Results: new_row: {results.to_dict()}")
+        # logger.info(f"Results: new_row: {results.to_dict()}")
 
         # Update running cost
         query_cost = float(agent_usage.get("cost", 0.0))
