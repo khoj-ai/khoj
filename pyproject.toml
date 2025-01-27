@@ -123,6 +123,7 @@ dev = [
     "black >= 23.1.0",
     "pre-commit >= 3.0.4",
     "gitpython ~= 3.1.43",
+    "pylatexenc == 2.10",
     "datasets",
     "pandas",
 ]

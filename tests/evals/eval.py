@@ -1,13 +1,11 @@
 import argparse
 import base64
 import concurrent.futures
-import hashlib
 import json
 import logging
 import os
 import re
 import time
-import uuid
 from datetime import datetime
 from functools import partial
 from io import StringIO
@@ -20,6 +18,7 @@ import requests
 import yaml
 from datasets import Dataset, load_dataset
 from dotenv import load_dotenv
+from pylatexenc.latex2text import LatexNodes2Text
 from tqdm import tqdm
 
 from khoj.utils.helpers import (
@@ -205,6 +204,76 @@ def load_frames_dataset():
         # Use test split for evaluation. Sample and shuffle dataset if configured
         dataset = dataset.shuffle() if RANDOMIZE else dataset
         return dataset["test"][: int(SAMPLE_SIZE)] if SAMPLE_SIZE else dataset["test"]
+
+    except Exception as e:
+        logger.error(f"Error loading dataset: {e}")
+        return None
+
+
+def load_skythought_dataset():
+    """
+    Load the skythought training dataset from HuggingFace
+
+    The Sky T-1 dataset is comprised of 17000+ training samples.
+
+    ### Data Fields
+    - system: The system prompt used for the agent
+    - conversations:
+        - [0]: from: user, value: user prompt
+        - [1]: from: assistant, value: assistant response
+
+    ## Assistant response format
+    The assistant response is formatted as follows:
+    <|begin_of_thought|> <thought> <|end_of_thought|> <|begin_of_solution|> <answer> <|end_of_solution|>
+    """
+
+    def extract_boxed_content(text):
+        stack = []
+        i = 0
+        while i < len(text):
+            if text[i:].startswith("\\boxed{"):
+                i += 7  # Skip '\boxed{'
+                start = i
+                brace_count = 1
+                while i < len(text) and brace_count > 0:
+                    if text[i] == "{":
+                        brace_count += 1
+                    elif text[i] == "}":
+                        brace_count -= 1
+                    i += 1
+                if brace_count == 0:
+                    stack.append(text[start : i - 1])
+                continue
+            i += 1
+        return stack[0] if stack else None
+
+    def clean_latex(text):
+        return LatexNodes2Text().latex_to_text(text)
+
+    try:
+        dataset = load_dataset("NovaSky-AI/Sky-T1_data_17k")
+        # Use test split for evaluation. Sample and shuffle dataset if configured
+        dataset = dataset.shuffle() if RANDOMIZE else dataset
+
+        formatted_data = []
+        for d in dataset["train"]:
+            # Extract the answer from the assistant response
+            user_prompt = d["conversations"][0]["value"]
+            assistant_response = d["conversations"][1]["value"]
+            match = re.search(r"<\|begin_of_solution\|>\s*(.*?)\s*<\|end_of_solution\|>", assistant_response, re.DOTALL)
+            answer = match.group(1) if match else None
+            # The final correct answer is within the `answer` variable, denoted by the word box in curly brackets, like `\boxed{correct answer}`` in the assistant response. Extract it.
+            box_answer = extract_boxed_content(answer) if answer else None
+            if not box_answer:
+                box_answer = extract_boxed_content(assistant_response) if assistant_response else None
+
+            if box_answer:
+                box_answer = box_answer.strip()
+                box_answer = clean_latex(box_answer)
+                formatted_data.append({"Prompt": user_prompt, "Answer": box_answer, "reasoning_types": "unknown"})
+
+        dataset = Dataset.from_list(formatted_data)
+        return dataset[: int(SAMPLE_SIZE)] if SAMPLE_SIZE else dataset
 
     except Exception as e:
         logger.error(f"Error loading dataset: {e}")
@@ -602,8 +671,8 @@ def parse_args():
     parser.add_argument(
         "--dataset",
         "-d",
-        default="frames",
-        choices=["frames", "frames_ir", "simpleqa", "gpqa", "math500"],
+        default="skythought",
+        choices=["frames", "frames_ir", "simpleqa", "gpqa", "math500", "skythought"],
         help="Dataset to use for evaluation (default: frames)",
     )
     return parser.parse_args()
@@ -624,6 +693,8 @@ def main():
             dataset = load_gpqa_dataset()
         elif args.dataset == "math500":
             dataset = load_math500_dataset()
+        elif args.dataset == "skythought":
+            dataset = load_skythought_dataset()
         elif args.dataset == "frames_ir":
             indexed = index_frames_kb()
             if indexed:
