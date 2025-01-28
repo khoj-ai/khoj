@@ -212,7 +212,7 @@ def load_frames_dataset():
         return None
 
 
-def load_skythought_dataset():
+def load_skythought_dataset(output_file: str):
     """
     Load the skythought training dataset from HuggingFace
 
@@ -230,15 +230,32 @@ def load_skythought_dataset():
     """
 
     try:
+        # Load already processed indices from output_file
+        processed_indices = set()
+        if os.path.exists(output_file):
+            df_processed = pd.read_csv(output_file, usecols=["id"])
+            processed_indices = set(df_processed["id"].tolist())
+            logger.info(f"Loaded {len(processed_indices)} previously processed samples.")
+
         dataset = load_dataset("bespokelabs/Bespoke-Stratos-17k")
+        # Assign unique id based on original index before shuffling
+        dataset = dataset.map(lambda example, idx: {"id": idx}, with_indices=True)
+
         # Use test split for evaluation. Sample and shuffle dataset if configured
         dataset = dataset.shuffle() if RANDOMIZE else dataset
+        logger.info(f"Total samples in dataset: {dataset['train'].num_rows}")
 
         formatted_data = []
         for d in dataset["train"]:
-            if len(formatted_data) >= int(SAMPLE_SIZE):
+            if len(formatted_data) + len(processed_indices) >= int(SAMPLE_SIZE):
+                logger.info(f"Processing remaining {len(formatted_data)} of {SAMPLE_SIZE} samples.")
                 # Exit loop if sample size is reached
                 break
+
+            # Check if current_index is already processed
+            idx = d["id"]
+            if idx in processed_indices:
+                continue
 
             # Extract the answer from the assistant response
             user_prompt = d["conversations"][0]["value"]
@@ -246,9 +263,14 @@ def load_skythought_dataset():
             match = re.search(
                 r"<\|begin_of_solution\|>\s*([\s\S]*?)(?=\s*<\|end_of_solution\|>|\Z)", assistant_response, re.DOTALL
             )
-            answer = match.group(1) if match else None
+            answer = match.group(1).strip() if match else None
             formatted_data.append(
-                {"Prompt": user_prompt, "Answer": answer or assistant_response, "reasoning_types": "unknown"}
+                {
+                    "id": idx,
+                    "Prompt": user_prompt,
+                    "Answer": answer or assistant_response,
+                    "reasoning_types": "unknown",
+                }
             )
 
         dataset = Dataset.from_list(formatted_data)
@@ -590,10 +612,9 @@ def evaluate_response_with_gemini(
         return None, f"Evaluation failed: {str(e)}", 0.0
 
 
-def process_batch(batch, batch_start, dataset_length, response_evaluator, output_file):
+def process_batch(batch, dataset_length, response_evaluator, output_file):
     global running_cost
-    for idx, (prompt, answer, reasoning_type) in enumerate(batch):
-        current_index = batch_start + idx
+    for current_index, prompt, answer, reasoning_type in batch:
         logger.info(f"Processing example: {current_index+1}/{dataset_length}")
 
         # Trigger research mode if enabled
@@ -620,7 +641,7 @@ def process_batch(batch, batch_start, dataset_length, response_evaluator, output
             pd.DataFrame(
                 [
                     {
-                        "index": current_index,
+                        "id": current_index,
                         "prompt": prompt,
                         "ground_truth": answer,
                         "agent_response": agent_response,
@@ -702,6 +723,20 @@ def main():
     # Initialize variables
     args = parse_args()
     dataset = None
+    output_file = args.output or f"{args.dataset}_evaluation_results_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
+    if not os.path.exists(output_file):
+        pd.DataFrame(
+            columns=[
+                "id",
+                "prompt",
+                "ground_truth",
+                "agent_response",
+                "evaluation_decision",
+                "evaluation_explanation",
+                "reasoning_type",
+                "usage",
+            ]
+        ).to_csv(output_file, index=False)
 
     # Load dataset
     with timer(f"Loaded {args.dataset} dataset in", logger, log_level=logging.INFO):
@@ -714,7 +749,7 @@ def main():
         elif args.dataset == "math500":
             dataset = load_math500_dataset()
         elif args.dataset == "skythought":
-            dataset = load_skythought_dataset()
+            dataset = load_skythought_dataset(output_file)
         elif args.dataset == "frames_ir":
             indexed = index_frames_kb()
             if indexed:
@@ -737,22 +772,6 @@ def main():
     else:
         response_evaluator = evaluate_response_with_gemini
 
-    output_file = args.output or f"{args.dataset}_evaluation_results_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
-
-    if not os.path.exists(output_file):
-        pd.DataFrame(
-            columns=[
-                "index",
-                "prompt",
-                "ground_truth",
-                "agent_response",
-                "evaluation_decision",
-                "evaluation_explanation",
-                "reasoning_type",
-                "usage",
-            ]
-        ).to_csv(output_file, index=False)
-
     # Process examples in batches
     parallel_size = dataset_length // BATCH_SIZE
     with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_size) as executor:
@@ -760,13 +779,12 @@ def main():
         for i in range(0, dataset_length, BATCH_SIZE):
             batch_start, batch_end = i, min(i + BATCH_SIZE, dataset_length)
             batch = zip(
+                dataset["id"][batch_start:batch_end],
                 dataset["Prompt"][batch_start:batch_end],
                 dataset["Answer"][batch_start:batch_end],
                 dataset["reasoning_types"][batch_start:batch_end],
             )
-            futures.append(
-                executor.submit(process_batch, batch, batch_start, dataset_length, response_evaluator, output_file)
-            )
+            futures.append(executor.submit(process_batch, batch, dataset_length, response_evaluator, output_file))
 
         # Wait for all futures to complete
         concurrent.futures.wait(futures)
