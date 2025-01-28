@@ -754,14 +754,15 @@ def main():
         ).to_csv(output_file, index=False)
 
     # Process examples in batches
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    parallel_size = dataset_length // BATCH_SIZE
+    with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_size) as executor:
         futures = []
         for i in range(0, dataset_length, BATCH_SIZE):
-            batch_start = i
+            batch_start, batch_end = i, min(i + BATCH_SIZE, dataset_length)
             batch = zip(
-                dataset["Prompt"][i : i + BATCH_SIZE],
-                dataset["Answer"][i : i + BATCH_SIZE],
-                dataset["reasoning_types"][i : i + BATCH_SIZE],
+                dataset["Prompt"][batch_start:batch_end],
+                dataset["Answer"][batch_start:batch_end],
+                dataset["reasoning_types"][batch_start:batch_end],
             )
             futures.append(
                 executor.submit(process_batch, batch, batch_start, dataset_length, response_evaluator, output_file)
