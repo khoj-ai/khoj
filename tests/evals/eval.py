@@ -5,6 +5,7 @@ import json
 import logging
 import multiprocessing
 import os
+import pickle
 import re
 import time
 from datetime import datetime
@@ -501,6 +502,15 @@ def evaluate_response_for_ir(
         return None, f"Evaluation failed: {str(e)}", 0.0
 
 
+def is_picklable(obj):
+    """Test if an object can be pickled"""
+    try:
+        pickle.dumps(obj)
+        return True
+    except:
+        return False
+
+
 def evaluate_response_for_latex_match_with_llm_fallback(
     query: str, agent_response: str, ground_truth: str, agent_references: dict = {}
 ) -> tuple[bool | None, str, float]:
@@ -522,7 +532,10 @@ def evaluate_response_for_latex_match_with_llm_fallback(
             extracted_ground_truth = pool.apply(parse, args=(ground_truth, extraction_config))
 
             # Check if extracted answer matches extracted ground truth
-            decision = pool.apply(verify, args=(extracted_ground_truth, extracted_answer))
+            if is_picklable(extracted_answer) and is_picklable(extracted_ground_truth):
+                decision = pool.apply(verify, args=(extracted_ground_truth, extracted_answer))
+            else:
+                decision = None
 
         # Fallback to LLM for decision if parse & match fails
         if not decision:
