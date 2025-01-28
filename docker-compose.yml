@@ -43,6 +43,7 @@ services:
       - khoj_config:/root/.khoj/
       - khoj_models:/root/.cache/torch/sentence_transformers
       - khoj_models:/root/.cache/huggingface
+      - khoj_tmp:/app/tmp/
     # Use 0.0.0.0 to explicitly set the host ip for the service on the container. https://pythonspeed.com/articles/docker-connection-refused/
     environment:
       - POSTGRES_DB=postgres
@@ -108,3 +109,4 @@ volumes:
   khoj_db:
   khoj_models:
   khoj_search:
+  khoj_tmp:
