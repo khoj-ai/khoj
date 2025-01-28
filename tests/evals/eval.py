@@ -769,7 +769,7 @@ def main():
                 dataset = load_frames_dataset()
                 # Rename the index field, 'Unnamed: 0' to 'Answer' for IR evaluation
                 dataset["Answer"] = dataset["Unnamed: 0"]
-    if dataset is None:
+    if dataset is None or dataset.num_rows == 0:
         return
 
     # Initialize variables
