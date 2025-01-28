@@ -534,9 +534,10 @@ def truncate_messages(
             encoder = download_model(model_name).tokenizer()
     except:
         encoder = tiktoken.encoding_for_model(default_tokenizer)
-        logger.debug(
-            f"Fallback to default chat model tokenizer: {default_tokenizer}.\nConfigure tokenizer for model: {model_name} in Khoj settings to improve context stuffing."
-        )
+        if state.verbose > 2:
+            logger.debug(
+                f"Fallback to default chat model tokenizer: {default_tokenizer}.\nConfigure tokenizer for model: {model_name} in Khoj settings to improve context stuffing."
+            )
 
     # Extract system message from messages
     system_message = None

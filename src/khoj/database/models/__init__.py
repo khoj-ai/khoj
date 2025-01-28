@@ -60,7 +60,7 @@ class PeopleAlsoAsk(PydanticBaseModel):
     link: Optional[str] = None
     question: Optional[str] = None
     snippet: Optional[str] = None
-    title: str
+    title: Optional[str] = None
 
 
 class KnowledgeGraph(PydanticBaseModel):
