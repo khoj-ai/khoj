@@ -283,9 +283,14 @@ Go to http://localhost:42110/server/admin and login with the admin credentials y
 Ensure you are using **localhost, not 127.0.0.1**, to access the admin panel to avoid the CSRF error.
 :::
 
+:::info[CSRF Trusted Origin or Unset Cookie Error]
+If using a load balancer/reverse_proxy in front of your Khoj server: Set the environment variable KHOJ_ALLOWED_DOMAIN=your-internal-ip-or-domain to avoid this error.
+If unset, it defaults to KHOJ_DOMAIN.
+:::
+
 :::info[DISALLOWED HOST or Bad Request (400) Error]
 You may hit this if you try access Khoj exposed on a custom domain (e.g. 192.168.12.3 or example.com) or over HTTP.
-Set the environment variables KHOJ_DOMAIN=your-domain and KHOJ_NO_HTTPS=True if required to avoid this error.
+Set the environment variables KHOJ_DOMAIN=your-external-ip-or-domain and KHOJ_NO_HTTPS=True if required to avoid this error.
 :::
 
 :::tip[Note]
