@@ -590,7 +590,7 @@ def evaluate_response_with_gemini(
         return None, f"Evaluation failed: {str(e)}", 0.0
 
 
-def process_batch(batch, batch_start, results: pd.DataFrame, dataset_length, response_evaluator):
+def process_batch(batch, batch_start, dataset_length, response_evaluator, output_file):
     global running_cost
     for idx, (prompt, answer, reasoning_type) in enumerate(batch):
         current_index = batch_start + idx
@@ -617,16 +617,20 @@ def process_batch(batch, batch_start, results: pd.DataFrame, dataset_length, res
         # Store results
         # Thread-safe DataFrame modification
         with DF_LOCK:
-            results.loc[current_index] = {
-                "index": current_index,
-                "prompt": prompt,
-                "ground_truth": answer,
-                "agent_response": agent_response,
-                "evaluation_decision": decision,
-                "evaluation_explanation": explanation,
-                "reasoning_type": reasoning_type,
-                "usage": agent_usage,
-            }
+            pd.DataFrame(
+                [
+                    {
+                        "index": current_index,
+                        "prompt": prompt,
+                        "ground_truth": answer,
+                        "agent_response": agent_response,
+                        "evaluation_decision": decision,
+                        "evaluation_explanation": explanation,
+                        "reasoning_type": reasoning_type,
+                        "usage": agent_usage,
+                    }
+                ]
+            ).to_csv(output_file, mode="a", header=False, index=False)
 
         # logger.info(f"Results: new_row: {results.to_dict()}")
 
@@ -733,19 +737,21 @@ def main():
     else:
         response_evaluator = evaluate_response_with_gemini
 
-    results_df = pd.DataFrame(
-        index=range(dataset_length),
-        columns=[
-            "index",
-            "prompt",
-            "ground_truth",
-            "agent_response",
-            "evaluation_decision",
-            "evaluation_explanation",
-            "reasoning_type",
-            "usage",
-        ],
-    )
+    output_file = args.output or f"{args.dataset}_evaluation_results_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
+
+    if not os.path.exists(output_file):
+        pd.DataFrame(
+            columns=[
+                "index",
+                "prompt",
+                "ground_truth",
+                "agent_response",
+                "evaluation_decision",
+                "evaluation_explanation",
+                "reasoning_type",
+                "usage",
+            ]
+        ).to_csv(output_file, index=False)
 
     # Process examples in batches
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -758,14 +764,14 @@ def main():
                 dataset["reasoning_types"][i : i + BATCH_SIZE],
             )
             futures.append(
-                executor.submit(process_batch, batch, batch_start, results_df, dataset_length, response_evaluator)
+                executor.submit(process_batch, batch, batch_start, dataset_length, response_evaluator, output_file)
             )
 
         # Wait for all futures to complete
         concurrent.futures.wait(futures)
 
     # Calculate metrics
-    df = results_df.copy()
+    df = pd.read_csv(output_file)
     eval_df = df.dropna(subset=["evaluation_decision"])  # Exclude rows with missing evaluation decision
     accuracy = (eval_df["evaluation_decision"]).mean()
 
