@@ -32,7 +32,8 @@ DEBUG = in_debug_mode()
 
 # All Subdomains of KHOJ_DOMAIN are trusted
 KHOJ_DOMAIN = os.getenv("KHOJ_DOMAIN", "khoj.dev")
-ALLOWED_HOSTS = [f".{KHOJ_DOMAIN}", "localhost", "127.0.0.1", "[::1]", f"{KHOJ_DOMAIN}"]
+KHOJ_ALLOWED_DOMAIN = os.getenv("KHOJ_ALLOWED_DOMAIN", KHOJ_DOMAIN)
+ALLOWED_HOSTS = [f".{KHOJ_ALLOWED_DOMAIN}", "localhost", "127.0.0.1", "[::1]", f"{KHOJ_ALLOWED_DOMAIN}"]
 
 CSRF_TRUSTED_ORIGINS = [
     f"https://*.{KHOJ_DOMAIN}",
@@ -45,7 +46,7 @@ CSRF_TRUSTED_ORIGINS = [
 DISABLE_HTTPS = is_env_var_true("KHOJ_NO_HTTPS")
 
 COOKIE_SAMESITE = "None"
-if DEBUG or os.getenv("KHOJ_DOMAIN") == None:
+if DEBUG and os.getenv("KHOJ_DOMAIN") == None:
     SESSION_COOKIE_DOMAIN = "localhost"
     CSRF_COOKIE_DOMAIN = "localhost"
 else:
