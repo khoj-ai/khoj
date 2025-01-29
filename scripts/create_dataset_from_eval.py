@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import os
 import tempfile
@@ -18,10 +19,26 @@ def load_dataset_from_jsonl(dataset_path: str) -> pd.DataFrame:
     if not os.path.exists(dataset_path):
         return Dataset.from_dict({"system": [], "conversations": []})
 
-    # Read JSONL
-    datatrace = pd.read_json(dataset_path, lines=True)
+    try:
+        # Read JSONL line by line to catch errors
+        data = []
+        with open(dataset_path, "r") as f:
+            for i, line in enumerate(f, 1):
+                try:
+                    data.append(json.loads(line.strip()))
+                except json.JSONDecodeError as e:
+                    logger.error(f"Error on line {i}: {e}")
+                    logger.error(f"Problematic line: {line.strip()}")
+                    continue
 
-    return datatrace
+        # Convert to DataFrame
+        if not data:
+            return Dataset.from_dict({"system": [], "conversations": []})
+        return pd.DataFrame(data)
+
+    except Exception as e:
+        logger.error(f"Error processing dataset: {e}")
+        return Dataset.from_dict({"system": [], "conversations": []})
 
 
 def load_eval_results_from_csv(eval_results_paths: str | list[str]) -> pd.DataFrame:
