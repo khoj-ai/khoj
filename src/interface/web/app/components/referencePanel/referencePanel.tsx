@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { ArrowCircleDown, ArrowRight } from "@phosphor-icons/react";
+import { ArrowCircleDown, ArrowRight, Code, Note } from "@phosphor-icons/react";
 
 import markdownIt from "markdown-it";
 const md = new markdownIt({
@@ -239,10 +239,10 @@ function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
                         </div>
                         {(props.output_files?.length > 0 &&
                             renderOutputFiles(props.output_files?.slice(0, 1), true)) || (
-                            <pre className="text-xs border-t mt-1 pt-1 verflow-hidden line-clamp-10">
-                                {sanitizedCodeSnippet}
-                            </pre>
-                        )}
+                                <pre className="text-xs border-t mt-1 pt-1 overflow-hidden line-clamp-10">
+                                    {sanitizedCodeSnippet}
+                                </pre>
+                            )}
                     </Card>
                 </PopoverContent>
             </Popover>
@@ -475,6 +475,63 @@ export function constructAllReferences(
     };
 }
 
+interface SimpleIconProps {
+    type: string;
+    link?: string;
+}
+
+function SimpleIcon(props: SimpleIconProps) {
+
+    let favicon = ``;
+    let domain = "unknown";
+
+    if (props.link) {
+        try {
+            domain = new URL(props.link).hostname;
+            favicon = `https://www.google.com/s2/favicons?domain=${domain}`;
+        } catch (error) {
+            console.warn(`Error parsing domain from link: ${props.link}`);
+            return null;
+        }
+    }
+
+    let symbol = null;
+
+    const itemClasses = "!w-4 !h-4 text-muted-foreground inline-flex mr-2 rounded-lg";
+
+    switch (props.type) {
+        case "code":
+            symbol = <Code className={`${itemClasses}`} />;
+            break;
+        case "online":
+            symbol =
+                <img
+                    src={favicon}
+                    alt=""
+                    className={`${itemClasses}`}
+                />;
+            break;
+        case "notes":
+            symbol =
+                <Note className={`${itemClasses}`} />;
+            break;
+        default:
+            symbol = null;
+    }
+
+    console.log("symbol", symbol);
+
+    if (!symbol) {
+        return null;
+    }
+
+    return (
+        <div className="flex items-center gap-2">
+            {symbol}
+        </div>
+    );
+}
+
 export interface TeaserReferenceSectionProps {
     notesReferenceCardData: NotesContextReferenceData[];
     onlineReferenceCardData: OnlineReferenceData[];
@@ -483,25 +540,6 @@ export interface TeaserReferenceSectionProps {
 }
 
 export function TeaserReferencesSection(props: TeaserReferenceSectionProps) {
-    const [numTeaserSlots, setNumTeaserSlots] = useState(3);
-
-    useEffect(() => {
-        setNumTeaserSlots(props.isMobileWidth ? 1 : 3);
-    }, [props.isMobileWidth]);
-
-    const codeDataToShow = props.codeReferenceCardData.slice(0, numTeaserSlots);
-    const notesDataToShow = props.notesReferenceCardData.slice(
-        0,
-        numTeaserSlots - codeDataToShow.length,
-    );
-    const onlineDataToShow =
-        notesDataToShow.length + codeDataToShow.length < numTeaserSlots
-            ? props.onlineReferenceCardData.slice(
-                  0,
-                  numTeaserSlots - codeDataToShow.length - notesDataToShow.length,
-              )
-            : [];
-
     const shouldShowShowMoreButton =
         props.notesReferenceCardData.length > 0 ||
         props.codeReferenceCardData.length > 0 ||
@@ -517,47 +555,20 @@ export function TeaserReferencesSection(props: TeaserReferenceSectionProps) {
     }
 
     return (
-        <div className="pt-0 px-4 pb-4 md:px-6">
+        <div className="pt-0 px-4 pb-4">
             <h3 className="inline-flex items-center">
-                References
                 <p className="text-gray-400 m-2">{numReferences} sources</p>
+                <div className={`flex flex-wrap gap-2 w-auto m-2`}>
+                    {shouldShowShowMoreButton && (
+                        <ReferencePanel
+                            notesReferenceCardData={props.notesReferenceCardData}
+                            onlineReferenceCardData={props.onlineReferenceCardData}
+                            codeReferenceCardData={props.codeReferenceCardData}
+                            isMobileWidth={props.isMobileWidth}
+                        />
+                    )}
+                </div>
             </h3>
-            <div className={`flex flex-wrap gap-2 w-auto mt-2`}>
-                {codeDataToShow.map((code, index) => {
-                    return (
-                        <CodeContextReferenceCard
-                            showFullContent={false}
-                            {...code}
-                            key={`code-${index}`}
-                        />
-                    );
-                })}
-                {notesDataToShow.map((note, index) => {
-                    return (
-                        <NotesContextReferenceCard
-                            showFullContent={false}
-                            {...note}
-                            key={`${note.title}-${index}`}
-                        />
-                    );
-                })}
-                {onlineDataToShow.map((online, index) => {
-                    return (
-                        <GenericOnlineReferenceCard
-                            showFullContent={false}
-                            {...online}
-                            key={`${online.title}-${index}`}
-                        />
-                    );
-                })}
-                {shouldShowShowMoreButton && (
-                    <ReferencePanel
-                        notesReferenceCardData={props.notesReferenceCardData}
-                        onlineReferenceCardData={props.onlineReferenceCardData}
-                        codeReferenceCardData={props.codeReferenceCardData}
-                    />
-                )}
-            </div>
         </div>
     );
 }
@@ -566,18 +577,52 @@ interface ReferencePanelDataProps {
     notesReferenceCardData: NotesContextReferenceData[];
     onlineReferenceCardData: OnlineReferenceData[];
     codeReferenceCardData: CodeReferenceData[];
+    isMobileWidth: boolean;
 }
 
 export default function ReferencePanel(props: ReferencePanelDataProps) {
+    const [numTeaserSlots, setNumTeaserSlots] = useState(3);
+
+    useEffect(() => {
+        setNumTeaserSlots(props.isMobileWidth ? 1 : 3);
+    }, [props.isMobileWidth]);
+
     if (!props.notesReferenceCardData && !props.onlineReferenceCardData) {
         return null;
     }
 
+    const codeDataToShow = props.codeReferenceCardData.slice(0, numTeaserSlots);
+    const notesDataToShow = props.notesReferenceCardData.slice(
+        0,
+        numTeaserSlots - codeDataToShow.length,
+    );
+    const onlineDataToShow =
+        notesDataToShow.length + codeDataToShow.length < numTeaserSlots
+            ? props.onlineReferenceCardData.filter((online) => online.link).slice(
+                0,
+                numTeaserSlots - codeDataToShow.length - notesDataToShow.length,
+            )
+            : [];
+
     return (
         <Sheet>
-            <SheetTrigger className="text-balance w-auto md:w-[200px] justify-start overflow-hidden break-words p-0 bg-transparent border-none text-gray-400 align-middle items-center !m-2 inline-flex">
-                View references
-                <ArrowRight className="m-1" />
+            <SheetTrigger className="text-balance w-auto md:w-[200px] justify-start overflow-hidden break-words p-0 bg-transparent border-none text-gray-400 align-middle items-center m-0 inline-flex">
+                {codeDataToShow.map((code, index) => {
+                    return (
+                        <SimpleIcon type="code" key={`code-${index}`} />
+                    );
+                })}
+                {notesDataToShow.map((note, index) => {
+                    return (
+                        <SimpleIcon type="notes" key={`${note.title}-${index}`} />
+                    );
+                })}
+                {onlineDataToShow.map((online, index) => {
+                    return (
+                        <SimpleIcon type="online" key={`${online.title}-${index}`} link={online.link} />
+                    );
+                })}
+                <ArrowRight className="m-0" />
             </SheetTrigger>
             <SheetContent className="overflow-y-scroll">
                 <SheetHeader>
