@@ -235,11 +235,11 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                 </SidebarGroup>
                 <SidebarGroup key={"instructions"}>
                     <SidebarGroupContent>
-                        <SidebarGroupLabel>Custom Instructions</SidebarGroupLabel>
+                        <SidebarGroupLabel>Instructions</SidebarGroupLabel>
                         <SidebarMenu className="p-0 m-0">
                             <SidebarMenuItem className="list-none">
                                 <Textarea
-                                    className="w-full h-32"
+                                    className="w-full h-32 resize-none hover:resize-y"
                                     value={customPrompt}
                                     onChange={(e) => handleCustomPromptChange(e.target.value)}
                                     readOnly={!isEditable}
