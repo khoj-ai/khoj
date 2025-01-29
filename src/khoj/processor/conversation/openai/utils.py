@@ -181,6 +181,19 @@ def llm_thread(
         elif model_name.startswith("o1-"):
             temperature = 1
             model_kwargs.pop("response_format", None)
+        elif model_name.startswith("deepseek-reasoner"):
+            # Two successive messages cannot be from the same role. Should merge any back-to-back messages from the same role.
+            # The first message should always be a user message (except system message).
+            updated_messages = []
+            for i, message in enumerate(formatted_messages):
+                if i > 0 and message["role"] == formatted_messages[i - 1]["role"]:
+                    updated_messages[-1]["content"] += " " + message["content"]
+                elif i == 1 and formatted_messages[i - 1]["role"] == "system" and message["role"] == "assistant":
+                    updated_messages[-1]["content"] += " " + message["content"]
+                else:
+                    updated_messages.append(message)
+
+            formatted_messages = updated_messages
 
         if os.getenv("KHOJ_LLM_SEED"):
             model_kwargs["seed"] = int(os.getenv("KHOJ_LLM_SEED"))
