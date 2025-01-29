@@ -13,7 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { InlineLoading } from "../loading/loading";
 
-import { Lightbulb, ArrowDown, XCircle } from "@phosphor-icons/react";
+import { Lightbulb, ArrowDown, XCircle, CaretDown } from "@phosphor-icons/react";
 
 import AgentProfileCard from "../profileCard/profileCard";
 import { getIconFromIconName } from "@/app/common/iconUtils";
@@ -75,7 +75,7 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
                         variant="ghost"
                         size="sm"
                     >
-                        What was my train of thought?
+                        Thought Process <CaretDown size={16} className="ml-1" />
                     </Button>
                 ) : (
                     <Button
