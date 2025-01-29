@@ -1,7 +1,7 @@
 import logging
 import os
 from threading import Thread
-from typing import Dict
+from typing import Dict, List
 
 import openai
 from openai.types.chat.chat_completion import ChatCompletion
@@ -184,7 +184,7 @@ def llm_thread(
         elif model_name.startswith("deepseek-reasoner"):
             # Two successive messages cannot be from the same role. Should merge any back-to-back messages from the same role.
             # The first message should always be a user message (except system message).
-            updated_messages = []
+            updated_messages: List[dict] = []
             for i, message in enumerate(formatted_messages):
                 if i > 0 and message["role"] == formatted_messages[i - 1]["role"]:
                     updated_messages[-1]["content"] += " " + message["content"]
