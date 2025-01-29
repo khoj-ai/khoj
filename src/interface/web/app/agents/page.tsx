@@ -267,7 +267,7 @@ export default function Agents() {
 
     const modelOptions: ModelOptions[] = userConfig?.chat_model_options || [];
     const selectedChatModelOption: number = userConfig?.selected_chat_model_config || 0;
-    const isSubscribed: boolean = isUserSubscribed(userConfig);
+    const isSubscribed: boolean = userConfig?.is_active || false;
 
     // The default model option should map to the item in the modelOptions array that has the same id as the selectedChatModelOption
     const defaultModelOption = modelOptions.find(
