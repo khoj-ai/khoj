@@ -358,8 +358,8 @@ command_descriptions_for_agent = {
     ConversationCommand.Notes: "Agent can search the personal knowledge base for information, as well as its own.",
     ConversationCommand.Online: "Agent can search the internet for information.",
     ConversationCommand.Webpage: "Agent can read suggested web pages for information.",
-    ConversationCommand.Summarize: "Agent can read an entire document. Agents knowledge base must be a single document.",
     ConversationCommand.Research: "Agent can do deep research on a topic.",
+    ConversationCommand.Code: "Agent can run Python code to parse information, run complex calculations, create documents and charts.",
 }
 
 tool_descriptions_for_llm = {
@@ -369,7 +369,6 @@ tool_descriptions_for_llm = {
     ConversationCommand.Online: "To search for the latest, up-to-date information from the internet. Note: **Questions about Khoj should always use this data source**",
     ConversationCommand.Webpage: "To use if the user has directly provided the webpage urls or you are certain of the webpage urls to read.",
     ConversationCommand.Code: "To run Python code in a Pyodide sandbox with no network access. Helpful when need to parse complex information, run complex calculations, create plaintext documents, and create charts with quantitative data. Only matplotlib, panda, numpy, scipy, bs4 and sympy external packages are available.",
-    ConversationCommand.Summarize: "To retrieve an answer that depends on the entire document or a large text.",
 }
 
 function_calling_description_for_llm = {

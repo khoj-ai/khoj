@@ -280,8 +280,8 @@ class Agent(DbBaseModel):
         GENERAL = "general"
         ONLINE = "online"
         NOTES = "notes"
-        SUMMARIZE = "summarize"
-        WEBPAGE = "webpage"
+        WEBPAGE = ("webpage",)
+        CODE = "code"
 
     class OutputModeOptions(models.TextChoices):
         # These map to various ConversationCommand types
