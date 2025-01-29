@@ -149,7 +149,7 @@ async def generate_python_code(
     return GeneratedCode(code, [], [])
 
 
-async def async_retry_with_backoff(retries=3, backoff_in_seconds=1):
+def async_retry_with_backoff(retries=3, backoff_in_seconds=1):
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
