@@ -696,7 +696,7 @@ function ChatSession(props: ChatHistory) {
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             key={props.conversation_id}
-            className={`${styles.session} ${props.compressed ? styles.compressed : "!max-w-full"} ${isHovered ? `${styles.sessionHover}` : ""} ${currConversationId === props.conversation_id && currConversationId != "-1" ? "dark:bg-neutral-800 bg-white" : ""} m-1`}
+            className={`${styles.session} ${props.compressed ? styles.compressed : "!max-w-full"} ${isHovered ? `${styles.sessionHover}` : ""} ${currConversationId === props.conversation_id && currConversationId != "-1" ? "dark:bg-neutral-800 bg-white" : ""} m-1 rounded-lg`}
         >
             <SidebarMenuButton asChild>
                 <Link
