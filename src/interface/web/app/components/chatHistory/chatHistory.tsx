@@ -2,6 +2,7 @@
 
 import styles from "./chatHistory.module.css";
 import { useRef, useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 import ChatMessage, {
     ChatHistoryData,
@@ -55,6 +56,19 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
     const lastIndex = props.trainOfThought.length - 1;
     const [collapsed, setCollapsed] = useState(props.completed);
 
+    const variants = {
+        open: {
+            height: "auto",
+            opacity: 1,
+            transition: { duration: 0.3, ease: "easeOut" }
+        },
+        closed: {
+            height: 0,
+            opacity: 0,
+            transition: { duration: 0.3, ease: "easeIn" }
+        }
+    };
+
     useEffect(() => {
         if (props.completed) {
             setCollapsed(true);
@@ -87,15 +101,25 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
                         Close <CaretUp size={16} className="ml-1" />
                     </Button>
                 ))}
-            {!collapsed &&
-                props.trainOfThought.map((train, index) => (
-                    <TrainOfThought
-                        key={`train-${index}`}
-                        message={train}
-                        primary={index === lastIndex && props.lastMessage && !props.completed}
-                        agentColor={props.agentColor}
-                    />
-                ))}
+            <AnimatePresence initial={false}>
+                {!collapsed && (
+                    <motion.div
+                        initial="closed"
+                        animate="open"
+                        exit="closed"
+                        variants={variants}
+                    >
+                        {props.trainOfThought.map((train, index) => (
+                            <TrainOfThought
+                                key={`train-${index}`}
+                                message={train}
+                                primary={index === lastIndex && props.lastMessage && !props.completed}
+                                agentColor={props.agentColor}
+                            />
+                        ))}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
