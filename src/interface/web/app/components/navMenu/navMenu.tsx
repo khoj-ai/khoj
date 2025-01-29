@@ -99,7 +99,7 @@ export default function FooterMenu({ sideBarIsOpen }: NavMenuProps) {
             link: "https://github.com/khoj-ai/khoj/releases",
         },
         {
-            title: "Organization",
+            title: "Teams",
             icon: <BuildingOffice className="w-6 h-6" />,
             link: "https://khoj.dev/teams",
         },
