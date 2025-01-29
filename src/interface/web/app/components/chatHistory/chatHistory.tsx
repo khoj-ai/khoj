@@ -13,7 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { InlineLoading } from "../loading/loading";
 
-import { Lightbulb, ArrowDown, XCircle, CaretDown } from "@phosphor-icons/react";
+import { Lightbulb, ArrowDown, CaretDown, CaretUp } from "@phosphor-icons/react";
 
 import AgentProfileCard from "../profileCard/profileCard";
 import { getIconFromIconName } from "@/app/common/iconUtils";
@@ -63,7 +63,7 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
 
     return (
         <div
-            className={`${!collapsed ? styles.trainOfThought + " shadow-sm" : ""}`}
+            className={`${!collapsed ? styles.trainOfThought + " border" : ""} rounded-lg`}
             key={props.keyId}
         >
             {!props.completed && <InlineLoading className="float-right" />}
@@ -84,8 +84,7 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
                         variant="ghost"
                         size="sm"
                     >
-                        <XCircle size={16} className="mr-1" />
-                        Close
+                        Close <CaretUp size={16} className="ml-1" />
                     </Button>
                 ))}
             {!collapsed &&
