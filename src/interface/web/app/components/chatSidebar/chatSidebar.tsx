@@ -19,8 +19,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 import { TooltipContent } from "@radix-ui/react-tooltip";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuthenticatedData } from "@/app/common/auth";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface ChatSideBarProps {
     conversationId: string;
@@ -155,7 +155,7 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
             // 1. If the agent is a default agent, then we need to create a new agent just to associate with this conversation.
             // 2. If the agent is not a default agent, then we need to update the existing hidden agent. This will be associated using the `slug` field.
             // 3. If the agent is a "proper" agent and not a hidden agent, then it cannot be updated from this API.
-            // 4. The API is being called before the new conversation has been provisioned. If this happens, then create the agent and associate it with the conversation. Reroute the user to the new conversation page.
+            // 4. The API is being called before the new conversation has been provisioned. This is currently not supported.
             fetch(url, {
                 method: mode,
                 headers: {
@@ -250,9 +250,19 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                 </SidebarGroup>
                 <SidebarGroup key={"model"}>
                     <SidebarGroupContent>
-                        <SidebarGroupLabel>Model</SidebarGroupLabel>
+                        <SidebarGroupLabel>
+                            Model
+                            {
+                                !authenticatedData?.is_active && (
+                                    <a href="/settings" className="hover:font-bold text-accent-foreground m-2 bg-accent bg-opacity-10 p-1 rounded-lg">
+                                        Upgrade
+                                    </a>
+                                )
+                            }
+                        </SidebarGroupLabel>
                         <SidebarMenu className="p-0 m-0">
                             <SidebarMenuItem key={"model"} className="list-none">
+
                                 <ModelSelector
                                     disabled={!isEditable || !authenticatedData?.is_active}
                                     onSelect={(model, userModification) => handleModelSelect(model.name, userModification)}
@@ -262,15 +272,15 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
-                <Collapsible defaultOpen className="group/collapsible">
+                <Popover defaultOpen={false}>
                     <SidebarGroup>
                         <SidebarGroupLabel asChild>
-                            <CollapsibleTrigger>
+                            <PopoverTrigger>
                                 Tools
                                 <CaretCircleDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
-                            </CollapsibleTrigger>
+                            </PopoverTrigger>
                         </SidebarGroupLabel>
-                        <CollapsibleContent>
+                        <PopoverContent>
                             <SidebarGroupContent>
                                 <SidebarMenu className="p-1 m-0">
                                     {
@@ -342,9 +352,9 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                                 </SidebarMenu>
 
                             </SidebarGroupContent>
-                        </CollapsibleContent>
+                        </PopoverContent>
                     </SidebarGroup>
-                </Collapsible>
+                </Popover>
                 <SidebarGroup key={"files"}>
                     <SidebarGroupContent>
                         <SidebarGroupLabel>Files</SidebarGroupLabel>
