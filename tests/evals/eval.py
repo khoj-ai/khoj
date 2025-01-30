@@ -786,7 +786,7 @@ def main():
         response_evaluator = evaluate_response_with_gemini
 
     # Process examples in batches
-    parallel_size = dataset_length // BATCH_SIZE
+    parallel_size = max(dataset_length // BATCH_SIZE, 4)
     with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_size) as executor:
         futures = []
         for i in range(0, dataset_length, BATCH_SIZE):
