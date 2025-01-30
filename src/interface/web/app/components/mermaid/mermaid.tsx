@@ -141,10 +141,17 @@ const Mermaid: React.FC<MermaidProps> = ({ chart }) => {
     return (
         <div>
             {mermaidError ? (
-                <div className="flex items-center gap-2 bg-red-100 border border-red-500 rounded-md p-3 mt-3 text-red-900 text-sm">
-                    <Info className="w-12 h-12" />
-                    <span>Error rendering diagram: {mermaidError}</span>
-                </div>
+                <>
+                    <div className="flex items-center gap-2 bg-red-100 border border-red-500 rounded-md p-1 mt-3 text-red-900 text-sm">
+                        <Info className="w-12 h-12" />
+                        <span>{mermaidError}</span>
+                    </div>
+                    <code className="block bg-secondary text-secondary-foreground p-4 mt-3 rounded-lg font-mono text-sm whitespace-pre-wrap overflow-x-auto max-h-[400px] border border-gray-200">
+                        {
+                            chart
+                        }
+                    </code>
+                </>
             ) : (
                 <div
                     id={mermaidId}
