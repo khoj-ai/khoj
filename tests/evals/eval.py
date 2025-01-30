@@ -645,6 +645,7 @@ def process_batch(batch, dataset_length, response_evaluator, output_file):
         if is_none_or_empty(agent_response):
             decision = None
             explanation = "Agent response is empty. This maybe due to a service error."
+            continue  # Do not store results. Allows including this eval row in next resumable eval run
         else:
             decision, explanation, eval_cost = response_evaluator(prompt, agent_response, answer, agent_references)
 
