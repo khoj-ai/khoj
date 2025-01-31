@@ -5,7 +5,7 @@ import os
 import tempfile
 
 import pandas as pd
-from datasets import Dataset
+from datasets import Dataset, DatasetDict, load_dataset
 from dotenv import load_dotenv
 from huggingface_hub import HfApi
 
@@ -92,6 +92,28 @@ def get_good_dataset_rows(datatrace: pd.DataFrame, eval: pd.DataFrame) -> pd.Dat
     return good_rows.drop(columns=["prompt"])
 
 
+def deduplicate_rows(good_rows: pd.DataFrame, parent_dataset: DatasetDict) -> pd.DataFrame:
+    """
+    Deduplicate the good_rows and parent_dataset. Within the `conversation` column, the first item in the list is the user prompt. The duplicate rows would have matching `value` fields in the user prompt.
+
+    Args:
+        good_rows: Dataframe with 'system' and 'conversations' columns
+        parent_dataset: Dataframe with 'system' and 'conversations' columns
+
+    Returns:
+        Deduplicated rows
+    """
+    # Convert the good_rows and parent_dataset to JSON
+    user_prompts = set(good_rows["conversations"].apply(lambda x: x[0]["value"]))
+
+    # Convert parent dataset to DataFrame and filter
+    parent_df = parent_dataset.data["train"].to_pandas()
+    parent_filtered = parent_df[~parent_df["conversations"].apply(lambda x: x[0]["value"]).isin(user_prompts)]
+
+    # Combine filtered parent data with good rows
+    return pd.concat([parent_filtered, good_rows], ignore_index=True)
+
+
 def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description="Create filtered dataset from evaluation results")
@@ -118,10 +140,16 @@ def main():
         # Get filtered rows
         good_rows = get_good_dataset_rows(datatrace_df, eval_df)
 
+        # Load in the parent dataset, stratos
+        parent_dataset = load_dataset("bespokelabs/Bespoke-Stratos-17k", split=None)
+        logger.info(f"Loaded parent dataset with {len(parent_dataset)} rows")
+
         # Convert to pandas and save as JSON
         with tempfile.TemporaryDirectory() as tmp_dir:
             json_path = os.path.join(tmp_dir, "data.json")
-            good_rows.to_json(json_path, orient="records", indent=2)
+            # Dedupe the good_rows and parent_dataset.
+            deduplicated_rows = deduplicate_rows(good_rows, parent_dataset)
+            deduplicated_rows.to_json(json_path, orient="records", indent=2)
 
             if repo_name and hf_token:
                 # Initialize HF API
@@ -145,12 +173,12 @@ def main():
         if fullthoughts_path:
             # Load fullthoughts dataset
             fullthoughts_df = load_dataset_from_jsonl(fullthoughts_path)
-
             good_rows = get_good_dataset_rows(fullthoughts_df, eval_df)
+            deduplicated_rows = deduplicate_rows(good_rows, parent_dataset)
 
             with tempfile.TemporaryDirectory() as tmp_dir:
                 json_path = os.path.join(tmp_dir, "data.json")
-                good_rows.to_json(json_path, orient="records", indent=2)
+                deduplicated_rows.to_json(json_path, orient="records", indent=2)
 
                 if repo_name and hf_token:
                     api = HfApi(token=hf_token)
