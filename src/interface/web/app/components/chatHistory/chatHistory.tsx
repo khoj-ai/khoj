@@ -142,6 +142,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
     const isMobileWidth = useIsMobileWidth();
     const scrollAreaSelector = "[data-radix-scroll-area-viewport]";
     const fetchMessageCount = 10;
+    const hasStartingMessage = localStorage.getItem("message");
 
     useEffect(() => {
         const scrollAreaEl = scrollAreaRef.current?.querySelector<HTMLElement>(scrollAreaSelector);
@@ -277,7 +278,9 @@ export default function ChatHistory(props: ChatHistoryProps) {
                         props.setAgent(chatData.response.agent);
                         setData(chatMetadata);
                         if (props.setIsChatSideBarOpen) {
-                            props.setIsChatSideBarOpen(true);
+                            if (!hasStartingMessage) {
+                                props.setIsChatSideBarOpen(true);
+                            }
                         }
                     }
 
@@ -469,7 +472,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         onDeleteMessage={handleDeleteMessage}
                                         customClassName="fullHistory"
                                         borderLeftColor={`${data?.agent?.color}-500`}
-                                        isLastMessage={true}
+                                        isLastMessage={index === (props.incomingMessages!.length - 1)}
                                     />
                                 </React.Fragment>
                             );
