@@ -71,6 +71,8 @@ def completion_with_backoff(
     elif model_name.startswith("o1"):
         temperature = 1
         model_kwargs.pop("response_format", None)
+    elif model_name.startswith("o3-"):
+        temperature = 1
 
     if os.getenv("KHOJ_LLM_SEED"):
         model_kwargs["seed"] = int(os.getenv("KHOJ_LLM_SEED"))
@@ -181,6 +183,8 @@ def llm_thread(
         elif model_name.startswith("o1-"):
             temperature = 1
             model_kwargs.pop("response_format", None)
+        elif model_name.startswith("o3-"):
+            temperature = 1
         elif model_name.startswith("deepseek-reasoner"):
             # Two successive messages cannot be from the same role. Should merge any back-to-back messages from the same role.
             # The first message should always be a user message (except system message).
