@@ -1008,7 +1008,9 @@ class ConversationAdapters:
         if create_new:
             return await ConversationAdapters.acreate_conversation_session(user, client_application)
 
-        query = Conversation.objects.filter(user=user, client=client_application).prefetch_related("agent")
+        query = Conversation.objects.filter(user=user, client=client_application).prefetch_related(
+            "agent", "agent__chat_model"
+        )
 
         if conversation_id:
             return await query.filter(id=conversation_id).afirst()
@@ -1017,7 +1019,7 @@ class ConversationAdapters:
 
         conversation = await query.order_by("-updated_at").afirst()
 
-        return conversation or await Conversation.objects.prefetch_related("agent").acreate(
+        return conversation or await Conversation.objects.prefetch_related("agent", "agent__chat_model").acreate(
             user=user, client=client_application
         )
 
@@ -1147,7 +1149,7 @@ class ConversationAdapters:
         return ChatModel.objects.filter().first()
 
     @staticmethod
-    async def aget_default_chat_model(user: KhojUser = None):
+    async def aget_default_chat_model(user: KhojUser = None, fallback_chat_model: Optional[ChatModel] = None):
         """Get default conversation config. Prefer chat model by server admin > user > first created chat model"""
         # Get the server chat settings
         server_chat_settings: ServerChatSettings = (
@@ -1167,12 +1169,18 @@ class ConversationAdapters:
             if server_chat_settings.chat_default:
                 return server_chat_settings.chat_default
 
+        # Revert to an explicit fallback model if the server chat settings are not set
+        if fallback_chat_model:
+            # The chat model may not be full loaded from the db, so explicitly load it here
+            return await ChatModel.objects.filter(id=fallback_chat_model.id).prefetch_related("ai_model_api").afirst()
+
         # Get the user's chat settings, if the server chat settings are not set
         user_chat_settings = (
             (await UserConversationConfig.objects.filter(user=user).prefetch_related("setting__ai_model_api").afirst())
             if user
             else None
         )
+
         if user_chat_settings is not None and user_chat_settings.setting is not None:
             return user_chat_settings.setting
 

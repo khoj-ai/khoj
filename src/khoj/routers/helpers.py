@@ -393,12 +393,15 @@ async def aget_data_sources_and_output_format(
         personality_context=personality_context,
     )
 
+    agent_chat_model = agent.chat_model if agent else None
+
     with timer("Chat actor: Infer information sources to refer", logger):
         response = await send_message_to_model_wrapper(
             relevant_tools_prompt,
             response_type="json_object",
             user=user,
             query_files=query_files,
+            agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
 
@@ -472,6 +475,8 @@ async def infer_webpage_urls(
         personality_context=personality_context,
     )
 
+    agent_chat_model = agent.chat_model if agent else None
+
     with timer("Chat actor: Infer webpage urls to read", logger):
         response = await send_message_to_model_wrapper(
             online_queries_prompt,
@@ -479,6 +484,7 @@ async def infer_webpage_urls(
             response_type="json_object",
             user=user,
             query_files=query_files,
+            agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
 
@@ -528,6 +534,8 @@ async def generate_online_subqueries(
         personality_context=personality_context,
     )
 
+    agent_chat_model = agent.chat_model if agent else None
+
     with timer("Chat actor: Generate online search subqueries", logger):
         response = await send_message_to_model_wrapper(
             online_queries_prompt,
@@ -535,6 +543,7 @@ async def generate_online_subqueries(
             response_type="json_object",
             user=user,
             query_files=query_files,
+            agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
 
@@ -628,10 +637,13 @@ async def extract_relevant_info(
         personality_context=personality_context,
     )
 
+    agent_chat_model = agent.chat_model if agent else None
+
     response = await send_message_to_model_wrapper(
         extract_relevant_information,
         prompts.system_prompt_extract_relevant_information,
         user=user,
+        agent_chat_model=agent_chat_model,
         tracer=tracer,
     )
     return response.strip()
@@ -666,12 +678,15 @@ async def extract_relevant_summary(
         personality_context=personality_context,
     )
 
+    agent_chat_model = agent.chat_model if agent else None
+
     with timer("Chat actor: Extract relevant information from data", logger):
         response = await send_message_to_model_wrapper(
             extract_relevant_information,
             prompts.system_prompt_extract_relevant_summary,
             user=user,
             query_images=query_images,
+            agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
     return response.strip()
@@ -834,12 +849,15 @@ async def generate_better_diagram_description(
         personality_context=personality_context,
     )
 
+    agent_chat_model = agent.chat_model if agent else None
+
     with timer("Chat actor: Generate better diagram description", logger):
         response = await send_message_to_model_wrapper(
             improve_diagram_description_prompt,
             query_images=query_images,
             user=user,
             query_files=query_files,
+            agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
         response = response.strip()
@@ -864,9 +882,11 @@ async def generate_excalidraw_diagram_from_description(
         query=q,
     )
 
+    agent_chat_model = agent.chat_model if agent else None
+
     with timer("Chat actor: Generate excalidraw diagram", logger):
         raw_response = await send_message_to_model_wrapper(
-            query=excalidraw_diagram_generation, user=user, tracer=tracer
+            query=excalidraw_diagram_generation, user=user, agent_chat_model=agent_chat_model, tracer=tracer
         )
         raw_response = clean_json(raw_response)
         try:
@@ -980,12 +1000,15 @@ async def generate_better_mermaidjs_diagram_description(
         personality_context=personality_context,
     )
 
+    agent_chat_model = agent.chat_model if agent else None
+
     with timer("Chat actor: Generate better Mermaid.js diagram description", logger):
         response = await send_message_to_model_wrapper(
             improve_diagram_description_prompt,
             query_images=query_images,
             user=user,
             query_files=query_files,
+            agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
         response = response.strip()
@@ -1010,8 +1033,12 @@ async def generate_mermaidjs_diagram_from_description(
         query=q,
     )
 
+    agent_chat_model = agent.chat_model if agent else None
+
     with timer("Chat actor: Generate Mermaid.js diagram", logger):
-        raw_response = await send_message_to_model_wrapper(query=mermaidjs_diagram_generation, user=user, tracer=tracer)
+        raw_response = await send_message_to_model_wrapper(
+            query=mermaidjs_diagram_generation, user=user, agent_chat_model=agent_chat_model, tracer=tracer
+        )
         return clean_mermaidjs(raw_response.strip())
 
 
@@ -1072,9 +1099,16 @@ async def generate_better_image_prompt(
             personality_context=personality_context,
         )
 
+    agent_chat_model = agent.chat_model if agent else None
+
     with timer("Chat actor: Generate contextual image prompt", logger):
         response = await send_message_to_model_wrapper(
-            image_prompt, query_images=query_images, user=user, query_files=query_files, tracer=tracer
+            image_prompt,
+            query_images=query_images,
+            user=user,
+            query_files=query_files,
+            agent_chat_model=agent_chat_model,
+            tracer=tracer,
         )
         response = response.strip()
         if response.startswith(('"', "'")) and response.endswith(('"', "'")):
@@ -1091,9 +1125,10 @@ async def send_message_to_model_wrapper(
     query_images: List[str] = None,
     context: str = "",
     query_files: str = None,
+    agent_chat_model: ChatModel = None,
     tracer: dict = {},
 ):
-    chat_model: ChatModel = await ConversationAdapters.aget_default_chat_model(user)
+    chat_model: ChatModel = await ConversationAdapters.aget_default_chat_model(user, agent_chat_model)
     vision_available = chat_model.vision_enabled
     if not vision_available and query_images:
         logger.warning(f"Vision is not enabled for default model: {chat_model.name}.")

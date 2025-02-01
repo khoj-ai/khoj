@@ -386,7 +386,6 @@ mode_descriptions_for_llm = {
 
 mode_descriptions_for_agent = {
     ConversationCommand.Image: "Agent can generate images in response. It cannot not use this to generate charts and graphs.",
-    ConversationCommand.Automation: "Agent can schedule a task to run at a scheduled date, time and frequency in response.",
     ConversationCommand.Diagram: "Agent can generate a visual representation that requires primitives like lines, rectangles, and text.",
 }
 
