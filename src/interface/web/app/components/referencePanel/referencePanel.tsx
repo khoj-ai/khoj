@@ -31,6 +31,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import DOMPurify from "dompurify";
 import { getIconFromFilename } from "@/app/common/iconUtils";
+import Link from "next/link";
 
 interface NotesContextReferenceData {
     title: string;
@@ -68,18 +69,25 @@ function NotesContextReferenceCard(props: NotesContextReferenceCardProps) {
                     <Card
                         onMouseEnter={() => setIsHovering(true)}
                         onMouseLeave={() => setIsHovering(false)}
-                        className={`${props.showFullContent ? "w-auto" : "w-[200px]"} overflow-hidden break-words text-balance rounded-lg border-none p-2 bg-muted`}
+                        className={`${props.showFullContent ? "w-auto bg-muted" : "w-auto"} overflow-hidden break-words text-balance rounded-lg border-none p-2`}
                     >
-                        <h3
-                            className={`${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground}`}
-                        >
-                            {fileIcon}
-                            {props.showFullContent ? props.title : fileName}
-                        </h3>
-                        <p
-                            className={`text-sm ${props.showFullContent ? "overflow-x-auto block" : "overflow-hidden line-clamp-2"}`}
-                            dangerouslySetInnerHTML={{ __html: snippet }}
-                        ></p>
+                        {
+                            !props.showFullContent ?
+                                <SimpleIcon type="notes" key={`${props.title}`} />
+                                :
+                                <>
+                                    <h3
+                                        className={`${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground}`}
+                                    >
+                                        {fileIcon}
+                                        {props.showFullContent ? props.title : fileName}
+                                    </h3>
+                                    <p
+                                        className={`text-sm overflow-x-auto block`}
+                                        dangerouslySetInnerHTML={{ __html: snippet }}
+                                    ></p>
+                                </>
+                        }
                     </Card>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] mx-2">
@@ -204,25 +212,30 @@ function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
                     <Card
                         onMouseEnter={() => setIsHovering(true)}
                         onMouseLeave={() => setIsHovering(false)}
-                        className={`${props.showFullContent ? "w-auto" : "w-[200px]"} overflow-hidden break-words text-balance rounded-lg border-none p-2 bg-muted`}
+                        className={`${props.showFullContent ? "w-auto bg-muted" : "w-auto"} overflow-hidden break-words text-balance rounded-lg border-none p-2`}
                     >
-                        <div className="flex flex-col px-1">
-                            <div className="flex items-center gap-2">
-                                {fileIcon}
-                                <h3
-                                    className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground flex-grow`}
-                                >
-                                    code {props.output_files?.length > 0 ? "artifacts" : ""}
-                                </h3>
-                            </div>
-                            <pre
-                                className={`text-xs pb-2 ${props.showFullContent ? "block overflow-x-auto" : props.output_files?.length > 0 ? "hidden" : "overflow-hidden line-clamp-3"}`}
-                            >
-                                {sanitizedCodeSnippet}
-                            </pre>
-                            {props.output_files?.length > 0 &&
-                                renderOutputFiles(props.output_files, false)}
-                        </div>
+                        {
+                            !props.showFullContent ?
+                                <SimpleIcon type="code" key={`code-${props.code}`} />
+                                :
+                                <div className="flex flex-col px-1">
+                                    <div className="flex items-center gap-2">
+                                        {fileIcon}
+                                        <h3
+                                            className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground flex-grow`}
+                                        >
+                                            code {props.output_files?.length > 0 ? "artifacts" : ""}
+                                        </h3>
+                                    </div>
+                                    <pre
+                                        className={`text-xs pb-2 ${props.showFullContent ? "block overflow-x-auto" : props.output_files?.length > 0 ? "hidden" : "overflow-hidden line-clamp-3"}`}
+                                    >
+                                        {sanitizedCodeSnippet}
+                                    </pre>
+                                    {props.output_files?.length > 0 &&
+                                        renderOutputFiles(props.output_files, false)}
+                                </div>
+                        }
                     </Card>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] mx-2">
@@ -299,35 +312,37 @@ function GenericOnlineReferenceCard(props: OnlineReferenceCardProps) {
                     <Card
                         onMouseEnter={handleMouseEnter}
                         onMouseLeave={handleMouseLeave}
-                        className={`${props.showFullContent ? "w-auto" : "w-[200px]"} overflow-hidden break-words text-balance rounded-lg border-none p-2 bg-muted`}
+                        className={`${props.showFullContent ? "w-auto bg-muted" : "w-auto"} overflow-hidden break-words text-balance rounded-lg border-none p-2`}
                     >
-                        <div className="flex flex-col">
-                            <a
-                                href={props.link}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="!no-underline px-1"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <img src={favicon} alt="" className="!w-4 h-4 flex-shrink-0" />
+                        {
+                            !props.showFullContent ?
+                                <SimpleIcon type="online" key={props.title} link={props.link} />
+                                :
+                                <div className="flex flex-col">
+                                    {
+                                        <Link href={props.link}>
+                                            <div className="flex items-center gap-2">
+                                                <img src={favicon} alt="" className="!w-4 h-4 flex-shrink-0" />
+                                                <h3
+                                                    className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground flex-grow`}
+                                                >
+                                                    {domain}
+                                                </h3>
+                                            </div>
+                                        </Link>
+                                    }
                                     <h3
-                                        className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} text-muted-foreground flex-grow`}
+                                        className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} font-bold`}
                                     >
-                                        {domain}
+                                        {props.title}
                                     </h3>
+                                    <p
+                                        className={`overflow-hidden text-sm ${props.showFullContent ? "block" : "line-clamp-2"}`}
+                                    >
+                                        {props.description}
+                                    </p>
                                 </div>
-                                <h3
-                                    className={`overflow-hidden ${props.showFullContent ? "block" : "line-clamp-1"} font-bold`}
-                                >
-                                    {props.title}
-                                </h3>
-                                <p
-                                    className={`overflow-hidden text-sm ${props.showFullContent ? "block" : "line-clamp-2"}`}
-                                >
-                                    {props.description}
-                                </p>
-                            </a>
-                        </div>
+                        }
                     </Card>
                 </PopoverTrigger>
                 <PopoverContent className="w-[400px] mx-2">
@@ -609,17 +624,29 @@ export default function ReferencePanel(props: ReferencePanelDataProps) {
             <SheetTrigger className="text-balance w-auto md:w-[200px] justify-start overflow-hidden break-words p-0 bg-transparent border-none text-gray-400 align-middle items-center m-0 inline-flex">
                 {codeDataToShow.map((code, index) => {
                     return (
-                        <SimpleIcon type="code" key={`code-${index}`} />
+                        <CodeContextReferenceCard
+                            showFullContent={false}
+                            {...code}
+                            key={`code-${index}`}
+                        />
                     );
                 })}
                 {notesDataToShow.map((note, index) => {
                     return (
-                        <SimpleIcon type="notes" key={`${note.title}-${index}`} />
+                        <NotesContextReferenceCard
+                            showFullContent={false}
+                            {...note}
+                            key={`${note.title}-${index}`}
+                        />
                     );
                 })}
                 {onlineDataToShow.map((online, index) => {
                     return (
-                        <SimpleIcon type="online" key={`${online.title}-${index}`} link={online.link} />
+                        <GenericOnlineReferenceCard
+                            showFullContent={false}
+                            {...online}
+                            key={`${online.title}-${index}`}
+                        />
                     );
                 })}
                 <ArrowRight className="m-0" />
