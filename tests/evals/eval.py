@@ -213,7 +213,7 @@ def load_frames_dataset():
         return None
 
 
-def load_skythought_dataset(output_file: str):
+def load_skythought_dataset(output_file: str, regrade_mode=False):
     """
     Load the skythought training dataset from HuggingFace
 
@@ -248,14 +248,14 @@ def load_skythought_dataset(output_file: str):
 
         formatted_data = []
         for d in dataset["train"]:
-            if len(formatted_data) + len(processed_indices) >= int(SAMPLE_SIZE):
+            if len(formatted_data) + len(processed_indices) >= int(SAMPLE_SIZE) and not regrade_mode:
                 logger.info(f"Processing remaining {len(formatted_data)} of {SAMPLE_SIZE} samples.")
                 # Exit loop if sample size is reached
                 break
 
             # Check if current_index is already processed
             idx = d["id"]
-            if idx in processed_indices:
+            if idx in processed_indices and not regrade_mode:
                 continue
 
             # Extract the answer from the assistant response
@@ -275,6 +275,8 @@ def load_skythought_dataset(output_file: str):
             )
 
         dataset = Dataset.from_list(formatted_data)
+        if regrade_mode:
+            return dataset
         return dataset[: int(SAMPLE_SIZE)] if SAMPLE_SIZE else dataset
 
     except Exception as e:
@@ -625,7 +627,84 @@ def evaluate_response_with_gemini(
         return None, f"Evaluation failed: {str(e)}", 0.0
 
 
-def process_batch(batch, dataset_length, response_evaluator, output_file):
+def process_batch_regrade(parent_data, batch, dataset_length, response_evaluator, output_file):
+    global running_cost
+
+    # Convert parent_data to DataFrame at start
+    parent_df = pd.DataFrame(parent_data)
+
+    for current_index, prompt, agent_response, evaluation_explanation in batch:
+        logger.info(f"Processing example: {current_index+1}/{dataset_length}")
+
+        # Get latest data
+        existing_results = pd.read_csv(output_file)
+
+        # Match existing row by prompt
+        parent_row = parent_df[parent_df["Prompt"] == prompt]
+        answer = parent_row["Answer"].values[0] if not parent_row.empty else None
+
+        existing_row = existing_results[existing_results["prompt"] == prompt]
+        agent_usage = existing_row["usage"].values[0] if not existing_row.empty else {}
+        agent_references = {}
+
+        # Evaluate response
+        if is_none_or_empty(agent_response):
+            decision = None
+            explanation = "Agent response is empty. This maybe due to a service error."
+            continue  # Do not store results. Allows including this eval row in next resumable eval run
+        else:
+            if evaluation_explanation is not None and "Evaluation failed" not in evaluation_explanation:
+                explanation = evaluation_explanation
+                decision = existing_row["evaluation_decision"].values[0]
+                eval_cost = 0.0
+            else:
+                decision, explanation, eval_cost = response_evaluator(prompt, agent_response, answer, agent_references)
+
+        # Store results
+        # Thread-safe DataFrame modification
+        with DF_LOCK:
+            # Update existing row with new evaluation results
+            existing_results.loc[existing_results["prompt"] == prompt, "agent_response"] = agent_response
+            existing_results.loc[existing_results["prompt"] == prompt, "evaluation_decision"] = decision
+            existing_results.loc[existing_results["prompt"] == prompt, "evaluation_explanation"] = explanation
+            existing_results.to_csv(output_file, index=False)
+
+        # logger.info(f"Results: new_row: {results.to_dict()}")
+
+        # Update running cost
+        try:
+            query_cost = float(agent_usage.get("cost", 0.0))
+            running_cost.add(query_cost + eval_cost)
+        except Exception as e:
+            logger.error(f"Error updating running cost: {e}")
+
+        # Update running accuracy
+        running_accuracy = 0.0
+        if decision is not None:
+            running_true_count.add(decision)
+            running_total_count.add(1)
+            running_accuracy = running_true_count.get() / running_total_count.get()
+
+        ## Log results
+        decision_color = {True: "green", None: "blue", False: "red"}[decision > 0.5]
+        colored_decision = color_text(str(decision), decision_color)
+        result_to_print = f"""
+---------
+Decision: {colored_decision}
+Accuracy: {running_accuracy:.2%}
+Question: {prompt}
+Expected Answer: {answer}
+Agent Answer: {agent_response}
+Explanation: {explanation}
+---------
+        """
+        logger.info(dedent(result_to_print).lstrip())
+
+        # Sleep between API calls to avoid rate limiting
+        time.sleep(SLEEP_SECONDS)
+
+
+def process_batch(batch, dataset_length, response_evaluator, output_file, regrade_mode=False):
     global running_cost
     for current_index, prompt, answer, reasoning_type in batch:
         logger.info(f"Processing example: {current_index+1}/{dataset_length}")
@@ -730,6 +809,13 @@ def parse_args():
         choices=["frames", "frames_ir", "simpleqa", "gpqa", "math500", "skythought"],
         help="Dataset to use for evaluation (default: frames)",
     )
+    parser.add_argument(
+        "--regrade",
+        "-r",
+        action="store_true",
+        help="Regrade existing results in output file",
+        default=False,
+    )
     return parser.parse_args()
 
 
@@ -752,6 +838,8 @@ def main():
             ]
         ).to_csv(output_file, index=False)
 
+    regrade_mode = args.regrade
+
     # Load dataset
     with timer(f"Loaded {args.dataset} dataset in", logger, log_level=logging.INFO):
         if args.dataset == "frames":
@@ -763,7 +851,7 @@ def main():
         elif args.dataset == "math500":
             dataset = load_math500_dataset()
         elif args.dataset == "skythought":
-            dataset = load_skythought_dataset(output_file)
+            dataset = load_skythought_dataset(output_file, regrade_mode)
         elif args.dataset == "frames_ir":
             indexed = index_frames_kb()
             if indexed:
@@ -786,22 +874,45 @@ def main():
     else:
         response_evaluator = evaluate_response_with_gemini
 
-    # Process examples in batches
-    parallel_size = max(dataset_length // BATCH_SIZE, 4)
-    with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_size) as executor:
-        futures = []
-        for i in range(0, dataset_length, BATCH_SIZE):
-            batch_start, batch_end = i, min(i + BATCH_SIZE, dataset_length)
-            batch = zip(
-                dataset["id"][batch_start:batch_end],
-                dataset["Prompt"][batch_start:batch_end],
-                dataset["Answer"][batch_start:batch_end],
-                dataset["reasoning_types"][batch_start:batch_end],
-            )
-            futures.append(executor.submit(process_batch, batch, dataset_length, response_evaluator, output_file))
+    if regrade_mode:
+        existing_data = pd.read_csv(output_file)
+        existing_data_length = len(existing_data)
+        parallel_size = max(existing_data_length // BATCH_SIZE, 4)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_size) as executor:
+            futures = []
+            for i in range(0, existing_data_length, BATCH_SIZE):
+                batch_start, batch_end = i, min(i + BATCH_SIZE, existing_data_length)
+                batch = zip(
+                    existing_data["id"][batch_start:batch_end],
+                    existing_data["prompt"][batch_start:batch_end],
+                    existing_data["agent_response"][batch_start:batch_end],
+                    existing_data["evaluation_explanation"][batch_start:batch_end],
+                )
+                futures.append(
+                    executor.submit(
+                        process_batch_regrade, dataset, batch, existing_data_length, response_evaluator, output_file
+                    )
+                )
 
-        # Wait for all futures to complete
-        concurrent.futures.wait(futures)
+            # Wait for all futures to complete
+            concurrent.futures.wait(futures)
+    else:
+        # Process examples in batches
+        parallel_size = max(dataset_length // BATCH_SIZE, 4)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_size) as executor:
+            futures = []
+            for i in range(0, dataset_length, BATCH_SIZE):
+                batch_start, batch_end = i, min(i + BATCH_SIZE, dataset_length)
+                batch = zip(
+                    dataset["id"][batch_start:batch_end],
+                    dataset["Prompt"][batch_start:batch_end],
+                    dataset["Answer"][batch_start:batch_end],
+                    dataset["reasoning_types"][batch_start:batch_end],
+                )
+                futures.append(executor.submit(process_batch, batch, dataset_length, response_evaluator, output_file))
+
+            # Wait for all futures to complete
+            concurrent.futures.wait(futures)
 
     # Calculate metrics
     df = pd.read_csv(output_file)
