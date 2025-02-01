@@ -203,14 +203,14 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                 <SidebarHeader>
                     {
                         agentData && !isEditable ? (
-                            <div className="flex items-center relative top-2">
+                            <div className="flex items-center relative text-sm">
                                 <a className="text-lg font-bold flex flex-row items-center" href={`/agents?agent=${agentData.slug}`}>
                                     {getIconFromIconName(agentData.icon, agentData.color)}
                                     {agentData.name}
                                 </a>
                             </div>
                         ) : (
-                            <div className="flex items-center relative top-2">
+                            <div className="flex items-center relative text-sm">
                                 {getIconFromIconName("lightbulb", "orange")}
                                 Chat Options
                             </div>

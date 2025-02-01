@@ -572,7 +572,7 @@ export function TeaserReferencesSection(props: TeaserReferenceSectionProps) {
     return (
         <div className="pt-0 px-4 pb-4">
             <h3 className="inline-flex items-center">
-                <p className="text-gray-400 m-2">{numReferences} sources</p>
+                <div className="text-gray-400 m-2">{numReferences} sources</div>
                 <div className={`flex flex-wrap gap-2 w-auto m-2`}>
                     {shouldShowShowMoreButton && (
                         <ReferencePanel
@@ -621,7 +621,7 @@ export default function ReferencePanel(props: ReferencePanelDataProps) {
 
     return (
         <Sheet>
-            <SheetTrigger className="text-balance w-auto md:w-[200px] justify-start overflow-hidden break-words p-0 bg-transparent border-none text-gray-400 align-middle items-center m-0 inline-flex">
+            <SheetTrigger className="text-balance w-auto justify-start overflow-hidden break-words p-0 bg-transparent border-none text-gray-400 align-middle items-center m-0 inline-flex">
                 {codeDataToShow.map((code, index) => {
                     return (
                         <CodeContextReferenceCard
