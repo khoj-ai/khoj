@@ -943,6 +943,10 @@ def main():
 
     # Save raw results to file
     output_file = args.output or f"{args.dataset}_evaluation_results_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
+
+    if regrade_mode:
+        output_file = output_file.replace(".csv", "_regraded.csv")
+
     df.to_csv(output_file, index=False)
     logger.info(f"Results saved to {summary_file}, {output_file}")
 
