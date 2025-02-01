@@ -2012,7 +2012,13 @@ def schedule_automation(
         # Run automation at some random minute (to distribute request load) instead of running every X minutes
         crontime = " ".join([str(math.floor(random() * 60))] + crontime.split(" ")[1:])
 
-    user_timezone = pytz.timezone(timezone)
+    # Convert timezone string to timezone object
+    try:
+        user_timezone = pytz.timezone(timezone)
+    except pytz.UnknownTimeZoneError:
+        logger.error(f"Invalid timezone: {timezone}. Fallback to use UTC to schedule automation.")
+        user_timezone = pytz.utc
+
     trigger = CronTrigger.from_crontab(crontime, user_timezone)
     trigger.jitter = 60
     # Generate id and metadata used by task scheduler and process locks for the task runs
