@@ -69,6 +69,7 @@ from khoj.search_filter.word_filter import WordFilter
 from khoj.utils import state
 from khoj.utils.config import OfflineChatProcessorModel
 from khoj.utils.helpers import (
+    generate_random_internal_agent_name,
     generate_random_name,
     in_debug_mode,
     is_none_or_empty,
@@ -714,9 +715,12 @@ class AgentAdapters:
         public_query = Q(privacy_level=Agent.PrivacyLevel.PUBLIC)
         # TODO Update this to allow any public agent that's officially approved once that experience is launched
         public_query &= Q(managed_by_admin=True)
+
+        user_query = Q(creator=user)
+        user_query &= Q(is_hidden=False)
         if user:
             return (
-                Agent.objects.filter(public_query | Q(creator=user))
+                Agent.objects.filter(public_query | user_query)
                 .distinct()
                 .order_by("created_at")
                 .prefetch_related("creator", "chat_model", "fileobject_set")
@@ -803,12 +807,15 @@ class AgentAdapters:
         privacy_level: str,
         icon: str,
         color: str,
-        chat_model: str,
+        chat_model: Optional[str],
         files: List[str],
         input_tools: List[str],
         output_modes: List[str],
         slug: Optional[str] = None,
+        is_hidden: Optional[bool] = False,
     ):
+        if not chat_model:
+            chat_model = await ConversationAdapters.aget_default_chat_model(user)
         chat_model_option = await ChatModel.objects.filter(name=chat_model).afirst()
 
         # Slug will be None for new agents, which will trigger a new agent creation with a generated, immutable slug
@@ -823,6 +830,7 @@ class AgentAdapters:
                 "chat_model": chat_model_option,
                 "input_tools": input_tools,
                 "output_modes": output_modes,
+                "is_hidden": is_hidden,
             }
         )
 
@@ -856,6 +864,36 @@ class AgentAdapters:
 
                 # Bulk create entries
                 await Entry.objects.abulk_create(entries)
+
+        return agent
+
+    @staticmethod
+    @arequire_valid_user
+    async def aupdate_hidden_agent(
+        user: KhojUser,
+        slug: Optional[str] = None,
+        persona: Optional[str] = None,
+        chat_model: Optional[str] = None,
+        input_tools: Optional[List[str]] = None,
+        output_modes: Optional[List[str]] = None,
+        existing_agent: Optional[Agent] = None,
+    ):
+        name = generate_random_internal_agent_name() if not existing_agent else existing_agent.name
+
+        agent = await AgentAdapters.aupdate_agent(
+            user=user,
+            name=name,
+            personality=persona,
+            privacy_level=Agent.PrivacyLevel.PRIVATE,
+            icon=Agent.StyleIconTypes.LIGHTBULB,
+            color=Agent.StyleColorTypes.BLUE,
+            chat_model=chat_model,
+            files=[],
+            input_tools=input_tools,
+            output_modes=output_modes,
+            slug=slug,
+            is_hidden=True,
+        )
 
         return agent
 
@@ -970,7 +1008,9 @@ class ConversationAdapters:
         if create_new:
             return await ConversationAdapters.acreate_conversation_session(user, client_application)
 
-        query = Conversation.objects.filter(user=user, client=client_application).prefetch_related("agent")
+        query = Conversation.objects.filter(user=user, client=client_application).prefetch_related(
+            "agent", "agent__chat_model"
+        )
 
         if conversation_id:
             return await query.filter(id=conversation_id).afirst()
@@ -979,7 +1019,7 @@ class ConversationAdapters:
 
         conversation = await query.order_by("-updated_at").afirst()
 
-        return conversation or await Conversation.objects.prefetch_related("agent").acreate(
+        return conversation or await Conversation.objects.prefetch_related("agent", "agent__chat_model").acreate(
             user=user, client=client_application
         )
 
@@ -1109,7 +1149,7 @@ class ConversationAdapters:
         return ChatModel.objects.filter().first()
 
     @staticmethod
-    async def aget_default_chat_model(user: KhojUser = None):
+    async def aget_default_chat_model(user: KhojUser = None, fallback_chat_model: Optional[ChatModel] = None):
         """Get default conversation config. Prefer chat model by server admin > user > first created chat model"""
         # Get the server chat settings
         server_chat_settings: ServerChatSettings = (
@@ -1129,12 +1169,18 @@ class ConversationAdapters:
             if server_chat_settings.chat_default:
                 return server_chat_settings.chat_default
 
+        # Revert to an explicit fallback model if the server chat settings are not set
+        if fallback_chat_model:
+            # The chat model may not be full loaded from the db, so explicitly load it here
+            return await ChatModel.objects.filter(id=fallback_chat_model.id).prefetch_related("ai_model_api").afirst()
+
         # Get the user's chat settings, if the server chat settings are not set
         user_chat_settings = (
             (await UserConversationConfig.objects.filter(user=user).prefetch_related("setting__ai_model_api").afirst())
             if user
             else None
         )
+
         if user_chat_settings is not None and user_chat_settings.setting is not None:
             return user_chat_settings.setting
 

@@ -36,7 +36,7 @@ import {
 import DOMPurify from "dompurify";
 import { InlineLoading } from "../loading/loading";
 import { convertColorToTextClass } from "@/app/common/colorUtils";
-import { AgentData } from "@/app/agents/page";
+import { AgentData } from "@/app/components/agentCard/agentCard";
 
 import renderMathInElement from "katex/contrib/auto-render";
 import "katex/dist/katex.min.css";
@@ -559,7 +559,10 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
     }
 
     function constructClasses(chatMessage: SingleChatMessage) {
-        let classes = [styles.chatMessageContainer, "shadow-md"];
+        let classes = [styles.chatMessageContainer];
+        if (chatMessage.by === "khoj") {
+            classes.push("shadow-md");
+        }
         classes.push(styles[chatMessage.by]);
         if (!chatMessage.message) {
             classes.push(styles.emptyChatMessage);

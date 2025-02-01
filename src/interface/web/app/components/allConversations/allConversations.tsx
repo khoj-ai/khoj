@@ -46,20 +46,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import {
     ArrowRight,
-    ArrowLeft,
     ArrowDown,
     Spinner,
     Check,
     FolderPlus,
     DotsThreeVertical,
-    House,
-    StackPlus,
-    UserCirclePlus,
-    Sidebar,
-    NotePencil,
     FunnelSimple,
-    MagnifyingGlass,
     ChatsCircle,
+    Info,
 } from "@phosphor-icons/react";
 
 interface ChatHistory {
@@ -68,6 +62,7 @@ interface ChatHistory {
     agent_name: string;
     agent_icon: string;
     agent_color: string;
+    agent_is_hidden: boolean;
     compressed: boolean;
     created: string;
     updated: string;
@@ -132,7 +127,7 @@ function renameConversation(conversationId: string, newTitle: string) {
         },
     })
         .then((response) => response.json())
-        .then((data) => {})
+        .then((data) => { })
         .catch((err) => {
             console.error(err);
             return;
@@ -171,7 +166,7 @@ function deleteConversation(conversationId: string) {
             response.json();
             mutate("/api/chat/sessions");
         })
-        .then((data) => {})
+        .then((data) => { })
         .catch((err) => {
             console.error(err);
             return;
@@ -184,7 +179,7 @@ interface FilesMenuProps {
     isMobileWidth: boolean;
 }
 
-function FilesMenu(props: FilesMenuProps) {
+export function FilesMenu(props: FilesMenuProps) {
     // Use SWR to fetch files
     const { data: files, error } = useSWR<string[]>("/api/content/computer", fetcher);
     const { data: selectedFiles, error: selectedFilesError } = useSWR(
@@ -237,8 +232,29 @@ function FilesMenu(props: FilesMenuProps) {
         );
     };
 
-    if (error) return <div>Failed to load files</div>;
-    if (selectedFilesError) return <div>Failed to load selected files</div>;
+    if (error || selectedFilesError) {
+        return (
+            <div className="w-auto bg-background border border-muted p-4 drop-shadow-sm rounded-2xl">
+                <div className="flex items-center justify-between space-x-4">
+                    <h4 className="text-sm font-semibold">
+                        Context
+                        <p>
+                            <span className="text-muted-foreground text-xs">
+                                {
+                                    error ? "Failed to load files" : "Failed to load selected files"
+                                }
+                            </span>
+                        </p>
+                    </h4>
+                    <Button variant="ghost" size="sm" className="w-9 p-0">
+                        <Info className="h-4 w-4" />
+                        <span className="sr-only">Error Info</span>
+                    </Button>
+                </div>
+            </div>
+        )
+    }
+
     if (!files) return <InlineLoading />;
     if (!selectedFiles && props.conversationId) return <InlineLoading />;
 
@@ -363,7 +379,7 @@ function FilesMenu(props: FilesMenuProps) {
         <>
             <Popover open={isOpen} onOpenChange={setIsOpen}>
                 <PopoverTrigger asChild>
-                    <div className="w-auto bg-background border border-muted p-4 drop-shadow-sm rounded-2xl my-8">
+                    <div className="w-auto bg-background border border-muted p-4 drop-shadow-sm rounded-2xl">
                         <div className="flex items-center justify-between space-x-4">
                             <h4 className="text-sm font-semibold">
                                 {usingConversationContext ? "Manage Context" : "Files"}
@@ -424,7 +440,7 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                 <ScrollArea>
                     <ScrollAreaScrollbar
                         orientation="vertical"
-                        className="h-full w-2.5 border-l border-l-transparent p-[1px]"
+                        className="h-full w-2.5"
                     />
                     <div className="p-0 m-0">
                         {props.subsetOrganizedData != null &&
@@ -450,6 +466,7 @@ function SessionsAndFiles(props: SessionsAndFilesProps) {
                                                         agent_name={chatHistory.agent_name}
                                                         agent_color={chatHistory.agent_color}
                                                         agent_icon={chatHistory.agent_icon}
+                                                        agent_is_hidden={chatHistory.agent_is_hidden}
                                                     />
                                                 ),
                                             )}
@@ -679,7 +696,7 @@ function ChatSession(props: ChatHistory) {
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             key={props.conversation_id}
-            className={`${styles.session} ${props.compressed ? styles.compressed : "!max-w-full"} ${isHovered ? `${styles.sessionHover}` : ""} ${currConversationId === props.conversation_id && currConversationId != "-1" ? "dark:bg-neutral-800 bg-white" : ""}`}
+            className={`${styles.session} ${props.compressed ? styles.compressed : "!max-w-full"} ${isHovered ? `${styles.sessionHover}` : ""} ${currConversationId === props.conversation_id && currConversationId != "-1" ? "dark:bg-neutral-800 bg-white" : ""} m-1 rounded-lg`}
         >
             <SidebarMenuButton asChild>
                 <Link
@@ -725,14 +742,21 @@ function ChatSessionsModal({ data, sideBarOpen }: ChatSessionsModalProps) {
             let agentNameToStyleMapLocal: Record<string, AgentStyle> = {};
             Object.keys(data).forEach((timeGrouping) => {
                 data[timeGrouping].forEach((chatHistory) => {
-                    if (!agents.includes(chatHistory.agent_name) && chatHistory.agent_name) {
+                    if (chatHistory.agent_is_hidden) return;
+                    if (!chatHistory.agent_color) return;
+                    if (!chatHistory.agent_name) return;
+                    if (!chatHistory.agent_icon) return;
+
+                    const agentName = chatHistory.agent_name;
+
+                    if (agentName && !agents.includes(agentName)) {
                         agents.push(chatHistory.agent_name);
 
                         agentNameToStyleMapLocal = {
                             ...agentNameToStyleMapLocal,
                             [chatHistory.agent_name]: {
-                                color: chatHistory.agent_color,
-                                icon: chatHistory.agent_icon,
+                                color: chatHistory.agent_color ?? "orange",
+                                icon: chatHistory.agent_icon ?? "Lightbulb",
                             },
                         };
                     }
@@ -860,6 +884,7 @@ function ChatSessionsModal({ data, sideBarOpen }: ChatSessionsModalProps) {
                                                 agent_name={chatHistory.agent_name}
                                                 agent_color={chatHistory.agent_color}
                                                 agent_icon={chatHistory.agent_icon}
+                                                agent_is_hidden={chatHistory.agent_is_hidden}
                                             />
                                         ))}
                                     </div>
@@ -981,13 +1006,6 @@ export default function AllConversations(props: SidePanelProps) {
                                 sideBarOpen={props.sideBarOpen}
                             />
                         </div>
-                        {props.sideBarOpen && (
-                            <FilesMenu
-                                conversationId={props.conversationId}
-                                uploadedFiles={props.uploadedFiles}
-                                isMobileWidth={props.isMobileWidth}
-                            />
-                        )}
                     </>
                 )}
             </div>

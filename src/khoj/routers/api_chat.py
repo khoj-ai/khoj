@@ -226,10 +226,11 @@ def chat_history(
             agent_metadata = {
                 "slug": conversation.agent.slug,
                 "name": conversation.agent.name,
-                "isCreator": conversation.agent.creator == user,
+                "is_creator": conversation.agent.creator == user,
                 "color": conversation.agent.style_color,
                 "icon": conversation.agent.style_icon,
                 "persona": conversation.agent.personality,
+                "is_hidden": conversation.agent.is_hidden,
             }
 
     meta_log = conversation.conversation_log
@@ -279,16 +280,29 @@ def get_shared_chat(
 
     agent_metadata = None
     if conversation.agent:
-        if conversation.agent.privacy_level == Agent.PrivacyLevel.PRIVATE:
-            conversation.agent = None
+        if conversation.agent.privacy_level == Agent.PrivacyLevel.PRIVATE and conversation.agent.creator != user:
+            if conversation.agent.is_hidden:
+                default_agent = AgentAdapters.get_default_agent()
+                agent_metadata = {
+                    "slug": default_agent.slug,
+                    "name": default_agent.name,
+                    "is_creator": False,
+                    "color": default_agent.style_color,
+                    "icon": default_agent.style_icon,
+                    "persona": default_agent.personality,
+                    "is_hidden": default_agent.is_hidden,
+                }
+            else:
+                conversation.agent = None
         else:
             agent_metadata = {
                 "slug": conversation.agent.slug,
                 "name": conversation.agent.name,
-                "isCreator": conversation.agent.creator == user,
+                "is_creator": conversation.agent.creator == user,
                 "color": conversation.agent.style_color,
                 "icon": conversation.agent.style_icon,
                 "persona": conversation.agent.personality,
+                "is_hidden": conversation.agent.is_hidden,
             }
 
     meta_log = conversation.conversation_log
@@ -443,6 +457,7 @@ def chat_sessions(
         "updated_at",
         "agent__style_icon",
         "agent__style_color",
+        "agent__is_hidden",
     )
 
     session_values = [
@@ -454,6 +469,7 @@ def chat_sessions(
             "updated": session[6].strftime("%Y-%m-%d %H:%M:%S"),
             "agent_icon": session[7],
             "agent_color": session[8],
+            "agent_is_hidden": session[9],
         }
         for session in sessions
     ]
@@ -474,6 +490,7 @@ async def create_chat_session(
     request: Request,
     common: CommonQueryParams,
     agent_slug: Optional[str] = None,
+    # Add parameters here to create a custom hidden agent on the fly
 ):
     user = request.user.object
 
@@ -865,7 +882,7 @@ async def chat(
             # and not triggered via slash command
             and not used_slash_summarize
             # but we can't actually summarize
-            and len(file_filters) != 1
+            and len(file_filters) == 0
         ):
             conversation_commands.remove(ConversationCommand.Summarize)
         elif ConversationCommand.Summarize in conversation_commands:

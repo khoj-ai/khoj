@@ -37,7 +37,7 @@ import {
 } from "@/app/common/auth";
 import { convertColorToBorderClass } from "@/app/common/colorUtils";
 import { getIconFromIconName } from "@/app/common/iconUtils";
-import { AgentData } from "@/app/agents/page";
+import { AgentData } from"@/app/components/agentCard/agentCard";
 import { createNewConversation } from "./common/chatFunctions";
 import { useDebounce, useIsMobileWidth } from "./common/utils";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -486,7 +486,7 @@ export default function Home() {
     const [uploadedFiles, setUploadedFiles] = useState<AttachedFileText[] | null>(null);
     const isMobileWidth = useIsMobileWidth();
 
-    const { userConfig: initialUserConfig, isLoadingUserConfig } = useUserConfig(true);
+    const { data: initialUserConfig, isLoading: isLoadingUserConfig } = useUserConfig(true);
     const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
 
     const {

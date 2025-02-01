@@ -287,7 +287,7 @@ enum PhoneNumberValidationState {
 }
 
 export default function SettingsView() {
-    const { userConfig: initialUserConfig } = useUserConfig(true);
+    const { data: initialUserConfig } = useUserConfig(true);
     const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
     const [name, setName] = useState<string | undefined>(undefined);
     const [notionToken, setNotionToken] = useState<string | null>(null);

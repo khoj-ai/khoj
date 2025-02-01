@@ -12,7 +12,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Moon, Sun, UserCircle, Question, ArrowRight, Code } from "@phosphor-icons/react";
+import { Moon, Sun, UserCircle, Question, ArrowRight, Code, BuildingOffice } from "@phosphor-icons/react";
 import { useIsMobileWidth } from "@/app/common/utils";
 import LoginPrompt from "../loginPrompt/loginPrompt";
 import { Button } from "@/components/ui/button";
@@ -87,6 +87,24 @@ export default function FooterMenu({ sideBarIsOpen }: NavMenuProps) {
         localStorage.setItem("theme", darkMode ? "dark" : "light");
     }
 
+    const menuItems = [
+        {
+            title: "Help",
+            icon: <Question className="w-6 h-6" />,
+            link: "https://docs.khoj.dev",
+        },
+        {
+            title: "Releases",
+            icon: <Code className="w-6 h-6" />,
+            link: "https://github.com/khoj-ai/khoj/releases",
+        },
+        {
+            title: "Teams",
+            icon: <BuildingOffice className="w-6 h-6" />,
+            link: "https://khoj.dev/teams",
+        },
+    ]
+
     return (
         <SidebarMenu className="border-none p-0 m-0">
             <SidebarMenuItem className="p-0 m-0">
@@ -147,26 +165,18 @@ export default function FooterMenu({ sideBarIsOpen }: NavMenuProps) {
                                 </p>
                             </div>
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                            <Link href="https://docs.khoj.dev" className="no-underline w-full">
-                                <div className="flex flex-rows">
-                                    <Question className="w-6 h-6" />
-                                    <p className="ml-3 font-semibold">Help</p>
-                                </div>
-                            </Link>
-                        </DropdownMenuItem>
-
-                        <DropdownMenuItem>
-                            <Link
-                                href="https://github.com/khoj-ai/khoj/releases"
-                                className="no-underline w-full"
-                            >
-                                <div className="flex flex-rows">
-                                    <Code className="w-6 h-6" />
-                                    <p className="ml-3 font-semibold">Releases</p>
-                                </div>
-                            </Link>
-                        </DropdownMenuItem>
+                        {
+                            menuItems.map((menuItem, index) => (
+                                <DropdownMenuItem key={index}>
+                                    <Link href={menuItem.link} className="no-underline w-full">
+                                        <div className="flex flex-rows">
+                                            {menuItem.icon}
+                                            <p className="ml-3 font-semibold">{menuItem.title}</p>
+                                        </div>
+                                    </Link>
+                                </DropdownMenuItem>
+                            ))
+                        }
                         {!userData ? (
                             <DropdownMenuItem>
                                 <Button

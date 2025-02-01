@@ -8,6 +8,7 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarRail,
 } from "@/components/ui/sidebar";
 import {
     KhojAgentLogo,
@@ -16,23 +17,44 @@ import {
     KhojLogoType,
     KhojSearchLogo,
 } from "../logo/khojLogo";
-import { Gear } from "@phosphor-icons/react/dist/ssr";
-import { Plus } from "@phosphor-icons/react";
+import { Plus, Gear, HouseSimple } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import AllConversations from "../allConversations/allConversations";
 import FooterMenu from "../navMenu/navMenu";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useIsMobileWidth } from "@/app/common/utils";
 import { UserPlusIcon } from "lucide-react";
-import { useAuthenticatedData } from "@/app/common/auth";
+import { useAuthenticatedData, UserProfile } from "@/app/common/auth";
 import LoginPrompt from "../loginPrompt/loginPrompt";
+
+async function openChat(userData: UserProfile | null | undefined) {
+    const unauthenticatedRedirectUrl = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+    if (!userData) {
+        window.location.href = unauthenticatedRedirectUrl;
+        return;
+    }
+
+    const response = await fetch(`/api/chat/sessions`, {
+        method: "POST",
+    });
+
+    const data = await response.json();
+    if (response.status == 200) {
+        window.location.href = `/chat?conversationId=${data.conversation_id}`;
+    } else if (response.status == 403 || response.status == 401) {
+        window.location.href = unauthenticatedRedirectUrl;
+    } else {
+        alert("Failed to start chat session");
+    }
+}
+
 
 // Menu items.
 const items = [
     {
-        title: "New",
+        title: "Home",
         url: "/",
-        icon: Plus,
+        icon: HouseSimple
     },
     {
         title: "Agents",
@@ -124,6 +146,20 @@ export function AppSidebar(props: AppSidebarProps) {
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
                             )}
+                            {
+                                <SidebarMenuItem className="p-0 m-0 list-none">
+                                    <SidebarMenuButton
+                                        asChild
+                                        variant={"default"}
+                                        onClick={() => openChat(data)}
+                                    >
+                                        <div>
+                                            <Plus />
+                                            <span>New</span>
+                                        </div>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            }
                             {items.map((item) => (
                                 <SidebarMenuItem key={item.title} className="p-0 list-none m-0">
                                     <SidebarMenuButton asChild>
@@ -150,6 +186,7 @@ export function AppSidebar(props: AppSidebarProps) {
             <SidebarFooter>
                 <FooterMenu sideBarIsOpen={open} />
             </SidebarFooter>
+            <SidebarRail />
         </Sidebar>
     );
 }
