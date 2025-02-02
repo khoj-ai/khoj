@@ -288,7 +288,7 @@ export function FilesMenu(props: FilesMenuProps) {
                     )}
                     <CommandGroup heading="Manage files">
                         <CommandItem>
-                            <Link href="/settings">Settings</Link>
+                            <Link href="/search">Settings</Link>
                         </CommandItem>
                     </CommandGroup>
                     <CommandGroup
@@ -296,7 +296,7 @@ export function FilesMenu(props: FilesMenuProps) {
                     >
                         {addedFiles.length == 0 && (
                             <CommandItem>
-                                <Link href="/settings">Upload documents</Link>
+                                <Link href="/search">Upload documents</Link>
                             </CommandItem>
                         )}
                         {unfilteredFiles.map((filename: string) =>
