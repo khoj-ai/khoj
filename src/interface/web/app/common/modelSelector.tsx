@@ -7,7 +7,7 @@ import { PopoverProps } from "@radix-ui/react-popover"
 import { Check, CaretUpDown } from "@phosphor-icons/react";
 
 import { cn } from "@/lib/utils"
-import { useMutationObserver } from "@/app/common/utils";
+import { useIsMobileWidth, useMutationObserver } from "@/app/common/utils";
 import { Button } from "@/components/ui/button";
 import {
     Command,
@@ -39,6 +39,7 @@ export function ModelSelector({ ...props }: ModelSelectorProps) {
     const [selectedModel, setSelectedModel] = useState<ModelOptions | undefined>(undefined);
     const { data: userConfig, error, isLoading: isLoadingUserConfig } = useUserConfig(true);
     const [models, setModels] = useState<ModelOptions[]>([]);
+    const isMobileWidth = useIsMobileWidth();
 
     useEffect(() => {
         if (isLoadingUserConfig) return;
@@ -98,55 +99,82 @@ export function ModelSelector({ ...props }: ModelSelectorProps) {
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent align="end" className="w-[250px] p-0">
-                    <HoverCard>
-                        <HoverCardContent
-                            side="left"
-                            align="start"
-                            forceMount
-                            className="min-h-[280px]"
-                        >
-                            <div className="grid gap-2">
-                                <h4 className="font-medium leading-none">{peekedModel?.name}</h4>
-                                <div className="text-sm text-muted-foreground">
-                                    {peekedModel?.description}
-                                </div>
-                                {peekedModel?.strengths ? (
-                                    <div className="mt-4 grid gap-2">
-                                        <h5 className="text-sm font-medium leading-none">
-                                            Strengths
-                                        </h5>
-                                        <ul className="text-sm text-muted-foreground">
-                                            {peekedModel.strengths}
-                                        </ul>
-                                    </div>
-                                ) : null}
+                    {
+                        isMobileWidth ?
+                            <div>
+                                <Command loop>
+                                    <CommandList className="h-[var(--cmdk-list-height)]">
+                                        <CommandInput placeholder="Search Models..." />
+                                        <CommandEmpty>No Models found.</CommandEmpty>
+                                        <CommandGroup key={"models"} heading={"Models"}>
+                                            {models && models.length > 0 && models
+                                                .map((model) => (
+                                                    <ModelItem
+                                                        key={model.id}
+                                                        model={model}
+                                                        isSelected={selectedModel?.id === model.id}
+                                                        onPeek={(model) => setPeekedModel(model)}
+                                                        onSelect={() => {
+                                                            setSelectedModel(model)
+                                                            setOpen(false)
+                                                        }}
+                                                    />
+                                                ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
                             </div>
-                        </HoverCardContent>
-                        <div>
-                            <HoverCardTrigger />
-                            <Command loop>
-                                <CommandList className="h-[var(--cmdk-list-height)]">
-                                    <CommandInput placeholder="Search Models..." />
-                                    <CommandEmpty>No Models found.</CommandEmpty>
-                                    <CommandGroup key={"models"} heading={"Models"}>
-                                        {models && models.length > 0 && models
-                                            .map((model) => (
-                                                <ModelItem
-                                                    key={model.id}
-                                                    model={model}
-                                                    isSelected={selectedModel?.id === model.id}
-                                                    onPeek={(model) => setPeekedModel(model)}
-                                                    onSelect={() => {
-                                                        setSelectedModel(model)
-                                                        setOpen(false)
-                                                    }}
-                                                />
-                                            ))}
-                                    </CommandGroup>
-                                </CommandList>
-                            </Command>
-                        </div>
-                    </HoverCard>
+                            :
+                            <HoverCard>
+                                <HoverCardContent
+                                    side="left"
+                                    align="start"
+                                    forceMount
+                                    className="min-h-[280px]"
+                                >
+                                    <div className="grid gap-2">
+                                        <h4 className="font-medium leading-none">{peekedModel?.name}</h4>
+                                        <div className="text-sm text-muted-foreground">
+                                            {peekedModel?.description}
+                                        </div>
+                                        {peekedModel?.strengths ? (
+                                            <div className="mt-4 grid gap-2">
+                                                <h5 className="text-sm font-medium leading-none">
+                                                    Strengths
+                                                </h5>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {peekedModel.strengths}
+                                                </p>
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                </HoverCardContent>
+                                <div>
+                                    <HoverCardTrigger />
+                                    <Command loop>
+                                        <CommandList className="h-[var(--cmdk-list-height)]">
+                                            <CommandInput placeholder="Search Models..." />
+                                            <CommandEmpty>No Models found.</CommandEmpty>
+                                            <CommandGroup key={"models"} heading={"Models"}>
+                                                {models && models.length > 0 && models
+                                                    .map((model) => (
+                                                        <ModelItem
+                                                            key={model.id}
+                                                            model={model}
+                                                            isSelected={selectedModel?.id === model.id}
+                                                            onPeek={(model) => setPeekedModel(model)}
+                                                            onSelect={() => {
+                                                                setSelectedModel(model)
+                                                                setOpen(false)
+                                                            }}
+                                                        />
+                                                    ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </div>
+                            </HoverCard>
+                    }
                 </PopoverContent>
             </Popover>
         </div>
