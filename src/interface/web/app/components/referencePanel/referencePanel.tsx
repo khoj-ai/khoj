@@ -69,7 +69,7 @@ function NotesContextReferenceCard(props: NotesContextReferenceCardProps) {
                     <Card
                         onMouseEnter={() => setIsHovering(true)}
                         onMouseLeave={() => setIsHovering(false)}
-                        className={`${props.showFullContent ? "w-auto bg-muted" : "w-auto"} overflow-hidden break-words text-balance rounded-lg border-none p-2`}
+                        className={`${props.showFullContent ? "w-auto bg-muted" : "w-auto"} overflow-hidden break-words text-balance rounded-lg border-none p-2 shadow-none`}
                     >
                         {
                             !props.showFullContent ?
@@ -212,7 +212,7 @@ function CodeContextReferenceCard(props: CodeContextReferenceCardProps) {
                     <Card
                         onMouseEnter={() => setIsHovering(true)}
                         onMouseLeave={() => setIsHovering(false)}
-                        className={`${props.showFullContent ? "w-auto bg-muted" : "w-auto"} overflow-hidden break-words text-balance rounded-lg border-none p-2`}
+                        className={`${props.showFullContent ? "w-auto bg-muted" : "w-auto"} overflow-hidden break-words text-balance rounded-lg border-none p-2 shadow-none`}
                     >
                         {
                             !props.showFullContent ?
@@ -312,7 +312,7 @@ function GenericOnlineReferenceCard(props: OnlineReferenceCardProps) {
                     <Card
                         onMouseEnter={handleMouseEnter}
                         onMouseLeave={handleMouseLeave}
-                        className={`${props.showFullContent ? "w-auto bg-muted" : "w-auto"} overflow-hidden break-words text-balance rounded-lg border-none p-2`}
+                        className={`${props.showFullContent ? "w-auto bg-muted" : "w-auto"} overflow-hidden break-words text-balance rounded-lg border-none p-2 shadow-none`}
                     >
                         {
                             !props.showFullContent ?
@@ -533,8 +533,6 @@ function SimpleIcon(props: SimpleIconProps) {
         default:
             symbol = null;
     }
-
-    console.log("symbol", symbol);
 
     if (!symbol) {
         return null;
