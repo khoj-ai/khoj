@@ -132,8 +132,12 @@ def deduplicate_rows(good_rows: pd.DataFrame, parent_dataset: DatasetDict) -> pd
 
     logger.info(f"Found {len(parent_filtered)} rows in parent dataset after filtering")
 
+    final_data = pd.concat([parent_filtered, good_rows], ignore_index=True)
+
+    logger.info(f"Found {len(final_data)} rows in final dataset after combining")
+
     # Combine filtered parent data with good rows
-    return pd.concat([parent_filtered, good_rows], ignore_index=True)
+    return final_data
 
 
 def main():
