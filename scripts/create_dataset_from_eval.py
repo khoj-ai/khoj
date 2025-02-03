@@ -164,6 +164,10 @@ def main():
         parent_dataset = load_dataset("bespokelabs/Bespoke-Stratos-17k", split=None)
         logger.info(f"Loaded parent dataset with {len(parent_dataset)} rows")
 
+        # load full thoughts dataset
+        fullthoughts_df = load_dataset_from_jsonl(fullthoughts_path)
+        logger.info(f"Loaded fullthoughts dataset with {len(fullthoughts_df)} rows")
+
         # Convert to pandas and save as JSON
         with tempfile.TemporaryDirectory() as tmp_dir:
             json_path = os.path.join(tmp_dir, "data.json")
@@ -192,7 +196,6 @@ def main():
 
         if fullthoughts_path:
             # Load fullthoughts dataset
-            fullthoughts_df = load_dataset_from_jsonl(fullthoughts_path)
             good_rows = get_good_dataset_rows(fullthoughts_df, eval_df)
             deduplicated_rows = deduplicate_rows(good_rows, parent_dataset)
 
