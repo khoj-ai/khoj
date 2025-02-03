@@ -13,11 +13,20 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+SYSTEM_PROMPT = """
+Your role as an assistant involves thoroughly exploring questions through a systematic long thinking process before providing the final precise and accurate solutions. This requires engaging in a comprehensive cycle of analysis, summarizing, exploration, reassessment, reflection, backtracing, and iteration to develop well-considered thinking process. Please structure your response into two main sections: Thought and Solution. In the Thought section, detail your reasoning process using the specified format: <|begin_of_thought|> {thought with steps separated with '\\n\\n'} <|end_of_thought|> Each step should include detailed considerations such as analisying questions, summarizing relevant findings, brainstorming new ideas, verifying the accuracy of the current steps, refining any errors, and revisiting previous steps.In the Solution section, based on various attempts, explorations, and reflections from the Thought section, systematically present the final solution that you deem correct. The solution should remain a logical, accurate, concise expression style and detail necessary step needed to reach the conclusion, formatted as follows: <|begin_of_solution|> {final formatted, precise, and clear solution} <|end_of_solution|>
+
+Make sure to use the specific LaTeX math mode delimiters for your response. LaTex math mode specific delimiters as following
+    - inline math mode : \\( and \\)
+    - display math mode: insert linebreak after opening $$, \\[ and before closing $$, \\]
+
+Now, try to solve the following question through the above guidelines"""
+
 
 def load_dataset_from_jsonl(dataset_path: str) -> pd.DataFrame:
     """Load data trace from JSONL into pandas Dataframe."""
     if not os.path.exists(dataset_path):
-        return Dataset.from_dict({"system": [], "conversations": []})
+        return Dataset.from_dict({"system": "", "conversations": []})
 
     try:
         # Read JSONL line by line to catch errors
@@ -25,7 +34,10 @@ def load_dataset_from_jsonl(dataset_path: str) -> pd.DataFrame:
         with open(dataset_path, "r") as f:
             for i, line in enumerate(f, 1):
                 try:
-                    data.append(json.loads(line.strip()))
+                    loaded_data = json.loads(line.strip())
+                    if "system" in loaded_data:
+                        loaded_data["system"] = SYSTEM_PROMPT
+                    data.append(loaded_data)
                 except json.JSONDecodeError as e:
                     logger.error(f"Error on line {i}: {e}")
                     logger.error(f"Problematic line: {line.strip()}")
@@ -106,9 +118,17 @@ def deduplicate_rows(good_rows: pd.DataFrame, parent_dataset: DatasetDict) -> pd
     # Convert the good_rows and parent_dataset to JSON
     user_prompts = set(good_rows["conversations"].apply(lambda x: x[0]["value"]))
 
+    logger.info(f"Found {len(good_rows)} rows in good_rows")
+
+    logger.info(f"Found {len(user_prompts)} unique user prompts in good_rows")
+
     # Convert parent dataset to DataFrame and filter
     parent_df = parent_dataset.data["train"].to_pandas()
+
+    logger.info(f"Found {len(parent_df)} rows in parent dataset")
     parent_filtered = parent_df[~parent_df["conversations"].apply(lambda x: x[0]["value"]).isin(user_prompts)]
+
+    logger.info(f"Found {len(parent_filtered)} rows in parent dataset after filtering")
 
     # Combine filtered parent data with good rows
     return pd.concat([parent_filtered, good_rows], ignore_index=True)
