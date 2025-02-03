@@ -704,7 +704,7 @@ function ChatSession(props: ChatHistory) {
                     className="flex items-center gap-2 no-underline"
                 >
                     <p
-                        className={`${styles.session} ${props.compressed ? styles.compressed : styles.expanded}`}
+                        className={`${styles.session} ${props.compressed ? styles.compressed : 'max-w-[15rem] md:max-w-[22rem]'}`}
                     >
                         {title}
                     </p>
@@ -817,7 +817,7 @@ function ChatSessionsModal({ data, sideBarOpen }: ChatSessionsModalProps) {
                 <DialogHeader>
                     <DialogTitle>All Conversations</DialogTitle>
                     <DialogDescription className="p-0">
-                        <div className="flex flex-row justify-between mt-2 gap-2">
+                        <div className="flex flex-row justify-between mt-2 gap-2 w-fit md:w-full">
                             <Input
                                 value={searchQuery}
                                 onChange={(e) => {
