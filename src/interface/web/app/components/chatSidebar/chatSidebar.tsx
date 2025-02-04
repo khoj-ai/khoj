@@ -57,9 +57,8 @@ export function ChatSidebar({ ...props }: ChatSideBarProps) {
 
 function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
     const [isEditable, setIsEditable] = useState<boolean>(false);
-    const [isDefaultAgent, setIsDefaultAgent] = useState<boolean>(true);
     const { data: agentConfigurationOptions, error: agentConfigurationOptionsError } =
-        useSWR<AgentConfigurationOptions>("/api/agents/options", fetcher);
+    useSWR<AgentConfigurationOptions>("/api/agents/options", fetcher);
 
     const { data: agentData, isLoading: agentDataLoading, error: agentDataError } = useSWR<AgentData>(`/api/agents/conversation?conversation_id=${props.conversationId}`, fetcher);
     const {
@@ -73,6 +72,7 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
     const [inputTools, setInputTools] = useState<string[] | undefined>();
     const [outputModes, setOutputModes] = useState<string[] | undefined>();
     const [hasModified, setHasModified] = useState<boolean>(false);
+    const [isDefaultAgent, setIsDefaultAgent] = useState<boolean>(agentData?.slug.toLowerCase() === "khoj" ? true : false);
 
     const [isSaving, setIsSaving] = useState<boolean>(false);
 
@@ -94,6 +94,7 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
             if (agentData.slug.toLowerCase() === "khoj") {
                 setSelectedModel(undefined);
                 setCustomPrompt(undefined);
+                setIsDefaultAgent(true);
             } else {
                 setIsDefaultAgent(false);
                 setCustomPrompt(agentData.persona);
@@ -248,30 +249,34 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
-                <SidebarGroup key={"model"}>
-                    <SidebarGroupContent>
-                        <SidebarGroupLabel>
-                            Model
-                            {
-                                !authenticatedData?.is_active && (
-                                    <a href="/settings" className="hover:font-bold text-accent-foreground m-2 bg-accent bg-opacity-10 p-1 rounded-lg">
-                                        Upgrade
-                                    </a>
-                                )
-                            }
-                        </SidebarGroupLabel>
-                        <SidebarMenu className="p-0 m-0">
-                            <SidebarMenuItem key={"model"} className="list-none">
-                                <ModelSelector
-                                    disabled={!isEditable || !authenticatedData?.is_active}
-                                    onSelect={(model, userModification) => handleModelSelect(model.name, userModification)}
-                                    initialModel={isDefaultAgent ? '' : agentData?.chat_model}
-                                    selectedModel={selectedModel}
-                                />
-                            </SidebarMenuItem>
-                        </SidebarMenu>
-                    </SidebarGroupContent>
-                </SidebarGroup>
+                {
+                    !agentDataLoading && agentData && (
+                        <SidebarGroup key={"model"}>
+                            <SidebarGroupContent>
+                                <SidebarGroupLabel>
+                                    Model
+                                    {
+                                        !authenticatedData?.is_active && (
+                                            <a href="/settings" className="hover:font-bold text-accent-foreground m-2 bg-accent bg-opacity-10 p-1 rounded-lg">
+                                                Upgrade
+                                            </a>
+                                        )
+                                    }
+                                </SidebarGroupLabel>
+                                <SidebarMenu className="p-0 m-0">
+                                    <SidebarMenuItem key={"model"} className="list-none">
+                                        <ModelSelector
+                                            disabled={!isEditable || !authenticatedData?.is_active}
+                                            onSelect={(model, userModification) => handleModelSelect(model.name, userModification)}
+                                            initialModel={isDefaultAgent ? undefined : agentData?.chat_model}
+                                            selectedModel={selectedModel}
+                                        />
+                                    </SidebarMenuItem>
+                                </SidebarMenu>
+                            </SidebarGroupContent>
+                        </SidebarGroup>
+                    )
+                }
                 <Popover defaultOpen={false}>
                     <SidebarGroup>
                         <SidebarGroupLabel asChild>

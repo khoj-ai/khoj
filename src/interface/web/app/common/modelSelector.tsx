@@ -49,13 +49,16 @@ export function ModelSelector({ ...props }: ModelSelectorProps) {
             setModels(userConfig.chat_model_options);
             if (!props.initialModel) {
                 const selectedChatModelOption = userConfig.chat_model_options.find(model => model.id === userConfig.selected_chat_model_config);
-                setSelectedModel(selectedChatModelOption);
+                if (!selectedChatModelOption) {
+                    setSelectedModel(userConfig.chat_model_options[0]);
+                    return;
+                } else {
+                    setSelectedModel(selectedChatModelOption);
+                }
             } else {
                 const model = userConfig.chat_model_options.find(model => model.name === props.initialModel);
                 setSelectedModel(model);
             }
-        } else {
-            setSelectedModel(models[0]);
         }
     }, [userConfig, props.initialModel, isLoadingUserConfig]);
 
