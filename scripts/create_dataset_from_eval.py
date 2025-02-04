@@ -25,7 +25,7 @@ Make sure to use the specific LaTeX math mode delimiters for your response. LaTe
 Now, try to solve the following question through the above guidelines"""
 
 
-def load_dataset_from_jsonl(dataset_path: str) -> pd.DataFrame:
+def load_dataset_from_jsonl(dataset_path: str, replace_system_prompt: bool = False) -> pd.DataFrame:
     """Load data trace from JSONL into pandas Dataframe."""
     if not os.path.exists(dataset_path):
         return Dataset.from_dict({"system": "", "conversations": []})
@@ -37,7 +37,7 @@ def load_dataset_from_jsonl(dataset_path: str) -> pd.DataFrame:
             for i, line in enumerate(f, 1):
                 try:
                     loaded_data = json.loads(line.strip())
-                    if "system" in loaded_data:
+                    if "system" in loaded_data and replace_system_prompt:
                         loaded_data["system"] = SYSTEM_PROMPT
                     data.append(loaded_data)
                 except json.JSONDecodeError as e:
@@ -171,7 +171,7 @@ def main():
         logger.info(f"Loaded parent dataset with {len(parent_dataset)} rows")
 
         # load full thoughts dataset
-        fullthoughts_df = load_dataset_from_jsonl(fullthoughts_path)
+        fullthoughts_df = load_dataset_from_jsonl(fullthoughts_path, replace_system_prompt=True)
         logger.info(f"Loaded fullthoughts dataset with {len(fullthoughts_df)} rows")
 
         # Convert to pandas and save as JSON
