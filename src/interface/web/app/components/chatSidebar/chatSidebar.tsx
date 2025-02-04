@@ -57,11 +57,11 @@ export function ChatSidebar({ ...props }: ChatSideBarProps) {
 
 function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
     const [isEditable, setIsEditable] = useState<boolean>(false);
-    const [isDefaultAgent, setIsDefaultAgent] = useState<boolean>(false);
+    const [isDefaultAgent, setIsDefaultAgent] = useState<boolean>(true);
     const { data: agentConfigurationOptions, error: agentConfigurationOptionsError } =
         useSWR<AgentConfigurationOptions>("/api/agents/options", fetcher);
 
-    const { data: agentData, error: agentDataError } = useSWR<AgentData>(`/api/agents/conversation?conversation_id=${props.conversationId}`, fetcher);
+    const { data: agentData, isLoading: agentDataLoading, error: agentDataError } = useSWR<AgentData>(`/api/agents/conversation?conversation_id=${props.conversationId}`, fetcher);
     const {
         data: authenticatedData,
         error: authenticationError,
@@ -92,10 +92,10 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
             }
 
             if (agentData.slug.toLowerCase() === "khoj") {
-                setIsDefaultAgent(true);
                 setSelectedModel(undefined);
                 setCustomPrompt(undefined);
             } else {
+                setIsDefaultAgent(false);
                 setCustomPrompt(agentData.persona);
                 setSelectedModel(agentData.chat_model);
             }
@@ -262,11 +262,10 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                         </SidebarGroupLabel>
                         <SidebarMenu className="p-0 m-0">
                             <SidebarMenuItem key={"model"} className="list-none">
-
                                 <ModelSelector
                                     disabled={!isEditable || !authenticatedData?.is_active}
                                     onSelect={(model, userModification) => handleModelSelect(model.name, userModification)}
-                                    initialModel={agentData?.chat_model}
+                                    initialModel={isDefaultAgent ? '' : agentData?.chat_model}
                                     selectedModel={selectedModel}
                                 />
                             </SidebarMenuItem>
