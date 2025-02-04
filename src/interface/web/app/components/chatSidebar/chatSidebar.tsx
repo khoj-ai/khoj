@@ -266,6 +266,7 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                                 <ModelSelector
                                     disabled={!isEditable || !authenticatedData?.is_active}
                                     onSelect={(model, userModification) => handleModelSelect(model.name, userModification)}
+                                    initialModel={agentData?.chat_model}
                                     selectedModel={selectedModel}
                                 />
                             </SidebarMenuItem>

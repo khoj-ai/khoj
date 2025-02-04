@@ -31,6 +31,7 @@ interface ModelSelectorProps extends PopoverProps {
     onSelect: (model: ModelOptions, userModification: boolean) => void;
     selectedModel?: string;
     disabled?: boolean;
+    initialModel?: string;
 }
 
 export function ModelSelector({ ...props }: ModelSelectorProps) {
@@ -46,25 +47,31 @@ export function ModelSelector({ ...props }: ModelSelectorProps) {
 
         if (userConfig) {
             setModels(userConfig.chat_model_options);
-            const selectedChatModelOption = userConfig.chat_model_options.find(model => model.id === userConfig.selected_chat_model_config);
-            setSelectedModel(selectedChatModelOption);
-            return;
+            if (!props.initialModel) {
+                const selectedChatModelOption = userConfig.chat_model_options.find(model => model.id === userConfig.selected_chat_model_config);
+                setSelectedModel(selectedChatModelOption);
+            } else {
+                const model = userConfig.chat_model_options.find(model => model.name === props.initialModel);
+                setSelectedModel(model);
+            }
         } else {
             setSelectedModel(models[0]);
         }
-    }, [models, props.selectedModel, userConfig]);
+    }, [userConfig, props.initialModel, isLoadingUserConfig]);
 
     useEffect(() => {
-        if (props.selectedModel) {
+        if (props.selectedModel && selectedModel && props.selectedModel !== selectedModel.name) {
             const model = models.find(model => model.name === props.selectedModel);
             setSelectedModel(model);
         }
-    }, [props.selectedModel]);
+    }, [props.selectedModel, models]);
 
     useEffect(() => {
         if (selectedModel) {
             const userModification = selectedModel.id !== userConfig?.selected_chat_model_config;
-            props.onSelect(selectedModel, userModification);
+            if (props.selectedModel !== selectedModel.name) {
+                props.onSelect(selectedModel, userModification);
+            }
         }
     }, [selectedModel]);
 
