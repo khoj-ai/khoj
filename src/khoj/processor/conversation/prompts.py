@@ -391,10 +391,6 @@ You can choose from the following diagram types:
 - Pie Chart
 
 ----Examples----
----
-title: Node
----
-
 flowchart LR
     id["This is the start"] --> id2["This is the end"]
 
@@ -449,6 +445,7 @@ Create your diagram with great composition and intuitiveness from the provided c
 - JUST provide the diagram, no additional text or context. Say nothing else in your response except the diagram.
 - Keep diagrams simple - maximum 15 nodes
 - Every node inside a subgraph MUST use square bracket notation: id["label"]
+- Do not include the `title` field unless explicitly allowed above. Flowcharts, stateDiagram, and sequenceDiagram **DO NOT** have titles.
 
 output: {query}
 
