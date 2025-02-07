@@ -13,7 +13,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Moon, Sun, UserCircle, Question, ArrowRight, Code, BuildingOffice } from "@phosphor-icons/react";
-import { useIsMobileWidth } from "@/app/common/utils";
+import { useIsDarkMode, useIsMobileWidth } from "@/app/common/utils";
 import LoginPrompt from "../loginPrompt/loginPrompt";
 import { Button } from "@/components/ui/button";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
@@ -49,43 +49,9 @@ export default function FooterMenu({ sideBarIsOpen }: NavMenuProps) {
         error: authenticationError,
         isLoading: authenticationLoading,
     } = useAuthenticatedData();
-    const [darkMode, setDarkMode] = useState(false);
-    const [initialLoadDone, setInitialLoadDone] = useState(false);
+    const [darkMode, setDarkMode] = useIsDarkMode();
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
     const isMobileWidth = useIsMobileWidth();
-
-    useEffect(() => {
-        if (localStorage.getItem("theme") === "dark") {
-            document.documentElement.classList.add("dark");
-            setDarkMode(true);
-        } else if (localStorage.getItem("theme") === "light") {
-            document.documentElement.classList.remove("dark");
-            setDarkMode(false);
-        } else {
-            const mq = window.matchMedia("(prefers-color-scheme: dark)");
-
-            if (mq.matches) {
-                document.documentElement.classList.add("dark");
-                setDarkMode(true);
-            }
-        }
-
-        setInitialLoadDone(true);
-    }, []);
-
-    useEffect(() => {
-        if (!initialLoadDone) return;
-        toggleDarkMode(darkMode);
-    }, [darkMode, initialLoadDone]);
-
-    function toggleDarkMode(darkMode: boolean) {
-        if (darkMode) {
-            document.documentElement.classList.add("dark");
-        } else {
-            document.documentElement.classList.remove("dark");
-        }
-        localStorage.setItem("theme", darkMode ? "dark" : "light");
-    }
 
     const menuItems = [
         {

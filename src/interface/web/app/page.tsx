@@ -25,7 +25,6 @@ import {
     stepOneSuggestions,
     StepTwoSuggestion,
     getStepTwoSuggestions,
-    SuggestionType,
 } from "@/app/components/suggestions/suggestionsData";
 import LoginPrompt from "@/app/components/loginPrompt/loginPrompt";
 

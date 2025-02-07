@@ -22,7 +22,7 @@ import { useEffect, useState } from "react";
 import AllConversations from "../allConversations/allConversations";
 import FooterMenu from "../navMenu/navMenu";
 import { useSidebar } from "@/components/ui/sidebar";
-import { useIsMobileWidth } from "@/app/common/utils";
+import { useIsDarkMode, useIsMobileWidth } from "@/app/common/utils";
 import { UserPlusIcon } from "lucide-react";
 import { useAuthenticatedData, UserProfile } from "@/app/common/auth";
 import LoginPrompt from "../loginPrompt/loginPrompt";

@@ -20,7 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTrigger } from "@/components
 import LoginPrompt from "../components/loginPrompt/loginPrompt";
 import { InlineLoading } from "../components/loading/loading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useIsMobileWidth } from "../common/utils";
+import { useIsDarkMode, useIsMobileWidth } from "../common/utils";
 import {
     AgentCard,
     EditAgentSchema,

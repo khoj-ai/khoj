@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import "../globals.css";
 import { ContentSecurityPolicy } from "../common/layoutHelper";
 import { Toaster } from "@/components/ui/toaster";
+import { ThemeProvider } from "../components/providers/themeProvider";
 
 export const metadata: Metadata = {
     title: "Khoj AI - Search",
@@ -35,10 +36,25 @@ export default function RootLayout({
 }>) {
     return (
         <html>
+            <head>
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `
+                            try {
+                                if (localStorage.getItem('theme') === 'dark' ||
+                                    (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                                    document.documentElement.classList.add('dark');
+                                }
+                            } catch (e) {}
+                        `,
+                    }}
+                />
+            </head>
             <ContentSecurityPolicy />
             <body>
-                {children}
-                <Toaster />
+                <ThemeProvider>
+                    {children}
+                </ThemeProvider>
             </body>
         </html>
     );
