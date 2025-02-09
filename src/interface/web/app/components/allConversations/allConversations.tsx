@@ -164,7 +164,12 @@ function deleteConversation(conversationId: string) {
     })
         .then((response) => {
             response.json();
-            mutate("/api/chat/sessions");
+            // If currently viewing the conversation, redirect to the home page
+            if (window.location.search.includes(`conversationId=${conversationId}`)) {
+                window.location.href = "/";
+            } else {
+                mutate("/api/chat/sessions");
+            }
         })
         .then((data) => { })
         .catch((err) => {
