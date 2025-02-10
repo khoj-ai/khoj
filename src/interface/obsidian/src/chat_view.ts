@@ -1,4 +1,4 @@
-import { ItemView, MarkdownRenderer, Scope, WorkspaceLeaf, request, requestUrl, setIcon, Platform } from 'obsidian';
+import { ItemView, MarkdownRenderer, Scope, WorkspaceLeaf, request, requestUrl, setIcon, Platform, TFile } from 'obsidian';
 import * as DOMPurify from 'dompurify';
 import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
@@ -32,6 +32,13 @@ interface ChatMessageState {
     rawQuery: string;
     isVoice: boolean;
     turnId: string;
+    editBlocks?: EditBlock[];  // Add this line
+}
+
+interface EditBlock {
+    noteTitle: string;
+    pattern: string;
+    replacement: string;
 }
 
 interface Location {
@@ -1271,6 +1278,14 @@ export class KhojChatView extends KhojPaneView {
         } else if (chunk.type === 'end_llm_response') {
             // End of streaming
         } else if (chunk.type === 'end_response') {
+            // Check for edit blocks if in write mode
+            if (this.fileAccessMode === 'write') {
+                const editBlocks = this.parseEditBlocks(this.chatMessageState.rawResponse);
+                if (editBlocks.length > 0) {
+                    this.applyEditBlocks(editBlocks);
+                }
+            }
+
             // Automatically respond with voice if the subscribed user has sent voice message
             if (this.chatMessageState.isVoice && this.setting.userInfo?.is_active)
                 this.textToSpeech(this.chatMessageState.rawResponse);
@@ -1290,6 +1305,7 @@ export class KhojChatView extends KhojPaneView {
                 isVoice: false,
                 generatedAssets: "",
                 turnId: "",
+                editBlocks: []
             };
         } else if (chunk.type === "references") {
             this.chatMessageState.references = { "notes": chunk.data.context, "online": chunk.data.onlineContext };
@@ -1408,10 +1424,18 @@ export class KhojChatView extends KhojPaneView {
         // Get open files content if we have access
         const openFilesContent = await this.getOpenFilesContent();
 
+        // Extract mode command if present
+        const modeMatch = this.chatModes.find(mode => query.startsWith(mode.command));
+        const modeCommand = modeMatch ? query.substring(0, modeMatch.command.length) : '';
+        const queryWithoutMode = modeMatch ? query.substring(modeMatch.command.length).trim() : query;
+
+        // Combine mode, query and files content
+        const finalQuery = modeCommand + (modeCommand ? ' ' : '') + queryWithoutMode + openFilesContent;
+
         // Get chat response from Khoj backend
         const chatUrl = `${this.setting.khojUrl}/api/chat?client=obsidian`;
         const body = {
-            q: openFilesContent ? `${openFilesContent}\n\n${query}` : query,
+            q: finalQuery,
             n: this.setting.resultsCount,
             stream: true,
             conversation_id: conversationId,
@@ -1442,6 +1466,7 @@ export class KhojChatView extends KhojPaneView {
             isVoice: isVoice,
             generatedAssets: "",
             turnId: "",
+            editBlocks: []
         };
 
         let response = await fetch(chatUrl, {
@@ -1887,15 +1912,29 @@ export class KhojChatView extends KhojPaneView {
         // Only proceed if we have read or write access
         if (this.fileAccessMode === 'none') return '';
 
-        let openFilesContent = "L'utilisateur travaille actuellement sur les fichiers suivants :\n\n";
-
-        // Get all open leaves
+        // Get all open markdown leaves
         const leaves = this.app.workspace.getLeavesOfType('markdown');
+        if (leaves.length === 0) return '';
+
+        let openFilesContent = "\n\n[SYSTEM] The user is currently working on the following files (content provided for context):\n\n";
+
+        // Add edit mode instructions if applicable
+        if (this.fileAccessMode === 'write') {
+            openFilesContent += "You can edit the content of these files using regex patterns. To do so, use the khoj-edit code block format:\n";
+            openFilesContent += "```khoj-edit:Note Title\n\"regex pattern\", \"replacement text\"\n```\n";
+            openFilesContent += "Important guidelines for regex patterns:\n";
+            openFilesContent += "1. Use the shortest possible regex that uniquely identifies the text to replace\n";
+            openFilesContent += "2. Make sure your regex pattern matches exactly one occurrence to avoid ambiguity\n";
+            openFilesContent += "3. You can use multiple khoj-edit blocks for multiple changes\n\n";
+            openFilesContent += "Examples:\n";
+            openFilesContent += "```khoj-edit:My Tasks\n\"## Todo List\", \"## Tasks\"\n```\n";
+            openFilesContent += "```khoj-edit:Project Status\n\"status: pending\", \"status: completed\"\n```\n\n";
+        }
 
         for (const leaf of leaves) {
             const view = leaf.view as any;
             const file = view?.file;
-            if (!file) continue;
+            if (!file || file.extension !== 'md') continue;
 
             // Add file title
             openFilesContent += `# ${file.basename}\n\`\`\`markdown\n`;
@@ -1911,6 +1950,111 @@ export class KhojChatView extends KhojPaneView {
             openFilesContent += "\n```\n\n";
         }
 
+        openFilesContent += "[END OF CURRENT FILES CONTEXT]\n\n";
+
         return openFilesContent;
+    }
+
+    // Add these new methods
+    private parseEditBlocks(message: string): EditBlock[] {
+        const editBlocks: EditBlock[] = [];
+        const regex = /```khoj-edit:([^\n]+)\n"([^"]+)", "([^"]+)"\n```/g;
+        let match;
+
+        while ((match = regex.exec(message)) !== null) {
+            editBlocks.push({
+                noteTitle: match[1].trim(),
+                pattern: match[2],
+                replacement: match[3]
+            });
+        }
+
+        return editBlocks;
+    }
+
+    private async applyEditBlocks(editBlocks: EditBlock[]) {
+        // Store original content for each file in case we need to cancel
+        const fileBackups = new Map<string, string>();
+
+        for (const block of editBlocks) {
+            // Find the file by title
+            const files = this.app.vault.getMarkdownFiles();
+            const file = files.find(f => f.basename === block.noteTitle);
+
+            if (!file) {
+                console.warn(`File not found: ${block.noteTitle}`);
+                continue;
+            }
+
+            try {
+                // Read the file content
+                const content = await this.app.vault.read(file);
+
+                // Store original content
+                if (!fileBackups.has(file.path)) {
+                    fileBackups.set(file.path, content);
+                }
+
+                // Create regex from pattern
+                const regex = new RegExp(block.pattern, 'g');
+
+                // Replace text and format with strikethrough and highlight
+                const newContent = content.replace(regex, (match) => {
+                    return `~~${match}~~==${block.replacement}==`;
+                });
+
+                // Save the preview changes
+                if (content !== newContent) {
+                    await this.app.vault.modify(file, newContent);
+                }
+            } catch (error) {
+                console.error(`Error applying edit to ${block.noteTitle}:`, error);
+            }
+        }
+
+        // Add confirmation buttons to the last message
+        const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
+        const lastMessage = chatBodyEl.lastElementChild;
+
+        if (lastMessage) {
+            const buttonsContainer = lastMessage.createDiv({ cls: "edit-confirmation-buttons" });
+
+            // Create Apply button
+            const applyButton = buttonsContainer.createEl("button", {
+                text: "Apply",
+                cls: ["edit-confirm-button", "edit-apply-button"],
+            });
+
+            // Create Cancel button
+            const cancelButton = buttonsContainer.createEl("button", {
+                text: "Cancel",
+                cls: ["edit-confirm-button", "edit-cancel-button"],
+            });
+
+            // Handle Apply button click
+            applyButton.addEventListener("click", async () => {
+                for (const [filePath, originalContent] of fileBackups) {
+                    const file = this.app.vault.getAbstractFileByPath(filePath);
+                    if (file && file instanceof TFile) {
+                        await this.app.vault.modify(file, originalContent);
+                    }
+                }
+                // Remove the buttons after applying
+                buttonsContainer.remove();
+            });
+
+            // Handle Cancel button click
+            cancelButton.addEventListener("click", async () => {
+                // Restore original content for all modified files
+                for (const [filePath, originalContent] of fileBackups) {
+                    const file = this.app.vault.getAbstractFileByPath(filePath);
+                    if (file && file instanceof TFile) {
+                        await this.app.vault.modify(file, originalContent);
+                    }
+                }
+                // Remove the buttons after canceling
+                buttonsContainer.remove();
+            });
+        }
     }
 }

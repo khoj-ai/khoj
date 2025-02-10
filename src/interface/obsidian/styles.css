@@ -985,7 +985,8 @@ img.copy-icon {
 
 .khoj-new-chat-button {
     display: flex;
-    align-items: left;
+    align-items: center;
+    gap: 4px;
     padding: 4px 8px;
     border-radius: 4px;
     border: 1px solid var(--khoj-storm-grey);
@@ -1000,4 +1001,42 @@ img.copy-icon {
 .khoj-new-chat-button:hover {
     background-color: var(--background-modifier-hover);
     border-color: var(--text-accent);
+}
+
+/* Edit Confirmation Buttons */
+.edit-confirmation-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 16px;
+    padding: 8px;
+}
+
+.edit-confirm-button {
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.edit-apply-button {
+    background-color: rgba(52, 199, 89, 0.1);
+    border: 1px solid rgb(52, 199, 89);
+    color: rgb(52, 199, 89);
+}
+
+.edit-apply-button:hover {
+    background-color: rgba(52, 199, 89, 0.2);
+}
+
+.edit-cancel-button {
+    background-color: rgba(255, 59, 48, 0.1);
+    border: 1px solid rgb(255, 59, 48);
+    color: rgb(255, 59, 48);
+}
+
+.edit-cancel-button:hover {
+    background-color: rgba(255, 59, 48, 0.2);
 }
