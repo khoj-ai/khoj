@@ -1200,6 +1200,10 @@ export class KhojChatView extends KhojPaneView {
 
                 let chatLogs = responseJson.response?.conversation_id ? responseJson.response.chat ?? [] : responseJson.response;
                 chatLogs.forEach((chatLog: any) => {
+                    // Convert commands to emojis for user messages
+                    if (chatLog.by === "you") {
+                        chatLog.message = this.convertCommandsToEmojis(chatLog.message);
+                    }
                     this.renderMessageWithReferences(
                         chatBodyEl,
                         chatLog.message,
@@ -1916,19 +1920,22 @@ export class KhojChatView extends KhojPaneView {
         const leaves = this.app.workspace.getLeavesOfType('markdown');
         if (leaves.length === 0) return '';
 
-        let openFilesContent = "\n\n[SYSTEM] The user is currently working on the following files (content provided for context):\n\n";
+        let openFilesContent = "\n\nThe user is currently working on the following files (content provided for context):\n\n";
 
         // Add edit mode instructions if applicable
         if (this.fileAccessMode === 'write') {
-            openFilesContent += "You can edit the content of these files using regex patterns. To do so, use the khoj-edit code block format:\n";
-            openFilesContent += "```khoj-edit:Note Title\n\"regex pattern\", \"replacement text\"\n```\n";
-            openFilesContent += "Important guidelines for regex patterns:\n";
-            openFilesContent += "1. Use the shortest possible regex that uniquely identifies the text to replace\n";
-            openFilesContent += "2. Make sure your regex pattern matches exactly one occurrence to avoid ambiguity\n";
-            openFilesContent += "3. You can use multiple khoj-edit blocks for multiple changes\n\n";
+            openFilesContent += "You can edit the content of these files. To do so, use the khoj-edit code block format:\n";
+            openFilesContent += "```khoj-edit:Note Title\n\"text before\", \"replacement text\"\n```\n";
+            openFilesContent += "Guidelines for text selection:\n";
+            openFilesContent += "1. To add text at the end of a file, use the last few words of the file as 'text before'\n";
+            openFilesContent += "2. To add text at the beginning, use the first few words as 'text before'\n";
+            openFilesContent += "3. To add text between paragraphs, use the last few words of the previous paragraph\n";
+            openFilesContent += "4. Only use regex patterns when you need to match specific patterns\n";
+            openFilesContent += "5. When using regex, make it as short and specific as possible\n";
+            openFilesContent += "6. You can use multiple khoj-edit blocks for multiple changes\n\n";
             openFilesContent += "Examples:\n";
-            openFilesContent += "```khoj-edit:My Tasks\n\"## Todo List\", \"## Tasks\"\n```\n";
-            openFilesContent += "```khoj-edit:Project Status\n\"status: pending\", \"status: completed\"\n```\n\n";
+            openFilesContent += "```khoj-edit:Daily Notes\n\"## Tasks for today\", \"## Tasks for today\\n- [ ] New task\"\n```\n";
+            openFilesContent += "```khoj-edit:Project Ideas\n\"brainstorming session.\", \"brainstorming session.\\n\\n## New Section\"\n```\n\n";
         }
 
         for (const leaf of leaves) {
@@ -1936,7 +1943,7 @@ export class KhojChatView extends KhojPaneView {
             const file = view?.file;
             if (!file || file.extension !== 'md') continue;
 
-            // Add file title
+            // Add file title without brackets
             openFilesContent += `# ${file.basename}\n\`\`\`markdown\n`;
 
             // Read file content
@@ -2021,22 +2028,28 @@ export class KhojChatView extends KhojPaneView {
 
             // Create Apply button
             const applyButton = buttonsContainer.createEl("button", {
-                text: "Apply",
+                text: "✅ Apply",
                 cls: ["edit-confirm-button", "edit-apply-button"],
             });
 
             // Create Cancel button
             const cancelButton = buttonsContainer.createEl("button", {
-                text: "Cancel",
+                text: "❌ Cancel",
                 cls: ["edit-confirm-button", "edit-cancel-button"],
             });
+
+            // Scroll to the buttons
+            buttonsContainer.scrollIntoView({ behavior: "smooth", block: "center" });
 
             // Handle Apply button click
             applyButton.addEventListener("click", async () => {
                 for (const [filePath, originalContent] of fileBackups) {
                     const file = this.app.vault.getAbstractFileByPath(filePath);
                     if (file && file instanceof TFile) {
-                        await this.app.vault.modify(file, originalContent);
+                        const currentContent = await this.app.vault.read(file);
+                        // Remove formatting markers and apply changes
+                        const finalContent = currentContent.replace(/~~([^~]+)~~==([^=]+)==/g, '$2');
+                        await this.app.vault.modify(file, finalContent);
                     }
                 }
                 // Remove the buttons after applying
@@ -2056,5 +2069,13 @@ export class KhojChatView extends KhojPaneView {
                 buttonsContainer.remove();
             });
         }
+    }
+
+    private convertCommandsToEmojis(message: string): string {
+        const modeMatch = this.chatModes.find(mode => message.startsWith(mode.command));
+        if (modeMatch) {
+            return message.replace(modeMatch.command, modeMatch.emoji);
+        }
+        return message;
     }
 }
