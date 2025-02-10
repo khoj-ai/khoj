@@ -899,6 +899,7 @@ img.copy-icon {
     padding: 8px 16px;
     font-family: inherit;
     justify-content: center;
+    align-items: center;
 }
 
 .khoj-mode-container {
@@ -915,4 +916,73 @@ img.copy-icon {
     font-family: inherit;
     font-size: 14px;
     cursor: pointer;
+}
+
+/* Chat Mode Selector Styles */
+.khoj-agent-select {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--khoj-storm-grey);
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    cursor: pointer;
+    min-width: 150px;
+    height: 32px;
+    margin: 0;
+}
+
+.khoj-agent-select:hover {
+    border-color: var(--text-accent);
+}
+
+.khoj-agent-select:focus {
+    outline: none;
+    border-color: var(--text-accent);
+    box-shadow: 0 0 0 2px rgba(var(--text-accent-rgb), 0.1);
+}
+
+.khoj-agent-select option {
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    padding: 8px;
+}
+
+.khoj-top-control-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--background-primary);
+    border-bottom: 1px solid var(--background-modifier-border);
+    margin: 0;
+}
+
+.khoj-new-chat-button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--khoj-storm-grey);
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    cursor: pointer;
+    height: 32px;
+    font-size: 14px;
+}
+
+.khoj-new-chat-button:hover {
+    background-color: var(--background-modifier-hover);
+    border-color: var(--text-accent);
+}
+
+.khoj-agent-select {
+    min-width: 200px;
+}
+
+/* Move the mode row below the top control row */
+.khoj-mode-row {
+    margin-top: 8px;
 }

@@ -60,6 +60,12 @@ interface ChatMode {
     command: string;
 }
 
+interface Agent {
+    name: string;
+    slug: string;
+    description: string;
+}
+
 export class KhojChatView extends KhojPaneView {
     result: string;
     setting: KhojSetting;
@@ -71,6 +77,8 @@ export class KhojChatView extends KhojPaneView {
     private currentUserInput: string = ""; // Stores the current user input that is being typed in chat
     private startingMessage: string = "Message";
     chatMessageState: ChatMessageState;
+    private agents: Agent[] = [];
+    private currentAgent: string | null = null;
     private chatModes: ChatMode[] = [
         { value: "default", label: "Default", emoji: "🎯", command: "/default" },
         { value: "general", label: "General", emoji: "💭", command: "/general" },
@@ -174,6 +182,9 @@ export class KhojChatView extends KhojPaneView {
 
         super.onOpen();
 
+        // Fetch available agents
+        await this.fetchAgents();
+
         // Construct Content Security Policy
         let defaultDomains = `'self' ${this.setting.khojUrl} https://*.obsidian.md https://app.khoj.dev https://assets.khoj.dev`;
         const defaultSrc = `default-src ${defaultDomains};`;
@@ -192,8 +203,51 @@ export class KhojChatView extends KhojPaneView {
         // Create area for chat logs
         let chatBodyEl = contentEl.createDiv({ attr: { id: "khoj-chat-body", class: "khoj-chat-body" } });
 
+        // Add top control bar
+        let topControlRow = contentEl.createDiv("khoj-top-control-row");
+
+        // Add agent selector
+        let agentSelect = topControlRow.createEl("select", {
+            attr: {
+                class: "khoj-agent-select",
+                title: "Select Agent"
+            }
+        });
+
+        // Add default option
+        let defaultOption = agentSelect.createEl("option", {
+            text: "Default Agent",
+            value: ""
+        });
+
+        // Add options for each agent
+        this.agents.forEach(agent => {
+            let option = agentSelect.createEl("option", {
+                text: agent.name,
+                value: agent.slug
+            });
+            if (agent.description) {
+                option.title = agent.description;
+            }
+        });
+
+        // Add New Chat button
+        let newChatButton = topControlRow.createEl("button", {
+            text: "New Chat",
+            attr: {
+                class: "khoj-new-chat-button",
+                title: "Start New Chat with Selected Agent"
+            }
+        });
+        setIcon(newChatButton, "plus-circle");
+        newChatButton.addEventListener('click', async () => {
+            const selectedAgent = (agentSelect as HTMLSelectElement).value;
+            await this.createNewConversation(selectedAgent);
+        });
+
         // Add chat input field
         let inputRow = contentEl.createDiv("khoj-input-row");
+
         let chatSessions = inputRow.createEl("button", {
             text: "Chat Sessions",
             attr: {
@@ -799,7 +853,10 @@ export class KhojChatView extends KhojPaneView {
         return `${time_string}, ${date_string}`;
     }
 
-    createNewConversation() {
+    async createNewConversation(agentSlug?: string) {
+        console.log("Creating new conversation with agent:", agentSlug);
+        console.log("Available agents:", this.agents);
+
         let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
         chatBodyEl.innerHTML = "";
         chatBodyEl.dataset.conversationId = "";
@@ -812,6 +869,44 @@ export class KhojChatView extends KhojPaneView {
         if (chatInput) {
             chatInput.placeholder = this.startingMessage;
         }
+
+        try {
+            // Create a new conversation with or without an agent
+            let endpoint = `${this.setting.khojUrl}/api/chat/sessions`;
+            if (agentSlug) {
+                endpoint += `?agent_slug=${encodeURIComponent(agentSlug)}`;
+            }
+            console.log("Creating session with endpoint:", endpoint);
+
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${this.setting.khojApiKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({}) // Empty body as agent_slug is in the URL
+            });
+
+            if (response.ok) {
+                const sessionInfo = await response.json();
+                console.log("Session created successfully:", sessionInfo);
+                chatBodyEl.dataset.conversationId = sessionInfo.conversation_id;
+                this.currentAgent = agentSlug || null;
+                console.log("Current agent set to:", this.currentAgent);
+
+                // Update agent selector to reflect current agent
+                const agentSelect = this.contentEl.querySelector('.khoj-agent-select') as HTMLSelectElement;
+                if (agentSelect) {
+                    agentSelect.value = this.currentAgent || '';
+                    console.log("Agent selector updated to:", agentSelect.value);
+                }
+            } else {
+                console.error("Failed to create session:", response.statusText);
+            }
+        } catch (error) {
+            console.error("Error creating session:", error);
+        }
+
         this.renderMessage({ chatBodyEl, message: "Hey 👋🏾, what's up?", sender: "khoj", isSystemMessage: true });
     }
 
@@ -1011,6 +1106,8 @@ export class KhojChatView extends KhojPaneView {
             chatUrl += `&conversation_id=${chatBodyEl.dataset.conversationId}`;
         }
 
+        console.log("Fetching chat history from:", chatUrl);
+
         try {
             let response = await fetch(chatUrl, {
                 method: "GET",
@@ -1018,6 +1115,8 @@ export class KhojChatView extends KhojPaneView {
             });
 
             let responseJson: any = await response.json();
+            console.log("Chat history response:", responseJson);
+
             chatBodyEl.dataset.conversationId = responseJson.conversation_id;
 
             if (responseJson.detail) {
@@ -1035,6 +1134,18 @@ export class KhojChatView extends KhojPaneView {
                 // Render conversation history, if any
                 chatBodyEl.dataset.conversationId = responseJson.response.conversation_id;
                 chatBodyEl.dataset.conversationTitle = responseJson.response.slug || `New conversation 🌱`;
+
+                // Update current agent from conversation history
+                if (responseJson.response.agent?.slug) {
+                    console.log("Found agent in conversation history:", responseJson.response.agent);
+                    this.currentAgent = responseJson.response.agent.slug;
+                    // Update the agent selector if it exists
+                    const agentSelect = this.contentEl.querySelector('.khoj-agent-select') as HTMLSelectElement;
+                    if (agentSelect && this.currentAgent) {
+                        agentSelect.value = this.currentAgent;
+                        console.log("Updated agent selector to:", this.currentAgent);
+                    }
+                }
 
                 let chatLogs = responseJson.response?.conversation_id ? responseJson.response.chat ?? [] : responseJson.response;
                 chatLogs.forEach((chatLog: any) => {
@@ -1102,10 +1213,10 @@ export class KhojChatView extends KhojPaneView {
 
     processMessageChunk(rawChunk: string): void {
         const chunk = this.convertMessageChunkToJson(rawChunk);
-        console.debug("Chunk:", chunk);
+        console.log("Processing chunk:", chunk);
         if (!chunk || !chunk.type) return;
         if (chunk.type === 'status') {
-            console.log(`status: ${chunk.data}`);
+            console.log(`Status message received: ${chunk.data}`);
             const statusMessage = chunk.data;
             this.handleStreamResponse(this.chatMessageState.newResponseTextEl, statusMessage, this.chatMessageState.loadingEllipsis, false);
         } else if (chunk.type === 'generated_assets') {
@@ -1141,20 +1252,23 @@ export class KhojChatView extends KhojPaneView {
         } else if (chunk.type === "references") {
             this.chatMessageState.references = { "notes": chunk.data.context, "online": chunk.data.onlineContext };
         } else if (chunk.type === 'message') {
+            console.log("Message chunk received:", chunk.data);
             const chunkData = chunk.data;
             if (typeof chunkData === 'object' && chunkData !== null) {
-                // If chunkData is already a JSON object
+                console.log("Processing JSON object response:", chunkData);
                 this.handleJsonResponse(chunkData);
             } else if (typeof chunkData === 'string' && chunkData.trim()?.startsWith("{") && chunkData.trim()?.endsWith("}")) {
-                // Try process chunk data as if it is a JSON object
                 try {
                     const jsonData = JSON.parse(chunkData.trim());
+                    console.log("Processing parsed JSON response:", jsonData);
                     this.handleJsonResponse(jsonData);
                 } catch (e) {
+                    console.log("Processing raw text response:", chunkData);
                     this.chatMessageState.rawResponse += chunkData;
                     this.handleStreamResponse(this.chatMessageState.newResponseTextEl, this.chatMessageState.rawResponse + this.chatMessageState.generatedAssets, this.chatMessageState.loadingEllipsis);
                 }
             } else {
+                console.log("Processing raw text response:", chunkData);
                 this.chatMessageState.rawResponse += chunkData;
                 this.handleStreamResponse(this.chatMessageState.newResponseTextEl, this.chatMessageState.rawResponse + this.chatMessageState.generatedAssets, this.chatMessageState.loadingEllipsis);
             }
@@ -1226,15 +1340,37 @@ export class KhojChatView extends KhojPaneView {
         this.renderMessage({ chatBodyEl, message: displayQuery || query, sender: "you" });
 
         let conversationId = chatBodyEl.dataset.conversationId;
+        console.log("Current conversation ID:", conversationId);
+        console.log("Current agent before chat:", this.currentAgent);
+
         if (!conversationId) {
-            let chatUrl = `${this.setting.khojUrl}/api/chat/sessions?client=obsidian`;
-            let response = await fetch(chatUrl, {
-                method: "POST",
-                headers: { "Authorization": `Bearer ${this.setting.khojApiKey}` },
-            });
-            let data = await response.json();
-            conversationId = data.conversation_id;
-            chatBodyEl.dataset.conversationId = conversationId;
+            try {
+                const requestBody = {
+                    ...(this.currentAgent && { agent_slug: this.currentAgent })
+                };
+                console.log("Creating new session with body:", requestBody);
+
+                const response = await fetch(`${this.setting.khojUrl}/api/chat/sessions`, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${this.setting.khojApiKey}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log("New session created:", data);
+                    conversationId = data.conversation_id;
+                    chatBodyEl.dataset.conversationId = conversationId;
+                } else {
+                    console.error("Failed to create session:", response.statusText);
+                    return;
+                }
+            } catch (error) {
+                console.error("Error creating session:", error);
+                return;
+            }
         }
 
         // Get chat response from Khoj backend
@@ -1243,13 +1379,16 @@ export class KhojChatView extends KhojPaneView {
             q: query,
             n: this.setting.resultsCount,
             stream: true,
-            ...(!!conversationId && { conversation_id: conversationId }),
+            conversation_id: conversationId,
+            ...(this.currentAgent && { agent_slug: this.currentAgent }),
             ...(!!this.location && this.location.city && { city: this.location.city }),
             ...(!!this.location && this.location.region && { region: this.location.region }),
             ...(!!this.location && this.location.countryName && { country: this.location.countryName }),
             ...(!!this.location && this.location.countryCode && { country_code: this.location.countryCode }),
             ...(!!this.location && this.location.timezone && { timezone: this.location.timezone }),
         };
+
+        console.log("Chat request body:", body);
 
         let newResponseEl = this.createKhojResponseDiv();
         let newResponseTextEl = newResponseEl.createDiv();
@@ -1689,6 +1828,24 @@ export class KhojChatView extends KhojPaneView {
         } catch (error) {
             console.error("Error deleting message:", error);
             this.flashStatusInChatInput("Error deleting message");
+        }
+    }
+
+    async fetchAgents() {
+        try {
+            const response = await fetch(`${this.setting.khojUrl}/api/agents`, {
+                headers: {
+                    "Authorization": `Bearer ${this.setting.khojApiKey}`
+                }
+            });
+
+            if (response.ok) {
+                this.agents = await response.json();
+            } else {
+                console.error("Failed to fetch agents:", response.statusText);
+            }
+        } catch (error) {
+            console.error("Error fetching agents:", error);
         }
     }
 }
