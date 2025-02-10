@@ -854,9 +854,6 @@ export class KhojChatView extends KhojPaneView {
     }
 
     async createNewConversation(agentSlug?: string) {
-        console.log("Creating new conversation with agent:", agentSlug);
-        console.log("Available agents:", this.agents);
-
         let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
         chatBodyEl.innerHTML = "";
         chatBodyEl.dataset.conversationId = "";
@@ -876,7 +873,6 @@ export class KhojChatView extends KhojPaneView {
             if (agentSlug) {
                 endpoint += `?agent_slug=${encodeURIComponent(agentSlug)}`;
             }
-            console.log("Creating session with endpoint:", endpoint);
 
             const response = await fetch(endpoint, {
                 method: "POST",
@@ -889,16 +885,13 @@ export class KhojChatView extends KhojPaneView {
 
             if (response.ok) {
                 const sessionInfo = await response.json();
-                console.log("Session created successfully:", sessionInfo);
                 chatBodyEl.dataset.conversationId = sessionInfo.conversation_id;
                 this.currentAgent = agentSlug || null;
-                console.log("Current agent set to:", this.currentAgent);
 
                 // Update agent selector to reflect current agent
                 const agentSelect = this.contentEl.querySelector('.khoj-agent-select') as HTMLSelectElement;
                 if (agentSelect) {
                     agentSelect.value = this.currentAgent || '';
-                    console.log("Agent selector updated to:", agentSelect.value);
                 }
             } else {
                 console.error("Failed to create session:", response.statusText);
@@ -1213,10 +1206,8 @@ export class KhojChatView extends KhojPaneView {
 
     processMessageChunk(rawChunk: string): void {
         const chunk = this.convertMessageChunkToJson(rawChunk);
-        console.log("Processing chunk:", chunk);
         if (!chunk || !chunk.type) return;
         if (chunk.type === 'status') {
-            console.log(`Status message received: ${chunk.data}`);
             const statusMessage = chunk.data;
             this.handleStreamResponse(this.chatMessageState.newResponseTextEl, statusMessage, this.chatMessageState.loadingEllipsis, false);
         } else if (chunk.type === 'generated_assets') {
@@ -1225,9 +1216,9 @@ export class KhojChatView extends KhojPaneView {
             this.chatMessageState.generatedAssets = imageData;
             this.handleStreamResponse(this.chatMessageState.newResponseTextEl, imageData, this.chatMessageState.loadingEllipsis, false);
         } else if (chunk.type === 'start_llm_response') {
-            console.log("Started streaming", new Date());
+            // Start of streaming
         } else if (chunk.type === 'end_llm_response') {
-            console.log("Stopped streaming", new Date());
+            // End of streaming
         } else if (chunk.type === 'end_response') {
             // Automatically respond with voice if the subscribed user has sent voice message
             if (this.chatMessageState.isVoice && this.setting.userInfo?.is_active)
@@ -1252,30 +1243,24 @@ export class KhojChatView extends KhojPaneView {
         } else if (chunk.type === "references") {
             this.chatMessageState.references = { "notes": chunk.data.context, "online": chunk.data.onlineContext };
         } else if (chunk.type === 'message') {
-            console.log("Message chunk received:", chunk.data);
             const chunkData = chunk.data;
             if (typeof chunkData === 'object' && chunkData !== null) {
-                console.log("Processing JSON object response:", chunkData);
                 this.handleJsonResponse(chunkData);
             } else if (typeof chunkData === 'string' && chunkData.trim()?.startsWith("{") && chunkData.trim()?.endsWith("}")) {
                 try {
                     const jsonData = JSON.parse(chunkData.trim());
-                    console.log("Processing parsed JSON response:", jsonData);
                     this.handleJsonResponse(jsonData);
                 } catch (e) {
-                    console.log("Processing raw text response:", chunkData);
                     this.chatMessageState.rawResponse += chunkData;
                     this.handleStreamResponse(this.chatMessageState.newResponseTextEl, this.chatMessageState.rawResponse + this.chatMessageState.generatedAssets, this.chatMessageState.loadingEllipsis);
                 }
             } else {
-                console.log("Processing raw text response:", chunkData);
                 this.chatMessageState.rawResponse += chunkData;
                 this.handleStreamResponse(this.chatMessageState.newResponseTextEl, this.chatMessageState.rawResponse + this.chatMessageState.generatedAssets, this.chatMessageState.loadingEllipsis);
             }
         } else if (chunk.type === "metadata") {
             const { turnId } = chunk.data;
             if (turnId) {
-                // Append turnId to chatMessageState
                 this.chatMessageState.turnId = turnId;
             }
         }
@@ -1340,15 +1325,12 @@ export class KhojChatView extends KhojPaneView {
         this.renderMessage({ chatBodyEl, message: displayQuery || query, sender: "you" });
 
         let conversationId = chatBodyEl.dataset.conversationId;
-        console.log("Current conversation ID:", conversationId);
-        console.log("Current agent before chat:", this.currentAgent);
 
         if (!conversationId) {
             try {
                 const requestBody = {
                     ...(this.currentAgent && { agent_slug: this.currentAgent })
                 };
-                console.log("Creating new session with body:", requestBody);
 
                 const response = await fetch(`${this.setting.khojUrl}/api/chat/sessions`, {
                     method: "POST",
@@ -1360,7 +1342,6 @@ export class KhojChatView extends KhojPaneView {
                 });
                 if (response.ok) {
                     const data = await response.json();
-                    console.log("New session created:", data);
                     conversationId = data.conversation_id;
                     chatBodyEl.dataset.conversationId = conversationId;
                 } else {
@@ -1387,8 +1368,6 @@ export class KhojChatView extends KhojPaneView {
             ...(!!this.location && this.location.countryCode && { country_code: this.location.countryCode }),
             ...(!!this.location && this.location.timezone && { timezone: this.location.timezone }),
         };
-
-        console.log("Chat request body:", body);
 
         let newResponseEl = this.createKhojResponseDiv();
         let newResponseTextEl = newResponseEl.createDiv();
