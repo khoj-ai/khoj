@@ -2009,11 +2009,16 @@ export class KhojChatView extends KhojPaneView {
                 const newContent = content.replace(regex, (match) => {
                     // Split the text by newlines
                     const lines = match.split('\n');
-                    const replacementLines = block.replacement.split('\n');
+                    const replacementLines = block.replacement
+                        .replace(/\\n/g, '\n') // Convert literal \n to actual newlines
+                        .split('\n');
 
                     // Format each line with proper markdown tags
                     const formattedMatch = lines.map(line => `~~${line}~~`).join('\n');
-                    const formattedReplacement = replacementLines.map(line => `==${line}==`).join('\n');
+                    const formattedReplacement = replacementLines
+                        .filter(line => line.length > 0) // Remove empty lines
+                        .map(line => `==${line}==`)
+                        .join('\n');
 
                     return `${formattedMatch}\n${formattedReplacement}`;
                 });
@@ -2055,27 +2060,32 @@ export class KhojChatView extends KhojPaneView {
                     const file = this.app.vault.getAbstractFileByPath(filePath);
                     if (file && file instanceof TFile) {
                         const currentContent = await this.app.vault.read(file);
-
-                        // Process the content line by line to handle multiline replacements
                         let finalContent = currentContent;
 
-                        // First pass: collect all strikethrough and highlight pairs
-                        const regex = /~~([\s\S]*?)~~\n==([\s\S]*?)==/gm;
+                        // Capture all the content between ~~ and == markers
+                        const regex = /(~~[\s\S]*?~~)\n(==[\s\S]*?==)/g;
                         let matches = [...finalContent.matchAll(regex)];
 
                         // Replace each pair, starting from the last to avoid offset issues
                         for (let i = matches.length - 1; i >= 0; i--) {
                             const match = matches[i];
-                            const startIndex = match.index;
-                            const fullMatch = match[0];
-                            const replacement = match[2]; // The content between == ==
+                            if (!match.index) continue;
 
-                            if (startIndex !== undefined) {
-                                finalContent =
-                                    finalContent.substring(0, startIndex) +
-                                    replacement +
-                                    finalContent.substring(startIndex + fullMatch.length);
-                            }
+                            const fullMatch = match[0];
+                            const highlightedPart = match[2];
+
+                            // Extract the content between == markers, handling multiple lines
+                            const replacement = highlightedPart
+                                .split('\n')
+                                .map(line => line.replace(/^==(.+)==$/, '$1'))
+                                .join('\n')
+                                .replace(/\\n/g, '\n')
+                                .trim();
+
+                            finalContent =
+                                finalContent.substring(0, match.index) +
+                                replacement +
+                                finalContent.substring(match.index + fullMatch.length);
                         }
 
                         await this.app.vault.modify(file, finalContent);
