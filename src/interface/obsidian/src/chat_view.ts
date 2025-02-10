@@ -37,7 +37,8 @@ interface ChatMessageState {
 
 interface EditBlock {
     noteTitle: string;
-    pattern: string;
+    before: string;
+    after: string;
     replacement: string;
 }
 
@@ -141,6 +142,9 @@ export class KhojChatView extends KhojPaneView {
     }
 
     async chat(isVoice: boolean = false) {
+        // Cancel any pending edits before sending a new message
+        await this.cancelPendingEdits();
+
         // Get text in chat input element
         let input_el = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
 
@@ -1924,18 +1928,26 @@ export class KhojChatView extends KhojPaneView {
 
         // Add edit mode instructions if applicable
         if (this.fileAccessMode === 'write') {
-            openFilesContent += "You can edit the content of these files. To do so, use the khoj-edit code block format:\n";
-            openFilesContent += "```khoj-edit:Note Title\n\"text before\", \"replacement text\"\n```\n";
-            openFilesContent += "Guidelines for text selection:\n";
-            openFilesContent += "1. To add text at the end of a file, use the last few words of the file as 'text before'\n";
-            openFilesContent += "2. To add text at the beginning, use the first few words as 'text before'\n";
-            openFilesContent += "3. To add text between paragraphs, use the last few words of the previous paragraph\n";
-            openFilesContent += "4. Only use regex patterns when you need to match specific patterns\n";
-            openFilesContent += "5. When using regex, make it as short and specific as possible\n";
-            openFilesContent += "6. You can use multiple khoj-edit blocks for multiple changes\n\n";
-            openFilesContent += "Examples:\n";
-            openFilesContent += "```khoj-edit:Daily Notes\n\"## Tasks for today\", \"## Tasks for today\\n- [ ] New task\"\n```\n";
-            openFilesContent += "```khoj-edit:Project Ideas\n\"brainstorming session.\", \"brainstorming session.\\n\\n## New Section\"\n```\n\n";
+            openFilesContent += "You can edit the content of these files using the following format:\n\n";
+            openFilesContent += "```khoj-edit:Note Title\n\"<text before>\", \"<text after>\", \"<replacement text>\"\n```\n\n";
+            openFilesContent += "Guidelines for text selection and replacement:\n";
+            openFilesContent += "1. First parameter: up to 10 words that come BEFORE the text you want to modify\n";
+            openFilesContent += "2. Second parameter: up to 10 words that come AFTER the text you want to modify\n";
+            openFilesContent += "3. Third parameter: the new text that will replace everything between the before and after markers\n";
+            openFilesContent += "4. Use <file-start> in the first parameter to target the beginning of the file\n";
+            openFilesContent += "5. Use <file-end> in the second parameter to target the end of the file\n";
+            openFilesContent += "6. Use \\n for new lines in the replacement text\n";
+            openFilesContent += "7. You can use multiple khoj-edit blocks for multiple changes\n\n";
+            openFilesContent += "Examples:\n\n";
+            openFilesContent += "1. Add a new task under an existing heading:\n";
+            openFilesContent += "```khoj-edit:Daily Notes\n\"## Tasks for today\\n\", \"\\n## Next section\", \"## Tasks for today\\n- [ ] New task\\n\"\n```\n\n";
+            openFilesContent += "2. Replace specific text:\n";
+            openFilesContent += "```khoj-edit:Project Ideas\n\"The current implementation\", \"which needs to be improved\", \"the new improved implementation\"\n```\n\n";
+            openFilesContent += "3. Add content at the start of a file:\n";
+            openFilesContent += "```khoj-edit:Meeting Notes\n\"<file-start>\", \"First existing line\", \"# Meeting Notes\\n\\nDate: 2024-01-01\\n\\n\"\n```\n\n";
+            openFilesContent += "4. Add content at the end of a file:\n";
+            openFilesContent += "```khoj-edit:Shopping List\n\"Last item in the list\\n\", \"<file-end>\", \"\\n- [ ] New item\"\n```\n\n";
+            openFilesContent += "[END OF EDIT INSTRUCTIONS]\n\n";
         }
 
         for (const leaf of leaves) {
@@ -1965,14 +1977,15 @@ export class KhojChatView extends KhojPaneView {
     // Add these new methods
     private parseEditBlocks(message: string): EditBlock[] {
         const editBlocks: EditBlock[] = [];
-        const regex = /```khoj-edit:([^\n]+)\n"([^"]+)", "([^"]+)"\n```/g;
+        const regex = /```khoj-edit:([^\n]+)\n"([^"]+)", "([^"]+)", "([^"]+)"\n```/g;
         let match;
 
         while ((match = regex.exec(message)) !== null) {
             editBlocks.push({
                 noteTitle: match[1].trim(),
-                pattern: match[2],
-                replacement: match[3]
+                before: match[2].replace(/\\n/g, '\n'),
+                after: match[3].replace(/\\n/g, '\n'),
+                replacement: match[4].replace(/\\n/g, '\n')
             });
         }
 
@@ -2002,26 +2015,43 @@ export class KhojChatView extends KhojPaneView {
                     fileBackups.set(file.path, content);
                 }
 
-                // Create regex from pattern
-                const regex = new RegExp(block.pattern, 'g');
+                // Handle special markers for file start and end
+                const before = block.before.replace('<file-start>', '');
+                const after = block.after.replace('<file-end>', '');
 
-                // Replace text and format with strikethrough and highlight
-                const newContent = content.replace(regex, (match) => {
-                    // Split the text by newlines
-                    const lines = match.split('\n');
-                    const replacementLines = block.replacement
-                        .replace(/\\n/g, '\n') // Convert literal \n to actual newlines
-                        .split('\n');
+                // Find the text to replace
+                let startIndex = -1;
+                let endIndex = -1;
 
-                    // Format each line with proper markdown tags
-                    const formattedMatch = lines.map(line => `~~${line}~~`).join('\n');
-                    const formattedReplacement = replacementLines
-                        .filter(line => line.length > 0) // Remove empty lines
-                        .map(line => `==${line}==`)
-                        .join('\n');
+                if (block.before.includes('<file-start>')) {
+                    startIndex = 0;
+                } else {
+                    startIndex = content.indexOf(before);
+                    if (startIndex !== -1) {
+                        startIndex += before.length;
+                    }
+                }
 
-                    return `${formattedMatch}\n${formattedReplacement}`;
-                });
+                if (block.after.includes('<file-end>')) {
+                    endIndex = content.length;
+                } else {
+                    if (startIndex !== -1) {
+                        const searchStart = startIndex;
+                        endIndex = content.indexOf(after, searchStart);
+                    }
+                }
+
+                if (startIndex === -1 || endIndex === -1) {
+                    console.warn(`Could not find text to replace in ${block.noteTitle}`);
+                    continue;
+                }
+
+                // Create the preview with strikethrough and highlight
+                const textToReplace = content.substring(startIndex, endIndex);
+                const newContent =
+                    content.substring(0, startIndex) +
+                    `~~${textToReplace}~~\n==${block.replacement}==` +
+                    content.substring(endIndex);
 
                 // Save the preview changes
                 if (content !== newContent) {
@@ -2056,56 +2086,75 @@ export class KhojChatView extends KhojPaneView {
 
             // Handle Apply button click
             applyButton.addEventListener("click", async () => {
-                for (const [filePath, originalContent] of fileBackups) {
-                    const file = this.app.vault.getAbstractFileByPath(filePath);
-                    if (file && file instanceof TFile) {
-                        const currentContent = await this.app.vault.read(file);
-                        let finalContent = currentContent;
+                try {
+                    for (const [filePath, originalContent] of fileBackups) {
+                        const file = this.app.vault.getAbstractFileByPath(filePath);
+                        if (file && file instanceof TFile) {
+                            const currentContent = await this.app.vault.read(file);
+                            let finalContent = currentContent;
 
-                        // Capture all the content between ~~ and == markers
-                        const regex = /(~~[\s\S]*?~~)\n(==[\s\S]*?==)/g;
-                        let matches = [...finalContent.matchAll(regex)];
+                            // First, remove all strikethrough blocks and their following highlighted blocks
+                            const regex = /~~([\s\S]*?)~~\n==([\s\S]*?)==/g;
+                            let matches = [...finalContent.matchAll(regex)];
 
-                        // Replace each pair, starting from the last to avoid offset issues
-                        for (let i = matches.length - 1; i >= 0; i--) {
-                            const match = matches[i];
-                            if (!match.index) continue;
+                            // Replace each pair, starting from the last to avoid offset issues
+                            for (let i = matches.length - 1; i >= 0; i--) {
+                                const match = matches[i];
+                                if (!match.index) continue;
 
-                            const fullMatch = match[0];
-                            const highlightedPart = match[2];
+                                const fullMatch = match[0];
+                                const replacement = match[2].trim();
 
-                            // Extract the content between == markers, handling multiple lines
-                            const replacement = highlightedPart
-                                .split('\n')
-                                .map(line => line.replace(/^==(.+)==$/, '$1'))
-                                .join('\n')
-                                .replace(/\\n/g, '\n')
-                                .trim();
+                                finalContent =
+                                    finalContent.substring(0, match.index) +
+                                    replacement +
+                                    finalContent.substring(match.index + fullMatch.length);
+                            }
 
-                            finalContent =
-                                finalContent.substring(0, match.index) +
-                                replacement +
-                                finalContent.substring(match.index + fullMatch.length);
+                            await this.app.vault.modify(file, finalContent);
                         }
-
-                        await this.app.vault.modify(file, finalContent);
                     }
+
+                    // Show success message
+                    const successMessage = lastMessage.createDiv({ cls: "edit-status-message success" });
+                    successMessage.textContent = "✅ Changes applied successfully";
+                    setTimeout(() => successMessage.remove(), 3000);
+                } catch (error) {
+                    console.error("Error applying changes:", error);
+                    // Show error message
+                    const errorMessage = lastMessage.createDiv({ cls: "edit-status-message error" });
+                    errorMessage.textContent = "❌ Error applying changes";
+                    setTimeout(() => errorMessage.remove(), 3000);
+                } finally {
+                    // Remove the buttons after applying
+                    buttonsContainer.remove();
                 }
-                // Remove the buttons after applying
-                buttonsContainer.remove();
             });
 
             // Handle Cancel button click
             cancelButton.addEventListener("click", async () => {
-                // Restore original content for all modified files
-                for (const [filePath, originalContent] of fileBackups) {
-                    const file = this.app.vault.getAbstractFileByPath(filePath);
-                    if (file && file instanceof TFile) {
-                        await this.app.vault.modify(file, originalContent);
+                try {
+                    // Restore original content for all modified files
+                    for (const [filePath, originalContent] of fileBackups) {
+                        const file = this.app.vault.getAbstractFileByPath(filePath);
+                        if (file && file instanceof TFile) {
+                            await this.app.vault.modify(file, originalContent);
+                        }
                     }
+                    // Show success message
+                    const successMessage = lastMessage.createDiv({ cls: "edit-status-message success" });
+                    successMessage.textContent = "✅ Changes cancelled successfully";
+                    setTimeout(() => successMessage.remove(), 3000);
+                } catch (error) {
+                    console.error("Error cancelling changes:", error);
+                    // Show error message
+                    const errorMessage = lastMessage.createDiv({ cls: "edit-status-message error" });
+                    errorMessage.textContent = "❌ Error cancelling changes";
+                    setTimeout(() => errorMessage.remove(), 3000);
+                } finally {
+                    // Remove the buttons after canceling
+                    buttonsContainer.remove();
                 }
-                // Remove the buttons after canceling
-                buttonsContainer.remove();
             });
         }
     }
@@ -2116,5 +2165,21 @@ export class KhojChatView extends KhojPaneView {
             return message.replace(modeMatch.command, modeMatch.emoji);
         }
         return message;
+    }
+
+    private async cancelPendingEdits() {
+        const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
+        const lastMessage = chatBodyEl.lastElementChild;
+        if (!lastMessage) return;
+
+        // Check for edit confirmation buttons
+        const buttonsContainer = lastMessage.querySelector(".edit-confirmation-buttons");
+        if (!buttonsContainer) return;
+
+        // Find and click the cancel button if it exists
+        const cancelButton = buttonsContainer.querySelector(".edit-cancel-button");
+        if (cancelButton instanceof HTMLElement) {
+            cancelButton.click();
+        }
     }
 }

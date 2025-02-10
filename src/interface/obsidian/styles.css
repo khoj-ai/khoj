@@ -1006,19 +1006,16 @@ img.copy-icon {
 /* Edit Confirmation Buttons */
 .edit-confirmation-buttons {
     display: flex;
-    justify-content: center;
-    gap: 16px;
-    margin-top: 16px;
-    padding: 8px;
+    gap: 8px;
+    margin-top: 8px;
 }
 
 .edit-confirm-button {
-    padding: 8px 16px;
+    padding: 4px 12px;
     border-radius: 4px;
-    font-size: 14px;
-    font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
 }
 
 .edit-apply-button {
@@ -1039,4 +1036,36 @@ img.copy-icon {
 
 .edit-cancel-button:hover {
     background-color: rgba(255, 59, 48, 0.2);
+}
+
+.edit-status-message {
+    margin-top: 8px;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    animation: fadeIn 0.3s ease;
+}
+
+.edit-status-message.success {
+    background-color: rgba(52, 199, 89, 0.1);
+    color: rgb(52, 199, 89);
+    border: 1px solid rgb(52, 199, 89);
+}
+
+.edit-status-message.error {
+    background-color: rgba(255, 59, 48, 0.1);
+    color: rgb(255, 59, 48);
+    border: 1px solid rgb(255, 59, 48);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
