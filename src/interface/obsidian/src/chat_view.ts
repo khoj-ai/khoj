@@ -79,6 +79,7 @@ export class KhojChatView extends KhojPaneView {
     chatMessageState: ChatMessageState;
     private agents: Agent[] = [];
     private currentAgent: string | null = null;
+    private fileAccessMode: 'none' | 'read' | 'write' = 'none'; // Track the current file access mode
     private chatModes: ChatMode[] = [
         { value: "default", label: "Default", emoji: "🎯", command: "/default" },
         { value: "general", label: "General", emoji: "💭", command: "/general" },
@@ -277,6 +278,36 @@ export class KhojChatView extends KhojPaneView {
         })
         chatSessions.addEventListener('click', async (_) => { await this.toggleChatSessions() });
         setIcon(chatSessions, "history");
+
+        // Add file access mode button
+        let fileAccessButton = inputRow.createEl("button", {
+            text: "File Access",
+            attr: {
+                class: "khoj-input-row-button clickable-icon",
+                title: "Toggle file access mode (No Access)",
+            },
+        });
+        setIcon(fileAccessButton, "file-x");
+        fileAccessButton.addEventListener('click', () => {
+            // Cycle through modes: none -> read -> write -> none
+            switch (this.fileAccessMode) {
+                case 'none':
+                    this.fileAccessMode = 'read';
+                    setIcon(fileAccessButton, "file-search");
+                    fileAccessButton.title = "Toggle file access mode (Read Only)";
+                    break;
+                case 'read':
+                    this.fileAccessMode = 'write';
+                    setIcon(fileAccessButton, "file-edit");
+                    fileAccessButton.title = "Toggle file access mode (Read & Write)";
+                    break;
+                case 'write':
+                    this.fileAccessMode = 'none';
+                    setIcon(fileAccessButton, "file-x");
+                    fileAccessButton.title = "Toggle file access mode (No Access)";
+                    break;
+            }
+        });
 
         let chatInput = inputRow.createEl("textarea", {
             attr: {
@@ -1374,10 +1405,13 @@ export class KhojChatView extends KhojPaneView {
             }
         }
 
+        // Get open files content if we have access
+        const openFilesContent = await this.getOpenFilesContent();
+
         // Get chat response from Khoj backend
         const chatUrl = `${this.setting.khojUrl}/api/chat?client=obsidian`;
         const body = {
-            q: query,
+            q: openFilesContent ? `${openFilesContent}\n\n${query}` : query,
             n: this.setting.resultsCount,
             stream: true,
             conversation_id: conversationId,
@@ -1846,5 +1880,37 @@ export class KhojChatView extends KhojPaneView {
         } catch (error) {
             console.error("Error fetching agents:", error);
         }
+    }
+
+    // Add this new method after the class declaration
+    private async getOpenFilesContent(): Promise<string> {
+        // Only proceed if we have read or write access
+        if (this.fileAccessMode === 'none') return '';
+
+        let openFilesContent = "L'utilisateur travaille actuellement sur les fichiers suivants :\n\n";
+
+        // Get all open leaves
+        const leaves = this.app.workspace.getLeavesOfType('markdown');
+
+        for (const leaf of leaves) {
+            const view = leaf.view as any;
+            const file = view?.file;
+            if (!file) continue;
+
+            // Add file title
+            openFilesContent += `# ${file.basename}\n\`\`\`markdown\n`;
+
+            // Read file content
+            try {
+                const content = await this.app.vault.read(file);
+                openFilesContent += content;
+            } catch (error) {
+                console.error(`Error reading file ${file.path}:`, error);
+            }
+
+            openFilesContent += "\n```\n\n";
+        }
+
+        return openFilesContent;
     }
 }

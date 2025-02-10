@@ -344,7 +344,7 @@ div.selected-conversation {
 
 .khoj-input-row {
     display: grid;
-    grid-template-columns: 32px auto 32px 32px;
+    grid-template-columns: 32px 32px auto 32px 32px;
     grid-column-gap: 10px;
     grid-row-gap: 10px;
     background: var(--background-primary);
