@@ -859,3 +859,30 @@ img.copy-icon {
         transform: rotate(360deg);
     }
 }
+
+/* Chat Mode Selector Styles */
+.khoj-mode-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 8px 16px;
+    font-family: inherit;
+    justify-content: center;
+}
+
+.khoj-mode-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.khoj-mode-input {
+    margin: 0;
+}
+
+.khoj-mode-label {
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+}

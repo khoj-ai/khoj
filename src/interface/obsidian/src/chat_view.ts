@@ -154,33 +154,6 @@ export class KhojChatView extends KhojPaneView {
         // Create area for chat logs
         let chatBodyEl = contentEl.createDiv({ attr: { id: "khoj-chat-body", class: "khoj-chat-body" } });
 
-        // Add chat mode selector
-        let chatModeRow = contentEl.createDiv("khoj-mode-row");
-        let chatModeLabel = chatModeRow.createEl("span", { text: "Mode:", attr: { class: "khoj-mode-label" } });
-
-        // Create radio buttons for each mode
-        const modes = ["default", "general", "notes", "online", "image", "research"];
-        modes.forEach((mode) => {
-            let modeContainer = chatModeRow.createDiv("khoj-mode-container");
-            let modeInput = modeContainer.createEl("input", {
-                attr: {
-                    type: "radio",
-                    id: `khoj-mode-${mode}`,
-                    name: "khoj-mode",
-                    value: mode,
-                    class: "khoj-mode-input",
-                    ...(mode === "default" && { checked: "checked" })
-                }
-            });
-            let modeLabel = modeContainer.createEl("label", {
-                text: mode.charAt(0).toUpperCase() + mode.slice(1),
-                attr: {
-                    for: `khoj-mode-${mode}`,
-                    class: "khoj-mode-label"
-                }
-            });
-        });
-
         // Add chat input field
         let inputRow = contentEl.createDiv("khoj-input-row");
         let chatSessions = inputRow.createEl("button", {
@@ -235,6 +208,39 @@ export class KhojChatView extends KhojPaneView {
         setIcon(send, "arrow-up-circle");
         let sendImg = <SVGElement>send.getElementsByClassName("lucide-arrow-up-circle")[0]
         sendImg.addEventListener('click', async (_) => { await this.chat() });
+
+        // After all the input row elements, add the mode selector
+        let chatModeRow = contentEl.createDiv("khoj-mode-row");
+
+        // Create radio buttons for each mode
+        const modes = [
+            { value: "default", label: "🎯 Default" },
+            { value: "general", label: "💭 General" },
+            { value: "notes", label: "📝 Notes" },
+            { value: "online", label: "🌐 Online" },
+            { value: "image", label: "🖼️ Image" },
+            { value: "research", label: "🔬 Research" }
+        ];
+        modes.forEach((mode) => {
+            let modeContainer = chatModeRow.createDiv({ attr: { class: "khoj-mode-container" } });
+            let modeInput = modeContainer.createEl("input", {
+                attr: {
+                    type: "radio",
+                    id: `khoj-mode-${mode.value}`,
+                    name: "khoj-mode",
+                    value: mode.value,
+                    class: "khoj-mode-input",
+                    ...(mode.value === "default" && { checked: "checked" })
+                }
+            });
+            let modeLabel = modeContainer.createEl("label", {
+                text: mode.label,
+                attr: {
+                    for: `khoj-mode-${mode.value}`,
+                    class: "khoj-mode-label"
+                }
+            });
+        });
 
         // Get chat history from Khoj backend and set chat input state
         let getChatHistorySucessfully = await this.getChatHistory(chatBodyEl);
