@@ -1928,36 +1928,52 @@ export class KhojChatView extends KhojPaneView {
 
         // Simplification des instructions d'édition
         if (this.fileAccessMode === 'write') {
-            openFilesContent += `You can edit these files. For each edit, use this format:
+            openFilesContent += `You can edit your notes using this simple format:
 
 \`\`\`khoj-edit
-"<context before>", "<context after>", "<new content>"
+"<start of text to modify>", "<text that follows>", "<complete new content>"
 \`\`\`
 
-Examples:
+📝 Example note:
 
-1. Add a task between two sections:
+\`\`\`
+# Travel Notes
+Date: January 20, 2024
+
+I visited Paris last week. The Eiffel Tower was beautiful at sunset. The Louvre museum was unfortunately closed that day.
+
+## Restaurants
+- Le Petit Bistrot: excellent French cuisine
+- Chez Marie: average service but good desserts
+
+## To do for next trip
+- Book train tickets in advance
+- Plan more time for museums
+\`\`\`
+
+Examples of edits:
+
+1. Add a paragraph at the end:
 \`\`\`khoj-edit
-"# Tasks", "# Notes", "- [ ] My new task"
+"## To do", "<file-end>", "## To do for next trip\\n- Book train tickets in advance\\n- Plan more time for museums\\n\\n## Budget\\nPlan around 100€ per day for daily expenses."
 \`\`\`
 
-2. Add content at file start:
+2. Remove a sentence in the middle:
 \`\`\`khoj-edit
-"<file-start>", "First line", "# Meeting 2024-01-20\\n\\n"
+"I visited Paris", "## Restaurants", "I visited Paris last week. The Eiffel Tower was beautiful at sunset."
 \`\`\`
 
-3. Add content at file end:
+3. Modify the beginning:
 \`\`\`khoj-edit
-"Last item", "<file-end>", "\\n- [ ] New task"
+"# Travel", "I visited", "# Travel Notes\\nDate: January 20, 2024\\nWeather: Sunny, 15°C"
 \`\`\`
 
-4. Replace text:
-\`\`\`khoj-edit
-"Current status:", "Next steps", "Work in progress"
-\`\`\`
-
-Note: The new content will be inserted between the before and after contexts. Don't repeat these contexts in the new content.
-The changes will be applied to all files where the contexts are found.
+💡 Key points:
+- Only the first few unique words of the text to modify are needed
+- The second argument helps locate the exact position
+- The third argument must contain the complete desired text
+- Use \\n for line breaks
+- Changes apply to all files where the context is found
 
 [END OF EDIT INSTRUCTIONS]\n\n`;
         }
@@ -1989,14 +2005,15 @@ The changes will be applied to all files where the contexts are found.
     // Add these new methods
     private parseEditBlocks(message: string): EditBlock[] {
         const editBlocks: EditBlock[] = [];
-        const regex = /```khoj-edit(?::[^\n]+)?\n"([^"]+)", "([^"]+)", "([^"]+)"\n```/g;
+        // Nouveau regex qui capture mieux les blocs d'édition
+        const regex = /```khoj-edit(?::[^\n]+)?\n"((?:[^"]|\\"|\\n)*)", *"((?:[^"]|\\"|\\n)*)", *"((?:[^"]|\\"|\\n)*)"\n```/g;
         let match;
 
         while ((match = regex.exec(message)) !== null) {
             editBlocks.push({
-                before: match[1].replace(/\\n/g, '\n'),
-                after: match[2].replace(/\\n/g, '\n'),
-                replacement: match[3].replace(/\\n/g, '\n')
+                before: match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"'),
+                after: match[2].replace(/\\n/g, '\n').replace(/\\"/g, '"'),
+                replacement: match[3].replace(/\\n/g, '\n').replace(/\\"/g, '"')
             });
         }
 
@@ -2033,22 +2050,18 @@ The changes will be applied to all files where the contexts are found.
                         startIndex = 0;
                     } else {
                         startIndex = newContent.indexOf(before);
-                        if (startIndex !== -1) {
-                            startIndex += before.length;
-                        }
                     }
 
                     if (block.after.includes('<file-end>')) {
                         endIndex = newContent.length;
                     } else {
                         if (startIndex !== -1) {
-                            const searchStart = startIndex;
-                            endIndex = newContent.indexOf(after, searchStart);
+                            endIndex = newContent.indexOf(after, startIndex);
                         }
                     }
 
                     if (startIndex !== -1 && endIndex !== -1) {
-                        // Get the text to replace and format it
+                        // Get the text to replace (including the 'before' text)
                         const textToReplace = newContent.substring(startIndex, endIndex);
 
                         // Split into paragraphs and format each one, skipping empty lines
