@@ -1074,3 +1074,78 @@ img.copy-icon {
         transform: translateY(0);
     }
 }
+
+/* Khoj Edit Accordion Styles */
+.khoj-edit-accordion {
+    margin: 1em 0;
+    padding: 0.5em;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background-color: var(--background-primary);
+}
+
+.khoj-edit-accordion summary {
+    cursor: pointer;
+    padding: 0.5em;
+    font-weight: 600;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+}
+
+.khoj-edit-accordion summary::before {
+    content: "📝";
+    margin-right: 0.5em;
+}
+
+.khoj-edit-accordion[open] summary {
+    border-bottom: 1px solid var(--background-modifier-border);
+    margin-bottom: 0.5em;
+}
+
+.khoj-edit-content {
+    padding: 0.5em;
+    white-space: pre-wrap;
+}
+
+/* Khoj Edit Block in Chat */
+.khoj-chat-message-text .khoj-edit-accordion {
+    margin: 0.3em 0;
+    border: 1px solid rgba(147, 112, 219, 0.3);
+    border-radius: 4px;
+    background-color: rgba(147, 112, 219, 0.05);
+}
+
+.khoj-chat-message-text .khoj-edit-accordion summary {
+    cursor: pointer;
+    padding: 0.5em;
+    font-weight: 500;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    user-select: none;
+}
+
+.khoj-chat-message-text .khoj-edit-accordion summary:hover {
+    background-color: rgba(147, 112, 219, 0.1);
+}
+
+.khoj-chat-message-text .khoj-edit-content {
+    padding: 0.5em;
+    margin: 0;
+    background-color: var(--background-primary);
+    border-top: 1px solid rgba(147, 112, 219, 0.3);
+}
+
+.khoj-chat-message-text .khoj-edit-content pre {
+    margin: 0;
+    padding: 0;
+    background-color: transparent;
+}
+
+.khoj-chat-message-text .khoj-edit-content code {
+    display: block;
+    white-space: pre-wrap;
+    font-family: var(--font-monospace);
+    font-size: 0.9em;
+}

@@ -635,6 +635,11 @@ export class KhojChatView extends KhojPaneView {
         // Remove any text between <s>[INST] and </s> tags. These are spurious instructions for some AI chat model.
         message = message.replace(/<s>\[INST\].+(<\/s>)?/g, '');
 
+        // Transform khoj-edit blocks into accordions if not raw
+        if (!raw) {
+            message = this.transformKhojEditBlocks(message);
+        }
+
         // Sanitize the markdown message
         message = DOMPurify.sanitize(message);
 
@@ -1208,6 +1213,10 @@ export class KhojChatView extends KhojPaneView {
                     if (chatLog.by === "you") {
                         chatLog.message = this.convertCommandsToEmojis(chatLog.message);
                     }
+
+                    // Transform khoj-edit blocks into accordions
+                    chatLog.message = this.transformKhojEditBlocks(chatLog.message);
+
                     this.renderMessageWithReferences(
                         chatBodyEl,
                         chatLog.message,
@@ -1924,11 +1933,11 @@ export class KhojChatView extends KhojPaneView {
         const leaves = this.app.workspace.getLeavesOfType('markdown');
         if (leaves.length === 0) return '';
 
-        let openFilesContent = "\n\nThe user is currently working on the following files (content provided for context):\n\n";
+        let openFilesContent = "\n\n[SYSTEM]The user is currently working on the following files (content provided for context):\n\n";
 
         // Simplification des instructions d'édition
         if (this.fileAccessMode === 'write') {
-            openFilesContent += `You can edit your notes using this simple format:
+            openFilesContent += `[EDIT INSTRUCTIONS] You can edit your notes using this simple format:
 
 \`\`\`khoj-edit
 "<start of text to modify>", "<text that follows>", "<complete new content>"
@@ -1978,6 +1987,8 @@ Examples of edits:
 [END OF EDIT INSTRUCTIONS]\n\n`;
         }
 
+        openFilesContent += `[OPEN FILES CONTEXT]\n\n`;
+
         for (const leaf of leaves) {
             const view = leaf.view as any;
             const file = view?.file;
@@ -1998,6 +2009,7 @@ Examples of edits:
         }
 
         openFilesContent += "[END OF CURRENT FILES CONTEXT]\n\n";
+        openFilesContent += "[END OF SYSTEM INSTRUCTIONS]\n\n";
 
         return openFilesContent;
     }
@@ -2205,5 +2217,17 @@ Examples of edits:
         if (cancelButton instanceof HTMLElement) {
             cancelButton.click();
         }
+    }
+
+    // Add this new method to handle khoj-edit block transformation
+    private transformKhojEditBlocks(message: string): string {
+        return message.replace(/```khoj-edit(?:\n|\r\n?)([\s\S]*?)```/g, (match, content) => {
+            return `<details class="khoj-edit-accordion">
+                <summary>Khoj edited file</summary>
+                <div class="khoj-edit-content">
+                    <pre><code class="language-khoj-edit">${content}</code></pre>
+                </div>
+            </details>`;
+        });
     }
 }
