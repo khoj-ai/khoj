@@ -206,8 +206,11 @@ export class KhojChatView extends KhojPaneView {
         // Add top control bar
         let topControlRow = contentEl.createDiv("khoj-top-control-row");
 
+        // Create agent container
+        let agentContainer = topControlRow.createDiv("khoj-agent-container");
+
         // Add agent selector
-        let agentSelect = topControlRow.createEl("select", {
+        let agentSelect = agentContainer.createEl("select", {
             attr: {
                 class: "khoj-agent-select",
                 title: "Select Agent"
@@ -243,6 +246,23 @@ export class KhojChatView extends KhojPaneView {
         newChatButton.addEventListener('click', async () => {
             const selectedAgent = (agentSelect as HTMLSelectElement).value;
             await this.createNewConversation(selectedAgent);
+        });
+
+        // Add hint message for agent change
+        let agentHint = topControlRow.createEl("div", {
+            attr: {
+                class: "khoj-agent-hint",
+            },
+            text: "👈 Click this button to use the selected agent in a new chat !"
+        });
+
+        // Add event listener for agent selection change
+        agentSelect.addEventListener('change', (event) => {
+            const select = event.target as HTMLSelectElement;
+            const selectedAgent = select.value;
+            // Show hint if selected agent is different from current agent
+            const shouldShowHint = Boolean(selectedAgent !== this.currentAgent && chatBodyEl.dataset.conversationId);
+            agentHint.classList.toggle('visible', shouldShowHint);
         });
 
         // Add chat input field
