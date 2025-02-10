@@ -154,6 +154,33 @@ export class KhojChatView extends KhojPaneView {
         // Create area for chat logs
         let chatBodyEl = contentEl.createDiv({ attr: { id: "khoj-chat-body", class: "khoj-chat-body" } });
 
+        // Add chat mode selector
+        let chatModeRow = contentEl.createDiv("khoj-mode-row");
+        let chatModeLabel = chatModeRow.createEl("span", { text: "Mode:", attr: { class: "khoj-mode-label" } });
+
+        // Create radio buttons for each mode
+        const modes = ["default", "general", "notes", "online", "image", "research"];
+        modes.forEach((mode) => {
+            let modeContainer = chatModeRow.createDiv("khoj-mode-container");
+            let modeInput = modeContainer.createEl("input", {
+                attr: {
+                    type: "radio",
+                    id: `khoj-mode-${mode}`,
+                    name: "khoj-mode",
+                    value: mode,
+                    class: "khoj-mode-input",
+                    ...(mode === "default" && { checked: "checked" })
+                }
+            });
+            let modeLabel = modeContainer.createEl("label", {
+                text: mode.charAt(0).toUpperCase() + mode.slice(1),
+                attr: {
+                    for: `khoj-mode-${mode}`,
+                    class: "khoj-mode-label"
+                }
+            });
+        });
+
         // Add chat input field
         let inputRow = contentEl.createDiv("khoj-input-row");
         let chatSessions = inputRow.createEl("button", {
@@ -719,7 +746,7 @@ export class KhojChatView extends KhojPaneView {
         if (chatInput) {
             chatInput.placeholder = this.startingMessage;
         }
-        this.renderMessage({chatBodyEl, message: "Hey 👋🏾, what's up?", sender: "khoj", isSystemMessage: true});
+        this.renderMessage({ chatBodyEl, message: "Hey 👋🏾, what's up?", sender: "khoj", isSystemMessage: true });
     }
 
     async toggleChatSessions(forceShow: boolean = false): Promise<boolean> {
@@ -1130,7 +1157,7 @@ export class KhojChatView extends KhojPaneView {
 
         // Render user query as chat message
         let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
-        this.renderMessage({chatBodyEl, message: query, sender: "you"});
+        this.renderMessage({ chatBodyEl, message: query, sender: "you" });
 
         let conversationId = chatBodyEl.dataset.conversationId;
         if (!conversationId) {
