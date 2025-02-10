@@ -1940,7 +1940,7 @@ export class KhojChatView extends KhojPaneView {
             openFilesContent += `[EDIT INSTRUCTIONS] You can edit your notes using this simple format:
 
 \`\`\`khoj-edit
-"<start of text to modify>", "<text that follows>", "<complete new content>"
+"<start of text to replace>", "<end of text to replace>", "<complete new content>"
 \`\`\`
 
 📝 Example note:
@@ -1964,23 +1964,23 @@ Examples of edits:
 
 1. Add a paragraph at the end:
 \`\`\`khoj-edit
-"## To do", "<file-end>", "## To do for next trip\\n- Book train tickets in advance\\n- Plan more time for museums\\n\\n## Budget\\nPlan around 100€ per day for daily expenses."
+"## To do for next trip", "- Plan more time for museums", "## To do for next trip\\n- Book train tickets in advance\\n- Plan more time for museums\\n\\n## Budget\\nPlan around 100€ per day for daily expenses."
 \`\`\`
 
 2. Remove a sentence in the middle:
 \`\`\`khoj-edit
-"I visited Paris", "## Restaurants", "I visited Paris last week. The Eiffel Tower was beautiful at sunset."
+"I visited Paris", "The Louvre museum was unfortunately closed that day.", "I visited Paris last week. The Eiffel Tower was beautiful at sunset."
 \`\`\`
 
 3. Modify the beginning:
 \`\`\`khoj-edit
-"# Travel", "I visited", "# Travel Notes\\nDate: January 20, 2024\\nWeather: Sunny, 15°C"
+"# Travel Notes", "Date: January 20, 2024", "# Travel Notes\\nDate: January 20, 2024\\nWeather: Sunny, 15°C"
 \`\`\`
 
 💡 Key points:
-- Only the first few unique words of the text to modify are needed
-- The second argument helps locate the exact position
-- The third argument must contain the complete desired text
+- First argument: start of the text to replace
+- Second argument: end of the text to replace (included in replacement)
+- Third argument: complete desired text
 - Use \\n for line breaks
 - Changes apply to all files where the context is found
 
@@ -2069,11 +2069,14 @@ Examples of edits:
                     } else {
                         if (startIndex !== -1) {
                             endIndex = newContent.indexOf(after, startIndex);
+                            if (endIndex !== -1) {
+                                endIndex = endIndex + after.length; // Include the 'after' text in the replacement
+                            }
                         }
                     }
 
                     if (startIndex !== -1 && endIndex !== -1) {
-                        // Get the text to replace (including the 'before' text)
+                        // Get the text to replace (including both 'before' and 'after' text)
                         const textToReplace = newContent.substring(startIndex, endIndex);
 
                         // Split into paragraphs and format each one, skipping empty lines
