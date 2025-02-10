@@ -2007,7 +2007,15 @@ export class KhojChatView extends KhojPaneView {
 
                 // Replace text and format with strikethrough and highlight
                 const newContent = content.replace(regex, (match) => {
-                    return `~~${match}~~==${block.replacement}==`;
+                    // Split the text by newlines
+                    const lines = match.split('\n');
+                    const replacementLines = block.replacement.split('\n');
+
+                    // Format each line with proper markdown tags
+                    const formattedMatch = lines.map(line => `~~${line}~~`).join('\n');
+                    const formattedReplacement = replacementLines.map(line => `==${line}==`).join('\n');
+
+                    return `${formattedMatch}\n${formattedReplacement}`;
                 });
 
                 // Save the preview changes
@@ -2047,8 +2055,29 @@ export class KhojChatView extends KhojPaneView {
                     const file = this.app.vault.getAbstractFileByPath(filePath);
                     if (file && file instanceof TFile) {
                         const currentContent = await this.app.vault.read(file);
-                        // Remove formatting markers and apply changes
-                        const finalContent = currentContent.replace(/~~([^~]+)~~==([^=]+)==/g, '$2');
+
+                        // Process the content line by line to handle multiline replacements
+                        let finalContent = currentContent;
+
+                        // First pass: collect all strikethrough and highlight pairs
+                        const regex = /~~([\s\S]*?)~~\n==([\s\S]*?)==/gm;
+                        let matches = [...finalContent.matchAll(regex)];
+
+                        // Replace each pair, starting from the last to avoid offset issues
+                        for (let i = matches.length - 1; i >= 0; i--) {
+                            const match = matches[i];
+                            const startIndex = match.index;
+                            const fullMatch = match[0];
+                            const replacement = match[2]; // The content between == ==
+
+                            if (startIndex !== undefined) {
+                                finalContent =
+                                    finalContent.substring(0, startIndex) +
+                                    replacement +
+                                    finalContent.substring(startIndex + fullMatch.length);
+                            }
+                        }
+
                         await this.app.vault.modify(file, finalContent);
                     }
                 }
