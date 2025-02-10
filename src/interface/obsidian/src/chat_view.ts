@@ -721,6 +721,39 @@ export class KhojChatView extends KhojPaneView {
         setIcon(pasteToFile, "clipboard-paste");
         pasteToFile.addEventListener('click', (event) => { pasteTextAtCursor(createCopyParentText(message, 'clipboard-paste')(event)); });
 
+        // Add edit button
+        let editButton = null;
+        if (!isSystemMessage) {
+            editButton = this.contentEl.createEl('button');
+            editButton.classList.add("chat-action-button");
+            editButton.title = "Edit Message";
+            setIcon(editButton, "edit-3");
+            editButton.addEventListener('click', () => {
+                const messageEl = chatMessageBodyTextEl.closest('.khoj-chat-message');
+                if (messageEl) {
+                    // Get all messages up to this one
+                    const allMessages = Array.from(this.contentEl.getElementsByClassName('khoj-chat-message'));
+                    const currentIndex = allMessages.indexOf(messageEl as HTMLElement);
+
+                    // Remove all messages after and including this one
+                    for (let i = allMessages.length - 1; i >= currentIndex; i--) {
+                        allMessages[i].remove();
+                    }
+
+                    // Get the message content without the emoji if it exists
+                    let messageContent = message;
+                    const emojiRegex = /^[^\p{L}\p{N}]+\s*/u;
+                    messageContent = messageContent.replace(emojiRegex, '');
+
+                    // Set the message in the input field
+                    const chatInput = this.contentEl.querySelector('.khoj-chat-input') as HTMLTextAreaElement;
+                    if (chatInput) {
+                        chatInput.value = messageContent;
+                        chatInput.focus();
+                    }
+                }
+            });
+        }
 
         // Add delete button
         let deleteButton = null;
@@ -740,24 +773,21 @@ export class KhojChatView extends KhojPaneView {
             });
         }
 
-        // Only enable the speech feature if the user is subscribed
-        let speechButton = null;
-
+        // Append buttons to parent element
+        chatMessageBodyTextEl.append(copyButton, pasteToFile);
+        if (editButton) {
+            chatMessageBodyTextEl.append(editButton);
+        }
+        if (deleteButton) {
+            chatMessageBodyTextEl.append(deleteButton);
+        }
         if (this.setting.userInfo?.is_active) {
             // Create a speech button icon to play the message out loud
-            speechButton = this.contentEl.createEl('button');
+            let speechButton = this.contentEl.createEl('button');
             speechButton.classList.add("chat-action-button", "speech-button");
             speechButton.title = "Listen to Message";
             setIcon(speechButton, "speech")
             speechButton.addEventListener('click', (event) => this.textToSpeech(message, event));
-        }
-
-        // Append buttons to parent element
-        chatMessageBodyTextEl.append(copyButton, pasteToFile);
-        if (deleteButton) {
-            chatMessageBodyTextEl.append(deleteButton);
-        }
-        if (speechButton) {
             chatMessageBodyTextEl.append(speechButton);
         }
     }
