@@ -53,6 +53,13 @@ interface RenderMessageOptions {
     isSystemMessage?: boolean;
 }
 
+interface ChatMode {
+    value: string;
+    label: string;
+    emoji: string;
+    command: string;
+}
+
 export class KhojChatView extends KhojPaneView {
     result: string;
     setting: KhojSetting;
@@ -64,6 +71,14 @@ export class KhojChatView extends KhojPaneView {
     private currentUserInput: string = ""; // Stores the current user input that is being typed in chat
     private startingMessage: string = "Message";
     chatMessageState: ChatMessageState;
+    private chatModes: ChatMode[] = [
+        { value: "default", label: "Default", emoji: "🎯", command: "/default" },
+        { value: "general", label: "General", emoji: "💭", command: "/general" },
+        { value: "notes", label: "Notes", emoji: "📝", command: "/notes" },
+        { value: "online", label: "Online", emoji: "🌐", command: "/online" },
+        { value: "image", label: "Image", emoji: "🖼️", command: "/image" },
+        { value: "research", label: "Research", emoji: "🔬", command: "/research" }
+    ];
 
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
         super(leaf, setting);
@@ -115,19 +130,42 @@ export class KhojChatView extends KhojPaneView {
 
         // Clear text after extracting message to send
         let user_message = input_el.value.trim();
+
         // Store the message in the array if it's not empty
         if (user_message) {
+            // Get the selected mode
+            const selectedMode = this.chatModes.find(mode =>
+                this.contentEl.querySelector(`#khoj-mode-${mode.value}:checked`)
+            );
+
+            // Check if message starts with a mode command
+            const modeMatch = this.chatModes.find(mode => user_message.startsWith(mode.command));
+
+            let displayMessage = user_message;
+            let apiMessage = user_message;
+
+            if (modeMatch) {
+                // If message starts with a mode command, replace it with the emoji in display
+                displayMessage = user_message.replace(modeMatch.command, modeMatch.emoji);
+            } else if (selectedMode) {
+                // If no mode in message but mode selected, add the mode command for API
+                displayMessage = `${selectedMode.emoji} ${user_message}`;
+                apiMessage = `${selectedMode.command} ${user_message}`;
+            }
+
             this.userMessages.push(user_message);
             // Update starting message after sending a new message
             const modifierKey = Platform.isMacOS ? '⌘' : '^';
             this.startingMessage = `(${modifierKey}+↑/↓) for prev messages`;
             input_el.placeholder = this.startingMessage;
-        }
-        input_el.value = "";
-        this.autoResize();
 
-        // Get and render chat response to user message
-        await this.getChatResponse(user_message, isVoice);
+            // Clear input and resize
+            input_el.value = "";
+            this.autoResize();
+
+            // Get and render chat response to user message
+            await this.getChatResponse(apiMessage, displayMessage, isVoice);
+        }
     }
 
     async onOpen() {
@@ -213,15 +251,7 @@ export class KhojChatView extends KhojPaneView {
         let chatModeRow = contentEl.createDiv("khoj-mode-row");
 
         // Create radio buttons for each mode
-        const modes = [
-            { value: "default", label: "🎯 Default" },
-            { value: "general", label: "💭 General" },
-            { value: "notes", label: "📝 Notes" },
-            { value: "online", label: "🌐 Online" },
-            { value: "image", label: "🖼️ Image" },
-            { value: "research", label: "🔬 Research" }
-        ];
-        modes.forEach((mode) => {
+        this.chatModes.forEach((mode) => {
             let modeContainer = chatModeRow.createDiv({ attr: { class: "khoj-mode-container" } });
             let modeInput = modeContainer.createEl("input", {
                 attr: {
@@ -234,7 +264,7 @@ export class KhojChatView extends KhojPaneView {
                 }
             });
             let modeLabel = modeContainer.createEl("label", {
-                text: mode.label,
+                text: `${mode.emoji} ${mode.label}`,
                 attr: {
                     for: `khoj-mode-${mode.value}`,
                     class: "khoj-mode-label"
@@ -381,7 +411,7 @@ export class KhojChatView extends KhojPaneView {
         return referenceButton;
     }
 
-    generateReference(messageEl: Element, referenceJson: any, index: number) {
+    generateReference(messageEl: Element, referenceJson: any, index: number | string) {
         let reference: string = referenceJson.hasOwnProperty("compiled") ? referenceJson.compiled : referenceJson;
         let referenceFile = referenceJson.hasOwnProperty("file") ? referenceJson.file : null;
 
@@ -1157,13 +1187,13 @@ export class KhojChatView extends KhojPaneView {
         }
     }
 
-    async getChatResponse(query: string | undefined | null, isVoice: boolean = false): Promise<void> {
+    async getChatResponse(query: string | undefined | null, displayQuery: string | undefined | null, isVoice: boolean = false): Promise<void> {
         // Exit if query is empty
         if (!query || query === "") return;
 
-        // Render user query as chat message
+        // Render user query as chat message with display version
         let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
-        this.renderMessage({ chatBodyEl, message: query, sender: "you" });
+        this.renderMessage({ chatBodyEl, message: displayQuery || query, sender: "you" });
 
         let conversationId = chatBodyEl.dataset.conversationId;
         if (!conversationId) {
@@ -1534,7 +1564,7 @@ export class KhojChatView extends KhojPaneView {
             numReferences += references["notes"].length;
 
             references["notes"].forEach((reference: any, index: number) => {
-                let polishedReference = this.generateReference(referenceSection, reference, index);
+                let polishedReference = this.generateReference(referenceSection, reference, index.toString());
                 referenceSection.appendChild(polishedReference);
             });
         }
