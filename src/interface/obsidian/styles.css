@@ -1008,6 +1008,7 @@ img.copy-icon {
     display: flex;
     gap: 8px;
     margin-top: 8px;
+    justify-content: center;
 }
 
 .edit-confirm-button {
@@ -1044,6 +1045,10 @@ img.copy-icon {
     border-radius: 4px;
     font-size: 14px;
     animation: fadeIn 0.3s ease;
+    text-align: center;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .edit-status-message.success {

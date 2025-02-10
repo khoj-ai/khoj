@@ -36,7 +36,7 @@ interface ChatMessageState {
 }
 
 interface EditBlock {
-    noteTitle: string;
+    noteTitle?: string;  // Make noteTitle optional
     before: string;
     after: string;
     replacement: string;
@@ -1926,28 +1926,40 @@ export class KhojChatView extends KhojPaneView {
 
         let openFilesContent = "\n\nThe user is currently working on the following files (content provided for context):\n\n";
 
-        // Add edit mode instructions if applicable
+        // Simplification des instructions d'édition
         if (this.fileAccessMode === 'write') {
-            openFilesContent += "You can edit the content of these files using the following format:\n\n";
-            openFilesContent += "```khoj-edit:Note Title\n\"<text before>\", \"<text after>\", \"<replacement text>\"\n```\n\n";
-            openFilesContent += "Guidelines for text selection and replacement:\n";
-            openFilesContent += "1. First parameter: up to 10 words that come BEFORE the text you want to modify\n";
-            openFilesContent += "2. Second parameter: up to 10 words that come AFTER the text you want to modify\n";
-            openFilesContent += "3. Third parameter: the new text that will replace everything between the before and after markers\n";
-            openFilesContent += "4. Use <file-start> in the first parameter to target the beginning of the file\n";
-            openFilesContent += "5. Use <file-end> in the second parameter to target the end of the file\n";
-            openFilesContent += "6. Use \\n for new lines in the replacement text\n";
-            openFilesContent += "7. You can use multiple khoj-edit blocks for multiple changes\n\n";
-            openFilesContent += "Examples:\n\n";
-            openFilesContent += "1. Add a new task under an existing heading:\n";
-            openFilesContent += "```khoj-edit:Daily Notes\n\"## Tasks for today\\n\", \"\\n## Next section\", \"## Tasks for today\\n- [ ] New task\\n\"\n```\n\n";
-            openFilesContent += "2. Replace specific text:\n";
-            openFilesContent += "```khoj-edit:Project Ideas\n\"The current implementation\", \"which needs to be improved\", \"the new improved implementation\"\n```\n\n";
-            openFilesContent += "3. Add content at the start of a file:\n";
-            openFilesContent += "```khoj-edit:Meeting Notes\n\"<file-start>\", \"First existing line\", \"# Meeting Notes\\n\\nDate: 2024-01-01\\n\\n\"\n```\n\n";
-            openFilesContent += "4. Add content at the end of a file:\n";
-            openFilesContent += "```khoj-edit:Shopping List\n\"Last item in the list\\n\", \"<file-end>\", \"\\n- [ ] New item\"\n```\n\n";
-            openFilesContent += "[END OF EDIT INSTRUCTIONS]\n\n";
+            openFilesContent += `You can edit these files. For each edit, use this format:
+
+\`\`\`khoj-edit
+"<context before>", "<context after>", "<new content>"
+\`\`\`
+
+Examples:
+
+1. Add a task between two sections:
+\`\`\`khoj-edit
+"# Tasks", "# Notes", "- [ ] My new task"
+\`\`\`
+
+2. Add content at file start:
+\`\`\`khoj-edit
+"<file-start>", "First line", "# Meeting 2024-01-20\\n\\n"
+\`\`\`
+
+3. Add content at file end:
+\`\`\`khoj-edit
+"Last item", "<file-end>", "\\n- [ ] New task"
+\`\`\`
+
+4. Replace text:
+\`\`\`khoj-edit
+"Current status:", "Next steps", "Work in progress"
+\`\`\`
+
+Note: The new content will be inserted between the before and after contexts. Don't repeat these contexts in the new content.
+The changes will be applied to all files where the contexts are found.
+
+[END OF EDIT INSTRUCTIONS]\n\n`;
         }
 
         for (const leaf of leaves) {
@@ -1977,15 +1989,14 @@ export class KhojChatView extends KhojPaneView {
     // Add these new methods
     private parseEditBlocks(message: string): EditBlock[] {
         const editBlocks: EditBlock[] = [];
-        const regex = /```khoj-edit:([^\n]+)\n"([^"]+)", "([^"]+)", "([^"]+)"\n```/g;
+        const regex = /```khoj-edit(?::[^\n]+)?\n"([^"]+)", "([^"]+)", "([^"]+)"\n```/g;
         let match;
 
         while ((match = regex.exec(message)) !== null) {
             editBlocks.push({
-                noteTitle: match[1].trim(),
-                before: match[2].replace(/\\n/g, '\n'),
-                after: match[3].replace(/\\n/g, '\n'),
-                replacement: match[4].replace(/\\n/g, '\n')
+                before: match[1].replace(/\\n/g, '\n'),
+                after: match[2].replace(/\\n/g, '\n'),
+                replacement: match[3].replace(/\\n/g, '\n')
             });
         }
 
@@ -1996,69 +2007,78 @@ export class KhojChatView extends KhojPaneView {
         // Store original content for each file in case we need to cancel
         const fileBackups = new Map<string, string>();
 
-        for (const block of editBlocks) {
-            // Find the file by title
-            const files = this.app.vault.getMarkdownFiles();
-            const file = files.find(f => f.basename === block.noteTitle);
+        // Get all open markdown files
+        const files = this.app.workspace.getLeavesOfType('markdown')
+            .map(leaf => (leaf.view as any)?.file)
+            .filter(file => file && file.extension === 'md');
 
-            if (!file) {
-                console.warn(`File not found: ${block.noteTitle}`);
-                continue;
-            }
-
+        for (const file of files) {
             try {
                 // Read the file content
                 const content = await this.app.vault.read(file);
+                let newContent = content;
+                let hasChanges = false;
 
-                // Store original content
-                if (!fileBackups.has(file.path)) {
+                // Apply each edit block to the current file
+                for (const block of editBlocks) {
+                    // Handle special markers for file start and end
+                    const before = block.before.replace('<file-start>', '');
+                    const after = block.after.replace('<file-end>', '');
+
+                    // Find the text to replace
+                    let startIndex = -1;
+                    let endIndex = -1;
+
+                    if (block.before.includes('<file-start>')) {
+                        startIndex = 0;
+                    } else {
+                        startIndex = newContent.indexOf(before);
+                        if (startIndex !== -1) {
+                            startIndex += before.length;
+                        }
+                    }
+
+                    if (block.after.includes('<file-end>')) {
+                        endIndex = newContent.length;
+                    } else {
+                        if (startIndex !== -1) {
+                            const searchStart = startIndex;
+                            endIndex = newContent.indexOf(after, searchStart);
+                        }
+                    }
+
+                    if (startIndex !== -1 && endIndex !== -1) {
+                        // Get the text to replace and format it
+                        const textToReplace = newContent.substring(startIndex, endIndex);
+
+                        // Split into paragraphs and format each one, skipping empty lines
+                        const paragraphsToReplace = textToReplace.split(/\n/);
+                        const formattedOriginal = paragraphsToReplace
+                            .map(p => p.trim() ? `~~${p.trim()}~~` : p)
+                            .join('\n');
+
+                        const replacementParagraphs = block.replacement.split(/\n/);
+                        const formattedReplacement = replacementParagraphs
+                            .map(p => p.trim() ? `==${p.trim()}==` : p)
+                            .join('\n');
+
+                        // Create the preview with formatted paragraphs
+                        newContent =
+                            newContent.substring(0, startIndex) +
+                            formattedOriginal + '\n\n' + formattedReplacement +
+                            newContent.substring(endIndex);
+
+                        hasChanges = true;
+                    }
+                }
+
+                // If any changes were made, backup the original content and save the changes
+                if (hasChanges) {
                     fileBackups.set(file.path, content);
-                }
-
-                // Handle special markers for file start and end
-                const before = block.before.replace('<file-start>', '');
-                const after = block.after.replace('<file-end>', '');
-
-                // Find the text to replace
-                let startIndex = -1;
-                let endIndex = -1;
-
-                if (block.before.includes('<file-start>')) {
-                    startIndex = 0;
-                } else {
-                    startIndex = content.indexOf(before);
-                    if (startIndex !== -1) {
-                        startIndex += before.length;
-                    }
-                }
-
-                if (block.after.includes('<file-end>')) {
-                    endIndex = content.length;
-                } else {
-                    if (startIndex !== -1) {
-                        const searchStart = startIndex;
-                        endIndex = content.indexOf(after, searchStart);
-                    }
-                }
-
-                if (startIndex === -1 || endIndex === -1) {
-                    console.warn(`Could not find text to replace in ${block.noteTitle}`);
-                    continue;
-                }
-
-                // Create the preview with strikethrough and highlight
-                const textToReplace = content.substring(startIndex, endIndex);
-                const newContent =
-                    content.substring(0, startIndex) +
-                    `~~${textToReplace}~~\n==${block.replacement}==` +
-                    content.substring(endIndex);
-
-                // Save the preview changes
-                if (content !== newContent) {
                     await this.app.vault.modify(file, newContent);
                 }
             } catch (error) {
-                console.error(`Error applying edit to ${block.noteTitle}:`, error);
+                console.error(`Error applying edits to ${file.path}:`, error);
             }
         }
 
@@ -2093,23 +2113,14 @@ export class KhojChatView extends KhojPaneView {
                             const currentContent = await this.app.vault.read(file);
                             let finalContent = currentContent;
 
-                            // First, remove all strikethrough blocks and their following highlighted blocks
-                            const regex = /~~([\s\S]*?)~~\n==([\s\S]*?)==/g;
-                            let matches = [...finalContent.matchAll(regex)];
+                            // 1. D'abord, remplacer les blocs de prévisualisation
+                            finalContent = finalContent.replace(/~~[\s\S]+?~~\s*==([^]*?)==/g, '$1');
 
-                            // Replace each pair, starting from the last to avoid offset issues
-                            for (let i = matches.length - 1; i >= 0; i--) {
-                                const match = matches[i];
-                                if (!match.index) continue;
+                            // 2. Nettoyer tous les marqueurs == restants
+                            finalContent = finalContent.replace(/==/g, '');
 
-                                const fullMatch = match[0];
-                                const replacement = match[2].trim();
-
-                                finalContent =
-                                    finalContent.substring(0, match.index) +
-                                    replacement +
-                                    finalContent.substring(match.index + fullMatch.length);
-                            }
+                            // 3. Supprimer les blocs strike-through restants
+                            finalContent = finalContent.replace(/~~[\s\S]+?~~/g, '');
 
                             await this.app.vault.modify(file, finalContent);
                         }
