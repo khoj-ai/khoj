@@ -566,6 +566,7 @@ button.chat-action-button {
     cursor: pointer;
     padding: 4px;
     margin-top: 8px;
+    margin-left: 4px;
     float: right;
 }
 
@@ -579,6 +580,35 @@ button.chat-action-button span {
 button.chat-action-button:hover {
     background-color: var(--background-modifier-active-hover);
     color: var(--text-normal);
+}
+
+/* Add specific hover colors for each action button */
+button.chat-action-button[title="Copy Message to Clipboard"]:hover {
+    background-color: rgba(0, 122, 255, 0.1);
+    /* Light blue */
+    border-color: rgb(0, 122, 255);
+    color: rgb(0, 122, 255);
+}
+
+button.chat-action-button[title="Paste Message to File"]:hover {
+    background-color: rgba(52, 199, 89, 0.1);
+    /* Light green */
+    border-color: rgb(52, 199, 89);
+    color: rgb(52, 199, 89);
+}
+
+button.chat-action-button[title="Edit Message"]:hover {
+    background-color: rgba(255, 149, 0, 0.1);
+    /* Light orange */
+    border-color: rgb(255, 149, 0);
+    color: rgb(255, 149, 0);
+}
+
+button.chat-action-button[title="Delete Message"]:hover {
+    background-color: rgba(255, 59, 48, 0.1);
+    /* Light red */
+    border-color: rgb(255, 59, 48);
+    color: rgb(255, 59, 48);
 }
 
 img.copy-icon {

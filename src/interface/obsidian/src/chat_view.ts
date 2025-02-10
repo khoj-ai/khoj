@@ -721,9 +721,9 @@ export class KhojChatView extends KhojPaneView {
         setIcon(pasteToFile, "clipboard-paste");
         pasteToFile.addEventListener('click', (event) => { pasteTextAtCursor(createCopyParentText(message, 'clipboard-paste')(event)); });
 
-        // Add edit button
+        // Add edit button only for user messages
         let editButton = null;
-        if (!isSystemMessage) {
+        if (!isSystemMessage && chatMessageBodyTextEl.closest('.khoj-chat-message.you')) {
             editButton = this.contentEl.createEl('button');
             editButton.classList.add("chat-action-button");
             editButton.title = "Edit Message";
