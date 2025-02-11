@@ -2322,20 +2322,17 @@ Examples of targeted edits:
                             const currentContent = await this.app.vault.read(file);
                             let finalContent = currentContent;
 
-                            // 1. Remove text between ~~ (not whole lines)
-                            finalContent = finalContent.split('\n')
-                                .map(line => {
-                                    // Remove all text between ~~ in the line
-                                    return line.replace(/~~[^~]*~~/g, '').trim();
-                                })
-                                .filter(line => line.length > 0)  // Remove empty lines
-                                .join('\n');
+                            // 1. Remove text between ~~ and handle line breaks
+                            finalContent = finalContent.replace(/~~[^~]*~~\n?(?=~~)/g, ''); // Remove newline if next line starts with ~~
+                            finalContent = finalContent.replace(/~~[^~]*~~/g, ''); // Remove remaining ~~ content
 
-                            // 2. Remove == from remaining lines
+                            // 2. Remove all == globally
+                            finalContent = finalContent.replace(/==/g, '');
+
+                            // 3. Clean up any remaining empty lines
                             finalContent = finalContent.split('\n')
-                                .map(line => line.replace(/==/g, ''))
-                                .join('\n')
-                                .replace(/\n{3,}/g, '\n\n'); // Replace triple newlines with double
+                                .filter(line => line.trim().length > 0)
+                                .join('\n');
 
                             await this.app.vault.modify(file, finalContent);
                         }
