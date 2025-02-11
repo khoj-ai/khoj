@@ -184,7 +184,12 @@ def initialization(interactive: bool = True):
             default_openai_chat_models + default_anthropic_chat_models + default_gemini_chat_models
         )
         provider_name = provider_name or model_type.name.capitalize()
-        default_use_model = {True: "y", False: "n"}[default_api_key is not None or is_offline]
+
+        default_use_model = {True: "y", False: "n"}[default_api_key is not None]
+
+        # If not in interactive mode & in the offline setting, it's most likely that we're running in a containerized environment. This usually means there's not enough RAM to load offline models directly within the application. In such cases, we default to not using the model -- it's recommended to use another service like Ollama to host the model locally in that case.
+        default_use_model = {True: "n", False: default_use_model}[is_offline]
+
         use_model_provider = (
             default_use_model if not interactive else input(f"Add {provider_name} chat models? (y/n): ")
         )
