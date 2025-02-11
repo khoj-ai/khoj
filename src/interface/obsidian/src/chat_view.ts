@@ -32,14 +32,14 @@ interface ChatMessageState {
     rawQuery: string;
     isVoice: boolean;
     turnId: string;
-    editBlocks?: EditBlock[];  // Add this line
+    editBlocks?: EditBlock[];
 }
 
 interface EditBlock {
-    noteTitle?: string;  // Make noteTitle optional
-    before: string;
-    after: string;
-    replacement: string;
+    note: string;  // Required: Brief one-line explanation
+    before: string;  // location.start
+    after: string;   // location.end
+    replacement: string;  // content
 }
 
 interface Location {
@@ -1986,7 +1986,14 @@ export class KhojChatView extends KhojPaneView {
             openFilesContent += `[EDIT INSTRUCTIONS] I can help you edit your notes using targeted modifications. I'll use multiple edit blocks to make precise changes rather than rewriting entire sections.
 
 \`\`\`khoj-edit
-"<start words>", "<end words>", "<complete new content>"
+{
+    "note": "Brief one-line explanation of what this edit does",
+    "location": {
+        "start": "<start words>",
+        "end": "<end words>"
+    },
+    "content": "<complete new content>"
+}
 \`\`\`
 
 📝 Example note:
@@ -2008,31 +2015,56 @@ Next steps:
 Examples of targeted edits:
 
 1. Using just a few words to identify long text:
-// Updating the marketing item (only need start/end words to identify it)
 \`\`\`khoj-edit
-"- Schedule follow-up", "campaign launch", "- Schedule follow-up with marketing team by Wednesday to discuss Q1 campaign launch"
+{
+    "note": "Add deadline and specificity to the marketing team follow-up",
+    "location": {
+        "start": "- Schedule follow-up",
+        "end": "campaign launch"
+    },
+    "content": "- Schedule follow-up with marketing team by Wednesday to discuss Q1 campaign launch"
+}
 \`\`\`
 
 2. Multiple targeted changes:
-// Adding priority and updating timeline item
 \`\`\`khoj-edit
-"- Review Q4", "metrics", "- [HIGH] Review Q4 metrics"
+{
+    "note": "Add HIGH priority flag to Q4 metrics review",
+    "location": {
+        "start": "- Review Q4",
+        "end": "metrics"
+    },
+    "content": "- [HIGH] Review Q4 metrics"
+}
 \`\`\`
 \`\`\`khoj-edit
-"- Update project", "Q1 2024", "- Update project timeline and add resource allocation for Q1 2024"
+{
+    "note": "Add resource allocation to project timeline task",
+    "location": {
+        "start": "- Update project",
+        "end": "Q1 2024"
+    },
+    "content": "- Update project timeline and add resource allocation for Q1 2024"
+}
 \`\`\`
 
 3. Adding new content between sections:
-// Just need the section headers to locate the insertion point
 \`\`\`khoj-edit
-"Action items from today:", "Next steps:", "Action items from today:\\n- Review Q4 metrics\\n- Schedule follow-up\\n- Update timeline\\n\\nDiscussion Points:\\n- Budget review\\n- Team feedback\\n\\nNext steps:"
+{
+    "note": "Insert Discussion Points section between Action Items and Next Steps",
+    "location": {
+        "start": "Action items from today:",
+        "end": "Next steps:"
+    },
+    "content": "Action items from today:\\n- Review Q4 metrics\\n- Schedule follow-up\\n- Update timeline\\n\\nDiscussion Points:\\n- Budget review\\n- Team feedback\\n\\nNext steps:"
+}
 \`\`\`
 
 💡 Key points:
-- Use minimal but unique words to identify text locations
-- First argument: few words from start of target text
-- Second argument: few words from end of target text
-- Third argument: complete new content
+- note: Brief one-line explanation of what the edit does
+- location.start: few words from start of target text (no ambiguity). Can use <file-start> marker to target file beginning
+- location.end: few words from end of target text (no ambiguity). Can use <file-end> marker to target file end
+- content: complete new content
 - Words must uniquely identify the location (no ambiguity)
 - Use \\n for line breaks
 - Changes apply to first matching location
@@ -2070,16 +2102,25 @@ Examples of targeted edits:
     // Add these new methods
     private parseEditBlocks(message: string): EditBlock[] {
         const editBlocks: EditBlock[] = [];
-        // Nouveau regex qui capture mieux les blocs d'édition
-        const regex = /```khoj-edit(?::[^\n]+)?\n"((?:[^"]|\\"|\\n)*)", *"((?:[^"]|\\"|\\n)*)", *"((?:[^"]|\\"|\\n)*)"\n```/g;
+        // New regex that captures khoj-edit blocks in JSON format
+        const regex = /```khoj-edit(?::[^\n]+)?\n({[\s\S]*?})\n```/g;
         let match;
 
         while ((match = regex.exec(message)) !== null) {
-            editBlocks.push({
-                before: match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"'),
-                after: match[2].replace(/\\n/g, '\n').replace(/\\"/g, '"'),
-                replacement: match[3].replace(/\\n/g, '\n').replace(/\\"/g, '"')
-            });
+            try {
+                const editData = JSON.parse(match[1]);
+                if (editData.location && editData.content) {
+                    editBlocks.push({
+                        note: editData.note,
+                        before: editData.location.start.replace(/\\n/g, '\n'),
+                        after: editData.location.end.replace(/\\n/g, '\n'),
+                        replacement: editData.content.replace(/\\n/g, '\n')
+                    });
+                }
+            } catch (e) {
+                console.error('Error parsing khoj-edit block:', e);
+                continue;
+            }
         }
 
         return editBlocks;
@@ -2170,13 +2211,9 @@ Examples of targeted edits:
                                 .map(line => {
                                     line = line.trim();
                                     if (!line) return '';
-                                    // Si la ligne commence par un tiret, on met le marqueur après le tiret
-                                    if (line.startsWith('- ')) {
-                                        return `- ${marker}${line.substring(2)}${marker}`;
-                                    }
                                     return `${marker}${line}${marker}`;
                                 })
-                                .filter(line => line.length > 0)  // Supprimer les lignes vides
+                                .filter(line => line.length > 0)
                                 .join('\n');
                         };
 
@@ -2187,10 +2224,14 @@ Examples of targeted edits:
                             (newDiff ? formatLines(newDiff, '==') : '') +
                             commonSuffix;
 
+                        // Add note if available
+                        const note = block.note ? `\n💡 ${block.note}` : '';
+                        const previewWithNote = formattedPreview + note;
+
                         plannedEdits.push({
                             startIndex,
                             endIndex,
-                            preview: formattedPreview
+                            preview: previewWithNote
                         });
                         hasChanges = true;
                     }
@@ -2338,12 +2379,24 @@ Examples of targeted edits:
     // Add this new method to handle khoj-edit block transformation
     private transformKhojEditBlocks(message: string): string {
         return message.replace(/```khoj-edit(?:\n|\r\n?)([\s\S]*?)```/g, (match, content) => {
-            return `<details class="khoj-edit-accordion">
-                <summary>Khoj edited file</summary>
-                <div class="khoj-edit-content">
-                    <pre><code class="language-khoj-edit">${content}</code></pre>
-                </div>
-            </details>`;
+            try {
+                const editData = JSON.parse(content);
+                const title = editData.note || 'Edit file';
+                return `<details class="khoj-edit-accordion">
+                    <summary>${title}</summary>
+                    <div class="khoj-edit-content">
+                        <pre><code class="language-khoj-edit">${content}</code></pre>
+                    </div>
+                </details>`;
+            } catch (e) {
+                // In case of parsing error, return the block as is
+                return `<details class="khoj-edit-accordion">
+                    <summary>Edit file</summary>
+                    <div class="khoj-edit-content">
+                        <pre><code class="language-khoj-edit">${content}</code></pre>
+                    </div>
+                </details>`;
+            }
         });
     }
 }
