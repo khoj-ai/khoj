@@ -1937,52 +1937,59 @@ export class KhojChatView extends KhojPaneView {
 
         // Simplification des instructions d'édition
         if (this.fileAccessMode === 'write') {
-            openFilesContent += `[EDIT INSTRUCTIONS] You can edit your notes using this simple format:
+            openFilesContent += `[EDIT INSTRUCTIONS] I can help you edit your notes using targeted modifications. I'll use multiple edit blocks to make precise changes rather than rewriting entire sections.
 
 \`\`\`khoj-edit
-"<start of text to replace>", "<end of text to replace>", "<complete new content>"
+"<start words>", "<end words>", "<complete new content>"
 \`\`\`
 
 📝 Example note:
 
 \`\`\`
-# Travel Notes
+# Meeting Notes
 Date: January 20, 2024
 
-I visited Paris last week. The Eiffel Tower was beautiful at sunset. The Louvre museum was unfortunately closed that day.
+Action items from today:
+- Review Q4 metrics
+- Schedule follow-up with marketing team about new campaign launch
+- Update project timeline and milestones for Q1 2024
 
-## Restaurants
-- Le Petit Bistrot: excellent French cuisine
-- Chez Marie: average service but good desserts
-
-## To do for next trip
-- Book train tickets in advance
-- Plan more time for museums
+Next steps:
+- Send summary to team
+- Book conference room for next week
 \`\`\`
 
-Examples of edits:
+Examples of targeted edits:
 
-1. Add a paragraph at the end:
+1. Using just a few words to identify long text:
+// Updating the marketing item (only need start/end words to identify it)
 \`\`\`khoj-edit
-"## To do for next trip", "- Plan more time for museums", "## To do for next trip\\n- Book train tickets in advance\\n- Plan more time for museums\\n\\n## Budget\\nPlan around 100€ per day for daily expenses."
+"- Schedule follow-up", "campaign launch", "- Schedule follow-up with marketing team by Wednesday to discuss Q1 campaign launch"
 \`\`\`
 
-2. Remove a sentence in the middle:
+2. Multiple targeted changes:
+// Adding priority and updating timeline item
 \`\`\`khoj-edit
-"I visited Paris", "The Louvre museum was unfortunately closed that day.", "I visited Paris last week. The Eiffel Tower was beautiful at sunset."
+"- Review Q4", "metrics", "- [HIGH] Review Q4 metrics"
+\`\`\`
+\`\`\`khoj-edit
+"- Update project", "Q1 2024", "- Update project timeline and add resource allocation for Q1 2024"
 \`\`\`
 
-3. Modify the beginning:
+3. Adding new content between sections:
+// Just need the section headers to locate the insertion point
 \`\`\`khoj-edit
-"# Travel Notes", "Date: January 20, 2024", "# Travel Notes\\nDate: January 20, 2024\\nWeather: Sunny, 15°C"
+"Action items from today:", "Next steps:", "Action items from today:\\n- Review Q4 metrics\\n- Schedule follow-up\\n- Update timeline\\n\\nDiscussion Points:\\n- Budget review\\n- Team feedback\\n\\nNext steps:"
 \`\`\`
 
 💡 Key points:
-- First argument: start of the text to replace
-- Second argument: end of the text to replace (included in replacement)
-- Third argument: complete desired text
+- Use minimal but unique words to identify text locations
+- First argument: few words from start of target text
+- Second argument: few words from end of target text
+- Third argument: complete new content
+- Words must uniquely identify the location (no ambiguity)
 - Use \\n for line breaks
-- Changes apply to all files where the context is found
+- Changes apply to first matching location
 
 [END OF EDIT INSTRUCTIONS]\n\n`;
         }
@@ -2048,27 +2055,35 @@ Examples of edits:
                 let newContent = content;
                 let hasChanges = false;
 
-                // Apply each edit block to the current file
+                // Collect all edits for this file first
+                interface PlannedEdit {
+                    startIndex: number;
+                    endIndex: number;
+                    preview: string;
+                }
+                const plannedEdits: PlannedEdit[] = [];
+
+                // First pass: collect all edits
                 for (const block of editBlocks) {
                     // Handle special markers for file start and end
                     const before = block.before.replace('<file-start>', '');
                     const after = block.after.replace('<file-end>', '');
 
-                    // Find the text to replace
+                    // Find the text to replace in original content
                     let startIndex = -1;
                     let endIndex = -1;
 
                     if (block.before.includes('<file-start>')) {
                         startIndex = 0;
                     } else {
-                        startIndex = newContent.indexOf(before);
+                        startIndex = content.indexOf(before);
                     }
 
                     if (block.after.includes('<file-end>')) {
-                        endIndex = newContent.length;
+                        endIndex = content.length;
                     } else {
                         if (startIndex !== -1) {
-                            endIndex = newContent.indexOf(after, startIndex);
+                            endIndex = content.indexOf(after, startIndex);
                             if (endIndex !== -1) {
                                 endIndex = endIndex + after.length; // Include the 'after' text in the replacement
                             }
@@ -2076,28 +2091,57 @@ Examples of edits:
                     }
 
                     if (startIndex !== -1 && endIndex !== -1) {
-                        // Get the text to replace (including both 'before' and 'after' text)
-                        const textToReplace = newContent.substring(startIndex, endIndex);
+                        // Get the text to replace from original content
+                        const textToReplace = content.substring(startIndex, endIndex);
+                        const originalText = textToReplace;
+                        const newText = block.replacement;
 
-                        // Split into paragraphs and format each one, skipping empty lines
-                        const paragraphsToReplace = textToReplace.split(/\n/);
-                        const formattedOriginal = paragraphsToReplace
-                            .map(p => p.trim() ? `~~${p.trim()}~~` : p)
-                            .join('\n');
+                        // Find common prefix and suffix between original and new text
+                        let prefixLength = 0;
+                        const minLength = Math.min(originalText.length, newText.length);
+                        while (prefixLength < minLength && originalText[prefixLength] === newText[prefixLength]) {
+                            prefixLength++;
+                        }
 
-                        const replacementParagraphs = block.replacement.split(/\n/);
-                        const formattedReplacement = replacementParagraphs
-                            .map(p => p.trim() ? `==${p.trim()}==` : p)
-                            .join('\n');
+                        let suffixLength = 0;
+                        while (
+                            suffixLength < minLength - prefixLength &&
+                            originalText[originalText.length - 1 - suffixLength] === newText[newText.length - 1 - suffixLength]
+                        ) {
+                            suffixLength++;
+                        }
 
-                        // Create the preview with formatted paragraphs
-                        newContent =
-                            newContent.substring(0, startIndex) +
-                            formattedOriginal + '\n\n' + formattedReplacement +
-                            newContent.substring(endIndex);
+                        // Extract the common and different parts
+                        const commonPrefix = originalText.slice(0, prefixLength);
+                        const commonSuffix = originalText.slice(originalText.length - suffixLength);
+                        const originalDiff = originalText.slice(prefixLength, originalText.length - suffixLength);
+                        const newDiff = newText.slice(prefixLength, newText.length - suffixLength);
 
+                        // Create the preview with only the differences marked
+                        const formattedPreview =
+                            commonPrefix +
+                            (originalDiff ? `~~${originalDiff}~~` : '') +
+                            (newDiff ? `==${newDiff}==` : '') +
+                            commonSuffix;
+
+                        plannedEdits.push({
+                            startIndex,
+                            endIndex,
+                            preview: formattedPreview
+                        });
                         hasChanges = true;
                     }
+                }
+
+                // Sort edits by start index in reverse order (to apply from end to start)
+                plannedEdits.sort((a, b) => b.startIndex - a.startIndex);
+
+                // Second pass: apply all edits
+                for (const edit of plannedEdits) {
+                    newContent =
+                        newContent.substring(0, edit.startIndex) +
+                        edit.preview +
+                        newContent.substring(edit.endIndex);
                 }
 
                 // If any changes were made, backup the original content and save the changes
