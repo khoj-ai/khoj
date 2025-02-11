@@ -4,7 +4,7 @@ import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
 import { KhojView, createCopyParentText, getLinkToEntry, pasteTextAtCursor } from 'src/utils';
 import { KhojSearchModal } from './search_modal';
-import JSON5 from 'json5';
+import * as JSON5 from 'json5';
 
 export interface ChatJsonResult {
     image?: string;
