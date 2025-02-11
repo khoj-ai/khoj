@@ -2117,11 +2117,28 @@ Examples of targeted edits:
                         const originalDiff = originalText.slice(prefixLength, originalText.length - suffixLength);
                         const newDiff = newText.slice(prefixLength, newText.length - suffixLength);
 
-                        // Create the preview with only the differences marked
+                        // Format each line of the differences
+                        const formatLines = (text: string, marker: string): string => {
+                            if (!text) return '';
+                            return text.split('\n')
+                                .map(line => {
+                                    line = line.trim();
+                                    if (!line) return '';
+                                    // Si la ligne commence par un tiret, on met le marqueur après le tiret
+                                    if (line.startsWith('- ')) {
+                                        return `- ${marker}${line.substring(2)}${marker}`;
+                                    }
+                                    return `${marker}${line}${marker}`;
+                                })
+                                .filter(line => line.length > 0)  // Supprimer les lignes vides
+                                .join('\n');
+                        };
+
+                        // Create the preview with only the differences marked, line by line
                         const formattedPreview =
                             commonPrefix +
-                            (originalDiff ? `~~${originalDiff}~~` : '') +
-                            (newDiff ? `==${newDiff}==` : '') +
+                            (originalDiff ? formatLines(originalDiff, '~~') : '') +
+                            (newDiff ? formatLines(newDiff, '==') : '') +
                             commonSuffix;
 
                         plannedEdits.push({
@@ -2185,14 +2202,20 @@ Examples of targeted edits:
                             const currentContent = await this.app.vault.read(file);
                             let finalContent = currentContent;
 
-                            // 1. D'abord, remplacer les blocs de prévisualisation
-                            finalContent = finalContent.replace(/~~[\s\S]+?~~\s*==([^]*?)==/g, '$1');
+                            // 1. Supprimer le texte entre ~~ (et non pas les lignes entières)
+                            finalContent = finalContent.split('\n')
+                                .map(line => {
+                                    // Supprimer tous les textes entre ~~ dans la ligne
+                                    return line.replace(/~~[^~]*~~/g, '').trim();
+                                })
+                                .filter(line => line.length > 0)  // Supprimer les lignes vides
+                                .join('\n');
 
-                            // 2. Nettoyer tous les marqueurs == restants
-                            finalContent = finalContent.replace(/==/g, '');
-
-                            // 3. Supprimer les blocs strike-through restants
-                            finalContent = finalContent.replace(/~~[\s\S]+?~~/g, '');
+                            // 2. Enlever les == des lignes restantes
+                            finalContent = finalContent.split('\n')
+                                .map(line => line.replace(/==/g, ''))
+                                .join('\n')
+                                .replace(/\n{3,}/g, '\n\n'); // Remplacer les triples sauts de ligne ou plus par des doubles
 
                             await this.app.vault.modify(file, finalContent);
                         }
