@@ -4,6 +4,7 @@ import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
 import { KhojView, createCopyParentText, getLinkToEntry, pasteTextAtCursor } from 'src/utils';
 import { KhojSearchModal } from './search_modal';
+import JSON5 from 'json5';
 
 export interface ChatJsonResult {
     image?: string;
@@ -1968,9 +1969,11 @@ export class KhojChatView extends KhojPaneView {
         "start": "<start words>",
         "end": "<end words>"
     },
-    "content": "<complete new content>"
+    "content": "<complete new content, including end marker if you want to keep it>"
 }
 \`\`\`
+
+⚠️ Important: The end marker text is included in the edited section and will be deleted. If you want to keep it, make sure to include it in your "content".
 
 📝 Example note:
 
@@ -1990,7 +1993,7 @@ Next steps:
 
 Examples of targeted edits:
 
-1. Using just a few words to identify long text:
+1. Using just a few words to identify long text (notice how "campaign launch" is kept in content):
 \`\`\`khoj-edit
 {
     "note": "Add deadline and specificity to the marketing team follow-up",
@@ -2040,9 +2043,8 @@ Examples of targeted edits:
 - note: Brief one-line explanation of what the edit does
 - location.start: few words from start of target text (no ambiguity). Can use <file-start> marker to target file beginning
 - location.end: few words from end of target text (no ambiguity). Can use <file-end> marker to target file end
-- content: complete new content
+- content: complete new content, including end marker text if you want to keep it
 - Words must uniquely identify the location (no ambiguity)
-- Use \\n for line breaks
 - Changes apply to first matching location
 
 [END OF EDIT INSTRUCTIONS]\n\n`;
@@ -2075,76 +2077,78 @@ Examples of targeted edits:
         return openFilesContent;
     }
 
-    // Add these new methods
-    private sanitizeJsonContent(content: string): string {
-        // Replace literal newlines with \n
-        return content.replace(/\n/g, '\\n')
-            // Escape other special characters
-            .replace(/[\b\f\r\t\v]/g, '')
-            // Handle unicode characters
-            .replace(/[\u0000-\u0019]+/g, '');
+    // Common method to parse a khoj-edit block
+    private parseKhojEditBlock(content: string): {
+        editData: any,
+        cleanContent: string,
+        error?: Error
+    } {
+        let cleanContent = '';
+        try {
+            // Normalize line breaks and clean control characters
+            cleanContent = content
+                .replace(/\r\n/g, '\n')
+                .replace(/\r/g, '\n')
+                .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+                .trim();
+
+            // Escape newlines in strings
+            const escapeNewlinesInStrings = (str: string): string => {
+                return str.replace(/"(?:\\.|[^"\\])*"/g, (match) => {
+                    return match.replace(/\n/g, '\\n');
+                });
+            };
+            const safeContent = escapeNewlinesInStrings(cleanContent);
+
+            // Use JSON5 for tolerant parsing
+            const editData = JSON5.parse(safeContent);
+
+            // Validate required fields
+            if (!editData.note || !editData.location?.start || !editData.location?.end || !editData.content) {
+                throw new Error("Missing required fields in edit block");
+            }
+
+            return { editData, cleanContent };
+        } catch (e) {
+            console.error("Failed to parse JSON:", e);
+            console.debug("Original content:", content);
+            console.debug("Cleaned content:", cleanContent);
+            return { editData: null, cleanContent: content, error: e as Error };
+        }
     }
 
     private parseEditBlocks(message: string): EditBlock[] {
         const editBlocks: EditBlock[] = [];
-        // Use the same regex more tolerant than transformKhojEditBlocks
         const editBlockRegex = /```khoj-edit\s*([\s\S]*?)```/g;
         let hasError = false;
 
         let match;
         while ((match = editBlockRegex.exec(message)) !== null) {
-            try {
-                // Normalize and clean as in transformKhojEditBlocks
-                const cleanContent = match[1]
-                    .replace(/\r\n/g, '\n')
-                    .replace(/\r/g, '\n')
-                    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-                    .trim();
+            const { editData, cleanContent, error } = this.parseKhojEditBlock(match[1]);
 
-                // Rechercher le JSON valide dans le contenu
-                const jsonMatch = cleanContent.match(/(\{[\s\S]*\})/);
-                if (!jsonMatch) {
-                    throw new Error("No valid JSON object found in edit block");
-                }
-
-                // Parser le JSON
-                const editBlock = JSON.parse(jsonMatch[1]);
-
-                // Validate required fields
-                if (!editBlock.note || !editBlock.location?.start || !editBlock.location?.end || !editBlock.content) {
-                    console.error("Invalid edit block format:", editBlock);
-                    hasError = true;
-                    editBlocks.push({
-                        note: "Error: Missing required fields",
-                        before: "",
-                        after: "",
-                        replacement: `Invalid edit block format. Required fields missing.\nOriginal content:\n${jsonMatch[1]}`
-                    });
-                    continue;
-                }
-
-                editBlocks.push({
-                    note: editBlock.note,
-                    before: editBlock.location.start,
-                    after: editBlock.location.end,
-                    replacement: editBlock.content
-                });
-            } catch (e) {
-                console.error("Failed to parse edit block:", e);
-                console.debug("Content causing error:", match[1]); // Pour le debug
+            if (error) {
+                console.error("Failed to parse edit block:", error);
+                console.debug("Content causing error:", match[1]);
                 hasError = true;
                 editBlocks.push({
                     note: "Error parsing edit block",
                     before: "",
                     after: "",
-                    replacement: `Error: ${e.message}\nOriginal content:\n${match[1]}`
+                    replacement: `Error: ${error.message}\nOriginal content:\n${match[1]}`
                 });
+                continue;
             }
+
+            editBlocks.push({
+                note: editData.note,
+                before: editData.location.start,
+                after: editData.location.end,
+                replacement: editData.content
+            });
         }
 
-        // Add hasError flag to the first block to signal error state
         if (editBlocks.length > 0) {
-            editBlocks[0] = { ...editBlocks[0], hasError: hasError };
+            editBlocks[0] = { ...editBlocks[0], hasError };
         }
 
         return editBlocks;
@@ -2257,14 +2261,10 @@ Examples of targeted edits:
                             (newDiff ? formatLines(newDiff, '==') : '') +
                             commonSuffix;
 
-                        // Add note if available
-                        const note = block.note ? `\n💡 ${block.note}` : '';
-                        const previewWithNote = formattedPreview + note;
-
                         plannedEdits.push({
                             startIndex,
                             endIndex,
-                            preview: previewWithNote
+                            preview: formattedPreview
                         });
                         hasChanges = true;
                     }
@@ -2412,59 +2412,21 @@ Examples of targeted edits:
     // Add this new method to handle khoj-edit block transformation
     private transformKhojEditBlocks(message: string): string {
         return message.replace(/```khoj-edit\s*([\s\S]*?)```/g, (match, content) => {
-            try {
-                // Normalize line breaks and clean control characters more thoroughly
-                const cleanContent = content
-                    .replace(/\r\n/g, '\n')  // Normalize CRLF to LF
-                    .replace(/\r/g, '\n')    // Normalize remaining CR to LF
-                    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove control chars except \n and \t
-                    .trim();  // Remove leading/trailing whitespace
+            const { editData, cleanContent, error } = this.parseKhojEditBlock(content);
 
-                // Recherche du JSON valide dans le contenu
-                const jsonMatch = cleanContent.match(/(\{[\s\S]*\})/);
-                if (!jsonMatch) {
-                    throw new Error("No valid JSON object found in edit block");
-                }
+            // Escape content for HTML display
+            const escapedContent = cleanContent
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
 
-                // Parse the JSON after cleaning
-                const editData = JSON.parse(jsonMatch[1]);
+            if (error) {
+                console.error("Error parsing khoj-edit block:", error);
+                console.debug("Content causing error:", content);
 
-                // Validate required fields
-                if (!editData.note || !editData.location?.start || !editData.location?.end || !editData.content) {
-                    throw new Error("Missing required fields in edit block");
-                }
-
-                // Escape content for HTML display
-                const escapedContent = cleanContent
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#039;');
-
-                // Create a more informative title
-                const title = `${editData.note}`;
-
-                return `<details class="khoj-edit-accordion">
-                    <summary>${title}</summary>
-                    <div class="khoj-edit-content">
-                        <pre><code class="language-khoj-edit">${escapedContent}</code></pre>
-                    </div>
-                </details>`;
-            } catch (e) {
-                console.error("Error parsing khoj-edit block:", e);
-                console.debug("Content causing error:", content); // Pour le debug
-
-                // Escape the original content for safe display
-                const escapedContent = content
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#039;');
-
-                // Create a more detailed error message
-                const errorTitle = `Error: ${e.message}`;
+                const errorTitle = `Error: ${error.message}`;
                 const errorDetails = `Failed to parse edit block. Please check the JSON format and ensure all required fields are present.`;
 
                 return `<details class="khoj-edit-accordion error">
@@ -2475,6 +2437,13 @@ Examples of targeted edits:
                     </div>
                 </details>`;
             }
+
+            return `<details class="khoj-edit-accordion">
+                <summary>${editData.note}</summary>
+                <div class="khoj-edit-content">
+                    <pre><code class="language-khoj-edit">${escapedContent}</code></pre>
+                </div>
+            </details>`;
         });
     }
 }
