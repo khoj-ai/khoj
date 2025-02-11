@@ -668,6 +668,31 @@ export class KhojChatView extends KhojPaneView {
             ''
         );
 
+        // Add a copy button to each code block
+        const codeBlocks = virtualChatMessageBodyTextEl.querySelectorAll('pre');
+        codeBlocks.forEach(pre => {
+            const codeEl = pre.querySelector('code');
+            if (codeEl) {
+                const copyButton = document.createElement('button');
+                copyButton.classList.add('code-copy-button');
+                copyButton.title = 'Copy code';
+                copyButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
+                copyButton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const language = codeEl.className.replace('language-', '');
+                    const codeText = `\`\`\`${language}\n${codeEl.textContent}\n\`\`\``;
+                    navigator.clipboard.writeText(codeText).then(() => {
+                        copyButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check"><polyline points="20 6 9 17 4 12"/></svg>';
+                        setTimeout(() => {
+                            copyButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
+                        }, 1000);
+                    });
+                });
+                pre.insertBefore(copyButton, codeEl);
+            }
+        });
+
         // Sanitize the markdown text rendered as HTML
         return DOMPurify.sanitize(virtualChatMessageBodyTextEl.innerHTML);
     }
@@ -833,14 +858,35 @@ export class KhojChatView extends KhojPaneView {
         copyButton.classList.add("chat-action-button");
         copyButton.title = "Copy Message to Clipboard";
         setIcon(copyButton, "copy-plus");
-        copyButton.addEventListener('click', createCopyParentText(message));
+        copyButton.addEventListener('click', () => {
+            // Convert khoj-edit blocks back to markdown format
+            let markdownMessage = message;
+            const khojEditRegex = /<details class="khoj-edit-accordion">[\s\S]*?<pre><code class="language-khoj-edit">([\s\S]*?)<\/code><\/pre>[\s\S]*?<\/details>/g;
+            markdownMessage = markdownMessage.replace(khojEditRegex, (_, content) => {
+                return `\`\`\`khoj-edit\n${content}\`\`\``;
+            });
+            navigator.clipboard.writeText(markdownMessage).then(() => {
+                setIcon(copyButton, "check");
+                setTimeout(() => {
+                    setIcon(copyButton, "copy-plus");
+                }, 1000);
+            });
+        });
 
         // Add button to paste into current buffer
         let pasteToFile = this.contentEl.createEl('button');
         pasteToFile.classList.add("chat-action-button");
         pasteToFile.title = "Paste Message to File";
         setIcon(pasteToFile, "clipboard-paste");
-        pasteToFile.addEventListener('click', (event) => { pasteTextAtCursor(createCopyParentText(message, 'clipboard-paste')(event)); });
+        pasteToFile.addEventListener('click', () => {
+            // Convert khoj-edit blocks back to markdown format before pasting
+            let markdownMessage = message;
+            const khojEditRegex = /<details class="khoj-edit-accordion">[\s\S]*?<pre><code class="language-khoj-edit">([\s\S]*?)<\/code><\/pre>[\s\S]*?<\/details>/g;
+            markdownMessage = markdownMessage.replace(khojEditRegex, (_, content) => {
+                return `\`\`\`khoj-edit\n${content}\`\`\``;
+            });
+            pasteTextAtCursor(markdownMessage);
+        });
 
         // Add edit button only for user messages
         let editButton = null;
