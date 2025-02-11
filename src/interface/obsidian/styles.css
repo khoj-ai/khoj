@@ -811,7 +811,7 @@ img.copy-icon {
 .folder-list-remove {
     background: none;
     border: none;
-    color: #ff5555;
+    color: #e57373;
     cursor: pointer;
     font-size: 18px;
     width: 24px;
@@ -828,7 +828,7 @@ img.copy-icon {
 
 .folder-list-remove:hover {
     opacity: 1;
-    background-color: rgba(255, 85, 85, 0.1);
+    background-color: rgba(229, 115, 115, 0.1);
 }
 
 .folder-list-empty {
@@ -1030,13 +1030,13 @@ img.copy-icon {
 }
 
 .edit-cancel-button {
-    background-color: rgba(255, 59, 48, 0.1);
-    border: 1px solid rgb(255, 59, 48);
-    color: rgb(255, 59, 48);
+    background-color: rgba(239, 154, 154, 0.1);
+    border: 1px solid #ef9a9a;
+    color: #d32f2f;
 }
 
 .edit-cancel-button:hover {
-    background-color: rgba(255, 59, 48, 0.2);
+    background-color: rgba(239, 154, 154, 0.2);
 }
 
 .edit-status-message {
@@ -1058,9 +1058,9 @@ img.copy-icon {
 }
 
 .edit-status-message.error {
-    background-color: rgba(255, 59, 48, 0.1);
-    color: rgb(255, 59, 48);
-    border: 1px solid rgb(255, 59, 48);
+    background-color: rgba(239, 154, 154, 0.1);
+    color: #d32f2f;
+    border: 1px solid #ef9a9a;
 }
 
 @keyframes fadeIn {
@@ -1078,34 +1078,77 @@ img.copy-icon {
 /* Khoj Edit Accordion Styles */
 .khoj-edit-accordion {
     margin: 1em 0;
-    padding: 0.5em;
     border: 1px solid var(--background-modifier-border);
     border-radius: 4px;
-    background-color: var(--background-primary);
+    overflow: hidden;
 }
 
 .khoj-edit-accordion summary {
+    padding: 8px 12px;
+    background-color: var(--background-secondary);
     cursor: pointer;
-    padding: 0.5em;
-    font-weight: 600;
-    color: var(--text-muted);
+    user-select: none;
     display: flex;
     align-items: center;
+    gap: 8px;
 }
 
 .khoj-edit-accordion summary::before {
     content: "📝";
-    margin-right: 0.5em;
 }
 
-.khoj-edit-accordion[open] summary {
-    border-bottom: 1px solid var(--background-modifier-border);
-    margin-bottom: 0.5em;
+.khoj-edit-accordion.error {
+    border-color: #ef9a9a;
+}
+
+.khoj-edit-accordion.error summary {
+    background-color: rgba(239, 154, 154, 0.15);
+    color: #d32f2f;
+}
+
+.khoj-edit-accordion.error summary::before {
+    content: "❌";
 }
 
 .khoj-edit-content {
-    padding: 0.5em;
-    white-space: pre-wrap;
+    padding: 12px;
+    background-color: var(--background-primary);
+}
+
+.khoj-edit-content pre {
+    margin: 0;
+    padding: 12px;
+    background-color: var(--background-secondary);
+    border-radius: 4px;
+}
+
+.khoj-edit-content code.error {
+    color: #d32f2f;
+}
+
+/* Animations */
+.khoj-edit-accordion[open] summary {
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.khoj-edit-accordion:not([open]) summary:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+.khoj-edit-accordion[open] .khoj-edit-content {
+    animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Khoj Edit Block in Chat */

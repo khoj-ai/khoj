@@ -40,6 +40,7 @@ interface EditBlock {
     before: string;  // location.start
     after: string;   // location.end
     replacement: string;  // content
+    hasError?: boolean; // Optional: Flag to indicate parsing error
 }
 
 interface Location {
@@ -667,31 +668,6 @@ export class KhojChatView extends KhojPaneView {
             /<img(?:(?!src=["'](app:|data:|https:\/\/generated\.khoj\.dev)).)*?>/gis,
             ''
         );
-
-        // Add a copy button to each code block
-        const codeBlocks = virtualChatMessageBodyTextEl.querySelectorAll('pre');
-        codeBlocks.forEach(pre => {
-            const codeEl = pre.querySelector('code');
-            if (codeEl) {
-                const copyButton = document.createElement('button');
-                copyButton.classList.add('code-copy-button');
-                copyButton.title = 'Copy code';
-                copyButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
-                copyButton.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const language = codeEl.className.replace('language-', '');
-                    const codeText = `\`\`\`${language}\n${codeEl.textContent}\n\`\`\``;
-                    navigator.clipboard.writeText(codeText).then(() => {
-                        copyButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check"><polyline points="20 6 9 17 4 12"/></svg>';
-                        setTimeout(() => {
-                            copyButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
-                        }, 1000);
-                    });
-                });
-                pre.insertBefore(copyButton, codeEl);
-            }
-        });
 
         // Sanitize the markdown text rendered as HTML
         return DOMPurify.sanitize(virtualChatMessageBodyTextEl.innerHTML);
@@ -2100,33 +2076,90 @@ Examples of targeted edits:
     }
 
     // Add these new methods
+    private sanitizeJsonContent(content: string): string {
+        // Replace literal newlines with \n
+        return content.replace(/\n/g, '\\n')
+            // Escape other special characters
+            .replace(/[\b\f\r\t\v]/g, '')
+            // Handle unicode characters
+            .replace(/[\u0000-\u0019]+/g, '');
+    }
+
     private parseEditBlocks(message: string): EditBlock[] {
         const editBlocks: EditBlock[] = [];
-        // New regex that captures khoj-edit blocks in JSON format
-        const regex = /```khoj-edit(?::[^\n]+)?\n({[\s\S]*?})\n```/g;
-        let match;
+        // Use the same regex more tolerant than transformKhojEditBlocks
+        const editBlockRegex = /```khoj-edit\s*([\s\S]*?)```/g;
+        let hasError = false;
 
-        while ((match = regex.exec(message)) !== null) {
+        let match;
+        while ((match = editBlockRegex.exec(message)) !== null) {
             try {
-                const editData = JSON.parse(match[1]);
-                if (editData.location && editData.content) {
-                    editBlocks.push({
-                        note: editData.note,
-                        before: editData.location.start.replace(/\\n/g, '\n'),
-                        after: editData.location.end.replace(/\\n/g, '\n'),
-                        replacement: editData.content.replace(/\\n/g, '\n')
-                    });
+                // Normalize and clean as in transformKhojEditBlocks
+                const cleanContent = match[1]
+                    .replace(/\r\n/g, '\n')
+                    .replace(/\r/g, '\n')
+                    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+                    .trim();
+
+                // Rechercher le JSON valide dans le contenu
+                const jsonMatch = cleanContent.match(/(\{[\s\S]*\})/);
+                if (!jsonMatch) {
+                    throw new Error("No valid JSON object found in edit block");
                 }
+
+                // Parser le JSON
+                const editBlock = JSON.parse(jsonMatch[1]);
+
+                // Validate required fields
+                if (!editBlock.note || !editBlock.location?.start || !editBlock.location?.end || !editBlock.content) {
+                    console.error("Invalid edit block format:", editBlock);
+                    hasError = true;
+                    editBlocks.push({
+                        note: "Error: Missing required fields",
+                        before: "",
+                        after: "",
+                        replacement: `Invalid edit block format. Required fields missing.\nOriginal content:\n${jsonMatch[1]}`
+                    });
+                    continue;
+                }
+
+                editBlocks.push({
+                    note: editBlock.note,
+                    before: editBlock.location.start,
+                    after: editBlock.location.end,
+                    replacement: editBlock.content
+                });
             } catch (e) {
-                console.error('Error parsing khoj-edit block:', e);
-                continue;
+                console.error("Failed to parse edit block:", e);
+                console.debug("Content causing error:", match[1]); // Pour le debug
+                hasError = true;
+                editBlocks.push({
+                    note: "Error parsing edit block",
+                    before: "",
+                    after: "",
+                    replacement: `Error: ${e.message}\nOriginal content:\n${match[1]}`
+                });
             }
+        }
+
+        // Add hasError flag to the first block to signal error state
+        if (editBlocks.length > 0) {
+            editBlocks[0] = { ...editBlocks[0], hasError: hasError };
         }
 
         return editBlocks;
     }
 
     private async applyEditBlocks(editBlocks: EditBlock[]) {
+        // Check for parsing errors first
+        if (editBlocks.length === 0) return;
+
+        // @ts-ignore - we added hasError dynamically
+        if (editBlocks[0].hasError) {
+            console.log("Skipping edit application due to parsing errors");
+            return;
+        }
+
         // Store original content for each file in case we need to cancel
         const fileBackups = new Map<string, string>();
 
@@ -2289,20 +2322,20 @@ Examples of targeted edits:
                             const currentContent = await this.app.vault.read(file);
                             let finalContent = currentContent;
 
-                            // 1. Supprimer le texte entre ~~ (et non pas les lignes entières)
+                            // 1. Remove text between ~~ (not whole lines)
                             finalContent = finalContent.split('\n')
                                 .map(line => {
-                                    // Supprimer tous les textes entre ~~ dans la ligne
+                                    // Remove all text between ~~ in the line
                                     return line.replace(/~~[^~]*~~/g, '').trim();
                                 })
-                                .filter(line => line.length > 0)  // Supprimer les lignes vides
+                                .filter(line => line.length > 0)  // Remove empty lines
                                 .join('\n');
 
-                            // 2. Enlever les == des lignes restantes
+                            // 2. Remove == from remaining lines
                             finalContent = finalContent.split('\n')
                                 .map(line => line.replace(/==/g, ''))
                                 .join('\n')
-                                .replace(/\n{3,}/g, '\n\n'); // Remplacer les triples sauts de ligne ou plus par des doubles
+                                .replace(/\n{3,}/g, '\n\n'); // Replace triple newlines with double
 
                             await this.app.vault.modify(file, finalContent);
                         }
@@ -2378,22 +2411,67 @@ Examples of targeted edits:
 
     // Add this new method to handle khoj-edit block transformation
     private transformKhojEditBlocks(message: string): string {
-        return message.replace(/```khoj-edit(?:\n|\r\n?)([\s\S]*?)```/g, (match, content) => {
+        return message.replace(/```khoj-edit\s*([\s\S]*?)```/g, (match, content) => {
             try {
-                const editData = JSON.parse(content);
-                const title = editData.note || 'Edit file';
+                // Normalize line breaks and clean control characters more thoroughly
+                const cleanContent = content
+                    .replace(/\r\n/g, '\n')  // Normalize CRLF to LF
+                    .replace(/\r/g, '\n')    // Normalize remaining CR to LF
+                    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove control chars except \n and \t
+                    .trim();  // Remove leading/trailing whitespace
+
+                // Recherche du JSON valide dans le contenu
+                const jsonMatch = cleanContent.match(/(\{[\s\S]*\})/);
+                if (!jsonMatch) {
+                    throw new Error("No valid JSON object found in edit block");
+                }
+
+                // Parse the JSON after cleaning
+                const editData = JSON.parse(jsonMatch[1]);
+
+                // Validate required fields
+                if (!editData.note || !editData.location?.start || !editData.location?.end || !editData.content) {
+                    throw new Error("Missing required fields in edit block");
+                }
+
+                // Escape content for HTML display
+                const escapedContent = cleanContent
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+
+                // Create a more informative title
+                const title = `${editData.note}`;
+
                 return `<details class="khoj-edit-accordion">
                     <summary>${title}</summary>
                     <div class="khoj-edit-content">
-                        <pre><code class="language-khoj-edit">${content}</code></pre>
+                        <pre><code class="language-khoj-edit">${escapedContent}</code></pre>
                     </div>
                 </details>`;
             } catch (e) {
-                // In case of parsing error, return the block as is
-                return `<details class="khoj-edit-accordion">
-                    <summary>Edit file</summary>
+                console.error("Error parsing khoj-edit block:", e);
+                console.debug("Content causing error:", content); // Pour le debug
+
+                // Escape the original content for safe display
+                const escapedContent = content
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+
+                // Create a more detailed error message
+                const errorTitle = `Error: ${e.message}`;
+                const errorDetails = `Failed to parse edit block. Please check the JSON format and ensure all required fields are present.`;
+
+                return `<details class="khoj-edit-accordion error">
+                    <summary>${errorTitle}</summary>
                     <div class="khoj-edit-content">
-                        <pre><code class="language-khoj-edit">${content}</code></pre>
+                        <p class="khoj-edit-error-message">${errorDetails}</p>
+                        <pre><code class="language-khoj-edit error">${escapedContent}</code></pre>
                     </div>
                 </details>`;
             }
