@@ -2085,23 +2085,43 @@ Examples of targeted edits:
     } {
         let cleanContent = '';
         try {
-            // Normalize line breaks and clean control characters
+            // Normalize line breaks and clean control characters, but preserve empty lines
             cleanContent = content
                 .replace(/\r\n/g, '\n')
                 .replace(/\r/g, '\n')
                 .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-                .trim();
+                .trim(); // We keep the outer trim() to remove spaces at the beginning/end of the JSON block
 
-            // Escape newlines in strings
-            const escapeNewlinesInStrings = (str: string): string => {
-                return str.replace(/"(?:\\.|[^"\\])*"/g, (match) => {
-                    return match.replace(/\n/g, '\\n');
+            // Parse the JSON first to identify the content field
+            let jsonContent = cleanContent;
+            try {
+                // Use a regex to find the content field and temporarily replace newlines
+                jsonContent = cleanContent.replace(
+                    /("content"\s*:\s*")((?:\\.|[^"\\])*?)(")/g,
+                    (match, prefix, contentValue, suffix) => {
+                        // Preserve actual newlines in content by escaping them differently
+                        const preservedContent = contentValue.replace(/\n/g, '§§NEWLINE§§');
+                        return prefix + preservedContent + suffix;
+                    }
+                );
+
+                // Escape newlines in other fields
+                jsonContent = jsonContent.replace(/"(?:\\.|[^"\\])*"/g, (match) => {
+                    if (!match.includes('"content":')) {
+                        return match.replace(/\n\s*\n/g, '\\n').replace(/\n/g, '\\n');
+                    }
+                    return match;
                 });
-            };
-            const safeContent = escapeNewlinesInStrings(cleanContent);
+
+                // Restore actual newlines in content field
+                jsonContent = jsonContent.replace(/§§NEWLINE§§/g, '\\n');
+            } catch (err) {
+                console.error("Error preprocessing JSON:", err);
+                jsonContent = cleanContent;
+            }
 
             // Use JSON5 for tolerant parsing
-            const editData = JSON5.parse(safeContent);
+            const editData = JSON5.parse(jsonContent);
 
             // Validate required fields
             if (!editData.note || !editData.location?.start || !editData.location?.end || !editData.content) {
@@ -2247,10 +2267,13 @@ Examples of targeted edits:
                             return text.split('\n')
                                 .map(line => {
                                     line = line.trim();
-                                    if (!line) return '';
+                                    if (!line) {
+                                        // Only keep empty lines for == marker
+                                        return marker === '==' ? '' : '~~';
+                                    }
                                     return `${marker}${line}${marker}`;
                                 })
-                                .filter(line => line.length > 0)
+                                .filter(line => line !== '~~') // Remove empty strings
                                 .join('\n');
                         };
 
@@ -2328,11 +2351,6 @@ Examples of targeted edits:
 
                             // 2. Remove all == globally
                             finalContent = finalContent.replace(/==/g, '');
-
-                            // 3. Clean up any remaining empty lines
-                            finalContent = finalContent.split('\n')
-                                .filter(line => line.trim().length > 0)
-                                .join('\n');
 
                             await this.app.vault.modify(file, finalContent);
                         }
