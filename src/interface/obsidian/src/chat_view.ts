@@ -1978,8 +1978,12 @@ export class KhojChatView extends KhojPaneView {
 📝 Example note:
 
 \`\`\`
+---
+date: 2024-01-20
+tags: meeting, planning
+status: active
+---
 # Meeting Notes
-Date: January 20, 2024
 
 Action items from today:
 - Review Q4 metrics
@@ -2039,13 +2043,27 @@ Examples of targeted edits:
 }
 \`\`\`
 
+4. Completely replacing a file content (preserving frontmatter):
+\`\`\`khoj-edit
+{
+    "note": "Replace entire file content while keeping frontmatter metadata",
+    "location": {
+        "start": "<file-start>",
+        "end": "<file-end>"
+    },
+    "content": "# Project Overview\\n\\n## Goals\\n- Increase user engagement by 25%\\n- Launch mobile app by Q3\\n- Expand to 3 new markets\\n\\n## Timeline\\n1. Q1: Research & Planning\\n2. Q2: Development\\n3. Q3: Testing & Launch\\n4. Q4: Market Expansion"
+}
+\`\`\`
+
 💡 Key points:
 - note: Brief one-line explanation of what the edit does
-- location.start: few words from start of target text (no ambiguity). Can use <file-start> marker to target file beginning
-- location.end: few words from end of target text (no ambiguity). Can use <file-end> marker to target file end
+- location.start: few words from start of target text (no ambiguity). Use <file-start> to target beginning of content after frontmatter
+- location.end: few words from end of target text (no ambiguity). Use <file-end> to target file end
 - content: complete new content, including end marker text if you want to keep it
 - Words must uniquely identify the location (no ambiguity)
 - Changes apply to first matching location
+- Use <file-start> and <file-end> markers to replace entire file content while preserving frontmatter
+- Frontmatter metadata (between --- markers at top of file) cannot be modified
 
 [END OF EDIT INSTRUCTIONS]\n\n`;
         }
@@ -2199,6 +2217,10 @@ Examples of targeted edits:
                 let newContent = content;
                 let hasChanges = false;
 
+                // Find frontmatter boundaries
+                const frontmatterMatch = content.match(/^---\n[\s\S]*?\n---\n/);
+                const frontmatterEndIndex = frontmatterMatch ? frontmatterMatch[0].length : 0;
+
                 // Collect all edits for this file first
                 interface PlannedEdit {
                     startIndex: number;
@@ -2209,6 +2231,12 @@ Examples of targeted edits:
 
                 // First pass: collect all edits
                 for (const block of editBlocks) {
+                    // Clean up the replacement content by removing file markers only if they are at start/end
+                    const replacement = block.replacement
+                        .replace(/^[\s\n]*<file-start>[\s\n]*/, '') // Remove only if at start with optional whitespace
+                        .replace(/[\s\n]*<file-end>[\s\n]*$/, '')   // Remove only if at end with optional whitespace
+                        .trim();
+
                     // Handle special markers for file start and end
                     const before = block.before.replace('<file-start>', '');
                     const after = block.after.replace('<file-end>', '');
@@ -2218,9 +2246,10 @@ Examples of targeted edits:
                     let endIndex = -1;
 
                     if (block.before.includes('<file-start>')) {
-                        startIndex = 0;
+                        // Start after frontmatter if it exists
+                        startIndex = frontmatterEndIndex;
                     } else {
-                        startIndex = content.indexOf(before);
+                        startIndex = content.indexOf(before, frontmatterEndIndex);
                     }
 
                     if (block.after.includes('<file-end>')) {
@@ -2238,7 +2267,7 @@ Examples of targeted edits:
                         // Get the text to replace from original content
                         const textToReplace = content.substring(startIndex, endIndex);
                         const originalText = textToReplace;
-                        const newText = block.replacement;
+                        const newText = replacement;
 
                         // Find common prefix and suffix between original and new text
                         let prefixLength = 0;
