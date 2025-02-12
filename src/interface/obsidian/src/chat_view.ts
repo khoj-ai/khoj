@@ -1340,7 +1340,7 @@ export class KhojChatView extends KhojPaneView {
 
                     // Format error message based on the error type
                     const errorBlock = editBlocks[0];
-                    let retryPrompt = "I noticed some issues with the edit block. Please fix the following and provide a corrected version:\n\n";
+                    let retryPrompt = "I noticed some issues with the edit block. Please fix the following and provide a corrected version (retry " + this.chatMessageState.editRetryCount + "/2) :\n\n";
 
                     if (errorBlock.error?.type === 'missing_field') {
                         retryPrompt += `Missing required fields: ${errorBlock.error.message}\n`;
@@ -1354,10 +1354,6 @@ export class KhojChatView extends KhojPaneView {
                             retryPrompt += `Details: ${errorBlock.error.details}\n`;
                         }
                     }
-
-                    retryPrompt += "\nHere's your last response for reference:\n```\n";
-                    retryPrompt += this.chatMessageState.rawResponse;
-                    retryPrompt += "\n```\n\nPlease provide a corrected version of the edit block, making sure to follow the format exactly.";
 
                     // Send retry request using getChatResponse instead of sendMessage
                     await this.getChatResponse(retryPrompt, retryPrompt);
@@ -2204,7 +2200,7 @@ Examples of targeted edits:
             if (!editData.note) missingFields.push('note');
             if (!editData.location?.start) missingFields.push('location.start');
             if (!editData.location?.end) missingFields.push('location.end');
-            if (!editData.content) missingFields.push('content');
+            if (!('content' in editData)) missingFields.push('content');
             if (!editData.file) missingFields.push('file');
 
             if (missingFields.length > 0) {
@@ -2595,7 +2591,25 @@ Examples of targeted edits:
         return message;
     }
 
-    private async cancelPendingEdits() {
+    // Make the method public and async
+    public async applyPendingEdits() {
+        const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
+        const lastMessage = chatBodyEl.lastElementChild;
+        if (!lastMessage) return;
+
+        // Check for edit confirmation buttons
+        const buttonsContainer = lastMessage.querySelector(".edit-confirmation-buttons");
+        if (!buttonsContainer) return;
+
+        // Find and click the apply button if it exists
+        const applyButton = buttonsContainer.querySelector(".edit-apply-button");
+        if (applyButton instanceof HTMLElement) {
+            applyButton.click();
+        }
+    }
+
+    // Make the method public
+    public async cancelPendingEdits() {
         const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
         const lastMessage = chatBodyEl.lastElementChild;
         if (!lastMessage) return;
@@ -2613,6 +2627,11 @@ Examples of targeted edits:
 
     // Add this new method to handle khoj-edit block transformation
     private transformKhojEditBlocks(message: string): string {
+        // Get all open markdown files
+        const files = this.app.workspace.getLeavesOfType('markdown')
+            .map(leaf => (leaf.view as any)?.file)
+            .filter(file => file && file.extension === 'md');
+
         return message.replace(/```khoj-edit\s*([\s\S]*?)```/g, (match, content) => {
             const { editData, cleanContent, error } = this.parseKhojEditBlock(content);
 
@@ -2640,8 +2659,12 @@ Examples of targeted edits:
                 </details>`;
             }
 
-            return `<details class="khoj-edit-accordion">
-                <summary>${editData.note}</summary>
+            // Find the actual file that will be modified
+            const targetFile = this.findBestMatchingFile(editData.file, files);
+            const displayFileName = targetFile ? targetFile.basename : editData.file;
+
+            return `<details class="khoj-edit-accordion success">
+                <summary>${editData.note} <span class="khoj-edit-file">(📄 ${displayFileName})</span></summary>
                 <div class="khoj-edit-content">
                     <pre><code class="language-khoj-edit">${escapedContent}</code></pre>
                 </div>

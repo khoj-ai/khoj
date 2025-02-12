@@ -1081,6 +1081,7 @@ img.copy-icon {
     border: 1px solid var(--background-modifier-border);
     border-radius: 4px;
     overflow: hidden;
+    transition: all 0.2s ease;
 }
 
 .khoj-edit-accordion summary {
@@ -1097,19 +1098,55 @@ img.copy-icon {
     content: "📝";
 }
 
+/* Success state */
+.khoj-edit-accordion.success {
+    border-color: rgba(52, 199, 89, 0.5);
+    background-color: rgba(52, 199, 89, 0.05);
+}
+
+.khoj-edit-accordion.success summary {
+    background-color: rgba(52, 199, 89, 0.1);
+    color: rgb(39, 149, 67);
+}
+
+.khoj-edit-accordion.success summary::before {
+    content: "✅";
+}
+
+.khoj-edit-file {
+    margin-left: auto;
+    font-size: 0.9em;
+    opacity: 0.8;
+    font-style: italic;
+}
+
+/* Error state */
 .khoj-edit-accordion.error {
-    border-color: #ef9a9a;
+    border-color: rgba(239, 68, 68, 0.5);
+    background-color: rgba(239, 68, 68, 0.05);
 }
 
 .khoj-edit-accordion.error summary {
-    background-color: rgba(239, 154, 154, 0.15);
-    color: #d32f2f;
+    background-color: rgba(239, 68, 68, 0.15);
+    color: rgb(185, 28, 28);
 }
 
 .khoj-edit-accordion.error summary::before {
     content: "❌";
 }
 
+/* Hover effects */
+.khoj-edit-accordion.success:hover {
+    border-color: rgba(52, 199, 89, 0.8);
+    background-color: rgba(52, 199, 89, 0.1);
+}
+
+.khoj-edit-accordion.error:hover {
+    border-color: rgba(239, 68, 68, 0.8);
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* Content area */
 .khoj-edit-content {
     padding: 12px;
     background-color: var(--background-primary);
@@ -1123,7 +1160,7 @@ img.copy-icon {
 }
 
 .khoj-edit-content code.error {
-    color: #d32f2f;
+    color: rgb(185, 28, 28);
 }
 
 /* Animations */
@@ -1191,4 +1228,28 @@ img.copy-icon {
     white-space: pre-wrap;
     font-family: var(--font-monospace);
     font-size: 0.9em;
+}
+
+/* Add keyboard shortcut hints to buttons */
+.edit-apply-button::after {
+    content: " (Ctrl+⏎)";
+    font-size: 0.8em;
+    opacity: 0.7;
+    margin-left: 4px;
+}
+
+.edit-cancel-button::after {
+    content: " (Ctrl+⌫)";
+    font-size: 0.8em;
+    opacity: 0.7;
+    margin-left: 4px;
+}
+
+/* Adjust for macOS */
+.platform-mac .edit-apply-button::after {
+    content: " (⌘+⏎)";
+}
+
+.platform-mac .edit-cancel-button::after {
+    content: " (⌘+⌫)";
 }
