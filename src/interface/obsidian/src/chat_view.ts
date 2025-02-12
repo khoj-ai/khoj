@@ -1327,7 +1327,7 @@ export class KhojChatView extends KhojPaneView {
             }
 
             // Automatically respond with voice if the subscribed user has sent voice message
-            if (this.chatMessageState.isVoice && this.setting.userInfo?.is_active)
+            if (this.chatMessageState.isVoice && this.setting.userInfo?.is_active && this.setting.autoVoiceResponse)
                 this.textToSpeech(this.chatMessageState.rawResponse);
 
             // Append any references after all the data has been streamed
