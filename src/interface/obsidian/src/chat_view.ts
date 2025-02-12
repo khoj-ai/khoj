@@ -13,11 +13,6 @@ export interface ChatJsonResult {
     inferredQueries?: string[];
 }
 
-interface ChunkResult {
-    objects: string[];
-    remainder: string;
-}
-
 interface MessageChunk {
     type: string;
     data: any;
@@ -34,14 +29,21 @@ interface ChatMessageState {
     isVoice: boolean;
     turnId: string;
     editBlocks?: EditBlock[];
+    editRetryCount: number;
 }
 
 interface EditBlock {
-    note: string;  // Required: Brief one-line explanation
-    before: string;  // location.start
-    after: string;   // location.end
-    replacement: string;  // content
+    note: string;      // Required: Brief one-line explanation
+    before: string;    // location.start
+    after: string;     // location.end
+    replacement: string; // content
+    file: string;      // Required: Target file name (without extension)
     hasError?: boolean; // Optional: Flag to indicate parsing error
+    error?: {
+        type: 'missing_field' | 'invalid_json' | 'preprocessing' | 'unknown';
+        message: string;
+        details?: string;
+    };
 }
 
 interface Location {
@@ -74,6 +76,16 @@ interface Agent {
     name: string;
     slug: string;
     description: string;
+}
+
+interface ParseKhojEditResult {
+    editData: any;
+    cleanContent: string;
+    error?: {
+        type: 'missing_field' | 'invalid_json' | 'preprocessing' | 'unknown';
+        message: string;
+        details?: string;
+    };
 }
 
 export class KhojChatView extends KhojPaneView {
@@ -1302,7 +1314,7 @@ export class KhojChatView extends KhojPaneView {
         return { type: '', data: '' };
     }
 
-    processMessageChunk(rawChunk: string): void {
+    async processMessageChunk(rawChunk: string): Promise<void> {
         const chunk = this.convertMessageChunkToJson(rawChunk);
         if (!chunk || !chunk.type) return;
         if (chunk.type === 'status') {
@@ -1321,8 +1333,39 @@ export class KhojChatView extends KhojPaneView {
             // Check for edit blocks if in write mode
             if (this.fileAccessMode === 'write') {
                 const editBlocks = this.parseEditBlocks(this.chatMessageState.rawResponse);
+
+                // Check for errors and retry if needed
+                if (editBlocks.length > 0 && editBlocks[0].hasError && this.chatMessageState.editRetryCount < 2) {
+                    this.chatMessageState.editRetryCount++;
+
+                    // Format error message based on the error type
+                    const errorBlock = editBlocks[0];
+                    let retryPrompt = "I noticed some issues with the edit block. Please fix the following and provide a corrected version:\n\n";
+
+                    if (errorBlock.error?.type === 'missing_field') {
+                        retryPrompt += `Missing required fields: ${errorBlock.error.message}\n`;
+                        retryPrompt += `Please include all required fields:\n${errorBlock.error.details}\n`;
+                    } else if (errorBlock.error?.type === 'invalid_json') {
+                        retryPrompt += `The JSON format is invalid: ${errorBlock.error.message}\n`;
+                        retryPrompt += "Please check the syntax and provide a valid JSON edit block.\n";
+                    } else {
+                        retryPrompt += `Error: ${errorBlock.error?.message || 'Unknown error'}\n`;
+                        if (errorBlock.error?.details) {
+                            retryPrompt += `Details: ${errorBlock.error.details}\n`;
+                        }
+                    }
+
+                    retryPrompt += "\nHere's your last response for reference:\n```\n";
+                    retryPrompt += this.chatMessageState.rawResponse;
+                    retryPrompt += "\n```\n\nPlease provide a corrected version of the edit block, making sure to follow the format exactly.";
+
+                    // Send retry request using getChatResponse instead of sendMessage
+                    await this.getChatResponse(retryPrompt, retryPrompt);
+                    return;
+                }
+
                 if (editBlocks.length > 0) {
-                    this.applyEditBlocks(editBlocks);
+                    await this.applyEditBlocks(editBlocks);
                 }
             }
 
@@ -1333,8 +1376,8 @@ export class KhojChatView extends KhojPaneView {
             // Append any references after all the data has been streamed
             this.finalizeChatBodyResponse(this.chatMessageState.references, this.chatMessageState.newResponseTextEl, this.chatMessageState.turnId);
 
+            // Reset state including retry count
             const liveQuery = this.chatMessageState.rawQuery;
-            // Reset variables
             this.chatMessageState = {
                 newResponseTextEl: null,
                 newResponseEl: null,
@@ -1345,7 +1388,8 @@ export class KhojChatView extends KhojPaneView {
                 isVoice: false,
                 generatedAssets: "",
                 turnId: "",
-                editBlocks: []
+                editBlocks: [],
+                editRetryCount: 0
             };
         } else if (chunk.type === "references") {
             this.chatMessageState.references = { "notes": chunk.data.context, "online": chunk.data.onlineContext };
@@ -1506,7 +1550,8 @@ export class KhojChatView extends KhojPaneView {
             isVoice: isVoice,
             generatedAssets: "",
             turnId: "",
-            editBlocks: []
+            editBlocks: [],
+            editRetryCount: 0
         };
 
         let response = await fetch(chatUrl, {
@@ -1969,11 +2014,14 @@ export class KhojChatView extends KhojPaneView {
         "start": "<start words>",
         "end": "<end words>"
     },
-    "content": "<complete new content, including end marker if you want to keep it>"
+    "content": "<complete new content, including end marker if you want to keep it>",
+    "file": "target-filename"  // Required: specify which open file to edit (without .md extension)
 }
 \`\`\`
 
-⚠️ Important: The end marker text is included in the edited section and will be deleted. If you want to keep it, make sure to include it in your "content".
+⚠️ Important:
+- The end marker text is included in the edited section and will be deleted. If you want to keep it, make sure to include it in your "content"
+- The "file" parameter is required and must match an open file name (without .md extension)
 
 📝 Example note:
 
@@ -2005,7 +2053,8 @@ Examples of targeted edits:
         "start": "- Schedule follow-up",
         "end": "campaign launch"
     },
-    "content": "- Schedule follow-up with marketing team by Wednesday to discuss Q1 campaign launch"
+    "content": "- Schedule follow-up with marketing team by Wednesday to discuss Q1 campaign launch",
+    "file": "Meeting Notes"
 }
 \`\`\`
 
@@ -2017,7 +2066,8 @@ Examples of targeted edits:
         "start": "- Review Q4",
         "end": "metrics"
     },
-    "content": "- [HIGH] Review Q4 metrics"
+    "content": "- [HIGH] Review Q4 metrics",
+    "file": "Meeting Notes"
 }
 \`\`\`
 \`\`\`khoj-edit
@@ -2027,7 +2077,8 @@ Examples of targeted edits:
         "start": "- Update project",
         "end": "Q1 2024"
     },
-    "content": "- Update project timeline and add resource allocation for Q1 2024"
+    "content": "- Update project timeline and add resource allocation for Q1 2024",
+    "file": "Meeting Notes"
 }
 \`\`\`
 
@@ -2039,7 +2090,8 @@ Examples of targeted edits:
         "start": "Action items from today:",
         "end": "Next steps:"
     },
-    "content": "Action items from today:\\n- Review Q4 metrics\\n- Schedule follow-up\\n- Update timeline\\n\\nDiscussion Points:\\n- Budget review\\n- Team feedback\\n\\nNext steps:"
+    "content": "Action items from today:\\n- Review Q4 metrics\\n- Schedule follow-up\\n- Update timeline\\n\\nDiscussion Points:\\n- Budget review\\n- Team feedback\\n\\nNext steps:",
+    "file": "Meeting Notes"
 }
 \`\`\`
 
@@ -2051,7 +2103,8 @@ Examples of targeted edits:
         "start": "<file-start>",
         "end": "<file-end>"
     },
-    "content": "# Project Overview\\n\\n## Goals\\n- Increase user engagement by 25%\\n- Launch mobile app by Q3\\n- Expand to 3 new markets\\n\\n## Timeline\\n1. Q1: Research & Planning\\n2. Q2: Development\\n3. Q3: Testing & Launch\\n4. Q4: Market Expansion"
+    "content": "# Project Overview\\n\\n## Goals\\n- Increase user engagement by 25%\\n- Launch mobile app by Q3\\n- Expand to 3 new markets\\n\\n## Timeline\\n1. Q1: Research & Planning\\n2. Q2: Development\\n3. Q3: Testing & Launch\\n4. Q4: Market Expansion",
+    "file": "Meeting Notes"
 }
 \`\`\`
 
@@ -2060,8 +2113,9 @@ Examples of targeted edits:
 - location.start: few words from start of target text (no ambiguity). Use <file-start> to target beginning of content after frontmatter
 - location.end: few words from end of target text (no ambiguity). Use <file-end> to target file end
 - content: complete new content, including end marker text if you want to keep it
+- file: (required) name of the file to edit (without .md extension)
 - Words must uniquely identify the location (no ambiguity)
-- Changes apply to first matching location
+- Changes apply to first matching location in the specified file
 - Use <file-start> and <file-end> markers to replace entire file content while preserving frontmatter
 - Frontmatter metadata (between --- markers at top of file) cannot be modified
 
@@ -2096,11 +2150,7 @@ Examples of targeted edits:
     }
 
     // Common method to parse a khoj-edit block
-    private parseKhojEditBlock(content: string): {
-        editData: any,
-        cleanContent: string,
-        error?: Error
-    } {
+    private parseKhojEditBlock(content: string): ParseKhojEditResult {
         let cleanContent = '';
         try {
             // Normalize line breaks and clean control characters, but preserve empty lines
@@ -2108,7 +2158,7 @@ Examples of targeted edits:
                 .replace(/\r\n/g, '\n')
                 .replace(/\r/g, '\n')
                 .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-                .trim(); // We keep the outer trim() to remove spaces at the beginning/end of the JSON block
+                .trim();
 
             // Parse the JSON first to identify the content field
             let jsonContent = cleanContent;
@@ -2141,17 +2191,58 @@ Examples of targeted edits:
             // Use JSON5 for tolerant parsing
             const editData = JSON5.parse(jsonContent);
 
-            // Validate required fields
-            if (!editData.note || !editData.location?.start || !editData.location?.end || !editData.content) {
-                throw new Error("Missing required fields in edit block");
+            // Validate required fields with specific messages
+            const requiredFields = {
+                note: 'Brief explanation of the edit',
+                'location.start': 'Start text to identify edit location',
+                'location.end': 'End text to identify edit location',
+                content: 'New content to insert',
+                file: 'Target file name'
+            };
+
+            const missingFields = [];
+            if (!editData.note) missingFields.push('note');
+            if (!editData.location?.start) missingFields.push('location.start');
+            if (!editData.location?.end) missingFields.push('location.end');
+            if (!editData.content) missingFields.push('content');
+            if (!editData.file) missingFields.push('file');
+
+            if (missingFields.length > 0) {
+                return {
+                    editData: null,
+                    cleanContent,
+                    error: {
+                        type: 'missing_field',
+                        message: `Missing required fields: ${missingFields.join(', ')}`,
+                        details: `Each edit block must include: ${Object.entries(requiredFields)
+                            .map(([k, v]) => `\n- ${k}: ${v}`)
+                            .join('')}`
+                    }
+                };
             }
 
             return { editData, cleanContent };
         } catch (e) {
-            console.error("Failed to parse JSON:", e);
-            console.debug("Original content:", content);
-            console.debug("Cleaned content:", cleanContent);
-            return { editData: null, cleanContent: content, error: e as Error };
+            if (e.name === 'SyntaxError') {
+                return {
+                    editData: null,
+                    cleanContent,
+                    error: {
+                        type: 'invalid_json',
+                        message: 'Invalid JSON format in edit block',
+                        details: e.message
+                    }
+                };
+            }
+            return {
+                editData: null,
+                cleanContent,
+                error: {
+                    type: 'unknown',
+                    message: 'Unexpected error parsing edit block',
+                    details: e.message
+                }
+            };
         }
     }
 
@@ -2172,8 +2263,15 @@ Examples of targeted edits:
                     note: "Error parsing edit block",
                     before: "",
                     after: "",
-                    replacement: `Error: ${error.message}\nOriginal content:\n${match[1]}`
+                    replacement: `Error: ${error.message}\nOriginal content:\n${match[1]}`,
+                    file: "unknown", // Fallback value quand editData est null
+                    error: error // On passe aussi l'erreur pour le retry
                 });
+                continue;
+            }
+
+            if (!editData) {
+                console.error("No edit data parsed");
                 continue;
             }
 
@@ -2181,7 +2279,8 @@ Examples of targeted edits:
                 note: editData.note,
                 before: editData.location.start,
                 after: editData.location.end,
-                replacement: editData.content
+                replacement: editData.content,
+                file: editData.file
             });
         }
 
@@ -2190,6 +2289,50 @@ Examples of targeted edits:
         }
 
         return editBlocks;
+    }
+
+    // Add this helper function to calculate Levenshtein distance
+    private levenshteinDistance(a: string, b: string): number {
+        if (a.length === 0) return b.length;
+        if (b.length === 0) return a.length;
+
+        const matrix = Array(b.length + 1).fill(null).map(() =>
+            Array(a.length + 1).fill(null)
+        );
+
+        for (let i = 0; i <= a.length; i++) matrix[0][i] = i;
+        for (let j = 0; j <= b.length; j++) matrix[j][0] = j;
+
+        for (let j = 1; j <= b.length; j++) {
+            for (let i = 1; i <= a.length; i++) {
+                const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+                matrix[j][i] = Math.min(
+                    matrix[j][i - 1] + 1, // deletion
+                    matrix[j - 1][i] + 1, // insertion
+                    matrix[j - 1][i - 1] + cost // substitution
+                );
+            }
+        }
+
+        return matrix[b.length][a.length];
+    }
+
+    private findBestMatchingFile(targetName: string, files: TFile[]): TFile | null {
+        const MAX_DISTANCE = 10;
+        let bestMatch: { file: TFile, distance: number } | null = null;
+
+        for (const file of files) {
+            // Try both with and without extension
+            const distanceWithExt = this.levenshteinDistance(targetName.toLowerCase(), file.name.toLowerCase());
+            const distanceWithoutExt = this.levenshteinDistance(targetName.toLowerCase(), file.basename.toLowerCase());
+            const distance = Math.min(distanceWithExt, distanceWithoutExt);
+
+            if (distance <= MAX_DISTANCE && (!bestMatch || distance < bestMatch.distance)) {
+                bestMatch = { file, distance };
+            }
+        }
+
+        return bestMatch?.file || null;
     }
 
     private async applyEditBlocks(editBlocks: EditBlock[]) {
@@ -2210,7 +2353,22 @@ Examples of targeted edits:
             .map(leaf => (leaf.view as any)?.file)
             .filter(file => file && file.extension === 'md');
 
-        for (const file of files) {
+        // Group edit blocks by target file
+        const editsByFile = new Map<TFile, EditBlock[]>();
+
+        for (const block of editBlocks) {
+            const targetFile = this.findBestMatchingFile(block.file, files);
+            if (targetFile) {
+                const fileEdits = editsByFile.get(targetFile) || [];
+                fileEdits.push(block);
+                editsByFile.set(targetFile, fileEdits);
+            } else {
+                console.warn(`No matching file found for "${block.file}" (within Levenshtein distance of 10)`);
+            }
+        }
+
+        // Process each file's edits
+        for (const [file, targetedEdits] of editsByFile) {
             try {
                 // Read the file content
                 const content = await this.app.vault.read(file);
@@ -2230,7 +2388,7 @@ Examples of targeted edits:
                 const plannedEdits: PlannedEdit[] = [];
 
                 // First pass: collect all edits
-                for (const block of editBlocks) {
+                for (const block of targetedEdits) {
                     // Clean up the replacement content by removing file markers only if they are at start/end
                     const replacement = block.replacement
                         .replace(/^[\s\n]*<file-start>[\s\n]*/, '') // Remove only if at start with optional whitespace
