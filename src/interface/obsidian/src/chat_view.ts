@@ -2385,11 +2385,20 @@ Examples of targeted edits:
 
                 // First pass: collect all edits
                 for (const block of targetedEdits) {
-                    // Clean up the replacement content by removing file markers only if they are at start/end
-                    const replacement = block.replacement
-                        .replace(/^[\s\n]*<file-start>[\s\n]*/, '') // Remove only if at start with optional whitespace
-                        .replace(/[\s\n]*<file-end>[\s\n]*$/, '')   // Remove only if at end with optional whitespace
+                    // Clean up the replacement content by removing file markers and frontmatter if present
+                    let replacement = block.replacement
+                        .replace(/^[\s\n]*<file-start>[\s\n]*/, '') // Remove file-start marker
+                        .replace(/[\s\n]*<file-end>[\s\n]*$/, '')   // Remove file-end marker
                         .trim();
+
+                    // Remove frontmatter if block starts at beginning and has frontmatter
+                    if ((block.before === '' || block.before.includes('<file-start>')) &&
+                        replacement.startsWith('---\n')) {
+                        const frontmatterEnd = replacement.indexOf('\n---\n');
+                        if (frontmatterEnd !== -1) {
+                            replacement = replacement.substring(frontmatterEnd + 5).trim();
+                        }
+                    }
 
                     // Handle special markers for file start and end
                     const before = block.before.replace('<file-start>', '');
