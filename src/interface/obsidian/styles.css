@@ -1230,30 +1230,6 @@ img.copy-icon {
     font-size: 0.9em;
 }
 
-/* Add keyboard shortcut hints to buttons */
-.edit-apply-button::after {
-    content: " (Ctrl+⏎)";
-    font-size: 0.8em;
-    opacity: 0.7;
-    margin-left: 4px;
-}
-
-.edit-cancel-button::after {
-    content: " (Ctrl+⌫)";
-    font-size: 0.8em;
-    opacity: 0.7;
-    margin-left: 4px;
-}
-
-/* Adjust for macOS */
-.platform-mac .edit-apply-button::after {
-    content: " (⌘+⏎)";
-}
-
-.platform-mac .edit-cancel-button::after {
-    content: " (⌘+⌫)";
-}
-
 /* Retry badge styles */
 .khoj-retry-badge {
     display: inline-flex;

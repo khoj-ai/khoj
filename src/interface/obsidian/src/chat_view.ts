@@ -2008,6 +2008,7 @@ export class KhojChatView extends KhojPaneView {
 ⚠️ Important:
 - The end marker text is included in the edited section and will be deleted. If you want to keep it, make sure to include it in your "content"
 - The "file" parameter is required and must match an open file name (without .md extension)
+- Use \" for quotes and \`\`\` for backticks in your content to ensure proper parsing
 
 📝 Example note:
 
@@ -2044,15 +2045,15 @@ Examples of targeted edits:
 }
 \`\`\`
 
-2. Multiple targeted changes:
+2. Multiple targeted changes with escaped characters:
 \`\`\`khoj-edit
 {
-    "note": "Add HIGH priority flag to Q4 metrics review",
+    "note": "Add HIGH priority flag with code reference to Q4 metrics review",
     "location": {
         "start": "- Review Q4",
         "end": "metrics"
     },
-    "content": "- [HIGH] Review Q4 metrics",
+    "content": "- [HIGH] Review Q4 metrics (see \"metrics.ts\" and \`calculateQ4Metrics()\`)",
     "file": "Meeting Notes"
 }
 \`\`\`
@@ -2104,6 +2105,7 @@ Examples of targeted edits:
 - Changes apply to first matching location in the specified file
 - Use <file-start> and <file-end> markers to replace entire file content while preserving frontmatter
 - Frontmatter metadata (between --- markers at top of file) cannot be modified
+- Remember to escape special characters: use \" for quotes and \`\`\` for backticks in content
 
 [END OF EDIT INSTRUCTIONS]\n\n`;
         }

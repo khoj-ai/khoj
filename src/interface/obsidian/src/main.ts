@@ -53,7 +53,7 @@ export default class Khoj extends Plugin {
         this.addCommand({
             id: 'apply-edits',
             name: 'Apply pending edits',
-            hotkeys: [{ modifiers: ["Ctrl"], key: "Enter" }],
+            hotkeys: [{ modifiers: ["Ctrl", "Shift"], key: "Enter" }],
             callback: () => {
                 const chatView = this.app.workspace.getActiveViewOfType(KhojChatView);
                 if (chatView) {
@@ -65,7 +65,7 @@ export default class Khoj extends Plugin {
         this.addCommand({
             id: 'cancel-edits',
             name: 'Cancel pending edits',
-            hotkeys: [{ modifiers: ["Ctrl"], key: "Backspace" }],
+            hotkeys: [{ modifiers: ["Ctrl", "Shift"], key: "Backspace" }],
             callback: () => {
                 const chatView = this.app.workspace.getActiveViewOfType(KhojChatView);
                 if (chatView) {
