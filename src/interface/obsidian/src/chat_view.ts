@@ -19,17 +19,18 @@ interface MessageChunk {
 }
 
 interface ChatMessageState {
-    newResponseTextEl: HTMLElement | null;
-    newResponseEl: HTMLElement | null;
-    loadingEllipsis: HTMLElement | null;
-    references: any;
-    generatedAssets: string;
+    newResponseTextEl: HTMLDivElement | null;
+    newResponseEl: HTMLDivElement | null;
+    loadingEllipsis: HTMLDivElement | null;
+    references: { [key: string]: any };
     rawResponse: string;
     rawQuery: string;
     isVoice: boolean;
+    generatedAssets: string;
     turnId: string;
-    editBlocks?: EditBlock[];
+    editBlocks: EditBlock[];
     editRetryCount: number;
+    parentRetryCount?: number; // Ajout du compteur parent
 }
 
 interface EditBlock {
@@ -110,6 +111,7 @@ export class KhojChatView extends KhojPaneView {
         { value: "image", label: "Image", emoji: "🖼️", command: "/image" },
         { value: "research", label: "Research", emoji: "🔬", command: "/research" }
     ];
+    private editRetryCount: number = 0;  // Ajout du compteur au niveau de la classe
 
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
         super(leaf, setting);
@@ -1335,30 +1337,13 @@ export class KhojChatView extends KhojPaneView {
                 const editBlocks = this.parseEditBlocks(this.chatMessageState.rawResponse);
 
                 // Check for errors and retry if needed
-                if (editBlocks.length > 0 && editBlocks[0].hasError && this.chatMessageState.editRetryCount < 2) {
-                    this.chatMessageState.editRetryCount++;
-
-                    // Format error message based on the error type
-                    const errorBlock = editBlocks[0];
-                    let retryPrompt = "I noticed some issues with the edit block. Please fix the following and provide a corrected version (retry " + this.chatMessageState.editRetryCount + "/2) :\n\n";
-
-                    if (errorBlock.error?.type === 'missing_field') {
-                        retryPrompt += `Missing required fields: ${errorBlock.error.message}\n`;
-                        retryPrompt += `Please include all required fields:\n${errorBlock.error.details}\n`;
-                    } else if (errorBlock.error?.type === 'invalid_json') {
-                        retryPrompt += `The JSON format is invalid: ${errorBlock.error.message}\n`;
-                        retryPrompt += "Please check the syntax and provide a valid JSON edit block.\n";
-                    } else {
-                        retryPrompt += `Error: ${errorBlock.error?.message || 'Unknown error'}\n`;
-                        if (errorBlock.error?.details) {
-                            retryPrompt += `Details: ${errorBlock.error.details}\n`;
-                        }
-                    }
-
-                    // Send retry request using getChatResponse instead of sendMessage
-                    await this.getChatResponse(retryPrompt, retryPrompt);
+                if (editBlocks.length > 0 && editBlocks[0].hasError && this.editRetryCount < 2) {
+                    await this.handleEditRetry(editBlocks[0]);
                     return;
                 }
+
+                // Reset retry count on success
+                this.editRetryCount = 0;
 
                 if (editBlocks.length > 0) {
                     await this.applyEditBlocks(editBlocks);
@@ -1372,7 +1357,7 @@ export class KhojChatView extends KhojPaneView {
             // Append any references after all the data has been streamed
             this.finalizeChatBodyResponse(this.chatMessageState.references, this.chatMessageState.newResponseTextEl, this.chatMessageState.turnId);
 
-            // Reset state including retry count
+            // Reset state including retry counts
             const liveQuery = this.chatMessageState.rawQuery;
             this.chatMessageState = {
                 newResponseTextEl: null,
@@ -1385,7 +1370,8 @@ export class KhojChatView extends KhojPaneView {
                 generatedAssets: "",
                 turnId: "",
                 editBlocks: [],
-                editRetryCount: 0
+                editRetryCount: 0,
+                parentRetryCount: 0 // Reset parent retry count
             };
         } else if (chunk.type === "references") {
             this.chatMessageState.references = { "notes": chunk.data.context, "online": chunk.data.onlineContext };
@@ -2679,5 +2665,44 @@ Examples of targeted edits:
                 </div>
             </details>`;
         });
+    }
+
+    private async handleEditRetry(errorBlock: EditBlock) {
+        this.editRetryCount++;
+
+        // Format error message based on the error type
+        let retryPrompt = `/general I noticed some issues with the edit block. Please fix the following and provide a corrected version (retry ${this.editRetryCount}/3):\n\n`;
+
+        if (errorBlock.error?.type === 'missing_field') {
+            retryPrompt += `Missing required fields: ${errorBlock.error.message}\n`;
+            retryPrompt += `Please include all required fields:\n${errorBlock.error.details}\n`;
+        } else if (errorBlock.error?.type === 'invalid_json') {
+            retryPrompt += `The JSON format is invalid: ${errorBlock.error.message}\n`;
+            retryPrompt += "Please check the syntax and provide a valid JSON edit block.\n";
+        } else {
+            retryPrompt += `Error: ${errorBlock.error?.message || 'Unknown error'}\n`;
+            if (errorBlock.error?.details) {
+                retryPrompt += `Details: ${errorBlock.error.details}\n`;
+            }
+        }
+
+        // Reset chat state but keep retry count at class level
+        const liveQuery = this.chatMessageState.rawQuery;
+        this.chatMessageState = {
+            newResponseTextEl: null,
+            newResponseEl: null,
+            loadingEllipsis: null,
+            references: {},
+            rawResponse: "",
+            rawQuery: liveQuery,
+            isVoice: false,
+            generatedAssets: "",
+            turnId: "",
+            editBlocks: [],
+            editRetryCount: 0
+        };
+
+        // Send retry request
+        await this.getChatResponse(retryPrompt, retryPrompt);
     }
 }
