@@ -1253,3 +1253,42 @@ img.copy-icon {
 .platform-mac .edit-cancel-button::after {
     content: " (⌘+⌫)";
 }
+
+/* Retry badge styles */
+.khoj-retry-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: var(--background-modifier-error);
+    color: var(--text-on-accent);
+    padding: 8px 16px;
+    border-radius: 16px;
+    margin: 8px 0;
+    font-size: 0.9em;
+    animation: slideIn 0.3s ease-out;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.khoj-retry-badge .retry-icon {
+    font-size: 1.2em;
+}
+
+.khoj-retry-badge .retry-count {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.8em;
+    margin-left: auto;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-10px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}

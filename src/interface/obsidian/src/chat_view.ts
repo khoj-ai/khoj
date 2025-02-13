@@ -1337,7 +1337,7 @@ export class KhojChatView extends KhojPaneView {
                 const editBlocks = this.parseEditBlocks(this.chatMessageState.rawResponse);
 
                 // Check for errors and retry if needed
-                if (editBlocks.length > 0 && editBlocks[0].hasError && this.editRetryCount < 2) {
+                if (editBlocks.length > 0 && editBlocks[0].hasError && this.editRetryCount < 3) {
                     await this.handleEditRetry(editBlocks[0]);
                     return;
                 }
@@ -1449,13 +1449,17 @@ export class KhojChatView extends KhojPaneView {
         }
     }
 
-    async getChatResponse(query: string | undefined | null, displayQuery: string | undefined | null, isVoice: boolean = false): Promise<void> {
+    async getChatResponse(query: string | undefined | null, displayQuery: string | undefined | null, isVoice: boolean = false, displayUserMessage: boolean = true): Promise<void> {
         // Exit if query is empty
         if (!query || query === "") return;
 
-        // Render user query as chat message with display version
+        // Get chat body element
         let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
-        this.renderMessage({ chatBodyEl, message: displayQuery || query, sender: "you" });
+
+        // Render user query as chat message with display version only if displayUserMessage is true
+        if (displayUserMessage) {
+            this.renderMessage({ chatBodyEl, message: displayQuery || query, sender: "you" });
+        }
 
         let conversationId = chatBodyEl.dataset.conversationId;
 
@@ -2705,38 +2709,51 @@ Examples of targeted edits:
         this.editRetryCount++;
 
         // Format error message based on the error type
-        let retryPrompt = `/general I noticed some issues with the edit block. Please fix the following and provide a corrected version (retry ${this.editRetryCount}/3):\n\n`;
-
+        let errorDetails = '';
         if (errorBlock.error?.type === 'missing_field') {
-            retryPrompt += `Missing required fields: ${errorBlock.error.message}\n`;
-            retryPrompt += `Please include all required fields:\n${errorBlock.error.details}\n`;
+            errorDetails = `Missing required fields: ${errorBlock.error.message}\n`;
+            errorDetails += `Please include all required fields:\n${errorBlock.error.details}\n`;
         } else if (errorBlock.error?.type === 'invalid_json') {
-            retryPrompt += `The JSON format is invalid: ${errorBlock.error.message}\n`;
-            retryPrompt += "Please check the syntax and provide a valid JSON edit block.\n";
+            errorDetails = `The JSON format is invalid: ${errorBlock.error.message}\n`;
+            errorDetails += "Please check the syntax and provide a valid JSON edit block.\n";
         } else {
-            retryPrompt += `Error: ${errorBlock.error?.message || 'Unknown error'}\n`;
+            errorDetails = `Error: ${errorBlock.error?.message || 'Unknown error'}\n`;
             if (errorBlock.error?.details) {
-                retryPrompt += `Details: ${errorBlock.error.details}\n`;
+                errorDetails += `Details: ${errorBlock.error.details}\n`;
             }
         }
 
-        // Reset chat state but keep retry count at class level
-        const liveQuery = this.chatMessageState.rawQuery;
-        this.chatMessageState = {
-            newResponseTextEl: null,
-            newResponseEl: null,
-            loadingEllipsis: null,
-            references: {},
-            rawResponse: "",
-            rawQuery: liveQuery,
-            isVoice: false,
-            generatedAssets: "",
-            turnId: "",
-            editBlocks: [],
-            editRetryCount: 0
-        };
+        // Create retry badge
+        const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
+        const retryBadge = chatBodyEl.createDiv({ cls: "khoj-retry-badge" });
 
-        // Send retry request
-        await this.getChatResponse(retryPrompt, retryPrompt);
+        // Add retry icon
+        retryBadge.createSpan({ cls: "retry-icon", text: "🔄" });
+
+        // Add main text
+        retryBadge.createSpan({ text: "Try again to apply changes" });
+
+        // Add retry count
+        retryBadge.createSpan({
+            cls: "retry-count",
+            text: `Attempt ${this.editRetryCount}/3`
+        });
+
+        // Add error details as a tooltip
+        retryBadge.setAttribute('aria-label', errorDetails);
+        // @ts-ignore - Obsidian's custom tooltip API
+        const hoverEditor = this.app.plugins.plugins["obsidian-hover-editor"];
+        if (hoverEditor) {
+            new hoverEditor.HoverPopover(this.app, retryBadge, errorDetails);
+        }
+
+        // Scroll to the badge
+        retryBadge.scrollIntoView({ behavior: "smooth", block: "center" });
+
+        // Create a retry prompt for the LLM
+        const retryPrompt = `/general I noticed some issues with the edit block. Please fix the following and provide a corrected version (retry ${this.editRetryCount}/3):\n\n${errorDetails}\n\nPlease provide a new edit block that fixes these issues. Make sure to follow the exact format required.`;
+
+        // Send retry request without displaying the user message
+        await this.getChatResponse(retryPrompt, "", false, false);
     }
 }
