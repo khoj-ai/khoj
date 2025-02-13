@@ -1356,8 +1356,10 @@ class ConversationAdapters:
         return random.sample(all_questions, max_results)
 
     @staticmethod
-    def get_valid_chat_model(user: KhojUser, conversation: Conversation):
-        agent: Agent = conversation.agent if AgentAdapters.get_default_agent() != conversation.agent else None
+    def get_valid_chat_model(user: KhojUser, conversation: Conversation, is_subscribed: bool):
+        agent: Agent = (
+            conversation.agent if is_subscribed and AgentAdapters.get_default_agent() != conversation.agent else None
+        )
         if agent and agent.chat_model:
             chat_model = conversation.agent.chat_model
         else:

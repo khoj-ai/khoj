@@ -110,6 +110,7 @@ async def get_agent_by_conversation(
     conversation_id: str,
 ) -> Response:
     user: KhojUser = request.user.object if request.user.is_authenticated else None
+    is_subscribed = has_required_scope(request, ["premium"])
     conversation = await ConversationAdapters.aget_conversation_by_user(user=user, conversation_id=conversation_id)
 
     if not conversation:
@@ -132,7 +133,7 @@ async def get_agent_by_conversation(
         "color": agent.style_color,
         "icon": agent.style_icon,
         "privacy_level": agent.privacy_level,
-        "chat_model": agent.chat_model.name,
+        "chat_model": agent.chat_model.name if is_subscribed else None,
         "has_files": has_files,
         "input_tools": agent.input_tools,
         "output_modes": agent.output_modes,

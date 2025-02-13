@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowsDownUp, CaretCircleDown, CircleNotch, Sparkle } from "@phosphor-icons/react";
+import { ArrowsDownUp, CaretCircleDown, CheckCircle, Circle, CircleNotch, PersonSimpleTaiChi, Sparkle } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 
@@ -14,13 +14,20 @@ import { mutate } from "swr";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { AgentData } from "../agentCard/agentCard";
 import { useEffect, useState } from "react";
-import { getIconForSlashCommand, getIconFromIconName } from "@/app/common/iconUtils";
+import { getAvailableIcons, getIconForSlashCommand, getIconFromIconName } from "@/app/common/iconUtils";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 import { TooltipContent } from "@radix-ui/react-tooltip";
 import { useAuthenticatedData } from "@/app/common/auth";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { convertColorToTextClass, tailwindColors } from "@/app/common/colorUtils";
+import { Input } from "@/components/ui/input";
+import Link from "next/link";
+import { motion } from "framer-motion";
+
 
 interface ChatSideBarProps {
     conversationId: string;
@@ -54,11 +61,245 @@ export function ChatSidebar({ ...props }: ChatSideBarProps) {
     );
 }
 
+interface IAgentCreationProps {
+    customPrompt: string;
+    selectedModel: string;
+    inputTools: string[];
+    outputModes: string[];
+}
+
+interface AgentError {
+    detail: string;
+}
+
+function AgentCreationForm(props: IAgentCreationProps) {
+    const iconOptions = getAvailableIcons();
+    const colorOptions = tailwindColors;
+
+    const [isCreating, setIsCreating] = useState<boolean>(false);
+    const [customAgentName, setCustomAgentName] = useState<string | undefined>();
+    const [customAgentIcon, setCustomAgentIcon] = useState<string | undefined>();
+    const [customAgentColor, setCustomAgentColor] = useState<string | undefined>();
+
+    const [doneCreating, setDoneCreating] = useState<boolean>(false);
+    const [createdSlug, setCreatedSlug] = useState<string | undefined>();
+    const [isValid, setIsValid] = useState<boolean>(false);
+    const [error, setError] = useState<string | undefined>();
+
+    function createAgent() {
+        if (isCreating) {
+            return;
+        }
+
+        setIsCreating(true);
+
+        const data = {
+            name: customAgentName,
+            icon: customAgentIcon,
+            color: customAgentColor,
+            persona: props.customPrompt,
+            chat_model: props.selectedModel,
+            input_tools: props.inputTools,
+            output_modes: props.outputModes,
+            privacy_level: "private",
+        };
+
+        const createAgentUrl = `/api/agents`;
+
+        fetch(createAgentUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        })
+            .then((res) => res.json())
+            .then((data: AgentData | AgentError) => {
+                console.log("Success:", data);
+                if ('detail' in data) {
+                    setError(`Error creating agent: ${data.detail}`);
+                    setIsCreating(false);
+                    return;
+                }
+                setDoneCreating(true);
+                setCreatedSlug(data.slug);
+                setIsCreating(false);
+            })
+            .catch((error) => {
+                console.error("Error:", error);
+                setError(`Error creating agent: ${error}`);
+                setIsCreating(false);
+            });
+    }
+
+    useEffect(() => {
+        if (customAgentName && customAgentIcon && customAgentColor) {
+            setIsValid(true);
+        } else {
+            setIsValid(false);
+        }
+    }, [customAgentName, customAgentIcon, customAgentColor]);
+
+    return (
+
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button
+                    className="p-1"
+                    variant="ghost"
+                >
+                    Create Agent
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    {
+                        doneCreating && createdSlug ? (
+                            <DialogTitle>
+                                Created {customAgentName}
+                            </DialogTitle>
+                        ) : (
+                            <DialogTitle>
+                                Create a New Agent
+                            </DialogTitle>
+                        )
+                    }
+                    <DialogClose />
+                </DialogHeader>
+            <div className="py-4">
+                {
+                    doneCreating && createdSlug ? (
+                        <div className="flex flex-col items-center justify-center gap-4 py-8">
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{
+                                    type: "spring",
+                                    stiffness: 260,
+                                    damping: 20
+                                }}
+                            >
+                                <CheckCircle
+                                    className="w-16 h-16 text-green-500"
+                                    weight="fill"
+                                />
+                            </motion.div>
+                            <motion.p
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                                className="text-center text-lg font-medium text-accent-foreground"
+                            >
+                                Created successfully!
+                            </motion.p>
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.4 }}
+                            >
+                                <Link href={`/agents?agent=${createdSlug}`}>
+                                    <Button variant="secondary" className="mt-2">
+                                        Manage Agent
+                                    </Button>
+                                </Link>
+                            </motion.div>
+                        </div>
+                    ) :
+                        <div className="flex flex-col gap-4">
+                            <div>
+                                <Label htmlFor="agent_name">Name</Label>
+                                <Input
+                                    id="agent_name"
+                                    className="w-full p-2 border mt-4 border-slate-500 rounded-lg"
+                                    disabled={isCreating}
+                                    value={customAgentName}
+                                    onChange={(e) => setCustomAgentName(e.target.value)}
+                                />
+                            </div>
+                            <div className="flex gap-4">
+                                <div className="flex-1">
+                                    <Select onValueChange={setCustomAgentColor} defaultValue={customAgentColor}>
+                                        <SelectTrigger className="w-full dark:bg-muted" disabled={isCreating}>
+                                            <SelectValue placeholder="Color" />
+                                        </SelectTrigger>
+                                        <SelectContent className="items-center space-y-1 inline-flex flex-col">
+                                            {colorOptions.map((colorOption) => (
+                                                <SelectItem key={colorOption} value={colorOption}>
+                                                    <div className="flex items-center space-x-2">
+                                                        <Circle
+                                                            className={`w-6 h-6 mr-2 ${convertColorToTextClass(colorOption)}`}
+                                                            weight="fill"
+                                                        />
+                                                        {colorOption}
+                                                    </div>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="flex-1">
+                                    <Select onValueChange={setCustomAgentIcon} defaultValue={customAgentIcon}>
+                                        <SelectTrigger className="w-full dark:bg-muted" disabled={isCreating}>
+                                            <SelectValue placeholder="Icon" />
+                                        </SelectTrigger>
+                                        <SelectContent className="items-center space-y-1 inline-flex flex-col">
+                                            {iconOptions.map((iconOption) => (
+                                                <SelectItem key={iconOption} value={iconOption}>
+                                                    <div className="flex items-center space-x-2">
+                                                        {getIconFromIconName(
+                                                            iconOption,
+                                                            customAgentColor ?? "gray",
+                                                            "w-6",
+                                                            "h-6",
+                                                        )}
+                                                        {iconOption}
+                                                    </div>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                        </div>
+                }
+            </div>
+            <DialogFooter>
+                {
+                    error && (
+                        <div className="text-red-500 text-sm">
+                            {error}
+                        </div>
+                    )
+                }
+                {
+                    !doneCreating && (
+                        <Button
+                        type="submit"
+                        onClick={() => createAgent()}
+                        disabled={isCreating || !isValid}
+                        >
+                            {
+                                isCreating ?
+                                    <CircleNotch className="animate-spin" />
+                                    :
+                                    <PersonSimpleTaiChi />
+                            }
+                            Create
+                        </Button>
+                    )
+                }
+                <DialogClose />
+            </DialogFooter>
+        </DialogContent>
+        </Dialog >
+
+    )
+}
 
 function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
     const [isEditable, setIsEditable] = useState<boolean>(false);
     const { data: agentConfigurationOptions, error: agentConfigurationOptionsError } =
-    useSWR<AgentConfigurationOptions>("/api/agents/options", fetcher);
+        useSWR<AgentConfigurationOptions>("/api/agents/options", fetcher);
 
     const { data: agentData, isLoading: agentDataLoading, error: agentDataError } = useSWR<AgentData>(`/api/agents/conversation?conversation_id=${props.conversationId}`, fetcher);
     const {
@@ -211,9 +452,20 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                                 </a>
                             </div>
                         ) : (
-                            <div className="flex items-center relative text-sm">
-                                {getIconFromIconName("lightbulb", "orange")}
-                                Chat Options
+                            <div className="flex items-center relative text-sm justify-between">
+                                <p>
+                                    Chat Options
+                                </p>
+                                {
+                                    isEditable && customPrompt && !isDefaultAgent && selectedModel && (
+                                        <AgentCreationForm
+                                            customPrompt={customPrompt}
+                                            selectedModel={selectedModel}
+                                            inputTools={inputTools ?? []}
+                                            outputModes={outputModes ?? []}
+                                        />
+                                    )
+                                }
                             </div>
                         )
                     }

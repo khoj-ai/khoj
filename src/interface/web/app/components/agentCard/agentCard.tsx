@@ -453,7 +453,7 @@ export function AgentCard(props: AgentCardProps) {
                                 />
                             </DialogContent>
                         ) : (
-                            <DialogContent className="whitespace-pre-line max-h-[80vh] max-w-[90vw] rounded-lg">
+                            <DialogContent className="whitespace-pre-line max-h-[80vh] max-w-[90vw] md:max-w-[50vw] rounded-lg">
                                 <DialogHeader>
                                     <div className="flex items-center">
                                         {getIconFromIconName(props.data.icon, props.data.color)}
