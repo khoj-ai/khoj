@@ -21,7 +21,7 @@ import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 import { TooltipContent } from "@radix-ui/react-tooltip";
 import { useAuthenticatedData } from "@/app/common/auth";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { convertColorToTextClass, tailwindColors } from "@/app/common/colorUtils";
 import { Input } from "@/components/ui/input";
@@ -165,6 +165,9 @@ function AgentCreationForm(props: IAgentCreationProps) {
                         )
                     }
                     <DialogClose />
+                    <DialogDescription>
+                        If these settings have been helpful, create a dedicated agent you can re-use across conversations.
+                    </DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
                     {
