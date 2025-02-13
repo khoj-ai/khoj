@@ -67,6 +67,15 @@ export function ModelSelector({ ...props }: ModelSelectorProps) {
             const model = models.find(model => model.name === props.selectedModel);
             setSelectedModel(model);
         }
+        else if (props.selectedModel === null && userConfig) {
+            const selectedChatModelOption = userConfig.chat_model_options.find(model => model.id === userConfig.selected_chat_model_config);
+            if (!selectedChatModelOption) {
+                props.onSelect(userConfig.chat_model_options[0], false);
+                return;
+            } else {
+                props.onSelect(selectedChatModelOption, false);
+            }
+        }
     }, [props.selectedModel, models]);
 
     useEffect(() => {

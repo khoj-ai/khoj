@@ -145,8 +145,8 @@ function AgentCreationForm(props: IAgentCreationProps) {
         <Dialog>
             <DialogTrigger asChild>
                 <Button
-                    className="p-1"
-                    variant="ghost"
+                    className="w-full"
+                    variant="secondary"
                 >
                     Create Agent
                 </Button>
@@ -166,131 +166,131 @@ function AgentCreationForm(props: IAgentCreationProps) {
                     }
                     <DialogClose />
                 </DialogHeader>
-            <div className="py-4">
-                {
-                    doneCreating && createdSlug ? (
-                        <div className="flex flex-col items-center justify-center gap-4 py-8">
-                            <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                transition={{
-                                    type: "spring",
-                                    stiffness: 260,
-                                    damping: 20
-                                }}
-                            >
-                                <CheckCircle
-                                    className="w-16 h-16 text-green-500"
-                                    weight="fill"
-                                />
-                            </motion.div>
-                            <motion.p
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.2 }}
-                                className="text-center text-lg font-medium text-accent-foreground"
-                            >
-                                Created successfully!
-                            </motion.p>
-                            <motion.div
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.4 }}
-                            >
-                                <Link href={`/agents?agent=${createdSlug}`}>
-                                    <Button variant="secondary" className="mt-2">
-                                        Manage Agent
-                                    </Button>
-                                </Link>
-                            </motion.div>
-                        </div>
-                    ) :
-                        <div className="flex flex-col gap-4">
-                            <div>
-                                <Label htmlFor="agent_name">Name</Label>
-                                <Input
-                                    id="agent_name"
-                                    className="w-full p-2 border mt-4 border-slate-500 rounded-lg"
-                                    disabled={isCreating}
-                                    value={customAgentName}
-                                    onChange={(e) => setCustomAgentName(e.target.value)}
-                                />
+                <div className="py-4">
+                    {
+                        doneCreating && createdSlug ? (
+                            <div className="flex flex-col items-center justify-center gap-4 py-8">
+                                <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{
+                                        type: "spring",
+                                        stiffness: 260,
+                                        damping: 20
+                                    }}
+                                >
+                                    <CheckCircle
+                                        className="w-16 h-16 text-green-500"
+                                        weight="fill"
+                                    />
+                                </motion.div>
+                                <motion.p
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.2 }}
+                                    className="text-center text-lg font-medium text-accent-foreground"
+                                >
+                                    Created successfully!
+                                </motion.p>
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.4 }}
+                                >
+                                    <Link href={`/agents?agent=${createdSlug}`}>
+                                        <Button variant="secondary" className="mt-2">
+                                            Manage Agent
+                                        </Button>
+                                    </Link>
+                                </motion.div>
                             </div>
-                            <div className="flex gap-4">
-                                <div className="flex-1">
-                                    <Select onValueChange={setCustomAgentColor} defaultValue={customAgentColor}>
-                                        <SelectTrigger className="w-full dark:bg-muted" disabled={isCreating}>
-                                            <SelectValue placeholder="Color" />
-                                        </SelectTrigger>
-                                        <SelectContent className="items-center space-y-1 inline-flex flex-col">
-                                            {colorOptions.map((colorOption) => (
-                                                <SelectItem key={colorOption} value={colorOption}>
-                                                    <div className="flex items-center space-x-2">
-                                                        <Circle
-                                                            className={`w-6 h-6 mr-2 ${convertColorToTextClass(colorOption)}`}
-                                                            weight="fill"
-                                                        />
-                                                        {colorOption}
-                                                    </div>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                        ) :
+                            <div className="flex flex-col gap-4">
+                                <div>
+                                    <Label htmlFor="agent_name">Name</Label>
+                                    <Input
+                                        id="agent_name"
+                                        className="w-full p-2 border mt-4 border-slate-500 rounded-lg"
+                                        disabled={isCreating}
+                                        value={customAgentName}
+                                        onChange={(e) => setCustomAgentName(e.target.value)}
+                                    />
                                 </div>
-                                <div className="flex-1">
-                                    <Select onValueChange={setCustomAgentIcon} defaultValue={customAgentIcon}>
-                                        <SelectTrigger className="w-full dark:bg-muted" disabled={isCreating}>
-                                            <SelectValue placeholder="Icon" />
-                                        </SelectTrigger>
-                                        <SelectContent className="items-center space-y-1 inline-flex flex-col">
-                                            {iconOptions.map((iconOption) => (
-                                                <SelectItem key={iconOption} value={iconOption}>
-                                                    <div className="flex items-center space-x-2">
-                                                        {getIconFromIconName(
-                                                            iconOption,
-                                                            customAgentColor ?? "gray",
-                                                            "w-6",
-                                                            "h-6",
-                                                        )}
-                                                        {iconOption}
-                                                    </div>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                <div className="flex gap-4">
+                                    <div className="flex-1">
+                                        <Select onValueChange={setCustomAgentColor} defaultValue={customAgentColor}>
+                                            <SelectTrigger className="w-full dark:bg-muted" disabled={isCreating}>
+                                                <SelectValue placeholder="Color" />
+                                            </SelectTrigger>
+                                            <SelectContent className="items-center space-y-1 inline-flex flex-col">
+                                                {colorOptions.map((colorOption) => (
+                                                    <SelectItem key={colorOption} value={colorOption}>
+                                                        <div className="flex items-center space-x-2">
+                                                            <Circle
+                                                                className={`w-6 h-6 mr-2 ${convertColorToTextClass(colorOption)}`}
+                                                                weight="fill"
+                                                            />
+                                                            {colorOption}
+                                                        </div>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="flex-1">
+                                        <Select onValueChange={setCustomAgentIcon} defaultValue={customAgentIcon}>
+                                            <SelectTrigger className="w-full dark:bg-muted" disabled={isCreating}>
+                                                <SelectValue placeholder="Icon" />
+                                            </SelectTrigger>
+                                            <SelectContent className="items-center space-y-1 inline-flex flex-col">
+                                                {iconOptions.map((iconOption) => (
+                                                    <SelectItem key={iconOption} value={iconOption}>
+                                                        <div className="flex items-center space-x-2">
+                                                            {getIconFromIconName(
+                                                                iconOption,
+                                                                customAgentColor ?? "gray",
+                                                                "w-6",
+                                                                "h-6",
+                                                            )}
+                                                            {iconOption}
+                                                        </div>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                }
-            </div>
-            <DialogFooter>
-                {
-                    error && (
-                        <div className="text-red-500 text-sm">
-                            {error}
-                        </div>
-                    )
-                }
-                {
-                    !doneCreating && (
-                        <Button
-                        type="submit"
-                        onClick={() => createAgent()}
-                        disabled={isCreating || !isValid}
-                        >
-                            {
-                                isCreating ?
-                                    <CircleNotch className="animate-spin" />
-                                    :
-                                    <PersonSimpleTaiChi />
-                            }
-                            Create
-                        </Button>
-                    )
-                }
-                <DialogClose />
-            </DialogFooter>
-        </DialogContent>
+                    }
+                </div>
+                <DialogFooter>
+                    {
+                        error && (
+                            <div className="text-red-500 text-sm">
+                                {error}
+                            </div>
+                        )
+                    }
+                    {
+                        !doneCreating && (
+                            <Button
+                                type="submit"
+                                onClick={() => createAgent()}
+                                disabled={isCreating || !isValid}
+                            >
+                                {
+                                    isCreating ?
+                                        <CircleNotch className="animate-spin" />
+                                        :
+                                        <PersonSimpleTaiChi />
+                                }
+                                Create
+                            </Button>
+                        )
+                    }
+                    <DialogClose />
+                </DialogFooter>
+            </DialogContent>
         </Dialog >
 
     )
@@ -316,6 +316,8 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
     const [isDefaultAgent, setIsDefaultAgent] = useState<boolean>(agentData?.slug.toLowerCase() === "khoj" ? true : false);
 
     const [isSaving, setIsSaving] = useState<boolean>(false);
+
+    const isSubscribed = authenticatedData?.is_active ?? false;
 
     function setupAgentData() {
         if (agentData) {
@@ -456,16 +458,6 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                                 <p>
                                     Chat Options
                                 </p>
-                                {
-                                    isEditable && customPrompt && !isDefaultAgent && selectedModel && (
-                                        <AgentCreationForm
-                                            customPrompt={customPrompt}
-                                            selectedModel={selectedModel}
-                                            inputTools={inputTools ?? []}
-                                            outputModes={outputModes ?? []}
-                                        />
-                                    )
-                                }
                             </div>
                         )
                     }
@@ -508,7 +500,7 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                                 <SidebarGroupLabel>
                                     Model
                                     {
-                                        !authenticatedData?.is_active && (
+                                        !isSubscribed && (
                                             <a href="/settings" className="hover:font-bold text-accent-foreground m-2 bg-accent bg-opacity-10 p-1 rounded-lg">
                                                 Upgrade
                                             </a>
@@ -518,7 +510,7 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                                 <SidebarMenu className="p-0 m-0">
                                     <SidebarMenuItem key={"model"} className="list-none">
                                         <ModelSelector
-                                            disabled={!isEditable || !authenticatedData?.is_active}
+                                            disabled={!isEditable || !isSubscribed}
                                             onSelect={(model, userModification) => handleModelSelect(model.name, userModification)}
                                             initialModel={isDefaultAgent ? undefined : agentData?.chat_model}
                                             selectedModel={selectedModel}
@@ -647,6 +639,20 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                                     </SidebarMenuItem>
                                 ) :
                                     <>
+                                        {
+                                            !hasModified && isEditable && customPrompt && !isDefaultAgent && selectedModel && (
+                                                <SidebarMenuItem>
+                                                    <SidebarMenuButton asChild>
+                                                        <AgentCreationForm
+                                                            customPrompt={customPrompt}
+                                                            selectedModel={selectedModel}
+                                                            inputTools={inputTools ?? []}
+                                                            outputModes={outputModes ?? []}
+                                                        />
+                                                    </SidebarMenuButton>
+                                                </SidebarMenuItem>
+                                            )
+                                        }
                                         <SidebarMenuItem>
                                             <SidebarMenuButton asChild>
                                                 <Button
@@ -679,6 +685,7 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                                                 </Button>
                                             </SidebarMenuButton>
                                         </SidebarMenuItem>
+
                                     </>
                             }
                         </SidebarMenu>
