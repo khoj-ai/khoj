@@ -2173,7 +2173,24 @@ Examples of targeted edits:
             // Use JSON5 for tolerant parsing
             const editData = JSON5.parse(jsonContent);
 
-            // Validate required fields with specific messages
+            // List of allowed fields
+            const allowedFields = ['note', 'location', 'content', 'file'];
+
+            // Vérifier les champs en trop
+            const extraFields = Object.keys(editData).filter(key => !allowedFields.includes(key));
+            if (extraFields.length > 0) {
+                return {
+                    editData: null,
+                    cleanContent,
+                    error: {
+                        type: 'invalid_json',
+                        message: `Unexpected fields found: ${extraFields.join(', ')}`,
+                        details: `Only these fields are allowed: ${allowedFields.join(', ')}`
+                    }
+                };
+            }
+
+            // Check required fields
             const requiredFields = {
                 note: 'Brief explanation of the edit',
                 'location.start': 'Start text to identify edit location',
@@ -2356,6 +2373,7 @@ Examples of targeted edits:
                 const content = await this.app.vault.read(file);
                 let newContent = content;
                 let hasChanges = false;
+                let hasLocationError = false;
 
                 // Find frontmatter boundaries
                 const frontmatterMatch = content.match(/^---\n[\s\S]*?\n---\n/);
@@ -2395,7 +2413,6 @@ Examples of targeted edits:
                     let endIndex = -1;
 
                     if (block.before.includes('<file-start>')) {
-                        // Start after frontmatter if it exists
                         startIndex = frontmatterEndIndex;
                     } else {
                         startIndex = content.indexOf(before, frontmatterEndIndex);
@@ -2407,68 +2424,85 @@ Examples of targeted edits:
                         if (startIndex !== -1) {
                             endIndex = content.indexOf(after, startIndex);
                             if (endIndex !== -1) {
-                                endIndex = endIndex + after.length; // Include the 'after' text in the replacement
+                                endIndex = endIndex + after.length;
                             }
                         }
                     }
 
-                    if (startIndex !== -1 && endIndex !== -1) {
-                        // Get the text to replace from original content
-                        const textToReplace = content.substring(startIndex, endIndex);
-                        const originalText = textToReplace;
-                        const newText = replacement;
-
-                        // Find common prefix and suffix between original and new text
-                        let prefixLength = 0;
-                        const minLength = Math.min(originalText.length, newText.length);
-                        while (prefixLength < minLength && originalText[prefixLength] === newText[prefixLength]) {
-                            prefixLength++;
-                        }
-
-                        let suffixLength = 0;
-                        while (
-                            suffixLength < minLength - prefixLength &&
-                            originalText[originalText.length - 1 - suffixLength] === newText[newText.length - 1 - suffixLength]
-                        ) {
-                            suffixLength++;
-                        }
-
-                        // Extract the common and different parts
-                        const commonPrefix = originalText.slice(0, prefixLength);
-                        const commonSuffix = originalText.slice(originalText.length - suffixLength);
-                        const originalDiff = originalText.slice(prefixLength, originalText.length - suffixLength);
-                        const newDiff = newText.slice(prefixLength, newText.length - suffixLength);
-
-                        // Format each line of the differences
-                        const formatLines = (text: string, marker: string): string => {
-                            if (!text) return '';
-                            return text.split('\n')
-                                .map(line => {
-                                    line = line.trim();
-                                    if (!line) {
-                                        // Only keep empty lines for == marker
-                                        return marker === '==' ? '' : '~~';
-                                    }
-                                    return `${marker}${line}${marker}`;
-                                })
-                                .filter(line => line !== '~~') // Remove empty strings
-                                .join('\n');
+                    if (startIndex === -1 || endIndex === -1) {
+                        hasLocationError = true;
+                        editBlocks[0].hasError = true;
+                        editBlocks[0].error = {
+                            type: 'invalid_json',
+                            message: 'Could not locate the text to edit',
+                            details: `Could not find the specified text in file "${file.basename}".\nStart text: "${before}"\nEnd text: "${after}"`
                         };
-
-                        // Create the preview with only the differences marked, line by line
-                        const formattedPreview =
-                            commonPrefix +
-                            (originalDiff ? formatLines(originalDiff, '~~') : '') +
-                            (newDiff ? formatLines(newDiff, '==') : '') +
-                            commonSuffix;
-
-                        plannedEdits.push({
-                            startIndex,
-                            endIndex,
-                            preview: formattedPreview
-                        });
-                        hasChanges = true;
+                        break;
                     }
+
+                    // Get the text to replace from original content
+                    const textToReplace = content.substring(startIndex, endIndex);
+                    const originalText = textToReplace;
+                    const newText = replacement;
+
+                    // Find common prefix and suffix between original and new text
+                    let prefixLength = 0;
+                    const minLength = Math.min(originalText.length, newText.length);
+                    while (prefixLength < minLength && originalText[prefixLength] === newText[prefixLength]) {
+                        prefixLength++;
+                    }
+
+                    let suffixLength = 0;
+                    while (
+                        suffixLength < minLength - prefixLength &&
+                        originalText[originalText.length - 1 - suffixLength] === newText[newText.length - 1 - suffixLength]
+                    ) {
+                        suffixLength++;
+                    }
+
+                    // Extract the common and different parts
+                    const commonPrefix = originalText.slice(0, prefixLength);
+                    const commonSuffix = originalText.slice(originalText.length - suffixLength);
+                    const originalDiff = originalText.slice(prefixLength, originalText.length - suffixLength);
+                    const newDiff = newText.slice(prefixLength, newText.length - suffixLength);
+
+                    // Format each line of the differences
+                    const formatLines = (text: string, marker: string): string => {
+                        if (!text) return '';
+                        return text.split('\n')
+                            .map(line => {
+                                line = line.trim();
+                                if (!line) {
+                                    // Only keep empty lines for == marker
+                                    return marker === '==' ? '' : '~~';
+                                }
+                                return `${marker}${line}${marker}`;
+                            })
+                            .filter(line => line !== '~~') // Remove empty strings
+                            .join('\n');
+                    };
+
+                    // Create the preview with only the differences marked, line by line
+                    const formattedPreview =
+                        commonPrefix +
+                        (originalDiff ? formatLines(originalDiff, '~~') : '') +
+                        (newDiff ? formatLines(newDiff, '==') : '') +
+                        commonSuffix;
+
+                    plannedEdits.push({
+                        startIndex,
+                        endIndex,
+                        preview: formattedPreview
+                    });
+                    hasChanges = true;
+                }
+
+                if (hasLocationError) {
+                    // Trigger a retry if location wasn't found
+                    if (this.editRetryCount < 2) {
+                        await this.handleEditRetry(editBlocks[0]);
+                    }
+                    return;
                 }
 
                 // Sort edits by start index in reverse order (to apply from end to start)
