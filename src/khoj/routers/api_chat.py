@@ -12,7 +12,7 @@ from urllib.parse import unquote
 from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response, StreamingResponse
-from starlette.authentication import requires
+from starlette.authentication import has_required_scope, requires
 
 from khoj.app.settings import ALLOWED_HOSTS
 from khoj.database.adapters import (
@@ -637,6 +637,7 @@ async def chat(
         chat_metadata: dict = {}
         connection_alive = True
         user: KhojUser = request.user.object
+        is_subscribed = has_required_scope(request, ["premium"])
         event_delimiter = "␃🔚␗"
         q = unquote(q)
         train_of_thought = []
@@ -1251,6 +1252,7 @@ async def chat(
             generated_mermaidjs_diagram,
             program_execution_context,
             generated_asset_results,
+            is_subscribed,
             tracer,
         )
 

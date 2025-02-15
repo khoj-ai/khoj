@@ -1390,6 +1390,7 @@ def generate_chat_response(
     generated_mermaidjs_diagram: str = None,
     program_execution_context: List[str] = [],
     generated_asset_results: Dict[str, Dict] = {},
+    is_subscribed: bool = False,
     tracer: dict = {},
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
@@ -1426,7 +1427,7 @@ def generate_chat_response(
             online_results = {}
             code_results = {}
 
-        chat_model = ConversationAdapters.get_valid_chat_model(user, conversation)
+        chat_model = ConversationAdapters.get_valid_chat_model(user, conversation, is_subscribed)
         vision_available = chat_model.vision_enabled
         if not vision_available and query_images:
             vision_enabled_config = ConversationAdapters.get_vision_enabled_config()

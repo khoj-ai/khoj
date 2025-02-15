@@ -1356,8 +1356,10 @@ class ConversationAdapters:
         return random.sample(all_questions, max_results)
 
     @staticmethod
-    def get_valid_chat_model(user: KhojUser, conversation: Conversation):
-        agent: Agent = conversation.agent if AgentAdapters.get_default_agent() != conversation.agent else None
+    def get_valid_chat_model(user: KhojUser, conversation: Conversation, is_subscribed: bool):
+        agent: Agent = (
+            conversation.agent if is_subscribed and AgentAdapters.get_default_agent() != conversation.agent else None
+        )
         if agent and agent.chat_model:
             chat_model = conversation.agent.chat_model
         else:
@@ -1839,8 +1841,8 @@ class AutomationAdapters:
     @staticmethod
     def get_automation(user: KhojUser, automation_id: str) -> Job:
         # Perform validation checks
-        # Check if user is allowed to delete this automation id
-        if not is_none_or_empty(automation_id) or automation_id.startswith(f"automation_{user.uuid}_"):
+        # Check if user is allowed to retrieve this automation id
+        if is_none_or_empty(automation_id) or not automation_id.startswith(f"automation_{user.uuid}_"):
             raise ValueError("Invalid automation id")
         # Check if automation with this id exist
         automation: Job = state.scheduler.get_job(job_id=automation_id)
@@ -1852,8 +1854,8 @@ class AutomationAdapters:
     @staticmethod
     async def aget_automation(user: KhojUser, automation_id: str) -> Job:
         # Perform validation checks
-        # Check if user is allowed to delete this automation id
-        if not automation_id.startswith(f"automation_{user.uuid}_"):
+        # Check if user is allowed to retrieve this automation id
+        if is_none_or_empty(automation_id) or not automation_id.startswith(f"automation_{user.uuid}_"):
             raise ValueError("Invalid automation id")
         # Check if automation with this id exist
         automation: Job = await sync_to_async(state.scheduler.get_job)(job_id=automation_id)
