@@ -1,4 +1,8 @@
 # LM Studio
+:::warning[Unsupported]
+Khoj does not work with LM Studio anymore. Khoj leverages [json mode](https://platform.openai.com/docs/guides/structured-outputs#json-mode) extensively but LMStudio's API seems to have dropped support for json mode. [1](https://x.com/lmstudio/status/1770135858709975547), [2](https://lmstudio.ai/docs/api/structured-output)
+:::
+
 :::info
 This is only helpful for self-hosted users. If you're using [Khoj Cloud](https://app.khoj.dev), you're limited to our first-party models.
 :::
