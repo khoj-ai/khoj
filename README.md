@@ -67,6 +67,12 @@ You can see the full feature list [here](https://docs.khoj.dev/category/features
 
 To get started with self-hosting Khoj, [read the docs](https://docs.khoj.dev/get-started/setup).
 
+## 🚀 HPU (Habana Processing Unit) Support
+
+We now support running Khoj on **Habana Gaudi accelerators (HPUs)**! This allows you to leverage the power of Habana's AI processors for faster and more efficient model inference.
+
+For more information, see [here](src/khoj/app/README.md#-hpu-support).
+
 ## Enterprise
 
 Khoj is available as a cloud service, on-premises, or as a hybrid solution. To learn more about Khoj Enterprise, [visit our website](https://khoj.dev/teams).
