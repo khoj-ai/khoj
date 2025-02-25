@@ -92,8 +92,6 @@ dependencies = [
     "pyjson5 == 1.6.7",
     "resend == 1.0.1",
     "optimum-habana == 1.14.1",
-    "torch-geometric == 2.6.1",
-    "numba == 0.60.0",
 ]
 dynamic = ["version"]
 
