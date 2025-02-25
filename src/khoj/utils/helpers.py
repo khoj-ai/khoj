@@ -324,15 +324,15 @@ def get_device(preferred_device=None) -> torch.device:
 
         load_habana_module()
         if torch.hpu.is_available():
-            if "hpu" in preferred_device or preferred_device is None:
+            if preferred_device is None or "hpu" in preferred_device:
                 return torch.device("hpu")
     # Use CUDA GPU if available
     if torch.cuda.is_available():
-        if "cuda" in preferred_device or preferred_device is None:
+        if preferred_device is None or "cuda" in preferred_device:
             return torch.device("cuda:0")
     # Use Apple M1 Metal Acceleration if available
     elif torch.backends.mps.is_available():
-        if "mps" in preferred_device or preferred_device is None:
+        if preferred_device is None or "mps" in preferred_device:
             return torch.device("mps")
     else:
         # Default to CPU
