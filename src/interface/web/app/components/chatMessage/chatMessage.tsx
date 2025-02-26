@@ -36,7 +36,7 @@ import {
 import DOMPurify from "dompurify";
 import { InlineLoading } from "../loading/loading";
 import { convertColorToTextClass } from "@/app/common/colorUtils";
-import { AgentData } from "@/app/agents/page";
+import { AgentData } from "@/app/components/agentCard/agentCard";
 
 import renderMathInElement from "katex/contrib/auto-render";
 import "katex/dist/katex.min.css";
@@ -53,6 +53,7 @@ import { DialogTitle } from "@radix-ui/react-dialog";
 import { convertBytesToText } from "@/app/common/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getIconFromFilename } from "@/app/common/iconUtils";
+import Mermaid from "../mermaid/mermaid";
 
 const md = new markdownIt({
     html: true,
@@ -164,6 +165,7 @@ export interface SingleChatMessage {
     turnId?: string;
     queryFiles?: AttachedFileText[];
     excalidrawDiagram?: string;
+    mermaidjsDiagram?: string;
 }
 
 export interface StreamMessage {
@@ -182,9 +184,11 @@ export interface StreamMessage {
     turnId?: string;
     queryFiles?: AttachedFileText[];
     excalidrawDiagram?: string;
+    mermaidjsDiagram?: string;
     generatedFiles?: AttachedFileText[];
     generatedImages?: string[];
     generatedExcalidrawDiagram?: string;
+    generatedMermaidjsDiagram?: string;
 }
 
 export interface ChatHistoryData {
@@ -271,6 +275,7 @@ interface ChatMessageProps {
     turnId?: string;
     generatedImage?: string;
     excalidrawDiagram?: string;
+    mermaidjsDiagram?: string;
     generatedFiles?: AttachedFileText[];
 }
 
@@ -358,6 +363,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const [interrupted, setInterrupted] = useState<boolean>(false);
     const [excalidrawData, setExcalidrawData] = useState<string>("");
+    const [mermaidjsData, setMermaidjsData] = useState<string>("");
 
     const interruptedRef = useRef<boolean>(false);
     const messageRef = useRef<HTMLDivElement>(null);
@@ -399,6 +405,10 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
 
         if (props.chatMessage.excalidrawDiagram) {
             setExcalidrawData(props.chatMessage.excalidrawDiagram);
+        }
+
+        if (props.chatMessage.mermaidjsDiagram) {
+            setMermaidjsData(props.chatMessage.mermaidjsDiagram);
         }
 
         // Replace LaTeX delimiters with placeholders
@@ -549,7 +559,10 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
     }
 
     function constructClasses(chatMessage: SingleChatMessage) {
-        let classes = [styles.chatMessageContainer, "shadow-md"];
+        let classes = [styles.chatMessageContainer];
+        if (chatMessage.by === "khoj") {
+            classes.push("shadow-md");
+        }
         classes.push(styles[chatMessage.by]);
         if (!chatMessage.message) {
             classes.push(styles.emptyChatMessage);
@@ -718,6 +731,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                     dangerouslySetInnerHTML={{ __html: markdownRendered }}
                 />
                 {excalidrawData && <ExcalidrawComponent data={excalidrawData} />}
+                {mermaidjsData && <Mermaid chart={mermaidjsData} />}
             </div>
             <div className={styles.teaserReferencesContainer}>
                 <TeaserReferencesSection

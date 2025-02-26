@@ -39,7 +39,7 @@ div.inputBox:focus {
 div.chatBodyFull {
     display: grid;
     grid-template-columns: 1fr;
-    height: 100%;
+    height: auto;
 }
 
 button.inputBox {
@@ -66,7 +66,6 @@ div.chatLayout {
     display: grid;
     grid-template-columns: 1fr;
     gap: 1rem;
-    padding-top: 1rem;
     width: 100%;
 }
 
@@ -83,7 +82,7 @@ div.titleBar {
 div.chatBoxBody {
     display: grid;
     height: 100%;
-    width: 95%;
+    width: 100%;
     margin: auto;
 }
 

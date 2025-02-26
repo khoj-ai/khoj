@@ -1,4 +1,4 @@
-name: build and deploy github pages for documentation
+name: deploy documentation
 on:
   push:
     branches:
@@ -43,4 +43,4 @@ jobs:
             path: documentation/build
         - name: Deploy to GitHub Pages
           id: deployment
-          uses: actions/deploy-pages@v2
+          uses: actions/deploy-pages@v4

@@ -55,6 +55,7 @@ model_to_prompt_size = {
     "gpt-4o-mini": 60000,
     "o1": 20000,
     "o1-mini": 60000,
+    "o3-mini": 60000,
     # Google Models
     "gemini-1.5-flash": 60000,
     "gemini-1.5-pro": 60000,
@@ -62,7 +63,7 @@ model_to_prompt_size = {
     "claude-3-5-sonnet-20241022": 60000,
     "claude-3-5-haiku-20241022": 60000,
     # Offline Models
-    "Qwen/Qwen2.5-14B-Instruct-GGUF": 20000,
+    "bartowski/Qwen2.5-14B-Instruct-GGUF": 20000,
     "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF": 20000,
     "bartowski/Llama-3.2-3B-Instruct-GGUF": 20000,
     "bartowski/gemma-2-9b-it-GGUF": 6000,
@@ -266,7 +267,7 @@ def save_to_conversation_log(
     raw_query_files: List[FileAttachment] = [],
     generated_images: List[str] = [],
     raw_generated_files: List[FileAttachment] = [],
-    generated_excalidraw_diagram: str = None,
+    generated_mermaidjs_diagram: str = None,
     train_of_thought: List[Any] = [],
     tracer: Dict[str, Any] = {},
 ):
@@ -290,8 +291,8 @@ def save_to_conversation_log(
         "queryFiles": [file.model_dump(mode="json") for file in raw_generated_files],
     }
 
-    if generated_excalidraw_diagram:
-        khoj_message_metadata["excalidrawDiagram"] = generated_excalidraw_diagram
+    if generated_mermaidjs_diagram:
+        khoj_message_metadata["mermaidjsDiagram"] = generated_mermaidjs_diagram
 
     updated_conversation = message_to_log(
         user_message=q,
@@ -441,7 +442,7 @@ def generate_chatml_messages_with_context(
                 "query": chat.get("intent", {}).get("inferred-queries", [user_message])[0],
             }
 
-        if not is_none_or_empty(chat.get("excalidrawDiagram")) and role == "assistant":
+        if not is_none_or_empty(chat.get("mermaidjsDiagram")) and role == "assistant":
             generated_assets["diagram"] = {
                 "query": chat.get("intent", {}).get("inferred-queries", [user_message])[0],
             }
@@ -534,9 +535,10 @@ def truncate_messages(
             encoder = download_model(model_name).tokenizer()
     except:
         encoder = tiktoken.encoding_for_model(default_tokenizer)
-        logger.debug(
-            f"Fallback to default chat model tokenizer: {default_tokenizer}.\nConfigure tokenizer for model: {model_name} in Khoj settings to improve context stuffing."
-        )
+        if state.verbose > 2:
+            logger.debug(
+                f"Fallback to default chat model tokenizer: {default_tokenizer}.\nConfigure tokenizer for model: {model_name} in Khoj settings to improve context stuffing."
+            )
 
     # Extract system message from messages
     system_message = None
@@ -591,6 +593,11 @@ def reciprocal_conversation_to_chatml(message_pair):
 def clean_json(response: str):
     """Remove any markdown json codeblock and newline formatting if present. Useful for non schema enforceable models"""
     return response.strip().replace("\n", "").removeprefix("```json").removesuffix("```")
+
+
+def clean_mermaidjs(response: str):
+    """Remove any markdown mermaidjs codeblock and newline formatting if present. Useful for non schema enforceable models"""
+    return response.strip().removeprefix("```mermaid").removesuffix("```")
 
 
 def clean_code_python(code: str):

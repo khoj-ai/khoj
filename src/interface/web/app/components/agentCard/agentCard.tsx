@@ -103,10 +103,13 @@ export interface AgentData {
     privacy_level: string;
     files?: string[];
     creator?: string;
+    is_creator?: boolean;
     managed_by_admin: boolean;
     chat_model: string;
     input_tools: string[];
     output_modes: string[];
+    is_hidden: boolean;
+    has_files?: boolean;
 }
 
 async function openChat(slug: string, userData: UserProfile | null) {
@@ -450,7 +453,7 @@ export function AgentCard(props: AgentCardProps) {
                                 />
                             </DialogContent>
                         ) : (
-                            <DialogContent className="whitespace-pre-line max-h-[80vh] max-w-[90vw] rounded-lg">
+                            <DialogContent className="whitespace-pre-line max-h-[80vh] max-w-[90vw] md:max-w-[50vw] rounded-lg">
                                 <DialogHeader>
                                     <div className="flex items-center">
                                         {getIconFromIconName(props.data.icon, props.data.color)}

@@ -20,13 +20,20 @@ def get_chat_model_options(
     request: Request,
     client: Optional[str] = None,
 ):
-    conversation_options = ConversationAdapters.get_conversation_processor_options().all()
+    chat_models = ConversationAdapters.get_conversation_processor_options().all()
 
-    all_conversation_options = list()
-    for conversation_option in conversation_options:
-        all_conversation_options.append({"chat_model": conversation_option.name, "id": conversation_option.id})
+    chat_model_options = list()
+    for chat_model in chat_models:
+        chat_model_options.append(
+            {
+                "name": chat_model.name,
+                "id": chat_model.id,
+                "strengths": chat_model.strengths,
+                "description": chat_model.description,
+            }
+        )
 
-    return Response(content=json.dumps(all_conversation_options), media_type="application/json", status_code=200)
+    return Response(content=json.dumps(chat_model_options), media_type="application/json", status_code=200)
 
 
 @api_model.get("/chat")

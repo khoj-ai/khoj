@@ -15,7 +15,7 @@ default_offline_chat_models = [
     "bartowski/Llama-3.2-3B-Instruct-GGUF",
     "bartowski/gemma-2-9b-it-GGUF",
     "bartowski/gemma-2-2b-it-GGUF",
-    "Qwen/Qwen2.5-14B-Instruct-GGUF",
+    "bartowski/Qwen2.5-14B-Instruct-GGUF",
 ]
 default_openai_chat_models = ["gpt-4o-mini", "gpt-4o"]
 default_gemini_chat_models = ["gemini-1.5-flash", "gemini-1.5-pro"]
@@ -40,6 +40,7 @@ model_to_cost: Dict[str, Dict[str, float]] = {
     "gpt-4o-mini": {"input": 0.15, "output": 0.60},
     "o1": {"input": 15.0, "output": 60.00},
     "o1-mini": {"input": 3.0, "output": 12.0},
+    "o3-mini": {"input": 1.10, "output": 4.40},
     # Gemini Pricing: https://ai.google.dev/pricing
     "gemini-1.5-flash": {"input": 0.075, "output": 0.30},
     "gemini-1.5-flash-002": {"input": 0.075, "output": 0.30},

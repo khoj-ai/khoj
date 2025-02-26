@@ -13,11 +13,12 @@ If your plugin does not need CSS, delete this file.
     --khoj-storm-grey: #475569;
     --chat-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24px' height='24px' viewBox='0 0 24 24' fill='currentColor' stroke-linecap='round' stroke-linejoin='round' class='svg-icon' version='1.1'%3E%3Cpath d='m 14.024348,9.8497703 0.04627,1.9750167' stroke='%231c274c' stroke-width='2' stroke-linecap='round' /%3E%3Cpath d='m 9.6453624,9.7953624 0.046275,1.9750166' stroke='%231c274c' stroke-width='2' stroke-linecap='round' /%3E%3Cpath d='m 11.90538,2.3619994 c -5.4939109,0 -9.6890976,4.0608185 -9.6890976,9.8578926 0,1.477202 0.2658016,2.542848 0.6989332,3.331408 0.433559,0.789293 1.0740097,1.372483 1.9230615,1.798517 1.7362861,0.87132 4.1946007,1.018626 7.0671029,1.018626 0.317997,0 0.593711,0.167879 0.784844,0.458501 0.166463,0.253124 0.238617,0.552748 0.275566,0.787233 0.07263,0.460801 0.05871,1.030165 0.04785,1.474824 v 4.8e-5 l -2.26e-4,0.0091 c -0.0085,0.348246 -0.01538,0.634247 -0.0085,0.861186 0.105589,-0.07971 0.227925,-0.185287 0.36735,-0.31735 0.348613,-0.330307 0.743513,-0.767362 1.176607,-1.246635 l 0.07837,-0.08673 c 0.452675,-0.500762 0.941688,-1.037938 1.41216,-1.473209 0.453774,-0.419787 0.969948,-0.822472 1.476003,-0.953853 1.323661,-0.343655 2.330132,-0.904027 3.005749,-1.76381 0.658957,-0.838568 1.073167,-2.051868 1.073167,-3.898667 0,-5.7970748 -4.195186,-9.8578946 -9.689097,-9.8578946 z M 0.92440678,12.219892 c 0,-7.0067939 5.05909412,-11.47090892 10.98097322,-11.47090892 5.921878,0 10.980972,4.46411502 10.980972,11.47090892 0,2.172259 -0.497596,3.825405 -1.442862,5.028357 -0.928601,1.181693 -2.218843,1.837914 -3.664937,2.213334 -0.211641,0.05502 -0.53529,0.268579 -0.969874,0.670658 -0.417861,0.386604 -0.865628,0.876836 -1.324566,1.384504 l -0.09131,0.101202 c -0.419252,0.464136 -0.849637,0.94059 -1.239338,1.309807 -0.210187,0.199169 -0.425281,0.383422 -0.635348,0.523424 -0.200911,0.133819 -0.449635,0.263369 -0.716376,0.281474 -0.327812,0.02226 -0.61539,-0.149209 -0.804998,-0.457293 -0.157614,-0.255993 -0.217622,-0.557143 -0.246564,-0.778198 -0.0542,-0.414027 -0.04101,-0.933065 -0.03027,-1.355183 l 0.0024,-0.0922 c 0.01099,-0.463865 0.01489,-0.820507 -0.01611,-1.06842 C 8.9434608,19.975238 6.3139711,19.828758 4.356743,18.84659 3.3355029,18.334136 2.4624526,17.578678 1.8500164,16.463713 1.2372016,15.348029 0.92459928,13.943803 0.92459928,12.219967 Z' clip-rule='evenodd' stroke-width='2' fill='currentColor' fill-rule='evenodd' fill-opacity='1' /%3E%3C/svg%3E%0A");
     --search-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24px' height='24px' viewBox='0 0 24 24' fill='currentColor' stroke-linecap='round' stroke-linejoin='round' class='svg-icon' version='1.1'%3E%3Cpath d='m 18.562765,17.147843 c 1.380497,-1.679442 2.307667,-4.013099 2.307667,-6.330999 C 20.870432,5.3951476 16.353958,1 10.782674,1 5.2113555,1 0.69491525,5.3951476 0.69491525,10.816844 c 0,5.421663 4.51644025,9.816844 10.08775875,9.816844 2.381867,0 4.570922,-0.803307 6.296712,-2.14673 0.508475,-0.508475 4.514633,4.192839 4.514633,4.192839 1.036377,1.008544 2.113087,-0.02559 1.07671,-1.034139 z m -7.780091,1.925408 c -4.3394583,0 -8.6708434,-4.033489 -8.6708434,-8.256407 0,-4.2229187 4.3313851,-8.2564401 8.6708434,-8.2564401 4.339458,0 8.670809,4.2369112 8.670809,8.4598301 0,4.222918 -4.331351,8.053017 -8.670809,8.053017 z' fill='currentColor' fill-rule='evenodd' clip-rule='evenodd' fill-opacity='1' stroke-width='1.10519' stroke-dasharray='none' /%3E%3Cpath d='m 13.337351,9.3402647 0.05184,2.1532893' stroke='%231c274c' stroke-width='2' stroke-linecap='round' /%3E%3Cpath d='M 8.431347,9.2809457 8.483191,11.434235' stroke='%231c274c' stroke-width='2' stroke-linecap='round' /%3E%3C/svg%3E%0A");
- }
+}
 
 .khoj-chat p {
     margin: 0;
 }
+
 .khoj-chat pre {
     text-wrap: unset;
 }
@@ -33,7 +34,8 @@ If your plugin does not need CSS, delete this file.
     font-weight: 300;
     line-height: 1.5em;
 }
-.khoj-chat > * {
+
+.khoj-chat>* {
     padding: 10px;
     margin: 10px;
 }
@@ -47,8 +49,10 @@ If your plugin does not need CSS, delete this file.
     font-size: var(--font-ui-medium);
     margin: 0px;
     line-height: 20px;
-    overflow-y: scroll; /* Make chat body scroll to see history */
+    overflow-y: scroll;
+    /* Make chat body scroll to see history */
 }
+
 /* add chat metatdata to bottom of bubble */
 .khoj-chat-message.khoj::after {
     content: attr(data-meta);
@@ -57,16 +61,19 @@ If your plugin does not need CSS, delete this file.
     color: var(--text-muted);
     margin: -12px 7px 0 0px;
 }
+
 /* move message by khoj to left */
 .khoj-chat-message.khoj {
     margin-left: auto;
     text-align: left;
 }
+
 /* move message by you to right */
 .khoj-chat-message.you {
     margin-right: auto;
     text-align: right;
 }
+
 /* basic style chat message text */
 .khoj-chat-message-text {
     margin: 10px;
@@ -80,6 +87,7 @@ If your plugin does not need CSS, delete this file.
     background-color: var(--active-bg);
     word-break: break-word;
 }
+
 /* color chat bubble by khoj blue */
 .khoj-chat-message-text.khoj {
     border-left: 2px solid var(--khoj-sun);
@@ -87,12 +95,14 @@ If your plugin does not need CSS, delete this file.
     margin-left: auto;
     white-space: pre-line;
 }
+
 /* Override white-space for ul, ol, li under khoj-chat-message-text.khoj */
 .khoj-chat-message-text.khoj ul,
 .khoj-chat-message-text.khoj ol,
 .khoj-chat-message-text.khoj li {
     white-space: normal;
 }
+
 /* add left protrusion to khoj chat bubble */
 .khoj-chat-message-text.khoj:after {
     content: '';
@@ -103,12 +113,14 @@ If your plugin does not need CSS, delete this file.
     border-bottom: 0;
     transform: rotate(-60deg);
 }
+
 /* color chat bubble by you dark grey */
 .khoj-chat-message-text.you {
     color: var(--text-normal);
     margin-right: auto;
     background-color: var(--background-modifier-cover);
 }
+
 /* add right protrusion to you chat bubble */
 .khoj-chat-message-text.you:after {
     content: '';
@@ -125,6 +137,7 @@ If your plugin does not need CSS, delete this file.
 .khoj-chat-message-text ol {
     margin: 0px 0 0;
 }
+
 .khoj-chat-message-text ol li {
     white-space: normal;
 }
@@ -146,9 +159,11 @@ code.chat-response {
 div.collapsed {
     display: none;
 }
+
 div.expanded {
     display: block;
 }
+
 div.reference {
     display: grid;
     grid-template-rows: auto;
@@ -157,6 +172,7 @@ div.reference {
     grid-row-gap: 10px;
     margin: 10px;
 }
+
 div.expanded.reference-section {
     display: grid;
     grid-template-rows: auto;
@@ -165,6 +181,7 @@ div.expanded.reference-section {
     grid-row-gap: 10px;
     margin: 10px 0;
 }
+
 button.reference-button {
     border: 1px solid var(--khoj-storm-grey);
     background-color: transparent;
@@ -183,15 +200,18 @@ button.reference-button {
     display: inline-block;
     text-wrap: inherit;
 }
+
 button.reference-button.expanded {
     height: auto;
     max-height: none;
     white-space: pre-wrap;
 }
-button.reference-button.expanded > :nth-child(2) {
+
+button.reference-button.expanded> :nth-child(2) {
     display: block;
 }
-button.reference-button.collapsed > :nth-child(2) {
+
+button.reference-button.collapsed> :nth-child(2) {
     display: none;
 }
 
@@ -201,11 +221,13 @@ button.reference-button::before {
     display: inline-block;
     transition: transform 0.1s ease-in-out;
 }
+
 button.reference-button.expanded::before,
 button.reference-button:active:before,
 button.reference-button[aria-expanded="true"]::before {
     transform: rotate(90deg);
 }
+
 button.reference-expand-button {
     background-color: transparent;
     border: 1px solid var(--khoj-storm-grey);
@@ -219,15 +241,18 @@ button.reference-expand-button {
     transition: background 0.2s ease-in-out;
     text-align: left;
 }
+
 button.reference-expand-button:hover {
     background: var(--background-modifier-active-hover);
     color: var(--text-normal);
 }
+
 a.inline-chat-link {
     color: #475569;
     text-decoration: none;
     border-bottom: 1px dotted #475569;
 }
+
 .reference-link {
     color: var(--khoj-storm-grey);
     border-bottom: 1px dotted var(--khoj-storm-grey);
@@ -247,11 +272,13 @@ div.new-conversation {
     z-index: 10;
     background-color: var(--background-primary)
 }
+
 div.conversation-header-title {
     text-align: left;
     font-size: larger;
     line-height: 1.5em;
 }
+
 div.conversation-session {
     color: var(--color-base-90);
     border: 1px solid var(--khoj-storm-grey);
@@ -298,9 +325,11 @@ div.conversation-menu {
     grid-gap: 4px;
     grid-auto-flow: column;
 }
+
 div.conversation-session:hover {
     transform: scale(1.03);
 }
+
 div.selected-conversation {
     background: var(--background-modifier-active-hover) !important;
 }
@@ -312,6 +341,7 @@ div.selected-conversation {
     grid-column-gap: 10px;
     grid-row-gap: 10px;
 }
+
 .khoj-input-row {
     display: grid;
     grid-template-columns: 32px auto 32px 32px;
@@ -324,9 +354,11 @@ div.selected-conversation {
     bottom: 0;
     z-index: 10;
 }
+
 #khoj-chat-input.option:hover {
     box-shadow: 0 0 11px var(--background-modifier-box-shadow);
 }
+
 #khoj-chat-input {
     font-size: var(--font-ui-medium);
     padding: 4px 0 0 12px;
@@ -334,6 +366,7 @@ div.selected-conversation {
     height: 32px;
     resize: none;
 }
+
 .khoj-input-row-button {
     border-radius: 50%;
     padding: 4px;
@@ -346,43 +379,55 @@ div.selected-conversation {
     padding: 0;
     position: relative;
 }
+
 #khoj-chat-send .lucide-arrow-up-circle {
     background: var(--background-modifier-active-hover);
     border-radius: 50%;
 }
+
 #khoj-chat-send .lucide-stop-circle {
     transform: rotateY(-180deg) rotateZ(-90deg);
 }
+
 #khoj-chat-send .lucide-stop-circle circle {
-    stroke-dasharray: 62px;  /* The circumference of the circle with 7px radius */
+    stroke-dasharray: 62px;
+    /* The circumference of the circle with 7px radius */
     stroke-dashoffset: 0px;
     stroke-linecap: round;
     stroke-width: 2px;
     stroke: var(--main-text-color);
     fill: none;
 }
+
 @keyframes countdown {
     from {
         stroke-dashoffset: 0px;
     }
+
     to {
-        stroke-dashoffset: -62px;  /* The circumference of the circle with 7px radius */
+        stroke-dashoffset: -62px;
+        /* The circumference of the circle with 7px radius */
     }
 }
 
-@media (pointer: coarse), (hover: none) {
+@media (pointer: coarse),
+(hover: none) {
     #khoj-chat-body.abbr[title] {
         position: relative;
-        padding-left: 4px;  /* space references out to ease tapping */
+        padding-left: 4px;
+        /* space references out to ease tapping */
     }
+
     #khoj-chat-body.abbr[title]:focus:after {
         content: attr(title);
 
         /* position tooltip */
         position: absolute;
-        left: 16px;  /* open tooltip to right of ref link, instead of on top of it */
+        left: 16px;
+        /* open tooltip to right of ref link, instead of on top of it */
         width: auto;
-        z-index: 1;  /* show tooltip above chat messages */
+        z-index: 1;
+        /* show tooltip above chat messages */
 
         /* style tooltip */
         background-color: var(--background-secondary);
@@ -398,6 +443,14 @@ div.selected-conversation {
     font-weight: 600;
 }
 
+.khoj-result-file.in-vault {
+    color: var(--color-green);
+}
+
+.khoj-result-file.not-in-vault {
+    color: var(--color-blue);
+}
+
 .khoj-result-entry {
     color: var(--text-muted);
     margin-left: 2em;
@@ -410,11 +463,11 @@ div.selected-conversation {
     white-space: normal;
 }
 
-.khoj-result-entry > * {
+.khoj-result-entry>* {
     font-size: var(--font-ui-medium);
 }
 
-.khoj-result-entry > p {
+.khoj-result-entry>p {
     margin-top: 0.2em;
     margin-bottom: 0.2em;
 }
@@ -440,9 +493,11 @@ div.khoj-header {
 a.khoj-nav {
     -webkit-app-region: no-drag;
 }
+
 div.khoj-nav {
     -webkit-app-region: no-drag;
 }
+
 nav.khoj-nav {
     display: grid;
     grid-auto-flow: column;
@@ -470,24 +525,30 @@ div.khoj-logo {
     justify-self: center;
     margin: 0;
 }
+
 .khoj-nav a:hover {
     background-color: var(--background-modifier-active-hover);
     color: var(--main-text-color);
 }
+
 a.khoj-nav-selected {
     background-color: var(--background-modifier-active-hover);
 }
+
 #similar-nav-icon-svg,
 .khoj-nav-icon {
     width: 24px;
     height: 24px;
 }
+
 .khoj-nav-icon-chat {
     background-image: var(--chat-icon);
 }
+
 .khoj-nav-icon-search {
     background-image: var(--search-icon);
 }
+
 span.khoj-nav-item-text {
     padding-left: 8px;
 }
@@ -507,12 +568,14 @@ button.chat-action-button {
     margin-top: 8px;
     float: right;
 }
+
 button.chat-action-button span {
     cursor: pointer;
     display: inline-block;
     position: relative;
     transition: 0.5s;
 }
+
 button.chat-action-button:hover {
     background-color: var(--background-modifier-active-hover);
     color: var(--text-normal);
@@ -534,6 +597,7 @@ img.copy-icon {
     box-sizing: border-box;
     animation: rotation 1s linear infinite;
 }
+
 .loader::after {
     content: '';
     box-sizing: border-box;
@@ -552,6 +616,7 @@ img.copy-icon {
     0% {
         transform: rotate(0deg);
     }
+
     100% {
         transform: rotate(360deg);
     }
@@ -564,6 +629,7 @@ img.copy-icon {
     width: 60px;
     height: 32px;
 }
+
 .lds-ellipsis div {
     position: absolute;
     top: 12px;
@@ -573,42 +639,52 @@ img.copy-icon {
     background: var(--color-base-70);
     animation-timing-function: cubic-bezier(0, 1, 1, 0);
 }
+
 .lds-ellipsis div:nth-child(1) {
     left: 8px;
     animation: lds-ellipsis1 0.6s infinite;
 }
+
 .lds-ellipsis div:nth-child(2) {
     left: 8px;
     animation: lds-ellipsis2 0.6s infinite;
 }
+
 .lds-ellipsis div:nth-child(3) {
     left: 32px;
     animation: lds-ellipsis2 0.6s infinite;
 }
+
 .lds-ellipsis div:nth-child(4) {
     left: 56px;
     animation: lds-ellipsis3 0.6s infinite;
 }
+
 @keyframes lds-ellipsis1 {
     0% {
         transform: scale(0);
     }
+
     100% {
         transform: scale(1);
     }
 }
+
 @keyframes lds-ellipsis3 {
     0% {
         transform: scale(1);
     }
+
     100% {
         transform: scale(0);
     }
 }
+
 @keyframes lds-ellipsis2 {
     0% {
         transform: translate(0, 0);
     }
+
     100% {
         transform: translate(24px, 0);
     }
@@ -633,15 +709,18 @@ img.copy-icon {
     border-radius: 50%;
     animation: pulse 3s ease-in-out infinite;
 }
+
 @keyframes pulse {
     0% {
         transform: scale(1);
         opacity: 1;
     }
+
     50% {
         transform: scale(1.2);
         opacity: 0.2;
     }
+
     100% {
         transform: scale(1);
         opacity: 1;
@@ -649,9 +728,15 @@ img.copy-icon {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
+
 @media only screen and (max-width: 600px) {
     div.khoj-header {
         display: grid;
@@ -665,10 +750,112 @@ img.copy-icon {
         grid-gap: 0px;
         justify-content: space-between;
     }
+
     a.khoj-nav {
         padding: 0 16px;
     }
+
     span.khoj-nav-item-text {
         display: none;
+    }
+}
+
+/* Folder list styles */
+.folder-list {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0;
+}
+
+.folder-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    margin: 4px 0;
+    background: var(--background-secondary);
+    border-radius: 4px;
+    min-height: 32px;
+}
+
+.folder-list-remove {
+    background: none;
+    border: none;
+    color: #ff5555;
+    cursor: pointer;
+    font-size: 18px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 8px;
+    padding: 0;
+    border-radius: 4px;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+}
+
+.folder-list-remove:hover {
+    opacity: 1;
+    background-color: rgba(255, 85, 85, 0.1);
+}
+
+.folder-list-empty {
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 6px 0;
+}
+
+/* Folder suggestion modal styles */
+.folder-suggest-item {
+    padding: 4px 8px;
+    display: block;
+}
+
+/* Loading animation */
+.khoj-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.khoj-loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--background-modifier-border);
+    border-top: 3px solid var(--text-accent);
+    border-radius: 50%;
+    animation: khoj-spin 1s linear infinite;
+}
+
+@keyframes khoj-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Research Spinner */
+.search-loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--background-modifier-border);
+    border-top: 3px solid var(--text-accent);
+    border-radius: 50%;
+    animation: search-spin 0.8s linear infinite;
+}
+
+@keyframes search-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
     }
 }

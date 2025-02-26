@@ -33,6 +33,8 @@ export function useAuthenticatedData() {
 export interface ModelOptions {
     id: number;
     name: string;
+    description: string;
+    strengths: string;
 }
 export interface SyncedContent {
     computer: boolean;
@@ -88,15 +90,24 @@ export interface UserConfig {
 export function useUserConfig(detailed: boolean = false) {
     const url = `/api/settings?detailed=${detailed}`;
     const {
-        data: userConfig,
+        data,
         error,
-        isLoading: isLoadingUserConfig,
+        isLoading,
     } = useSWR<UserConfig>(url, fetcher, { revalidateOnFocus: false });
 
-    if (error || !userConfig || userConfig?.detail === "Forbidden")
-        return { userConfig: null, isLoadingUserConfig };
+    if (error || !data || data?.detail === "Forbidden") {
+        return { data: null, error, isLoading };
+    }
 
-    return { userConfig, isLoadingUserConfig };
+    return { data, error, isLoading };
+}
+
+export function useChatModelOptions() {
+    const { data, error, isLoading } = useSWR<ModelOptions[]>(`/api/model/chat/options`, fetcher, {
+        revalidateOnFocus: false,
+    });
+
+    return { models: data, error, isLoading };
 }
 
 export function isUserSubscribed(userConfig: UserConfig | null): boolean {

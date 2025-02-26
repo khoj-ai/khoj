@@ -48,7 +48,7 @@ Restart your Khoj server after the first run to ensure all settings are applied 
         2. Configure the environment variables in the `docker-compose.yml`
            - Set `KHOJ_ADMIN_PASSWORD`, `KHOJ_DJANGO_SECRET_KEY` (and optionally the `KHOJ_ADMIN_EMAIL`) to something secure. This allows you to customize Khoj later via the admin panel.
            - Set `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` to your API key if you want to use OpenAI, Anthropic or Gemini commercial chat models respectively.
-           - Uncomment `OPENAI_API_BASE` to use [Ollama](/advanced/ollama?type=first-run&server=docker#setup) running on your host machine. Or set it to the URL of your OpenAI compatible API like vLLM or [LMStudio](/advanced/lmstudio).
+           - Uncomment `OPENAI_BASE_URL` to use [Ollama](/advanced/ollama?type=first-run&server=docker#setup) running on your host machine. Or set it to the URL of your OpenAI compatible API like vLLM or [LMStudio](/advanced/lmstudio).
         3. Start Khoj by running the following command in the same directory as your docker-compose.yml file.
            ```shell
            cd ~/.khoj
@@ -74,7 +74,7 @@ Restart your Khoj server after the first run to ensure all settings are applied 
       2. Configure the environment variables in the `docker-compose.yml`
          - Set `KHOJ_ADMIN_PASSWORD`, `KHOJ_DJANGO_SECRET_KEY` (and optionally the `KHOJ_ADMIN_EMAIL`) to something secure. This allows you to customize Khoj later via the admin panel.
          - Set `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` to your API key if you want to use OpenAI, Anthropic or Gemini commercial chat models respectively.
-         - Uncomment `OPENAI_API_BASE` to use [Ollama](/advanced/ollama) running on your host machine. Or set it to the URL of your OpenAI compatible API like vLLM or [LMStudio](/advanced/lmstudio).
+         - Uncomment `OPENAI_BASE_URL` to use [Ollama](/advanced/ollama) running on your host machine. Or set it to the URL of your OpenAI compatible API like vLLM or [LMStudio](/advanced/lmstudio).
       3. Start Khoj by running the following command in the same directory as your docker-compose.yml file.
          ```shell
          # Windows users should use their WSL2 terminal to run these commands
@@ -96,7 +96,7 @@ Restart your Khoj server after the first run to ensure all settings are applied 
         2. Configure the environment variables in the `docker-compose.yml`
            - Set `KHOJ_ADMIN_PASSWORD`, `KHOJ_DJANGO_SECRET_KEY` (and optionally the `KHOJ_ADMIN_EMAIL`) to something secure. This allows you to customize Khoj later via the admin panel.
            - Set `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` to your API key if you want to use OpenAI, Anthropic or Gemini commercial chat models respectively.
-           - Uncomment `OPENAI_API_BASE` to use [Ollama](/advanced/ollama) running on your host machine. Or set it to the URL of your OpenAI compatible API like vLLM or [LMStudio](/advanced/lmstudio).
+           - Uncomment `OPENAI_BASE_URL` to use [Ollama](/advanced/ollama) running on your host machine. Or set it to the URL of your OpenAI compatible API like vLLM or [LMStudio](/advanced/lmstudio).
         3. Start Khoj by running the following command in the same directory as your docker-compose.yml file.
            ```shell
            cd ~/.khoj
@@ -283,9 +283,14 @@ Go to http://localhost:42110/server/admin and login with the admin credentials y
 Ensure you are using **localhost, not 127.0.0.1**, to access the admin panel to avoid the CSRF error.
 :::
 
+:::info[CSRF Trusted Origin or Unset Cookie Error]
+If using a load balancer/reverse_proxy in front of your Khoj server: Set the environment variable KHOJ_ALLOWED_DOMAIN=your-internal-ip-or-domain to avoid this error.
+If unset, it defaults to KHOJ_DOMAIN.
+:::
+
 :::info[DISALLOWED HOST or Bad Request (400) Error]
 You may hit this if you try access Khoj exposed on a custom domain (e.g. 192.168.12.3 or example.com) or over HTTP.
-Set the environment variables KHOJ_DOMAIN=your-domain and KHOJ_NO_HTTPS=True if required to avoid this error.
+Set the environment variables KHOJ_DOMAIN=your-external-ip-or-domain and KHOJ_NO_HTTPS=True if required to avoid this error.
 :::
 
 :::tip[Note]
@@ -329,7 +334,7 @@ Using Ollama? See the [Ollama Integration](/advanced/ollama) section for more cu
    - Give the configuration a friendly name like `Gemini`. Do not configure the API base url.
 2. Create a new [chat model](http://localhost:42110/server/admin/database/chatmodel/add)
     - Set the `chat-model` field to a [Google Gemini chat model](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models#gemini-models). Example: `gemini-1.5-flash`.
-    - Set the `model-type` field to `Gemini`.
+    - Set the `model-type` field to `Google`.
     - Set the `ai model api` field to the Gemini AI Model API you created in step 1.
 
   </TabItem>

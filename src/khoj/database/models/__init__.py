@@ -60,7 +60,7 @@ class PeopleAlsoAsk(PydanticBaseModel):
     link: Optional[str] = None
     question: Optional[str] = None
     snippet: Optional[str] = None
-    title: str
+    title: Optional[str] = None
 
 
 class KnowledgeGraph(PydanticBaseModel):
@@ -109,6 +109,7 @@ class ChatMessage(PydanticBaseModel):
     images: Optional[List[str]] = None
     queryFiles: Optional[List[Dict]] = None
     excalidrawDiagram: Optional[List[Dict]] = None
+    mermaidjsDiagram: str = None
     by: str
     turnId: Optional[str] = None
     intent: Optional[Intent] = None
@@ -208,6 +209,8 @@ class ChatModel(DbBaseModel):
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
     vision_enabled = models.BooleanField(default=False)
     ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)
+    description = models.TextField(default=None, null=True, blank=True)
+    strengths = models.TextField(default=None, null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -277,20 +280,19 @@ class Agent(DbBaseModel):
         GENERAL = "general"
         ONLINE = "online"
         NOTES = "notes"
-        SUMMARIZE = "summarize"
-        WEBPAGE = "webpage"
+        WEBPAGE = ("webpage",)
+        CODE = "code"
 
     class OutputModeOptions(models.TextChoices):
         # These map to various ConversationCommand types
-        TEXT = "text"
         IMAGE = "image"
-        AUTOMATION = "automation"
+        DIAGRAM = "diagram"
 
     creator = models.ForeignKey(
         KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True
     )  # Creator will only be null when the agents are managed by admin
     name = models.CharField(max_length=200)
-    personality = models.TextField()
+    personality = models.TextField(default=None, null=True, blank=True)
     input_tools = ArrayField(
         models.CharField(max_length=200, choices=InputToolOptions.choices), default=list, null=True, blank=True
     )
@@ -300,9 +302,10 @@ class Agent(DbBaseModel):
     managed_by_admin = models.BooleanField(default=False)
     chat_model = models.ForeignKey(ChatModel, on_delete=models.CASCADE)
     slug = models.CharField(max_length=200, unique=True)
-    style_color = models.CharField(max_length=200, choices=StyleColorTypes.choices, default=StyleColorTypes.BLUE)
+    style_color = models.CharField(max_length=200, choices=StyleColorTypes.choices, default=StyleColorTypes.ORANGE)
     style_icon = models.CharField(max_length=200, choices=StyleIconTypes.choices, default=StyleIconTypes.LIGHTBULB)
     privacy_level = models.CharField(max_length=30, choices=PrivacyLevel.choices, default=PrivacyLevel.PRIVATE)
+    is_hidden = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         is_new = self._state.adding
@@ -326,6 +329,7 @@ class ProcessLock(DbBaseModel):
         INDEX_CONTENT = "index_content"
         SCHEDULED_JOB = "scheduled_job"
         SCHEDULE_LEADER = "schedule_leader"
+        APPLY_MIGRATIONS = "apply_migrations"
 
     # We need to make sure that some operations are thread-safe. To do so, add locks for potentially shared operations.
     # For example, we need to make sure that only one process is updating the embeddings at a time.
@@ -481,6 +485,11 @@ class SearchModelConfig(DbBaseModel):
     class ModelType(models.TextChoices):
         TEXT = "text"
 
+    class ApiType(models.TextChoices):
+        HUGGINGFACE = "huggingface"
+        OPENAI = "openai"
+        LOCAL = "local"
+
     # This is the model name exposed to users on their settings page
     name = models.CharField(max_length=200, default="default")
     # Type of content the model can generate embeddings for
@@ -501,6 +510,10 @@ class SearchModelConfig(DbBaseModel):
     embeddings_inference_endpoint = models.CharField(max_length=200, default=None, null=True, blank=True)
     # Inference server API Key to use for embeddings inference. Bi-encoder model should be hosted on this server
     embeddings_inference_endpoint_api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
+    # Inference server API type to use for embeddings inference.
+    embeddings_inference_endpoint_type = models.CharField(
+        max_length=200, choices=ApiType.choices, default=ApiType.LOCAL
+    )
     # Inference server API endpoint to use for embeddings inference. Cross-encoder model should be hosted on this server
     cross_encoder_inference_endpoint = models.CharField(max_length=200, default=None, null=True, blank=True)
     # Inference server API Key to use for embeddings inference. Cross-encoder model should be hosted on this server
@@ -557,6 +570,7 @@ class SpeechToTextModelOptions(DbBaseModel):
 
     model_name = models.CharField(max_length=200, default="base")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
+    ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
     def __str__(self):
         return f"{self.model_name} - {self.model_type}"
@@ -658,6 +672,14 @@ class ReflectiveQuestion(DbBaseModel):
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
 
+class FileObject(DbBaseModel):
+    # Contains the full text of a file that has associated Entry objects
+    file_name = models.CharField(max_length=400, default=None, null=True, blank=True)
+    raw_text = models.TextField()
+    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
+    agent = models.ForeignKey(Agent, on_delete=models.CASCADE, default=None, null=True, blank=True)
+
+
 class Entry(DbBaseModel):
     class EntryType(models.TextChoices):
         IMAGE = "image"
@@ -689,18 +711,11 @@ class Entry(DbBaseModel):
     hashed_value = models.CharField(max_length=100)
     corpus_id = models.UUIDField(default=uuid.uuid4, editable=False)
     search_model = models.ForeignKey(SearchModelConfig, on_delete=models.SET_NULL, default=None, null=True, blank=True)
+    file_object = models.ForeignKey(FileObject, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if self.user and self.agent:
             raise ValidationError("An Entry cannot be associated with both a user and an agent.")
-
-
-class FileObject(DbBaseModel):
-    # Same as Entry but raw will be a much larger string
-    file_name = models.CharField(max_length=400, default=None, null=True, blank=True)
-    raw_text = models.TextField()
-    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
-    agent = models.ForeignKey(Agent, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
 
 class EntryDates(DbBaseModel):

@@ -1,7 +1,7 @@
 import logging
 import os
 from threading import Thread
-from typing import Dict
+from typing import Dict, List
 
 import openai
 from openai.types.chat.chat_completion import ChatCompletion
@@ -19,7 +19,11 @@ from khoj.processor.conversation.utils import (
     ThreadedGenerator,
     commit_conversation_trace,
 )
-from khoj.utils.helpers import get_chat_usage_metrics, is_promptrace_enabled
+from khoj.utils.helpers import (
+    get_chat_usage_metrics,
+    get_openai_client,
+    is_promptrace_enabled,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -51,10 +55,7 @@ def completion_with_backoff(
     client_key = f"{openai_api_key}--{api_base_url}"
     client: openai.OpenAI | None = openai_clients.get(client_key)
     if not client:
-        client = openai.OpenAI(
-            api_key=openai_api_key,
-            base_url=api_base_url,
-        )
+        client = get_openai_client(openai_api_key, api_base_url)
         openai_clients[client_key] = client
 
     formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
@@ -70,6 +71,8 @@ def completion_with_backoff(
     elif model_name.startswith("o1"):
         temperature = 1
         model_kwargs.pop("response_format", None)
+    elif model_name.startswith("o3-"):
+        temperature = 1
 
     if os.getenv("KHOJ_LLM_SEED"):
         model_kwargs["seed"] = int(os.getenv("KHOJ_LLM_SEED"))
@@ -161,14 +164,11 @@ def llm_thread(
 ):
     try:
         client_key = f"{openai_api_key}--{api_base_url}"
-        if client_key not in openai_clients:
-            client = openai.OpenAI(
-                api_key=openai_api_key,
-                base_url=api_base_url,
-            )
-            openai_clients[client_key] = client
-        else:
+        if client_key in openai_clients:
             client = openai_clients[client_key]
+        else:
+            client = get_openai_client(openai_api_key, api_base_url)
+            openai_clients[client_key] = client
 
         formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
 
@@ -183,6 +183,32 @@ def llm_thread(
         elif model_name.startswith("o1-"):
             temperature = 1
             model_kwargs.pop("response_format", None)
+        elif model_name.startswith("o3-"):
+            temperature = 1
+            # Get the first system message and add the string `Formatting re-enabled` to it. See https://platform.openai.com/docs/guides/reasoning-best-practices
+            if len(formatted_messages) > 0:
+                system_messages = [
+                    (i, message) for i, message in enumerate(formatted_messages) if message["role"] == "system"
+                ]
+                if len(system_messages) > 0:
+                    first_system_message_index, first_system_message = system_messages[0]
+                    formatted_messages[first_system_message_index][
+                        "content"
+                    ] = f"{first_system_message} Formatting re-enabled"
+
+        elif model_name.startswith("deepseek-reasoner"):
+            # Two successive messages cannot be from the same role. Should merge any back-to-back messages from the same role.
+            # The first message should always be a user message (except system message).
+            updated_messages: List[dict] = []
+            for i, message in enumerate(formatted_messages):
+                if i > 0 and message["role"] == formatted_messages[i - 1]["role"]:
+                    updated_messages[-1]["content"] += " " + message["content"]
+                elif i == 1 and formatted_messages[i - 1]["role"] == "system" and message["role"] == "assistant":
+                    updated_messages[-1]["content"] += " " + message["content"]
+                else:
+                    updated_messages.append(message)
+
+            formatted_messages = updated_messages
 
         if os.getenv("KHOJ_LLM_SEED"):
             model_kwargs["seed"] = int(os.getenv("KHOJ_LLM_SEED"))

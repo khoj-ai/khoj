@@ -23,10 +23,12 @@ from time import perf_counter
 from typing import TYPE_CHECKING, Any, Optional, Union
 from urllib.parse import urlparse
 
+import openai
 import psutil
 import requests
 import torch
 from asgiref.sync import sync_to_async
+from email_validator import EmailNotValidError, EmailUndeliverableError, validate_email
 from magika import Magika
 from PIL import Image
 from pytz import country_names, country_timezones
@@ -372,12 +374,12 @@ command_descriptions = {
 }
 
 command_descriptions_for_agent = {
-    ConversationCommand.General: "Agent can use the agents knowledge base and general knowledge.",
-    ConversationCommand.Notes: "Agent can search the users knowledge base for information.",
+    ConversationCommand.General: "Agent can use its own knowledge base and general knowledge.",
+    ConversationCommand.Notes: "Agent can search the personal knowledge base for information, as well as its own.",
     ConversationCommand.Online: "Agent can search the internet for information.",
     ConversationCommand.Webpage: "Agent can read suggested web pages for information.",
-    ConversationCommand.Summarize: "Agent can read an entire document. Agents knowledge base must be a single document.",
     ConversationCommand.Research: "Agent can do deep research on a topic.",
+    ConversationCommand.Code: "Agent can run Python code to parse information, run complex calculations, create documents and charts.",
 }
 
 tool_descriptions_for_llm = {
@@ -387,7 +389,6 @@ tool_descriptions_for_llm = {
     ConversationCommand.Online: "To search for the latest, up-to-date information from the internet. Note: **Questions about Khoj should always use this data source**",
     ConversationCommand.Webpage: "To use if the user has directly provided the webpage urls or you are certain of the webpage urls to read.",
     ConversationCommand.Code: "To run Python code in a Pyodide sandbox with no network access. Helpful when need to parse complex information, run complex calculations, create plaintext documents, and create charts with quantitative data. Only matplotlib, panda, numpy, scipy, bs4 and sympy external packages are available.",
-    ConversationCommand.Summarize: "To retrieve an answer that depends on the entire document or a large text.",
 }
 
 function_calling_description_for_llm = {
@@ -405,8 +406,6 @@ mode_descriptions_for_llm = {
 
 mode_descriptions_for_agent = {
     ConversationCommand.Image: "Agent can generate images in response. It cannot not use this to generate charts and graphs.",
-    ConversationCommand.Automation: "Agent can schedule a task to run at a scheduled date, time and frequency in response.",
-    ConversationCommand.Text: "Agent can generate text in response.",
     ConversationCommand.Diagram: "Agent can generate a visual representation that requires primitives like lines, rectangles, and text.",
 }
 
@@ -447,6 +446,18 @@ def generate_random_name():
 
     # Combine the words to form a name
     name = f"{adjective} {noun}"
+
+    return name
+
+
+def generate_random_internal_agent_name():
+    random_name = generate_random_name()
+
+    random_name = random_name.replace(" ", "_")
+
+    random_number = random.randint(1000, 9999)
+
+    name = f"{random_name}{random_number}"
 
     return name
 
@@ -616,3 +627,30 @@ def get_chat_usage_metrics(
         "output_tokens": prev_usage["output_tokens"] + output_tokens,
         "cost": cost or get_cost_of_chat_message(model_name, input_tokens, output_tokens, prev_cost=prev_usage["cost"]),
     }
+
+
+def get_openai_client(api_key: str, api_base_url: str) -> Union[openai.OpenAI, openai.AzureOpenAI]:
+    """Get OpenAI or AzureOpenAI client based on the API Base URL"""
+    parsed_url = urlparse(api_base_url)
+    if parsed_url.hostname and parsed_url.hostname.endswith(".openai.azure.com"):
+        client = openai.AzureOpenAI(
+            api_key=api_key,
+            azure_endpoint=api_base_url,
+            api_version="2024-10-21",
+        )
+    else:
+        client = openai.OpenAI(
+            api_key=api_key,
+            base_url=api_base_url,
+        )
+    return client
+
+
+def normalize_email(email: str, check_deliverability=False) -> tuple[str, bool]:
+    """Normalize, validate and check deliverability of email address"""
+    lower_email = email.lower()
+    try:
+        valid_email = validate_email(lower_email, check_deliverability=check_deliverability)
+        return valid_email.normalized, True
+    except (EmailNotValidError, EmailUndeliverableError):
+        return lower_email, False

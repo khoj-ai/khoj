@@ -97,6 +97,7 @@ from khoj.processor.conversation.utils import (
     ChatEvent,
     ThreadedGenerator,
     clean_json,
+    clean_mermaidjs,
     construct_chat_history,
     generate_chatml_messages_with_context,
     save_to_conversation_log,
@@ -356,8 +357,12 @@ async def aget_data_sources_and_output_format(
     source_options_str = ""
 
     agent_sources = agent.input_tools if agent else []
+    user_has_entries = await EntryAdapters.auser_has_entries(user)
 
     for source, description in tool_descriptions_for_llm.items():
+        # Skip showing Notes tool as an option if user has no entries
+        if source == ConversationCommand.Notes and not user_has_entries:
+            continue
         source_options[source.value] = description
         if len(agent_sources) == 0 or source.value in agent_sources:
             source_options_str += f'- "{source.value}": "{description}"\n'
@@ -392,12 +397,15 @@ async def aget_data_sources_and_output_format(
         personality_context=personality_context,
     )
 
+    agent_chat_model = agent.chat_model if agent else None
+
     with timer("Chat actor: Infer information sources to refer", logger):
         response = await send_message_to_model_wrapper(
             relevant_tools_prompt,
             response_type="json_object",
             user=user,
             query_files=query_files,
+            agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
 
@@ -471,6 +479,8 @@ async def infer_webpage_urls(
         personality_context=personality_context,
     )
 
+    agent_chat_model = agent.chat_model if agent else None
+
     with timer("Chat actor: Infer webpage urls to read", logger):
         response = await send_message_to_model_wrapper(
             online_queries_prompt,
@@ -478,6 +488,7 @@ async def infer_webpage_urls(
             response_type="json_object",
             user=user,
             query_files=query_files,
+            agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
 
@@ -527,6 +538,8 @@ async def generate_online_subqueries(
         personality_context=personality_context,
     )
 
+    agent_chat_model = agent.chat_model if agent else None
+
     with timer("Chat actor: Generate online search subqueries", logger):
         response = await send_message_to_model_wrapper(
             online_queries_prompt,
@@ -534,6 +547,7 @@ async def generate_online_subqueries(
             response_type="json_object",
             user=user,
             query_files=query_files,
+            agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
 
@@ -627,10 +641,13 @@ async def extract_relevant_info(
         personality_context=personality_context,
     )
 
+    agent_chat_model = agent.chat_model if agent else None
+
     response = await send_message_to_model_wrapper(
         extract_relevant_information,
         prompts.system_prompt_extract_relevant_information,
         user=user,
+        agent_chat_model=agent_chat_model,
         tracer=tracer,
     )
     return response.strip()
@@ -665,12 +682,15 @@ async def extract_relevant_summary(
         personality_context=personality_context,
     )
 
+    agent_chat_model = agent.chat_model if agent else None
+
     with timer("Chat actor: Extract relevant information from data", logger):
         response = await send_message_to_model_wrapper(
             extract_relevant_information,
             prompts.system_prompt_extract_relevant_summary,
             user=user,
             query_images=query_images,
+            agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
     return response.strip()
@@ -823,7 +843,7 @@ async def generate_better_diagram_description(
             elif online_results[result].get("webpages"):
                 simplified_online_results[result] = online_results[result]["webpages"]
 
-    improve_diagram_description_prompt = prompts.improve_diagram_description_prompt.format(
+    improve_diagram_description_prompt = prompts.improve_excalidraw_diagram_description_prompt.format(
         query=q,
         chat_history=chat_history,
         location=location,
@@ -833,12 +853,15 @@ async def generate_better_diagram_description(
         personality_context=personality_context,
     )
 
+    agent_chat_model = agent.chat_model if agent else None
+
     with timer("Chat actor: Generate better diagram description", logger):
         response = await send_message_to_model_wrapper(
             improve_diagram_description_prompt,
             query_images=query_images,
             user=user,
             query_files=query_files,
+            agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
         response = response.strip()
@@ -863,9 +886,11 @@ async def generate_excalidraw_diagram_from_description(
         query=q,
     )
 
+    agent_chat_model = agent.chat_model if agent else None
+
     with timer("Chat actor: Generate excalidraw diagram", logger):
         raw_response = await send_message_to_model_wrapper(
-            query=excalidraw_diagram_generation, user=user, tracer=tracer
+            query=excalidraw_diagram_generation, user=user, agent_chat_model=agent_chat_model, tracer=tracer
         )
         raw_response = clean_json(raw_response)
         try:
@@ -885,6 +910,140 @@ async def generate_excalidraw_diagram_from_description(
             raise AssertionError(f"Invalid response for improving diagram description: {response}")
 
     return response
+
+
+async def generate_mermaidjs_diagram(
+    q: str,
+    conversation_history: Dict[str, Any],
+    location_data: LocationData,
+    note_references: List[Dict[str, Any]],
+    online_results: Optional[dict] = None,
+    query_images: List[str] = None,
+    user: KhojUser = None,
+    agent: Agent = None,
+    send_status_func: Optional[Callable] = None,
+    query_files: str = None,
+    tracer: dict = {},
+):
+    if send_status_func:
+        async for event in send_status_func("**Enhancing the Diagramming Prompt**"):
+            yield {ChatEvent.STATUS: event}
+
+    better_diagram_description_prompt = await generate_better_mermaidjs_diagram_description(
+        q=q,
+        conversation_history=conversation_history,
+        location_data=location_data,
+        note_references=note_references,
+        online_results=online_results,
+        query_images=query_images,
+        user=user,
+        agent=agent,
+        query_files=query_files,
+        tracer=tracer,
+    )
+
+    if send_status_func:
+        async for event in send_status_func(f"**Diagram to Create:**:\n{better_diagram_description_prompt}"):
+            yield {ChatEvent.STATUS: event}
+
+    mermaidjs_diagram_description = await generate_mermaidjs_diagram_from_description(
+        q=better_diagram_description_prompt,
+        user=user,
+        agent=agent,
+        tracer=tracer,
+    )
+
+    inferred_queries = f"Instruction: {better_diagram_description_prompt}"
+
+    yield inferred_queries, mermaidjs_diagram_description
+
+
+async def generate_better_mermaidjs_diagram_description(
+    q: str,
+    conversation_history: Dict[str, Any],
+    location_data: LocationData,
+    note_references: List[Dict[str, Any]],
+    online_results: Optional[dict] = None,
+    query_images: List[str] = None,
+    user: KhojUser = None,
+    agent: Agent = None,
+    query_files: str = None,
+    tracer: dict = {},
+) -> str:
+    """
+    Generate a diagram description from the given query and context
+    """
+
+    today_date = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d, %A")
+    personality_context = (
+        prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
+    )
+
+    location = f"{location_data}" if location_data else "Unknown"
+
+    user_references = "\n\n".join([f"# {item['compiled']}" for item in note_references])
+
+    chat_history = construct_chat_history(conversation_history)
+
+    simplified_online_results = {}
+
+    if online_results:
+        for result in online_results:
+            if online_results[result].get("answerBox"):
+                simplified_online_results[result] = online_results[result]["answerBox"]
+            elif online_results[result].get("webpages"):
+                simplified_online_results[result] = online_results[result]["webpages"]
+
+    improve_diagram_description_prompt = prompts.improve_mermaid_js_diagram_description_prompt.format(
+        query=q,
+        chat_history=chat_history,
+        location=location,
+        current_date=today_date,
+        references=user_references,
+        online_results=simplified_online_results,
+        personality_context=personality_context,
+    )
+
+    agent_chat_model = agent.chat_model if agent else None
+
+    with timer("Chat actor: Generate better Mermaid.js diagram description", logger):
+        response = await send_message_to_model_wrapper(
+            improve_diagram_description_prompt,
+            query_images=query_images,
+            user=user,
+            query_files=query_files,
+            agent_chat_model=agent_chat_model,
+            tracer=tracer,
+        )
+        response = response.strip()
+        if response.startswith(('"', "'")) and response.endswith(('"', "'")):
+            response = response[1:-1]
+
+    return response
+
+
+async def generate_mermaidjs_diagram_from_description(
+    q: str,
+    user: KhojUser = None,
+    agent: Agent = None,
+    tracer: dict = {},
+) -> str:
+    personality_context = (
+        prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
+    )
+
+    mermaidjs_diagram_generation = prompts.mermaid_js_diagram_generation_prompt.format(
+        personality_context=personality_context,
+        query=q,
+    )
+
+    agent_chat_model = agent.chat_model if agent else None
+
+    with timer("Chat actor: Generate Mermaid.js diagram", logger):
+        raw_response = await send_message_to_model_wrapper(
+            query=mermaidjs_diagram_generation, user=user, agent_chat_model=agent_chat_model, tracer=tracer
+        )
+        return clean_mermaidjs(raw_response.strip())
 
 
 async def generate_better_image_prompt(
@@ -944,9 +1103,16 @@ async def generate_better_image_prompt(
             personality_context=personality_context,
         )
 
+    agent_chat_model = agent.chat_model if agent else None
+
     with timer("Chat actor: Generate contextual image prompt", logger):
         response = await send_message_to_model_wrapper(
-            image_prompt, query_images=query_images, user=user, query_files=query_files, tracer=tracer
+            image_prompt,
+            query_images=query_images,
+            user=user,
+            query_files=query_files,
+            agent_chat_model=agent_chat_model,
+            tracer=tracer,
         )
         response = response.strip()
         if response.startswith(('"', "'")) and response.endswith(('"', "'")):
@@ -963,9 +1129,10 @@ async def send_message_to_model_wrapper(
     query_images: List[str] = None,
     context: str = "",
     query_files: str = None,
+    agent_chat_model: ChatModel = None,
     tracer: dict = {},
 ):
-    chat_model: ChatModel = await ConversationAdapters.aget_default_chat_model(user)
+    chat_model: ChatModel = await ConversationAdapters.aget_default_chat_model(user, agent_chat_model)
     vision_available = chat_model.vision_enabled
     if not vision_available and query_images:
         logger.warning(f"Vision is not enabled for default model: {chat_model.name}.")
@@ -1135,6 +1302,7 @@ def send_message_to_model_wrapper_sync(
 
     elif chat_model.model_type == ChatModel.ModelType.OPENAI:
         api_key = chat_model.ai_model_api.api_key
+        api_base_url = chat_model.ai_model_api.api_base_url
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
             system_message=system_message,
@@ -1149,6 +1317,7 @@ def send_message_to_model_wrapper_sync(
         openai_response = send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
+            api_base_url=api_base_url,
             model=chat_model_name,
             response_type=response_type,
             tracer=tracer,
@@ -1222,9 +1391,10 @@ def generate_chat_response(
     raw_query_files: List[FileAttachment] = None,
     generated_images: List[str] = None,
     raw_generated_files: List[FileAttachment] = [],
-    generated_excalidraw_diagram: str = None,
+    generated_mermaidjs_diagram: str = None,
     program_execution_context: List[str] = [],
     generated_asset_results: Dict[str, Dict] = {},
+    is_subscribed: bool = False,
     tracer: dict = {},
 ) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
     # Initialize Variables
@@ -1250,7 +1420,7 @@ def generate_chat_response(
             raw_query_files=raw_query_files,
             generated_images=generated_images,
             raw_generated_files=raw_generated_files,
-            generated_excalidraw_diagram=generated_excalidraw_diagram,
+            generated_mermaidjs_diagram=generated_mermaidjs_diagram,
             tracer=tracer,
         )
 
@@ -1261,7 +1431,7 @@ def generate_chat_response(
             online_results = {}
             code_results = {}
 
-        chat_model = ConversationAdapters.get_valid_chat_model(user, conversation)
+        chat_model = ConversationAdapters.get_valid_chat_model(user, conversation, is_subscribed)
         vision_available = chat_model.vision_enabled
         if not vision_available and query_images:
             vision_enabled_config = ConversationAdapters.get_vision_enabled_config()
@@ -1783,7 +1953,7 @@ def scheduled_chat(
     raw_response = requests.post(url, headers=headers, json=json_payload, allow_redirects=False)
 
     # Handle redirect manually if necessary
-    if raw_response.status_code in [301, 302]:
+    if raw_response.status_code in [301, 302, 308]:
         redirect_url = raw_response.headers["Location"]
         logger.info(f"Redirecting to {redirect_url}")
         raw_response = requests.post(redirect_url, headers=headers, json=json_payload)
@@ -1847,7 +2017,13 @@ def schedule_automation(
         # Run automation at some random minute (to distribute request load) instead of running every X minutes
         crontime = " ".join([str(math.floor(random() * 60))] + crontime.split(" ")[1:])
 
-    user_timezone = pytz.timezone(timezone)
+    # Convert timezone string to timezone object
+    try:
+        user_timezone = pytz.timezone(timezone)
+    except pytz.UnknownTimeZoneError:
+        logger.error(f"Invalid timezone: {timezone}. Fallback to use UTC to schedule automation.")
+        user_timezone = pytz.utc
+
     trigger = CronTrigger.from_crontab(crontime, user_timezone)
     trigger.jitter = 60
     # Generate id and metadata used by task scheduler and process locks for the task runs
@@ -1965,7 +2141,7 @@ class MessageProcessor:
         self.raw_response = ""
         self.generated_images = []
         self.generated_files = []
-        self.generated_excalidraw_diagram = []
+        self.generated_mermaidjs_diagram = []
 
     def convert_message_chunk_to_json(self, raw_chunk: str) -> Dict[str, Any]:
         if raw_chunk.startswith("{") and raw_chunk.endswith("}"):
@@ -2012,8 +2188,8 @@ class MessageProcessor:
                         self.generated_images = chunk_data[key]
                     elif key == "files":
                         self.generated_files = chunk_data[key]
-                    elif key == "excalidrawDiagram":
-                        self.generated_excalidraw_diagram = chunk_data[key]
+                    elif key == "mermaidjsDiagram":
+                        self.generated_mermaidjs_diagram = chunk_data[key]
 
     def handle_json_response(self, json_data: Dict[str, str]) -> str | Dict[str, str]:
         if "image" in json_data or "details" in json_data:
@@ -2050,7 +2226,7 @@ async def read_chat_stream(response_iterator: AsyncGenerator[str, None]) -> Dict
         "usage": processor.usage,
         "images": processor.generated_images,
         "files": processor.generated_files,
-        "excalidrawDiagram": processor.generated_excalidraw_diagram,
+        "mermaidjsDiagram": processor.generated_mermaidjs_diagram,
     }
 
 
@@ -2101,7 +2277,14 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
     chat_models = ConversationAdapters.get_conversation_processor_options().all()
     chat_model_options = list()
     for chat_model in chat_models:
-        chat_model_options.append({"name": chat_model.name, "id": chat_model.id})
+        chat_model_options.append(
+            {
+                "name": chat_model.name,
+                "id": chat_model.id,
+                "strengths": chat_model.strengths,
+                "description": chat_model.description,
+            }
+        )
 
     selected_paint_model_config = ConversationAdapters.get_user_text_to_image_model_config(user)
     paint_model_options = ConversationAdapters.get_text_to_image_model_options().all()

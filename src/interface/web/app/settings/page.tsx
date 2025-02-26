@@ -3,7 +3,7 @@
 import styles from "./settings.module.css";
 import "intl-tel-input/styles";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 
 import { useUserConfig, ModelOptions, UserConfig, SubscriptionStates } from "../common/auth";
@@ -23,14 +23,6 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import {
-    CommandInput,
-    CommandList,
-    CommandEmpty,
-    CommandGroup,
-    CommandItem,
-    CommandDialog,
-} from "@/components/ui/command";
 
 import {
     ArrowRight,
@@ -56,319 +48,21 @@ import {
     ArrowCircleUp,
     ArrowCircleDown,
     ArrowsClockwise,
-    Check,
     CaretDown,
     Waveform,
+    MagnifyingGlass,
+    Brain,
+    EyeSlash,
+    Eye,
 } from "@phosphor-icons/react";
 
 import Loading from "../components/loading/loading";
 
 import IntlTelInput from "intl-tel-input/react";
-import { uploadDataForIndexing } from "../common/chatFunctions";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Progress } from "@/components/ui/progress";
-import Link from "next/link";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "../components/appSidebar/appSidebar";
 import { Separator } from "@/components/ui/separator";
 import { KhojLogoType } from "../components/logo/khojLogo";
-
-const ManageFilesModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-    const [syncedFiles, setSyncedFiles] = useState<string[]>([]);
-    const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [isDragAndDropping, setIsDragAndDropping] = useState(false);
-
-    const [warning, setWarning] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [uploading, setUploading] = useState(false);
-    const [progressValue, setProgressValue] = useState(0);
-    const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        if (!uploading) {
-            setProgressValue(0);
-        }
-
-        if (uploading) {
-            const interval = setInterval(() => {
-                setProgressValue((prev) => {
-                    const increment = Math.floor(Math.random() * 5) + 1; // Generates a random number between 1 and 5
-                    const nextValue = prev + increment;
-                    return nextValue < 100 ? nextValue : 100; // Ensures progress does not exceed 100
-                });
-            }, 800);
-            return () => clearInterval(interval);
-        }
-    }, [uploading]);
-
-    useEffect(() => {
-        const fetchFiles = async () => {
-            try {
-                const response = await fetch("/api/content/computer");
-                if (!response.ok) throw new Error("Failed to fetch files");
-
-                // Extract resonse
-                const syncedFiles = await response.json();
-                // Validate response
-                if (Array.isArray(syncedFiles)) {
-                    // Set synced files state
-                    setSyncedFiles(syncedFiles.toSorted());
-                } else {
-                    console.error("Unexpected data format from API");
-                }
-            } catch (error) {
-                console.error("Error fetching files:", error);
-            }
-        };
-
-        fetchFiles();
-    }, [uploadedFiles]);
-
-    const filteredFiles = syncedFiles.filter((file) =>
-        file.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
-
-    const deleteSelected = async () => {
-        let filesToDelete = selectedFiles.length > 0 ? selectedFiles : filteredFiles;
-
-        if (filesToDelete.length === 0) {
-            return;
-        }
-
-        try {
-            const response = await fetch("/api/content/files", {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ files: filesToDelete }),
-            });
-
-            if (!response.ok) throw new Error("Failed to delete files");
-
-            // Update the syncedFiles state
-            setSyncedFiles((prevFiles) =>
-                prevFiles.filter((file) => !filesToDelete.includes(file)),
-            );
-
-            // Reset selectedFiles
-            setSelectedFiles([]);
-        } catch (error) {
-            console.error("Error deleting files:", error);
-        }
-    };
-
-    const deleteFile = async (filename: string) => {
-        try {
-            const response = await fetch(
-                `/api/content/file?filename=${encodeURIComponent(filename)}`,
-                {
-                    method: "DELETE",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                },
-            );
-
-            if (!response.ok) throw new Error("Failed to delete file");
-
-            // Update the syncedFiles state
-            setSyncedFiles((prevFiles) => prevFiles.filter((file) => file !== filename));
-
-            // Remove the file from selectedFiles if it's there
-            setSelectedFiles((prevSelected) => prevSelected.filter((file) => file !== filename));
-        } catch (error) {
-            console.error("Error deleting file:", error);
-        }
-    };
-
-    function handleDragOver(event: React.DragEvent<HTMLDivElement>) {
-        event.preventDefault();
-        setIsDragAndDropping(true);
-    }
-
-    function handleDragLeave(event: React.DragEvent<HTMLDivElement>) {
-        event.preventDefault();
-        setIsDragAndDropping(false);
-    }
-
-    function handleDragAndDropFiles(event: React.DragEvent<HTMLDivElement>) {
-        event.preventDefault();
-        setIsDragAndDropping(false);
-
-        if (!event.dataTransfer.files) return;
-
-        uploadFiles(event.dataTransfer.files);
-    }
-
-    function openFileInput() {
-        if (fileInputRef && fileInputRef.current) {
-            fileInputRef.current.click();
-        }
-    }
-
-    function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-        if (!event.target.files) return;
-
-        uploadFiles(event.target.files);
-    }
-
-    function uploadFiles(files: FileList) {
-        uploadDataForIndexing(files, setWarning, setUploading, setError, setUploadedFiles);
-    }
-
-    return (
-        <CommandDialog open={true} onOpenChange={onClose}>
-            <AlertDialog open={warning !== null || error != null}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Alert</AlertDialogTitle>
-                    </AlertDialogHeader>
-                    <AlertDialogDescription>{warning || error}</AlertDialogDescription>
-                    <AlertDialogAction
-                        className="bg-slate-400 hover:bg-slate-500"
-                        onClick={() => {
-                            setWarning(null);
-                            setError(null);
-                            setUploading(false);
-                        }}
-                    >
-                        Close
-                    </AlertDialogAction>
-                </AlertDialogContent>
-            </AlertDialog>
-            <div
-                className={`flex flex-col h-full`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDragAndDropFiles}
-                onClick={openFileInput}
-            >
-                <input
-                    type="file"
-                    multiple
-                    ref={fileInputRef}
-                    style={{ display: "none" }}
-                    onChange={handleFileChange}
-                />
-                <div className="flex-none p-4">
-                    Upload files
-                    {uploading && (
-                        <Progress
-                            indicatorColor="bg-slate-500"
-                            className="w-full h-2 rounded-full"
-                            value={progressValue}
-                        />
-                    )}
-                </div>
-                <div
-                    className={`flex-none p-4 bg-secondary border-b ${isDragAndDropping ? "animate-pulse" : ""} rounded-lg`}
-                >
-                    <div className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg">
-                        {isDragAndDropping ? (
-                            <div className="flex items-center justify-center w-full h-full">
-                                <Waveform className="h-6 w-6 mr-2" />
-                                <span>Drop files to upload</span>
-                            </div>
-                        ) : (
-                            <div className="flex items-center justify-center w-full h-full">
-                                <Plus className="h-6 w-6 mr-2" />
-                                <span>Drag and drop files here</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-            <div className="flex flex-col h-full">
-                <div className="flex-none p-4 bg-background border-b">
-                    <CommandInput
-                        placeholder="Find synced files"
-                        value={searchQuery}
-                        onValueChange={setSearchQuery}
-                    />
-                </div>
-                <div className="flex-grow overflow-auto">
-                    <CommandList>
-                        <CommandEmpty>
-                            {syncedFiles.length === 0 ? (
-                                <div className="flex items-center justify-center">
-                                    <ExclamationMark className="h-4 w-4 mr-2" weight="bold" />
-                                    No files synced
-                                </div>
-                            ) : (
-                                <div>
-                                    Could not find a good match.
-                                    <Link href="/search" className="block">
-                                        Need advanced search? Click here.
-                                    </Link>
-                                </div>
-                            )}
-                        </CommandEmpty>
-                        <CommandGroup heading="Synced files">
-                            {filteredFiles.map((filename: string) => (
-                                <CommandItem
-                                    key={filename}
-                                    value={filename}
-                                    onSelect={(value) => {
-                                        setSelectedFiles((prev) =>
-                                            prev.includes(value)
-                                                ? prev.filter((f) => f !== value)
-                                                : [...prev, value],
-                                        );
-                                    }}
-                                >
-                                    <div className="flex items-center justify-between w-full">
-                                        <div
-                                            className={`flex items-center ${selectedFiles.includes(filename) ? "font-semibold" : ""}`}
-                                        >
-                                            {selectedFiles.includes(filename) && (
-                                                <Check className="h-4 w-4 mr-2" />
-                                            )}
-                                            <span className="break-all">{filename}</span>
-                                        </div>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => deleteFile(filename)}
-                                            className="ml-auto"
-                                        >
-                                            <Trash className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </CommandItem>
-                            ))}
-                        </CommandGroup>
-                    </CommandList>
-                </div>
-
-                <div className="flex-none p-4 bg-background border-t">
-                    <div className="flex justify-between">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={deleteSelected}
-                            className="mr-2"
-                        >
-                            <Trash className="h-4 w-4 mr-2" />
-                            {selectedFiles.length > 0
-                                ? `Delete Selected (${selectedFiles.length})`
-                                : "Delete All"}
-                        </Button>
-                    </div>
-                </div>
-            </div>
-        </CommandDialog>
-    );
-};
 
 interface DropdownComponentProps {
     items: ModelOptions[];
@@ -490,6 +184,101 @@ const useApiKeys = () => {
     };
 };
 
+function ApiKeyCard() {
+    const { apiKeys, generateAPIKey, copyAPIKey, deleteAPIKey } = useApiKeys();
+    const [visibleApiKeys, setVisibleApiKeys] = useState<Set<string>>(new Set());
+    const { toast } = useToast();
+
+    return (
+        <Card className="grid grid-flow-column border border-gray-300 shadow-md rounded-lg dark:bg-muted dark:border-none border-opacity-50 lg:w-2/3">
+            <CardHeader className="text-xl grid grid-flow-col grid-cols-[1fr_auto] pb-0">
+                <span className="flex flex-wrap">
+                    <Key className="h-7 w-7 mr-2" />
+                    API Keys
+                </span>
+                <Button variant="secondary" className="!mt-0" onClick={generateAPIKey}>
+                    <Plus weight="bold" className="h-5 w-5 mr-2" />
+                    Generate Key
+                </Button>
+            </CardHeader>
+            <CardContent className="overflow-hidden grid gap-6">
+                <p className="text-md text-gray-400">
+                    Access Khoj from the{" "}
+                    <a href="https://docs.khoj.dev/clients/desktop" target="_blank">
+                        Desktop
+                    </a>
+                    , <a href="https://docs.khoj.dev/clients/obsidian">Obsidian</a>,{" "}
+                    <a href="https://docs.khoj.dev/clients/emacs">Emacs</a> apps and more.
+                </p>
+                <Table>
+                    <TableBody>
+                        {apiKeys.map((key) => (
+                            <TableRow key={key.token}>
+                                <TableCell className="pl-0 py-3">{key.name}</TableCell>
+                                <TableCell className="grid grid-flow-col grid-cols-[1fr_auto] bg-secondary dark:bg-background rounded-xl p-3 m-1">
+                                    <span className="font-mono text-left w-[50px] md:w-[400px]">
+                                        {visibleApiKeys.has(key.token)
+                                            ? key.token
+                                            : `${key.token.slice(0, 6)}...${key.token.slice(-4)}`}
+                                    </span>
+                                    <div className="grid grid-flow-col">
+                                        {visibleApiKeys.has(key.token) ? (
+                                            <EyeSlash
+                                                weight="bold"
+                                                className="h-4 w-4 mr-2 hover:bg-primary/40"
+                                                onClick={() =>
+                                                    setVisibleApiKeys((prev) => {
+                                                        const next = new Set(prev);
+                                                        next.delete(key.token);
+                                                        return next;
+                                                    })
+                                                }
+                                            />
+                                        ) : (
+                                            <Eye
+                                                weight="bold"
+                                                className="h-4 w-4 mr-2 hover:bg-primary/40"
+                                                onClick={() =>
+                                                    setVisibleApiKeys(
+                                                        new Set([...visibleApiKeys, key.token]),
+                                                    )
+                                                }
+                                            />
+                                        )}
+                                        <Copy
+                                            weight="bold"
+                                            className="h-4 w-4 mr-2 hover:bg-primary/40"
+                                            onClick={() => {
+                                                toast({
+                                                    title: `🔑 Copied API Key: ${key.name}`,
+                                                    description: `Set this API key in the Khoj apps you want to connect to this Khoj account`,
+                                                });
+                                                copyAPIKey(key.token);
+                                            }}
+                                        />
+                                        <Trash
+                                            weight="bold"
+                                            className="h-4 w-4 mr-2 md:ml-4 text-red-400 hover:bg-primary/40"
+                                            onClick={() => {
+                                                toast({
+                                                    title: `🔑 Deleted API Key: ${key.name}`,
+                                                    description: `Apps using this API key will no longer connect to this Khoj account`,
+                                                });
+                                                deleteAPIKey(key.token);
+                                            }}
+                                        />
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+            <CardFooter className="flex flex-wrap gap-4" />
+        </Card>
+    );
+}
+
 enum PhoneNumberValidationState {
     Setup = "setup",
     SendOTP = "otp",
@@ -498,8 +287,7 @@ enum PhoneNumberValidationState {
 }
 
 export default function SettingsView() {
-    const { apiKeys, generateAPIKey, copyAPIKey, deleteAPIKey } = useApiKeys();
-    const { userConfig: initialUserConfig } = useUserConfig(true);
+    const { data: initialUserConfig } = useUserConfig(true);
     const [userConfig, setUserConfig] = useState<UserConfig | null>(null);
     const [name, setName] = useState<string | undefined>(undefined);
     const [notionToken, setNotionToken] = useState<string | null>(null);
@@ -508,14 +296,13 @@ export default function SettingsView() {
     const [numberValidationState, setNumberValidationState] = useState<PhoneNumberValidationState>(
         PhoneNumberValidationState.Verified,
     );
-    const [isManageFilesModalOpen, setIsManageFilesModalOpen] = useState(false);
     const { toast } = useToast();
     const isMobileWidth = useIsMobileWidth();
 
     const title = "Settings";
 
     const cardClassName =
-        "w-full lg:w-5/12 grid grid-flow-column border border-gray-300 shadow-md rounded-lg border dark:border-none dark:bg-muted border-opacity-50";
+        "w-full lg:w-5/12 grid grid-flow-column border border-gray-300 shadow-md rounded-lg border dark:border-none border-opacity-50 dark:bg-muted";
 
     useEffect(() => {
         setUserConfig(initialUserConfig);
@@ -1066,18 +853,13 @@ export default function SettingsView() {
                                             </Card>
                                         </div>
                                     </div>
-                                    {isManageFilesModalOpen && (
-                                        <ManageFilesModal
-                                            onClose={() => setIsManageFilesModalOpen(false)}
-                                        />
-                                    )}
                                     <div className="section grid gap-8">
                                         <div className="text-2xl">Content</div>
                                         <div className="cards flex flex-wrap gap-16">
                                             <Card id="computer" className={cardClassName}>
-                                                <CardHeader className="flex flex-row text-2xl">
-                                                    <Laptop className="h-8 w-8 mr-2" />
-                                                    Files
+                                                <CardHeader className="flex flex-row text-xl">
+                                                    <Brain className="h-8 w-8 mr-2" />
+                                                    Knowledge Base
                                                     {userConfig.enabled_content_source.computer && (
                                                         <CheckCircle
                                                             className="h-6 w-6 ml-auto text-green-500"
@@ -1086,20 +868,19 @@ export default function SettingsView() {
                                                     )}
                                                 </CardHeader>
                                                 <CardContent className="overflow-hidden pb-12 text-gray-400">
-                                                    Manage your synced files
+                                                    Manage and search through your digital brain.
                                                 </CardContent>
                                                 <CardFooter className="flex flex-wrap gap-4">
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
+                                                        title="Search thorugh files"
                                                         onClick={() =>
-                                                            setIsManageFilesModalOpen(true)
+                                                            (window.location.href = "/search")
                                                         }
                                                     >
-                                                        <>
-                                                            <Files className="h-5 w-5 inline mr-1" />
-                                                            Manage
-                                                        </>
+                                                        <MagnifyingGlass className="h-5 w-5 inline mr-1" />
+                                                        Search
                                                     </Button>
                                                     <Button
                                                         variant="outline"
@@ -1110,7 +891,7 @@ export default function SettingsView() {
                                                         }
                                                     >
                                                         <CloudSlash className="h-5 w-5 inline mr-1" />
-                                                        Disable
+                                                        Clear All
                                                     </Button>
                                                 </CardFooter>
                                             </Card>
@@ -1333,92 +1114,7 @@ export default function SettingsView() {
                                             Clients
                                         </div>
                                         <div className="cards flex flex-col flex-wrap gap-8">
-                                            {!userConfig.anonymous_mode && (
-                                                <Card className="grid grid-flow-column border border-gray-300 shadow-md rounded-lg dark:bg-muted dark:border-none border-opacity-50 lg:w-2/3">
-                                                    <CardHeader className="text-xl grid grid-flow-col grid-cols-[1fr_auto] pb-0">
-                                                        <span className="flex flex-wrap">
-                                                            <Key className="h-7 w-7 mr-2" />
-                                                            API Keys
-                                                        </span>
-                                                        <Button
-                                                            variant="secondary"
-                                                            className="!mt-0"
-                                                            onClick={generateAPIKey}
-                                                        >
-                                                            <Plus
-                                                                weight="bold"
-                                                                className="h-5 w-5 mr-2"
-                                                            />
-                                                            Generate Key
-                                                        </Button>
-                                                    </CardHeader>
-                                                    <CardContent className="overflow-hidden grid gap-6">
-                                                        <p className="text-md text-gray-400">
-                                                            Access Khoj from the{" "}
-                                                            <a
-                                                                href="https://docs.khoj.dev/clients/Desktop"
-                                                                target="_blank"
-                                                            >
-                                                                Desktop
-                                                            </a>
-                                                            ,{" "}
-                                                            <a href="https://docs.khoj.dev/clients/Obsidian">
-                                                                Obsidian
-                                                            </a>
-                                                            ,{" "}
-                                                            <a href="https://docs.khoj.dev/clients/Emacs">
-                                                                Emacs
-                                                            </a>{" "}
-                                                            apps and more.
-                                                        </p>
-                                                        <Table>
-                                                            <TableBody>
-                                                                {apiKeys.map((key) => (
-                                                                    <TableRow key={key.token}>
-                                                                        <TableCell className="pl-0 py-3">
-                                                                            {key.name}
-                                                                        </TableCell>
-                                                                        <TableCell className="grid grid-flow-col grid-cols-[1fr_auto] bg-secondary rounded-xl p-3 m-1">
-                                                                            <span>
-                                                                                {`${key.token.slice(0, 6)}...${key.token.slice(-4)}`}
-                                                                            </span>
-                                                                            <div className="grid grid-flow-col">
-                                                                                <Copy
-                                                                                    weight="bold"
-                                                                                    className="h-4 w-4 mr-2 hover:bg-primary/40"
-                                                                                    onClick={() => {
-                                                                                        toast({
-                                                                                            title: `🔑 Copied API Key: ${key.name}`,
-                                                                                            description: `Set this API key in the Khoj apps you want to connect to this Khoj account`,
-                                                                                        });
-                                                                                        copyAPIKey(
-                                                                                            key.token,
-                                                                                        );
-                                                                                    }}
-                                                                                />
-                                                                                <Trash
-                                                                                    weight="bold"
-                                                                                    className="h-4 w-4 mr-2 md:ml-4 text-red-400 hover:bg-primary/40"
-                                                                                    onClick={() => {
-                                                                                        toast({
-                                                                                            title: `🔑 Deleted API Key: ${key.name}`,
-                                                                                            description: `Apps using this API key will no longer connect to this Khoj account`,
-                                                                                        });
-                                                                                        deleteAPIKey(
-                                                                                            key.token,
-                                                                                        );
-                                                                                    }}
-                                                                                />
-                                                                            </div>
-                                                                        </TableCell>
-                                                                    </TableRow>
-                                                                ))}
-                                                            </TableBody>
-                                                        </Table>
-                                                    </CardContent>
-                                                    <CardFooter className="flex flex-wrap gap-4"></CardFooter>
-                                                </Card>
-                                            )}
+                                            {!userConfig.anonymous_mode && <ApiKeyCard />}
                                             <Card className={`${cardClassName} lg:w-2/3`}>
                                                 <CardHeader className="text-xl flex flex-row">
                                                     <WhatsappLogo className="h-7 w-7 mr-2" />

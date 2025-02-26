@@ -12,8 +12,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Moon, Sun, UserCircle, Question, ArrowRight, Code } from "@phosphor-icons/react";
-import { useIsMobileWidth } from "@/app/common/utils";
+import { Moon, Sun, UserCircle, Question, ArrowRight, Code, BuildingOffice } from "@phosphor-icons/react";
+import { useIsDarkMode, useIsMobileWidth } from "@/app/common/utils";
 import LoginPrompt from "../loginPrompt/loginPrompt";
 import { Button } from "@/components/ui/button";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
@@ -49,43 +49,27 @@ export default function FooterMenu({ sideBarIsOpen }: NavMenuProps) {
         error: authenticationError,
         isLoading: authenticationLoading,
     } = useAuthenticatedData();
-    const [darkMode, setDarkMode] = useState(false);
-    const [initialLoadDone, setInitialLoadDone] = useState(false);
+    const [darkMode, setDarkMode] = useIsDarkMode();
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
     const isMobileWidth = useIsMobileWidth();
 
-    useEffect(() => {
-        if (localStorage.getItem("theme") === "dark") {
-            document.documentElement.classList.add("dark");
-            setDarkMode(true);
-        } else if (localStorage.getItem("theme") === "light") {
-            document.documentElement.classList.remove("dark");
-            setDarkMode(false);
-        } else {
-            const mq = window.matchMedia("(prefers-color-scheme: dark)");
-
-            if (mq.matches) {
-                document.documentElement.classList.add("dark");
-                setDarkMode(true);
-            }
-        }
-
-        setInitialLoadDone(true);
-    }, []);
-
-    useEffect(() => {
-        if (!initialLoadDone) return;
-        toggleDarkMode(darkMode);
-    }, [darkMode, initialLoadDone]);
-
-    function toggleDarkMode(darkMode: boolean) {
-        if (darkMode) {
-            document.documentElement.classList.add("dark");
-        } else {
-            document.documentElement.classList.remove("dark");
-        }
-        localStorage.setItem("theme", darkMode ? "dark" : "light");
-    }
+    const menuItems = [
+        {
+            title: "Help",
+            icon: <Question className="w-6 h-6" />,
+            link: "https://docs.khoj.dev",
+        },
+        {
+            title: "Releases",
+            icon: <Code className="w-6 h-6" />,
+            link: "https://github.com/khoj-ai/khoj/releases",
+        },
+        {
+            title: "Teams",
+            icon: <BuildingOffice className="w-6 h-6" />,
+            link: "https://khoj.dev/teams",
+        },
+    ]
 
     return (
         <SidebarMenu className="border-none p-0 m-0">
@@ -147,26 +131,18 @@ export default function FooterMenu({ sideBarIsOpen }: NavMenuProps) {
                                 </p>
                             </div>
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                            <Link href="https://docs.khoj.dev" className="no-underline w-full">
-                                <div className="flex flex-rows">
-                                    <Question className="w-6 h-6" />
-                                    <p className="ml-3 font-semibold">Help</p>
-                                </div>
-                            </Link>
-                        </DropdownMenuItem>
-
-                        <DropdownMenuItem>
-                            <Link
-                                href="https://github.com/khoj-ai/khoj/releases"
-                                className="no-underline w-full"
-                            >
-                                <div className="flex flex-rows">
-                                    <Code className="w-6 h-6" />
-                                    <p className="ml-3 font-semibold">Releases</p>
-                                </div>
-                            </Link>
-                        </DropdownMenuItem>
+                        {
+                            menuItems.map((menuItem, index) => (
+                                <DropdownMenuItem key={index}>
+                                    <Link href={menuItem.link} className="no-underline w-full">
+                                        <div className="flex flex-rows">
+                                            {menuItem.icon}
+                                            <p className="ml-3 font-semibold">{menuItem.title}</p>
+                                        </div>
+                                    </Link>
+                                </DropdownMenuItem>
+                            ))
+                        }
                         {!userData ? (
                             <DropdownMenuItem>
                                 <Button

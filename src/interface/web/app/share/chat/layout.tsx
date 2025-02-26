@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { noto_sans, noto_sans_arabic } from "@/app/fonts";
 import "../../globals.css";
 import { ContentSecurityPolicy } from "@/app/common/layoutHelper";
+import { ThemeProvider } from "@/app/components/providers/themeProvider";
 
 export const metadata: Metadata = {
     title: "Khoj AI - Ask Anything",
@@ -40,14 +41,30 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en" className={`${noto_sans.variable} ${noto_sans_arabic.variable}`}>
-            <ContentSecurityPolicy />
-            <body>
-                {children}
+            <head>
                 <script
                     dangerouslySetInnerHTML={{
-                        __html: `window.EXCALIDRAW_ASSET_PATH = 'https://assets.khoj.dev/@excalidraw/excalidraw/dist/';`,
+                        __html: `
+                            try {
+                                if (localStorage.getItem('theme') === 'dark' ||
+                                    (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                                    document.documentElement.classList.add('dark');
+                                }
+                            } catch (e) {}
+                        `,
                     }}
                 />
+            </head>
+            <ContentSecurityPolicy />
+            <body>
+                <ThemeProvider>
+                    {children}
+                    <script
+                        dangerouslySetInnerHTML={{
+                            __html: `window.EXCALIDRAW_ASSET_PATH = 'https://assets.khoj.dev/@excalidraw/excalidraw/dist/';`,
+                        }}
+                    />
+                </ThemeProvider>
             </body>
         </html>
     );

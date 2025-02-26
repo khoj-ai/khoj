@@ -9,9 +9,9 @@ from fastapi import APIRouter, Request
 from fastapi.requests import Request
 from fastapi.responses import Response
 from pydantic import BaseModel
-from starlette.authentication import requires
+from starlette.authentication import has_required_scope, requires
 
-from khoj.database.adapters import AgentAdapters, ConversationAdapters
+from khoj.database.adapters import AgentAdapters, ConversationAdapters, EntryAdapters
 from khoj.database.models import Agent, Conversation, KhojUser
 from khoj.routers.helpers import CommonQueryParams, acheck_if_safe_prompt
 from khoj.utils.helpers import (
@@ -38,6 +38,15 @@ class ModifyAgentBody(BaseModel):
     input_tools: Optional[List[str]] = []
     output_modes: Optional[List[str]] = []
     slug: Optional[str] = None
+    is_hidden: Optional[bool] = False
+
+
+class ModifyHiddenAgentBody(BaseModel):
+    slug: Optional[str] = None
+    persona: Optional[str] = None
+    chat_model: Optional[str] = None
+    input_tools: Optional[List[str]] = []
+    output_modes: Optional[List[str]] = []
 
 
 @api_agents.get("", response_class=Response)
@@ -89,6 +98,48 @@ async def all_agents(
     agents_packet.sort(key=lambda x: conversation_times.get(x["slug"]) or min_date, reverse=True)
     if default_agent_packet:
         agents_packet.insert(0, default_agent_packet)
+
+    return Response(content=json.dumps(agents_packet), media_type="application/json", status_code=200)
+
+
+@api_agents.get("/conversation", response_class=Response)
+@requires(["authenticated"])
+async def get_agent_by_conversation(
+    request: Request,
+    common: CommonQueryParams,
+    conversation_id: str,
+) -> Response:
+    user: KhojUser = request.user.object if request.user.is_authenticated else None
+    is_subscribed = has_required_scope(request, ["premium"])
+    conversation = await ConversationAdapters.aget_conversation_by_user(user=user, conversation_id=conversation_id)
+
+    if not conversation:
+        return Response(
+            content=json.dumps({"error": f"Conversation with id {conversation_id} not found for user {user}."}),
+            media_type="application/json",
+            status_code=404,
+        )
+
+    agent = await AgentAdapters.aget_agent_by_slug(conversation.agent.slug, user)
+
+    has_files = agent.fileobject_set.exists()
+
+    agents_packet = {
+        "slug": agent.slug,
+        "name": agent.name,
+        "persona": agent.personality,
+        "creator": agent.creator.username if agent.creator else None,
+        "managed_by_admin": agent.managed_by_admin,
+        "color": agent.style_color,
+        "icon": agent.style_icon,
+        "privacy_level": agent.privacy_level,
+        "chat_model": agent.chat_model.name if is_subscribed else None,
+        "has_files": has_files,
+        "input_tools": agent.input_tools,
+        "output_modes": agent.output_modes,
+        "is_creator": agent.creator == user,
+        "is_hidden": agent.is_hidden,
+    }
 
     return Response(content=json.dumps(agents_packet), media_type="application/json", status_code=200)
 
@@ -182,6 +233,108 @@ async def delete_agent(
     return Response(content=json.dumps({"message": "Agent deleted."}), media_type="application/json", status_code=200)
 
 
+@api_agents.patch("/hidden", response_class=Response)
+@requires(["authenticated"])
+async def update_hidden_agent(
+    request: Request,
+    common: CommonQueryParams,
+    body: ModifyHiddenAgentBody,
+) -> Response:
+    user: KhojUser = request.user.object
+
+    subscribed = has_required_scope(request, ["premium"])
+    chat_model = body.chat_model if subscribed else None
+
+    selected_agent = await AgentAdapters.aget_agent_by_slug(body.slug, user)
+
+    if not selected_agent:
+        return Response(
+            content=json.dumps({"error": f"Agent with name {body.slug} not found."}),
+            media_type="application/json",
+            status_code=404,
+        )
+
+    agent = await AgentAdapters.aupdate_hidden_agent(
+        user=user,
+        slug=body.slug,
+        persona=body.persona,
+        chat_model=chat_model,
+        input_tools=body.input_tools,
+        output_modes=body.output_modes,
+        existing_agent=selected_agent,
+    )
+
+    agents_packet = {
+        "slug": agent.slug,
+        "name": agent.name,
+        "persona": agent.personality,
+        "creator": agent.creator.username if agent.creator else None,
+        "chat_model": agent.chat_model.name,
+        "input_tools": agent.input_tools,
+        "output_modes": agent.output_modes,
+    }
+
+    return Response(content=json.dumps(agents_packet), media_type="application/json", status_code=200)
+
+
+@api_agents.post("/hidden", response_class=Response)
+@requires(["authenticated"])
+async def create_hidden_agent(
+    request: Request,
+    common: CommonQueryParams,
+    conversation_id: str,
+    body: ModifyHiddenAgentBody,
+) -> Response:
+    user: KhojUser = request.user.object
+
+    subscribed = has_required_scope(request, ["premium"])
+    chat_model = body.chat_model if subscribed else None
+
+    conversation = await ConversationAdapters.aget_conversation_by_user(user=user, conversation_id=conversation_id)
+    if not conversation:
+        return Response(
+            content=json.dumps({"error": f"Conversation with id {conversation_id} not found for user {user}."}),
+            media_type="application/json",
+            status_code=404,
+        )
+
+    if conversation.agent:
+        # If the conversation is not already associated with an agent (i.e., it's using the default agent ), we can create a new one
+        if conversation.agent.slug != AgentAdapters.DEFAULT_AGENT_SLUG:
+            return Response(
+                content=json.dumps(
+                    {"error": f"Conversation with id {conversation_id} already has an agent. Use the PATCH method."}
+                ),
+                media_type="application/json",
+                status_code=400,
+            )
+
+    agent = await AgentAdapters.aupdate_hidden_agent(
+        user=user,
+        slug=body.slug,
+        persona=body.persona,
+        chat_model=chat_model,
+        input_tools=body.input_tools,
+        output_modes=body.output_modes,
+        existing_agent=None,
+    )
+
+    conversation.agent = agent
+    await conversation.asave()
+
+    agents_packet = {
+        "slug": agent.slug,
+        "name": agent.name,
+        "persona": agent.personality,
+        "creator": agent.creator.username if agent.creator else None,
+        "chat_model": agent.chat_model.name,
+        "input_tools": agent.input_tools,
+        "output_modes": agent.output_modes,
+    }
+
+    return Response(content=json.dumps(agents_packet), media_type="application/json", status_code=200)
+
+
 @api_agents.post("", response_class=Response)
 @requires(["authenticated"])
 async def create_agent(
@@ -202,6 +355,9 @@ async def create_agent(
             status_code=400,
         )
 
+    subscribed = has_required_scope(request, ["premium"])
+    chat_model = body.chat_model if subscribed else None
+
     agent = await AgentAdapters.aupdate_agent(
         user,
         body.name,
@@ -209,11 +365,12 @@ async def create_agent(
         body.privacy_level,
         body.icon,
         body.color,
-        body.chat_model,
+        chat_model,
         body.files,
         body.input_tools,
         body.output_modes,
         body.slug,
+        body.is_hidden,
     )
 
     agents_packet = {
@@ -229,6 +386,7 @@ async def create_agent(
         "files": body.files,
         "input_tools": agent.input_tools,
         "output_modes": agent.output_modes,
+        "is_hidden": agent.is_hidden,
     }
 
     return Response(content=json.dumps(agents_packet), media_type="application/json", status_code=200)
@@ -263,6 +421,9 @@ async def update_agent(
             status_code=404,
         )
 
+    subscribed = has_required_scope(request, ["premium"])
+    chat_model = body.chat_model if subscribed else None
+
     agent = await AgentAdapters.aupdate_agent(
         user,
         body.name,
@@ -270,7 +431,7 @@ async def update_agent(
         body.privacy_level,
         body.icon,
         body.color,
-        body.chat_model,
+        chat_model,
         body.files,
         body.input_tools,
         body.output_modes,

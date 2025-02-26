@@ -2,6 +2,7 @@
 
 import styles from "./chatHistory.module.css";
 import { useRef, useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 import ChatMessage, {
     ChatHistoryData,
@@ -13,11 +14,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { InlineLoading } from "../loading/loading";
 
-import { Lightbulb, ArrowDown, XCircle } from "@phosphor-icons/react";
+import { Lightbulb, ArrowDown, CaretDown, CaretUp } from "@phosphor-icons/react";
 
 import AgentProfileCard from "../profileCard/profileCard";
 import { getIconFromIconName } from "@/app/common/iconUtils";
-import { AgentData } from "@/app/agents/page";
+import { AgentData } from "@/app/components/agentCard/agentCard";
 import React from "react";
 import { useIsMobileWidth } from "@/app/common/utils";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ interface ChatHistoryProps {
     publicConversationSlug?: string;
     setAgent: (agent: AgentData) => void;
     customClassName?: string;
+    setIsChatSideBarOpen?: (isOpen: boolean) => void;
 }
 
 interface TrainOfThoughtComponentProps {
@@ -54,6 +56,19 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
     const lastIndex = props.trainOfThought.length - 1;
     const [collapsed, setCollapsed] = useState(props.completed);
 
+    const variants = {
+        open: {
+            height: "auto",
+            opacity: 1,
+            transition: { duration: 0.3, ease: "easeOut" }
+        },
+        closed: {
+            height: 0,
+            opacity: 0,
+            transition: { duration: 0.3, ease: "easeIn" }
+        }
+    };
+
     useEffect(() => {
         if (props.completed) {
             setCollapsed(true);
@@ -62,7 +77,7 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
 
     return (
         <div
-            className={`${!collapsed ? styles.trainOfThought + " shadow-sm" : ""}`}
+            className={`${!collapsed ? styles.trainOfThought + " border" : ""} rounded-lg`}
             key={props.keyId}
         >
             {!props.completed && <InlineLoading className="float-right" />}
@@ -74,7 +89,7 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
                         variant="ghost"
                         size="sm"
                     >
-                        What was my train of thought?
+                        Thought Process <CaretDown size={16} className="ml-1" />
                     </Button>
                 ) : (
                     <Button
@@ -83,19 +98,28 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
                         variant="ghost"
                         size="sm"
                     >
-                        <XCircle size={16} className="mr-1" />
-                        Close
+                        Close <CaretUp size={16} className="ml-1" />
                     </Button>
                 ))}
-            {!collapsed &&
-                props.trainOfThought.map((train, index) => (
-                    <TrainOfThought
-                        key={`train-${index}`}
-                        message={train}
-                        primary={index === lastIndex && props.lastMessage && !props.completed}
-                        agentColor={props.agentColor}
-                    />
-                ))}
+            <AnimatePresence initial={false}>
+                {!collapsed && (
+                    <motion.div
+                        initial="closed"
+                        animate="open"
+                        exit="closed"
+                        variants={variants}
+                    >
+                        {props.trainOfThought.map((train, index) => (
+                            <TrainOfThought
+                                key={`train-${index}`}
+                                message={train}
+                                primary={index === lastIndex && props.lastMessage && !props.completed}
+                                agentColor={props.agentColor}
+                            />
+                        ))}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
@@ -118,6 +142,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
     const isMobileWidth = useIsMobileWidth();
     const scrollAreaSelector = "[data-radix-scroll-area-viewport]";
     const fetchMessageCount = 10;
+    const hasStartingMessage = localStorage.getItem("message");
 
     useEffect(() => {
         const scrollAreaEl = scrollAreaRef.current?.querySelector<HTMLElement>(scrollAreaSelector);
@@ -149,6 +174,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                 latestUserMessageRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
             });
         }
+
     }, [data, currentPage]);
 
     useEffect(() => {
@@ -251,6 +277,11 @@ export default function ChatHistory(props: ChatHistoryProps) {
                         };
                         props.setAgent(chatData.response.agent);
                         setData(chatMetadata);
+                        if (props.setIsChatSideBarOpen) {
+                            if (!hasStartingMessage) {
+                                props.setIsChatSideBarOpen(true);
+                            }
+                        }
                     }
 
                     setHasMoreMessages(false);
@@ -281,12 +312,19 @@ export default function ChatHistory(props: ChatHistoryProps) {
 
     function constructAgentName() {
         if (!data || !data.agent || !data.agent?.name) return `Agent`;
+        if (data.agent.is_hidden) return 'Khoj';
         return data.agent?.name;
     }
 
     function constructAgentPersona() {
-        if (!data || !data.agent || !data.agent?.persona)
+        if (!data || !data.agent) {
             return `Your agent is no longer available. You will be reset to the default agent.`;
+        }
+
+        if (!data.agent?.persona) {
+            return `You can set a persona for your agent in the Chat Options side panel.`;
+        }
+
         return data.agent?.persona;
     }
 
@@ -314,7 +352,15 @@ export default function ChatHistory(props: ChatHistoryProps) {
     }
 
     return (
-        <ScrollArea className={`h-[73vh] relative`} ref={scrollAreaRef}>
+        <ScrollArea
+            className={`
+            h-[calc(100svh-theme(spacing.44))]
+            sm:h-[calc(100svh-theme(spacing.44))]
+            md:h-[calc(100svh-theme(spacing.44))]
+            lg:h-[calc(100svh-theme(spacing.72))]
+        `}
+            ref={scrollAreaRef}>
+
             <div>
                 <div className={`${styles.chatHistory} ${props.customClassName}`}>
                     <div ref={sentinelRef} style={{ height: "1px" }}>
@@ -343,12 +389,12 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         index === data.chat.length - 2
                                             ? latestUserMessageRef
                                             : // attach ref to the newest fetched message to handle scroll on fetch
-                                              // note: stabilize index selection against last page having less messages than fetchMessageCount
-                                              index ===
+                                            // note: stabilize index selection against last page having less messages than fetchMessageCount
+                                            index ===
                                                 data.chat.length -
-                                                    (currentPage - 1) * fetchMessageCount
-                                              ? latestFetchedMessageRef
-                                              : null
+                                                (currentPage - 1) * fetchMessageCount
+                                                ? latestFetchedMessageRef
+                                                : null
                                     }
                                     isMobileWidth={isMobileWidth}
                                     chatMessage={chatMessage}
@@ -418,7 +464,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                             conversationId: props.conversationId,
                                             images: message.generatedImages,
                                             queryFiles: message.generatedFiles,
-                                            excalidrawDiagram: message.generatedExcalidrawDiagram,
+                                            mermaidjsDiagram: message.generatedMermaidjsDiagram,
                                             turnId: messageTurnId,
                                         }}
                                         conversationId={props.conversationId}
@@ -426,7 +472,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         onDeleteMessage={handleDeleteMessage}
                                         customClassName="fullHistory"
                                         borderLeftColor={`${data?.agent?.color}-500`}
-                                        isLastMessage={true}
+                                        isLastMessage={index === (props.incomingMessages!.length - 1)}
                                     />
                                 </React.Fragment>
                             );

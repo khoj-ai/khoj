@@ -4,6 +4,7 @@ import "../globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ContentSecurityPolicy } from "../common/layoutHelper";
 import { ChatwootWidget } from "../components/chatWoot/ChatwootWidget";
+import { ThemeProvider } from "../components/providers/themeProvider";
 
 export const metadata: Metadata = {
     title: "Khoj AI - Settings",
@@ -40,11 +41,27 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en" className={`${noto_sans.variable} ${noto_sans_arabic.variable}`}>
+            <head>
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `
+                            try {
+                                if (localStorage.getItem('theme') === 'dark' ||
+                                    (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                                    document.documentElement.classList.add('dark');
+                                }
+                            } catch (e) {}
+                        `,
+                    }}
+                />
+            </head>
             <ContentSecurityPolicy />
             <body>
-                {children}
-                <Toaster />
-                <ChatwootWidget />
+                <ThemeProvider>
+                    {children}
+                    <Toaster />
+                    <ChatwootWidget />
+                </ThemeProvider>
             </body>
         </html>
     );

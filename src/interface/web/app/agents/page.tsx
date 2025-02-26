@@ -20,11 +20,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTrigger } from "@/components
 import LoginPrompt from "../components/loginPrompt/loginPrompt";
 import { InlineLoading } from "../components/loading/loading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useIsMobileWidth } from "../common/utils";
+import { useIsDarkMode, useIsMobileWidth } from "../common/utils";
 import {
     AgentCard,
     EditAgentSchema,
     AgentModificationForm,
+    AgentData,
 } from "@/app/components/agentCard/agentCard";
 
 import { useForm } from "react-hook-form";
@@ -34,21 +35,7 @@ import { AppSidebar } from "../components/appSidebar/appSidebar";
 import { Separator } from "@/components/ui/separator";
 import { KhojLogoType } from "../components/logo/khojLogo";
 import { DialogTitle } from "@radix-ui/react-dialog";
-
-export interface AgentData {
-    slug: string;
-    name: string;
-    persona: string;
-    color: string;
-    icon: string;
-    privacy_level: string;
-    files?: string[];
-    creator?: string;
-    managed_by_admin: boolean;
-    chat_model: string;
-    input_tools: string[];
-    output_modes: string[];
-}
+import Link from "next/link";
 
 const agentsFetcher = () =>
     window
@@ -171,7 +158,7 @@ function CreateAgentCard(props: CreateAgentCardProps) {
     );
 }
 
-interface AgentConfigurationOptions {
+export interface AgentConfigurationOptions {
     input_tools: { [key: string]: string };
     output_modes: { [key: string]: string };
 }
@@ -185,7 +172,7 @@ export default function Agents() {
         error: authenticationError,
         isLoading: authenticationLoading,
     } = useAuthenticatedData();
-    const { userConfig } = useUserConfig(true);
+    const { data: userConfig } = useUserConfig(true);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
     const isMobileWidth = useIsMobileWidth();
 
@@ -281,7 +268,7 @@ export default function Agents() {
 
     const modelOptions: ModelOptions[] = userConfig?.chat_model_options || [];
     const selectedChatModelOption: number = userConfig?.selected_chat_model_config || 0;
-    const isSubscribed: boolean = isUserSubscribed(userConfig);
+    const isSubscribed: boolean = userConfig?.is_active || false;
 
     // The default model option should map to the item in the modelOptions array that has the same id as the selectedChatModelOption
     const defaultModelOption = modelOptions.find(
@@ -321,6 +308,7 @@ export default function Agents() {
                                             chat_model: "",
                                             input_tools: [],
                                             output_modes: [],
+                                            is_hidden: false,
                                         }}
                                         userProfile={
                                             authenticationLoading
@@ -356,6 +344,14 @@ export default function Agents() {
                                     />
                                     <span className="font-bold">How it works</span> Use any of these
                                     specialized personas to tune your conversation to your needs.
+                                    {
+                                        !isSubscribed && (
+                                            <span>
+                                                {" "}
+                                                <Link href="/settings" className="font-bold">Upgrade your plan</Link> to leverage custom models. You will fallback to the default model when chatting.
+                                            </span>
+                                        )
+                                    }
                                 </AlertDescription>
                             </Alert>
                             <div className="pt-6 md:pt-8">
