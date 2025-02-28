@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
 
 
 SANDBOX_URL = os.getenv("KHOJ_TERRARIUM_URL", "http://localhost:8080")
+DEFAULT_E2B_TEMPLATE = "pmt2o0ghpang8gbiys57"
 
 
 class GeneratedCode(NamedTuple):
@@ -219,7 +220,7 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
 
     sandbox = await AsyncSandbox.create(
         api_key=os.getenv("E2B_API_KEY"),
-        template=os.getenv("E2B_TEMPLATE", "pmt2o0ghpang8gbiys57"),
+        template=os.getenv("E2B_TEMPLATE", DEFAULT_E2B_TEMPLATE),
         timeout=120,
         request_timeout=30,
     )
@@ -232,7 +233,7 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
         ]
         await asyncio.gather(*upload_tasks)
 
-        # Note stored files before execution
+        # Note stored files before execution to identify new files created during execution
         E2bFile = NamedTuple("E2bFile", [("name", str), ("path", str)])
         original_files = {E2bFile(f.name, f.path) for f in await sandbox.files.list("~")}
 
@@ -261,7 +262,7 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
 
         # Collect output files from execution results
         for idx, result in enumerate(execution.results):
-            for result_type in ["png", "jpeg", "svg", "text", "markdown", "json"]:
+            for result_type in {"png", "jpeg", "svg", "text", "markdown", "json"}:
                 if b64_data := getattr(result, result_type, None):
                     output_files.append({"filename": f"{idx}.{result_type}", "b64_data": b64_data})
                     break

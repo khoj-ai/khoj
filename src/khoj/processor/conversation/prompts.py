@@ -1051,7 +1051,7 @@ print(\"Evaluated Expression at x=1:\", evaluated_expression)
 
 Example 3:
 ---
-Q: Plot the world ppulation growth over the years, given this year, world population world tuples: [(2000, 6), (2001, 7), (2002, 8), (2003, 9), (2004, 10)].
+Q: Plot the world population growth over the years, given this year, world population world tuples: [(2000, 6), (2001, 7), (2002, 8), (2003, 9), (2004, 10)].
 A: Absolutely! We can utilize the Pandas and Matplotlib libraries (as both are available in the sandbox) to create the world population growth plot.
 ```python
 import pandas as pd

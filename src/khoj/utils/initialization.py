@@ -309,7 +309,7 @@ def initialization(interactive: bool = True):
 
     # Update the default chat model if it doesn't match
     chat_config = ConversationAdapters.get_default_chat_model()
-    env_default_chat_model = os.getenv("KHOJ_CHAT_MODEL")
+    env_default_chat_model = os.getenv("KHOJ_DEFAULT_CHAT_MODEL")
     if not chat_config or not env_default_chat_model:
         return
     if chat_config.name != env_default_chat_model:
