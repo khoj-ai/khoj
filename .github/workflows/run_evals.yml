@@ -108,7 +108,7 @@ jobs:
           BATCH_SIZE: "20"
           RANDOMIZE: "True"
           KHOJ_URL: "http://localhost:42110"
-          KHOJ_CHAT_MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.chat_model || 'gemini-2.0-flash' }}
+          KHOJ_DEFAULT_CHAT_MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.chat_model || 'gemini-2.0-flash' }}
           KHOJ_LLM_SEED: "42"
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SERPER_DEV_API_KEY: ${{ matrix.dataset != 'math500' && secrets.SERPER_DEV_API_KEY }}
