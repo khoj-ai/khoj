@@ -4,7 +4,6 @@ import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
 import { KhojView, createCopyParentText, getLinkToEntry, pasteTextAtCursor } from 'src/utils';
 import { KhojSearchModal } from './search_modal';
-import * as JSON5 from 'json5';
 import { FileInteractions, EditBlock } from './interact_with_files';
 
 export interface ChatJsonResult {
@@ -875,17 +874,15 @@ export class KhojChatView extends KhojPaneView {
             editButton.classList.add("chat-action-button");
             editButton.title = "Edit Message";
             setIcon(editButton, "edit-3");
-            editButton.addEventListener('click', () => {
+            editButton.addEventListener('click', async () => {
                 const messageEl = chatMessageBodyTextEl.closest('.khoj-chat-message');
                 if (messageEl) {
                     // Get all messages up to this one
                     const allMessages = Array.from(this.contentEl.getElementsByClassName('khoj-chat-message'));
                     const currentIndex = allMessages.indexOf(messageEl as HTMLElement);
 
-                    // Remove all messages after and including this one
-                    for (let i = allMessages.length - 1; i >= currentIndex; i--) {
-                        allMessages[i].remove();
-                    }
+                    // Store reference to messages that need to be deleted from backend
+                    const messagesToDelete = allMessages.slice(currentIndex);
 
                     // Get the message content without the emoji if it exists
                     let messageContent = message;
@@ -898,6 +895,18 @@ export class KhojChatView extends KhojPaneView {
                         chatInput.value = messageContent;
                         chatInput.focus();
                     }
+
+                    // Remove all messages from UI immediately for better UX
+                    for (let i = messagesToDelete.length - 1; i >= 0; i--) {
+                        messagesToDelete[i].remove();
+                    }
+
+                    // Then delete messages from backend in background
+                    (async () => {
+                        for (const msgToDelete of messagesToDelete) {
+                            await this.deleteMessage(msgToDelete as HTMLElement, true, false);
+                        }
+                    })();
                 }
             });
         }
@@ -1905,7 +1914,7 @@ export class KhojChatView extends KhojPaneView {
     }
 
     // Add this new method to handle message deletion
-    async deleteMessage(messageEl: HTMLElement) {
+    async deleteMessage(messageEl: HTMLElement, skipPaired: boolean = false, skipBackend: boolean = false) {
         const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
         const conversationId = chatBodyEl.dataset.conversationId;
 
@@ -1913,39 +1922,49 @@ export class KhojChatView extends KhojPaneView {
         const turnId = messageEl.getAttribute("data-turnId");
         if (!turnId || !conversationId) return;
 
-        try {
-            const response = await fetch(`${this.setting.khojUrl}/api/chat/conversation/message`, {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${this.setting.khojApiKey}`
-                },
-                body: JSON.stringify({
-                    conversation_id: conversationId,
-                    turn_id: turnId
-                })
-            });
+        // If skipBackend is false, delete the message from the backend
+        if (!skipBackend) {
+            try {
+                const response = await fetch(`${this.setting.khojUrl}/api/chat/conversation/message`, {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${this.setting.khojApiKey}`
+                    },
+                    body: JSON.stringify({
+                        conversation_id: conversationId,
+                        turn_id: turnId
+                    })
+                });
 
-            if (response.ok) {
-                // Remove both the user message and Khoj response (the conversation turn)
-                const isKhojMessage = messageEl.classList.contains("khoj");
-                const messages = Array.from(chatBodyEl.getElementsByClassName("khoj-chat-message"));
-                const messageIndex = messages.indexOf(messageEl);
-
-                if (isKhojMessage && messageIndex > 0) {
-                    // If it is a Khoj message, remove the previous user message too
-                    messages[messageIndex - 1].remove();
-                } else if (!isKhojMessage && messageIndex < messages.length - 1) {
-                    // If it is a user message, remove the next Khoj message too
-                    messages[messageIndex + 1].remove();
+                if (!response.ok) {
+                    this.flashStatusInChatInput("Failed to delete message");
+                    return;
                 }
-                messageEl.remove();
-            } else {
-                this.flashStatusInChatInput("Failed to delete message");
+            } catch (error) {
+                console.error("Error deleting message:", error);
+                this.flashStatusInChatInput("Error deleting message");
+                return;
             }
-        } catch (error) {
-            console.error("Error deleting message:", error);
-            this.flashStatusInChatInput("Error deleting message");
+        }
+
+        // If skipPaired is true, just remove this message
+        // Otherwise, remove both the user message and Khoj response (the conversation turn)
+        if (skipPaired) {
+            messageEl.remove();
+        } else {
+            const isKhojMessage = messageEl.classList.contains("khoj");
+            const messages = Array.from(chatBodyEl.getElementsByClassName("khoj-chat-message"));
+            const messageIndex = messages.indexOf(messageEl);
+
+            if (isKhojMessage && messageIndex > 0) {
+                // If it is a Khoj message, remove the previous user message too
+                messages[messageIndex - 1].remove();
+            } else if (!isKhojMessage && messageIndex < messages.length - 1) {
+                // If it is a user message, remove the next Khoj message too
+                messages[messageIndex + 1].remove();
+            }
+            messageEl.remove();
         }
     }
 
