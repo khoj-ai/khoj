@@ -584,10 +584,9 @@ button.chat-action-button:hover {
 
 /* Add specific hover colors for each action button */
 button.chat-action-button[title="Copy Message to Clipboard"]:hover {
-    background-color: rgba(0, 122, 255, 0.1);
-    /* Light blue */
-    border-color: rgb(0, 122, 255);
-    color: rgb(0, 122, 255);
+    background-color: var(--interactive-accent-hover);
+    border-color: var(--interactive-accent);
+    color: var(--text-on-accent);
 }
 
 button.chat-action-button[title="Paste Message to File"]:hover {
