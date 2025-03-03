@@ -104,13 +104,6 @@ export class KhojChatView extends KhojPaneView {
         super(leaf, setting);
         this.fileInteractions = new FileInteractions(this.app);
 
-        // Register chat view keybindings
-        this.scope = new Scope(this.app.scope);
-        this.scope.register(["Ctrl"], 'n', (_) => this.createNewConversation());
-        this.scope.register(["Ctrl"], 'o', async (_) => await this.toggleChatSessions());
-        this.scope.register(["Ctrl"], 'f', (_) => new KhojSearchModal(this.app, this.setting).open());
-        this.scope.register(["Ctrl"], 'r', (_) => new KhojSearchModal(this.app, this.setting, true).open());
-
         this.waitingForLocation = true;
 
         fetch("https://ipapi.co/json")

@@ -479,7 +479,7 @@ div.selected-conversation {
 /* Khoj Header, Navigation Pane */
 div.khoj-header {
     display: grid;
-    grid-auto-flow: column;
+    grid-template-columns: auto 1fr auto;
     gap: 20px;
     padding: 0 0 10px 0;
     margin: 0;
@@ -503,7 +503,8 @@ nav.khoj-nav {
     display: grid;
     grid-auto-flow: column;
     grid-gap: 32px;
-    justify-self: right;
+    justify-self: center;
+    justify-content: center;
     align-items: center;
 }
 
@@ -514,6 +515,15 @@ a.khoj-nav {
 
 div.khoj-logo {
     justify-self: left;
+}
+
+/* Container for New Chat button and agent selector */
+.khoj-header-right-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-self: right;
+    -webkit-app-region: no-drag;
 }
 
 /* New Chat button in header */
@@ -533,18 +543,35 @@ div.khoj-logo {
     transition: all 0.2s ease;
     height: 28px;
     -webkit-app-region: no-drag;
-    position: absolute;
-    left: 100px;
-    top: 50%;
-    transform: translateY(-50%);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     z-index: 10;
+}
+
+/* Media queries for responsive design */
+@media only screen and (max-width: 600px) {
+    div.khoj-header {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 20px;
+        padding: 24px 10px 10px 10px;
+        margin: 0 0 16px 0;
+    }
+
+    nav.khoj-nav {
+        grid-gap: 0px;
+        justify-content: center;
+    }
+
+    .khoj-header-right-container {
+        flex-direction: column;
+        gap: 5px;
+    }
 }
 
 .khoj-header-new-chat-button:hover {
     background-color: var(--text-accent);
     color: var(--background-primary);
-    transform: translateY(calc(-50% - 1px));
+    transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
@@ -557,10 +584,6 @@ div.khoj-logo {
 .khoj-header-agent-container {
     display: flex;
     flex-direction: column;
-    position: absolute;
-    top: 50%;
-    left: 210px;
-    transform: translateY(-50%);
     z-index: 10;
     -webkit-app-region: no-drag;
     width: 160px;
@@ -843,29 +866,6 @@ img.copy-icon {
 
     100% {
         transform: rotate(360deg);
-    }
-}
-
-@media only screen and (max-width: 600px) {
-    div.khoj-header {
-        display: grid;
-        grid-auto-flow: column;
-        gap: 20px;
-        padding: 24px 10px 10px 10px;
-        margin: 0 0 16px 0;
-    }
-
-    nav.khoj-nav {
-        grid-gap: 0px;
-        justify-content: space-between;
-    }
-
-    a.khoj-nav {
-        padding: 0 16px;
-    }
-
-    span.khoj-nav-item-text {
-        display: none;
     }
 }
 

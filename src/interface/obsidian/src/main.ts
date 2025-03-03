@@ -17,6 +17,7 @@ export default class Khoj extends Plugin {
         this.addCommand({
             id: 'search',
             name: 'Search',
+            hotkeys: [{ modifiers: ["Ctrl", "Alt"], key: "S" }],
             callback: () => { new KhojSearchModal(this.app, this.settings).open(); }
         });
 
@@ -24,6 +25,7 @@ export default class Khoj extends Plugin {
         this.addCommand({
             id: 'similar',
             name: 'Find similar notes',
+            hotkeys: [{ modifiers: ["Ctrl", "Alt"], key: "F" }],
             editorCallback: () => { new KhojSearchModal(this.app, this.settings, true).open(); }
         });
 
@@ -32,6 +34,41 @@ export default class Khoj extends Plugin {
             id: 'chat',
             name: 'Chat',
             callback: () => { this.activateView(KhojView.CHAT); }
+        });
+
+        // Add new chat command with hotkey
+        this.addCommand({
+            id: 'new-chat',
+            name: 'New Chat',
+            hotkeys: [{ modifiers: ["Ctrl", "Alt"], key: "N" }],
+            callback: async () => {
+                // First, activate the chat view
+                await this.activateView(KhojView.CHAT);
+
+                // Wait a short moment for the view to activate
+                setTimeout(() => {
+                    // Try to get the active chat view
+                    const chatView = this.app.workspace.getActiveViewOfType(KhojChatView);
+                    if (chatView) {
+                        chatView.createNewConversation();
+                    }
+                }, 100);
+            }
+        });
+
+        // Add conversation history command with hotkey
+        this.addCommand({
+            id: 'conversation-history',
+            name: 'Show Conversation History',
+            hotkeys: [{ modifiers: ["Ctrl", "Alt"], key: "O" }],
+            callback: () => {
+                this.activateView(KhojView.CHAT).then(() => {
+                    const chatView = this.app.workspace.getActiveViewOfType(KhojChatView);
+                    if (chatView) {
+                        chatView.toggleChatSessions(true);
+                    }
+                });
+            }
         });
 
         // Add sync command to manually sync new changes
