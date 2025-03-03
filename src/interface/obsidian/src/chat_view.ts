@@ -843,7 +843,7 @@ export class KhojChatView extends KhojPaneView {
             let markdownMessage = message;
             const khojEditRegex = /<details class="khoj-edit-accordion">[\s\S]*?<pre><code class="language-khoj-edit">([\s\S]*?)<\/code><\/pre>[\s\S]*?<\/details>/g;
             markdownMessage = markdownMessage.replace(khojEditRegex, (_, content) => {
-                return `\`\`\`khoj-edit\n${content}\`\`\``;
+                return `<khoj-edit>\n${content}\n</khoj-edit>`;
             });
             navigator.clipboard.writeText(markdownMessage).then(() => {
                 setIcon(copyButton, "check");
@@ -863,7 +863,7 @@ export class KhojChatView extends KhojPaneView {
             let markdownMessage = message;
             const khojEditRegex = /<details class="khoj-edit-accordion">[\s\S]*?<pre><code class="language-khoj-edit">([\s\S]*?)<\/code><\/pre>[\s\S]*?<\/details>/g;
             markdownMessage = markdownMessage.replace(khojEditRegex, (_, content) => {
-                return `\`\`\`khoj-edit\n${content}\`\`\``;
+                return `<khoj-edit>\n${content}\n</khoj-edit>`;
             });
             pasteTextAtCursor(markdownMessage);
         });

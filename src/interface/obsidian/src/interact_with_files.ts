@@ -66,7 +66,7 @@ export class FileInteractions {
         if (fileAccessMode === 'write') {
             openFilesContent += `[EDIT INSTRUCTIONS] I can help you edit your notes using targeted modifications. I'll use multiple edit blocks to make precise changes rather than rewriting entire sections.
 
-\`\`\`khoj-edit
+<khoj-edit>
 {
     "note": "Brief one-line explanation of what this edit does",
     "location": {
@@ -76,12 +76,13 @@ export class FileInteractions {
     "content": "<complete new content, including end marker if you want to keep it>",
     "file": "target-filename"  // Required: specify which open file to edit (without .md extension)
 }
-\`\`\`
+</khoj-edit>
 
 ⚠️ Important:
 - The end marker text is included in the edited section and will be deleted. If you want to keep it, make sure to include it in your "content"
 - The "file" parameter is required and must match an open file name (without .md extension)
-- Use \" for quotes and \`\`\` for backticks in your content to ensure proper parsing
+- Use \" for quotes in your content to ensure proper parsing
+- The XML format <khoj-edit>...</khoj-edit> ensures more reliable parsing compared to code blocks
 
 📝 Example note:
 
@@ -106,7 +107,7 @@ Next steps:
 Examples of targeted edits:
 
 1. Using just a few words to identify long text (notice how "campaign launch" is kept in content):
-\`\`\`khoj-edit
+<khoj-edit>
 {
     "note": "Add deadline and specificity to the marketing team follow-up",
     "location": {
@@ -116,10 +117,10 @@ Examples of targeted edits:
     "content": "- Schedule follow-up with marketing team by Wednesday to discuss Q1 campaign launch",
     "file": "Meeting Notes"
 }
-\`\`\`
+</khoj-edit>
 
 2. Multiple targeted changes with escaped characters:
-\`\`\`khoj-edit
+<khoj-edit>
 {
     "note": "Add HIGH priority flag with code reference to Q4 metrics review",
     "location": {
@@ -129,8 +130,8 @@ Examples of targeted edits:
     "content": "- [HIGH] Review Q4 metrics (see \"metrics.ts\" and \`calculateQ4Metrics()\`)",
     "file": "Meeting Notes"
 }
-\`\`\`
-\`\`\`khoj-edit
+</khoj-edit>
+<khoj-edit>
 {
     "note": "Add resource allocation to project timeline task",
     "location": {
@@ -140,10 +141,10 @@ Examples of targeted edits:
     "content": "- Update project timeline and add resource allocation for Q1 2024",
     "file": "Meeting Notes"
 }
-\`\`\`
+</khoj-edit>
 
 3. Adding new content between sections:
-\`\`\`khoj-edit
+<khoj-edit>
 {
     "note": "Insert Discussion Points section between Action Items and Next Steps",
     "location": {
@@ -153,10 +154,10 @@ Examples of targeted edits:
     "content": "Action items from today:\\n- Review Q4 metrics\\n- Schedule follow-up\\n- Update timeline\\n\\nDiscussion Points:\\n- Budget review\\n- Team feedback\\n\\nNext steps:",
     "file": "Meeting Notes"
 }
-\`\`\`
+</khoj-edit>
 
 4. Completely replacing a file content (preserving frontmatter):
-\`\`\`khoj-edit
+<khoj-edit>
 {
     "note": "Replace entire file content while keeping frontmatter metadata",
     "location": {
@@ -166,7 +167,7 @@ Examples of targeted edits:
     "content": "# Project Overview\\n\\n## Goals\\n- Increase user engagement by 25%\\n- Launch mobile app by Q3\\n- Expand to 3 new markets\\n\\n## Timeline\\n1. Q1: Research & Planning\\n2. Q2: Development\\n3. Q3: Testing & Launch\\n4. Q4: Market Expansion",
     "file": "Meeting Notes"
 }
-\`\`\`
+</khoj-edit>
 
 💡 Key points:
 - note: Brief one-line explanation of what the edit does
@@ -178,7 +179,8 @@ Examples of targeted edits:
 - Changes apply to first matching location in the specified file
 - Use <file-start> and <file-end> markers to replace entire file content while preserving frontmatter
 - Frontmatter metadata (between --- markers at top of file) cannot be modified
-- Remember to escape special characters: use \" for quotes and \`\`\` for backticks in content
+- Remember to escape special characters: use \" for quotes in content
+- Always use the XML format <khoj-edit>...</khoj-edit> instead of code blocks
 
 [END OF EDIT INSTRUCTIONS]\n\n`;
         }
@@ -381,12 +383,13 @@ Examples of targeted edits:
     /**
      * Parses all edit blocks from a message
      *
-     * @param message - The message containing khoj-edit blocks
+     * @param message - The message containing khoj-edit blocks in XML format
      * @returns Array of EditBlock objects
      */
     public parseEditBlocks(message: string): EditBlock[] {
         const editBlocks: EditBlock[] = [];
-        const editBlockRegex = /```khoj-edit\s*([\s\S]*?)```/g;
+        // Updated regex to match XML format <khoj-edit>...</khoj-edit>
+        const editBlockRegex = /<khoj-edit>([\s\S]*?)<\/khoj-edit>/g;
         let hasError = false;
 
         let match;
@@ -635,7 +638,7 @@ Examples of targeted edits:
     /**
      * Transforms khoj-edit blocks in a message to HTML for display
      *
-     * @param message - The message containing khoj-edit blocks
+     * @param message - The message containing khoj-edit blocks in XML format
      * @returns The transformed message with HTML for edit blocks
      */
     public transformKhojEditBlocks(message: string): string {
@@ -644,7 +647,7 @@ Examples of targeted edits:
             .map(leaf => (leaf.view as any)?.file)
             .filter(file => file && file.extension === 'md');
 
-        return message.replace(/```khoj-edit\s*([\s\S]*?)```/g, (match, content) => {
+        return message.replace(/<khoj-edit>([\s\S]*?)<\/khoj-edit>/g, (match, content) => {
             const { editData, cleanContent, error } = this.parseKhojEditBlock(content);
 
             // Escape content for HTML display
