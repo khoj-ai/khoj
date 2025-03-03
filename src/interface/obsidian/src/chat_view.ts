@@ -5,6 +5,7 @@ import { KhojPaneView } from 'src/pane_view';
 import { KhojView, createCopyParentText, getLinkToEntry, pasteTextAtCursor } from 'src/utils';
 import { KhojSearchModal } from './search_modal';
 import * as JSON5 from 'json5';
+import { FileInteractions, EditBlock } from './interact_with_files';
 
 export interface ChatJsonResult {
     image?: string;
@@ -31,20 +32,6 @@ interface ChatMessageState {
     editBlocks: EditBlock[];
     editRetryCount: number;
     parentRetryCount?: number; // Ajout du compteur parent
-}
-
-interface EditBlock {
-    note: string;      // Required: Brief one-line explanation
-    before: string;    // location.start
-    after: string;     // location.end
-    replacement: string; // content
-    file: string;      // Required: Target file name (without extension)
-    hasError?: boolean; // Optional: Flag to indicate parsing error
-    error?: {
-        type: 'missing_field' | 'invalid_json' | 'preprocessing' | 'unknown';
-        message: string;
-        details?: string;
-    };
 }
 
 interface Location {
@@ -112,9 +99,11 @@ export class KhojChatView extends KhojPaneView {
         { value: "research", label: "Research", emoji: "🔬", command: "/research" }
     ];
     private editRetryCount: number = 0;  // Ajout du compteur au niveau de la classe
+    private fileInteractions: FileInteractions;
 
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
         super(leaf, setting);
+        this.fileInteractions = new FileInteractions(this.app);
 
         // Register chat view keybindings
         this.scope = new Scope(this.app.scope);
@@ -1980,557 +1969,45 @@ export class KhojChatView extends KhojPaneView {
 
     // Add this new method after the class declaration
     private async getOpenFilesContent(): Promise<string> {
-        // Only proceed if we have read or write access
-        if (this.fileAccessMode === 'none') return '';
-
-        // Get all open markdown leaves
-        const leaves = this.app.workspace.getLeavesOfType('markdown');
-        if (leaves.length === 0) return '';
-
-        let openFilesContent = "\n\n[SYSTEM]The user is currently working on the following files (content provided for context):\n\n";
-
-        // Simplification des instructions d'édition
-        if (this.fileAccessMode === 'write') {
-            openFilesContent += `[EDIT INSTRUCTIONS] I can help you edit your notes using targeted modifications. I'll use multiple edit blocks to make precise changes rather than rewriting entire sections.
-
-\`\`\`khoj-edit
-{
-    "note": "Brief one-line explanation of what this edit does",
-    "location": {
-        "start": "<start words>",
-        "end": "<end words>"
-    },
-    "content": "<complete new content, including end marker if you want to keep it>",
-    "file": "target-filename"  // Required: specify which open file to edit (without .md extension)
-}
-\`\`\`
-
-⚠️ Important:
-- The end marker text is included in the edited section and will be deleted. If you want to keep it, make sure to include it in your "content"
-- The "file" parameter is required and must match an open file name (without .md extension)
-- Use \" for quotes and \`\`\` for backticks in your content to ensure proper parsing
-
-📝 Example note:
-
-\`\`\`
----
-date: 2024-01-20
-tags: meeting, planning
-status: active
----
-# Meeting Notes
-
-Action items from today:
-- Review Q4 metrics
-- Schedule follow-up with marketing team about new campaign launch
-- Update project timeline and milestones for Q1 2024
-
-Next steps:
-- Send summary to team
-- Book conference room for next week
-\`\`\`
-
-Examples of targeted edits:
-
-1. Using just a few words to identify long text (notice how "campaign launch" is kept in content):
-\`\`\`khoj-edit
-{
-    "note": "Add deadline and specificity to the marketing team follow-up",
-    "location": {
-        "start": "- Schedule follow-up",
-        "end": "campaign launch"
-    },
-    "content": "- Schedule follow-up with marketing team by Wednesday to discuss Q1 campaign launch",
-    "file": "Meeting Notes"
-}
-\`\`\`
-
-2. Multiple targeted changes with escaped characters:
-\`\`\`khoj-edit
-{
-    "note": "Add HIGH priority flag with code reference to Q4 metrics review",
-    "location": {
-        "start": "- Review Q4",
-        "end": "metrics"
-    },
-    "content": "- [HIGH] Review Q4 metrics (see \"metrics.ts\" and \`calculateQ4Metrics()\`)",
-    "file": "Meeting Notes"
-}
-\`\`\`
-\`\`\`khoj-edit
-{
-    "note": "Add resource allocation to project timeline task",
-    "location": {
-        "start": "- Update project",
-        "end": "Q1 2024"
-    },
-    "content": "- Update project timeline and add resource allocation for Q1 2024",
-    "file": "Meeting Notes"
-}
-\`\`\`
-
-3. Adding new content between sections:
-\`\`\`khoj-edit
-{
-    "note": "Insert Discussion Points section between Action Items and Next Steps",
-    "location": {
-        "start": "Action items from today:",
-        "end": "Next steps:"
-    },
-    "content": "Action items from today:\\n- Review Q4 metrics\\n- Schedule follow-up\\n- Update timeline\\n\\nDiscussion Points:\\n- Budget review\\n- Team feedback\\n\\nNext steps:",
-    "file": "Meeting Notes"
-}
-\`\`\`
-
-4. Completely replacing a file content (preserving frontmatter):
-\`\`\`khoj-edit
-{
-    "note": "Replace entire file content while keeping frontmatter metadata",
-    "location": {
-        "start": "<file-start>",
-        "end": "<file-end>"
-    },
-    "content": "# Project Overview\\n\\n## Goals\\n- Increase user engagement by 25%\\n- Launch mobile app by Q3\\n- Expand to 3 new markets\\n\\n## Timeline\\n1. Q1: Research & Planning\\n2. Q2: Development\\n3. Q3: Testing & Launch\\n4. Q4: Market Expansion",
-    "file": "Meeting Notes"
-}
-\`\`\`
-
-💡 Key points:
-- note: Brief one-line explanation of what the edit does
-- location.start: few words from start of target text (no ambiguity). Use <file-start> to target beginning of content after frontmatter
-- location.end: few words from end of target text (no ambiguity). Use <file-end> to target file end
-- content: complete new content, including end marker text if you want to keep it
-- file: (required) name of the file to edit (without .md extension)
-- Words must uniquely identify the location (no ambiguity)
-- Changes apply to first matching location in the specified file
-- Use <file-start> and <file-end> markers to replace entire file content while preserving frontmatter
-- Frontmatter metadata (between --- markers at top of file) cannot be modified
-- Remember to escape special characters: use \" for quotes and \`\`\` for backticks in content
-
-[END OF EDIT INSTRUCTIONS]\n\n`;
-        }
-
-        openFilesContent += `[OPEN FILES CONTEXT]\n\n`;
-
-        for (const leaf of leaves) {
-            const view = leaf.view as any;
-            const file = view?.file;
-            if (!file || file.extension !== 'md') continue;
-
-            // Add file title without brackets
-            openFilesContent += `# ${file.basename}\n\`\`\`markdown\n`;
-
-            // Read file content
-            try {
-                const content = await this.app.vault.read(file);
-                openFilesContent += content;
-            } catch (error) {
-                console.error(`Error reading file ${file.path}:`, error);
-            }
-
-            openFilesContent += "\n```\n\n";
-        }
-
-        openFilesContent += "[END OF CURRENT FILES CONTEXT]\n\n";
-        openFilesContent += "[END OF SYSTEM INSTRUCTIONS]\n\n";
-
-        return openFilesContent;
+        return this.fileInteractions.getOpenFilesContent(this.fileAccessMode);
     }
 
     // Common method to parse a khoj-edit block
-    private parseKhojEditBlock(content: string): ParseKhojEditResult {
-        let cleanContent = '';
-        try {
-            // Normalize line breaks and clean control characters, but preserve empty lines
-            cleanContent = content
-                .replace(/\r\n/g, '\n')
-                .replace(/\r/g, '\n')
-                .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-                .trim();
-
-            // Parse the JSON first to identify the content field
-            let jsonContent = cleanContent;
-            try {
-                // Use a regex to find the content field and temporarily replace newlines
-                jsonContent = cleanContent.replace(
-                    /("content"\s*:\s*")((?:\\.|[^"\\])*?)(")/g,
-                    (match, prefix, contentValue, suffix) => {
-                        // Preserve actual newlines in content by escaping them differently
-                        const preservedContent = contentValue.replace(/\n/g, '§§NEWLINE§§');
-                        return prefix + preservedContent + suffix;
-                    }
-                );
-
-                // Escape newlines in other fields
-                jsonContent = jsonContent.replace(/"(?:\\.|[^"\\])*"/g, (match) => {
-                    if (!match.includes('"content":')) {
-                        return match.replace(/\n\s*\n/g, '\\n').replace(/\n/g, '\\n');
-                    }
-                    return match;
-                });
-
-                // Restore actual newlines in content field
-                jsonContent = jsonContent.replace(/§§NEWLINE§§/g, '\\n');
-            } catch (err) {
-                console.error("Error preprocessing JSON:", err);
-                jsonContent = cleanContent;
-            }
-
-            // Use JSON5 for tolerant parsing
-            const editData = JSON5.parse(jsonContent);
-
-            // List of allowed fields
-            const allowedFields = ['note', 'location', 'content', 'file'];
-
-            // Vérifier les champs en trop
-            const extraFields = Object.keys(editData).filter(key => !allowedFields.includes(key));
-            if (extraFields.length > 0) {
-                return {
-                    editData: null,
-                    cleanContent,
-                    error: {
-                        type: 'invalid_json',
-                        message: `Unexpected fields found: ${extraFields.join(', ')}`,
-                        details: `Only these fields are allowed: ${allowedFields.join(', ')}`
-                    }
-                };
-            }
-
-            // Check required fields
-            const requiredFields = {
-                note: 'Brief explanation of the edit',
-                'location.start': 'Start text to identify edit location',
-                'location.end': 'End text to identify edit location',
-                content: 'New content to insert',
-                file: 'Target file name'
-            };
-
-            const missingFields = [];
-            if (!editData.note) missingFields.push('note');
-            if (!editData.location?.start) missingFields.push('location.start');
-            if (!editData.location?.end) missingFields.push('location.end');
-            if (!('content' in editData)) missingFields.push('content');
-            if (!editData.file) missingFields.push('file');
-
-            if (missingFields.length > 0) {
-                return {
-                    editData: null,
-                    cleanContent,
-                    error: {
-                        type: 'missing_field',
-                        message: `Missing required fields: ${missingFields.join(', ')}`,
-                        details: `Each edit block must include: ${Object.entries(requiredFields)
-                            .map(([k, v]) => `\n- ${k}: ${v}`)
-                            .join('')}`
-                    }
-                };
-            }
-
-            return { editData, cleanContent };
-        } catch (e) {
-            if (e.name === 'SyntaxError') {
-                return {
-                    editData: null,
-                    cleanContent,
-                    error: {
-                        type: 'invalid_json',
-                        message: 'Invalid JSON format in edit block',
-                        details: e.message
-                    }
-                };
-            }
-            return {
-                editData: null,
-                cleanContent,
-                error: {
-                    type: 'unknown',
-                    message: 'Unexpected error parsing edit block',
-                    details: e.message
-                }
-            };
-        }
+    private parseKhojEditBlock(content: string): import('./interact_with_files').ParseKhojEditResult {
+        return this.fileInteractions.parseKhojEditBlock(content);
     }
 
     private parseEditBlocks(message: string): EditBlock[] {
-        const editBlocks: EditBlock[] = [];
-        const editBlockRegex = /```khoj-edit\s*([\s\S]*?)```/g;
-        let hasError = false;
-
-        let match;
-        while ((match = editBlockRegex.exec(message)) !== null) {
-            const { editData, cleanContent, error } = this.parseKhojEditBlock(match[1]);
-
-            if (error) {
-                console.error("Failed to parse edit block:", error);
-                console.debug("Content causing error:", match[1]);
-                hasError = true;
-                editBlocks.push({
-                    note: "Error parsing edit block",
-                    before: "",
-                    after: "",
-                    replacement: `Error: ${error.message}\nOriginal content:\n${match[1]}`,
-                    file: "unknown", // Fallback value quand editData est null
-                    error: error // On passe aussi l'erreur pour le retry
-                });
-                continue;
-            }
-
-            if (!editData) {
-                console.error("No edit data parsed");
-                continue;
-            }
-
-            editBlocks.push({
-                note: editData.note,
-                before: editData.location.start,
-                after: editData.location.end,
-                replacement: editData.content,
-                file: editData.file
-            });
-        }
-
-        if (editBlocks.length > 0) {
-            editBlocks[0] = { ...editBlocks[0], hasError };
-        }
-
-        return editBlocks;
+        return this.fileInteractions.parseEditBlocks(message);
     }
 
     // Add this helper function to calculate Levenshtein distance
     private levenshteinDistance(a: string, b: string): number {
-        if (a.length === 0) return b.length;
-        if (b.length === 0) return a.length;
-
-        const matrix = Array(b.length + 1).fill(null).map(() =>
-            Array(a.length + 1).fill(null)
-        );
-
-        for (let i = 0; i <= a.length; i++) matrix[0][i] = i;
-        for (let j = 0; j <= b.length; j++) matrix[j][0] = j;
-
-        for (let j = 1; j <= b.length; j++) {
-            for (let i = 1; i <= a.length; i++) {
-                const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-                matrix[j][i] = Math.min(
-                    matrix[j][i - 1] + 1, // deletion
-                    matrix[j - 1][i] + 1, // insertion
-                    matrix[j - 1][i - 1] + cost // substitution
-                );
-            }
-        }
-
-        return matrix[b.length][a.length];
+        return this.fileInteractions.levenshteinDistance(a, b);
     }
 
     private findBestMatchingFile(targetName: string, files: TFile[]): TFile | null {
-        const MAX_DISTANCE = 10;
-        let bestMatch: { file: TFile, distance: number } | null = null;
+        return this.fileInteractions.findBestMatchingFile(targetName, files);
+    }
 
-        for (const file of files) {
-            // Try both with and without extension
-            const distanceWithExt = this.levenshteinDistance(targetName.toLowerCase(), file.name.toLowerCase());
-            const distanceWithoutExt = this.levenshteinDistance(targetName.toLowerCase(), file.basename.toLowerCase());
-            const distance = Math.min(distanceWithExt, distanceWithoutExt);
-
-            if (distance <= MAX_DISTANCE && (!bestMatch || distance < bestMatch.distance)) {
-                bestMatch = { file, distance };
-            }
-        }
-
-        return bestMatch?.file || null;
+    // Helper method to create preview with diff markers
+    private createPreviewWithDiff(originalText: string, newText: string): string {
+        return this.fileInteractions.createPreviewWithDiff(originalText, newText);
     }
 
     private async applyEditBlocks(editBlocks: EditBlock[]) {
         // Check for parsing errors first
         if (editBlocks.length === 0) return;
 
-        // @ts-ignore - we added hasError dynamically
-        if (editBlocks[0].hasError) {
-            console.log("Skipping edit application due to parsing errors");
-            return;
-        }
-
-        // Store original content for each file in case we need to cancel
-        const fileBackups = new Map<string, string>();
-
-        // Get all open markdown files
-        const files = this.app.workspace.getLeavesOfType('markdown')
-            .map(leaf => (leaf.view as any)?.file)
-            .filter(file => file && file.extension === 'md');
-
-        // Group edit blocks by target file
-        const editsByFile = new Map<TFile, EditBlock[]>();
-
-        for (const block of editBlocks) {
-            const targetFile = this.findBestMatchingFile(block.file, files);
-            if (targetFile) {
-                const fileEdits = editsByFile.get(targetFile) || [];
-                fileEdits.push(block);
-                editsByFile.set(targetFile, fileEdits);
-            } else {
-                console.warn(`No matching file found for "${block.file}" (within Levenshtein distance of 10)`);
+        // Apply edits using the FileInteractions class
+        const { editResults, fileBackups, blocksNeedingRetry } = await this.fileInteractions.applyEditBlocks(
+            editBlocks,
+            (blockToRetry) => {
+                if (this.editRetryCount < 2) {
+                    this.handleEditRetry(blockToRetry);
+                }
             }
-        }
-
-        // Process each file's edits
-        for (const [file, targetedEdits] of editsByFile) {
-            try {
-                // Read the file content
-                const content = await this.app.vault.read(file);
-                let newContent = content;
-                let hasChanges = false;
-                let hasLocationError = false;
-
-                // Find frontmatter boundaries
-                const frontmatterMatch = content.match(/^---\n[\s\S]*?\n---\n/);
-                const frontmatterEndIndex = frontmatterMatch ? frontmatterMatch[0].length : 0;
-
-                // Collect all edits for this file first
-                interface PlannedEdit {
-                    startIndex: number;
-                    endIndex: number;
-                    preview: string;
-                }
-                const plannedEdits: PlannedEdit[] = [];
-
-                // First pass: collect all edits
-                for (const block of targetedEdits) {
-                    // Clean up the replacement content by removing file markers and frontmatter if present
-                    let replacement = block.replacement
-                        .replace(/^[\s\n]*<file-start>[\s\n]*/, '') // Remove file-start marker
-                        .replace(/[\s\n]*<file-end>[\s\n]*$/, '')   // Remove file-end marker
-                        .trim();
-
-                    // Remove frontmatter if block starts at beginning and has frontmatter
-                    if ((block.before === '' || block.before.includes('<file-start>')) &&
-                        replacement.startsWith('---\n')) {
-                        const frontmatterEnd = replacement.indexOf('\n---\n');
-                        if (frontmatterEnd !== -1) {
-                            replacement = replacement.substring(frontmatterEnd + 5).trim();
-                        }
-                    }
-
-                    // Handle special markers for file start and end
-                    const before = block.before.replace('<file-start>', '');
-                    const after = block.after.replace('<file-end>', '');
-
-                    // Find the text to replace in original content
-                    let startIndex = -1;
-                    let endIndex = -1;
-
-                    if (block.before.includes('<file-start>')) {
-                        startIndex = frontmatterEndIndex;
-                    } else {
-                        startIndex = content.indexOf(before, frontmatterEndIndex);
-                    }
-
-                    if (block.after.includes('<file-end>')) {
-                        endIndex = content.length;
-                    } else {
-                        if (startIndex !== -1) {
-                            endIndex = content.indexOf(after, startIndex);
-                            if (endIndex !== -1) {
-                                endIndex = endIndex + after.length;
-                            }
-                        }
-                    }
-
-                    if (startIndex === -1 || endIndex === -1) {
-                        hasLocationError = true;
-                        editBlocks[0].hasError = true;
-                        editBlocks[0].error = {
-                            type: 'invalid_json',
-                            message: 'Could not locate the text to edit',
-                            details: `Could not find the specified text in file "${file.basename}".\nStart text: "${before}"\nEnd text: "${after}"`
-                        };
-                        break;
-                    }
-
-                    // Get the text to replace from original content
-                    const textToReplace = content.substring(startIndex, endIndex);
-                    const originalText = textToReplace;
-                    const newText = replacement;
-
-                    // Find common prefix and suffix between original and new text
-                    let prefixLength = 0;
-                    const minLength = Math.min(originalText.length, newText.length);
-                    while (prefixLength < minLength && originalText[prefixLength] === newText[prefixLength]) {
-                        prefixLength++;
-                    }
-
-                    let suffixLength = 0;
-                    while (
-                        suffixLength < minLength - prefixLength &&
-                        originalText[originalText.length - 1 - suffixLength] === newText[newText.length - 1 - suffixLength]
-                    ) {
-                        suffixLength++;
-                    }
-
-                    // Extract the common and different parts
-                    const commonPrefix = originalText.slice(0, prefixLength);
-                    const commonSuffix = originalText.slice(originalText.length - suffixLength);
-                    const originalDiff = originalText.slice(prefixLength, originalText.length - suffixLength);
-                    const newDiff = newText.slice(prefixLength, newText.length - suffixLength);
-
-                    // Format each line of the differences
-                    const formatLines = (text: string, marker: string): string => {
-                        if (!text) return '';
-                        return text.split('\n')
-                            .map(line => {
-                                line = line.trim();
-                                if (!line) {
-                                    // Only keep empty lines for == marker
-                                    return marker === '==' ? '' : '~~';
-                                }
-                                return `${marker}${line}${marker}`;
-                            })
-                            .filter(line => line !== '~~') // Remove empty strings
-                            .join('\n');
-                    };
-
-                    // Create the preview with only the differences marked, line by line
-                    const formattedPreview =
-                        commonPrefix +
-                        (originalDiff ? formatLines(originalDiff, '~~') : '') +
-                        (newDiff ? formatLines(newDiff, '==') : '') +
-                        commonSuffix;
-
-                    plannedEdits.push({
-                        startIndex,
-                        endIndex,
-                        preview: formattedPreview
-                    });
-                    hasChanges = true;
-                }
-
-                if (hasLocationError) {
-                    // Trigger a retry if location wasn't found
-                    if (this.editRetryCount < 2) {
-                        await this.handleEditRetry(editBlocks[0]);
-                    }
-                    return;
-                }
-
-                // Sort edits by start index in reverse order (to apply from end to start)
-                plannedEdits.sort((a, b) => b.startIndex - a.startIndex);
-
-                // Second pass: apply all edits
-                for (const edit of plannedEdits) {
-                    newContent =
-                        newContent.substring(0, edit.startIndex) +
-                        edit.preview +
-                        newContent.substring(edit.endIndex);
-                }
-
-                // If any changes were made, backup the original content and save the changes
-                if (hasChanges) {
-                    fileBackups.set(file.path, content);
-                    await this.app.vault.modify(file, newContent);
-                }
-            } catch (error) {
-                console.error(`Error applying edits to ${file.path}:`, error);
-            }
-        }
+        );
 
         // Add confirmation buttons to the last message
         const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
@@ -2538,6 +2015,19 @@ Examples of targeted edits:
 
         if (lastMessage) {
             const buttonsContainer = lastMessage.createDiv({ cls: "edit-confirmation-buttons" });
+
+            // Add status summary
+            const statusSummary = buttonsContainer.createDiv({ cls: "edit-status-summary" });
+            const successCount = editResults.filter(r => r.success).length;
+            statusSummary.innerHTML = `${successCount}/${editResults.length} edits applied successfully`;
+
+            if (editResults.some(r => !r.success)) {
+                const errorDetails = editResults
+                    .filter(r => !r.success)
+                    .map(r => `• ${r.block.note}: ${r.error}`)
+                    .join('\n');
+                statusSummary.title = `Failed edits:\n${errorDetails}`;
+            }
 
             // Create Apply button
             const applyButton = buttonsContainer.createEl("button", {
@@ -2554,68 +2044,69 @@ Examples of targeted edits:
             // Scroll to the buttons
             buttonsContainer.scrollIntoView({ behavior: "smooth", block: "center" });
 
-            // Handle Apply button click
-            applyButton.addEventListener("click", async () => {
-                try {
-                    for (const [filePath, originalContent] of fileBackups) {
-                        const file = this.app.vault.getAbstractFileByPath(filePath);
-                        if (file && file instanceof TFile) {
-                            const currentContent = await this.app.vault.read(file);
-                            let finalContent = currentContent;
-
-                            // 1. Remove text between ~~ and handle line breaks
-                            finalContent = finalContent.replace(/~~[^~]*~~\n?(?=~~)/g, ''); // Remove newline if next line starts with ~~
-                            finalContent = finalContent.replace(/~~[^~]*~~/g, ''); // Remove remaining ~~ content
-
-                            // 2. Remove all == globally
-                            finalContent = finalContent.replace(/==/g, '');
-
-                            await this.app.vault.modify(file, finalContent);
-                        }
-                    }
-
-                    // Show success message
-                    const successMessage = lastMessage.createDiv({ cls: "edit-status-message success" });
-                    successMessage.textContent = "✅ Changes applied successfully";
-                    setTimeout(() => successMessage.remove(), 3000);
-                } catch (error) {
-                    console.error("Error applying changes:", error);
-                    // Show error message
-                    const errorMessage = lastMessage.createDiv({ cls: "edit-status-message error" });
-                    errorMessage.textContent = "❌ Error applying changes";
-                    setTimeout(() => errorMessage.remove(), 3000);
-                } finally {
-                    // Remove the buttons after applying
-                    buttonsContainer.remove();
-                }
-            });
-
-            // Handle Cancel button click
-            cancelButton.addEventListener("click", async () => {
-                try {
-                    // Restore original content for all modified files
-                    for (const [filePath, originalContent] of fileBackups) {
-                        const file = this.app.vault.getAbstractFileByPath(filePath);
-                        if (file && file instanceof TFile) {
-                            await this.app.vault.modify(file, originalContent);
-                        }
-                    }
-                    // Show success message
-                    const successMessage = lastMessage.createDiv({ cls: "edit-status-message success" });
-                    successMessage.textContent = "✅ Changes cancelled successfully";
-                    setTimeout(() => successMessage.remove(), 3000);
-                } catch (error) {
-                    console.error("Error cancelling changes:", error);
-                    // Show error message
-                    const errorMessage = lastMessage.createDiv({ cls: "edit-status-message error" });
-                    errorMessage.textContent = "❌ Error cancelling changes";
-                    setTimeout(() => errorMessage.remove(), 3000);
-                } finally {
-                    // Remove the buttons after canceling
-                    buttonsContainer.remove();
-                }
-            });
+            // Handle Apply/Cancel clicks
+            this.setupConfirmationButtons(applyButton, cancelButton, fileBackups, lastMessage, buttonsContainer);
         }
+    }
+
+    // Helper method to setup confirmation buttons
+    private setupConfirmationButtons(
+        applyButton: HTMLButtonElement,
+        cancelButton: HTMLButtonElement,
+        fileBackups: Map<string, string>,
+        lastMessage: Element,
+        buttonsContainer: HTMLDivElement
+    ) {
+        applyButton.addEventListener("click", async () => {
+            try {
+                for (const [filePath, originalContent] of fileBackups) {
+                    const file = this.app.vault.getAbstractFileByPath(filePath);
+                    if (file && file instanceof TFile) {
+                        const currentContent = await this.app.vault.read(file);
+                        let finalContent = currentContent;
+
+                        // Remove diff markers
+                        finalContent = finalContent.replace(/~~[^~]*~~\n?(?=~~)/g, '');
+                        finalContent = finalContent.replace(/~~[^~]*~~/g, '');
+                        finalContent = finalContent.replace(/==/g, '');
+
+                        await this.app.vault.modify(file, finalContent);
+                    }
+                }
+
+                const successMessage = lastMessage.createDiv({ cls: "edit-status-message success" });
+                successMessage.textContent = "✅ Changes applied successfully";
+                setTimeout(() => successMessage.remove(), 3000);
+            } catch (error) {
+                console.error("Error applying changes:", error);
+                const errorMessage = lastMessage.createDiv({ cls: "edit-status-message error" });
+                errorMessage.textContent = "❌ Error applying changes";
+                setTimeout(() => errorMessage.remove(), 3000);
+            } finally {
+                buttonsContainer.remove();
+            }
+        });
+
+        cancelButton.addEventListener("click", async () => {
+            try {
+                for (const [filePath, originalContent] of fileBackups) {
+                    const file = this.app.vault.getAbstractFileByPath(filePath);
+                    if (file && file instanceof TFile) {
+                        await this.app.vault.modify(file, originalContent);
+                    }
+                }
+                const successMessage = lastMessage.createDiv({ cls: "edit-status-message success" });
+                successMessage.textContent = "✅ Changes cancelled successfully";
+                setTimeout(() => successMessage.remove(), 3000);
+            } catch (error) {
+                console.error("Error cancelling changes:", error);
+                const errorMessage = lastMessage.createDiv({ cls: "edit-status-message error" });
+                errorMessage.textContent = "❌ Error cancelling changes";
+                setTimeout(() => errorMessage.remove(), 3000);
+            } finally {
+                buttonsContainer.remove();
+            }
+        });
     }
 
     private convertCommandsToEmojis(message: string): string {
@@ -2662,49 +2153,7 @@ Examples of targeted edits:
 
     // Add this new method to handle khoj-edit block transformation
     private transformKhojEditBlocks(message: string): string {
-        // Get all open markdown files
-        const files = this.app.workspace.getLeavesOfType('markdown')
-            .map(leaf => (leaf.view as any)?.file)
-            .filter(file => file && file.extension === 'md');
-
-        return message.replace(/```khoj-edit\s*([\s\S]*?)```/g, (match, content) => {
-            const { editData, cleanContent, error } = this.parseKhojEditBlock(content);
-
-            // Escape content for HTML display
-            const escapedContent = cleanContent
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-
-            if (error) {
-                console.error("Error parsing khoj-edit block:", error);
-                console.debug("Content causing error:", content);
-
-                const errorTitle = `Error: ${error.message}`;
-                const errorDetails = `Failed to parse edit block. Please check the JSON format and ensure all required fields are present.`;
-
-                return `<details class="khoj-edit-accordion error">
-                    <summary>${errorTitle}</summary>
-                    <div class="khoj-edit-content">
-                        <p class="khoj-edit-error-message">${errorDetails}</p>
-                        <pre><code class="language-khoj-edit error">${escapedContent}</code></pre>
-                    </div>
-                </details>`;
-            }
-
-            // Find the actual file that will be modified
-            const targetFile = this.findBestMatchingFile(editData.file, files);
-            const displayFileName = targetFile ? targetFile.basename : editData.file;
-
-            return `<details class="khoj-edit-accordion success">
-                <summary>${editData.note} <span class="khoj-edit-file">(📄 ${displayFileName})</span></summary>
-                <div class="khoj-edit-content">
-                    <pre><code class="language-khoj-edit">${escapedContent}</code></pre>
-                </div>
-            </details>`;
-        });
+        return this.fileInteractions.transformKhojEditBlocks(message);
     }
 
     private async handleEditRetry(errorBlock: EditBlock) {
