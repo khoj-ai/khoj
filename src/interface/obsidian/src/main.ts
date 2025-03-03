@@ -71,6 +71,22 @@ export default class Khoj extends Plugin {
             }
         });
 
+        // Add voice capture command with hotkey
+        this.addCommand({
+            id: 'voice-capture',
+            name: 'Start Voice Capture',
+            hotkeys: [{ modifiers: ["Ctrl", "Alt"], key: "V" }],
+            callback: () => {
+                this.activateView(KhojView.CHAT).then(() => {
+                    const chatView = this.app.workspace.getActiveViewOfType(KhojChatView);
+                    if (chatView) {
+                        // Trigger speech to text functionality
+                        chatView.speechToText(new KeyboardEvent('keydown'));
+                    }
+                });
+            }
+        });
+
         // Add sync command to manually sync new changes
         this.addCommand({
             id: 'sync',

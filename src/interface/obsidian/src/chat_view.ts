@@ -124,6 +124,13 @@ export class KhojChatView extends KhojPaneView {
                 this.waitingForLocation = false;
             });
 
+        // Register chat view keybindings
+        this.scope = new Scope(this.app.scope);
+        this.scope.register(["Ctrl", "Alt"], 'n', (_) => this.createNewConversation());
+        this.scope.register(["Ctrl", "Alt"], 'o', async (_) => await this.toggleChatSessions());
+        this.scope.register(["Ctrl", "Alt"], 'v', (_) => this.speechToText(new KeyboardEvent('keydown')));
+        this.scope.register(["Ctrl"], 'f', (_) => new KhojSearchModal(this.app, this.setting).open());
+        this.scope.register(["Ctrl"], 'r', (_) => new KhojSearchModal(this.app, this.setting, true).open());
     }
 
     getViewType(): string {
@@ -242,7 +249,7 @@ export class KhojChatView extends KhojPaneView {
             text: "Chat Sessions",
             attr: {
                 class: "khoj-input-row-button clickable-icon",
-                title: "Show Conversations (^O)",
+                title: "Show Conversations (Ctrl+Alt+O)",
             },
         })
         chatSessions.addEventListener('click', async (_) => { await this.toggleChatSessions() });
@@ -300,7 +307,7 @@ export class KhojChatView extends KhojPaneView {
             attr: {
                 id: "khoj-transcribe",
                 class: "khoj-transcribe khoj-input-row-button clickable-icon ",
-                title: "Start Voice Chat (^S)",
+                title: "Start Voice Chat (Ctrl+Alt+V)",
             },
         })
         transcribe.addEventListener('mousedown', (event) => { this.startSpeechToText(event) });
@@ -978,7 +985,7 @@ export class KhojChatView extends KhojPaneView {
         newConversationButtonEl.addEventListener('click', (_) => this.createNewConversation());
         setIcon(newConversationButtonEl, "plus");
         newConversationButtonEl.innerHTML += "New";
-        newConversationButtonEl.title = "New Conversation (^N)";
+        newConversationButtonEl.title = "New Conversation (Ctrl+Alt+N)";
 
         const existingConversationsEl = sidePanelEl.createDiv("existing-conversations");
         const conversationListEl = existingConversationsEl.createDiv("conversation-list");
