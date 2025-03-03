@@ -2,8 +2,8 @@ import { ItemView, MarkdownRenderer, Scope, WorkspaceLeaf, request, requestUrl, 
 import * as DOMPurify from 'dompurify';
 import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
-import { KhojView, createCopyParentText, getLinkToEntry, pasteTextAtCursor } from 'src/utils';
-import { KhojSearchModal } from './search_modal';
+import { KhojView, createCopyParentText, getLinkToEntry, pasteTextAtCursor, populateHeaderPane } from 'src/utils';
+import { KhojSearchModal } from 'src/search_modal';
 import { FileInteractions, EditBlock } from './interact_with_files';
 
 export interface ChatJsonResult {
@@ -194,92 +194,53 @@ export class KhojChatView extends KhojPaneView {
 
     async onOpen() {
         let { contentEl } = this;
-        contentEl.addClass("khoj-chat");
 
-        super.onOpen();
+        // The parent class handles creating the header and attaching the click on the "New Chat" button
+        // We handle the rest of the interface here
+
+        // Call the parent class's onOpen method first
+        await super.onOpen();
 
         // Fetch available agents
         await this.fetchAgents();
 
-        // Construct Content Security Policy
-        let defaultDomains = `'self' ${this.setting.khojUrl} https://*.obsidian.md https://app.khoj.dev https://assets.khoj.dev`;
-        const defaultSrc = `default-src ${defaultDomains};`;
-        const scriptSrc = `script-src ${defaultDomains} 'unsafe-inline';`;
-        const connectSrc = `connect-src ${this.setting.khojUrl} wss://*.obsidian.md/ https://ipapi.co/json;`;
-        const styleSrc = `style-src ${defaultDomains} 'unsafe-inline';`;
-        const imgSrc = `img-src * app: data:;`;
-        const childSrc = `child-src 'none';`;
-        const objectSrc = `object-src 'none';`;
-        const csp = `${defaultSrc} ${scriptSrc} ${connectSrc} ${styleSrc} ${imgSrc} ${childSrc} ${objectSrc}`;
+        // Populate the agent selector in the header
+        const headerAgentSelect = this.contentEl.querySelector('#khoj-header-agent-select') as HTMLSelectElement;
+        if (headerAgentSelect && this.agents.length > 0) {
+            // Clear existing options
+            headerAgentSelect.innerHTML = '';
 
-        // WARNING: CSP DISABLED for now as it breaks other Obsidian plugins. Enable when can scope CSP to only Khoj plugin.
-        // CSP meta tag for the Khoj Chat modal
-        // document.head.createEl("meta", { attr: { "http-equiv": "Content-Security-Policy", "content": `${csp}` } });
+            // Add default option
+            const defaultOption = headerAgentSelect.createEl("option", {
+                text: "Default Agent",
+                value: ""
+            });
 
-        // Create area for chat logs
+            // Add options for each agent
+            this.agents.forEach(agent => {
+                const option = headerAgentSelect.createEl("option", {
+                    text: agent.name,
+                    value: agent.slug
+                });
+                if (agent.description) {
+                    option.title = agent.description;
+                }
+            });
+
+            // Add change event listener
+            headerAgentSelect.addEventListener('change', (event) => {
+                const select = event.target as HTMLSelectElement;
+                this.currentAgent = select.value || null;
+            });
+        }
+
+        contentEl.addClass("khoj-chat");
+
+        // Create the chat body
         let chatBodyEl = contentEl.createDiv({ attr: { id: "khoj-chat-body", class: "khoj-chat-body" } });
 
-        // Add top control bar
+        // Create the top control row - nous la conservons mais sans le sélecteur d'agent
         let topControlRow = contentEl.createDiv("khoj-top-control-row");
-
-        // Create agent container
-        let agentContainer = topControlRow.createDiv("khoj-agent-container");
-
-        // Add agent selector
-        let agentSelect = agentContainer.createEl("select", {
-            attr: {
-                class: "khoj-agent-select",
-                title: "Select Agent"
-            }
-        });
-
-        // Add default option
-        let defaultOption = agentSelect.createEl("option", {
-            text: "Default Agent",
-            value: ""
-        });
-
-        // Add options for each agent
-        this.agents.forEach(agent => {
-            let option = agentSelect.createEl("option", {
-                text: agent.name,
-                value: agent.slug
-            });
-            if (agent.description) {
-                option.title = agent.description;
-            }
-        });
-
-        // Add New Chat button
-        let newChatButton = topControlRow.createEl("button", {
-            text: "New Chat",
-            attr: {
-                class: "khoj-new-chat-button",
-                title: "Start New Chat with Selected Agent"
-            }
-        });
-        setIcon(newChatButton, "plus-circle");
-        newChatButton.addEventListener('click', async () => {
-            const selectedAgent = (agentSelect as HTMLSelectElement).value;
-            await this.createNewConversation(selectedAgent);
-        });
-
-        // Add hint message for agent change
-        let agentHint = topControlRow.createEl("div", {
-            attr: {
-                class: "khoj-agent-hint",
-            },
-            text: "👈 Click this button to use the selected agent in a new chat !"
-        });
-
-        // Add event listener for agent selection change
-        agentSelect.addEventListener('change', (event) => {
-            const select = event.target as HTMLSelectElement;
-            const selectedAgent = select.value;
-            // Show hint if selected agent is different from current agent
-            const shouldShowHint = Boolean(selectedAgent !== this.currentAgent && chatBodyEl.dataset.conversationId);
-            agentHint.classList.toggle('visible', shouldShowHint);
-        });
 
         // Add chat input field
         let inputRow = contentEl.createDiv("khoj-input-row");

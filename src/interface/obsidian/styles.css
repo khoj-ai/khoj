@@ -487,6 +487,7 @@ div.khoj-header {
     user-select: none;
     -webkit-user-select: none;
     -webkit-app-region: drag;
+    position: relative;
 }
 
 /* Keeps the navigation menu clickable */
@@ -513,6 +514,85 @@ a.khoj-nav {
 
 div.khoj-logo {
     justify-self: left;
+}
+
+/* New Chat button in header */
+.khoj-header-new-chat-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--text-accent);
+    background-color: var(--background-primary);
+    color: var(--text-accent);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    height: 28px;
+    -webkit-app-region: no-drag;
+    position: absolute;
+    left: 100px;
+    top: 50%;
+    transform: translateY(-50%);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+
+.khoj-header-new-chat-button:hover {
+    background-color: var(--text-accent);
+    color: var(--background-primary);
+    transform: translateY(calc(-50% - 1px));
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.khoj-header-new-chat-button .lucide-plus-circle {
+    width: 16px;
+    height: 16px;
+}
+
+/* Agent selector in header */
+.khoj-header-agent-container {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 50%;
+    left: 210px;
+    transform: translateY(-50%);
+    z-index: 10;
+    -webkit-app-region: no-drag;
+    width: 160px;
+}
+
+.khoj-header-agent-select {
+    border: 1px solid var(--background-modifier-border);
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    height: 28px;
+    width: 100%;
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+}
+
+.khoj-header-agent-select:hover {
+    border-color: var(--text-accent);
+}
+
+.khoj-header-agent-select:focus {
+    outline: none;
+    border-color: var(--text-accent);
+    box-shadow: 0 0 0 2px rgba(var(--text-accent-rgb), 0.1);
+}
+
+.khoj-header-agent-select option {
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    padding: 8px;
 }
 
 .khoj-nav a {
@@ -950,8 +1030,8 @@ img.copy-icon {
 
 .khoj-top-control-row {
     display: flex;
-    align-items: flex-start;
-    gap: 8px;
+    align-items: center;
+    gap: 12px;
     padding: 8px 16px;
     background: var(--background-primary);
     border-bottom: 1px solid var(--background-modifier-border);
@@ -965,6 +1045,12 @@ img.copy-icon {
     max-width: 200px;
 }
 
+.khoj-agent-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
 .khoj-agent-select {
     width: 100%;
 }
@@ -976,30 +1062,15 @@ img.copy-icon {
     margin-top: 4px;
     font-style: italic;
     display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .khoj-agent-hint.visible {
     display: block;
-}
-
-.khoj-new-chat-button {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    border: 1px solid var(--khoj-storm-grey);
-    background-color: var(--background-primary);
-    color: var(--text-normal);
-    cursor: pointer;
-    height: 32px;
-    font-size: 14px;
-    align-self: flex-start;
-}
-
-.khoj-new-chat-button:hover {
-    background-color: var(--background-modifier-hover);
-    border-color: var(--text-accent);
+    opacity: 1;
+    animation: fadeIn 0.3s ease-in-out;
+    color: var(--text-accent);
 }
 
 /* Edit Confirmation Buttons */
@@ -1007,7 +1078,7 @@ img.copy-icon {
     display: flex;
     gap: 8px;
     margin-top: 8px;
-    justify-content: center;
+    justify-content: flex-end;
 }
 
 .edit-confirm-button {
