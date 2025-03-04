@@ -210,7 +210,7 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
                 )
                 .map((result: any) => {
                     const isInVault = this.isFileInVault(result.additional.file);
-                    
+
                     // Add new non-vault files to allFiles if they don't exist
                     if (!this.allFiles.some(file => file.path === result.additional.file)) {
                         this.allFiles.push({
