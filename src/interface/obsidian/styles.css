@@ -859,3 +859,8 @@ img.copy-icon {
         transform: rotate(360deg);
     }
 }
+
+.khoj-file-suggestion {
+    padding: 8px;
+    color: var(--text-muted);
+}
