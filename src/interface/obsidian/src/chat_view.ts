@@ -782,13 +782,23 @@ export class KhojChatView extends KhojPaneView {
 
     async renderIncrementalMessage(htmlElement: HTMLDivElement, additionalMessage: string) {
         this.chatMessageState.rawResponse += additionalMessage;
-        htmlElement.innerHTML = "";
+
+        // Plutôt que de réinitialiser tout le HTML à chaque fois (ce qui cause un clignotement),
+        // nous allons simplement mettre à jour le contenu avec le nouveau texte
+
         // Sanitize the markdown to render
-        this.chatMessageState.rawResponse = DOMPurify.sanitize(this.chatMessageState.rawResponse);
-        // @ts-ignore
-        htmlElement.innerHTML = this.markdownTextToSanitizedHtml(this.chatMessageState.rawResponse, this);
+        const sanitizedResponse = DOMPurify.sanitize(this.chatMessageState.rawResponse);
+
+        // Créer un élément temporaire pour obtenir le HTML rendu
+        const tempElement = document.createElement('div');
+        tempElement.innerHTML = this.markdownTextToSanitizedHtml(sanitizedResponse, this);
+
+        // Mettre à jour le contenu avec une transition plus douce
+        htmlElement.innerHTML = tempElement.innerHTML;
+
         // Render action buttons for the message
         this.renderActionButtons(this.chatMessageState.rawResponse, htmlElement);
+
         // Scroll to bottom of modal, till the send message input box
         this.scrollChatToBottom();
     }
@@ -1743,18 +1753,43 @@ export class KhojChatView extends KhojPaneView {
 
     handleStreamResponse(newResponseElement: HTMLElement | null, rawResponse: string, loadingEllipsis: HTMLElement | null, replace = true) {
         if (!newResponseElement) return;
+
         // Remove loading ellipsis if it exists
         if (newResponseElement.getElementsByClassName("lds-ellipsis").length > 0 && loadingEllipsis)
             newResponseElement.removeChild(loadingEllipsis);
-        // Clear the response element if replace is true
-        if (replace) newResponseElement.innerHTML = "";
 
-        // Append response to the response element
-        newResponseElement.appendChild(this.formatHTMLMessage(rawResponse, false, replace));
+        // Si c'est un remplacement complet, on efface tout le contenu
+        if (replace) {
+            newResponseElement.innerHTML = "";
+            const messageEl = this.formatHTMLMessage(rawResponse, false, replace);
+            messageEl.classList.add('khoj-message-new-content');
+            newResponseElement.appendChild(messageEl);
+        }
+        // Si c'est un ajout de contenu, on ajoute uniquement les nouvelles parties
+        else {
+            // On obtient le contenu précédent pour comparaison
+            const oldContent = newResponseElement.innerHTML;
 
-        // Append loading ellipsis if it exists
-        if (!replace && loadingEllipsis) newResponseElement.appendChild(loadingEllipsis);
-        // Scroll to bottom of chat view
+            // On crée un élément temporaire pour le nouveau contenu
+            const tempElement = document.createElement('div');
+            tempElement.appendChild(this.formatHTMLMessage(rawResponse, false, replace));
+
+            // Si le contenu est différent, on met à jour avec animation
+            if (tempElement.innerHTML !== oldContent) {
+                // On remplace tout le contenu pour éviter les problèmes de formatage Markdown
+                newResponseElement.innerHTML = tempElement.innerHTML;
+
+                // On ajoute la classe d'animation pour l'effet de fondu
+                newResponseElement.classList.add('khoj-message-new-content');
+
+                // On retire la classe après l'animation
+                setTimeout(() => {
+                    newResponseElement.classList.remove('khoj-message-new-content');
+                }, 300);
+            }
+        }
+
+        // Scroll to bottom of chat
         this.scrollChatToBottom();
     }
 
@@ -1876,57 +1911,74 @@ export class KhojChatView extends KhojPaneView {
 
     // Add this new method to handle message deletion
     async deleteMessage(messageEl: HTMLElement, skipPaired: boolean = false, skipBackend: boolean = false) {
-        const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
-        const conversationId = chatBodyEl.dataset.conversationId;
+        // Find parent message container
+        const messageContainer = messageEl.closest('.khoj-chat-message');
+        if (!messageContainer) return;
 
-        // Get the turnId from the message's data-turn attribute
-        const turnId = messageEl.getAttribute("data-turnId");
-        if (!turnId || !conversationId) return;
+        // Get paired message to delete if needed
+        let pairedMessageContainer = null;
+        if (!skipPaired) {
+            const messages = Array.from(document.getElementsByClassName('khoj-chat-message'));
+            const currentIndex = messages.indexOf(messageContainer as HTMLElement);
 
-        // If skipBackend is false, delete the message from the backend
-        if (!skipBackend) {
-            try {
-                const response = await fetch(`${this.setting.khojUrl}/api/chat/conversation/message`, {
-                    method: "DELETE",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${this.setting.khojApiKey}`
-                    },
-                    body: JSON.stringify({
-                        conversation_id: conversationId,
-                        turn_id: turnId
-                    })
-                });
+            // If we're deleting a user message, also delete the subsequent khoj message (if any)
+            if (messageContainer.classList.contains('you') && currentIndex < messages.length - 1) {
+                pairedMessageContainer = messages[currentIndex + 1];
+            }
+            // If we're deleting a khoj message, also delete the preceding user message (if any)
+            else if (messageContainer.classList.contains('khoj') && currentIndex > 0) {
+                pairedMessageContainer = messages[currentIndex - 1];
+            }
+        }
 
-                if (!response.ok) {
-                    this.flashStatusInChatInput("Failed to delete message");
-                    return;
+        // Add animation class
+        messageContainer.classList.add('deleting');
+        if (pairedMessageContainer) {
+            pairedMessageContainer.classList.add('deleting');
+        }
+
+        // Wait for animation to complete
+        setTimeout(async () => {
+            // Get turn ID for message
+            const turnId = messageContainer.getAttribute('data-turn-id');
+
+            // Remove message(s) from DOM
+            messageContainer.remove();
+            if (pairedMessageContainer) {
+                pairedMessageContainer.remove();
+            }
+
+            // Only delete in backend if not skipped
+            if (!skipBackend && turnId) {
+                const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
+                const conversationId = chatBodyEl.dataset.conversationId;
+
+                if (!conversationId) return;
+
+                try {
+                    // Delete from backend
+                    const response = await fetch(`${this.setting.khojUrl}/api/chat/conversation/message`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${this.setting.khojApiKey}`
+                        },
+                        body: JSON.stringify({
+                            conversation_id: conversationId,
+                            turn_id: turnId
+                        }),
+                    });
+
+                    if (!response.ok) {
+                        console.error('Failed to delete message from backend:', await response.text());
+                        this.flashStatusInChatInput("Failed to delete message");
+                    }
+                } catch (error) {
+                    console.error('Error deleting message:', error);
+                    this.flashStatusInChatInput("Error deleting message");
                 }
-            } catch (error) {
-                console.error("Error deleting message:", error);
-                this.flashStatusInChatInput("Error deleting message");
-                return;
             }
-        }
-
-        // If skipPaired is true, just remove this message
-        // Otherwise, remove both the user message and Khoj response (the conversation turn)
-        if (skipPaired) {
-            messageEl.remove();
-        } else {
-            const isKhojMessage = messageEl.classList.contains("khoj");
-            const messages = Array.from(chatBodyEl.getElementsByClassName("khoj-chat-message"));
-            const messageIndex = messages.indexOf(messageEl);
-
-            if (isKhojMessage && messageIndex > 0) {
-                // If it is a Khoj message, remove the previous user message too
-                messages[messageIndex - 1].remove();
-            } else if (!isKhojMessage && messageIndex < messages.length - 1) {
-                // If it is a user message, remove the next Khoj message too
-                messages[messageIndex + 1].remove();
-            }
-            messageEl.remove();
-        }
+        }, 300); // Matches the animation duration
     }
 
     async fetchAgents() {

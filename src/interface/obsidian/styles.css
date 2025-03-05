@@ -17,10 +17,15 @@ If your plugin does not need CSS, delete this file.
 
 .khoj-chat p {
     margin: 0;
+    line-height: 1.6;
 }
 
 .khoj-chat pre {
     text-wrap: unset;
+    border-radius: 6px;
+    padding: 12px;
+    background-color: var(--background-modifier-hover);
+    margin: 12px 0;
 }
 
 .khoj-chat {
@@ -29,27 +34,30 @@ If your plugin does not need CSS, delete this file.
     background: var(--background-primary);
     color: var(--text-normal);
     text-align: center;
-    font-family: roboto, karma, segoe ui, sans-serif;
-    font-size: var(--font-ui-large);
-    font-weight: 300;
-    line-height: 1.5em;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    font-size: calc(var(--font-ui-large) * 1.05);
+    font-weight: 400;
+    line-height: 1.6;
 }
 
 .khoj-chat>* {
-    padding: 10px;
-    margin: 10px;
+    padding: 12px;
+    margin: 12px;
 }
 
 #khoj-chat-title {
-    font-weight: 200;
+    font-weight: 300;
     color: var(--khoj-sun);
+    font-size: 1.4em;
+    letter-spacing: 0.2px;
 }
 
 #khoj-chat-body {
-    font-size: var(--font-ui-medium);
+    font-size: calc(var(--font-ui-medium) * 1.1);
     margin: 0px;
-    line-height: 20px;
+    line-height: 1.6;
     overflow-y: scroll;
+    padding: 0 5px;
     /* Make chat body scroll to see history */
 }
 
@@ -59,41 +67,66 @@ If your plugin does not need CSS, delete this file.
     display: block;
     font-size: var(--font-ui-smaller);
     color: var(--text-muted);
-    margin: -12px 7px 0 0px;
+    margin: -8px 7px 0 0px;
 }
 
 /* move message by khoj to left */
 .khoj-chat-message.khoj {
     margin-left: auto;
     text-align: left;
+    padding: 6px 0;
 }
 
 /* move message by you to right */
 .khoj-chat-message.you {
     margin-right: auto;
     text-align: right;
+    padding: 6px 0;
 }
 
 /* basic style chat message text */
 .khoj-chat-message-text {
     margin: 10px;
-    border-radius: 10px;
-    padding: 10px;
+    border-radius: 12px;
+    padding: 14px 16px;
     position: relative;
     display: inline-block;
     text-align: left;
     user-select: text;
     color: var(--text-normal);
-    background-color: var(--active-bg);
+    background-color: var(--background-modifier-hover);
     word-break: break-word;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    max-width: 90%;
 }
 
 /* color chat bubble by khoj blue */
 .khoj-chat-message-text.khoj {
-    border-left: 2px solid var(--khoj-sun);
-    border-radius: 0px;
+    border-left: 4px solid var(--khoj-sun);
+    border-radius: 8px;
     margin-left: auto;
+    padding-left: 18px;
     white-space: pre-line;
+    background-color: var(--background-secondary);
+    transition: opacity 0.1s ease-in-out, transform 0.1s ease-in-out;
+}
+
+/* Animation pour les nouveaux mots lors du streaming */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Classe à utiliser pour l'animation des nouveaux éléments */
+.khoj-message-new-content {
+    animation: fadeIn 0.3s ease-in-out;
 }
 
 /* Override white-space for ul, ol, li under khoj-chat-message-text.khoj */
@@ -101,6 +134,19 @@ If your plugin does not need CSS, delete this file.
 .khoj-chat-message-text.khoj ol,
 .khoj-chat-message-text.khoj li {
     white-space: normal;
+    margin-left: 0;
+    padding-left: 1.2em;
+}
+
+/* fix list items display */
+.khoj-chat-message-text ul,
+.khoj-chat-message-text ol {
+    padding-left: 1.2em;
+    margin: 8px 0;
+}
+
+.khoj-chat-message-text li {
+    margin-bottom: 4px;
 }
 
 /* add left protrusion to khoj chat bubble */
@@ -109,7 +155,7 @@ If your plugin does not need CSS, delete this file.
     position: absolute;
     bottom: -2px;
     left: -7px;
-    border: 10px solid transparent;
+    border: 8px solid transparent;
     border-bottom: 0;
     transform: rotate(-60deg);
 }
@@ -133,27 +179,23 @@ If your plugin does not need CSS, delete this file.
     transform: rotate(-60deg)
 }
 
-.khoj-chat-message-text ul,
-.khoj-chat-message-text ol {
-    margin: 0px 0 0;
-}
-
-.khoj-chat-message-text ol li {
-    white-space: normal;
-}
-
 .option-enabled {
     box-shadow: 0 0 12px rgb(119, 156, 46);
 }
 
 code.chat-response {
-    background: var(--khoj-sun);
-    color: var(--khoj-storm-grey);
-    border-radius: 5px;
-    padding: 5px;
-    font-size: 14px;
-    font-weight: 300;
-    line-height: 1.5em;
+    background-color: var(--background-secondary-alt) !important;
+    border-radius: 6px;
+    padding: 8px 12px !important;
+    font-family: var(--font-monospace);
+    font-size: var(--font-ui-smaller);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--background-modifier-border);
+    display: block;
+    margin: 8px 0;
 }
 
 div.collapsed {
@@ -165,12 +207,13 @@ div.expanded {
 }
 
 div.reference {
-    display: grid;
-    grid-template-rows: auto;
-    grid-auto-flow: row;
-    grid-column-gap: 10px;
-    grid-row-gap: 10px;
-    margin: 10px;
+    margin: 0.5em;
+    padding: 0.5em;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    background-color: var(--background-secondary);
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 div.expanded.reference-section {
@@ -183,22 +226,26 @@ div.expanded.reference-section {
 }
 
 button.reference-button {
-    border: 1px solid var(--khoj-storm-grey);
-    background-color: transparent;
-    border-radius: 5px;
-    padding: 4px;
-    font-size: 14px;
-    font-weight: 300;
-    line-height: 1.5em;
-    cursor: pointer;
-    transition: background 0.2s ease-in-out;
+    background: var(--background-secondary-alt);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin: 4px 0;
+    width: 100%;
     text-align: left;
-    max-height: 75px;
-    height: auto;
-    transition: max-height 0.3s ease-in-out;
+    cursor: pointer;
+    color: var(--text-normal);
+    font-size: calc(var(--font-ui-small) * 1.05);
+    line-height: 1.4;
+    transition: all 0.2s ease;
+    position: relative;
     overflow: hidden;
-    display: inline-block;
-    text-wrap: inherit;
+}
+
+button.reference-button:hover {
+    background-color: var(--background-modifier-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 button.reference-button.expanded {
@@ -656,66 +703,114 @@ span.khoj-nav-item-text {
     padding-left: 8px;
 }
 
-/* Copy button */
+/* Amélioration des boutons d'action */
 button.chat-action-button {
-    display: block;
-    border-radius: 4px;
-    color: var(--text-muted);
     background-color: transparent;
-    border: 1px solid var(--khoj-storm-grey);
-    text-align: center;
-    font-size: 16px;
-    transition: all 0.5s;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--text-muted);
     cursor: pointer;
-    padding: 4px;
-    margin-top: 8px;
     margin-left: 4px;
-    float: right;
+    padding: 6px;
+    opacity: 0;
+    transition: all 0.2s ease-in-out;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
-button.chat-action-button span {
-    cursor: pointer;
-    display: inline-block;
-    position: relative;
-    transition: 0.5s;
+.khoj-chat-message:hover button.chat-action-button {
+    opacity: 0.7;
 }
 
 button.chat-action-button:hover {
-    background-color: var(--background-modifier-active-hover);
+    opacity: 1 !important;
+    background-color: var(--background-modifier-hover);
+    transform: translateY(-1px);
+}
+
+/* Chat input styling amélioré */
+#khoj-chat-footer {
+    display: flex;
+    flex-direction: column;
+    margin-top: auto;
+    padding: 10px;
+    border-top: 1px solid var(--background-modifier-border);
+    background-color: var(--background-primary);
+}
+
+.khoj-input-row {
+    display: flex;
+    align-items: center;
+    background-color: var(--background-secondary);
+    border-radius: 12px;
+    padding: 4px 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: box-shadow 0.2s ease, transform 0.1s ease;
+}
+
+.khoj-input-row:focus-within {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+    background-color: var(--background-secondary-alt);
+}
+
+#khoj-chat-input {
+    flex: 1;
+    border: none;
+    background: transparent;
     color: var(--text-normal);
+    font-size: calc(var(--font-ui-medium) * 1.05);
+    padding: 10px;
+    min-height: 24px;
+    resize: none;
+    border-radius: 8px;
+    outline: none;
+    font-family: inherit;
 }
 
-/* Add specific hover colors for each action button */
-button.chat-action-button[title="Copy Message to Clipboard"]:hover {
-    background-color: var(--interactive-accent-hover);
-    border-color: var(--interactive-accent);
-    color: var(--text-on-accent);
+#khoj-chat-send {
+    border: none;
+    background: none;
+    margin-left: 4px;
+    cursor: pointer;
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-accent);
+    transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
-button.chat-action-button[title="Paste Message to File"]:hover {
-    background-color: rgba(52, 199, 89, 0.1);
-    /* Light green */
-    border-color: rgb(52, 199, 89);
-    color: rgb(52, 199, 89);
+#khoj-chat-send:hover {
+    background-color: var(--background-modifier-hover);
+    transform: scale(1.05);
 }
 
-button.chat-action-button[title="Edit Message"]:hover {
-    background-color: rgba(255, 149, 0, 0.1);
-    /* Light orange */
-    border-color: rgb(255, 149, 0);
-    color: rgb(255, 149, 0);
+/* Animations modernes pour les transitions */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
-button.chat-action-button[title="Delete Message"]:hover {
-    background-color: rgba(255, 59, 48, 0.1);
-    /* Light red */
-    border-color: rgb(255, 59, 48);
-    color: rgb(255, 59, 48);
+.khoj-chat-message {
+    transition: opacity 0.3s ease-in-out, transform 0.2s ease-in-out;
 }
 
-img.copy-icon {
-    width: 16px;
-    height: 16px;
+.khoj-chat-message.deleting {
+    opacity: 0;
+    transform: translateX(20px);
 }
 
 /* Circular Loading Spinner */
@@ -768,47 +863,64 @@ img.copy-icon {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--color-base-70);
-    animation-timing-function: cubic-bezier(0, 1, 1, 0);
+    background: var(--text-muted);
+    animation-timing-function: cubic-bezier(0.3, 0.6, 0.8, 0.9);
+    /* Animation plus douce */
 }
 
 .lds-ellipsis div:nth-child(1) {
     left: 8px;
-    animation: lds-ellipsis1 0.6s infinite;
+    animation: lds-ellipsis1 0.9s infinite;
+    /* Animation plus lente et fluide */
 }
 
 .lds-ellipsis div:nth-child(2) {
     left: 8px;
-    animation: lds-ellipsis2 0.6s infinite;
+    animation: lds-ellipsis2 0.9s infinite;
+    /* Animation plus lente et fluide */
 }
 
 .lds-ellipsis div:nth-child(3) {
     left: 32px;
-    animation: lds-ellipsis2 0.6s infinite;
+    animation: lds-ellipsis2 0.9s infinite;
+    /* Animation plus lente et fluide */
 }
 
 .lds-ellipsis div:nth-child(4) {
     left: 56px;
-    animation: lds-ellipsis3 0.6s infinite;
+    animation: lds-ellipsis3 0.9s infinite;
+    /* Animation plus lente et fluide */
 }
 
 @keyframes lds-ellipsis1 {
     0% {
         transform: scale(0);
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 1;
     }
 
     100% {
         transform: scale(1);
+        opacity: 1;
     }
 }
 
 @keyframes lds-ellipsis3 {
     0% {
         transform: scale(1);
+        opacity: 1;
+    }
+
+    80% {
+        opacity: 1;
     }
 
     100% {
         transform: scale(0);
+        opacity: 0;
     }
 }
 
@@ -1337,4 +1449,85 @@ img.copy-icon {
         transform: translateY(0);
         opacity: 1;
     }
+}
+
+/* Amélioration des références */
+div.reference {
+    margin: 0.5em;
+    padding: 0.5em;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    background-color: var(--background-secondary);
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+button.reference-button {
+    background: var(--background-secondary-alt);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin: 4px 0;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    color: var(--text-normal);
+    font-size: calc(var(--font-ui-small) * 1.05);
+    line-height: 1.4;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+button.reference-button:hover {
+    background-color: var(--background-modifier-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Amélioration pour les listes dans les messages */
+.khoj-chat-message-text ul li,
+.khoj-chat-message-text ol li {
+    margin-bottom: 8px;
+    line-height: 1.6;
+}
+
+.khoj-chat-message-text ul {
+    list-style-type: disc;
+}
+
+.khoj-chat-message-text ol {
+    list-style-type: decimal;
+}
+
+/* Amélioration de la barre de défilement */
+.khoj-chat::-webkit-scrollbar {
+    width: 8px;
+}
+
+.khoj-chat::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.khoj-chat::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb-bg);
+    border-radius: 4px;
+}
+
+.khoj-chat::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-active-thumb-bg);
+}
+
+/* Amélioration des espaces entre les messages */
+.khoj-chat-message {
+    margin-bottom: 8px;
+    max-width: 92%;
+}
+
+.khoj-chat-message.you {
+    margin-right: 8%;
+}
+
+.khoj-chat-message.khoj {
+    margin-left: 8%;
 }
