@@ -132,7 +132,7 @@ If your plugin does not need CSS, delete this file.
     transition: opacity 0.1s ease-in-out, transform 0.1s ease-in-out;
 }
 
-/* Animation pour les nouveaux mots lors du streaming */
+/* Animation for new words during streaming */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -145,10 +145,10 @@ If your plugin does not need CSS, delete this file.
     }
 }
 
-/* Classe à utiliser pour l'animation des nouveaux éléments */
+/* Class to animate new content
 .khoj-message-new-content {
     animation: fadeIn 0.3s ease-in-out;
-}
+} */
 
 /* Override white-space for ul, ol, li under khoj-chat-message-text.khoj */
 .khoj-chat-message-text.khoj ul,
@@ -403,24 +403,40 @@ div.selected-conversation {
 }
 
 #khoj-chat-footer {
-    padding: 0;
+    padding: 8px 0 !important;
     display: grid;
     grid-template-columns: minmax(70px, 100%);
     grid-column-gap: 10px;
     grid-row-gap: 10px;
+    border-top: none !important;
 }
 
 .khoj-input-row {
-    display: grid;
-    grid-template-columns: 32px 32px auto 32px 32px;
-    grid-column-gap: 10px;
-    grid-row-gap: 10px;
-    background: var(--background-primary);
-    margin: 0 0 0 -8px;
+    display: flex;
     align-items: center;
-    position: sticky;
-    bottom: 0;
-    z-index: 10;
+    background-color: var(--background-secondary-alt, var(--background-secondary));
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    margin-top: 16px;
+    margin-bottom: 16px;
+    transform: none;
+}
+
+/* Add focus effect */
+.khoj-input-row:focus-within {
+    transform: translateY(-8px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    background-color: var(--background-secondary-alt, var(--background-secondary));
+}
+
+/* Subtle click feedback */
+.khoj-input-row:active {
+    transform: translateY(-7px);
+    transition: all 0.15s ease;
 }
 
 #khoj-chat-input.option:hover {
@@ -428,11 +444,21 @@ div.selected-conversation {
 }
 
 #khoj-chat-input {
-    font-size: var(--font-ui-medium);
-    padding: 4px 0 0 12px;
-    border-radius: 16px;
-    height: 32px;
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-normal);
+    font-size: calc(var(--font-ui-medium) * 1.05);
+    padding: 16px;
+    height: 120px;
+    max-height: 300px;
     resize: none;
+    border-radius: 8px;
+    outline: none;
+    font-family: inherit;
+    line-height: 1.5;
+    overflow-y: auto;
+    transition: none;
 }
 
 .khoj-input-row-button {
@@ -708,7 +734,7 @@ div.khoj-logo {
 
     #khoj-chat-input {
         padding: 8px;
-        min-height: 32px;
+        height: 32px;
     }
 
     #khoj-chat-send {
@@ -907,67 +933,7 @@ img.copy-icon {
     height: 16px;
 }
 
-/* Chat input styling amélioré */
-#khoj-chat-footer {
-    display: flex;
-    flex-direction: column;
-    margin-top: auto;
-    padding: 10px;
-    border-top: 1px solid var(--background-modifier-border);
-    background-color: var(--background-primary);
-}
-
-.khoj-input-row {
-    display: flex;
-    align-items: center;
-    background-color: var(--background-secondary);
-    border-radius: 12px;
-    padding: 4px 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    transition: box-shadow 0.2s ease, transform 0.1s ease;
-}
-
-.khoj-input-row:focus-within {
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-    transform: translateY(-1px);
-    background-color: var(--background-secondary-alt);
-}
-
-#khoj-chat-input {
-    flex: 1;
-    border: none;
-    background: transparent;
-    color: var(--text-normal);
-    font-size: calc(var(--font-ui-medium) * 1.05);
-    padding: 10px;
-    min-height: 24px;
-    resize: none;
-    border-radius: 8px;
-    outline: none;
-    font-family: inherit;
-}
-
-#khoj-chat-send {
-    border: none;
-    background: none;
-    margin-left: 4px;
-    cursor: pointer;
-    border-radius: 50%;
-    width: 34px;
-    height: 34px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-accent);
-    transition: background-color 0.2s ease, transform 0.1s ease;
-}
-
-#khoj-chat-send:hover {
-    background-color: var(--background-modifier-hover);
-    transform: scale(1.05);
-}
-
-/* Animations modernes pour les transitions */
+/* Modern animations for transitions */
 @keyframes pulse {
     0% {
         transform: scale(1);
@@ -1328,7 +1294,7 @@ img.copy-icon {
     gap: 12px;
     padding: 8px 16px;
     background: var(--background-primary);
-    border-bottom: 1px solid var(--background-modifier-border);
+    border-bottom: none !important;
     margin: 0;
 }
 

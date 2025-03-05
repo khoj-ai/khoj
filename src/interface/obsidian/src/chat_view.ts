@@ -1716,7 +1716,7 @@ export class KhojChatView extends KhojPaneView {
         const scrollTop = chatInput.scrollTop;
         chatInput.style.height = '0';
         const scrollHeight = chatInput.scrollHeight + 8;  // +8 accounts for padding
-        chatInput.style.height = Math.min(scrollHeight, 200) + 'px';
+        chatInput.style.height = Math.min(scrollHeight, 500) + 'px';
         chatInput.scrollTop = scrollTop;
         this.scrollChatToBottom();
     }
@@ -1758,39 +1758,16 @@ export class KhojChatView extends KhojPaneView {
         if (newResponseElement.getElementsByClassName("lds-ellipsis").length > 0 && loadingEllipsis)
             newResponseElement.removeChild(loadingEllipsis);
 
-        // Si c'est un remplacement complet, on efface tout le contenu
-        if (replace) {
-            newResponseElement.innerHTML = "";
-            const messageEl = this.formatHTMLMessage(rawResponse, false, replace);
-            messageEl.classList.add('khoj-message-new-content');
-            newResponseElement.appendChild(messageEl);
-        }
-        // Si c'est un ajout de contenu, on ajoute uniquement les nouvelles parties
-        else {
-            // On obtient le contenu précédent pour comparaison
-            const oldContent = newResponseElement.innerHTML;
+        // Always replace the content completely
+        newResponseElement.innerHTML = "";
+        const messageEl = this.formatHTMLMessage(rawResponse, false, true);
+        messageEl.classList.add('khoj-message-new-content');
+        newResponseElement.appendChild(messageEl);
 
-            // On crée un élément temporaire pour le nouveau contenu
-            const tempElement = document.createElement('div');
-            tempElement.appendChild(this.formatHTMLMessage(rawResponse, false, replace));
-
-            // Si le contenu est différent, on met à jour avec animation
-            if (tempElement.innerHTML !== oldContent) {
-                // On remplace tout le contenu pour éviter les problèmes de formatage Markdown
-                newResponseElement.innerHTML = tempElement.innerHTML;
-
-                // On ajoute la classe d'animation pour l'effet de fondu
-                newResponseElement.classList.add('khoj-message-new-content');
-
-                // On retire la classe après l'animation
-                setTimeout(() => {
-                    newResponseElement.classList.remove('khoj-message-new-content');
-                }, 300);
-            }
-        }
-
-        // Scroll to bottom of chat
-        this.scrollChatToBottom();
+        // Remove the animation class after the animation completes
+        setTimeout(() => {
+            newResponseElement.classList.remove('khoj-message-new-content');
+        }, 300);
     }
 
     handleImageResponse(imageJson: any, rawResponse: string) {
