@@ -570,18 +570,22 @@ div.selected-conversation {
     display: none;
 }
 
-/* Khoj Header, Navigation Pane */
+/* Improved header styles for a more modern look */
 div.khoj-header {
     display: grid;
     grid-template-columns: auto 1fr auto;
-    gap: 20px;
-    padding: 0 0 10px 0;
+    gap: 24px;
+    padding: 12px 16px 16px;
     margin: 0;
     align-items: center;
     user-select: none;
     -webkit-user-select: none;
     -webkit-app-region: drag;
     position: relative;
+    background-color: var(--background-primary);
+    border-bottom: 1px solid var(--background-modifier-border);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
 }
 
 /* Keeps the navigation menu clickable */
@@ -596,26 +600,41 @@ div.khoj-nav {
 nav.khoj-nav {
     display: grid;
     grid-auto-flow: column;
-    grid-gap: 32px;
+    grid-gap: 36px;
     justify-self: center;
     justify-content: center;
     align-items: center;
+    padding: 4px 0;
 }
 
 a.khoj-nav {
     display: flex;
     align-items: center;
+    text-decoration: none;
+    color: var(--text-normal);
+    font-size: small;
+    font-weight: normal;
+    padding: 6px 10px;
+    border-radius: 6px;
+    justify-self: center;
+    margin: 0;
+    transition: all 0.2s ease;
 }
 
 div.khoj-logo {
     justify-self: left;
+    transition: transform 0.2s ease;
+}
+
+div.khoj-logo:hover {
+    transform: scale(1.05);
 }
 
 /* Container for New Chat button and agent selector */
 .khoj-header-right-container {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     justify-self: right;
     -webkit-app-region: no-drag;
 }
@@ -624,9 +643,9 @@ div.khoj-logo {
 .khoj-header-new-chat-button {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 12px;
-    border-radius: 6px;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 8px;
     border: 1px solid var(--text-accent);
     background-color: var(--background-primary);
     color: var(--text-accent);
@@ -634,10 +653,10 @@ div.khoj-logo {
     font-size: 13px;
     font-weight: 500;
     white-space: nowrap;
-    transition: all 0.2s ease;
-    height: 28px;
+    transition: all 0.25s ease;
+    height: 32px;
     -webkit-app-region: no-drag;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
     z-index: 10;
 }
 
@@ -646,19 +665,19 @@ div.khoj-logo {
     div.khoj-header {
         display: grid;
         grid-template-columns: auto 1fr auto;
-        gap: 20px;
-        padding: 24px 10px 10px 10px;
+        gap: 16px;
+        padding: 16px 12px 12px;
         margin: 0 0 16px 0;
     }
 
     nav.khoj-nav {
-        grid-gap: 0px;
+        grid-gap: 12px;
         justify-content: center;
     }
 
     .khoj-header-right-container {
         flex-direction: column;
-        gap: 5px;
+        gap: 8px;
     }
 
     .khoj-chat-message-text {
@@ -688,7 +707,8 @@ div.khoj-logo {
     div.khoj-header {
         grid-template-columns: 1fr;
         grid-template-rows: auto auto auto;
-        gap: 10px;
+        gap: 12px;
+        padding: 14px 10px 12px;
     }
 
     div.khoj-logo {
@@ -701,16 +721,20 @@ div.khoj-logo {
 
     .khoj-header-right-container {
         justify-self: center;
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
     }
 
     .khoj-agent-select {
-        min-width: 100px;
+        min-width: 120px;
         font-size: 12px;
     }
 
     .khoj-header-new-chat-button {
         font-size: 12px;
-        padding: 4px 8px;
+        padding: 4px 10px;
     }
 
     .khoj-chat-message-text {
@@ -752,33 +776,14 @@ div.khoj-logo {
     }
 }
 
-/* Additional media query for extremely narrow screens */
-@media only screen and (max-width: 300px) {
-    .khoj-header-right-container {
-        flex-direction: column;
-        align-items: center;
-        width: 100%;
-    }
-
-    .khoj-agent-select,
-    .khoj-header-new-chat-button {
-        width: 100%;
-        min-width: unset;
-    }
-
-    nav.khoj-nav {
-        grid-gap: 10px;
-    }
-
-    .khoj-chat-message-text {
-        font-size: 13px;
-        padding: 8px 10px;
-    }
-}
-
 .khoj-header-new-chat-button:hover {
     background-color: var(--text-accent);
     color: var(--background-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+.khoj-header-new-chat-button:active {
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
@@ -786,6 +791,11 @@ div.khoj-logo {
 .khoj-header-new-chat-button .lucide-plus-circle {
     width: 16px;
     height: 16px;
+    transition: transform 0.2s ease;
+}
+
+.khoj-header-new-chat-button:hover .lucide-plus-circle {
+    transform: rotate(90deg);
 }
 
 /* Agent selector in header */
@@ -801,17 +811,21 @@ div.khoj-logo {
     border: 1px solid var(--background-modifier-border);
     background-color: var(--background-primary);
     color: var(--text-normal);
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: 6px 10px;
+    border-radius: 6px;
     font-size: 13px;
-    height: 28px;
+    height: 32px;
     width: 100%;
     cursor: pointer;
     -webkit-app-region: no-drag;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .khoj-header-agent-select:hover {
     border-color: var(--text-accent);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .khoj-header-agent-select:focus {
@@ -830,26 +844,41 @@ div.khoj-logo {
     color: var(--text-normal);
     text-decoration: none;
     font-size: small;
-    font-weight: normal;
-    padding: 0 4px;
-    border-radius: 4px;
+    font-weight: 450;
+    padding: 8px 12px;
+    border-radius: 6px;
     justify-self: center;
     margin: 0;
+    transition: all 0.2s ease;
 }
 
 .khoj-nav a:hover {
-    background-color: var(--background-modifier-active-hover);
-    color: var(--main-text-color);
+    background-color: var(--background-modifier-hover);
+    color: var(--text-accent);
+    transform: translateY(-1px);
+}
+
+.khoj-nav a:active {
+    transform: translateY(0);
 }
 
 a.khoj-nav-selected {
     background-color: var(--background-modifier-active-hover);
+    color: var(--text-accent);
+    font-weight: 500;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 #similar-nav-icon-svg,
 .khoj-nav-icon {
     width: 24px;
     height: 24px;
+    transition: transform 0.2s ease;
+}
+
+.khoj-nav a:hover .khoj-nav-icon,
+.khoj-nav a:hover #similar-nav-icon-svg {
+    transform: scale(1.1);
 }
 
 .khoj-nav-icon-chat {
