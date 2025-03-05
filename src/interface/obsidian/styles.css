@@ -29,8 +29,14 @@ If your plugin does not need CSS, delete this file.
 }
 
 .khoj-chat {
-    display: grid;
-    grid-template-rows: auto 1fr auto;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    min-width: 0;
+    overflow-x: hidden;
     background: var(--background-primary);
     color: var(--text-normal);
     text-align: center;
@@ -53,12 +59,14 @@ If your plugin does not need CSS, delete this file.
 }
 
 #khoj-chat-body {
-    font-size: calc(var(--font-ui-medium) * 1.1);
-    margin: 0px;
-    line-height: 1.6;
-    overflow-y: scroll;
-    padding: 0 5px;
-    /* Make chat body scroll to see history */
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0 8px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    word-break: break-word;
 }
 
 /* add chat metatdata to bottom of bubble */
@@ -68,18 +76,19 @@ If your plugin does not need CSS, delete this file.
     font-size: var(--font-ui-smaller);
     color: var(--text-muted);
     margin: -8px 7px 0 0px;
+    text-align: right;
 }
 
 /* move message by khoj to left */
 .khoj-chat-message.khoj {
-    margin-left: auto;
+    margin-right: auto;
     text-align: left;
     padding: 6px 0;
 }
 
 /* move message by you to right */
 .khoj-chat-message.you {
-    margin-right: auto;
+    margin-left: auto;
     text-align: right;
     padding: 6px 0;
 }
@@ -98,13 +107,14 @@ If your plugin does not need CSS, delete this file.
     word-break: break-word;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     max-width: 90%;
+    font-size: 0.85em;
 }
 
 /* color chat bubble by khoj blue */
 .khoj-chat-message-text.khoj {
     border-left: 4px solid var(--khoj-sun);
     border-radius: 8px;
-    margin-left: auto;
+    margin-right: auto;
     padding-left: 18px;
     white-space: pre-line;
     background-color: var(--background-secondary);
@@ -163,7 +173,7 @@ If your plugin does not need CSS, delete this file.
 /* color chat bubble by you dark grey */
 .khoj-chat-message-text.you {
     color: var(--text-normal);
-    margin-right: auto;
+    margin-left: auto;
     background-color: var(--background-modifier-cover);
 }
 
@@ -613,6 +623,120 @@ div.khoj-logo {
         flex-direction: column;
         gap: 5px;
     }
+
+    .khoj-chat-message-text {
+        max-width: 95%;
+        font-size: 0.9em;
+    }
+
+    div.reference {
+        padding: 10px;
+    }
+
+    .reference-link {
+        max-width: 70%;
+    }
+
+    .khoj-edit-accordion summary {
+        padding: 8px 10px;
+    }
+
+    .khoj-edit-content pre {
+        padding: 8px;
+    }
+}
+
+/* Additional media query for very narrow screens */
+@media only screen and (max-width: 400px) {
+    div.khoj-header {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+        gap: 10px;
+    }
+
+    div.khoj-logo {
+        justify-self: center;
+    }
+
+    nav.khoj-nav {
+        justify-self: center;
+    }
+
+    .khoj-header-right-container {
+        justify-self: center;
+    }
+
+    .khoj-agent-select {
+        min-width: 100px;
+        font-size: 12px;
+    }
+
+    .khoj-header-new-chat-button {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+
+    .khoj-chat-message-text {
+        max-width: 98%;
+        padding: 10px 12px;
+        font-size: 0.85em;
+    }
+
+    span.khoj-nav-item-text {
+        font-size: 12px;
+    }
+
+    button.chat-action-button {
+        width: 24px;
+        height: 24px;
+    }
+
+    .khoj-input-row {
+        padding: 8px;
+    }
+
+    #khoj-chat-input {
+        padding: 8px;
+        min-height: 32px;
+    }
+
+    #khoj-chat-send {
+        width: 28px;
+        height: 28px;
+    }
+
+    .khoj-input-row-button {
+        width: 28px;
+        height: 28px;
+    }
+
+    .reference {
+        padding: 8px;
+    }
+}
+
+/* Additional media query for extremely narrow screens */
+@media only screen and (max-width: 300px) {
+    .khoj-header-right-container {
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+
+    .khoj-agent-select,
+    .khoj-header-new-chat-button {
+        width: 100%;
+        min-width: unset;
+    }
+
+    nav.khoj-nav {
+        grid-gap: 10px;
+    }
+
+    .khoj-chat-message-text {
+        font-size: 13px;
+        padding: 8px 10px;
+    }
 }
 
 .khoj-header-new-chat-button:hover {
@@ -703,20 +827,28 @@ span.khoj-nav-item-text {
     padding-left: 8px;
 }
 
-/* Amélioration des boutons d'action */
+/* Improved action buttons */
 button.chat-action-button {
-    background-color: transparent;
-    border: 1px solid transparent;
-    border-radius: 6px;
+    display: block;
+    border-radius: 4px;
     color: var(--text-muted);
+    background-color: transparent;
+    border: 1px solid var(--khoj-storm-grey);
+    text-align: center;
+    font-size: 16px;
+    transition: all 0.5s;
     cursor: pointer;
+    padding: 4px;
+    margin-top: 8px;
     margin-left: 4px;
-    padding: 6px;
-    opacity: 0;
-    transition: all 0.2s ease-in-out;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    float: right;
+}
+
+button.chat-action-button span {
+    cursor: pointer;
+    display: inline-block;
+    position: relative;
+    transition: 0.5s;
 }
 
 .khoj-chat-message:hover button.chat-action-button {
@@ -724,9 +856,41 @@ button.chat-action-button {
 }
 
 button.chat-action-button:hover {
-    opacity: 1 !important;
-    background-color: var(--background-modifier-hover);
-    transform: translateY(-1px);
+    background-color: var(--background-modifier-active-hover);
+    color: var(--text-normal);
+}
+
+/* Add specific hover colors for each action button */
+button.chat-action-button[title="Copy Message to Clipboard"]:hover {
+    background-color: var(--interactive-accent-hover);
+    border-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+}
+
+button.chat-action-button[title="Paste Message to File"]:hover {
+    background-color: rgba(52, 199, 89, 0.1);
+    /* Light green */
+    border-color: rgb(52, 199, 89);
+    color: rgb(52, 199, 89);
+}
+
+button.chat-action-button[title="Edit Message"]:hover {
+    background-color: rgba(255, 149, 0, 0.1);
+    /* Light orange */
+    border-color: rgb(255, 149, 0);
+    color: rgb(255, 149, 0);
+}
+
+button.chat-action-button[title="Delete Message"]:hover {
+    background-color: rgba(255, 59, 48, 0.1);
+    /* Light red */
+    border-color: rgb(255, 59, 48);
+    color: rgb(255, 59, 48);
+}
+
+img.copy-icon {
+    width: 16px;
+    height: 16px;
 }
 
 /* Chat input styling amélioré */
@@ -805,7 +969,11 @@ button.chat-action-button:hover {
 }
 
 .khoj-chat-message {
-    transition: opacity 0.3s ease-in-out, transform 0.2s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    max-width: 100%;
+    overflow-wrap: break-word;
 }
 
 .khoj-chat-message.deleting {
@@ -1119,7 +1287,7 @@ button.chat-action-button:hover {
     background-color: var(--background-primary);
     color: var(--text-normal);
     cursor: pointer;
-    min-width: 150px;
+    min-width: 120px;
     height: 32px;
     margin: 0;
 }
@@ -1339,6 +1507,10 @@ button.chat-action-button:hover {
     padding: 12px;
     background-color: var(--background-secondary);
     border-radius: 4px;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    font-size: 0.95em;
 }
 
 .khoj-edit-content code.error {
@@ -1409,7 +1581,7 @@ button.chat-action-button:hover {
     display: block;
     white-space: pre-wrap;
     font-family: var(--font-monospace);
-    font-size: 0.9em;
+    font-size: 0.95em;
 }
 
 /* Retry badge styles */
@@ -1451,7 +1623,7 @@ button.chat-action-button:hover {
     }
 }
 
-/* Amélioration des références */
+/* Improved references */
 div.reference {
     margin: 0.5em;
     padding: 0.5em;
@@ -1485,7 +1657,7 @@ button.reference-button:hover {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-/* Amélioration pour les listes dans les messages */
+/* Improved list formatting in messages */
 .khoj-chat-message-text ul li,
 .khoj-chat-message-text ol li {
     margin-bottom: 8px;
@@ -1500,7 +1672,7 @@ button.reference-button:hover {
     list-style-type: decimal;
 }
 
-/* Amélioration de la barre de défilement */
+/* Improved scrollbar */
 .khoj-chat::-webkit-scrollbar {
     width: 8px;
 }
@@ -1518,16 +1690,52 @@ button.reference-button:hover {
     background-color: var(--scrollbar-active-thumb-bg);
 }
 
-/* Amélioration des espaces entre les messages */
+/* Improved message spacing */
 .khoj-chat-message {
     margin-bottom: 8px;
     max-width: 92%;
 }
 
 .khoj-chat-message.you {
-    margin-right: 8%;
+    margin-left: 8%;
+    margin-right: 0;
 }
 
 .khoj-chat-message.khoj {
-    margin-left: 8%;
+    margin-right: 8%;
+    margin-left: 0;
+}
+
+/* Modification des éléments de pré pour éviter le débordement */
+.khoj-chat-message-text pre {
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    font-size: 0.95em;
+}
+
+.khoj-chat-message-text code {
+    font-size: 0.95em;
+}
+
+/* Sélecteurs pour les éléments visuels dans les messages */
+.khoj-chat-message-text ul,
+.khoj-chat-message-text ol {
+    font-size: 0.95em;
+}
+
+.khoj-chat-message-text h1,
+.khoj-chat-message-text h2,
+.khoj-chat-message-text h3,
+.khoj-chat-message-text h4,
+.khoj-chat-message-text h5,
+.khoj-chat-message-text h6 {
+    font-size: 1.1em;
+    margin: 0.5em 0;
+}
+
+/* S'assure que les images restent dans le conteneur */
+.khoj-chat-message-text img {
+    max-width: 100%;
+    height: auto;
 }
