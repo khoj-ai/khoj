@@ -433,15 +433,6 @@ div.selected-conversation {
     background-color: var(--background-secondary-alt, var(--background-secondary));
 }
 
-/* Subtle click feedback */
-.khoj-input-row:active {
-    transform: translateY(-7px);
-    transition: all 0.15s ease;
-}
-
-#khoj-chat-input.option:hover {
-    box-shadow: 0 0 11px var(--background-modifier-box-shadow);
-}
 
 #khoj-chat-input {
     flex: 1;
@@ -1747,4 +1738,50 @@ button.reference-button:hover {
 .khoj-chat-message-text img {
     max-width: 100%;
     height: auto;
+}
+
+/* Styles for the mode dropdown */
+.khoj-mode-dropdown {
+    display: block;
+    background-color: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    max-height: 180px;
+    overflow-y: auto;
+    z-index: 1000;
+    font-size: 0.85em;
+    /* Texte réduit */
+    padding: 2px 0;
+    transform-origin: bottom;
+}
+
+.khoj-mode-dropdown-option {
+    padding: 4px 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    min-height: 22px;
+}
+
+.khoj-mode-dropdown-option:hover {
+    background-color: var(--background-secondary);
+}
+
+.khoj-mode-dropdown-option-selected {
+    background-color: var(--background-secondary-alt);
+}
+
+.khoj-mode-dropdown-emoji {
+    margin-right: 4px;
+}
+
+.khoj-mode-dropdown-label {
+    font-weight: 500;
+}
+
+.khoj-mode-dropdown-command {
+    color: var(--text-muted);
+    font-size: 0.8em;
+    margin-left: 2px;
 }

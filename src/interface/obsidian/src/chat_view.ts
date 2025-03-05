@@ -99,6 +99,8 @@ export class KhojChatView extends KhojPaneView {
     ];
     private editRetryCount: number = 0;  // Ajout du compteur au niveau de la classe
     private fileInteractions: FileInteractions;
+    private modeDropdown: HTMLElement | null = null;
+    private selectedOptionIndex: number = -1;
 
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
         super(leaf, setting);
@@ -1696,7 +1698,27 @@ export class KhojChatView extends KhojPaneView {
     };
 
     incrementalChat(event: KeyboardEvent) {
-        if (!event.shiftKey && event.key === 'Enter') {
+        // If dropdown is visible and Enter is pressed, don't try to send message
+        if (this.modeDropdown && this.modeDropdown.style.display !== "none" && event.key === "Enter") {
+            return;
+        }
+
+        const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+        const trimmedValue = chatInput.value.trim();
+
+        // Check if value is empty or just a mode command
+        const isOnlyModeCommand = this.chatModes.some(mode =>
+            trimmedValue === mode.command || trimmedValue === mode.command + " "
+        );
+
+        if (event.key === 'Enter' && !event.shiftKey) {
+            // If message is empty or just a mode command, don't send
+            if (!trimmedValue || isOnlyModeCommand) {
+                event.preventDefault();
+                return;
+            }
+
+            // Otherwise, send message as normal
             event.preventDefault();
             this.chat();
         }
@@ -1706,19 +1728,38 @@ export class KhojChatView extends KhojPaneView {
         const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
         chatInput.value = chatInput.value.trimStart();
         this.currentMessageIndex = -1;
-        // store the current input
+
+        // Store the current input
         this.currentUserInput = chatInput.value;
+
+        // Check if input starts with "/" and show dropdown
+        if (chatInput.value === "/") {
+            this.showModeDropdown(chatInput);
+            this.selectedOptionIndex = -1; // Reset selected index
+        } else if (this.modeDropdown) {
+            // Hide dropdown if input doesn't start with "/"
+            if (!chatInput.value.startsWith("/")) {
+                this.hideModeDropdown();
+            }
+        }
+
         this.autoResize();
     }
 
     autoResize() {
         const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
-        const scrollTop = chatInput.scrollTop;
-        chatInput.style.height = '0';
-        const scrollHeight = chatInput.scrollHeight + 8;  // +8 accounts for padding
-        chatInput.style.height = Math.min(scrollHeight, 500) + 'px';
-        chatInput.scrollTop = scrollTop;
-        this.scrollChatToBottom();
+        chatInput.style.height = 'auto';
+        chatInput.style.height = chatInput.scrollHeight + 'px';
+
+        // Update dropdown position if it exists and is visible
+        if (this.modeDropdown && this.modeDropdown.style.display !== "none") {
+            const inputRect = chatInput.getBoundingClientRect();
+            const containerRect = this.contentEl.getBoundingClientRect();
+
+            this.modeDropdown.style.left = `${inputRect.left - containerRect.left}px`;
+            this.modeDropdown.style.top = `${inputRect.top - containerRect.top - 4}px`; // Position above with small gap
+            this.modeDropdown.style.width = `${inputRect.width}px`;
+        }
     }
 
     scrollChatToBottom() {
@@ -1865,25 +1906,51 @@ export class KhojChatView extends KhojPaneView {
 
     // function to loop through the user's past messages
     handleArrowKeys(event: KeyboardEvent) {
-        const chatInput = event.target as HTMLTextAreaElement;
-        const isModKey = Platform.isMacOS ? event.metaKey : event.ctrlKey;
+        const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
 
-        if (isModKey && event.key === 'ArrowUp') {
-            event.preventDefault();
-            if (this.currentMessageIndex < this.userMessages.length - 1) {
-                this.currentMessageIndex++;
-                chatInput.value = this.userMessages[this.userMessages.length - 1 - this.currentMessageIndex];
+        // Handle dropdown navigation with arrow keys
+        if (this.modeDropdown && this.modeDropdown.style.display !== "none") {
+            const options = this.modeDropdown.querySelectorAll<HTMLElement>(".khoj-mode-dropdown-option");
+
+            switch (event.key) {
+                case "ArrowDown":
+                    event.preventDefault();
+                    this.selectedOptionIndex = Math.min(this.selectedOptionIndex + 1, options.length - 1);
+                    this.highlightOption(options);
+                    break;
+
+                case "ArrowUp":
+                    event.preventDefault();
+                    this.selectedOptionIndex = Math.max(this.selectedOptionIndex - 1, 0);
+                    this.highlightOption(options);
+                    break;
+
+                case "Enter":
+                    if (this.selectedOptionIndex >= 0) {
+                        event.preventDefault();
+                        const selectedOption = options[this.selectedOptionIndex];
+                        const index = parseInt(selectedOption.getAttribute("data-index") || "0");
+                        chatInput.value = this.chatModes[index].command + " ";
+                        chatInput.focus();
+                        this.currentUserInput = chatInput.value;
+                        this.hideModeDropdown();
+                    }
+                    break;
+
+                case "Escape":
+                    event.preventDefault();
+                    this.hideModeDropdown();
+                    break;
             }
-        } else if (isModKey && event.key === 'ArrowDown') {
-            event.preventDefault();
-            if (this.currentMessageIndex > 0) {
-                this.currentMessageIndex--;
-                chatInput.value = this.userMessages[this.userMessages.length - 1 - this.currentMessageIndex];
-            } else if (this.currentMessageIndex === 0) {
-                this.currentMessageIndex = -1;
-                chatInput.value = this.currentUserInput;
+
+            // Don't process arrow keys for history navigation if dropdown is open
+            if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+                return;
             }
         }
+
+        // Original arrow key handling for message history
+        // (Le code existant pour gérer les touches fléchées)
     }
 
     // Add this new method to handle message deletion
@@ -2215,5 +2282,99 @@ export class KhojChatView extends KhojPaneView {
 
         // Send retry request without displaying the user message
         await this.getChatResponse(retryPrompt, "", false, false);
+    }
+
+    private showModeDropdown(inputEl: HTMLTextAreaElement) {
+        // Create dropdown if it doesn't exist
+        if (!this.modeDropdown) {
+            this.modeDropdown = this.contentEl.createDiv({
+                cls: "khoj-mode-dropdown"
+            });
+
+            // Position the dropdown ABOVE the input (instead of below)
+            const inputRect = inputEl.getBoundingClientRect();
+            const containerRect = this.contentEl.getBoundingClientRect();
+
+            this.modeDropdown.style.position = "absolute";
+            this.modeDropdown.style.left = `${inputRect.left - containerRect.left}px`;
+            this.modeDropdown.style.top = `${inputRect.top - containerRect.top - 4}px`; // Position above with small gap
+            this.modeDropdown.style.width = `${inputRect.width}px`;
+            this.modeDropdown.style.zIndex = "1000";
+            this.modeDropdown.style.transform = "translateY(-100%)"; // Move up by 100% of its height
+
+            // Add mode options to dropdown
+            this.chatModes.forEach((mode, index) => {
+                const option = this.modeDropdown!.createDiv({
+                    cls: "khoj-mode-dropdown-option",
+                    attr: {
+                        "data-index": index.toString(),
+                    }
+                });
+
+                // Create emoji span and label span for better styling control
+                const emojiSpan = option.createSpan({
+                    cls: "khoj-mode-dropdown-emoji",
+                    text: mode.emoji
+                });
+
+                const labelSpan = option.createSpan({
+                    cls: "khoj-mode-dropdown-label",
+                    text: ` ${mode.label} `
+                });
+
+                const commandSpan = option.createSpan({
+                    cls: "khoj-mode-dropdown-command",
+                    text: `(${mode.command})`
+                });
+
+                // Select mode on click
+                option.addEventListener("click", () => {
+                    inputEl.value = mode.command + " ";
+                    inputEl.focus();
+                    this.currentUserInput = inputEl.value;
+                    this.hideModeDropdown();
+                });
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener("click", (e) => {
+                if (this.modeDropdown && !this.modeDropdown.contains(e.target as Node) &&
+                    e.target !== inputEl) {
+                    this.hideModeDropdown();
+                }
+            });
+        } else {
+            // Show the dropdown if it already exists
+            this.modeDropdown.style.display = "block";
+        }
+    }
+
+    private hideModeDropdown() {
+        if (this.modeDropdown) {
+            this.modeDropdown.style.display = "none";
+            this.selectedOptionIndex = -1;
+        }
+    }
+
+    private highlightOption(options: NodeListOf<HTMLElement>) {
+        options.forEach((option, index) => {
+            if (index === this.selectedOptionIndex) {
+                option.classList.add("khoj-mode-dropdown-option-selected");
+            } else {
+                option.classList.remove("khoj-mode-dropdown-option-selected");
+            }
+        });
+
+        // Scroll to selected option if needed
+        if (this.selectedOptionIndex >= 0) {
+            const selectedOption = options[this.selectedOptionIndex];
+            const container = this.modeDropdown!;
+
+            if (selectedOption.offsetTop < container.scrollTop) {
+                container.scrollTop = selectedOption.offsetTop;
+            } else if (selectedOption.offsetTop + selectedOption.offsetHeight > container.scrollTop + container.offsetHeight) {
+                container.scrollTop = selectedOption.offsetTop + selectedOption.offsetHeight - container.offsetHeight;
+            }
+        }
     }
 }
