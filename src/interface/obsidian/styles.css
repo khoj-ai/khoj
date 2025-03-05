@@ -69,13 +69,24 @@ If your plugin does not need CSS, delete this file.
     word-break: break-word;
 }
 
-/* add chat metatdata to bottom of bubble */
-.khoj-chat-message.khoj::after {
+/* add chat metadata to bottom of bubble */
+.khoj-chat-message::after {
     content: attr(data-meta);
     display: block;
     font-size: var(--font-ui-smaller);
     color: var(--text-muted);
-    margin: -8px 7px 0 0px;
+    margin: 4px 0;
+    text-align: right;
+    clear: both;
+}
+
+/* Specific adjustments for khoj messages */
+.khoj-chat-message.khoj::after {
+    text-align: left;
+}
+
+/* Specific adjustments for user messages */
+.khoj-chat-message.you::after {
     text-align: right;
 }
 
@@ -107,7 +118,7 @@ If your plugin does not need CSS, delete this file.
     word-break: break-word;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     max-width: 90%;
-    font-size: 0.85em;
+    font-size: 0.8em;
 }
 
 /* color chat bubble by khoj blue */
@@ -830,34 +841,37 @@ span.khoj-nav-item-text {
 /* Improved action buttons */
 button.chat-action-button {
     display: block;
-    border-radius: 4px;
+    border-radius: 6px;
     color: var(--text-muted);
     background-color: transparent;
     border: 1px solid var(--khoj-storm-grey);
     text-align: center;
     font-size: 16px;
-    transition: all 0.5s;
+    transition: all 0.3s;
     cursor: pointer;
-    padding: 4px;
+    padding: 6px 8px;
     margin-top: 8px;
-    margin-left: 4px;
+    margin-left: 6px;
     float: right;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 button.chat-action-button span {
     cursor: pointer;
     display: inline-block;
     position: relative;
-    transition: 0.5s;
+    transition: 0.3s;
 }
 
 .khoj-chat-message:hover button.chat-action-button {
-    opacity: 0.7;
+    opacity: 0.9;
 }
 
 button.chat-action-button:hover {
     background-color: var(--background-modifier-active-hover);
     color: var(--text-normal);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* Add specific hover colors for each action button */
