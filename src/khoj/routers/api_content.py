@@ -420,7 +420,7 @@ async def get_content_source(
     return await sync_to_async(list)(EntryAdapters.get_all_filenames_by_source(user, content_source))  # type: ignore[call-arg]
 
 
-@api_content.delete("/{content_source}", status_code=200)
+@api_content.delete("/source/{content_source}", status_code=200)
 @requires(["authenticated"])
 async def delete_content_source(
     request: Request,
@@ -434,7 +434,12 @@ async def delete_content_source(
         raise ValueError(f"Invalid content source: {content_source}")
     elif content_object != "Computer":
         await content_object.objects.filter(user=user).adelete()
-    await sync_to_async(EntryAdapters.delete_all_entries)(user, file_source=content_source)
+    else:
+        # Delete file objects from the given source
+        file_list = await sync_to_async(list)(EntryAdapters.get_all_filenames_by_source(user, content_source))  # type: ignore[call-arg]
+        await FileObjectAdapters.adelete_file_objects_by_names(user, file_list)
+    # Delete entries from the given source
+    await EntryAdapters.adelete_all_entries(user, file_source=content_source)
 
     if content_source == DbEntry.EntrySource.NOTION:
         await NotionConfig.objects.filter(user=user).adelete()
@@ -449,7 +454,6 @@ async def delete_content_source(
         metadata={"content_source": content_source},
     )
 
-    enabled_content = await sync_to_async(EntryAdapters.get_unique_file_types)(user)
     return {"status": "ok"}
 
 

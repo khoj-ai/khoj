@@ -1551,6 +1551,11 @@ class FileObjectAdapters:
 
     @staticmethod
     @arequire_valid_user
+    async def adelete_file_objects_by_names(user: KhojUser, file_names: List[str]):
+        return await FileObject.objects.filter(user=user, file_name__in=file_names).adelete()
+
+    @staticmethod
+    @arequire_valid_user
     async def adelete_all_file_objects(user: KhojUser):
         return await FileObject.objects.filter(user=user).adelete()
 
