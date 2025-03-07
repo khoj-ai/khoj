@@ -595,48 +595,48 @@ export default function SettingsView() {
         }
     };
 
-    const disconnectContent = async (type: string) => {
+    const disconnectContent = async (source: string) => {
         try {
-            const response = await fetch(`/api/content/${type}`, {
+            const response = await fetch(`/api/content/source/${source}`, {
                 method: "DELETE",
                 headers: {
                     "Content-Type": "application/json",
                 },
             });
-            if (!response.ok) throw new Error(`Failed to disconnect ${type}`);
+            if (!response.ok) throw new Error(`Failed to disconnect ${source}`);
 
             // Set updated user settings
             if (userConfig) {
                 let newUserConfig = userConfig;
-                if (type === "computer") {
+                if (source === "computer") {
                     newUserConfig.enabled_content_source.computer = false;
-                } else if (type === "notion") {
+                } else if (source === "notion") {
                     newUserConfig.enabled_content_source.notion = false;
                     newUserConfig.notion_token = null;
                     setNotionToken(newUserConfig.notion_token);
-                } else if (type === "github") {
+                } else if (source === "github") {
                     newUserConfig.enabled_content_source.github = false;
                 }
                 setUserConfig(newUserConfig);
             }
 
             // Notify user about disconnecting content source
-            if (type === "computer") {
+            if (source === "computer") {
                 toast({
                     title: `✅ Deleted Synced Files`,
                     description: "Your synced documents have been deleted.",
                 });
             } else {
                 toast({
-                    title: `✅ Disconnected ${type}`,
-                    description: `Your ${type} integration to Khoj has been disconnected.`,
+                    title: `✅ Disconnected ${source}`,
+                    description: `Your ${source} integration to Khoj has been disconnected.`,
                 });
             }
         } catch (error) {
-            console.error(`Error disconnecting ${type}:`, error);
+            console.error(`Error disconnecting ${source}:`, error);
             toast({
-                title: `⚠️ Failed to Disconnect ${type}`,
-                description: `Failed to disconnect from ${type}. Try again or contact team@khoj.dev`,
+                title: `⚠️ Failed to Disconnect ${source}`,
+                description: `Failed to disconnect from ${source}. Try again or contact team@khoj.dev`,
             });
         }
     };

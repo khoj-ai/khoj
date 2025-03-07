@@ -1551,6 +1551,11 @@ class FileObjectAdapters:
 
     @staticmethod
     @arequire_valid_user
+    async def adelete_file_objects_by_names(user: KhojUser, file_names: List[str]):
+        return await FileObject.objects.filter(user=user, file_name__in=file_names).adelete()
+
+    @staticmethod
+    @arequire_valid_user
     async def adelete_all_file_objects(user: KhojUser):
         return await FileObject.objects.filter(user=user).adelete()
 
@@ -1674,6 +1679,15 @@ class EntryAdapters:
     def get_all_filenames_by_source(user: KhojUser, file_source: str):
         return (
             Entry.objects.filter(user=user, file_source=file_source)
+            .distinct("file_path")
+            .values_list("file_path", flat=True)
+        )
+
+    @staticmethod
+    @require_valid_user
+    def get_all_filenames_by_type(user: KhojUser, file_type: str):
+        return (
+            Entry.objects.filter(user=user, file_type=file_type)
             .distinct("file_path")
             .values_list("file_path", flat=True)
         )
