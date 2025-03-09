@@ -68,7 +68,7 @@ dependencies = [
     "authlib == 1.2.1",
     "llama-cpp-python == 0.2.88",
     "itsdangerous == 2.1.2",
-    "httpx == 0.25.0",
+    "httpx == 0.27.2",
     "pgvector == 0.2.4",
     "psycopg2-binary == 2.9.9",
     "lxml == 4.9.3",
@@ -92,6 +92,7 @@ dependencies = [
     "pyjson5 == 1.6.7",
     "resend == 1.0.1",
     "email-validator == 2.2.0",
+    "e2b-code-interpreter ~= 1.0.0",
 ]
 dynamic = ["version"]
 
