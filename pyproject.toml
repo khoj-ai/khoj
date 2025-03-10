@@ -86,7 +86,7 @@ dependencies = [
     "pytz ~= 2024.1",
     "cron-descriptor == 1.4.3",
     "django_apscheduler == 0.6.2",
-    "anthropic == 0.26.1",
+    "anthropic == 0.49.0",
     "docx2txt == 0.8",
     "google-generativeai == 0.8.3",
     "pyjson5 == 1.6.7",

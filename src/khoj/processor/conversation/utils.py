@@ -61,6 +61,9 @@ model_to_prompt_size = {
     "gemini-1.5-pro": 60000,
     # Anthropic Models
     "claude-3-5-sonnet-20241022": 60000,
+    "claude-3-5-sonnet-latest": 60000,
+    "claude-3-7-sonnet-20250219": 60000,
+    "claude-3-7-sonnet-latest": 60000,
     "claude-3-5-haiku-20241022": 60000,
     # Offline Models
     "bartowski/Qwen2.5-14B-Instruct-GGUF": 20000,
