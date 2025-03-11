@@ -4,8 +4,8 @@ from copy import deepcopy
 from threading import Thread
 
 from google import genai
+from google.genai import errors as gerrors
 from google.genai import types as gtypes
-from google.generativeai.types.generation_types import StopCandidateException
 from langchain.schema import ChatMessage
 from tenacity import (
     before_sleep_log,
@@ -73,7 +73,7 @@ def gemini_completion_with_backoff(
         # Generate the response
         response = client.models.generate_content(model=model_name, config=config, contents=formatted_messages)
         response_text = response.text
-    except StopCandidateException as e:
+    except gerrors.ClientError as e:
         response = None
         response_text, _ = handle_gemini_response(e.args)
         # Respond with reason for stopping
@@ -147,7 +147,7 @@ def gemini_llm_thread(
             aggregated_response += message
             g.send(message)
             if stopped:
-                raise StopCandidateException(message)
+                raise ValueError(message)
 
         # Calculate cost of chat
         input_tokens = chunk.usage_metadata.prompt_token_count
@@ -159,7 +159,7 @@ def gemini_llm_thread(
         tracer["temperature"] = temperature
         if is_promptrace_enabled():
             commit_conversation_trace(messages, aggregated_response, tracer)
-    except StopCandidateException as e:
+    except ValueError as e:
         logger.warning(
             f"LLM Response Prevented for {model_name}: {e.args[0]}.\n"
             + f"Last Message by {messages[-1].role}: {messages[-1].content}"
