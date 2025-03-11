@@ -1092,7 +1092,11 @@ async def generate_better_image_prompt(
             online_results=simplified_online_results,
             personality_context=personality_context,
         )
-    elif model_type in [TextToImageModelConfig.ModelType.STABILITYAI, TextToImageModelConfig.ModelType.REPLICATE]:
+    elif model_type in [
+        TextToImageModelConfig.ModelType.STABILITYAI,
+        TextToImageModelConfig.ModelType.REPLICATE,
+        TextToImageModelConfig.ModelType.GOOGLE,
+    ]:
         image_prompt = prompts.image_generation_improve_prompt_sd.format(
             query=q,
             chat_history=conversation_history,

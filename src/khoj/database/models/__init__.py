@@ -530,6 +530,7 @@ class TextToImageModelConfig(DbBaseModel):
         OPENAI = "openai"
         STABILITYAI = "stability-ai"
         REPLICATE = "replicate"
+        GOOGLE = "google"
 
     model_name = models.CharField(max_length=200, default="dall-e-3")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OPENAI)
@@ -547,11 +548,11 @@ class TextToImageModelConfig(DbBaseModel):
                 error[
                     "ai_model_api"
                 ] = "Both API key and OpenAI config cannot be set for OpenAI models. Please set only one of them."
-        if self.model_type != self.ModelType.OPENAI:
+        if self.model_type != self.ModelType.OPENAI and self.model_type != self.ModelType.GOOGLE:
             if not self.api_key:
-                error["api_key"] = "The API key field must be set for non OpenAI models."
+                error["api_key"] = "The API key field must be set for non OpenAI, non Google models."
             if self.ai_model_api:
-                error["ai_model_api"] = "AI Model API cannot be set for non OpenAI models."
+                error["ai_model_api"] = "AI Model API cannot be set for non OpenAI, non Google models."
         if error:
             raise ValidationError(error)
 
