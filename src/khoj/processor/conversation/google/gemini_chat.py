@@ -128,7 +128,7 @@ def gemini_send_message_to_model(
     """
     Send message to model
     """
-    messages, system_prompt = format_messages_for_gemini(messages)
+    messages_for_gemini, system_prompt = format_messages_for_gemini(messages)
 
     model_kwargs = {}
 
@@ -138,7 +138,7 @@ def gemini_send_message_to_model(
 
     # Get Response from Gemini
     return gemini_completion_with_backoff(
-        messages=messages,
+        messages=messages_for_gemini,
         system_prompt=system_prompt,
         model_name=model,
         api_key=api_key,
@@ -236,12 +236,12 @@ def converse_gemini(
         program_execution_context=program_execution_context,
     )
 
-    messages, system_prompt = format_messages_for_gemini(messages, system_prompt)
+    messages_for_gemini, system_prompt = format_messages_for_gemini(messages, system_prompt)
     logger.debug(f"Conversation Context for Gemini: {messages_to_print(messages)}")
 
     # Get Response from Google AI
     return gemini_chat_completion_with_backoff(
-        messages=messages,
+        messages=messages_for_gemini,
         compiled_references=references,
         online_results=online_results,
         model_name=model,
