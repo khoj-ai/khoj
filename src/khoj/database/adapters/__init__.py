@@ -1108,6 +1108,12 @@ class ConversationAdapters:
         return ConversationAdapters.aget_advanced_chat_model(user)
 
     @staticmethod
+    def get_chat_model_by_name(chat_model_name: str, ai_model_api_name: str = None):
+        if ai_model_api_name:
+            return ChatModel.objects.filter(name=chat_model_name, ai_model_api__name=ai_model_api_name).first()
+        return ChatModel.objects.filter(name=chat_model_name).first()
+
+    @staticmethod
     async def aget_voice_model_config(user: KhojUser) -> Optional[VoiceModelOption]:
         voice_model_config = await UserVoiceModelConfig.objects.filter(user=user).prefetch_related("setting").afirst()
         if voice_model_config:
@@ -1204,6 +1210,15 @@ class ConversationAdapters:
         if server_chat_settings is not None and server_chat_settings.chat_advanced is not None:
             return server_chat_settings.chat_advanced
         return await ConversationAdapters.aget_default_chat_model(user)
+
+    @staticmethod
+    def set_default_chat_model(chat_model: ChatModel):
+        server_chat_settings = ServerChatSettings.objects.first()
+        if server_chat_settings:
+            server_chat_settings.chat_default = chat_model
+            server_chat_settings.save()
+        else:
+            ServerChatSettings.objects.create(chat_default=chat_model)
 
     @staticmethod
     async def aget_server_webscraper():
@@ -1551,6 +1566,11 @@ class FileObjectAdapters:
 
     @staticmethod
     @arequire_valid_user
+    async def adelete_file_objects_by_names(user: KhojUser, file_names: List[str]):
+        return await FileObject.objects.filter(user=user, file_name__in=file_names).adelete()
+
+    @staticmethod
+    @arequire_valid_user
     async def adelete_all_file_objects(user: KhojUser):
         return await FileObject.objects.filter(user=user).adelete()
 
@@ -1674,6 +1694,15 @@ class EntryAdapters:
     def get_all_filenames_by_source(user: KhojUser, file_source: str):
         return (
             Entry.objects.filter(user=user, file_source=file_source)
+            .distinct("file_path")
+            .values_list("file_path", flat=True)
+        )
+
+    @staticmethod
+    @require_valid_user
+    def get_all_filenames_by_type(user: KhojUser, file_type: str):
+        return (
+            Entry.objects.filter(user=user, file_type=file_type)
             .distinct("file_path")
             .values_list("file_path", flat=True)
         )

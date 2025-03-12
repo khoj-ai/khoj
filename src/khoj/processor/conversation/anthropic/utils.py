@@ -17,10 +17,8 @@ from khoj.processor.conversation.utils import (
     commit_conversation_trace,
     get_image_from_url,
 )
-from khoj.utils import state
 from khoj.utils.helpers import (
     get_chat_usage_metrics,
-    in_debug_mode,
     is_none_or_empty,
     is_promptrace_enabled,
 )
@@ -30,7 +28,8 @@ logger = logging.getLogger(__name__)
 anthropic_clients: Dict[str, anthropic.Anthropic] = {}
 
 
-DEFAULT_MAX_TOKENS_ANTHROPIC = 3000
+DEFAULT_MAX_TOKENS_ANTHROPIC = 8000
+MAX_REASONING_TOKENS_ANTHROPIC = 12000
 
 
 @retry(
@@ -42,12 +41,13 @@ DEFAULT_MAX_TOKENS_ANTHROPIC = 3000
 def anthropic_completion_with_backoff(
     messages,
     system_prompt,
-    model_name,
+    model_name: str,
     temperature=0,
     api_key=None,
     model_kwargs=None,
     max_tokens=None,
     response_type="text",
+    deepthought=False,
     tracer={},
 ) -> str:
     if api_key not in anthropic_clients:
@@ -57,17 +57,23 @@ def anthropic_completion_with_backoff(
         client = anthropic_clients[api_key]
 
     formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
-    if response_type == "json_object":
-        # Prefill model response with '{' to make it output a valid JSON object
+    aggregated_response = ""
+    if response_type == "json_object" and not deepthought:
+        # Prefill model response with '{' to make it output a valid JSON object. Not supported with extended thinking.
         formatted_messages += [{"role": "assistant", "content": "{"}]
-
-    aggregated_response = "{" if response_type == "json_object" else ""
-    max_tokens = max_tokens or DEFAULT_MAX_TOKENS_ANTHROPIC
+        aggregated_response += "{"
 
     final_message = None
     model_kwargs = model_kwargs or dict()
     if system_prompt:
         model_kwargs["system"] = system_prompt
+
+    max_tokens = max_tokens or DEFAULT_MAX_TOKENS_ANTHROPIC
+    if deepthought and model_name.startswith("claude-3-7"):
+        model_kwargs["thinking"] = {"type": "enabled", "budget_tokens": MAX_REASONING_TOKENS_ANTHROPIC}
+        max_tokens += MAX_REASONING_TOKENS_ANTHROPIC
+        # Temperature control not supported when using extended thinking
+        temperature = 1.0
 
     with client.messages.stream(
         messages=formatted_messages,
@@ -111,20 +117,41 @@ def anthropic_chat_completion_with_backoff(
     system_prompt,
     max_prompt_size=None,
     completion_func=None,
+    deepthought=False,
     model_kwargs=None,
     tracer={},
 ):
     g = ThreadedGenerator(compiled_references, online_results, completion_func=completion_func)
     t = Thread(
         target=anthropic_llm_thread,
-        args=(g, messages, system_prompt, model_name, temperature, api_key, max_prompt_size, model_kwargs, tracer),
+        args=(
+            g,
+            messages,
+            system_prompt,
+            model_name,
+            temperature,
+            api_key,
+            max_prompt_size,
+            deepthought,
+            model_kwargs,
+            tracer,
+        ),
     )
     t.start()
     return g
 
 
 def anthropic_llm_thread(
-    g, messages, system_prompt, model_name, temperature, api_key, max_prompt_size=None, model_kwargs=None, tracer={}
+    g,
+    messages,
+    system_prompt,
+    model_name,
+    temperature,
+    api_key,
+    max_prompt_size=None,
+    deepthought=False,
+    model_kwargs=None,
+    tracer={},
 ):
     try:
         if api_key not in anthropic_clients:
@@ -132,6 +159,14 @@ def anthropic_llm_thread(
             anthropic_clients[api_key] = client
         else:
             client: anthropic.Anthropic = anthropic_clients[api_key]
+
+        model_kwargs = model_kwargs or dict()
+        max_tokens = DEFAULT_MAX_TOKENS_ANTHROPIC
+        if deepthought and model_name.startswith("claude-3-7"):
+            model_kwargs["thinking"] = {"type": "enabled", "budget_tokens": MAX_REASONING_TOKENS_ANTHROPIC}
+            max_tokens += MAX_REASONING_TOKENS_ANTHROPIC
+            # Temperature control not supported when using extended thinking
+            temperature = 1.0
 
         formatted_messages: List[anthropic.types.MessageParam] = [
             anthropic.types.MessageParam(role=message.role, content=message.content) for message in messages
@@ -145,8 +180,8 @@ def anthropic_llm_thread(
             temperature=temperature,
             system=system_prompt,
             timeout=20,
-            max_tokens=DEFAULT_MAX_TOKENS_ANTHROPIC,
-            **(model_kwargs or dict()),
+            max_tokens=max_tokens,
+            **model_kwargs,
         ) as stream:
             for text in stream.text_stream:
                 aggregated_response += text

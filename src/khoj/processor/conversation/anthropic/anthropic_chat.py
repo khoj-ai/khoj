@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 def extract_questions_anthropic(
     text,
-    model: Optional[str] = "claude-instant-1.2",
+    model: Optional[str] = "claude-3-7-sonnet-latest",
     conversation_log={},
     api_key=None,
     temperature=0.7,
@@ -122,7 +122,7 @@ def extract_questions_anthropic(
     return questions
 
 
-def anthropic_send_message_to_model(messages, api_key, model, response_type="text", tracer={}):
+def anthropic_send_message_to_model(messages, api_key, model, response_type="text", deepthought=False, tracer={}):
     """
     Send message to model
     """
@@ -135,6 +135,7 @@ def anthropic_send_message_to_model(messages, api_key, model, response_type="tex
         model_name=model,
         api_key=api_key,
         response_type=response_type,
+        deepthought=deepthought,
         tracer=tracer,
     )
 
@@ -145,7 +146,7 @@ def converse_anthropic(
     online_results: Optional[Dict[str, Dict]] = None,
     code_results: Optional[Dict[str, Dict]] = None,
     conversation_log={},
-    model: Optional[str] = "claude-3-5-sonnet-20241022",
+    model: Optional[str] = "claude-3-7-sonnet-latest",
     api_key: Optional[str] = None,
     completion_func=None,
     conversation_commands=[ConversationCommand.Default],
@@ -160,6 +161,7 @@ def converse_anthropic(
     generated_files: List[FileAttachment] = None,
     program_execution_context: Optional[List[str]] = None,
     generated_asset_results: Dict[str, Dict] = {},
+    deepthought: Optional[bool] = False,
     tracer: dict = {},
 ):
     """
@@ -239,5 +241,6 @@ def converse_anthropic(
         system_prompt=system_prompt,
         completion_func=completion_func,
         max_prompt_size=max_prompt_size,
+        deepthought=deepthought,
         tracer=tracer,
     )

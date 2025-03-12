@@ -95,6 +95,7 @@ async def apick_next_tool(
                 query=query,
                 context=function_planning_prompt,
                 response_type="json_object",
+                deepthought=True,
                 user=user,
                 query_images=query_images,
                 query_files=query_files,

@@ -1092,7 +1092,11 @@ async def generate_better_image_prompt(
             online_results=simplified_online_results,
             personality_context=personality_context,
         )
-    elif model_type in [TextToImageModelConfig.ModelType.STABILITYAI, TextToImageModelConfig.ModelType.REPLICATE]:
+    elif model_type in [
+        TextToImageModelConfig.ModelType.STABILITYAI,
+        TextToImageModelConfig.ModelType.REPLICATE,
+        TextToImageModelConfig.ModelType.GOOGLE,
+    ]:
         image_prompt = prompts.image_generation_improve_prompt_sd.format(
             query=q,
             chat_history=conversation_history,
@@ -1125,6 +1129,7 @@ async def send_message_to_model_wrapper(
     query: str,
     system_message: str = "",
     response_type: str = "text",
+    deepthought: bool = False,
     user: KhojUser = None,
     query_images: List[str] = None,
     context: str = "",
@@ -1227,6 +1232,7 @@ async def send_message_to_model_wrapper(
             api_key=api_key,
             model=chat_model_name,
             response_type=response_type,
+            deepthought=deepthought,
             tracer=tracer,
         )
     elif model_type == ChatModel.ModelType.GOOGLE:
@@ -1425,11 +1431,13 @@ def generate_chat_response(
         )
 
         query_to_run = q
+        deepthought = False
         if meta_research:
             query_to_run = f"<query>{q}</query>\n<collected_research>\n{meta_research}\n</collected_research>"
             compiled_references = []
             online_results = {}
             code_results = {}
+            deepthought = True
 
         chat_model = ConversationAdapters.get_valid_chat_model(user, conversation, is_subscribed)
         vision_available = chat_model.vision_enabled
@@ -1513,6 +1521,7 @@ def generate_chat_response(
                 generated_files=raw_generated_files,
                 generated_asset_results=generated_asset_results,
                 program_execution_context=program_execution_context,
+                deepthought=deepthought,
                 tracer=tracer,
             )
         elif chat_model.model_type == ChatModel.ModelType.GOOGLE:

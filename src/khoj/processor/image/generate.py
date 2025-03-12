@@ -6,6 +6,8 @@ from typing import Any, Callable, Dict, List, Optional
 
 import openai
 import requests
+from google import genai
+from google.genai import types as gtypes
 
 from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import Agent, KhojUser, TextToImageModelConfig
@@ -86,6 +88,8 @@ async def text_to_image(
                 webp_image_bytes = generate_image_with_stability(image_prompt, text_to_image_config, text2image_model)
             elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.REPLICATE:
                 webp_image_bytes = generate_image_with_replicate(image_prompt, text_to_image_config, text2image_model)
+            elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.GOOGLE:
+                webp_image_bytes = generate_image_with_google(image_prompt, text_to_image_config, text2image_model)
         except openai.OpenAIError or openai.BadRequestError or openai.APIConnectionError as e:
             if "content_policy_violation" in e.message:
                 logger.error(f"Image Generation blocked by OpenAI: {e}")
@@ -99,6 +103,12 @@ async def text_to_image(
                 status_code = e.status_code  # type: ignore
                 yield image_url or image, status_code, message
                 return
+        except ValueError as e:
+            logger.error(f"Image Generation failed with {e}", exc_info=True)
+            message = f"Image generation using {text2image_model} via {text_to_image_config.model_type} failed due to an unknown error"
+            status_code = 500
+            yield image_url or image, status_code, message
+            return
         except requests.RequestException as e:
             logger.error(f"Image Generation failed with {e}", exc_info=True)
             message = f"Image generation using {text2image_model} via {text_to_image_config.model_type} failed due to a network error."
@@ -215,3 +225,28 @@ def generate_image_with_replicate(
     # Get the generated image
     image_url = get_prediction["output"][0] if isinstance(get_prediction["output"], list) else get_prediction["output"]
     return io.BytesIO(requests.get(image_url).content).getvalue()
+
+
+def generate_image_with_google(
+    improved_image_prompt: str, text_to_image_config: TextToImageModelConfig, text2image_model: str
+):
+    """Generate image using Google's AI over API"""
+
+    # Initialize the Google AI client
+    api_key = text_to_image_config.api_key or text_to_image_config.ai_model_api.api_key
+    client = genai.Client(api_key=api_key)
+
+    # Configure image generation settings
+    config = gtypes.GenerateImagesConfig(number_of_images=1)
+
+    # Call the Gemini API to generate the image
+    response = client.models.generate_images(model=text2image_model, prompt=improved_image_prompt, config=config)
+
+    if not response.generated_images:
+        raise ValueError("Failed to generate image using Google AI")
+
+    # Extract the image bytes from the first generated image
+    image_bytes = response.generated_images[0].image.image_bytes
+
+    # Convert to webp for faster loading
+    return convert_image_to_webp(image_bytes)

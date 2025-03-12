@@ -61,6 +61,9 @@ model_to_prompt_size = {
     "gemini-1.5-pro": 60000,
     # Anthropic Models
     "claude-3-5-sonnet-20241022": 60000,
+    "claude-3-5-sonnet-latest": 60000,
+    "claude-3-7-sonnet-20250219": 60000,
+    "claude-3-7-sonnet-latest": 60000,
     "claude-3-5-haiku-20241022": 60000,
     # Offline Models
     "bartowski/Qwen2.5-14B-Instruct-GGUF": 20000,
@@ -670,10 +673,13 @@ def get_image_from_url(image_url: str, type="pil"):
         content_type = response.headers.get("content-type") or mimetypes.guess_type(image_url)[0] or "image/webp"
 
         # Convert image to desired format
+        image_data: Any = None
         if type == "b64":
             image_data = base64.b64encode(response.content).decode("utf-8")
         elif type == "pil":
             image_data = PIL.Image.open(BytesIO(response.content))
+        elif type == "bytes":
+            image_data = response.content
         else:
             raise ValueError(f"Invalid image type: {type}")
 
