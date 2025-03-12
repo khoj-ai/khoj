@@ -31,6 +31,7 @@ from khoj.processor.conversation.utils import (
     save_to_conversation_log,
 )
 from khoj.processor.image.generate import text_to_image
+from khoj.processor.operator.browser_operator import operate_browser
 from khoj.processor.speech.text_to_speech import generate_text_to_speech
 from khoj.processor.tools.online_search import (
     deduplicate_organic_results,
@@ -882,6 +883,7 @@ async def chat(
         researched_results = ""
         online_results: Dict = dict()
         code_results: Dict = dict()
+        operator_results: List[str] = []
         generated_asset_results: Dict = dict()
         ## Extract Document References
         compiled_references: List[Any] = []
@@ -956,6 +958,8 @@ async def chat(
                             code_results.update(research_result.codeContext)
                         if research_result.context:
                             compiled_references.extend(research_result.context)
+                        if research_result.operatorContext:
+                            operator_results.append(research_result.operatorContext)
 
                         researched_results += research_result.summarizedResult
 
@@ -1207,14 +1211,36 @@ async def chat(
                         yield result[ChatEvent.STATUS]
                     else:
                         code_results = result
-                async for result in send_event(ChatEvent.STATUS, f"**Ran code snippets**: {len(code_results)}"):
-                    yield result
             except ValueError as e:
                 program_execution_context.append(f"Failed to run code")
                 logger.warning(
                     f"Failed to use code tool: {e}. Attempting to respond without code results",
                     exc_info=True,
                 )
+        if ConversationCommand.Operator in conversation_commands:
+            try:
+                async for result in operate_browser(
+                    defiltered_query,
+                    user,
+                    meta_log,
+                    location,
+                    query_images=uploaded_images,
+                    query_files=attached_file_context,
+                    send_status_func=partial(send_event, ChatEvent.STATUS),
+                    agent=agent,
+                    tracer=tracer,
+                ):
+                    if isinstance(result, dict) and ChatEvent.STATUS in result:
+                        yield result[ChatEvent.STATUS]
+                    elif isinstance(result, str):
+                        operator_results.append(result)
+            except ValueError as e:
+                program_execution_context.append(f"Browser operation error: {e}")
+                logger.warning(f"Failed to operate browser with {e}", exc_info=True)
+                async for result in send_event(
+                    ChatEvent.STATUS, "Operating browser failed. I'll try respond appropriately"
+                ):
+                    yield result
 
         ## Send Gathered References
         unique_online_results = deduplicate_organic_results(online_results)
@@ -1225,6 +1251,7 @@ async def chat(
                 "context": compiled_references,
                 "onlineContext": unique_online_results,
                 "codeContext": code_results,
+                "operatorContext": operator_results,
             },
         ):
             yield result
@@ -1340,6 +1367,7 @@ async def chat(
             compiled_references,
             online_results,
             code_results,
+            operator_results,
             inferred_queries,
             conversation_commands,
             user,

@@ -348,6 +348,7 @@ class ConversationCommand(str, Enum):
     Summarize = "summarize"
     Diagram = "diagram"
     Research = "research"
+    Operator = "operator"
 
 
 command_descriptions = {
@@ -363,6 +364,7 @@ command_descriptions = {
     ConversationCommand.Summarize: "Get help with a question pertaining to an entire document.",
     ConversationCommand.Diagram: "Draw a flowchart, diagram, or any other visual representation best expressed with primitives like lines, rectangles, and text.",
     ConversationCommand.Research: "Do deep research on a topic. This will take longer than usual, but give a more detailed, comprehensive answer.",
+    ConversationCommand.Operator: "Operate and perform tasks using a GUI web browser.",
 }
 
 command_descriptions_for_agent = {
@@ -372,6 +374,7 @@ command_descriptions_for_agent = {
     ConversationCommand.Webpage: "Agent can read suggested web pages for information.",
     ConversationCommand.Research: "Agent can do deep research on a topic.",
     ConversationCommand.Code: "Agent can run Python code to parse information, run complex calculations, create documents and charts.",
+    ConversationCommand.Operator: "Agent can operate and perform actions using a GUI web browser to complete a task.",
 }
 
 e2b_tool_description = "To run Python code in a E2B sandbox with no network access. Helpful to parse complex information, run calculations, create text documents and create charts with quantitative data. Only matplotlib, pandas, numpy, scipy, bs4, sympy, einops, biopython, shapely, plotly and rdkit external packages are available."
@@ -384,6 +387,7 @@ tool_descriptions_for_llm = {
     ConversationCommand.Online: "To search for the latest, up-to-date information from the internet. Note: **Questions about Khoj should always use this data source**",
     ConversationCommand.Webpage: "To use if the user has directly provided the webpage urls or you are certain of the webpage urls to read.",
     ConversationCommand.Code: e2b_tool_description if is_e2b_code_sandbox_enabled() else terrarium_tool_description,
+    ConversationCommand.Operator: "To use when you need to operate and take actions using a GUI web browser.",
 }
 
 tool_description_for_research_llm = {
@@ -392,6 +396,7 @@ tool_description_for_research_llm = {
     ConversationCommand.Webpage: "To extract information from webpages. Useful for more detailed research from the internet. Usually used when you know the webpage links to refer to. Share upto {max_webpages_to_read} webpage links and what information to extract from them in your query.",
     ConversationCommand.Code: e2b_tool_description if is_e2b_code_sandbox_enabled() else terrarium_tool_description,
     ConversationCommand.Text: "To respond to the user once you've completed your research and have the required information.",
+    ConversationCommand.Operator: "To operate and take actions using a GUI web browser.",
 }
 
 mode_descriptions_for_llm = {

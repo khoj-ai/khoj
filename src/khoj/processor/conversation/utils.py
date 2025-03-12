@@ -91,6 +91,7 @@ class InformationCollectionIteration:
         context: list = None,
         onlineContext: dict = None,
         codeContext: dict = None,
+        operatorContext: str = None,
         summarizedResult: str = None,
         warning: str = None,
     ):
@@ -99,6 +100,7 @@ class InformationCollectionIteration:
         self.context = context
         self.onlineContext = onlineContext
         self.codeContext = codeContext
+        self.operatorContext = operatorContext
         self.summarizedResult = summarizedResult
         self.warning = warning
 
@@ -265,6 +267,7 @@ async def save_to_conversation_log(
     compiled_references: List[Dict[str, Any]] = [],
     online_results: Dict[str, Any] = {},
     code_results: Dict[str, Any] = {},
+    operator_results: Dict[str, Any] = {},
     inferred_queries: List[str] = [],
     intent_type: str = "remember",
     client_application: ClientApplication = None,
@@ -291,6 +294,7 @@ async def save_to_conversation_log(
         "intent": {"inferred-queries": inferred_queries, "type": intent_type},
         "onlineContext": online_results,
         "codeContext": code_results,
+        "operatorContext": operator_results,
         "automationId": automation_id,
         "trainOfThought": train_of_thought,
         "turnId": turn_id,

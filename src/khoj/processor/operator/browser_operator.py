@@ -1,0 +1,499 @@
+import asyncio
+import base64
+import logging
+import time
+from typing import Any, Callable, Dict, List, Optional
+
+import requests
+from openai.types.responses import ResponseOutputItem, response_computer_tool_call
+from playwright.async_api import Page, async_playwright
+from pydantic import BaseModel
+
+from khoj.database.adapters import AgentAdapters, ConversationAdapters
+from khoj.database.models import Agent, ChatModel, KhojUser
+from khoj.routers.helpers import ChatEvent
+from khoj.utils.helpers import get_openai_async_client, timer
+from khoj.utils.rawconfig import LocationData
+
+logger = logging.getLogger(__name__)
+
+
+async def operate_browser(
+    message: str,
+    user: KhojUser,
+    conversation_log: dict,
+    location_data: LocationData,
+    send_status_func: Optional[Callable] = None,
+    query_images: Optional[List[str]] = None,
+    agent: Agent = None,
+    query_files: str = None,
+    tracer: dict = {},
+):
+    response, safety_check_message = None, None
+
+    # chat_model = await ConversationAdapters.aget_chat_model(user)
+    agent_chat_model = await AgentAdapters.aget_agent_chat_model(agent, user) if agent else None
+    chat_model: ChatModel = await ConversationAdapters.aget_default_chat_model(user, agent_chat_model)
+    supported_operator_model_types = [ChatModel.ModelType.OPENAI]
+    if not chat_model or chat_model.model_type not in supported_operator_model_types:
+        # If a computer use capable model has not configured, return an unsupported on server error
+        raise ValueError(
+            f"Unsupported AI model. Configure and use chat model of type {supported_operator_model_types} to enable Browser use."
+        )
+
+    if send_status_func:
+        async for event in send_status_func(f"**Launching Browser**:\n{message}"):
+            yield {ChatEvent.STATUS: event}
+
+    # Start the browser
+    width, height = 1024, 768
+    playwright, browser, page = await start_browser(width, height)
+
+    # Operate the browser
+    max_iterations = 30
+    with timer(f"Operating browser with {chat_model.model_type} {chat_model.name}", logger):
+        try:
+            if chat_model.model_type == ChatModel.ModelType.OPENAI:
+                async for result in browser_use_openai(
+                    message,
+                    chat_model,
+                    page,
+                    width,
+                    height,
+                    max_iterations=max_iterations,
+                    send_status_func=send_status_func,
+                    user=user,
+                    agent=agent,
+                    tracer=tracer,
+                ):
+                    if isinstance(result, dict) and ChatEvent.STATUS in result:
+                        yield result
+                    else:
+                        response, safety_check_message = result
+            elif chat_model.model_type == ChatModel.ModelType.ANTHROPIC:
+                pass
+        except requests.RequestException as e:
+            raise ValueError(f"Browser use with {chat_model.model_type} model failed due to a network error: {e}")
+        except Exception as e:
+            raise ValueError(f"Browser use with {chat_model.model_type} model failed due to an unknown error: {e}")
+        finally:
+            # Keep the browser open if safety checks are pending to allow user to investigate and resolve them
+            if not safety_check_message:
+                # Close the browser
+                await browser.close()
+                await playwright.stop()
+
+    yield safety_check_message or response
+
+
+async def start_browser(width: int = 1024, height: int = 768):
+    playwright = await async_playwright().start()
+
+    launch_args = [f"--window-size={width},{height}", "--disable-extensions", "--disable-file-system"]
+    browser = await playwright.chromium.launch(chromium_sandbox=True, headless=False, args=launch_args, env={})
+
+    page = await browser.new_page()
+    await page.goto("https://duckduckgo.com")
+    await page.set_viewport_size({"width": width, "height": height})
+    return playwright, browser, page
+
+
+async def browser_use_openai(
+    query: str,
+    chat_model: ChatModel,
+    page: Page,
+    width: int = 1024,
+    height: int = 768,
+    max_tokens: int = 4096,
+    max_iterations: int = 40,
+    send_status_func: Optional[Callable] = None,
+    user: KhojUser = None,
+    agent: Agent = None,
+    tracer: dict = {},
+):
+    """
+    A simple agent loop for openai browser use interactions.
+
+    This function handles the back-and-forth between:
+    1. Sending user messages to Openai
+    2. Openai requesting to use browser use tools
+    3. Playwright executing those tools in browser.
+    4. Sending tool results back to Openai
+    """
+
+    # Setup tools and API parameters
+    client = get_openai_async_client(chat_model.ai_model_api.api_key, chat_model.ai_model_api.api_base_url)
+    messages = [{"role": "user", "content": query}]
+    safety_check_prefix = "The user needs to say 'continue' after resolving the following safety checks to proceed:"
+    safety_check = None
+    system_prompt = f"""<SYSTEM_CAPABILITY>
+* You are Khoj, a smart web browser operating assistant. You help the users accomplish tasks using a web browser.
+* You can interact with the web browser to perform tasks like clicking, typing, scrolling, and more.
+* You can use the additional back() and goto() helper functions to navigate the browser. If you see nothing, try goto duckduckgo.com
+* When viewing a webpage it can be helpful to zoom out so that you can see everything on the page. Either that, or make sure you scroll down to see everything before deciding something isn't available.
+* Perform web searches using DuckDuckGo. Don't use Google even if requested as the query will fail.
+* The current date is {datetime.today().strftime('%A, %B %-d, %Y')}.
+</SYSTEM_CAPABILITY>
+
+<IMPORTANT>
+* You are allowed upto {max_iterations} iterations to complete the task.
+</IMPORTANT>
+"""
+
+    # Configure tools available to Openai
+    tools = [
+        {
+            "type": "computer_use_preview",
+            "display_width": width,
+            "display_height": height,
+            "environment": "browser",
+        },
+        {
+            "type": "function",
+            "name": "back",
+            "description": "Go back to the previous page.",
+            "parameters": {},
+        },
+        {
+            "type": "function",
+            "name": "goto",
+            "description": "Go to a specific URL.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "Fully qualified URL to navigate to.",
+                    },
+                },
+                "additionalProperties": False,
+                "required": ["url"],
+            },
+        },
+    ]
+
+    # Main agent loop (with iteration limit to prevent runaway API costs)
+    compiled_operator_messages: List[ChatMessage] = []
+    run_summarize = False
+    task_completed = False
+    last_call_id = None
+    iterations = 0
+    while iterations < max_iterations:
+        iterations += 1
+
+        # Send the screenshot back as a computer_call_output
+        response = await client.responses.create(
+            model="computer-use-preview",
+            input=messages,
+            instructions=system_prompt,
+            tools=tools,
+            parallel_tool_calls=False,
+            max_output_tokens=max_tokens,
+            truncation="auto",
+        )
+
+        logger.debug(f"Openai response: {response.model_dump_json()}")
+        messages += response.output
+        compiled_response = compile_openai_response(response.output)
+
+        # Add Openai's response to the tracer conversation history
+        compiled_operator_messages.append(ChatMessage(role="assistant", content=compiled_response))
+        if send_status_func:
+            async for event in send_status_func(f"**Operating Browser**:\n{compiled_response}"):
+                yield {ChatEvent.STATUS: event}
+
+        # Check if any tools used
+        tool_call_blocks = [
+            block for block in response.output if block.type == "computer_call" or block.type == "function_call"
+        ]
+        tool_results: list[dict[str, str | dict]] = []
+        block_input: ActionBack | ActionGoto | response_computer_tool_call.Action = None
+        # Run the tool calls in order
+        for block in tool_call_blocks:
+            if block.type == "function_call":
+                last_call_id = block.call_id
+                if hasattr(block, "name") and block.name == "goto":
+                    url = json.loads(block.arguments).get("url")
+                    block_input = ActionGoto(type="goto", url=url)
+                elif hasattr(block, "name") and block.name == "back":
+                    block_input = ActionBack(type="back")
+            # if user doesn't ack all safety checks exit with error
+            elif block.type == "computer_call" and block.pending_safety_checks:
+                for check in block.pending_safety_checks:
+                    if safety_check:
+                        safety_check += f"\n- {check.message}"
+                    else:
+                        safety_check = f"{safety_check_prefix}\n- {check.message}"
+                break
+            elif block.type == "computer_call":
+                last_call_id = block.call_id
+                block_input = block.action
+
+            result = await handle_browser_action_openai(page, block_input)
+            content_text = result.get("output") or result.get("error")
+            compiled_operator_messages.append(ChatMessage(role="browser", content=content_text))
+
+            # Take a screenshot after computer action
+            if block.type == "computer_call":
+                screenshot_base64 = await get_screenshot(page)
+                content = {"type": "input_image", "image_url": f"data:image/webp;base64,{screenshot_base64}"}
+                content["current_url"] = page.url if block.type == "computer_call" else None
+            elif block.type == "function_call":
+                content = content_text
+
+            # Format the tool call results
+            tool_results.append(
+                {
+                    "type": f"{block.type}_output",
+                    "output": content,
+                    "call_id": last_call_id,
+                }
+            )
+
+        # Calculate cost of chat
+        input_tokens = response.usage.input_tokens
+        output_tokens = response.usage.output_tokens
+        tracer["usage"] = get_chat_usage_metrics(
+            chat_model.name, input_tokens, output_tokens, usage=tracer.get("usage")
+        )
+        logger.debug(f"Operator usage by Openai: {tracer['usage']}")
+
+        # Save conversation trace
+        tracer["chat_model"] = chat_model.name
+        if is_promptrace_enabled():
+            commit_conversation_trace(compiled_operator_messages[:-1], compiled_operator_messages[-1].content, tracer)
+
+        # Run one last iteration to collate results of browser use, if no tool use requested or iteration limit reached.
+        if not tool_results and not run_summarize:
+            iterations = max_iterations - 1
+            run_summarize = True
+            task_completed = True
+            tool_results.append(
+                {
+                    "type": "message",
+                    "role": "user",
+                    "content": f"Collate all relevant information from your research so far to answer the target query:\n{query}.",
+                }
+            )
+        elif iterations == max_iterations and not run_summarize:
+            iterations = max_iterations - 1
+            run_summarize = True
+            task_completed = not tool_results
+            # Pop the last tool call if max iterations reached
+            if tool_call_blocks:
+                tool_results.pop()
+            tool_results.append(
+                {
+                    "type": "message",
+                    "role": "user",
+                    "content": f"Collate all relevant information from your research so far to answer the target query:\n{query}.",
+                }
+            )
+
+        # Add tool results to messages for the next iteration with Openai
+        messages += tool_results
+
+    if task_completed:
+        final_response = compiled_response
+    else:
+        final_response = f"Operator hit iteration limit. If the results seems incomplete try again, assign a smaller task or try a different approach.\nThese were the results till now:\n{compiled_response}"
+    yield (final_response, safety_check)
+
+
+CUA_KEY_TO_PLAYWRIGHT_KEY = {
+    "/": "Divide",
+    "\\": "Backslash",
+    "alt": "Alt",
+    "arrowdown": "ArrowDown",
+    "arrowleft": "ArrowLeft",
+    "arrowright": "ArrowRight",
+    "arrowup": "ArrowUp",
+    "backspace": "Backspace",
+    "capslock": "CapsLock",
+    "cmd": "Meta",
+    "ctrl": "Control",
+    "delete": "Delete",
+    "end": "End",
+    "enter": "Enter",
+    "esc": "Escape",
+    "home": "Home",
+    "insert": "Insert",
+    "option": "Alt",
+    "pagedown": "PageDown",
+    "pageup": "PageUp",
+    "shift": "Shift",
+    "space": " ",
+    "super": "Meta",
+    "tab": "Tab",
+    "win": "Meta",
+}
+
+
+def parse_key_combination(text: str) -> list[str]:
+    """
+    Parse an xdotool-style key combination (e.g., "ctrl+o", "shift+tab")
+    and return a list of Playwright-compatible key names.
+    """
+    if "+" in text:
+        keys = text.split("+")
+        # Map each key to its Playwright equivalent
+        return [CUA_KEY_TO_PLAYWRIGHT_KEY.get(k.lower(), k) for k in keys]
+    else:
+        # Single key
+        return [CUA_KEY_TO_PLAYWRIGHT_KEY.get(text.lower(), text)]
+
+
+class ActionBack(BaseModel):
+    type: Literal["back"]
+    """Specifies the event type.
+
+    For a back action, this property is always set to `back`.
+    """
+
+
+class ActionGoto(BaseModel):
+    type: Literal["goto"]
+    """Specifies the event type.
+
+    For a goto action, this property is always set to `goto`.
+    """
+    url: str
+    """The URL to navigate to.
+
+    This property is required for the `goto` action.
+    """
+
+
+async def handle_browser_action_openai(
+    page: Page, action: response_computer_tool_call.Action | ActionBack | ActionGoto
+) -> dict[str, str]:
+    """
+    Given a computer action (e.g., click, double_click, scroll, etc.),
+    execute the corresponding operation on the Playwright page.
+    """
+    action_type = action.type
+    action_error = None
+
+    try:
+        match action_type:
+            case "click":
+                x, y = action.x, action.y
+                button = action.button
+                match button:
+                    case "wheel":
+                        await page.mouse.wheel(x, y)
+                        logger.debug(f"Action: Click {button} and scroll by ({x}, {y})")
+                        return {"output": f"Click {button} and Scroll by ({x}, {y})"}
+                    case _:
+                        button_mapping = {"left": "left", "right": "right"}
+                        button_type = button_mapping.get(button, "left")
+                        await page.mouse.click(x, y, button=button_type)
+                        logger.debug(f"Action: {button.capitalize()} click at ({x}, {y})")
+                        return {"output": f"{button_type} clicked at ({x}, {y})"}
+
+            case "double_click":
+                await page.mouse.dblclick(x, y)
+                return {"output": f"Double clicked at ({x}, {y})"}
+
+            case "scroll":
+                x, y = action.x, action.y
+                scroll_x, scroll_y = action.scroll_x, action.scroll_y
+                await page.mouse.move(x, y)
+                await page.evaluate(f"window.scrollBy({scroll_x}, {scroll_y})")
+                logger.debug(f"Action: scroll at ({x}, {y}) with offsets (scroll_x={scroll_x}, scroll_y={scroll_y})")
+                return {"output": f"Scroll at ({x}, {y}) with offsets (scroll_x={scroll_x}, scroll_y={scroll_y})"}
+
+            case "keypress":
+                keys = action.keys
+                for key in keys:
+                    logger.debug(f"Action: keypress '{key}'")
+                    mapped_key = CUA_KEY_TO_PLAYWRIGHT_KEY.get(key.lower(), key)
+                    await page.keyboard.press(mapped_key)
+                return {"output": f"Pressed key: {text}"}
+
+            case "type":
+                text = action.text
+                await page.keyboard.type(text)
+                logger.debug(f"Action: type '{text}'")
+                return {"output": f"Typed text: {text}"}
+
+            case "wait":
+                duration = 2
+                await asyncio.sleep(duration)
+                return {"output": f"Waited for {duration} seconds"}
+
+            case "screenshot":
+                # Nothing to do as screenshot is taken at each turn
+                logger.debug(f"Action: screenshot")
+                return {"output": "[placeholder for screenshot]"}
+
+            case "move":
+                x, y = action.x, action.y
+                logger.debug(f"Action: move to ({x}, {y})")
+                await page.mouse.move(x, y)
+                return {"output": f"Moved mouse to ({x}, {y})"}
+
+            case "drag":
+                path = action.path
+                logger.debug(f"Action: drag with path: {path}")
+                if not path:
+                    return {"error": "Missing path for drag action"}
+                await page.mouse.move(path[0].x, path[0].y)
+                await page.mouse.down()
+                for point in path[1:]:
+                    await page.mouse.move(point.x, point.y)
+                await page.mouse.up()
+                return {"output": f"Drag along path {path}"}
+
+            case "goto":
+                url = action.url
+                if not url:
+                    return {"error": "Missing URL for goto action"}
+                await page.goto(url)
+                return {"output": f"Navigated to {url}"}
+
+            case "back":
+                await page.go_back()
+                return {"output": "Navigated back to the previous page."}
+
+            case _:
+                action_error = f"Unrecognized action: {action}"
+                logger.warning(action_error)
+        return {"error": action_error}
+    except Exception as e:
+        action_error = f"Error handling action {action}: {e}"
+        logger.error(action_error)
+        return {"error": action_error}
+
+
+def compile_openai_response(response_content: list[ResponseOutputItem]) -> str:
+    """
+    Compile the response from Open AI model into a single string.
+    """
+    compiled_response = [""]
+    for block in response_content:
+        if block.type == "message":
+            compiled_response.append(block.model_dump_json())
+        elif block.type == "function_call":
+            if block.name == "goto":
+                if isinstance(block.arguments, str):
+                    block_args = json.loads(block.arguments)
+                block_input = {"action": block.name, "url": block_args.get("url")}
+            elif hasattr(block, "name") and block.name == "back":
+                block_input = {"action": block.name}
+            compiled_response.append(f"**Action**: {json.dumps(block_input)}")
+        elif block.type == "computer_call":
+            block_input = block.action
+            compiled_response.append(f"**Action**: {block_input.model_dump_json()}")
+        elif block.type == "reasoning" and block.summary:
+            compiled_response.append(f"**Thought**: {block.summary}")
+    return "\n- ".join(compiled_response)
+
+
+async def get_screenshot(page: Page):
+    """
+    Take a viewport screenshot using Playwright and return as base64 encoded webp image.
+    """
+    screenshot_bytes = await page.screenshot(caret="initial", full_page=False, type="png")
+    screenshot_webp_bytes = convert_image_to_webp(screenshot_bytes)
+    return base64.b64encode(screenshot_webp_bytes).decode("utf-8")
