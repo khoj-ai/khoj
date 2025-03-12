@@ -50,9 +50,9 @@ body:
           required: true
 
     - type: "checkboxes"
-      id: "clients"
+      id: "os"
       attributes:
-          label: "Clients"
+          label: "OS"
           description: "On which operating system do you experience the issue? (select at least one)"
           options:
               - label: "Windows"
