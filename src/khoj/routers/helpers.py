@@ -252,6 +252,8 @@ def get_conversation_command(query: str) -> ConversationCommand:
         return ConversationCommand.Code
     elif query.startswith("/research"):
         return ConversationCommand.Research
+    elif query.startswith("/operator"):
+        return ConversationCommand.Operator
     else:
         return ConversationCommand.Default
 
@@ -1348,6 +1350,7 @@ async def agenerate_chat_response(
     compiled_references: List[Dict] = [],
     online_results: Dict[str, Dict] = {},
     code_results: Dict[str, Dict] = {},
+    operator_results: Dict[str, Dict] = {},
     inferred_queries: List[str] = [],
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     user: KhojUser = None,
@@ -1384,6 +1387,7 @@ async def agenerate_chat_response(
             compiled_references=compiled_references,
             online_results=online_results,
             code_results=code_results,
+            operator_results=operator_results,
             inferred_queries=inferred_queries,
             client_application=client_application,
             conversation_id=conversation_id,
@@ -1403,6 +1407,7 @@ async def agenerate_chat_response(
             compiled_references = []
             online_results = {}
             code_results = {}
+            operator_results = {}
             deepthought = True
 
         chat_model = await ConversationAdapters.aget_valid_chat_model(user, conversation, is_subscribed)
@@ -1445,6 +1450,7 @@ async def agenerate_chat_response(
                 query_images=query_images,
                 online_results=online_results,
                 code_results=code_results,
+                operator_results=operator_results,
                 conversation_log=meta_log,
                 model=chat_model_name,
                 api_key=api_key,
