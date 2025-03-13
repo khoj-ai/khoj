@@ -22,6 +22,10 @@ import {
     DropdownMenuRadioItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    AlertDialog, AlertDialogAction, AlertDialogCancel,
+    AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
+} from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
 import {
@@ -54,6 +58,8 @@ import {
     Brain,
     EyeSlash,
     Eye,
+    Download,
+    TrashSimple,
 } from "@phosphor-icons/react";
 
 import Loading from "../components/loading/loading";
@@ -63,6 +69,10 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "../components/appSidebar/appSidebar";
 import { Separator } from "@/components/ui/separator";
 import { KhojLogoType } from "../components/logo/khojLogo";
+import { Progress } from "@/components/ui/progress";
+
+import JSZip from "jszip";
+import { saveAs } from 'file-saver';
 
 interface DropdownComponentProps {
     items: ModelOptions[];
@@ -296,6 +306,10 @@ export default function SettingsView() {
     const [numberValidationState, setNumberValidationState] = useState<PhoneNumberValidationState>(
         PhoneNumberValidationState.Verified,
     );
+    const [isExporting, setIsExporting] = useState(false);
+    const [exportProgress, setExportProgress] = useState(0);
+    const [exportedConversations, setExportedConversations] = useState(0);
+    const [totalConversations, setTotalConversations] = useState(0);
     const { toast } = useToast();
     const isMobileWidth = useIsMobileWidth();
 
@@ -311,8 +325,8 @@ export default function SettingsView() {
             initialUserConfig?.is_phone_number_verified
                 ? PhoneNumberValidationState.Verified
                 : initialUserConfig?.phone_number
-                  ? PhoneNumberValidationState.SendOTP
-                  : PhoneNumberValidationState.Setup,
+                    ? PhoneNumberValidationState.SendOTP
+                    : PhoneNumberValidationState.Setup,
         );
         setName(initialUserConfig?.given_name);
         setNotionToken(initialUserConfig?.notion_token ?? null);
@@ -538,6 +552,56 @@ export default function SettingsView() {
         }
     };
 
+    const exportChats = async () => {
+        try {
+            setIsExporting(true);
+
+            // Get total conversation count
+            const statsResponse = await fetch('/api/chat/stats');
+            const stats = await statsResponse.json();
+            const total = stats.num_conversations;
+            setTotalConversations(total);
+
+            // Create zip file
+            const zip = new JSZip();
+            const conversations = [];
+
+            // Fetch all conversations in batches of 10
+            for (let page = 0; page * 10 < total; page++) {
+                const response = await fetch(`/api/chat/export?page=${page}`);
+                const data = await response.json();
+                conversations.push(...data);
+
+                setExportedConversations((page + 1) * 10);
+                setExportProgress(((page + 1) * 10 / total) * 100);
+            }
+
+            // Add conversations to zip
+            zip.file("conversations.json", JSON.stringify(conversations, null, 2));
+
+            // Generate and download zip
+            const content = await zip.generateAsync({ type: "blob" });
+            saveAs(content, "khoj-conversations.zip");
+
+            toast({
+                title: "Export Complete",
+                description: `Successfully exported ${conversations.length} conversations`,
+            });
+        } catch (error) {
+            console.error("Error exporting chats:", error);
+            toast({
+                title: "Export Failed",
+                description: "Failed to export chats. Please try again.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsExporting(false);
+            setExportProgress(0);
+            setExportedConversations(0);
+            setTotalConversations(0);
+        }
+    };
+
     const saveNotionToken = async () => {
         if (!notionToken) return;
         // Save Notion API key to server
@@ -731,93 +795,93 @@ export default function SettingsView() {
                                                     )) ||
                                                         (userConfig.subscription_state ===
                                                             "subscribed" && (
-                                                            <>
-                                                                <p className="text-xl text-primary/80">
-                                                                    Futurist
-                                                                </p>
-                                                                <p className="text-gray-400">
-                                                                    Subscription <b>renews</b> on{" "}
-                                                                    <b>
-                                                                        {
-                                                                            userConfig.subscription_renewal_date
-                                                                        }
-                                                                    </b>
-                                                                </p>
-                                                            </>
-                                                        )) ||
-                                                        (userConfig.subscription_state ===
-                                                            "unsubscribed" && (
-                                                            <>
-                                                                <p className="text-xl">Futurist</p>
-                                                                <p className="text-gray-400">
-                                                                    Subscription <b>ends</b> on{" "}
-                                                                    <b>
-                                                                        {
-                                                                            userConfig.subscription_renewal_date
-                                                                        }
-                                                                    </b>
-                                                                </p>
-                                                            </>
-                                                        )) ||
-                                                        (userConfig.subscription_state ===
-                                                            "expired" && (
-                                                            <>
-                                                                <p className="text-xl">Humanist</p>
-                                                                {(userConfig.subscription_renewal_date && (
+                                                                <>
+                                                                    <p className="text-xl text-primary/80">
+                                                                        Futurist
+                                                                    </p>
                                                                     <p className="text-gray-400">
-                                                                        Subscription <b>expired</b>{" "}
-                                                                        on{" "}
+                                                                        Subscription <b>renews</b> on{" "}
                                                                         <b>
                                                                             {
                                                                                 userConfig.subscription_renewal_date
                                                                             }
                                                                         </b>
                                                                     </p>
-                                                                )) || (
+                                                                </>
+                                                            )) ||
+                                                        (userConfig.subscription_state ===
+                                                            "unsubscribed" && (
+                                                                <>
+                                                                    <p className="text-xl">Futurist</p>
                                                                     <p className="text-gray-400">
-                                                                        Check{" "}
-                                                                        <a
-                                                                            href="https://khoj.dev/#pricing"
-                                                                            target="_blank"
-                                                                        >
-                                                                            pricing page
-                                                                        </a>{" "}
-                                                                        to compare plans.
+                                                                        Subscription <b>ends</b> on{" "}
+                                                                        <b>
+                                                                            {
+                                                                                userConfig.subscription_renewal_date
+                                                                            }
+                                                                        </b>
                                                                     </p>
-                                                                )}
-                                                            </>
-                                                        ))}
+                                                                </>
+                                                            )) ||
+                                                        (userConfig.subscription_state ===
+                                                            "expired" && (
+                                                                <>
+                                                                    <p className="text-xl">Humanist</p>
+                                                                    {(userConfig.subscription_renewal_date && (
+                                                                        <p className="text-gray-400">
+                                                                            Subscription <b>expired</b>{" "}
+                                                                            on{" "}
+                                                                            <b>
+                                                                                {
+                                                                                    userConfig.subscription_renewal_date
+                                                                                }
+                                                                            </b>
+                                                                        </p>
+                                                                    )) || (
+                                                                            <p className="text-gray-400">
+                                                                                Check{" "}
+                                                                                <a
+                                                                                    href="https://khoj.dev/#pricing"
+                                                                                    target="_blank"
+                                                                                >
+                                                                                    pricing page
+                                                                                </a>{" "}
+                                                                                to compare plans.
+                                                                            </p>
+                                                                        )}
+                                                                </>
+                                                            ))}
                                                 </CardContent>
                                                 <CardFooter className="flex flex-wrap gap-4">
                                                     {(userConfig.subscription_state ==
                                                         "subscribed" && (
-                                                        <Button
-                                                            variant="outline"
-                                                            className="hover:text-red-400"
-                                                            onClick={() =>
-                                                                setSubscription("cancel")
-                                                            }
-                                                        >
-                                                            <ArrowCircleDown className="h-5 w-5 mr-2" />
-                                                            Unsubscribe
-                                                        </Button>
-                                                    )) ||
-                                                        (userConfig.subscription_state ==
-                                                            "unsubscribed" && (
                                                             <Button
                                                                 variant="outline"
-                                                                className="text-primary/80 hover:text-primary"
+                                                                className="hover:text-red-400"
                                                                 onClick={() =>
-                                                                    setSubscription("resubscribe")
+                                                                    setSubscription("cancel")
                                                                 }
                                                             >
-                                                                <ArrowCircleUp
-                                                                    weight="bold"
-                                                                    className="h-5 w-5 mr-2"
-                                                                />
-                                                                Resubscribe
+                                                                <ArrowCircleDown className="h-5 w-5 mr-2" />
+                                                                Unsubscribe
                                                             </Button>
                                                         )) ||
+                                                        (userConfig.subscription_state ==
+                                                            "unsubscribed" && (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    className="text-primary/80 hover:text-primary"
+                                                                    onClick={() =>
+                                                                        setSubscription("resubscribe")
+                                                                    }
+                                                                >
+                                                                    <ArrowCircleUp
+                                                                        weight="bold"
+                                                                        className="h-5 w-5 mr-2"
+                                                                    />
+                                                                    Resubscribe
+                                                                </Button>
+                                                            )) ||
                                                         (userConfig.subscription_enabled_trial_at && (
                                                             <Button
                                                                 variant="outline"
@@ -907,16 +971,16 @@ export default function SettingsView() {
                                                     <Button variant="outline" size="sm">
                                                         {(userConfig.enabled_content_source
                                                             .github && (
-                                                            <>
-                                                                <Files className="h-5 w-5 inline mr-1" />
-                                                                Manage
-                                                            </>
-                                                        )) || (
-                                                            <>
-                                                                <Plugs className="h-5 w-5 inline mr-1" />
-                                                                Connect
-                                                            </>
-                                                        )}
+                                                                <>
+                                                                    <Files className="h-5 w-5 inline mr-1" />
+                                                                    Manage
+                                                                </>
+                                                            )) || (
+                                                                <>
+                                                                    <Plugs className="h-5 w-5 inline mr-1" />
+                                                                    Connect
+                                                                </>
+                                                            )}
                                                     </Button>
                                                     <Button
                                                         variant="outline"
@@ -958,8 +1022,8 @@ export default function SettingsView() {
                                                     {
                                                         /* Show connect to notion button if notion oauth url setup and user disconnected*/
                                                         userConfig.notion_oauth_url &&
-                                                        !userConfig.enabled_content_source
-                                                            .notion ? (
+                                                            !userConfig.enabled_content_source
+                                                                .notion ? (
                                                             <Button
                                                                 variant="outline"
                                                                 size="sm"
@@ -973,39 +1037,39 @@ export default function SettingsView() {
                                                                 Connect
                                                             </Button>
                                                         ) : /* Show sync button if user connected to notion and API key unchanged */
-                                                        userConfig.enabled_content_source.notion &&
-                                                          notionToken ===
-                                                              userConfig.notion_token ? (
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() =>
-                                                                    syncContent("notion")
-                                                                }
-                                                            >
-                                                                <ArrowsClockwise className="h-5 w-5 inline mr-1" />
-                                                                Sync
-                                                            </Button>
-                                                        ) : /* Show set API key button notion oauth url not set setup */
-                                                        !userConfig.notion_oauth_url ? (
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={saveNotionToken}
-                                                                disabled={
-                                                                    notionToken ===
-                                                                    userConfig.notion_token
-                                                                }
-                                                            >
-                                                                <FloppyDisk className="h-5 w-5 inline mr-1" />
-                                                                {(userConfig.enabled_content_source
-                                                                    .notion &&
-                                                                    "Update API Key") ||
-                                                                    "Set API Key"}
-                                                            </Button>
-                                                        ) : (
-                                                            <></>
-                                                        )
+                                                            userConfig.enabled_content_source.notion &&
+                                                                notionToken ===
+                                                                userConfig.notion_token ? (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() =>
+                                                                        syncContent("notion")
+                                                                    }
+                                                                >
+                                                                    <ArrowsClockwise className="h-5 w-5 inline mr-1" />
+                                                                    Sync
+                                                                </Button>
+                                                            ) : /* Show set API key button notion oauth url not set setup */
+                                                                !userConfig.notion_oauth_url ? (
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        onClick={saveNotionToken}
+                                                                        disabled={
+                                                                            notionToken ===
+                                                                            userConfig.notion_token
+                                                                        }
+                                                                    >
+                                                                        <FloppyDisk className="h-5 w-5 inline mr-1" />
+                                                                        {(userConfig.enabled_content_source
+                                                                            .notion &&
+                                                                            "Update API Key") ||
+                                                                            "Set API Key"}
+                                                                    </Button>
+                                                                ) : (
+                                                                    <></>
+                                                                )
                                                     }
                                                     <Button
                                                         variant="outline"
@@ -1121,18 +1185,18 @@ export default function SettingsView() {
                                                     Chat on Whatsapp
                                                     {(numberValidationState ===
                                                         PhoneNumberValidationState.Verified && (
-                                                        <CheckCircle
-                                                            weight="bold"
-                                                            className="h-4 w-4 ml-1 text-green-400"
-                                                        />
-                                                    )) ||
+                                                            <CheckCircle
+                                                                weight="bold"
+                                                                className="h-4 w-4 ml-1 text-green-400"
+                                                            />
+                                                        )) ||
                                                         (numberValidationState !==
                                                             PhoneNumberValidationState.Setup && (
-                                                            <ExclamationMark
-                                                                weight="bold"
-                                                                className="h-4 w-4 ml-1 text-yellow-400"
-                                                            />
-                                                        ))}
+                                                                <ExclamationMark
+                                                                    weight="bold"
+                                                                    className="h-4 w-4 ml-1 text-yellow-400"
+                                                                />
+                                                            ))}
                                                 </CardHeader>
                                                 <CardContent className="grid gap-4">
                                                     <p className="text-gray-400">
@@ -1161,90 +1225,192 @@ export default function SettingsView() {
                                                         />
                                                         {numberValidationState ===
                                                             PhoneNumberValidationState.VerifyOTP && (
-                                                            <>
-                                                                <p>{`Enter the OTP sent to your number: ${phoneNumber}`}</p>
-                                                                <InputOTP
-                                                                    autoFocus={true}
-                                                                    maxLength={6}
-                                                                    value={otp || ""}
-                                                                    onChange={setOTP}
-                                                                    onComplete={() =>
-                                                                        setNumberValidationState(
-                                                                            PhoneNumberValidationState.VerifyOTP,
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <InputOTPGroup>
-                                                                        <InputOTPSlot index={0} />
-                                                                        <InputOTPSlot index={1} />
-                                                                        <InputOTPSlot index={2} />
-                                                                        <InputOTPSlot index={3} />
-                                                                        <InputOTPSlot index={4} />
-                                                                        <InputOTPSlot index={5} />
-                                                                    </InputOTPGroup>
-                                                                </InputOTP>
-                                                            </>
-                                                        )}
+                                                                <>
+                                                                    <p>{`Enter the OTP sent to your number: ${phoneNumber}`}</p>
+                                                                    <InputOTP
+                                                                        autoFocus={true}
+                                                                        maxLength={6}
+                                                                        value={otp || ""}
+                                                                        onChange={setOTP}
+                                                                        onComplete={() =>
+                                                                            setNumberValidationState(
+                                                                                PhoneNumberValidationState.VerifyOTP,
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        <InputOTPGroup>
+                                                                            <InputOTPSlot index={0} />
+                                                                            <InputOTPSlot index={1} />
+                                                                            <InputOTPSlot index={2} />
+                                                                            <InputOTPSlot index={3} />
+                                                                            <InputOTPSlot index={4} />
+                                                                            <InputOTPSlot index={5} />
+                                                                        </InputOTPGroup>
+                                                                    </InputOTP>
+                                                                </>
+                                                            )}
                                                     </div>
                                                 </CardContent>
                                                 <CardFooter className="flex flex-wrap gap-4">
                                                     {(numberValidationState ===
                                                         PhoneNumberValidationState.VerifyOTP && (
-                                                        <Button
-                                                            variant="outline"
-                                                            onClick={verifyOTP}
-                                                        >
-                                                            Verify
-                                                        </Button>
-                                                    )) || (
-                                                        <Button
-                                                            variant="outline"
-                                                            disabled={
-                                                                !phoneNumber ||
-                                                                (phoneNumber ===
-                                                                    userConfig.phone_number &&
-                                                                    numberValidationState ===
+                                                            <Button
+                                                                variant="outline"
+                                                                onClick={verifyOTP}
+                                                            >
+                                                                Verify
+                                                            </Button>
+                                                        )) || (
+                                                            <Button
+                                                                variant="outline"
+                                                                disabled={
+                                                                    !phoneNumber ||
+                                                                    (phoneNumber ===
+                                                                        userConfig.phone_number &&
+                                                                        numberValidationState ===
                                                                         PhoneNumberValidationState.Verified) ||
-                                                                !isValidPhoneNumber(phoneNumber)
-                                                            }
-                                                            onClick={sendOTP}
-                                                        >
-                                                            {!userConfig.phone_number ? (
-                                                                <>
-                                                                    <Plugs className="inline mr-2" />
-                                                                    Setup Whatsapp
-                                                                </>
-                                                            ) : !phoneNumber ||
-                                                              (phoneNumber ===
-                                                                  userConfig.phone_number &&
-                                                                  numberValidationState ===
-                                                                      PhoneNumberValidationState.Verified) ||
-                                                              !isValidPhoneNumber(phoneNumber) ? (
-                                                                <>
-                                                                    <PlugsConnected className="inline mr-2 text-green-400" />
-                                                                    Switch Number
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    Send OTP{" "}
-                                                                    <ArrowRight
-                                                                        className="inline ml-2"
-                                                                        weight="bold"
-                                                                    />
-                                                                </>
-                                                            )}
-                                                        </Button>
-                                                    )}
+                                                                    !isValidPhoneNumber(phoneNumber)
+                                                                }
+                                                                onClick={sendOTP}
+                                                            >
+                                                                {!userConfig.phone_number ? (
+                                                                    <>
+                                                                        <Plugs className="inline mr-2" />
+                                                                        Setup Whatsapp
+                                                                    </>
+                                                                ) : !phoneNumber ||
+                                                                    (phoneNumber ===
+                                                                        userConfig.phone_number &&
+                                                                        numberValidationState ===
+                                                                        PhoneNumberValidationState.Verified) ||
+                                                                    !isValidPhoneNumber(phoneNumber) ? (
+                                                                    <>
+                                                                        <PlugsConnected className="inline mr-2 text-green-400" />
+                                                                        Switch Number
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        Send OTP{" "}
+                                                                        <ArrowRight
+                                                                            className="inline ml-2"
+                                                                            weight="bold"
+                                                                        />
+                                                                    </>
+                                                                )}
+                                                            </Button>
+                                                        )}
                                                     {numberValidationState ===
                                                         PhoneNumberValidationState.Verified && (
-                                                        <Button
-                                                            variant="outline"
-                                                            onClick={() => disconnectNumber()}
-                                                        >
-                                                            <CloudSlash className="h-5 w-5 mr-2" />
-                                                            Disconnect
-                                                        </Button>
+                                                            <Button
+                                                                variant="outline"
+                                                                onClick={() => disconnectNumber()}
+                                                            >
+                                                                <CloudSlash className="h-5 w-5 mr-2" />
+                                                                Disconnect
+                                                            </Button>
+                                                        )}
+                                                </CardFooter>
+                                            </Card>
+                                        </div>
+                                    </div>
+                                    <div className="section grid gap-8">
+                                        <div id="clients" className="text-2xl">
+                                            Account
+                                        </div>
+                                        <div className="cards flex flex-wrap gap-16">
+                                            <Card className={cardClassName}>
+                                                <CardHeader className="text-xl flex flex-row">
+                                                    <Download className="h-7 w-7 mr-2" />
+                                                    Export Data
+                                                </CardHeader>
+                                                <CardContent className="overflow-hidden">
+                                                    <p className="pb-4 text-gray-400">
+                                                        Download all your chat conversations
+                                                    </p>
+                                                    {exportProgress > 0 && (
+                                                        <div className="w-full mt-4">
+                                                            <Progress value={exportProgress} className="w-full" />
+                                                            <p className="text-sm text-gray-500 mt-2">
+                                                                Exported {exportedConversations} of {totalConversations} conversations
+                                                            </p>
+                                                        </div>
                                                     )}
+                                                </CardContent>
+                                                <CardFooter className="flex flex-wrap gap-4">
+                                                    <Button
+                                                        variant="outline"
+                                                        onClick={exportChats}
+                                                        disabled={isExporting}
+                                                    >
+                                                        <Download className="h-5 w-5 mr-2" />
+                                                        {isExporting ? "Exporting..." : "Export Chats"}
+                                                    </Button>
+                                                </CardFooter>
+                                            </Card>
+
+                                            <Card className={cardClassName}>
+                                                <CardHeader className="text-xl flex flex-row">
+                                                    <TrashSimple className="h-7 w-7 mr-2 text-red-500" />
+                                                    Delete Account
+                                                </CardHeader>
+                                                <CardContent className="overflow-hidden">
+                                                    <p className="pb-4 text-gray-400">
+                                                        This will delete all your account data, including conversations, agents, and any assets you{"'"}ve generated. Be sure to export before you do this if you want to keep your information.
+                                                    </p>
+                                                </CardContent>
+                                                <CardFooter className="flex flex-wrap gap-4">
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button
+                                                                variant="outline"
+                                                                className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                                            >
+                                                                <TrashSimple className="h-5 w-5 mr-2" />
+                                                                Delete Account
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    This action is irreversible. This will permanently delete your account
+                                                                    and remove all your data from our servers.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                <AlertDialogAction
+                                                                    className="bg-red-500 hover:bg-red-600"
+                                                                    onClick={async () => {
+                                                                        try {
+                                                                            const response = await fetch('/api/self', {
+                                                                                method: 'DELETE'
+                                                                            });
+                                                                            if (!response.ok) throw new Error('Failed to delete account');
+
+                                                                            toast({
+                                                                                title: "Account Deleted",
+                                                                                description: "Your account has been successfully deleted.",
+                                                                            });
+
+                                                                            // Redirect to home page after successful deletion
+                                                                            window.location.href = "/";
+                                                                        } catch (error) {
+                                                                            console.error('Error deleting account:', error);
+                                                                            toast({
+                                                                                title: "Error",
+                                                                                description: "Failed to delete account. Please try again or contact support.",
+                                                                                variant: "destructive"
+                                                                            });
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <TrashSimple className="h-5 w-5 mr-2" />
+                                                                    Delete Account
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
                                                 </CardFooter>
                                             </Card>
                                         </div>

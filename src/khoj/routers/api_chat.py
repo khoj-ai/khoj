@@ -94,6 +94,22 @@ conversation_command_rate_limiter = ConversationCommandRateLimiter(
 api_chat = APIRouter()
 
 
+@api_chat.get("/stats", response_class=Response)
+@requires(["authenticated"])
+def chat_stats(request: Request, common: CommonQueryParams) -> Response:
+    num_conversations = ConversationAdapters.get_num_conversations(request.user.object)
+    return Response(
+        content=json.dumps({"num_conversations": num_conversations}), media_type="application/json", status_code=200
+    )
+
+
+@api_chat.get("/export", response_class=Response)
+@requires(["authenticated"])
+def export_conversation(request: Request, common: CommonQueryParams, page: Optional[int] = 1) -> Response:
+    all_conversations = ConversationAdapters.get_all_conversations_for_export(request.user.object, page=page)
+    return Response(content=json.dumps(all_conversations), media_type="application/json", status_code=200)
+
+
 @api_chat.get("/conversation/file-filters/{conversation_id}", response_class=Response)
 @requires(["authenticated"])
 def get_file_filter(request: Request, conversation_id: str) -> Response:
