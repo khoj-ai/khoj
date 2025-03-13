@@ -10,7 +10,6 @@ div.chatMessageContainer {
 div.chatMessageWrapper {
     padding-left: 1rem;
     padding-bottom: 1rem;
-    max-width: 80vw;
 }
 
 div.chatMessageWrapper ol,
