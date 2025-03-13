@@ -941,6 +941,28 @@ class ConversationAdapters:
 
     @staticmethod
     @require_valid_user
+    def get_all_conversations_for_export(user: KhojUser, page: Optional[int] = 0):
+        all_conversations = Conversation.objects.filter(user=user).prefetch_related("agent")[page : page + 10]
+        histories = []
+        for conversation in all_conversations:
+            history = {
+                "title": conversation.title,
+                "agent": conversation.agent.name if conversation.agent else "Khoj",
+                "created_at": datetime.strftime(conversation.created_at, "%Y-%m-%d %H:%M:%S"),
+                "updated_at": datetime.strftime(conversation.updated_at, "%Y-%m-%d %H:%M:%S"),
+                "conversation_log": conversation.conversation_log,
+                "file_filters": conversation.file_filters,
+            }
+            histories.append(history)
+        return histories
+
+    @staticmethod
+    @require_valid_user
+    def get_num_conversations(user: KhojUser):
+        return Conversation.objects.filter(user=user).count()
+
+    @staticmethod
+    @require_valid_user
     def get_conversation_sessions(user: KhojUser, client_application: ClientApplication = None):
         return (
             Conversation.objects.filter(user=user, client=client_application)
