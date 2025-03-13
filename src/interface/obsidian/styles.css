@@ -441,7 +441,8 @@ div.selected-conversation {
     color: var(--text-normal);
     font-size: calc(var(--font-ui-medium) * 1.05);
     padding: 16px;
-    height: 120px;
+    height: auto;
+    min-height: 60px;
     max-height: 300px;
     resize: none;
     border-radius: 8px;
@@ -449,7 +450,8 @@ div.selected-conversation {
     font-family: inherit;
     line-height: 1.5;
     overflow-y: auto;
-    transition: none;
+    transition: height 0.2s ease;
+    text-align: center;
 }
 
 .khoj-input-row-button {
@@ -1391,14 +1393,16 @@ img.copy-icon {
 
 .edit-status-message {
     margin-top: 8px;
-    padding: 8px;
+    padding: 6px 10px;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 15px;
+    font-weight: 450;
     animation: fadeIn 0.3s ease;
     text-align: center;
     width: fit-content;
     margin-left: auto;
     margin-right: auto;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .edit-status-message.success {
@@ -1586,29 +1590,31 @@ img.copy-icon {
 
 /* Retry badge styles */
 .khoj-retry-badge {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     background-color: var(--background-modifier-error);
     color: var(--text-on-accent);
-    padding: 8px 16px;
-    border-radius: 16px;
-    margin: 8px 0;
-    font-size: 0.9em;
+    padding: 3px 6px;
+    border-radius: 18px;
+    margin: 10px auto;
+    font-size: 0.85em;
+    font-weight: 500;
     animation: slideIn 0.3s ease-out;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    width: fit-content;
 }
 
 .khoj-retry-badge .retry-icon {
-    font-size: 1.2em;
+    font-size: 0.95em;
 }
 
 .khoj-retry-badge .retry-count {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 0.8em;
-    margin-left: auto;
+    background: rgba(255, 255, 255, 0.25);
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: 600;
 }
 
 @keyframes slideIn {
@@ -1784,4 +1790,27 @@ button.reference-button:hover {
     color: var(--text-muted);
     font-size: 0.8em;
     margin-left: 2px;
+}
+
+.khoj-edit-accordion.in-progress {
+    background-color: rgba(255, 152, 0, 0.1);
+    border: 1px solid rgb(255, 152, 0);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.khoj-edit-accordion.in-progress summary {
+    color: rgb(255, 152, 0);
+    font-weight: 500;
+}
+
+.khoj-edit-accordion.in-progress summary::before {
+    content: "🔄";
+}
+
+.khoj-edit-status {
+    background: rgba(255, 152, 0, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    margin-left: 8px;
 }

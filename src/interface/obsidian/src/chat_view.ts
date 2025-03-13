@@ -791,9 +791,12 @@ export class KhojChatView extends KhojPaneView {
         // Sanitize the markdown to render
         const sanitizedResponse = DOMPurify.sanitize(this.chatMessageState.rawResponse);
 
+        // Apply transformations including partial edit block detection
+        const transformedResponse = this.transformKhojEditBlocks(sanitizedResponse);
+
         // Créer un élément temporaire pour obtenir le HTML rendu
         const tempElement = document.createElement('div');
-        tempElement.innerHTML = this.markdownTextToSanitizedHtml(sanitizedResponse, this);
+        tempElement.innerHTML = this.markdownTextToSanitizedHtml(transformedResponse, this);
 
         // Mettre à jour le contenu avec une transition plus douce
         htmlElement.innerHTML = tempElement.innerHTML;

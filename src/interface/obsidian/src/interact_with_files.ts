@@ -24,11 +24,20 @@ export interface EditBlock {
 export interface ParseKhojEditResult {
     editData: any;
     cleanContent: string;
+    inProgress?: boolean;
     error?: {
         type: 'missing_field' | 'invalid_json' | 'preprocessing' | 'unknown';
         message: string;
         details?: string;
     };
+}
+
+/**
+ * Interface representing the result of detecting a partial edit block
+ */
+interface PartialEditBlockResult {
+    content: string;
+    isComplete: boolean;
 }
 
 /**
@@ -271,11 +280,13 @@ Examples of targeted edits:
 
     /**
      * Parses a khoj-edit block from the content string
+     * Enhanced to handle incomplete blocks and extract partial information
      *
      * @param content - The content to parse containing the edit block
+     * @param isComplete - Whether the block is complete (has closing tag)
      * @returns Object with the parsed edit data and cleaned content
      */
-    public parseKhojEditBlock(content: string): ParseKhojEditResult {
+    public parseKhojEditBlock(content: string, isComplete: boolean = true): ParseKhojEditResult {
         let cleanContent = '';
         try {
             // Normalize line breaks and clean control characters, but preserve empty lines
@@ -284,6 +295,32 @@ Examples of targeted edits:
                 .replace(/\r/g, '\n')
                 .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
                 .trim();
+
+            // For incomplete blocks, try to extract partial information
+            if (!isComplete) {
+                // Initialize with basic structure
+                const partialData: any = {
+                    inProgress: true
+                };
+
+                // Try to extract note field
+                const noteMatch = cleanContent.match(/"note"\s*:\s*"([^"]+)"/);
+                if (noteMatch) {
+                    partialData.note = noteMatch[1];
+                }
+
+                // Try to extract file field
+                const fileMatch = cleanContent.match(/"file"\s*:\s*"([^"]+)"/);
+                if (fileMatch) {
+                    partialData.file = fileMatch[1];
+                }
+
+                return {
+                    editData: partialData,
+                    cleanContent,
+                    inProgress: true
+                };
+            }
 
             // Parse the JSON first to identify the content field
             let jsonContent = cleanContent;
@@ -434,35 +471,61 @@ Examples of targeted edits:
     }
 
     /**
-     * Creates a preview of changes with differences highlighted
+     * Creates a preview with differences highlighted
      *
      * @param originalText - The original text
      * @param newText - The modified text
      * @returns A string with differences highlighted
      */
     public createPreviewWithDiff(originalText: string, newText: string): string {
+        // Define unique tokens to temporarily replace existing formatting markers
+        const HIGHLIGHT_TOKEN = "___KHOJ_HIGHLIGHT_MARKER___";
+        const STRIKETHROUGH_TOKEN = "___KHOJ_STRIKETHROUGH_MARKER___";
+
+        // Function to preserve existing formatting markers by replacing them with tokens
+        const preserveFormatting = (text: string): string => {
+            // Replace existing highlight markers with non-greedy pattern
+            let processed = text.replace(/==(.*?)==/g, `${HIGHLIGHT_TOKEN}$1${HIGHLIGHT_TOKEN}`);
+            // Replace existing strikethrough markers with non-greedy pattern
+            processed = processed.replace(/~~(.*?)~~/g, `${STRIKETHROUGH_TOKEN}$1${STRIKETHROUGH_TOKEN}`);
+            return processed;
+        };
+
+        // Function to restore original formatting markers
+        const restoreFormatting = (text: string): string => {
+            // Restore highlight markers
+            let processed = text.replace(new RegExp(HIGHLIGHT_TOKEN + "(.*?)" + HIGHLIGHT_TOKEN, "g"), "==$1==");
+            // Restore strikethrough markers
+            processed = processed.replace(new RegExp(STRIKETHROUGH_TOKEN + "(.*?)" + STRIKETHROUGH_TOKEN, "g"), "~~$1~~");
+            return processed;
+        };
+
+        // Preserve existing formatting in both texts
+        const preservedOriginal = preserveFormatting(originalText);
+        const preservedNew = preserveFormatting(newText);
+
         // Find common prefix and suffix
         let prefixLength = 0;
-        const minLength = Math.min(originalText.length, newText.length);
-        while (prefixLength < minLength && originalText[prefixLength] === newText[prefixLength]) {
+        const minLength = Math.min(preservedOriginal.length, preservedNew.length);
+        while (prefixLength < minLength && preservedOriginal[prefixLength] === preservedNew[prefixLength]) {
             prefixLength++;
         }
 
         let suffixLength = 0;
         while (
             suffixLength < minLength - prefixLength &&
-            originalText[originalText.length - 1 - suffixLength] === newText[newText.length - 1 - suffixLength]
+            preservedOriginal[preservedOriginal.length - 1 - suffixLength] === preservedNew[preservedNew.length - 1 - suffixLength]
         ) {
             suffixLength++;
         }
 
         // Extract the parts
-        const commonPrefix = originalText.slice(0, prefixLength);
-        const commonSuffix = originalText.slice(originalText.length - suffixLength);
-        const originalDiff = originalText.slice(prefixLength, originalText.length - suffixLength);
-        const newDiff = newText.slice(prefixLength, newText.length - suffixLength);
+        const commonPrefix = preservedOriginal.slice(0, prefixLength);
+        const commonSuffix = preservedOriginal.slice(preservedOriginal.length - suffixLength);
+        const originalDiff = preservedOriginal.slice(prefixLength, preservedOriginal.length - suffixLength);
+        const newDiff = preservedNew.slice(prefixLength, preservedNew.length - suffixLength);
 
-        // Format the differences
+        // Format the differences with special handling for empty lines
         const formatLines = (text: string, marker: string): string => {
             if (!text) return '';
             return text.split('\n')
@@ -477,10 +540,29 @@ Examples of targeted edits:
                 .join('\n');
         };
 
-        return commonPrefix +
+        // Create the diff preview with preserved formatting tokens
+        const diffPreview = commonPrefix +
             (originalDiff ? formatLines(originalDiff, '~~') : '') +
             (newDiff ? formatLines(newDiff, '==') : '') +
             commonSuffix;
+
+        // Restore original formatting markers in the final result
+        return restoreFormatting(diffPreview);
+    }
+
+    /**
+     * Applies the final changes to a text by replacing diff markers with the final content
+     * This is used to preserve existing formatting in the document
+     *
+     * @param text - The text with diff markers
+     * @returns The text with diff markers replaced by the final content
+     */
+    public applyFinalChanges(text: string): string {
+        // This regex looks for patterns of ~~deleted text~~==added text== and replaces them with just the added text
+        // It uses a non-greedy match to avoid capturing too much text
+        return text.replace(/~~(.*?)~~==([^=]*?)==/g, (match, deleted, added) => {
+            return added;
+        });
     }
 
     /**
@@ -609,15 +691,21 @@ Examples of targeted edits:
                 // Create preview with diff markers
                 const preview = this.createPreviewWithDiff(originalText, newText);
 
+                // Apply the final changes to preserve formatting
+                const finalPreview = this.applyFinalChanges(preview);
+
                 // Apply the edit
                 const newContent =
                     content.substring(0, startIndex) +
-                    preview +
+                    finalPreview +
                     content.substring(endIndex);
 
                 // Save the changes
                 await this.app.vault.modify(targetFile, newContent);
                 editResults.push({ block, success: true });
+
+                // Update fileBackups with the new content to ensure subsequent edits use the updated file
+                fileBackups.set(targetFile.path, newContent);
 
             } catch (error) {
                 console.error(`Error applying edit:`, error);
@@ -637,6 +725,7 @@ Examples of targeted edits:
 
     /**
      * Transforms khoj-edit blocks in a message to HTML for display
+     * Enhanced to handle partial blocks and display different HTML based on the block state
      *
      * @param message - The message containing khoj-edit blocks in XML format
      * @returns The transformed message with HTML for edit blocks
@@ -647,8 +736,17 @@ Examples of targeted edits:
             .map(leaf => (leaf.view as any)?.file)
             .filter(file => file && file.extension === 'md');
 
-        return message.replace(/<khoj-edit>([\s\S]*?)<\/khoj-edit>/g, (match, content) => {
-            const { editData, cleanContent, error } = this.parseKhojEditBlock(content);
+        // Detect all edit blocks, including partial ones
+        const partialBlocks = this.detectPartialEditBlocks(message);
+
+        // Process each detected block
+        let transformedMessage = message;
+        for (const block of partialBlocks) {
+            const isComplete = block.isComplete;
+            const content = block.content;
+
+            // Parse the block content
+            const { editData, cleanContent, error, inProgress } = this.parseKhojEditBlock(content, isComplete);
 
             // Escape content for HTML display
             const escapedContent = cleanContent
@@ -658,32 +756,84 @@ Examples of targeted edits:
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#039;');
 
-            if (error) {
+            let htmlReplacement = '';
+
+            if (inProgress) {
+                // In-progress block
+                const noteText = editData.note ? editData.note : 'Edit in progress...';
+                const fileText = editData.file ? `(📄 ${editData.file})` : '';
+
+                htmlReplacement = `<details class="khoj-edit-accordion in-progress">
+                    <summary>${noteText} <span class="khoj-edit-file">${fileText}</span> <span class="khoj-edit-status">In Progress</span></summary>
+                    <div class="khoj-edit-content">
+                        <pre><code class="language-khoj-edit">${escapedContent}</code></pre>
+                    </div>
+                </details>`;
+            } else if (error) {
+                // Error block
                 console.error("Error parsing khoj-edit block:", error);
                 console.debug("Content causing error:", content);
 
                 const errorTitle = `Error: ${error.message}`;
                 const errorDetails = `Failed to parse edit block. Please check the JSON format and ensure all required fields are present.`;
 
-                return `<details class="khoj-edit-accordion error">
+                htmlReplacement = `<details class="khoj-edit-accordion error">
                     <summary>${errorTitle}</summary>
                     <div class="khoj-edit-content">
                         <p class="khoj-edit-error-message">${errorDetails}</p>
                         <pre><code class="language-khoj-edit error">${escapedContent}</code></pre>
                     </div>
                 </details>`;
+            } else {
+                // Success block
+                // Find the actual file that will be modified
+                const targetFile = this.findBestMatchingFile(editData.file, files);
+                const displayFileName = targetFile ? targetFile.basename : editData.file;
+
+                htmlReplacement = `<details class="khoj-edit-accordion success">
+                    <summary>${editData.note} <span class="khoj-edit-file">(📄 ${displayFileName})</span></summary>
+                    <div class="khoj-edit-content">
+                        <pre><code class="language-khoj-edit">${escapedContent}</code></pre>
+                    </div>
+                </details>`;
             }
 
-            // Find the actual file that will be modified
-            const targetFile = this.findBestMatchingFile(editData.file, files);
-            const displayFileName = targetFile ? targetFile.basename : editData.file;
+            // Replace the block in the message
+            if (isComplete) {
+                transformedMessage = transformedMessage.replace(`<khoj-edit>${content}</khoj-edit>`, htmlReplacement);
+            } else {
+                transformedMessage = transformedMessage.replace(`<khoj-edit>${content}`, htmlReplacement);
+            }
+        }
 
-            return `<details class="khoj-edit-accordion success">
-                <summary>${editData.note} <span class="khoj-edit-file">(📄 ${displayFileName})</span></summary>
-                <div class="khoj-edit-content">
-                    <pre><code class="language-khoj-edit">${escapedContent}</code></pre>
-                </div>
-            </details>`;
-        });
+        return transformedMessage;
+    }
+
+    /**
+     * Detects partial edit blocks in a message
+     * This allows for early detection of edit blocks before they are complete
+     *
+     * @param message - The message to search for partial edit blocks
+     * @returns An array of detected blocks with their content and completion status
+     */
+    public detectPartialEditBlocks(message: string): PartialEditBlockResult[] {
+        const results: PartialEditBlockResult[] = [];
+
+        // This regex captures both complete and incomplete khoj-edit blocks
+        // It looks for <khoj-edit> followed by any content, and then either </khoj-edit> or the end of the string
+        const regex = /<khoj-edit>([\s\S]*?)(?:<\/khoj-edit>|$)/g;
+
+        let match;
+        while ((match = regex.exec(message)) !== null) {
+            const content = match[1];
+            const isComplete = match[0].endsWith('</khoj-edit>');
+
+            results.push({
+                content,
+                isComplete
+            });
+        }
+
+        return results;
     }
 }
