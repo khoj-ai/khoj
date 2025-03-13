@@ -22,6 +22,19 @@ export abstract class KhojPaneView extends ItemView {
         let headerEl = contentEl.createDiv(({ attr: { id: "khoj-header", class: "khoj-header" } }));
         // Setup the header pane
         await populateHeaderPane(headerEl, this.setting);
+
+        // If the view is a chat view, add an event listener to the "New Chat" button
+        if (this.getViewType() === KhojView.CHAT) {
+            const newChatButton = headerEl.querySelector('.khoj-header-new-chat-button') as HTMLButtonElement;
+            if (newChatButton) {
+                // @ts-ignore - We know this method exists in the KhojChatView class
+                newChatButton.addEventListener('click', async () => {
+                    // @ts-ignore
+                    await this.createNewConversation(this.currentAgent || undefined);
+                });
+            }
+        }
+
         // Set the active nav pane
         headerEl.getElementsByClassName("chat-nav")[0]?.classList.add("khoj-nav-selected");
         headerEl.getElementsByClassName("chat-nav")[0]?.addEventListener("click", (_) => { this.activateView(KhojView.CHAT); });

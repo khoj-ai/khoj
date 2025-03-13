@@ -403,9 +403,31 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     nav.appendChild(searchLink);
     nav.appendChild(similarLink);
 
-    // Append the title, nav items to the header element
+    // Create right side container for New Chat button and agent selector
+    const rightSideContainer = headerEl.createDiv("khoj-header-right-container");
+
+    // Add agent selector container
+    const agentContainer = rightSideContainer.createDiv("khoj-header-agent-container");
+
+    // Add agent selector
+    const agentSelect = agentContainer.createEl("select", {
+        attr: {
+            class: "khoj-header-agent-select",
+            id: "khoj-header-agent-select"
+        }
+    });
+
+    // Add New Chat button
+    const newChatButton = rightSideContainer.createEl('button');
+    newChatButton.className = 'khoj-header-new-chat-button';
+    newChatButton.title = 'Start New Chat (Ctrl+Alt+N)';
+    setIcon(newChatButton, 'plus-circle');
+    newChatButton.textContent = 'New Chat';
+
+    // Append the title, nav items and right container to the header element
     headerEl.appendChild(titleEl);
     headerEl.appendChild(nav);
+    headerEl.appendChild(rightSideContainer);
 }
 
 export enum KhojView {
