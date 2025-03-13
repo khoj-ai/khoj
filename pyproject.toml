@@ -91,6 +91,7 @@ dependencies = [
     "google-genai == 1.5.0",
     "pyjson5 == 1.6.7",
     "resend == 1.0.1",
+    "optimum-habana == 1.14.1",
     "email-validator == 2.2.0",
     "e2b-code-interpreter ~= 1.0.0",
 ]
