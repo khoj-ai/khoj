@@ -68,6 +68,14 @@ conversation_command_rate_limiter = ConversationCommandRateLimiter(
 )
 
 
+@api.delete("/self")
+@requires(["authenticated"])
+def delete_self(request: Request):
+    user = request.user.object
+    user.delete()
+    return {"status": "ok"}
+
+
 @api.get("/search", response_model=List[SearchResponse])
 @requires(["authenticated"])
 async def search(
