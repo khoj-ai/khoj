@@ -60,9 +60,10 @@ export class KhojSimilarView extends KhojPaneView {
 
         // Create refresh button
         const refreshButtonEl = searchContainerEl.createEl("button", {
-            cls: "khoj-similar-refresh-button",
-            text: "Refresh"
+            cls: "khoj-similar-refresh-button"
         });
+        setIcon(refreshButtonEl, "refresh-cw");
+        refreshButtonEl.createSpan({ text: "Refresh" });
         refreshButtonEl.addEventListener("click", () => {
             this.updateSimilarDocuments();
         });
@@ -71,8 +72,8 @@ export class KhojSimilarView extends KhojPaneView {
         this.resultsContainerEl = mainContainerEl.createDiv({ cls: "khoj-similar-results" });
 
         // Create loading element
-        this.loadingEl = mainContainerEl.createDiv({ cls: "similar-loading" });
-        const spinnerEl = this.loadingEl.createDiv({ cls: "similar-loading-spinner" });
+        this.loadingEl = mainContainerEl.createDiv({ cls: "search-loading" });
+        const spinnerEl = this.loadingEl.createDiv({ cls: "search-loading-spinner" });
 
         this.loadingEl.style.position = "absolute";
         this.loadingEl.style.top = "50%";
@@ -295,9 +296,9 @@ export class KhojSimilarView extends KhojPaneView {
 
             // Add "More context" button
             const moreContextButton = headerEl.createEl("button", {
-                cls: "khoj-more-context-button",
-                text: "More context"
+                cls: "khoj-more-context-button"
             });
+            moreContextButton.createSpan({ text: "More context" });
             setIcon(moreContextButton.createSpan(), "chevron-down");
 
             // Create content element (hidden by default)
@@ -333,12 +334,14 @@ export class KhojSimilarView extends KhojPaneView {
                 if (contentEl.classList.contains("khoj-similar-content-hidden")) {
                     contentEl.classList.remove("khoj-similar-content-hidden");
                     contentEl.classList.add("khoj-similar-content-visible");
-                    moreContextButton.setText("Less context");
+                    moreContextButton.empty();
+                    moreContextButton.createSpan({ text: "Less context" });
                     setIcon(moreContextButton.createSpan(), "chevron-up");
                 } else {
                     contentEl.classList.remove("khoj-similar-content-visible");
                     contentEl.classList.add("khoj-similar-content-hidden");
-                    moreContextButton.setText("More context");
+                    moreContextButton.empty();
+                    moreContextButton.createSpan({ text: "More context" });
                     setIcon(moreContextButton.createSpan(), "chevron-down");
                 }
             });
