@@ -2,6 +2,7 @@ import { Plugin, WorkspaceLeaf } from 'obsidian';
 import { KhojSetting, KhojSettingTab, DEFAULT_SETTINGS } from 'src/settings'
 import { KhojSearchModal } from 'src/search_modal'
 import { KhojChatView } from 'src/chat_view'
+import { KhojSimilarView } from 'src/similar_view'
 import { updateContentIndex, canConnectToBackend, KhojView, jumpToPreviousView } from './utils';
 import { KhojPaneView } from './pane_view';
 
@@ -34,6 +35,13 @@ export default class Khoj extends Plugin {
             id: 'chat',
             name: 'Chat',
             callback: () => { this.activateView(KhojView.CHAT); }
+        });
+
+        // Add similar documents view command
+        this.addCommand({
+            id: 'similar-view',
+            name: 'Open Similar Documents View',
+            callback: () => { this.activateView(KhojView.SIMILAR); }
         });
 
         // Add new chat command with hotkey
@@ -127,7 +135,9 @@ export default class Khoj extends Plugin {
             }
         });
 
+        // Register views
         this.registerView(KhojView.CHAT, (leaf) => new KhojChatView(leaf, this.settings));
+        this.registerView(KhojView.SIMILAR, (leaf) => new KhojSimilarView(leaf, this.settings));
 
         // Create an icon in the left ribbon.
         this.addRibbonIcon('message-circle', 'Khoj', (_: MouseEvent) => {

@@ -413,7 +413,8 @@ div.selected-conversation {
 
 .khoj-input-row {
     display: flex;
-    align-items: center;
+    flex-wrap: wrap;
+    align-items: flex-start;
     background-color: var(--background-secondary-alt, var(--background-secondary));
     border-radius: 16px;
     padding: 16px;
@@ -451,15 +452,22 @@ div.selected-conversation {
     line-height: 1.5;
     overflow-y: auto;
     transition: height 0.2s ease;
-    text-align: center;
+    text-align: left;
 }
 
 .khoj-input-row-button {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    padding: 4px;
-    --icon-size: var(--icon-size);
-    height: 32px;
-    width: 32px;
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 0 4px;
 }
 
 #khoj-chat-send {
@@ -856,30 +864,22 @@ div.khoj-logo:hover {
 }
 
 a.khoj-nav-selected {
-    background-color: var(--background-modifier-active-hover);
-    color: var(--text-accent);
+    background-color: var(--background-modifier-hover);
+    border-radius: 8px;
+    color: var(--khoj-sun);
     font-weight: 500;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 #similar-nav-icon-svg,
-.khoj-nav-icon {
-    width: 24px;
-    height: 24px;
-    transition: transform 0.2s ease;
+.khoj-nav-icon-similar svg {
+    color: var(--text-normal);
+    width: 20px;
+    height: 20px;
 }
 
 .khoj-nav a:hover .khoj-nav-icon,
-.khoj-nav a:hover #similar-nav-icon-svg {
-    transform: scale(1.1);
-}
-
-.khoj-nav-icon-chat {
-    background-image: var(--chat-icon);
-}
-
-.khoj-nav-icon-search {
-    background-image: var(--search-icon);
+a.khoj-nav-selected .khoj-nav-icon {
+    color: var(--khoj-sun);
 }
 
 span.khoj-nav-item-text {
@@ -1813,4 +1813,105 @@ button.reference-button:hover {
     border-radius: 4px;
     font-size: 0.8em;
     margin-left: 8px;
+}
+
+/* Similar Documents View Styles */
+.khoj-similar-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 12px;
+    gap: 12px;
+}
+
+.khoj-similar-search-container {
+    display: flex;
+    gap: 8px;
+    padding: 8px 0;
+}
+
+.khoj-similar-search-input {
+    flex: 1;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+    border: 1px solid var(--background-modifier-border);
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+}
+
+.khoj-similar-refresh-button {
+    padding: 6px 12px;
+    border-radius: 4px;
+    background-color: var(--interactive-normal);
+    color: var(--text-normal);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--background-modifier-border);
+}
+
+.khoj-similar-refresh-button:hover {
+    background-color: var(--interactive-hover);
+}
+
+.khoj-similar-results {
+    flex: 1;
+    overflow-y: auto;
+    border-radius: 4px;
+    background-color: var(--background-primary);
+    position: relative;
+}
+
+.khoj-similar-results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.khoj-similar-result-item {
+    padding: 12px;
+    border-radius: 6px;
+    background-color: var(--background-secondary);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.khoj-similar-result-item:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+.khoj-similar-message {
+    padding: 16px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.similar-loading {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+}
+
+.similar-loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--background-modifier-border);
+    border-top: 4px solid var(--interactive-accent);
+    border-radius: 50%;
+    animation: similar-spin 1s linear infinite;
+}
+
+@keyframes similar-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }

@@ -345,6 +345,7 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     const chatLink = nav.createEl('a');
     chatLink.id = 'chat-nav';
     chatLink.className = 'khoj-nav chat-nav';
+    chatLink.dataset.view = KhojView.CHAT;
 
     // Create the chat icon
     const chatIcon = chatLink.createEl('span');
@@ -368,6 +369,7 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     // Create the search icon
     const searchIcon = searchLink.createEl('span');
     searchIcon.className = 'khoj-nav-icon khoj-nav-icon-search';
+    setIcon(searchIcon, 'khoj-search');
 
     // Create the search text
     const searchText = searchLink.createEl('span');
@@ -378,25 +380,56 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     searchLink.appendChild(searchIcon);
     searchLink.appendChild(searchText);
 
-    // Create the search link
+    // Create the similar link
     const similarLink = nav.createEl('a');
     similarLink.id = 'similar-nav';
     similarLink.className = 'khoj-nav similar-nav';
+    similarLink.dataset.view = KhojView.SIMILAR;
 
-    // Create the search icon
-    const similarIcon = searchLink.createEl('span');
+    // Create the similar icon
+    const similarIcon = similarLink.createEl('span');
     similarIcon.id = 'similar-nav-icon';
     similarIcon.className = 'khoj-nav-icon khoj-nav-icon-similar';
     setIcon(similarIcon, 'webhook');
 
-    // Create the search text
-    const similarText = searchLink.createEl('span');
+    // Create the similar text
+    const similarText = similarLink.createEl('span');
     similarText.className = 'khoj-nav-item-text';
     similarText.textContent = 'Similar';
 
-    // Append the search icon and text to the search link
+    // Append the similar icon and text to the similar link
     similarLink.appendChild(similarIcon);
     similarLink.appendChild(similarText);
+
+    // Add event listeners to the navigation links
+    const app = (window as any).app;
+
+    // Chat link event listener
+    chatLink.addEventListener('click', () => {
+        // Get the activateView method from the plugin instance
+        const khojPlugin = app.plugins.plugins.khoj;
+        if (khojPlugin && khojPlugin.activateView) {
+            khojPlugin.activateView(KhojView.CHAT);
+        }
+    });
+
+    // Search link event listener
+    searchLink.addEventListener('click', () => {
+        // Open the search modal
+        const khojPlugin = app.plugins.plugins.khoj;
+        if (khojPlugin) {
+            new (window as any).khoj.KhojSearchModal(app, khojPlugin.settings).open();
+        }
+    });
+
+    // Similar link event listener
+    similarLink.addEventListener('click', () => {
+        // Get the activateView method from the plugin instance
+        const khojPlugin = app.plugins.plugins.khoj;
+        if (khojPlugin && khojPlugin.activateView) {
+            khojPlugin.activateView(KhojView.SIMILAR);
+        }
+    });
 
     // Append the nav items to the nav element
     nav.appendChild(chatLink);
@@ -424,14 +457,57 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     setIcon(newChatButton, 'plus-circle');
     newChatButton.textContent = 'New Chat';
 
+    // Add event listener to the New Chat button
+    newChatButton.addEventListener('click', () => {
+        const khojPlugin = app.plugins.plugins.khoj;
+        if (khojPlugin) {
+            // First activate the chat view
+            khojPlugin.activateView(KhojView.CHAT).then(() => {
+                // Then create a new conversation
+                setTimeout(() => {
+                    const chatView = app.workspace.getActiveViewOfType((window as any).khoj.KhojChatView);
+                    if (chatView) {
+                        chatView.createNewConversation();
+                    }
+                }, 100);
+            });
+        }
+    });
+
     // Append the title, nav items and right container to the header element
     headerEl.appendChild(titleEl);
     headerEl.appendChild(nav);
     headerEl.appendChild(rightSideContainer);
+
+    // Update active state based on current view
+    const updateActiveState = () => {
+        const activeLeaf = app.workspace.activeLeaf;
+        if (!activeLeaf) return;
+
+        const viewType = activeLeaf.view?.getViewType();
+
+        // Remove active class from all links
+        chatLink.classList.remove('khoj-nav-selected');
+        similarLink.classList.remove('khoj-nav-selected');
+
+        // Add active class to the current view link
+        if (viewType === KhojView.CHAT) {
+            chatLink.classList.add('khoj-nav-selected');
+        } else if (viewType === KhojView.SIMILAR) {
+            similarLink.classList.add('khoj-nav-selected');
+        }
+    };
+
+    // Initial update
+    updateActiveState();
+
+    // Register event for workspace changes
+    app.workspace.on('active-leaf-change', updateActiveState);
 }
 
 export enum KhojView {
     CHAT = "khoj-chat-view",
+    SIMILAR = "khoj-similar-view",
 }
 
 function copyParentText(event: MouseEvent, message: string, originalButton: string) {

@@ -481,22 +481,49 @@ Examples of targeted edits:
         // Define unique tokens to temporarily replace existing formatting markers
         const HIGHLIGHT_TOKEN = "___KHOJ_HIGHLIGHT_MARKER___";
         const STRIKETHROUGH_TOKEN = "___KHOJ_STRIKETHROUGH_MARKER___";
+        const NESTED_HIGHLIGHT_TOKEN = "___KHOJ_NESTED_HIGHLIGHT_MARKER___";
+        const NESTED_STRIKETHROUGH_TOKEN = "___KHOJ_NESTED_STRIKETHROUGH_MARKER___";
 
         // Function to preserve existing formatting markers by replacing them with tokens
         const preserveFormatting = (text: string): string => {
-            // Replace existing highlight markers with non-greedy pattern
-            let processed = text.replace(/==(.*?)==/g, `${HIGHLIGHT_TOKEN}$1${HIGHLIGHT_TOKEN}`);
-            // Replace existing strikethrough markers with non-greedy pattern
+            // First, handle potential nested formatting by temporarily marking them
+            let processed = text;
+
+            // Find and mark nested highlight within strikethrough
+            processed = processed.replace(/~~(.*?==.*?==.*?)~~/g, (match, content) => {
+                // Replace inner highlight markers
+                const innerProcessed = content.replace(/==(.*?)==/g, `${NESTED_HIGHLIGHT_TOKEN}$1${NESTED_HIGHLIGHT_TOKEN}`);
+                return `${STRIKETHROUGH_TOKEN}${innerProcessed}${STRIKETHROUGH_TOKEN}`;
+            });
+
+            // Find and mark nested strikethrough within highlight
+            processed = processed.replace(/==(.*?~~.*?~~.*?)==/g, (match, content) => {
+                // Replace inner strikethrough markers
+                const innerProcessed = content.replace(/~~(.*?)~~/g, `${NESTED_STRIKETHROUGH_TOKEN}$1${NESTED_STRIKETHROUGH_TOKEN}`);
+                return `${HIGHLIGHT_TOKEN}${innerProcessed}${HIGHLIGHT_TOKEN}`;
+            });
+
+            // Now handle non-nested formatting
+            // Replace remaining highlight markers with non-greedy pattern
+            processed = processed.replace(/==(.*?)==/g, `${HIGHLIGHT_TOKEN}$1${HIGHLIGHT_TOKEN}`);
+            // Replace remaining strikethrough markers with non-greedy pattern
             processed = processed.replace(/~~(.*?)~~/g, `${STRIKETHROUGH_TOKEN}$1${STRIKETHROUGH_TOKEN}`);
+
             return processed;
         };
 
         // Function to restore original formatting markers
         const restoreFormatting = (text: string): string => {
-            // Restore highlight markers
-            let processed = text.replace(new RegExp(HIGHLIGHT_TOKEN + "(.*?)" + HIGHLIGHT_TOKEN, "g"), "==$1==");
-            // Restore strikethrough markers
+            let processed = text;
+
+            // Restore regular formatting first
+            processed = processed.replace(new RegExp(HIGHLIGHT_TOKEN + "(.*?)" + HIGHLIGHT_TOKEN, "g"), "==$1==");
             processed = processed.replace(new RegExp(STRIKETHROUGH_TOKEN + "(.*?)" + STRIKETHROUGH_TOKEN, "g"), "~~$1~~");
+
+            // Then restore nested formatting
+            processed = processed.replace(new RegExp(NESTED_HIGHLIGHT_TOKEN + "(.*?)" + NESTED_HIGHLIGHT_TOKEN, "g"), "==$1==");
+            processed = processed.replace(new RegExp(NESTED_STRIKETHROUGH_TOKEN + "(.*?)" + NESTED_STRIKETHROUGH_TOKEN, "g"), "~~$1~~");
+
             return processed;
         };
 
@@ -558,11 +585,26 @@ Examples of targeted edits:
      * @returns The text with diff markers replaced by the final content
      */
     public applyFinalChanges(text: string): string {
+        // First, handle nested formatting patterns
         // This regex looks for patterns of ~~deleted text~~==added text== and replaces them with just the added text
         // It uses a non-greedy match to avoid capturing too much text
-        return text.replace(/~~(.*?)~~==([^=]*?)==/g, (match, deleted, added) => {
+        let result = text.replace(/~~(.*?)~~==([^=]*?)==/g, (match, deleted, added) => {
             return added;
         });
+
+        // Handle cases where there might be formatting markers within the diff markers
+        // For example: ==This is **highlighted and bold**== or ~~This is *strikethrough and italic*~~
+
+        // First, extract content between == markers (additions)
+        result = result.replace(/==(.*?)==/g, (match, content) => {
+            // If the content contains formatting markers, preserve them
+            return content;
+        });
+
+        // Then remove any remaining strikethrough markers (deletions)
+        result = result.replace(/~~(.*?)~~/g, '');
+
+        return result;
     }
 
     /**
