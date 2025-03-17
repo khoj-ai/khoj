@@ -2116,12 +2116,27 @@ export class KhojChatView extends KhojPaneView {
             // Add status summary
             const statusSummary = buttonsContainer.createDiv({ cls: "edit-status-summary" });
             const successCount = editResults.filter(r => r.success).length;
-            statusSummary.innerHTML = `${successCount}/${editResults.length} edits applied successfully`;
+
+            // Update status message to reflect atomic approach
+            if (successCount === editResults.length) {
+                statusSummary.innerHTML = `All edits applied successfully`;
+            } else if (successCount === 0) {
+                statusSummary.innerHTML = `No edits were applied`;
+            } else {
+                // This should not happen with atomic approach, but keeping for safety
+                statusSummary.innerHTML = `${successCount}/${editResults.length} edits applied successfully`;
+            }
 
             if (editResults.some(r => !r.success)) {
                 const errorDetails = editResults
                     .filter(r => !r.success)
-                    .map(r => `• ${r.block.note}: ${r.error}`)
+                    .map(r => {
+                        // Check if the error is due to atomic validation failure
+                        if (r.error && r.error.includes('Other edits in the group failed')) {
+                            return `• ${r.block.note}: Not applied due to atomic validation failure`;
+                        }
+                        return `• ${r.block.note}: ${r.error}`;
+                    })
                     .join('\n');
                 statusSummary.title = `Failed edits:\n${errorDetails}`;
             }

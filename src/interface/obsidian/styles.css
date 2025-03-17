@@ -1627,28 +1627,28 @@ img.copy-icon {
 .khoj-retry-badge {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 6px;
     background-color: var(--background-modifier-error);
     color: var(--text-on-accent);
-    padding: 3px 6px;
-    border-radius: 18px;
-    margin: 10px 0;
-    font-size: 0.85em;
+    padding: 2px 5px;
+    border-radius: 14px;
+    margin: 8px 0;
+    font-size: 0.75em;
     font-weight: 500;
     animation: slideIn 0.3s ease-out;
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     width: fit-content;
 }
 
 .khoj-retry-badge .retry-icon {
-    font-size: 0.95em;
+    font-size: 0.85em;
 }
 
 .khoj-retry-badge .retry-count {
-    background: rgba(255, 255, 255, 0.25);
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-size: 0.85em;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.75em;
     font-weight: 600;
     margin-left: auto;
 }

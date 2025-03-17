@@ -585,20 +585,28 @@ Examples of targeted edits:
         const editResults: { block: EditBlock, success: boolean, error?: string }[] = [];
         const blocksNeedingRetry: EditBlock[] = [];
 
-        // Process each edit block independently
+        // PHASE 1: Validation - Check all blocks before applying any changes
+        const validationResults: { block: EditBlock, valid: boolean, error?: string, targetFile?: TFile }[] = [];
+
         for (const block of editBlocks) {
             try {
-                // Skip blocks with parsing errors but mark them for retry
+                // Skip blocks with parsing errors
                 if (block.hasError) {
-                    blocksNeedingRetry.push(block);
-                    editResults.push({ block, success: false, error: block.error?.message || 'Parsing error' });
+                    validationResults.push({
+                        block,
+                        valid: false,
+                        error: block.error?.message || 'Parsing error'
+                    });
                     continue;
                 }
 
                 const targetFile = this.findBestMatchingFile(block.file, files);
                 if (!targetFile) {
-                    blocksNeedingRetry.push(block);
-                    editResults.push({ block, success: false, error: `No matching file found for "${block.file}"` });
+                    validationResults.push({
+                        block,
+                        valid: false,
+                        error: `No matching file found for "${block.file}"`
+                    });
                     continue;
                 }
 
@@ -608,6 +616,148 @@ Examples of targeted edits:
                     fileBackups.set(targetFile.path, content);
                     currentFileContents.set(targetFile.path, content);
                 }
+
+                // Use current content (which may have been modified by previous validations)
+                const content = currentFileContents.get(targetFile.path)!;
+
+                // Find frontmatter boundaries
+                const frontmatterMatch = content.match(/^---\n[\s\S]*?\n---\n/);
+                const frontmatterEndIndex = frontmatterMatch ? frontmatterMatch[0].length : 0;
+
+                // Clean up the replacement content
+                let replacement = block.replacement
+                    .replace(/^[\s\n]*<file-start>[\s\n]*/, '')
+                    .replace(/[\s\n]*<file-end>[\s\n]*$/, '')
+                    .trim();
+
+                // Remove frontmatter if block starts at beginning and has frontmatter
+                if ((block.before === '' || block.before.includes('<file-start>')) &&
+                    replacement.startsWith('---\n')) {
+                    const frontmatterEnd = replacement.indexOf('\n---\n');
+                    if (frontmatterEnd !== -1) {
+                        replacement = replacement.substring(frontmatterEnd + 5).trim();
+                    }
+                }
+
+                // Handle special markers for file start and end
+                const before = block.before.replace('<file-start>', '');
+                const after = block.after.replace('<file-end>', '');
+
+                // Find the text to replace in original content
+                let startIndex = -1;
+                let endIndex = -1;
+
+                if (block.before.includes('<file-start>')) {
+                    startIndex = frontmatterEndIndex;
+                } else {
+                    startIndex = content.indexOf(before, frontmatterEndIndex);
+                }
+
+                if (block.after.includes('<file-end>')) {
+                    endIndex = content.length;
+                } else {
+                    if (startIndex !== -1) {
+                        endIndex = content.indexOf(after, startIndex);
+                        if (endIndex !== -1) {
+                            endIndex = endIndex + after.length;
+                        }
+                    }
+                }
+
+                if (startIndex === -1 || endIndex === -1) {
+                    validationResults.push({
+                        block,
+                        valid: false,
+                        error: `Could not find the specified text in file "${targetFile.basename}"`
+                    });
+                    continue;
+                }
+
+                // Validation passed
+                validationResults.push({
+                    block,
+                    valid: true,
+                    targetFile
+                });
+
+                // Simulate the edit for subsequent validations
+                const textToReplace = content.substring(startIndex, endIndex);
+                const originalText = textToReplace;
+                const newText = replacement;
+                const preview = this.createPreviewWithDiff(originalText, newText);
+                const newContent =
+                    content.substring(0, startIndex) +
+                    preview +
+                    content.substring(endIndex);
+
+                // Update the current content for this file for subsequent validations
+                currentFileContents.set(targetFile.path, newContent);
+
+            } catch (error) {
+                validationResults.push({
+                    block,
+                    valid: false,
+                    error: error.message
+                });
+            }
+        }
+
+        // Check if all blocks are valid
+        const allValid = validationResults.every(result => result.valid);
+
+        // If any block is invalid, don't apply any changes
+        if (!allValid) {
+            // Reset current file contents
+            currentFileContents.clear();
+
+            // Add all invalid blocks to retry list
+            for (const result of validationResults) {
+                if (!result.valid) {
+                    blocksNeedingRetry.push({
+                        ...result.block,
+                        hasError: true,
+                        error: {
+                            type: 'invalid_json',
+                            message: result.error || 'Validation failed',
+                            details: result.error || 'Could not validate edit'
+                        }
+                    });
+
+                    editResults.push({
+                        block: result.block,
+                        success: false,
+                        error: result.error || 'Validation failed'
+                    });
+                } else {
+                    // Even valid blocks are considered failed in atomic mode if any block fails
+                    editResults.push({
+                        block: result.block,
+                        success: false,
+                        error: 'Other edits in the group failed validation'
+                    });
+                }
+            }
+
+            // Trigger retry for the first failed block
+            if (blocksNeedingRetry.length > 0 && onRetryNeeded) {
+                onRetryNeeded(blocksNeedingRetry[0]);
+            }
+
+            return { editResults, fileBackups, blocksNeedingRetry };
+        }
+
+        // PHASE 2: Application - Apply all changes since all blocks are valid
+        try {
+            // Reset current file contents to original state
+            currentFileContents.clear();
+            for (const [path, content] of fileBackups.entries()) {
+                currentFileContents.set(path, content);
+            }
+
+            // Apply all edits
+            for (const result of validationResults) {
+                const block = result.block;
+                const targetFile = result.targetFile!;
 
                 // Use current content (which may have been modified by previous edits)
                 const content = currentFileContents.get(targetFile.path)!;
@@ -656,24 +806,6 @@ Examples of targeted edits:
                     }
                 }
 
-                if (startIndex === -1 || endIndex === -1) {
-                    blocksNeedingRetry.push({
-                        ...block,
-                        hasError: true,
-                        error: {
-                            type: 'invalid_json',
-                            message: 'Could not locate the text to edit',
-                            details: `Could not find the specified text in file "${targetFile.basename}"`
-                        }
-                    });
-                    editResults.push({
-                        block,
-                        success: false,
-                        error: `Could not find the specified text in file "${targetFile.basename}"`
-                    });
-                    continue;
-                }
-
                 // Get the text to replace from original content
                 const textToReplace = content.substring(startIndex, endIndex);
                 const originalText = textToReplace;
@@ -695,18 +827,33 @@ Examples of targeted edits:
                 currentFileContents.set(targetFile.path, newContent);
 
                 editResults.push({ block, success: true });
-
-            } catch (error) {
-                console.error(`Error applying edit:`, error);
-                blocksNeedingRetry.push(block);
-                editResults.push({ block, success: false, error: error.message });
             }
-        }
 
-        // Trigger retry for failed blocks if requested via callback
-        if (blocksNeedingRetry.length > 0 && onRetryNeeded) {
-            // Take the first block that needs retry
-            onRetryNeeded(blocksNeedingRetry[0]);
+        } catch (error) {
+            console.error(`Error applying edits:`, error);
+
+            // Restore all files to their original state
+            for (const [path, content] of fileBackups.entries()) {
+                const file = this.app.vault.getAbstractFileByPath(path);
+                if (file && file instanceof TFile) {
+                    await this.app.vault.modify(file, content);
+                }
+            }
+
+            // Mark all blocks as failed
+            for (const block of editBlocks) {
+                blocksNeedingRetry.push(block);
+                editResults.push({
+                    block,
+                    success: false,
+                    error: `Failed to apply edits: ${error.message}`
+                });
+            }
+
+            // Trigger retry for the first block
+            if (blocksNeedingRetry.length > 0 && onRetryNeeded) {
+                onRetryNeeded(blocksNeedingRetry[0]);
+            }
         }
 
         return { editResults, fileBackups, blocksNeedingRetry };
