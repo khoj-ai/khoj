@@ -1634,38 +1634,37 @@ img.copy-icon {
 /* Retry badge container */
 .khoj-retry-container {
     display: flex;
-    justify-content: flex-start;
+    justify-content: center;
     width: 100%;
-    margin-top: 16px;
-    margin-bottom: 8px;
-    padding-left: 12px;
+    margin-top: 20px;
+    margin-bottom: 12px;
 }
 
 /* Retry badge styles */
 .khoj-retry-badge {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     background-color: var(--background-modifier-error);
     color: var(--text-on-accent);
-    padding: 2px 5px;
-    border-radius: 14px;
+    padding: 4px 10px;
+    border-radius: 16px;
     margin: 0;
-    font-size: 0.75em;
+    font-size: 0.8em;
     font-weight: 500;
     animation: slideIn 0.3s ease-out;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
     width: fit-content;
 }
 
 .khoj-retry-badge .retry-icon {
-    font-size: 0.85em;
+    font-size: 0.9em;
 }
 
 .khoj-retry-badge .retry-count {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 2px 8px;
-    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.25);
+    padding: 2px 10px;
+    border-radius: 12px;
     font-size: 0.75em;
     font-weight: 600;
     margin-left: auto;
