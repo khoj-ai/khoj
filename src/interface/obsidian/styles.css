@@ -1839,15 +1839,17 @@ button.reference-button:hover {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    padding: 4px;
 }
 
 .khoj-similar-result-item {
     border: 1px solid var(--background-modifier-border);
     border-radius: 6px;
-    padding: 8px 12px;
+    padding: 10px 14px;
     background-color: var(--background-secondary);
     transition: all 0.2s ease;
     cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .khoj-similar-result-item:hover {
@@ -1861,27 +1863,30 @@ button.reference-button:hover {
     gap: 8px;
     margin-bottom: 16px;
     align-items: center;
+    margin-top: 8px;
 }
 
 .khoj-similar-search-input {
     flex: 1;
-    padding: 8px 12px;
-    border-radius: 4px;
+    padding: 10px 14px;
+    border-radius: 6px;
     border: 1px solid var(--background-modifier-border);
     background-color: var(--background-primary);
     color: var(--text-normal);
     font-size: 14px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .khoj-similar-refresh-button {
     background-color: var(--background-secondary-alt);
     color: var(--text-normal);
     border: 1px solid var(--background-modifier-border);
-    border-radius: 4px;
-    padding: 6px 12px;
+    border-radius: 6px;
+    padding: 8px 14px;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .khoj-similar-refresh-button:hover {
@@ -1893,16 +1898,23 @@ button.reference-button:hover {
 .khoj-simplified-header {
     font-size: 1.4em;
     font-weight: 300;
-    color: var(--khoj-sun);
+    color: var(--text-normal);
     letter-spacing: 0.2px;
     text-align: center;
+    margin-bottom: 24px;
+}
+
+.khoj-similar-container {
+    background-color: var(--background-primary);
+    padding: 16px;
+    height: 100%;
 }
 
 .khoj-results-count {
     font-size: 14px;
     color: var(--text-muted);
     margin-bottom: 12px;
-    padding: 4px 8px;
+    padding: 6px 10px;
     background-color: var(--background-secondary-alt);
     border-radius: 4px;
     display: inline-block;
