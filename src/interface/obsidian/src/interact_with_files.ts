@@ -24,11 +24,20 @@ export interface EditBlock {
 export interface ParseKhojEditResult {
     editData: any;
     cleanContent: string;
+    inProgress?: boolean;
     error?: {
         type: 'missing_field' | 'invalid_json' | 'preprocessing' | 'unknown';
         message: string;
         details?: string;
     };
+}
+
+/**
+ * Interface representing the result of detecting a partial edit block
+ */
+interface PartialEditBlockResult {
+    content: string;
+    isComplete: boolean;
 }
 
 /**
@@ -271,11 +280,13 @@ Examples of targeted edits:
 
     /**
      * Parses a khoj-edit block from the content string
+     * Enhanced to handle incomplete blocks and extract partial information
      *
      * @param content - The content to parse containing the edit block
+     * @param isComplete - Whether the block is complete (has closing tag)
      * @returns Object with the parsed edit data and cleaned content
      */
-    public parseKhojEditBlock(content: string): ParseKhojEditResult {
+    public parseKhojEditBlock(content: string, isComplete: boolean = true): ParseKhojEditResult {
         let cleanContent = '';
         try {
             // Normalize line breaks and clean control characters, but preserve empty lines
@@ -284,6 +295,32 @@ Examples of targeted edits:
                 .replace(/\r/g, '\n')
                 .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
                 .trim();
+
+            // For incomplete blocks, try to extract partial information
+            if (!isComplete) {
+                // Initialize with basic structure
+                const partialData: any = {
+                    inProgress: true
+                };
+
+                // Try to extract note field
+                const noteMatch = cleanContent.match(/"note"\s*:\s*"([^"]+)"/);
+                if (noteMatch) {
+                    partialData.note = noteMatch[1];
+                }
+
+                // Try to extract file field
+                const fileMatch = cleanContent.match(/"file"\s*:\s*"([^"]+)"/);
+                if (fileMatch) {
+                    partialData.file = fileMatch[1];
+                }
+
+                return {
+                    editData: partialData,
+                    cleanContent,
+                    inProgress: true
+                };
+            }
 
             // Parse the JSON first to identify the content field
             let jsonContent = cleanContent;
@@ -536,6 +573,9 @@ Examples of targeted edits:
         // Store original content for each file in case we need to cancel
         const fileBackups = new Map<string, string>();
 
+        // Track current content for each file as we apply edits
+        const currentFileContents = new Map<string, string>();
+
         // Get all open markdown files
         const files = this.app.workspace.getLeavesOfType('markdown')
             .map(leaf => (leaf.view as any)?.file)
@@ -566,8 +606,11 @@ Examples of targeted edits:
                 if (!fileBackups.has(targetFile.path)) {
                     const content = await this.app.vault.read(targetFile);
                     fileBackups.set(targetFile.path, content);
+                    currentFileContents.set(targetFile.path, content);
                 }
-                const content = fileBackups.get(targetFile.path)!;
+
+                // Use current content (which may have been modified by previous edits)
+                const content = currentFileContents.get(targetFile.path)!;
 
                 // Find frontmatter boundaries
                 const frontmatterMatch = content.match(/^---\n[\s\S]*?\n---\n/);
@@ -647,6 +690,10 @@ Examples of targeted edits:
 
                 // Save the changes
                 await this.app.vault.modify(targetFile, newContent);
+
+                // Update the current content for this file for subsequent edits
+                currentFileContents.set(targetFile.path, newContent);
+
                 editResults.push({ block, success: true });
 
             } catch (error) {
@@ -677,8 +724,17 @@ Examples of targeted edits:
             .map(leaf => (leaf.view as any)?.file)
             .filter(file => file && file.extension === 'md');
 
-        return message.replace(/<khoj-edit>([\s\S]*?)<\/khoj-edit>/g, (match, content) => {
-            const { editData, cleanContent, error } = this.parseKhojEditBlock(content);
+        // Detect all edit blocks, including partial ones
+        const partialBlocks = this.detectPartialEditBlocks(message);
+
+        // Process each detected block
+        let transformedMessage = message;
+        for (const block of partialBlocks) {
+            const isComplete = block.isComplete;
+            const content = block.content;
+
+            // Parse the block content
+            const { editData, cleanContent, error, inProgress } = this.parseKhojEditBlock(content, isComplete);
 
             // Escape content for HTML display
             const escapedContent = cleanContent
@@ -688,32 +744,84 @@ Examples of targeted edits:
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#039;');
 
-            if (error) {
+            let htmlReplacement = '';
+
+            if (inProgress) {
+                // In-progress block
+                const noteText = editData.note ? editData.note : 'Edit in progress...';
+                const fileText = editData.file ? `(📄 ${editData.file})` : '';
+
+                htmlReplacement = `<details class="khoj-edit-accordion in-progress">
+                    <summary>${noteText} <span class="khoj-edit-file">${fileText}</span> <span class="khoj-edit-status">In Progress</span></summary>
+                    <div class="khoj-edit-content">
+                        <pre><code class="language-khoj-edit">${escapedContent}</code></pre>
+                    </div>
+                </details>`;
+            } else if (error) {
+                // Error block
                 console.error("Error parsing khoj-edit block:", error);
                 console.debug("Content causing error:", content);
 
                 const errorTitle = `Error: ${error.message}`;
                 const errorDetails = `Failed to parse edit block. Please check the JSON format and ensure all required fields are present.`;
 
-                return `<details class="khoj-edit-accordion error">
+                htmlReplacement = `<details class="khoj-edit-accordion error">
                     <summary>${errorTitle}</summary>
                     <div class="khoj-edit-content">
                         <p class="khoj-edit-error-message">${errorDetails}</p>
                         <pre><code class="language-khoj-edit error">${escapedContent}</code></pre>
                     </div>
                 </details>`;
+            } else {
+                // Success block
+                // Find the actual file that will be modified
+                const targetFile = this.findBestMatchingFile(editData.file, files);
+                const displayFileName = targetFile ? targetFile.basename : editData.file;
+
+                htmlReplacement = `<details class="khoj-edit-accordion success">
+                    <summary>${editData.note} <span class="khoj-edit-file">(📄 ${displayFileName})</span></summary>
+                    <div class="khoj-edit-content">
+                        <pre><code class="language-khoj-edit">${escapedContent}</code></pre>
+                    </div>
+                </details>`;
             }
 
-            // Find the actual file that will be modified
-            const targetFile = this.findBestMatchingFile(editData.file, files);
-            const displayFileName = targetFile ? targetFile.basename : editData.file;
+            // Replace the block in the message
+            if (isComplete) {
+                transformedMessage = transformedMessage.replace(`<khoj-edit>${content}</khoj-edit>`, htmlReplacement);
+            } else {
+                transformedMessage = transformedMessage.replace(`<khoj-edit>${content}`, htmlReplacement);
+            }
+        }
 
-            return `<details class="khoj-edit-accordion success">
-                <summary>${editData.note} <span class="khoj-edit-file">(📄 ${displayFileName})</span></summary>
-                <div class="khoj-edit-content">
-                    <pre><code class="language-khoj-edit">${escapedContent}</code></pre>
-                </div>
-            </details>`;
-        });
+        return transformedMessage;
+    }
+
+    /**
+     * Detects partial edit blocks in a message
+     * This allows for early detection of edit blocks before they are complete
+     *
+     * @param message - The message to search for partial edit blocks
+     * @returns An array of detected blocks with their content and completion status
+     */
+    public detectPartialEditBlocks(message: string): PartialEditBlockResult[] {
+        const results: PartialEditBlockResult[] = [];
+
+        // This regex captures both complete and incomplete khoj-edit blocks
+        // It looks for <khoj-edit> followed by any content, and then either </khoj-edit> or the end of the string
+        const regex = /<khoj-edit>([\s\S]*?)(?:<\/khoj-edit>|$)/g;
+
+        let match;
+        while ((match = regex.exec(message)) !== null) {
+            const content = match[1];
+            const isComplete = match[0].endsWith('</khoj-edit>');
+
+            results.push({
+                content,
+                isComplete
+            });
+        }
+
+        return results;
     }
 }
