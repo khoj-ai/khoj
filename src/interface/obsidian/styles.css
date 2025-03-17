@@ -31,19 +31,14 @@ If your plugin does not need CSS, delete this file.
 .khoj-chat {
     display: flex;
     flex-direction: column;
-    position: relative;
-    margin: 0;
-    padding: 0;
     height: 100%;
-    min-width: 0;
-    overflow-x: hidden;
-    background: var(--background-primary);
+    overflow: hidden;
+    background-color: var(--background-primary);
     color: var(--text-normal);
-    text-align: center;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    font-size: calc(var(--font-ui-large) * 1.05);
-    font-weight: 400;
-    line-height: 1.6;
+    font-size: 16px;
+    line-height: 1.5;
+    padding: 0;
+    margin: 0;
 }
 
 .khoj-chat>* {
@@ -59,14 +54,14 @@ If your plugin does not need CSS, delete this file.
 }
 
 #khoj-chat-body {
+    flex: 1;
     overflow-y: auto;
-    overflow-x: hidden;
-    padding: 0 8px;
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    word-break: break-word;
+    padding: 20px;
+    padding-bottom: 30px;
+    /* Add extra padding at the bottom to prevent messages from reaching the input area */
+    height: calc(100% - 120px);
+    /* Fixed height calculation to prevent resizing */
+    position: relative;
 }
 
 /* add chat metadata to bottom of bubble */
@@ -403,12 +398,16 @@ div.selected-conversation {
 }
 
 #khoj-chat-footer {
-    padding: 8px 0 !important;
-    display: grid;
-    grid-template-columns: minmax(70px, 100%);
-    grid-column-gap: 10px;
-    grid-row-gap: 10px;
-    border-top: none !important;
+    position: relative;
+    bottom: 0;
+    width: 100%;
+    padding: 10px;
+    background-color: var(--background-primary);
+    border-top: 1px solid var(--background-modifier-border);
+    z-index: 10;
+    /* Ensure footer stays on top */
+    flex-shrink: 0;
+    /* Prevent footer from shrinking */
 }
 
 .khoj-input-row {
@@ -1426,8 +1425,16 @@ img.copy-icon {
     background-color: rgba(239, 154, 154, 0.2);
 }
 
-.edit-status-message {
-    margin-top: 8px;
+.edit-status-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 12px;
+    margin-bottom: 8px;
+}
+
+.edit-status-summary {
+    margin-top: 0;
     padding: 6px 10px;
     border-radius: 4px;
     font-size: 15px;
@@ -1435,18 +1442,19 @@ img.copy-icon {
     animation: fadeIn 0.3s ease;
     text-align: center;
     width: fit-content;
-    margin-left: auto;
-    margin-right: auto;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    background-color: var(--background-secondary);
+    color: var(--text-normal);
+    border: 1px solid var(--background-modifier-border);
 }
 
-.edit-status-message.success {
+.edit-status-summary.success {
     background-color: rgba(52, 199, 89, 0.1);
     color: rgb(52, 199, 89);
     border: 1px solid rgb(52, 199, 89);
 }
 
-.edit-status-message.error {
+.edit-status-summary.error {
     background-color: rgba(239, 154, 154, 0.1);
     color: #d32f2f;
     border: 1px solid #ef9a9a;
@@ -1623,6 +1631,16 @@ img.copy-icon {
     font-size: 0.95em;
 }
 
+/* Retry badge container */
+.khoj-retry-container {
+    display: flex;
+    justify-content: flex-start;
+    width: 100%;
+    margin-top: 16px;
+    margin-bottom: 8px;
+    padding-left: 12px;
+}
+
 /* Retry badge styles */
 .khoj-retry-badge {
     display: inline-flex;
@@ -1632,7 +1650,7 @@ img.copy-icon {
     color: var(--text-on-accent);
     padding: 2px 5px;
     border-radius: 14px;
-    margin: 8px 0;
+    margin: 0;
     font-size: 0.75em;
     font-weight: 500;
     animation: slideIn 0.3s ease-out;

@@ -101,6 +101,7 @@ export class KhojChatView extends KhojPaneView {
     private fileInteractions: FileInteractions;
     private modeDropdown: HTMLElement | null = null;
     private selectedOptionIndex: number = -1;
+    private isStreaming: boolean = false; // Flag to track streaming state
 
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
         super(leaf, setting);
@@ -1298,19 +1299,49 @@ export class KhojChatView extends KhojPaneView {
     async processMessageChunk(rawChunk: string): Promise<void> {
         const chunk = this.convertMessageChunkToJson(rawChunk);
         if (!chunk || !chunk.type) return;
-        if (chunk.type === 'status') {
+
+        if (chunk.type === 'start_llm_response') {
+            // Start of streaming - set flag and ensure UI is stable
+            this.isStreaming = true;
+
+            // Disable input resizing during streaming
+            const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+            if (chatInput) {
+                chatInput.style.overflowY = 'hidden';
+            }
+        }
+        else if (chunk.type === 'status') {
             const statusMessage = chunk.data;
             this.handleStreamResponse(this.chatMessageState.newResponseTextEl, statusMessage, this.chatMessageState.loadingEllipsis, false);
-        } else if (chunk.type === 'generated_assets') {
+        }
+        else if (chunk.type === 'generated_assets') {
             const generatedAssets = chunk.data;
             const imageData = this.handleImageResponse(generatedAssets, this.chatMessageState.rawResponse);
             this.chatMessageState.generatedAssets = imageData;
             this.handleStreamResponse(this.chatMessageState.newResponseTextEl, imageData, this.chatMessageState.loadingEllipsis, false);
-        } else if (chunk.type === 'start_llm_response') {
-            // Start of streaming
-        } else if (chunk.type === 'end_llm_response') {
-            // End of streaming
-        } else if (chunk.type === 'end_response') {
+        }
+        else if (chunk.type === 'end_llm_response') {
+            // End of streaming - reset flag and restore normal UI behavior
+            this.isStreaming = false;
+
+            // Re-enable input resizing after streaming
+            const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+            if (chatInput) {
+                // Call autoResize to restore proper sizing
+                this.autoResize();
+            }
+        }
+        else if (chunk.type === 'end_response') {
+            // Ensure streaming flag is reset at the end of the response
+            this.isStreaming = false;
+
+            // Re-enable input resizing after streaming
+            const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+            if (chatInput) {
+                // Call autoResize to restore proper sizing
+                this.autoResize();
+            }
+
             // Check for edit blocks if in write mode
             if (this.fileAccessMode === 'write') {
                 const editBlocks = this.parseEditBlocks(this.chatMessageState.rawResponse);
@@ -1324,6 +1355,7 @@ export class KhojChatView extends KhojPaneView {
                 // Reset retry count on success
                 this.editRetryCount = 0;
 
+                // Apply edits if there are any
                 if (editBlocks.length > 0) {
                     await this.applyEditBlocks(editBlocks);
                 }
@@ -1352,9 +1384,11 @@ export class KhojChatView extends KhojPaneView {
                 editRetryCount: 0,
                 parentRetryCount: 0 // Reset parent retry count
             };
-        } else if (chunk.type === "references") {
+        }
+        else if (chunk.type === "references") {
             this.chatMessageState.references = { "notes": chunk.data.context, "online": chunk.data.onlineContext };
-        } else if (chunk.type === 'message') {
+        }
+        else if (chunk.type === 'message') {
             const chunkData = chunk.data;
             if (typeof chunkData === 'object' && chunkData !== null) {
                 this.handleJsonResponse(chunkData);
@@ -1370,7 +1404,8 @@ export class KhojChatView extends KhojPaneView {
                 this.chatMessageState.rawResponse += chunkData;
                 this.handleStreamResponse(this.chatMessageState.newResponseTextEl, this.chatMessageState.rawResponse + this.chatMessageState.generatedAssets, this.chatMessageState.loadingEllipsis);
             }
-        } else if (chunk.type === "metadata") {
+        }
+        else if (chunk.type === "metadata") {
             const { turnId } = chunk.data;
             if (turnId) {
                 this.chatMessageState.turnId = turnId;
@@ -1757,6 +1792,11 @@ export class KhojChatView extends KhojPaneView {
     autoResize() {
         const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
 
+        // Skip resizing completely during active streaming to avoid UI jumps
+        if (this.isStreaming) {
+            return;
+        }
+
         // Reset height to auto to get the correct scrollHeight
         chatInput.style.height = 'auto';
 
@@ -2113,18 +2153,24 @@ export class KhojChatView extends KhojPaneView {
         if (lastMessage) {
             const buttonsContainer = lastMessage.createDiv({ cls: "edit-confirmation-buttons" });
 
-            // Add status summary
-            const statusSummary = buttonsContainer.createDiv({ cls: "edit-status-summary" });
+            // Create a dedicated container for status summary to ensure proper separation
+            const statusContainer = buttonsContainer.createDiv({ cls: "edit-status-container" });
+
+            // Add status summary as a separate element with its own styling
+            const statusSummary = statusContainer.createDiv({ cls: "edit-status-summary" });
             const successCount = editResults.filter(r => r.success).length;
 
-            // Update status message to reflect atomic approach
+            // Add appropriate status class based on success/failure
             if (successCount === editResults.length) {
                 statusSummary.innerHTML = `All edits applied successfully`;
+                statusSummary.addClass("success");
             } else if (successCount === 0) {
                 statusSummary.innerHTML = `No edits were applied`;
+                statusSummary.addClass("error");
             } else {
                 // This should not happen with atomic approach, but keeping for safety
                 statusSummary.innerHTML = `${successCount}/${editResults.length} edits applied successfully`;
+                statusSummary.addClass(successCount > 0 ? "success" : "error");
             }
 
             if (editResults.some(r => !r.success)) {
@@ -2286,14 +2332,19 @@ export class KhojChatView extends KhojPaneView {
             }
         }
 
-        // Create retry badge
+        // Create retry badge - keep it simple and focused only on retry functionality
         const chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0];
-        const retryBadge = chatBodyEl.createDiv({ cls: "khoj-retry-badge" });
+
+        // Create a container for the retry badge to ensure proper separation
+        const retryContainer = chatBodyEl.createDiv({ cls: "khoj-retry-container" });
+
+        // Create the retry badge inside the container
+        const retryBadge = retryContainer.createDiv({ cls: "khoj-retry-badge" });
 
         // Add retry icon
         retryBadge.createSpan({ cls: "retry-icon", text: "🔄" });
 
-        // Add main text
+        // Add main text - keep it focused only on retry action
         retryBadge.createSpan({ text: "Try again to apply changes" });
 
         // Add retry count
