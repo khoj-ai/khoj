@@ -31,7 +31,7 @@ export interface KhojSetting {
 }
 
 export const DEFAULT_SETTINGS: KhojSetting = {
-    resultsCount: 6,
+    resultsCount: 10,
     khojUrl: 'https://app.khoj.dev',
     khojApiKey: '',
     connectedToBackend: false,
@@ -108,7 +108,7 @@ export class KhojSettingTab extends PluginSettingTab {
             .setName('Results Count')
             .setDesc('The number of results to show in search and use for chat.')
             .addSlider(slider => slider
-                .setLimits(1, 10, 1)
+                .setLimits(1, 20, 1)
                 .setValue(this.plugin.settings.resultsCount)
                 .setDynamicTooltip()
                 .onChange(async (value) => {

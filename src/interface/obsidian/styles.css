@@ -468,6 +468,7 @@ div.selected-conversation {
     cursor: pointer;
     transition: all 0.2s ease;
     margin: 0 4px;
+    align-self: flex-start;
 }
 
 #khoj-chat-send {
@@ -1820,14 +1821,31 @@ button.reference-button:hover {
     display: flex;
     flex-direction: column;
     height: 100%;
+    padding: 16px;
+    overflow-y: auto;
+    background-color: var(--background-primary);
+}
+
+.khoj-simplified-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em;
+    font-weight: 600;
     padding: 12px;
-    gap: 12px;
+    margin-bottom: 16px;
+    color: var(--text-normal);
+    transition: transform 0.2s ease;
+}
+
+.khoj-simplified-header:hover {
+    transform: scale(1.05);
 }
 
 .khoj-similar-search-container {
     display: flex;
-    gap: 8px;
-    padding: 8px 0;
+    align-items: center;
+    margin-bottom: 16px;
 }
 
 .khoj-similar-search-input {
@@ -1870,22 +1888,55 @@ button.reference-button:hover {
 }
 
 .khoj-similar-result-item {
+    margin-bottom: 16px;
     padding: 12px;
-    border-radius: 6px;
+    border-radius: 8px;
     background-color: var(--background-secondary);
+    cursor: pointer;
+}
+
+.khoj-similar-result-item:hover {
+    background-color: var(--background-secondary-alt);
+}
+
+.khoj-similar-result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.khoj-similar-content-hidden {
+    display: none;
+}
+
+.khoj-similar-content-visible {
+    display: block;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.khoj-more-context-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background-color: var(--interactive-normal);
+    color: var(--text-normal);
+    font-size: 0.8em;
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
 
-.khoj-similar-result-item:hover {
-    background-color: var(--background-modifier-hover);
+.khoj-more-context-button:hover {
+    background-color: var(--interactive-hover);
 }
 
-.khoj-similar-message {
-    padding: 16px;
-    text-align: center;
+.khoj-results-count {
+    margin-bottom: 12px;
+    font-size: 0.9em;
     color: var(--text-muted);
-    font-size: 14px;
 }
 
 .similar-loading {

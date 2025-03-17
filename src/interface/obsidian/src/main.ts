@@ -27,7 +27,7 @@ export default class Khoj extends Plugin {
             id: 'similar',
             name: 'Find similar notes',
             hotkeys: [{ modifiers: ["Ctrl", "Alt"], key: "F" }],
-            editorCallback: () => { new KhojSearchModal(this.app, this.settings, true).open(); }
+            editorCallback: () => { this.activateView(KhojView.SIMILAR); }
         });
 
         // Add chat command. It can be triggered from anywhere

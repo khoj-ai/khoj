@@ -132,7 +132,12 @@ export class KhojChatView extends KhojPaneView {
         this.scope.register(["Ctrl", "Alt"], 'o', async (_) => await this.toggleChatSessions());
         this.scope.register(["Ctrl", "Alt"], 'v', (_) => this.speechToText(new KeyboardEvent('keydown')));
         this.scope.register(["Ctrl"], 'f', (_) => new KhojSearchModal(this.app, this.setting).open());
-        this.scope.register(["Ctrl"], 'r', (_) => new KhojSearchModal(this.app, this.setting, true).open());
+        this.scope.register(["Ctrl"], 'r', (_) => {
+            const khojPlugin = (window as any).app.plugins.plugins.khoj;
+            if (khojPlugin && khojPlugin.activateView) {
+                khojPlugin.activateView(KhojView.SIMILAR);
+            }
+        });
     }
 
     getViewType(): string {

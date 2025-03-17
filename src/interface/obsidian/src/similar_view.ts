@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, TFile, MarkdownRenderer, Notice } from 'obsidian';
+import { ItemView, WorkspaceLeaf, TFile, MarkdownRenderer, Notice, setIcon } from 'obsidian';
 import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from './pane_view';
 import { KhojView, getFileFromPath, getLinkToEntry, supportedBinaryFileTypes } from './utils';
@@ -10,6 +10,7 @@ export interface SimilarResult {
 }
 
 export class KhojSimilarView extends KhojPaneView {
+    static emoji: string = "🔍";
     setting: KhojSetting;
     currentController: AbortController | null = null;
     isLoading: boolean = false;
@@ -21,7 +22,7 @@ export class KhojSimilarView extends KhojPaneView {
     component: any;
 
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
-        super(leaf, setting);
+        super(leaf, setting, true);
         this.setting = setting;
         this.component = this;
     }
@@ -31,7 +32,7 @@ export class KhojSimilarView extends KhojPaneView {
     }
 
     getDisplayText(): string {
-        return "Similar Documents";
+        return "Khoj Similar Documents";
     }
 
     getIcon(): string {
@@ -258,6 +259,12 @@ export class KhojSimilarView extends KhojPaneView {
             return;
         }
 
+        // Show results count
+        this.resultsContainerEl.createEl("div", {
+            cls: "khoj-results-count",
+            text: `Found ${results.length} similar document${results.length > 1 ? 's' : ''}`
+        });
+
         // Create results list
         const resultsListEl = this.resultsContainerEl.createEl("div", { cls: "khoj-similar-results-list" });
 
@@ -269,8 +276,11 @@ export class KhojSimilarView extends KhojPaneView {
             let os_path_separator = result.file.includes('\\') ? '\\' : '/';
             let filename = result.file.split(os_path_separator).pop();
 
+            // Create header container for filename and more context button
+            const headerEl = resultEl.createEl("div", { cls: "khoj-similar-result-header" });
+
             // Show filename with appropriate color
-            const fileEl = resultEl.createEl("div", {
+            const fileEl = headerEl.createEl("div", {
                 cls: `khoj-result-file ${result.inVault ? 'in-vault' : 'not-in-vault'}`
             });
             fileEl.setText(filename ?? "");
@@ -283,8 +293,17 @@ export class KhojSimilarView extends KhojPaneView {
                 });
             }
 
-            // Create content element
-            const contentEl = resultEl.createEl("div", { cls: "khoj-result-entry" });
+            // Add "More context" button
+            const moreContextButton = headerEl.createEl("button", {
+                cls: "khoj-more-context-button",
+                text: "More context"
+            });
+            setIcon(moreContextButton.createSpan(), "chevron-down");
+
+            // Create content element (hidden by default)
+            const contentEl = resultEl.createEl("div", {
+                cls: "khoj-result-entry khoj-similar-content-hidden"
+            });
 
             // Prepare content for rendering
             let contentToRender = "";
@@ -306,8 +325,30 @@ export class KhojSimilarView extends KhojPaneView {
                 this.component
             );
 
-            // Add click handler
-            resultEl.addEventListener("click", () => {
+            // Add click handler to the more context button
+            moreContextButton.addEventListener("click", (e) => {
+                e.stopPropagation(); // Prevent opening the file
+
+                // Toggle content visibility
+                if (contentEl.classList.contains("khoj-similar-content-hidden")) {
+                    contentEl.classList.remove("khoj-similar-content-hidden");
+                    contentEl.classList.add("khoj-similar-content-visible");
+                    moreContextButton.setText("Less context");
+                    setIcon(moreContextButton.createSpan(), "chevron-up");
+                } else {
+                    contentEl.classList.remove("khoj-similar-content-visible");
+                    contentEl.classList.add("khoj-similar-content-hidden");
+                    moreContextButton.setText("More context");
+                    setIcon(moreContextButton.createSpan(), "chevron-down");
+                }
+            });
+
+            // Add click handler to open the file
+            resultEl.addEventListener("click", (e) => {
+                // Don't open if clicking on the more context button
+                if (e.target === moreContextButton || moreContextButton.contains(e.target as Node)) {
+                    return;
+                }
                 this.openResult(result);
             });
         });
