@@ -44,7 +44,7 @@ export abstract class KhojPaneView extends ItemView {
             headerEl.getElementsByClassName("chat-nav")[0]?.classList.add("khoj-nav-selected");
             headerEl.getElementsByClassName("chat-nav")[0]?.addEventListener("click", (_) => { this.activateView(KhojView.CHAT); });
             headerEl.getElementsByClassName("search-nav")[0]?.addEventListener("click", (_) => { new KhojSearchModal(this.app, this.setting).open(); });
-            headerEl.getElementsByClassName("similar-nav")[0]?.addEventListener("click", (_) => { this.activateView(KhojView.SIMILAR); });
+            // The similar-nav event listener is already set in utils.ts
             let similarNavSvgEl = headerEl.getElementsByClassName("khoj-nav-icon-similar")[0]?.firstElementChild;
             if (!!similarNavSvgEl) similarNavSvgEl.id = "similar-nav-icon-svg";
         } else {

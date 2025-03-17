@@ -10,7 +10,7 @@ export interface SimilarResult {
 }
 
 export class KhojSimilarView extends KhojPaneView {
-    static emoji: string = "🔍";
+    static emoji: string = "📄";
     setting: KhojSetting;
     currentController: AbortController | null = null;
     isLoading: boolean = false;
