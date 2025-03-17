@@ -413,8 +413,8 @@ div.selected-conversation {
 
 .khoj-input-row {
     display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
+    flex-wrap: nowrap;
+    align-items: center;
     background-color: var(--background-secondary-alt, var(--background-secondary));
     border-radius: 16px;
     padding: 16px;
@@ -429,7 +429,6 @@ div.selected-conversation {
 
 /* Add focus effect */
 .khoj-input-row:focus-within {
-    transform: translateY(-8px);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
     background-color: var(--background-secondary-alt, var(--background-secondary));
 }
@@ -443,15 +442,16 @@ div.selected-conversation {
     color: var(--text-normal);
     font-size: calc(var(--font-ui-medium) * 1.05);
     padding: 16px;
-    height: 120px;
-    max-height: 300px;
+    min-height: 24px;
+    max-height: 400px;
     resize: none;
     border-radius: 8px;
     outline: none;
     font-family: inherit;
     line-height: 1.5;
-    overflow-y: auto;
+    overflow: hidden;
     transition: none;
+    align-self: flex-start;
 }
 
 .khoj-input-row-button {
@@ -465,6 +465,8 @@ div.selected-conversation {
     justify-content: center;
     position: relative;
     margin: 4px;
+    align-self: center;
+    flex-shrink: 0;
 }
 
 #khoj-chat-send {
@@ -756,12 +758,22 @@ div.khoj-logo:hover {
 
     #khoj-chat-input {
         padding: 8px;
-        height: 32px;
+        min-height: 32px;
+        max-height: 300px;
+        /* Taille maximale réduite pour mobile */
+    }
+
+    .khoj-input-row-button {
+        width: 28px;
+        height: 28px;
+        align-self: center;
+        /* Assure que les boutons restent centrés verticalement sur mobile */
+        flex-shrink: 0;
+        /* Empêche les boutons de rétrécir sur mobile */
     }
 
     #khoj-chat-send {
         width: 28px;
-        height: 28px;
     }
 
     .khoj-input-row-button {

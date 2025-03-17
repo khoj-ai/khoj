@@ -1756,8 +1756,21 @@ export class KhojChatView extends KhojPaneView {
 
     autoResize() {
         const chatInput = <HTMLTextAreaElement>this.contentEl.getElementsByClassName("khoj-chat-input")[0];
+
+        // Reset height to auto to get the correct scrollHeight
         chatInput.style.height = 'auto';
-        chatInput.style.height = chatInput.scrollHeight + 'px';
+
+        // Calculate new height based on content with a larger maximum height
+        const maxHeight = 400; // Increase maximum height from 300px to 400px
+        const newHeight = Math.min(chatInput.scrollHeight, maxHeight);
+        chatInput.style.height = newHeight + 'px';
+
+        // Add overflow-y: auto only if content exceeds max height
+        if (chatInput.scrollHeight > maxHeight) {
+            chatInput.style.overflowY = 'auto';
+        } else {
+            chatInput.style.overflowY = 'hidden';
+        }
 
         // Update dropdown position if it exists and is visible
         if (this.modeDropdown && this.modeDropdown.style.display !== "none") {
