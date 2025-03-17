@@ -1835,54 +1835,32 @@ button.reference-button:hover {
     display: flex;
     align-items: center;
     gap: 6px;
-    background-color: var(--interactive-accent);
-    color: var(--text-on-accent);
-    border: none;
+    background-color: var(--background-secondary-alt);
+    color: var(--text-normal);
+    border: 1px solid var(--background-modifier-border);
     border-radius: 6px;
     padding: 6px 10px;
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-}
-
-.khoj-more-context-button:hover {
-    background-color: var(--interactive-accent-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
-}
-
-.khoj-similar-refresh-button {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background-color: var(--background-secondary-alt);
-    color: var(--text-normal);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
-    padding: 8px 12px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.khoj-similar-refresh-button:hover {
+.khoj-more-context-button:hover {
     background-color: var(--background-modifier-hover);
     color: var(--text-accent);
     transform: translateY(-2px);
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
 }
 
-.khoj-similar-refresh-button svg {
+.khoj-more-context-button svg {
     width: 16px;
     height: 16px;
     transition: transform 0.3s ease;
 }
 
-.khoj-similar-refresh-button:hover svg {
+.khoj-more-context-button:hover svg {
     transform: rotate(180deg);
 }
 
@@ -1953,4 +1931,37 @@ button.reference-button:hover {
     color: var(--text-normal);
     font-size: 14px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.khoj-similar-refresh-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background-color: var(--background-secondary-alt);
+    color: var(--text-normal);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.khoj-similar-refresh-button:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+.khoj-similar-refresh-button svg {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.3s ease;
+}
+
+.khoj-similar-refresh-button:hover svg {
+    transform: rotate(180deg);
 }
