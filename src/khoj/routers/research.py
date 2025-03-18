@@ -1,4 +1,5 @@
 import logging
+import os
 from datetime import datetime
 from typing import Callable, Dict, List, Optional
 
@@ -160,7 +161,7 @@ async def execute_information_collection(
     query_files: str = None,
 ):
     current_iteration = 0
-    MAX_ITERATIONS = 5
+    MAX_ITERATIONS = int(os.getenv("KHOJ_RESEARCH_ITERATIONS", 5))
     previous_iterations: List[InformationCollectionIteration] = []
     while current_iteration < MAX_ITERATIONS:
         online_results: Dict = dict()

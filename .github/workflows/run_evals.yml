@@ -45,6 +45,11 @@ on:
         required: false
         default: 'gemini-2.0-flash'
         type: string
+      max_research_iterations:
+        description: 'Maximum number of iterations in research mode'
+        required: false
+        default: 5
+        type: number
 
 jobs:
   eval:
@@ -110,6 +115,7 @@ jobs:
           KHOJ_URL: "http://localhost:42110"
           KHOJ_DEFAULT_CHAT_MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.chat_model || 'gemini-2.0-flash' }}
           KHOJ_LLM_SEED: "42"
+          KHOJ_RESEARCH_ITERATIONS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_research_iterations || 5 }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SERPER_DEV_API_KEY: ${{ matrix.dataset != 'math500' && secrets.SERPER_DEV_API_KEY }}
           OLOSTEP_API_KEY: ${{ matrix.dataset != 'math500' && secrets.OLOSTEP_API_KEY }}
