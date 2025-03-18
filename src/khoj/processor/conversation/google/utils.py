@@ -65,6 +65,7 @@ def gemini_completion_with_backoff(
         temperature=temperature,
         max_output_tokens=MAX_OUTPUT_TOKENS_GEMINI,
         safety_settings=SAFETY_SETTINGS,
+        response_mime_type=model_kwargs.get("response_mime_type", "text/plain") if model_kwargs else "text/plain",
     )
 
     formatted_messages = [gtypes.Content(role=message.role, parts=message.content) for message in messages]
