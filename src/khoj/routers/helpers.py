@@ -540,11 +540,15 @@ async def generate_online_subqueries(
 
     agent_chat_model = agent.chat_model if agent else None
 
+    class OnlineQueries(BaseModel):
+        queries: List[str]
+
     with timer("Chat actor: Generate online search subqueries", logger):
         response = await send_message_to_model_wrapper(
             online_queries_prompt,
             query_images=query_images,
             response_type="json_object",
+            response_schema=OnlineQueries,
             user=user,
             query_files=query_files,
             agent_chat_model=agent_chat_model,
