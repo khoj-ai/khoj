@@ -121,21 +121,34 @@ def extract_questions(
 
 
 def send_message_to_model(
-    messages, api_key, model, response_type="text", api_base_url=None, temperature=0, tracer: dict = {}
+    messages,
+    api_key,
+    model,
+    response_type="text",
+    response_schema=None,
+    api_base_url=None,
+    temperature=0,
+    tracer: dict = {},
 ):
     """
     Send message to model
     """
 
-    # Get Response from GPT
+    model_kwargs = {}
     json_support = get_openai_api_json_support(model, api_base_url)
+    if response_schema and json_support == JsonSupport.SCHEMA:
+        model_kwargs["response_format"] = response_schema
+    elif response_type == "json_object" and json_support == JsonSupport.OBJECT:
+        model_kwargs["response_format"] = {"type": response_type}
+
+    # Get Response from GPT
     return completion_with_backoff(
         messages=messages,
         model_name=model,
         openai_api_key=api_key,
         temperature=temperature,
         api_base_url=api_base_url,
-        model_kwargs={"response_format": {"type": response_type}} if json_support >= JsonSupport.OBJECT else {},
+        model_kwargs=model_kwargs,
         tracer=tracer,
     )
 

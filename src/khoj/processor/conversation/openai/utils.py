@@ -67,33 +67,24 @@ def completion_with_backoff(
         temperature = 1
         model_kwargs["reasoning_effort"] = "medium"
 
-    stream = True
     model_kwargs["stream_options"] = {"include_usage": True}
     if os.getenv("KHOJ_LLM_SEED"):
         model_kwargs["seed"] = int(os.getenv("KHOJ_LLM_SEED"))
 
-    chat: ChatCompletion | openai.Stream[ChatCompletionChunk] = client.chat.completions.create(
+    aggregated_response = ""
+    with client.beta.chat.completions.stream(
         messages=formatted_messages,  # type: ignore
-        model=model_name,  # type: ignore
-        stream=stream,
+        model=model_name,
         temperature=temperature,
         timeout=20,
         **model_kwargs,
-    )
-
-    aggregated_response = ""
-    if not stream:
-        chunk = chat
-        aggregated_response = chunk.choices[0].message.content
-    else:
+    ) as chat:
         for chunk in chat:
-            if len(chunk.choices) == 0:
+            if chunk.type == "error":
+                logger.error(f"Openai api response error: {chunk.error}", exc_info=True)
                 continue
-            delta_chunk = chunk.choices[0].delta  # type: ignore
-            if isinstance(delta_chunk, str):
-                aggregated_response += delta_chunk
-            elif delta_chunk.content:
-                aggregated_response += delta_chunk.content
+            elif chunk.type == "content.delta":
+                aggregated_response += chunk.delta
 
     # Calculate cost of chat
     input_tokens = chunk.usage.prompt_tokens if hasattr(chunk, "usage") and chunk.usage else 0

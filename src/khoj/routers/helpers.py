@@ -1209,6 +1209,7 @@ async def send_message_to_model_wrapper(
             api_key=api_key,
             model=chat_model_name,
             response_type=response_type,
+            response_schema=response_schema,
             api_base_url=api_base_url,
             tracer=tracer,
         )
@@ -1326,6 +1327,7 @@ def send_message_to_model_wrapper_sync(
             api_base_url=api_base_url,
             model=chat_model_name,
             response_type=response_type,
+            response_schema=response_schema,
             tracer=tracer,
         )
 
