@@ -1129,6 +1129,7 @@ async def send_message_to_model_wrapper(
     query: str,
     system_message: str = "",
     response_type: str = "text",
+    response_schema: BaseModel = None,
     deepthought: bool = False,
     user: KhojUser = None,
     query_images: List[str] = None,
@@ -1256,6 +1257,7 @@ async def send_message_to_model_wrapper(
             api_key=api_key,
             model=chat_model_name,
             response_type=response_type,
+            response_schema=response_schema,
             tracer=tracer,
         )
     else:
@@ -1266,6 +1268,7 @@ def send_message_to_model_wrapper_sync(
     message: str,
     system_message: str = "",
     response_type: str = "text",
+    response_schema: BaseModel = None,
     user: KhojUser = None,
     query_images: List[str] = None,
     query_files: str = "",
@@ -1372,6 +1375,7 @@ def send_message_to_model_wrapper_sync(
             api_key=api_key,
             model=chat_model_name,
             response_type=response_type,
+            response_schema=response_schema,
             tracer=tracer,
         )
     else:

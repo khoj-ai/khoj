@@ -121,6 +121,7 @@ def gemini_send_message_to_model(
     api_key,
     model,
     response_type="text",
+    response_schema=None,
     temperature=0.6,
     model_kwargs=None,
     tracer={},
@@ -135,6 +136,7 @@ def gemini_send_message_to_model(
     # This caused unwanted behavior and terminates response early for gemini 1.5 series. Monitor for flakiness with 2.0 series.
     if response_type == "json_object" and model in ["gemini-2.0-flash"]:
         model_kwargs["response_mime_type"] = "application/json"
+        model_kwargs["response_schema"] = response_schema
 
     # Get Response from Gemini
     return gemini_completion_with_backoff(
