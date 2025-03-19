@@ -878,3 +878,9 @@ def messages_to_print(messages: list[ChatMessage], max_length: int = 70) -> str:
             return str(content)
 
     return "\n".join([f"{json.dumps(safe_serialize(message.content))[:max_length]}..." for message in messages])
+
+
+class JsonSupport(int, Enum):
+    NONE = 0
+    OBJECT = 1
+    SCHEMA = 2
