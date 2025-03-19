@@ -2,6 +2,7 @@ import logging
 import os
 from threading import Thread
 from typing import Dict, List
+from urllib.parse import urlparse
 
 import openai
 from openai.types.chat.chat_completion import ChatCompletion
@@ -16,6 +17,7 @@ from tenacity import (
 )
 
 from khoj.processor.conversation.utils import (
+    JsonSupport,
     ThreadedGenerator,
     commit_conversation_trace,
 )
@@ -245,3 +247,13 @@ def llm_thread(
         logger.error(f"Error in llm_thread: {e}", exc_info=True)
     finally:
         g.close()
+
+
+def get_openai_api_json_support(model_name: str, api_base_url: str = None) -> JsonSupport:
+    if model_name.startswith("deepseek-reasoner"):
+        return JsonSupport.NONE
+    if api_base_url:
+        host = urlparse(api_base_url).hostname
+        if host and host.endswith(".ai.azure.com"):
+            return JsonSupport.OBJECT
+    return JsonSupport.SCHEMA
