@@ -257,7 +257,7 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
                 continue
             else:
                 # Text files - encode utf-8 string as base64
-                b64_data = base64.b64encode(content.encode("utf-8")).decode("utf-8")
+                b64_data = content
             output_files.append({"filename": f.name, "b64_data": b64_data})
 
         # Collect output files from execution results
