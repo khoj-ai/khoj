@@ -64,7 +64,7 @@ from khoj.routers.research import (
     InformationCollectionIteration,
     execute_information_collection,
 )
-from khoj.routers.storage import upload_image_to_bucket
+from khoj.routers.storage import upload_user_image_to_bucket
 from khoj.utils import state
 from khoj.utils.helpers import (
     AsyncIteratorWrapper,
@@ -674,7 +674,7 @@ async def chat(
                 base64_data = decoded_string.split(",", 1)[1]
                 image_bytes = base64.b64decode(base64_data)
                 webp_image_bytes = convert_image_to_webp(image_bytes)
-                uploaded_image = upload_image_to_bucket(webp_image_bytes, request.user.object.id)
+                uploaded_image = upload_user_image_to_bucket(webp_image_bytes, request.user.object.id)
                 if uploaded_image:
                     uploaded_images.append(uploaded_image)
 
