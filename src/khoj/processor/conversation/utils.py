@@ -345,8 +345,7 @@ def construct_structured_message(
             constructed_messages.append({"type": "text", "text": attached_file_context})
         if vision_enabled and images:
             for image in images:
-                if image.startswith("https://"):
-                    constructed_messages.append({"type": "image_url", "image_url": {"url": image}})
+                constructed_messages.append({"type": "image_url", "image_url": {"url": image}})
         return constructed_messages
 
     if not is_none_or_empty(attached_file_context):
@@ -662,6 +661,23 @@ def defilter_query(query: str):
 class ImageWithType:
     content: Any
     type: str
+
+
+def get_image_from_base64(image: str, type="b64"):
+    # Extract image type and base64 data from inline image data
+    image_base64 = image.split(",", 1)[1]
+    image_type = image.split(";", 1)[0].split(":", 1)[1]
+
+    # Convert image to desired format
+    if type == "b64":
+        return ImageWithType(content=image_base64, type=image_type)
+    elif type == "pil":
+        image_data = base64.b64decode(image_base64)
+        image_pil = PIL.Image.open(BytesIO(image_data))
+        return ImageWithType(content=image_pil, type=image_type)
+    elif type == "bytes":
+        image_data = base64.b64decode(image_base64)
+        return ImageWithType(content=image_data, type=image_type)
 
 
 def get_image_from_url(image_url: str, type="pil"):

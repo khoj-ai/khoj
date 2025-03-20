@@ -15,6 +15,7 @@ from tenacity import (
 from khoj.processor.conversation.utils import (
     ThreadedGenerator,
     commit_conversation_trace,
+    get_image_from_base64,
     get_image_from_url,
 )
 from khoj.utils.helpers import (
@@ -232,7 +233,11 @@ def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt=Non
                 if part["type"] == "text":
                     content.append({"type": "text", "text": part["text"]})
                 elif part["type"] == "image_url":
-                    image = get_image_from_url(part["image_url"]["url"], type="b64")
+                    image_data = part["image_url"]["url"]
+                    if image_data.startswith("http"):
+                        image = get_image_from_url(image_data, type="b64")
+                    else:
+                        image = get_image_from_base64(image_data, type="b64")
                     # Prefix each image with text block enumerating the image number
                     # This helps the model reference the image in its response. Recommended by Anthropic
                     content.extend(
