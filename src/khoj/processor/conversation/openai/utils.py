@@ -247,4 +247,6 @@ def get_openai_api_json_support(model_name: str, api_base_url: str = None) -> Js
         host = urlparse(api_base_url).hostname
         if host and host.endswith(".ai.azure.com"):
             return JsonSupport.OBJECT
+        if host == "api.deepinfra.com":
+            return JsonSupport.OBJECT
     return JsonSupport.SCHEMA
