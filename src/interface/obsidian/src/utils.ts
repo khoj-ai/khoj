@@ -162,8 +162,9 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
         batch.forEach(fileItem => { formData.append('files', fileItem.blob, fileItem.path) });
 
         // Call Khoj backend to sync index with updated files in vault
+        const method = regenerate ? "PUT" : "PATCH";
         const response = await fetch(`${setting.khojUrl}/api/content?client=obsidian`, {
-            method: "PATCH",
+            method: method,
             headers: {
                 'Authorization': `Bearer ${setting.khojApiKey}`,
             },
@@ -527,7 +528,7 @@ function copyParentText(event: MouseEvent, message: string, originalButton: stri
     }).catch((error) => {
         console.error("Error copying text to clipboard:", error);
         const originalButtonText = button.innerHTML;
-        button.innerHTML = "⛔️";
+        setIcon((button as HTMLElement), 'x-circle');
         setTimeout(() => {
             button.innerHTML = originalButtonText;
             setIcon((button as HTMLElement), originalButton);

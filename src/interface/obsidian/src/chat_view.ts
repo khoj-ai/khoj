@@ -55,7 +55,7 @@ interface RenderMessageOptions {
 interface ChatMode {
     value: string;
     label: string;
-    emoji: string;
+    iconName: string; // Changed from emoji to iconName
     command: string;
 }
 
@@ -90,12 +90,12 @@ export class KhojChatView extends KhojPaneView {
     private currentAgent: string | null = null;
     private fileAccessMode: 'none' | 'read' | 'write' = 'none'; // Track the current file access mode
     private chatModes: ChatMode[] = [
-        { value: "default", label: "Default", emoji: "🎯", command: "/default" },
-        { value: "general", label: "General", emoji: "💭", command: "/general" },
-        { value: "notes", label: "Notes", emoji: "📝", command: "/notes" },
-        { value: "online", label: "Online", emoji: "🌐", command: "/online" },
-        { value: "image", label: "Image", emoji: "🖼️", command: "/image" },
-        { value: "research", label: "Research", emoji: "🔬", command: "/research" }
+        { value: "default", label: "Default", iconName: "target", command: "/default" },
+        { value: "general", label: "General", iconName: "message-circle", command: "/general" },
+        { value: "notes", label: "Notes", iconName: "file-text", command: "/notes" },
+        { value: "online", label: "Online", iconName: "globe", command: "/online" },
+        { value: "image", label: "Image", iconName: "image", command: "/image" },
+        { value: "research", label: "Research", iconName: "microscope", command: "/research" }
     ];
     private editRetryCount: number = 0;  // Ajout du compteur au niveau de la classe
     private fileInteractions: FileInteractions;
@@ -177,11 +177,12 @@ export class KhojChatView extends KhojPaneView {
             let apiMessage = user_message;
 
             if (modeMatch) {
-                // If message starts with a mode command, replace it with the emoji in display
-                displayMessage = user_message.replace(modeMatch.command, modeMatch.emoji);
+                // If message starts with a mode command, replace it with the icon in display
+                // We'll use a generic marker since we can't display SVG icons in messages
+                displayMessage = user_message.replace(modeMatch.command, `[${modeMatch.label}]`);
             } else if (selectedMode) {
                 // If no mode in message but mode selected, add the mode command for API
-                displayMessage = `${selectedMode.emoji} ${user_message}`;
+                displayMessage = `[${selectedMode.label}] ${user_message}`;
                 apiMessage = `${selectedMode.command} ${user_message}`;
             }
 
@@ -694,7 +695,7 @@ export class KhojChatView extends KhojPaneView {
             imageMarkdown = `![](${message})`;
         } else if (intentType === "excalidraw" || excalidrawDiagram) {
             const domain = this.setting.khojUrl.endsWith("/") ? this.setting.khojUrl : `${this.setting.khojUrl}/`;
-            const redirectMessage = `Hey, I'm not ready to show you diagrams yet here. But you can view it in ${domain}chat?conversationId=${conversationId}`;
+            const redirectMessage = `Hey, I'm not ready to show you diagrams yet here. But you can view it in ${domain}`;
             imageMarkdown = redirectMessage;
         } else if (mermaidjsDiagram) {
             imageMarkdown = "```mermaid\n" + mermaidjsDiagram + "\n```";
@@ -972,7 +973,7 @@ export class KhojChatView extends KhojPaneView {
             console.error("Error creating session:", error);
         }
 
-        this.renderMessage({ chatBodyEl, message: "Hey 👋🏾, what's up?", sender: "khoj", isSystemMessage: true });
+        this.renderMessage({ chatBodyEl, message: "Hey, what's up?", sender: "khoj", isSystemMessage: true });
     }
 
     async toggleChatSessions(forceShow: boolean = false): Promise<boolean> {
@@ -1018,7 +1019,7 @@ export class KhojChatView extends KhojPaneView {
                     if (incomingConversationId == conversationId) {
                         conversationSessionEl.classList.add("selected-conversation");
                     }
-                    const conversationTitle = conversation["slug"] || `New conversation 🌱`;
+                    const conversationTitle = conversation["slug"] || `New conversation`;
                     const conversationSessionTitleEl = conversationSessionEl.createDiv("conversation-session-title");
                     conversationSessionTitleEl.textContent = conversationTitle;
                     conversationSessionTitleEl.addEventListener('click', () => {
@@ -1198,7 +1199,7 @@ export class KhojChatView extends KhojPaneView {
             } else if (responseJson.response) {
                 // Render conversation history, if any
                 chatBodyEl.dataset.conversationId = responseJson.response.conversation_id;
-                chatBodyEl.dataset.conversationTitle = responseJson.response.slug || `New conversation 🌱`;
+                chatBodyEl.dataset.conversationTitle = responseJson.response.slug || `New conversation`;
 
                 // Update current agent from conversation history
                 if (responseJson.response.agent?.slug) {
@@ -1256,7 +1257,7 @@ export class KhojChatView extends KhojPaneView {
                 }
             }
         } catch (err) {
-            let errorMsg = "Unable to get response from Khoj server ❤️‍🩹. Ensure server is running or contact developers for help at [team@khoj.dev](mailto:team@khoj.dev) or in [Discord](https://discord.gg/BDgyabRM6e)";
+            let errorMsg = "Unable to get response from Khoj server. Ensure server is running or contact developers for help at [team@khoj.dev](mailto:team@khoj.dev) or in [Discord](https://discord.gg/BDgyabRM6e)";
             this.renderMessage({
                 chatBodyEl,
                 message: errorMsg,
@@ -1558,7 +1559,7 @@ export class KhojChatView extends KhojPaneView {
             await this.readChatStream(response);
         } catch (err) {
             console.error(`Khoj chat response failed with\n${err}`);
-            let errorMsg = "Sorry, unable to get response from Khoj backend ❤️‍🩹. Retry or contact developers for help at <a href=mailto:'team@khoj.dev'>team@khoj.dev</a> or <a href='https://discord.gg/BDgyabRM6e'>on Discord</a>";
+            let errorMsg = "Sorry, unable to get response from Khoj backend. Retry or contact developers for help at <a href=mailto:'team@khoj.dev'>team@khoj.dev</a> or <a href='https://discord.gg/BDgyabRM6e'>on Discord</a>";
             newResponseTextEl.textContent = errorMsg;
         }
     }
@@ -1650,11 +1651,11 @@ export class KhojChatView extends KhojPaneView {
                 if (!noSpeech) chatInput.value += response.json.text.trimStart();
                 this.autoResize();
             } else if (response.status === 501) {
-                throw new Error("⛔️ Configure speech-to-text model on server.");
+                throw new Error("Configure speech-to-text model on server.");
             } else if (response.status === 422) {
-                throw new Error("⛔️ Audio file to large to process.");
+                throw new Error("Audio file to large to process.");
             } else {
-                throw new Error("⛔️ Failed to transcribe audio.");
+                throw new Error("Failed to transcribe audio.");
             }
 
             // Don't auto-send empty messages or when no speech is detected
@@ -1706,7 +1707,7 @@ export class KhojChatView extends KhojPaneView {
                 .getUserMedia({ audio: true })
                 ?.then(handleRecording)
                 .catch((e) => {
-                    this.flashStatusInChatInput("⛔️ Failed to access microphone");
+                    this.flashStatusInChatInput("Failed to access microphone");
                 });
         } else if (this.mediaRecorder?.state === 'recording' || event.type === 'touchend' || event.type === 'touchcancel' || event.type === 'mouseup' || event.type === 'keyup') {
             this.mediaRecorder.stop();
@@ -2243,13 +2244,13 @@ export class KhojChatView extends KhojPaneView {
 
             // Create Apply button
             const applyButton = buttonsContainer.createEl("button", {
-                text: "✅ Apply",
+                text: "Apply",
                 cls: ["edit-confirm-button", "edit-apply-button"],
             });
 
             // Create Cancel button
             const cancelButton = buttonsContainer.createEl("button", {
-                text: "❌ Cancel",
+                text: "Cancel",
                 cls: ["edit-confirm-button", "edit-cancel-button"],
             });
 
@@ -2287,12 +2288,12 @@ export class KhojChatView extends KhojPaneView {
                 }
 
                 const successMessage = lastMessage.createDiv({ cls: "edit-status-message success" });
-                successMessage.textContent = "✅ Changes applied successfully";
+                successMessage.textContent = "Changes applied successfully";
                 setTimeout(() => successMessage.remove(), 3000);
             } catch (error) {
                 console.error("Error applying changes:", error);
                 const errorMessage = lastMessage.createDiv({ cls: "edit-status-message error" });
-                errorMessage.textContent = "❌ Error applying changes";
+                errorMessage.textContent = "Error applying changes";
                 setTimeout(() => errorMessage.remove(), 3000);
             } finally {
                 buttonsContainer.remove();
@@ -2308,12 +2309,12 @@ export class KhojChatView extends KhojPaneView {
                     }
                 }
                 const successMessage = lastMessage.createDiv({ cls: "edit-status-message success" });
-                successMessage.textContent = "✅ Changes cancelled successfully";
+                successMessage.textContent = "Changes cancelled successfully";
                 setTimeout(() => successMessage.remove(), 3000);
             } catch (error) {
                 console.error("Error cancelling changes:", error);
                 const errorMessage = lastMessage.createDiv({ cls: "edit-status-message error" });
-                errorMessage.textContent = "❌ Error cancelling changes";
+                errorMessage.textContent = "Error cancelling changes";
                 setTimeout(() => errorMessage.remove(), 3000);
             } finally {
                 buttonsContainer.remove();
@@ -2324,7 +2325,7 @@ export class KhojChatView extends KhojPaneView {
     private convertCommandsToEmojis(message: string): string {
         const modeMatch = this.chatModes.find(mode => message.startsWith(mode.command));
         if (modeMatch) {
-            return message.replace(modeMatch.command, modeMatch.emoji);
+            return message.replace(modeMatch.command, `[${modeMatch.label}]`);
         }
         return message;
     }
@@ -2396,7 +2397,8 @@ export class KhojChatView extends KhojPaneView {
         const retryBadge = retryContainer.createDiv({ cls: "khoj-retry-badge" });
 
         // Add retry icon
-        retryBadge.createSpan({ cls: "retry-icon", text: "🔄" });
+        const retryIcon = retryBadge.createSpan({ cls: "retry-icon" });
+        setIcon(retryIcon, "refresh-cw");
 
         // Add main text - keep it focused only on retry action
         retryBadge.createSpan({ text: "Try again to apply changes" });
@@ -2455,9 +2457,9 @@ export class KhojChatView extends KhojPaneView {
 
                 // Create emoji span and label span for better styling control
                 const emojiSpan = option.createSpan({
-                    cls: "khoj-mode-dropdown-emoji",
-                    text: mode.emoji
+                    cls: "khoj-mode-dropdown-emoji"
                 });
+                setIcon(emojiSpan, mode.iconName);
 
                 const labelSpan = option.createSpan({
                     cls: "khoj-mode-dropdown-label",
