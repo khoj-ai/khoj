@@ -246,10 +246,6 @@ export class KhojChatView extends KhojPaneView {
 
         // Create the chat body
         let chatBodyEl = contentEl.createDiv({ attr: { id: "khoj-chat-body", class: "khoj-chat-body" } });
-
-        // Create the top control row - nous la conservons mais sans le sélecteur d'agent
-        let topControlRow = contentEl.createDiv("khoj-top-control-row");
-
         // Add chat input field
         let inputRow = contentEl.createDiv("khoj-input-row");
 

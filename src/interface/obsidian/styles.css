@@ -23,7 +23,6 @@ If your plugin does not need CSS, delete this file.
 .khoj-chat pre {
     text-wrap: unset;
     border-radius: 6px;
-    padding: 12px;
     background-color: var(--background-modifier-hover);
     margin: 12px 0;
 }
@@ -38,12 +37,12 @@ If your plugin does not need CSS, delete this file.
     font-size: 16px;
     line-height: 1.5;
     padding: 0;
-    margin: 0;
+    margin: 0px;
 }
 
 .khoj-chat>* {
     padding: 12px;
-    margin: 12px;
+    margin: 5px;
 }
 
 #khoj-chat-title {
@@ -421,8 +420,8 @@ div.selected-conversation {
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
-    margin-top: 12px;
-    margin-bottom: 12px;
+    margin-top: 0px;
+    margin-bottom: 0px;
     transform: none;
 }
 
@@ -574,10 +573,10 @@ div.khoj-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 16px;
-    height: 48px;
-    background-color: var(--background-secondary-alt, var(--background-secondary));
+    padding: 12px 12px;
+    background-color: var(--background-secondary, var(--background-secondary));
     border-bottom: 1px solid var(--border-color);
+    border-radius: 8px;
     width: 100%;
     box-sizing: border-box;
     position: sticky;
@@ -1340,16 +1339,6 @@ img.copy-icon {
     background-color: var(--background-primary);
     color: var(--text-normal);
     padding: 8px;
-}
-
-.khoj-top-control-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 8px 16px;
-    background: var(--background-primary);
-    border-bottom: none !important;
-    margin: 0;
 }
 
 .khoj-agent-container {
