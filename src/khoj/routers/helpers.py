@@ -540,11 +540,15 @@ async def generate_online_subqueries(
 
     agent_chat_model = agent.chat_model if agent else None
 
+    class OnlineQueries(BaseModel):
+        queries: List[str]
+
     with timer("Chat actor: Generate online search subqueries", logger):
         response = await send_message_to_model_wrapper(
             online_queries_prompt,
             query_images=query_images,
             response_type="json_object",
+            response_schema=OnlineQueries,
             user=user,
             query_files=query_files,
             agent_chat_model=agent_chat_model,
@@ -1129,6 +1133,7 @@ async def send_message_to_model_wrapper(
     query: str,
     system_message: str = "",
     response_type: str = "text",
+    response_schema: BaseModel = None,
     deepthought: bool = False,
     user: KhojUser = None,
     query_images: List[str] = None,
@@ -1209,6 +1214,7 @@ async def send_message_to_model_wrapper(
             api_key=api_key,
             model=chat_model_name,
             response_type=response_type,
+            response_schema=response_schema,
             api_base_url=api_base_url,
             tracer=tracer,
         )
@@ -1255,6 +1261,7 @@ async def send_message_to_model_wrapper(
             api_key=api_key,
             model=chat_model_name,
             response_type=response_type,
+            response_schema=response_schema,
             tracer=tracer,
         )
     else:
@@ -1265,6 +1272,7 @@ def send_message_to_model_wrapper_sync(
     message: str,
     system_message: str = "",
     response_type: str = "text",
+    response_schema: BaseModel = None,
     user: KhojUser = None,
     query_images: List[str] = None,
     query_files: str = "",
@@ -1326,6 +1334,7 @@ def send_message_to_model_wrapper_sync(
             api_base_url=api_base_url,
             model=chat_model_name,
             response_type=response_type,
+            response_schema=response_schema,
             tracer=tracer,
         )
 
@@ -1370,6 +1379,7 @@ def send_message_to_model_wrapper_sync(
             api_key=api_key,
             model=chat_model_name,
             response_type=response_type,
+            response_schema=response_schema,
             tracer=tracer,
         )
     else:

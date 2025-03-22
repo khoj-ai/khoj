@@ -2,6 +2,7 @@ import logging
 import os
 from threading import Thread
 from typing import Dict, List
+from urllib.parse import urlparse
 
 import openai
 from openai.types.chat.chat_completion import ChatCompletion
@@ -16,6 +17,7 @@ from tenacity import (
 )
 
 from khoj.processor.conversation.utils import (
+    JsonSupport,
     ThreadedGenerator,
     commit_conversation_trace,
 )
@@ -60,45 +62,29 @@ def completion_with_backoff(
 
     formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
 
-    # Update request parameters for compatability with o1 model series
-    # Refer: https://platform.openai.com/docs/guides/reasoning/beta-limitations
-    stream = True
-    model_kwargs["stream_options"] = {"include_usage": True}
-    if model_name == "o1":
+    # Tune reasoning models arguments
+    if model_name.startswith("o1") or model_name.startswith("o3"):
         temperature = 1
-        stream = False
-        model_kwargs.pop("stream_options", None)
-    elif model_name.startswith("o1"):
-        temperature = 1
-        model_kwargs.pop("response_format", None)
-    elif model_name.startswith("o3-"):
-        temperature = 1
+        model_kwargs["reasoning_effort"] = "medium"
 
+    model_kwargs["stream_options"] = {"include_usage": True}
     if os.getenv("KHOJ_LLM_SEED"):
         model_kwargs["seed"] = int(os.getenv("KHOJ_LLM_SEED"))
 
-    chat: ChatCompletion | openai.Stream[ChatCompletionChunk] = client.chat.completions.create(
+    aggregated_response = ""
+    with client.beta.chat.completions.stream(
         messages=formatted_messages,  # type: ignore
-        model=model_name,  # type: ignore
-        stream=stream,
+        model=model_name,
         temperature=temperature,
         timeout=20,
         **model_kwargs,
-    )
-
-    aggregated_response = ""
-    if not stream:
-        chunk = chat
-        aggregated_response = chunk.choices[0].message.content
-    else:
+    ) as chat:
         for chunk in chat:
-            if len(chunk.choices) == 0:
+            if chunk.type == "error":
+                logger.error(f"Openai api response error: {chunk.error}", exc_info=True)
                 continue
-            delta_chunk = chunk.choices[0].delta  # type: ignore
-            if isinstance(delta_chunk, str):
-                aggregated_response += delta_chunk
-            elif delta_chunk.content:
-                aggregated_response += delta_chunk.content
+            elif chunk.type == "content.delta":
+                aggregated_response += chunk.delta
 
     # Calculate cost of chat
     input_tokens = chunk.usage.prompt_tokens if hasattr(chunk, "usage") and chunk.usage else 0
@@ -172,20 +158,13 @@ def llm_thread(
 
         formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
 
-        # Update request parameters for compatability with o1 model series
-        # Refer: https://platform.openai.com/docs/guides/reasoning/beta-limitations
-        stream = True
-        model_kwargs["stream_options"] = {"include_usage": True}
-        if model_name == "o1":
+        # Tune reasoning models arguments
+        if model_name.startswith("o1"):
             temperature = 1
-            stream = False
-            model_kwargs.pop("stream_options", None)
-        elif model_name.startswith("o1-"):
+        elif model_name.startswith("o3"):
             temperature = 1
-            model_kwargs.pop("response_format", None)
-        elif model_name.startswith("o3-"):
-            temperature = 1
-            # Get the first system message and add the string `Formatting re-enabled` to it. See https://platform.openai.com/docs/guides/reasoning-best-practices
+            # Get the first system message and add the string `Formatting re-enabled` to it.
+            # See https://platform.openai.com/docs/guides/reasoning-best-practices
             if len(formatted_messages) > 0:
                 system_messages = [
                     (i, message) for i, message in enumerate(formatted_messages) if message["role"] == "system"
@@ -195,7 +174,6 @@ def llm_thread(
                     formatted_messages[first_system_message_index][
                         "content"
                     ] = f"{first_system_message} Formatting re-enabled"
-
         elif model_name.startswith("deepseek-reasoner"):
             # Two successive messages cannot be from the same role. Should merge any back-to-back messages from the same role.
             # The first message should always be a user message (except system message).
@@ -210,6 +188,8 @@ def llm_thread(
 
             formatted_messages = updated_messages
 
+        stream = True
+        model_kwargs["stream_options"] = {"include_usage": True}
         if os.getenv("KHOJ_LLM_SEED"):
             model_kwargs["seed"] = int(os.getenv("KHOJ_LLM_SEED"))
 
@@ -258,3 +238,13 @@ def llm_thread(
         logger.error(f"Error in llm_thread: {e}", exc_info=True)
     finally:
         g.close()
+
+
+def get_openai_api_json_support(model_name: str, api_base_url: str = None) -> JsonSupport:
+    if model_name.startswith("deepseek-reasoner"):
+        return JsonSupport.NONE
+    if api_base_url:
+        host = urlparse(api_base_url).hostname
+        if host and host.endswith(".ai.azure.com"):
+            return JsonSupport.OBJECT
+    return JsonSupport.SCHEMA

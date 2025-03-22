@@ -10,8 +10,10 @@ from khoj.processor.conversation import prompts
 from khoj.processor.conversation.openai.utils import (
     chat_completion_with_backoff,
     completion_with_backoff,
+    get_openai_api_json_support,
 )
 from khoj.processor.conversation.utils import (
+    JsonSupport,
     clean_json,
     construct_structured_message,
     generate_chatml_messages_with_context,
@@ -119,11 +121,25 @@ def extract_questions(
 
 
 def send_message_to_model(
-    messages, api_key, model, response_type="text", api_base_url=None, temperature=0, tracer: dict = {}
+    messages,
+    api_key,
+    model,
+    response_type="text",
+    response_schema=None,
+    api_base_url=None,
+    temperature=0,
+    tracer: dict = {},
 ):
     """
     Send message to model
     """
+
+    model_kwargs = {}
+    json_support = get_openai_api_json_support(model, api_base_url)
+    if response_schema and json_support == JsonSupport.SCHEMA:
+        model_kwargs["response_format"] = response_schema
+    elif response_type == "json_object" and json_support == JsonSupport.OBJECT:
+        model_kwargs["response_format"] = {"type": response_type}
 
     # Get Response from GPT
     return completion_with_backoff(
@@ -132,7 +148,7 @@ def send_message_to_model(
         openai_api_key=api_key,
         temperature=temperature,
         api_base_url=api_base_url,
-        model_kwargs={"response_format": {"type": response_type}},
+        model_kwargs=model_kwargs,
         tracer=tracer,
     )
 

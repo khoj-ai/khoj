@@ -18,6 +18,7 @@ from tenacity import (
 from khoj.processor.conversation.utils import (
     ThreadedGenerator,
     commit_conversation_trace,
+    get_image_from_base64,
     get_image_from_url,
 )
 from khoj.utils.helpers import (
@@ -65,6 +66,8 @@ def gemini_completion_with_backoff(
         temperature=temperature,
         max_output_tokens=MAX_OUTPUT_TOKENS_GEMINI,
         safety_settings=SAFETY_SETTINGS,
+        response_mime_type=model_kwargs.get("response_mime_type", "text/plain") if model_kwargs else "text/plain",
+        response_schema=model_kwargs.get("response_schema", None) if model_kwargs else None,
     )
 
     formatted_messages = [gtypes.Content(role=message.role, parts=message.content) for message in messages]
@@ -243,7 +246,11 @@ def format_messages_for_gemini(
             message_content = []
             for item in sorted(message.content, key=lambda x: 0 if x["type"] == "image_url" else 1):
                 if item["type"] == "image_url":
-                    image = get_image_from_url(item["image_url"]["url"], type="bytes")
+                    image_data = item["image_url"]["url"]
+                    if image_data.startswith("http"):
+                        image = get_image_from_url(image_data, type="bytes")
+                    else:
+                        image = get_image_from_base64(image_data, type="bytes")
                     message_content += [gtypes.Part.from_bytes(data=image.content, mime_type=image.type)]
                 else:
                     message_content += [gtypes.Part.from_text(text=item.get("text", ""))]

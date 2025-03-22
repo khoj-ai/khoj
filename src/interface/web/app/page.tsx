@@ -3,7 +3,7 @@ import "./globals.css";
 import styles from "./page.module.css";
 import "katex/dist/katex.min.css";
 
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { ArrowsVertical } from "@phosphor-icons/react";
 
@@ -48,8 +48,18 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "./components/appSidebar/appSidebar";
 import { Separator } from "@/components/ui/separator";
 import { KhojLogoType } from "./components/logo/khojLogo";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+
+const fetcher = (url: string) =>
+    fetch(url)
+        .then((res) => res.json())
+        .catch((err) => console.warn(err));
 
 interface ChatBodyDataProps {
     chatOptionsData: ChatOptions | null;
@@ -104,10 +114,11 @@ function AgentCards({
                     >
                         <PopoverTrigger asChild>
                             <Card
-                                className={`${selectedAgent === agent.slug
+                                className={`${
+                                    selectedAgent === agent.slug
                                         ? convertColorToBorderClass(agent.color)
                                         : "border-stone-100 dark:border-neutral-700 text-muted-foreground"
-                                    }
+                                }
                             hover:cursor-pointer rounded-lg px-2 py-2`}
                                 onDoubleClick={() => openAgentEditCard(agent.slug)}
                                 onClick={() => {
@@ -144,7 +155,7 @@ function AgentCards({
                                 selectedChatModelOption=""
                                 agentSlug=""
                                 isSubscribed={isUserSubscribed(userConfig)}
-                                setAgentChangeTriggered={() => { }}
+                                setAgentChangeTriggered={() => {}}
                                 modelOptions={[]}
                                 inputToolOptions={{}}
                                 outputModeOptions={{}}
@@ -199,12 +210,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
 
     const onConversationIdChange = props.onConversationIdChange;
 
-    const agentsFetcher = () =>
-        window
-            .fetch("/api/agents")
-            .then((res) => res.json())
-            .catch((err) => console.log(err));
-    const { data: agentsData, error } = useSWR<AgentData[]>("agents", agentsFetcher, {
+    const { data: agentsData, error } = useSWR<AgentData[]>("/api/agents", fetcher, {
         revalidateOnFocus: false,
     });
 
@@ -222,8 +228,8 @@ function ChatBodyData(props: ChatBodyDataProps) {
             today.getHours() >= 17 || today.getHours() < 4
                 ? "evening"
                 : today.getHours() >= 12
-                    ? "afternoon"
-                    : "morning";
+                  ? "afternoon"
+                  : "morning";
         const nameSuffix = props.userConfig?.given_name ? `, ${props.userConfig?.given_name}` : "";
         const greetings = [
             `What would you like to get done${nameSuffix}?`,
@@ -354,7 +360,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                             setUploadedFiles={props.setUploadedFiles}
                             agentColor={agents.find((agent) => agent.slug === selectedAgent)?.color}
                             ref={chatInputRef}
-                            setTriggeredAbort={() => { }}
+                            setTriggeredAbort={() => {}}
                         />
                     </div>
                 )}
@@ -438,21 +444,23 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         <DropdownMenu>
                             <DropdownMenuTrigger>
                                 <Button className="w-full m-2 p-0" variant="outline">
-                                    {
-                                        selectedAgent ? (
-                                            getIconFromIconName(
-                                                agents.find((agent) => agent.slug === selectedAgent)?.icon ?? "",
-                                                agents.find((agent) => agent.slug === selectedAgent)?.color ?? ""
-                                            )
-                                        ) : (
-                                            <ArrowsVertical className="h-5 w-5" />
+                                    {selectedAgent ? (
+                                        getIconFromIconName(
+                                            agents.find((agent) => agent.slug === selectedAgent)
+                                                ?.icon ?? "Lightbulb",
+                                            agents.find((agent) => agent.slug === selectedAgent)
+                                                ?.color ?? "orange",
                                         )
-                                    }
-                                    {selectedAgent ? `${agents.find((agent) => agent.slug === selectedAgent)?.name}` : "Select Agent"}
+                                    ) : (
+                                        <ArrowsVertical className="h-5 w-5" />
+                                    )}
+                                    {selectedAgent
+                                        ? `${agents?.find((agent) => agent.slug === selectedAgent)?.name ?? "Khoj"}`
+                                        : "Select Agent"}
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="overflow-y-scroll h-96">
-                                {
+                            <DropdownMenuContent align="end" className="overflow-y-scroll max-h-96">
+                                {agentIcons.length > 0 ? (
                                     agentIcons.map((icon, index) => (
                                         <DropdownMenuItem
                                             key={`${index}-${agents[index].slug}`}
@@ -464,7 +472,17 @@ function ChatBodyData(props: ChatBodyDataProps) {
                                             {icon} {agents[index].name}
                                         </DropdownMenuItem>
                                     ))
-                                }
+                                ) : (
+                                    <DropdownMenuItem
+                                        key="0-khoj"
+                                        onClick={() => {
+                                            setSelectedAgent("khoj");
+                                            chatInputRef.current?.focus();
+                                        }}
+                                    >
+                                        {getIconFromIconName("Lightbulb", "orange")} Khoj
+                                    </DropdownMenuItem>
+                                )}
                             </DropdownMenuContent>
                         </DropdownMenu>
                         <div
@@ -473,15 +491,19 @@ function ChatBodyData(props: ChatBodyDataProps) {
                             <ChatInputArea
                                 isLoggedIn={props.isLoggedIn}
                                 sendMessage={(message) => setMessage(message)}
-                                sendImage={(image) => setImages((prevImages) => [...prevImages, image])}
+                                sendImage={(image) =>
+                                    setImages((prevImages) => [...prevImages, image])
+                                }
                                 sendDisabled={processingMessage}
                                 chatOptionsData={props.chatOptionsData}
                                 conversationId={null}
                                 isMobileWidth={props.isMobileWidth}
                                 setUploadedFiles={props.setUploadedFiles}
-                                agentColor={agents.find((agent) => agent.slug === selectedAgent)?.color}
+                                agentColor={
+                                    agents.find((agent) => agent.slug === selectedAgent)?.color
+                                }
                                 ref={chatInputRef}
-                                setTriggeredAbort={() => { }}
+                                setTriggeredAbort={() => {}}
                             />
                         </div>
                     </div>

@@ -682,7 +682,12 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             autoFocus={true}
                             value={message}
                             onKeyDown={(e) => {
-                                if (e.key === "Enter" && !e.shiftKey && !props.isMobileWidth) {
+                                if (
+                                    e.key === "Enter" &&
+                                    !e.shiftKey &&
+                                    !props.isMobileWidth &&
+                                    !props.sendDisabled
+                                ) {
                                     setImageUploaded(false);
                                     setImagePaths([]);
                                     e.preventDefault();
@@ -690,7 +695,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                 }
                             }}
                             onChange={(e) => setMessage(e.target.value)}
-                            disabled={props.sendDisabled || recording}
+                            disabled={recording}
                         />
                     </div>
                     <div className="flex items-end pb-2">
@@ -753,7 +758,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             </TooltipProvider>
                         )}
                         <Button
-                            className={`${(!message || recording) && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                            className={`${(!message || recording || props.sendDisabled) && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
                             disabled={props.sendDisabled || !props.isLoggedIn}
                             onClick={onSendMessage}
                         >
@@ -789,8 +794,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             </Button>
                         </TooltipTrigger>
                         <TooltipContent className="text-xs">
-                            Research Mode allows you to get more deeply researched,
-                            detailed responses. Response times may be longer.
+                            Research Mode allows you to get more deeply researched, detailed
+                            responses. Response times may be longer.
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>

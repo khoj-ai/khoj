@@ -12,7 +12,7 @@ from google.genai import types as gtypes
 from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import Agent, KhojUser, TextToImageModelConfig
 from khoj.routers.helpers import ChatEvent, generate_better_image_prompt
-from khoj.routers.storage import upload_image
+from khoj.routers.storage import upload_generated_image_to_bucket
 from khoj.utils import state
 from khoj.utils.helpers import convert_image_to_webp, timer
 from khoj.utils.rawconfig import LocationData
@@ -118,7 +118,7 @@ async def text_to_image(
 
     # Decide how to store the generated image
     with timer("Upload image to S3", logger):
-        image_url = upload_image(webp_image_bytes, user.uuid)
+        image_url = upload_generated_image_to_bucket(webp_image_bytes, user.uuid)
 
     if not image_url:
         image = f"data:image/webp;base64,{base64.b64encode(webp_image_bytes).decode('utf-8')}"
