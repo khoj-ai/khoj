@@ -2,6 +2,7 @@ import { ItemView, WorkspaceLeaf } from 'obsidian';
 import { KhojSetting } from 'src/settings';
 import { KhojSearchModal } from 'src/search_modal';
 import { KhojView, populateHeaderPane } from './utils';
+import { KhojChatView } from './chat_view';
 
 export abstract class KhojPaneView extends ItemView {
     setting: KhojSetting;
@@ -32,10 +33,15 @@ export abstract class KhojPaneView extends ItemView {
             if (this.getViewType() === KhojView.CHAT) {
                 const newChatButton = headerEl.querySelector('.khoj-header-new-chat-button') as HTMLButtonElement;
                 if (newChatButton) {
-                    // @ts-ignore - We know this method exists in the KhojChatView class
                     newChatButton.addEventListener('click', async () => {
-                        // @ts-ignore
-                        await this.createNewConversation(this.currentAgent || undefined);
+                        // Access the chat view directly from the leaf after activation
+                        const leaves = this.app.workspace.getLeavesOfType(KhojView.CHAT);
+                        if (leaves.length > 0) {
+                            // Use a type assertion to inform TypeScript
+                            const chatView = leaves[0].view as KhojChatView;
+                            // Now TypeScript knows it's a KhojChatView
+                            chatView.createNewConversation();
+                        }
                     });
                 }
             }
