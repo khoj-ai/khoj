@@ -1220,6 +1220,7 @@ async def send_message_to_model_wrapper(
         )
     elif model_type == ChatModel.ModelType.ANTHROPIC:
         api_key = chat_model.ai_model_api.api_key
+        api_base_url = chat_model.ai_model_api.api_base_url
         truncated_messages = generate_chatml_messages_with_context(
             user_message=query,
             context_message=context,
@@ -1239,6 +1240,7 @@ async def send_message_to_model_wrapper(
             model=chat_model_name,
             response_type=response_type,
             deepthought=deepthought,
+            api_base_url=api_base_url,
             tracer=tracer,
         )
     elif model_type == ChatModel.ModelType.GOOGLE:
@@ -1342,6 +1344,7 @@ def send_message_to_model_wrapper_sync(
 
     elif chat_model.model_type == ChatModel.ModelType.ANTHROPIC:
         api_key = chat_model.ai_model_api.api_key
+        api_base_url = chat_model.ai_model_api.api_base_url
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
             system_message=system_message,
@@ -1356,6 +1359,7 @@ def send_message_to_model_wrapper_sync(
         return anthropic_send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
+            api_base_url=api_base_url,
             model=chat_model_name,
             response_type=response_type,
             tracer=tracer,
@@ -1510,6 +1514,7 @@ def generate_chat_response(
 
         elif chat_model.model_type == ChatModel.ModelType.ANTHROPIC:
             api_key = chat_model.ai_model_api.api_key
+            api_base_url = chat_model.ai_model_api.api_base_url
             chat_response = converse_anthropic(
                 compiled_references,
                 query_to_run,
@@ -1519,6 +1524,7 @@ def generate_chat_response(
                 conversation_log=meta_log,
                 model=chat_model.name,
                 api_key=api_key,
+                api_base_url=api_base_url,
                 completion_func=partial_completion,
                 conversation_commands=conversation_commands,
                 max_prompt_size=chat_model.max_prompt_size,

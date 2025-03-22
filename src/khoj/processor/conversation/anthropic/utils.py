@@ -19,6 +19,7 @@ from khoj.processor.conversation.utils import (
     get_image_from_url,
 )
 from khoj.utils.helpers import (
+    get_ai_api_info,
     get_chat_usage_metrics,
     is_none_or_empty,
     is_promptrace_enabled,
@@ -26,11 +27,23 @@ from khoj.utils.helpers import (
 
 logger = logging.getLogger(__name__)
 
-anthropic_clients: Dict[str, anthropic.Anthropic] = {}
-
+anthropic_clients: Dict[str, anthropic.Anthropic | anthropic.AnthropicVertex] = {}
 
 DEFAULT_MAX_TOKENS_ANTHROPIC = 8000
 MAX_REASONING_TOKENS_ANTHROPIC = 12000
+
+
+def get_anthropic_client(api_key, api_base_url=None) -> anthropic.Anthropic | anthropic.AnthropicVertex:
+    api_info = get_ai_api_info(api_key, api_base_url)
+    if api_info.api_key:
+        client = anthropic.Anthropic(api_key=api_info.api_key)
+    else:
+        client = anthropic.AnthropicVertex(
+            region=api_info.region,
+            project_id=api_info.project,
+            credentials=api_info.credentials,
+        )
+    return client
 
 
 @retry(
@@ -45,17 +58,17 @@ def anthropic_completion_with_backoff(
     model_name: str,
     temperature=0,
     api_key=None,
+    api_base_url: str = None,
     model_kwargs=None,
     max_tokens=None,
     response_type="text",
     deepthought=False,
     tracer={},
 ) -> str:
-    if api_key not in anthropic_clients:
-        client: anthropic.Anthropic = anthropic.Anthropic(api_key=api_key)
+    client = anthropic_clients.get(api_key)
+    if not client:
+        client = get_anthropic_client(api_key, api_base_url)
         anthropic_clients[api_key] = client
-    else:
-        client = anthropic_clients[api_key]
 
     formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
     aggregated_response = ""
@@ -115,6 +128,7 @@ def anthropic_chat_completion_with_backoff(
     model_name,
     temperature,
     api_key,
+    api_base_url,
     system_prompt,
     max_prompt_size=None,
     completion_func=None,
@@ -132,6 +146,7 @@ def anthropic_chat_completion_with_backoff(
             model_name,
             temperature,
             api_key,
+            api_base_url,
             max_prompt_size,
             deepthought,
             model_kwargs,
@@ -149,17 +164,17 @@ def anthropic_llm_thread(
     model_name,
     temperature,
     api_key,
+    api_base_url=None,
     max_prompt_size=None,
     deepthought=False,
     model_kwargs=None,
     tracer={},
 ):
     try:
-        if api_key not in anthropic_clients:
-            client: anthropic.Anthropic = anthropic.Anthropic(api_key=api_key)
+        client = anthropic_clients.get(api_key)
+        if not client:
+            client = get_anthropic_client(api_key, api_base_url)
             anthropic_clients[api_key] = client
-        else:
-            client: anthropic.Anthropic = anthropic_clients[api_key]
 
         model_kwargs = model_kwargs or dict()
         max_tokens = DEFAULT_MAX_TOKENS_ANTHROPIC
