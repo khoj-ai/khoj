@@ -29,23 +29,6 @@ export abstract class KhojPaneView extends ItemView {
             // Setup the header pane
             await populateHeaderPane(headerEl, this.setting);
 
-            // If the view is a chat view, add an event listener to the "New Chat" button
-            if (this.getViewType() === KhojView.CHAT) {
-                const newChatButton = headerEl.querySelector('.khoj-header-new-chat-button') as HTMLButtonElement;
-                if (newChatButton) {
-                    newChatButton.addEventListener('click', async () => {
-                        // Access the chat view directly from the leaf after activation
-                        const leaves = this.app.workspace.getLeavesOfType(KhojView.CHAT);
-                        if (leaves.length > 0) {
-                            // Use a type assertion to inform TypeScript
-                            const chatView = leaves[0].view as KhojChatView;
-                            // Now TypeScript knows it's a KhojChatView
-                            chatView.createNewConversation();
-                        }
-                    });
-                }
-            }
-
             // Set the active nav pane
             headerEl.getElementsByClassName("chat-nav")[0]?.classList.add("khoj-nav-selected");
             headerEl.getElementsByClassName("chat-nav")[0]?.addEventListener("click", (_) => { this.activateView(KhojView.CHAT); });
