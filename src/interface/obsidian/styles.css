@@ -416,13 +416,13 @@ div.selected-conversation {
     align-items: center;
     background-color: var(--background-secondary-alt, var(--background-secondary));
     border-radius: 16px;
-    padding: 16px;
+    padding: 10px 16px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
-    margin-top: 16px;
-    margin-bottom: 16px;
+    margin-top: 12px;
+    margin-bottom: 12px;
     transform: none;
 }
 
@@ -435,14 +435,14 @@ div.selected-conversation {
 
 #khoj-chat-input {
     flex: 1;
-    min-width: 200px;
+    min-width: 100px;
     border: none;
     background: transparent;
     color: var(--text-normal);
     font-size: calc(var(--font-ui-medium) * 1.05);
     padding: 16px;
     min-height: 24px;
-    max-height: 400px;
+    max-height: 150px;
     resize: none;
     border-radius: 8px;
     outline: none;
@@ -571,20 +571,20 @@ div.selected-conversation {
 
 /* Improved header styles for a more modern look */
 div.khoj-header {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 24px;
-    padding: 12px 16px 16px;
-    margin: 0;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-app-region: drag;
-    position: relative;
-    background-color: var(--background-primary);
-    border-bottom: 1px solid var(--background-modifier-border);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
+    padding: 0 16px;
+    height: 48px;
+    background-color: var(--background-secondary-alt, var(--background-secondary));
+    border-bottom: 1px solid var(--border-color);
+    width: 100%;
+    box-sizing: border-box;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-wrap: wrap;
+    /* Allow elements to wrap on smaller screens */
 }
 
 /* Keeps the navigation menu clickable */
@@ -663,20 +663,41 @@ div.khoj-logo:hover {
 @media only screen and (max-width: 600px) {
     div.khoj-header {
         display: grid;
-        grid-template-columns: auto 1fr auto;
-        gap: 16px;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+        gap: 12px;
         padding: 16px 12px 12px;
         margin: 0 0 16px 0;
     }
 
+    div.khoj-header h3 {
+        text-align: center;
+        margin-bottom: 8px;
+    }
+
     nav.khoj-nav {
-        grid-gap: 12px;
+        grid-gap: 8px;
         justify-content: center;
+        order: 3;
     }
 
     .khoj-header-right-container {
         flex-direction: column;
+        align-items: center;
         gap: 8px;
+        order: 2;
+        margin: 0 auto;
+    }
+
+    #khoj-header-agent-select {
+        width: 100%;
+        max-width: 250px;
+    }
+
+    .khoj-header-new-chat-button {
+        width: 100%;
+        max-width: 250px;
+        justify-content: center;
     }
 
     .khoj-chat-message-text {
@@ -817,24 +838,22 @@ div.khoj-logo:hover {
 }
 
 .khoj-header-agent-select {
-    border: 1px solid var(--background-modifier-border);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--khoj-storm-grey);
     background-color: var(--background-primary);
     color: var(--text-normal);
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-size: 13px;
-    height: 32px;
-    width: 100%;
     cursor: pointer;
-    -webkit-app-region: no-drag;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    min-width: 120px;
+    height: 32px;
+    margin: 0;
+    width: 100%;
 }
 
 .khoj-header-agent-select:hover {
     border-color: var(--text-accent);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .khoj-header-agent-select:focus {
@@ -1288,35 +1307,10 @@ img.copy-icon {
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
-/* Chat Mode Selector Styles */
-.khoj-mode-row {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 16px;
-    padding: 8px 16px;
-    font-family: inherit;
-    justify-content: center;
-    align-items: center;
-}
+/* Chat Mode Selector Styles - Using dropdown only */
+/* Removed the .khoj-mode-row, .khoj-mode-container, .khoj-mode-input, and .khoj-mode-label classes */
 
-.khoj-mode-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.khoj-mode-input {
-    margin: 0;
-}
-
-.khoj-mode-label {
-    font-family: inherit;
-    font-size: 14px;
-    cursor: pointer;
-}
-
-/* Chat Mode Selector Styles */
+/* Chat Agent Selector Styles */
 .khoj-agent-select {
     font-family: inherit;
     font-size: 14px;
@@ -1800,6 +1794,7 @@ button.reference-button:hover {
 }
 
 /* Styles for the mode dropdown */
+/* TODO : Tu peux obscurcir davantage le mode actuellement selectionné ? Actuellement, c'est à peine plus foncé que le fond principal. */
 .khoj-mode-dropdown {
     display: block;
     background-color: var(--background-primary);
@@ -1827,8 +1822,13 @@ button.reference-button:hover {
     background-color: var(--background-secondary);
 }
 
+/* TODO : Tu peux obscurcir davantage le mode actuellement selectionné ? Actuellement, c'est à peine plus foncé que le fond principal. */
 .khoj-mode-dropdown-option-selected {
-    background-color: var(--background-secondary-alt);
+    background-color: var(--background-modifier-hover);
+    border-left: 3px solid var(--interactive-accent);
+    font-weight: 600;
+    color: var(--text-normal);
+    padding-left: 5px;
 }
 
 .khoj-mode-dropdown-emoji {

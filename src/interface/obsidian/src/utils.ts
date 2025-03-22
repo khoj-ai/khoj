@@ -1,4 +1,4 @@
-import { FileSystemAdapter, Notice, Vault, Modal, TFile, request, setIcon, Editor } from 'obsidian';
+import { FileSystemAdapter, Notice, Vault, Modal, TFile, request, setIcon, Editor, App } from 'obsidian';
 import { KhojSetting, UserInfo } from 'src/settings'
 
 export function getVaultAbsolutePath(vault: Vault): string {
@@ -465,9 +465,13 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
             khojPlugin.activateView(KhojView.CHAT).then(() => {
                 // Then create a new conversation
                 setTimeout(() => {
-                    const chatView = app.workspace.getActiveViewOfType((window as any).khoj.KhojChatView);
-                    if (chatView) {
-                        chatView.createNewConversation();
+                    // Access the chat view directly from the leaf after activation
+                    const leaves = app.workspace.getLeavesOfType(KhojView.CHAT);
+                    if (leaves.length > 0) {
+                        const chatView = leaves[0].view;
+                        if (chatView && typeof chatView.createNewConversation === 'function') {
+                            chatView.createNewConversation();
+                        }
                     }
                 }, 100);
             });

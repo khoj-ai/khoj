@@ -337,29 +337,8 @@ export class KhojChatView extends KhojPaneView {
         sendImg.addEventListener('click', async (_) => { await this.chat() });
 
         // After all the input row elements, add the mode selector
-        let chatModeRow = contentEl.createDiv("khoj-mode-row");
-
-        // Create radio buttons for each mode
-        this.chatModes.forEach((mode) => {
-            let modeContainer = chatModeRow.createDiv({ attr: { class: "khoj-mode-container" } });
-            let modeInput = modeContainer.createEl("input", {
-                attr: {
-                    type: "radio",
-                    id: `khoj-mode-${mode.value}`,
-                    name: "khoj-mode",
-                    value: mode.value,
-                    class: "khoj-mode-input",
-                    ...(mode.value === "default" && { checked: "checked" })
-                }
-            });
-            let modeLabel = modeContainer.createEl("label", {
-                text: `${mode.emoji} ${mode.label}`,
-                attr: {
-                    for: `khoj-mode-${mode.value}`,
-                    class: "khoj-mode-label"
-                }
-            });
-        });
+        // We're removing the radio buttons as they've been replaced by a dropdown
+        // that's shown when the user is typing/selecting a mode
 
         // Get chat history from Khoj backend and set chat input state
         let getChatHistorySucessfully = await this.getChatHistory(chatBodyEl);
