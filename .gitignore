@@ -3,6 +3,8 @@
 *.pt
 tests/data/models
 tests/data/embeddings
+tests/evals/**.txt
+tests/evals/**.csv
 
 # External app artifacts
 __pycache__
