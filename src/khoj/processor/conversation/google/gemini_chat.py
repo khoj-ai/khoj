@@ -34,6 +34,7 @@ def extract_questions_gemini(
     model: Optional[str] = "gemini-2.0-flash",
     conversation_log={},
     api_key=None,
+    api_base_url=None,
     temperature=0.6,
     max_tokens=None,
     location_data: LocationData = None,
@@ -97,7 +98,13 @@ def extract_questions_gemini(
     messages.append(ChatMessage(content=system_prompt, role="system"))
 
     response = gemini_send_message_to_model(
-        messages, api_key, model, response_type="json_object", temperature=temperature, tracer=tracer
+        messages,
+        api_key,
+        model,
+        api_base_url=api_base_url,
+        response_type="json_object",
+        temperature=temperature,
+        tracer=tracer,
     )
 
     # Extract, Clean Message from Gemini's Response
@@ -120,6 +127,7 @@ def gemini_send_message_to_model(
     messages,
     api_key,
     model,
+    api_base_url=None,
     response_type="text",
     response_schema=None,
     temperature=0.6,
@@ -144,6 +152,7 @@ def gemini_send_message_to_model(
         system_prompt=system_prompt,
         model_name=model,
         api_key=api_key,
+        api_base_url=api_base_url,
         temperature=temperature,
         model_kwargs=model_kwargs,
         tracer=tracer,
@@ -158,6 +167,7 @@ def converse_gemini(
     conversation_log={},
     model: Optional[str] = "gemini-2.0-flash",
     api_key: Optional[str] = None,
+    api_base_url: Optional[str] = None,
     temperature: float = 0.6,
     completion_func=None,
     conversation_commands=[ConversationCommand.Default],
@@ -249,6 +259,7 @@ def converse_gemini(
         model_name=model,
         temperature=temperature,
         api_key=api_key,
+        api_base_url=api_base_url,
         system_prompt=system_prompt,
         completion_func=completion_func,
         tracer=tracer,

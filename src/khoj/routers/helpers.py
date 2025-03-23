@@ -1245,6 +1245,7 @@ async def send_message_to_model_wrapper(
         )
     elif model_type == ChatModel.ModelType.GOOGLE:
         api_key = chat_model.ai_model_api.api_key
+        api_base_url = chat_model.ai_model_api.api_base_url
         truncated_messages = generate_chatml_messages_with_context(
             user_message=query,
             context_message=context,
@@ -1264,6 +1265,7 @@ async def send_message_to_model_wrapper(
             model=chat_model_name,
             response_type=response_type,
             response_schema=response_schema,
+            api_base_url=api_base_url,
             tracer=tracer,
         )
     else:
@@ -1330,7 +1332,7 @@ def send_message_to_model_wrapper_sync(
             query_files=query_files,
         )
 
-        openai_response = send_message_to_model(
+        return send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
             api_base_url=api_base_url,
@@ -1339,8 +1341,6 @@ def send_message_to_model_wrapper_sync(
             response_schema=response_schema,
             tracer=tracer,
         )
-
-        return openai_response
 
     elif chat_model.model_type == ChatModel.ModelType.ANTHROPIC:
         api_key = chat_model.ai_model_api.api_key
@@ -1367,6 +1367,7 @@ def send_message_to_model_wrapper_sync(
 
     elif chat_model.model_type == ChatModel.ModelType.GOOGLE:
         api_key = chat_model.ai_model_api.api_key
+        api_base_url = chat_model.ai_model_api.api_base_url
         truncated_messages = generate_chatml_messages_with_context(
             user_message=message,
             system_message=system_message,
@@ -1381,6 +1382,7 @@ def send_message_to_model_wrapper_sync(
         return gemini_send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
+            api_base_url=api_base_url,
             model=chat_model_name,
             response_type=response_type,
             response_schema=response_schema,
@@ -1542,6 +1544,7 @@ def generate_chat_response(
             )
         elif chat_model.model_type == ChatModel.ModelType.GOOGLE:
             api_key = chat_model.ai_model_api.api_key
+            api_base_url = chat_model.ai_model_api.api_base_url
             chat_response = converse_gemini(
                 compiled_references,
                 query_to_run,
@@ -1550,6 +1553,7 @@ def generate_chat_response(
                 meta_log,
                 model=chat_model.name,
                 api_key=api_key,
+                api_base_url=api_base_url,
                 completion_func=partial_completion,
                 conversation_commands=conversation_commands,
                 max_prompt_size=chat_model.max_prompt_size,
