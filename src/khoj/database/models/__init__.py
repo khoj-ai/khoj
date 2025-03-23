@@ -188,7 +188,7 @@ class Subscription(DbBaseModel):
 
 class AiModelApi(DbBaseModel):
     name = models.CharField(max_length=200)
-    api_key = models.CharField(max_length=200)
+    api_key = models.CharField(max_length=4000)
     api_base_url = models.URLField(max_length=200, default=None, blank=True, null=True)
 
     def __str__(self):
