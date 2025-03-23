@@ -34,6 +34,7 @@ def extract_questions_anthropic(
     model: Optional[str] = "claude-3-7-sonnet-latest",
     conversation_log={},
     api_key=None,
+    api_base_url=None,
     temperature=0.7,
     location_data: LocationData = None,
     user: KhojUser = None,
@@ -102,6 +103,7 @@ def extract_questions_anthropic(
         model_name=model,
         temperature=temperature,
         api_key=api_key,
+        api_base_url=api_base_url,
         response_type="json_object",
         tracer=tracer,
     )
@@ -122,7 +124,9 @@ def extract_questions_anthropic(
     return questions
 
 
-def anthropic_send_message_to_model(messages, api_key, model, response_type="text", deepthought=False, tracer={}):
+def anthropic_send_message_to_model(
+    messages, api_key, api_base_url, model, response_type="text", deepthought=False, tracer={}
+):
     """
     Send message to model
     """
@@ -134,6 +138,7 @@ def anthropic_send_message_to_model(messages, api_key, model, response_type="tex
         system_prompt=system_prompt,
         model_name=model,
         api_key=api_key,
+        api_base_url=api_base_url,
         response_type=response_type,
         deepthought=deepthought,
         tracer=tracer,
@@ -148,6 +153,7 @@ def converse_anthropic(
     conversation_log={},
     model: Optional[str] = "claude-3-7-sonnet-latest",
     api_key: Optional[str] = None,
+    api_base_url: Optional[str] = None,
     completion_func=None,
     conversation_commands=[ConversationCommand.Default],
     max_prompt_size=None,
@@ -238,6 +244,7 @@ def converse_anthropic(
         model_name=model,
         temperature=0,
         api_key=api_key,
+        api_base_url=api_base_url,
         system_prompt=system_prompt,
         completion_func=completion_func,
         max_prompt_size=max_prompt_size,

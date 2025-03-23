@@ -55,7 +55,7 @@ def completion_with_backoff(
     tracer: dict = {},
 ) -> str:
     client_key = f"{openai_api_key}--{api_base_url}"
-    client: openai.OpenAI | None = openai_clients.get(client_key)
+    client = openai_clients.get(client_key)
     if not client:
         client = get_openai_client(openai_api_key, api_base_url)
         openai_clients[client_key] = client
@@ -150,9 +150,8 @@ def llm_thread(
 ):
     try:
         client_key = f"{openai_api_key}--{api_base_url}"
-        if client_key in openai_clients:
-            client = openai_clients[client_key]
-        else:
+        client = openai_clients.get(client_key)
+        if not client:
             client = get_openai_client(openai_api_key, api_base_url)
             openai_clients[client_key] = client
 

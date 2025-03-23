@@ -3,6 +3,7 @@ import os
 import random
 from copy import deepcopy
 from threading import Thread
+from typing import Dict
 
 from google import genai
 from google.genai import errors as gerrors
@@ -23,6 +24,7 @@ from khoj.processor.conversation.utils import (
     get_image_from_url,
 )
 from khoj.utils.helpers import (
+    get_ai_api_info,
     get_chat_usage_metrics,
     is_none_or_empty,
     is_promptrace_enabled,
@@ -30,6 +32,7 @@ from khoj.utils.helpers import (
 
 logger = logging.getLogger(__name__)
 
+gemini_clients: Dict[str, genai.Client] = {}
 
 MAX_OUTPUT_TOKENS_GEMINI = 8192
 SAFETY_SETTINGS = [
@@ -52,6 +55,17 @@ SAFETY_SETTINGS = [
 ]
 
 
+def get_gemini_client(api_key, api_base_url=None) -> genai.Client:
+    api_info = get_ai_api_info(api_key, api_base_url)
+    return genai.Client(
+        location=api_info.region,
+        project=api_info.project,
+        credentials=api_info.credentials,
+        api_key=api_info.api_key,
+        vertexai=api_info.api_key is None,
+    )
+
+
 @retry(
     wait=wait_random_exponential(min=1, max=10),
     stop=stop_after_attempt(2),
@@ -59,9 +73,13 @@ SAFETY_SETTINGS = [
     reraise=True,
 )
 def gemini_completion_with_backoff(
-    messages, system_prompt, model_name, temperature=0, api_key=None, model_kwargs=None, tracer={}
+    messages, system_prompt, model_name, temperature=0, api_key=None, api_base_url=None, model_kwargs=None, tracer={}
 ) -> str:
-    client = genai.Client(api_key=api_key)
+    client = gemini_clients.get(api_key)
+    if not client:
+        client = get_gemini_client(api_key, api_base_url)
+        gemini_clients[api_key] = client
+
     seed = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
     config = gtypes.GenerateContentConfig(
         system_instruction=system_prompt,
@@ -115,6 +133,7 @@ def gemini_chat_completion_with_backoff(
     model_name,
     temperature,
     api_key,
+    api_base_url,
     system_prompt,
     completion_func=None,
     model_kwargs=None,
@@ -123,17 +142,29 @@ def gemini_chat_completion_with_backoff(
     g = ThreadedGenerator(compiled_references, online_results, completion_func=completion_func)
     t = Thread(
         target=gemini_llm_thread,
-        args=(g, messages, system_prompt, model_name, temperature, api_key, model_kwargs, tracer),
+        args=(g, messages, system_prompt, model_name, temperature, api_key, api_base_url, model_kwargs, tracer),
     )
     t.start()
     return g
 
 
 def gemini_llm_thread(
-    g, messages, system_prompt, model_name, temperature, api_key, model_kwargs=None, tracer: dict = {}
+    g,
+    messages,
+    system_prompt,
+    model_name,
+    temperature,
+    api_key,
+    api_base_url=None,
+    model_kwargs=None,
+    tracer: dict = {},
 ):
     try:
-        client = genai.Client(api_key=api_key)
+        client = gemini_clients.get(api_key)
+        if not client:
+            client = get_gemini_client(api_key, api_base_url)
+            gemini_clients[api_key] = client
+
         seed = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
         config = gtypes.GenerateContentConfig(
             system_instruction=system_prompt,
