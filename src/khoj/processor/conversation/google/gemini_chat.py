@@ -35,7 +35,6 @@ def extract_questions_gemini(
     conversation_log={},
     api_key=None,
     api_base_url=None,
-    temperature=0.6,
     max_tokens=None,
     location_data: LocationData = None,
     user: KhojUser = None,
@@ -103,7 +102,6 @@ def extract_questions_gemini(
         model,
         api_base_url=api_base_url,
         response_type="json_object",
-        temperature=temperature,
         tracer=tracer,
     )
 
@@ -130,7 +128,6 @@ def gemini_send_message_to_model(
     api_base_url=None,
     response_type="text",
     response_schema=None,
-    temperature=0.6,
     model_kwargs=None,
     tracer={},
 ):
@@ -153,7 +150,6 @@ def gemini_send_message_to_model(
         model_name=model,
         api_key=api_key,
         api_base_url=api_base_url,
-        temperature=temperature,
         model_kwargs=model_kwargs,
         tracer=tracer,
     )
@@ -168,7 +164,7 @@ def converse_gemini(
     model: Optional[str] = "gemini-2.0-flash",
     api_key: Optional[str] = None,
     api_base_url: Optional[str] = None,
-    temperature: float = 0.6,
+    temperature: float = 0.4,
     completion_func=None,
     conversation_commands=[ConversationCommand.Default],
     max_prompt_size=None,

@@ -48,7 +48,7 @@ openai_clients: Dict[str, openai.OpenAI] = {}
 def completion_with_backoff(
     messages,
     model_name: str,
-    temperature=0,
+    temperature=0.8,
     openai_api_key=None,
     api_base_url=None,
     model_kwargs: dict = {},

@@ -63,7 +63,6 @@ def extract_questions(
     today = datetime.today()
     current_new_year = today.replace(month=1, day=1)
     last_new_year = current_new_year.replace(year=today.year - 1)
-    temperature = 0.7
 
     prompt = prompts.extract_questions.format(
         current_date=today.strftime("%Y-%m-%d"),
@@ -99,7 +98,6 @@ def extract_questions(
         model,
         response_type="json_object",
         api_base_url=api_base_url,
-        temperature=temperature,
         tracer=tracer,
     )
 
@@ -127,7 +125,6 @@ def send_message_to_model(
     response_type="text",
     response_schema=None,
     api_base_url=None,
-    temperature=0,
     tracer: dict = {},
 ):
     """
@@ -146,7 +143,6 @@ def send_message_to_model(
         messages=messages,
         model_name=model,
         openai_api_key=api_key,
-        temperature=temperature,
         api_base_url=api_base_url,
         model_kwargs=model_kwargs,
         tracer=tracer,
@@ -162,7 +158,7 @@ def converse_openai(
     model: str = "gpt-4o-mini",
     api_key: Optional[str] = None,
     api_base_url: Optional[str] = None,
-    temperature: float = 0.2,
+    temperature: float = 0.4,
     completion_func=None,
     conversation_commands=[ConversationCommand.Default],
     max_prompt_size=None,

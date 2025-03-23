@@ -56,7 +56,7 @@ def anthropic_completion_with_backoff(
     messages,
     system_prompt,
     model_name: str,
-    temperature=0,
+    temperature=0.4,
     api_key=None,
     api_base_url: str = None,
     model_kwargs=None,

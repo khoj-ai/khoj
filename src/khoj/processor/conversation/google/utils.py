@@ -73,7 +73,7 @@ def get_gemini_client(api_key, api_base_url=None) -> genai.Client:
     reraise=True,
 )
 def gemini_completion_with_backoff(
-    messages, system_prompt, model_name, temperature=0, api_key=None, api_base_url=None, model_kwargs=None, tracer={}
+    messages, system_prompt, model_name, temperature=0.8, api_key=None, api_base_url=None, model_kwargs=None, tracer={}
 ) -> str:
     client = gemini_clients.get(api_key)
     if not client:
