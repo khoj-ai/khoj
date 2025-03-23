@@ -89,6 +89,7 @@ dependencies = [
     "anthropic == 0.49.0",
     "docx2txt == 0.8",
     "google-genai == 1.5.0",
+    "google-auth ~= 2.23.3",
     "pyjson5 == 1.6.7",
     "resend == 1.0.1",
     "email-validator == 2.2.0",
@@ -107,7 +108,6 @@ khoj = "khoj.main:run"
 [project.optional-dependencies]
 prod = [
     "gunicorn == 22.0.0",
-    "google-auth == 2.23.3",
     "stripe == 7.3.0",
     "twilio == 8.11",
     "boto3 >= 1.34.57",
