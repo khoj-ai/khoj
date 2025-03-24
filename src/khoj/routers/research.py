@@ -233,6 +233,10 @@ async def execute_information_collection(
         if this_iteration.warning:
             logger.warning(f"Research mode: {this_iteration.warning}.")
 
+        # Terminate research if query, tool not set for next iteration
+        elif not this_iteration.query or not this_iteration.tool:
+            current_iteration = MAX_ITERATIONS
+
         elif this_iteration.tool == ConversationCommand.Notes:
             this_iteration.context = []
             document_results = []
