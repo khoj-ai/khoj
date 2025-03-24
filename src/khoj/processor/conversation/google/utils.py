@@ -25,8 +25,8 @@ from khoj.processor.conversation.utils import (
     get_image_from_url,
 )
 from khoj.utils.helpers import (
-    get_ai_api_info,
     get_chat_usage_metrics,
+    get_gemini_client,
     is_none_or_empty,
     is_promptrace_enabled,
 )
@@ -60,17 +60,6 @@ SAFETY_SETTINGS = [
         threshold=gtypes.HarmBlockThreshold.BLOCK_ONLY_HIGH,
     ),
 ]
-
-
-def get_gemini_client(api_key, api_base_url=None) -> genai.Client:
-    api_info = get_ai_api_info(api_key, api_base_url)
-    return genai.Client(
-        location=api_info.region,
-        project=api_info.project,
-        credentials=api_info.credentials,
-        api_key=api_info.api_key,
-        vertexai=api_info.api_key is None,
-    )
 
 
 @retry(

@@ -19,7 +19,7 @@ from khoj.processor.conversation.utils import (
     get_image_from_url,
 )
 from khoj.utils.helpers import (
-    get_ai_api_info,
+    get_anthropic_client,
     get_chat_usage_metrics,
     is_none_or_empty,
     is_promptrace_enabled,
@@ -31,19 +31,6 @@ anthropic_clients: Dict[str, anthropic.Anthropic | anthropic.AnthropicVertex] = 
 
 DEFAULT_MAX_TOKENS_ANTHROPIC = 8000
 MAX_REASONING_TOKENS_ANTHROPIC = 12000
-
-
-def get_anthropic_client(api_key, api_base_url=None) -> anthropic.Anthropic | anthropic.AnthropicVertex:
-    api_info = get_ai_api_info(api_key, api_base_url)
-    if api_info.api_key:
-        client = anthropic.Anthropic(api_key=api_info.api_key)
-    else:
-        client = anthropic.AnthropicVertex(
-            region=api_info.region,
-            project_id=api_info.project,
-            credentials=api_info.credentials,
-        )
-    return client
 
 
 @retry(
