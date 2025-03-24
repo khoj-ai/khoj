@@ -104,7 +104,11 @@ def anthropic_completion_with_backoff(
     # Calculate cost of chat
     input_tokens = final_message.usage.input_tokens
     output_tokens = final_message.usage.output_tokens
-    tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, tracer.get("usage"))
+    cache_read_tokens = final_message.usage.cache_read_input_tokens
+    cache_write_tokens = final_message.usage.cache_creation_input_tokens
+    tracer["usage"] = get_chat_usage_metrics(
+        model_name, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, tracer.get("usage")
+    )
 
     # Save conversation trace
     tracer["chat_model"] = model_name
@@ -207,7 +211,11 @@ def anthropic_llm_thread(
         # Calculate cost of chat
         input_tokens = final_message.usage.input_tokens
         output_tokens = final_message.usage.output_tokens
-        tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, tracer.get("usage"))
+        cache_read_tokens = final_message.usage.cache_read_input_tokens
+        cache_write_tokens = final_message.usage.cache_creation_input_tokens
+        tracer["usage"] = get_chat_usage_metrics(
+            model_name, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, tracer.get("usage")
+        )
 
         # Save conversation trace
         tracer["chat_model"] = model_name

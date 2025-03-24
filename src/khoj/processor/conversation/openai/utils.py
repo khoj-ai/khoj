@@ -93,7 +93,9 @@ def completion_with_backoff(
         chunk.usage.model_extra.get("estimated_cost", 0) if hasattr(chunk, "usage") and chunk.usage else 0
     )  # Estimated costs returned by DeepInfra API
 
-    tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, tracer.get("usage"), cost)
+    tracer["usage"] = get_chat_usage_metrics(
+        model_name, input_tokens, output_tokens, usage=tracer.get("usage"), cost=cost
+    )
 
     # Save conversation trace
     tracer["chat_model"] = model_name
@@ -226,7 +228,9 @@ def llm_thread(
         cost = (
             chunk.usage.model_extra.get("estimated_cost", 0) if hasattr(chunk, "usage") and chunk.usage else 0
         )  # Estimated costs returned by DeepInfra API
-        tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, tracer.get("usage"), cost)
+        tracer["usage"] = get_chat_usage_metrics(
+            model_name, input_tokens, output_tokens, usage=tracer.get("usage"), cost=cost
+        )
 
         # Save conversation trace
         tracer["chat_model"] = model_name

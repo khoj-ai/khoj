@@ -109,7 +109,7 @@ def gemini_completion_with_backoff(
     # Aggregate cost of chat
     input_tokens = response.usage_metadata.prompt_token_count if response else 0
     output_tokens = response.usage_metadata.candidates_token_count if response else 0
-    tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, tracer.get("usage"))
+    tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, usage=tracer.get("usage"))
 
     # Save conversation trace
     tracer["chat_model"] = model_name
@@ -191,7 +191,7 @@ def gemini_llm_thread(
         # Calculate cost of chat
         input_tokens = chunk.usage_metadata.prompt_token_count
         output_tokens = chunk.usage_metadata.candidates_token_count
-        tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, tracer.get("usage"))
+        tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, usage=tracer.get("usage"))
 
         # Save conversation trace
         tracer["chat_model"] = model_name
