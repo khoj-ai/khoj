@@ -124,6 +124,7 @@ def send_message_to_model(
     model,
     response_type="text",
     response_schema=None,
+    deepthought=False,
     api_base_url=None,
     tracer: dict = {},
 ):
@@ -144,6 +145,7 @@ def send_message_to_model(
         model_name=model,
         openai_api_key=api_key,
         api_base_url=api_base_url,
+        deepthought=deepthought,
         model_kwargs=model_kwargs,
         tracer=tracer,
     )
@@ -172,6 +174,7 @@ def converse_openai(
     generated_files: List[FileAttachment] = None,
     generated_asset_results: Dict[str, Dict] = {},
     program_execution_context: List[str] = None,
+    deepthought: Optional[bool] = False,
     tracer: dict = {},
 ):
     """
@@ -250,6 +253,7 @@ def converse_openai(
         openai_api_key=api_key,
         api_base_url=api_base_url,
         completion_func=completion_func,
+        deepthought=deepthought,
         model_kwargs={"stop": ["Notes:\n["]},
         tracer=tracer,
     )

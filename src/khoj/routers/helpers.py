@@ -1215,6 +1215,7 @@ async def send_message_to_model_wrapper(
             model=chat_model_name,
             response_type=response_type,
             response_schema=response_schema,
+            deepthought=deepthought,
             api_base_url=api_base_url,
             tracer=tracer,
         )
@@ -1511,6 +1512,7 @@ def generate_chat_response(
                 generated_files=raw_generated_files,
                 generated_asset_results=generated_asset_results,
                 program_execution_context=program_execution_context,
+                deepthought=deepthought,
                 tracer=tracer,
             )
 
