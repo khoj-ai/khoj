@@ -908,6 +908,10 @@ class PublicConversationAdapters:
         # Public conversations are viewable by anyone, but not editable.
         return f"/share/chat/{public_conversation.slug}/"
 
+    @staticmethod
+    def delete_public_conversation_by_slug(user: KhojUser, slug: str):
+        return PublicConversation.objects.filter(source_owner=user, slug=slug).first().delete()
+
 
 class ConversationAdapters:
     @staticmethod
