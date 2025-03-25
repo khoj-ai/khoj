@@ -113,6 +113,7 @@ async def apick_next_tool(
 
     today = datetime.today()
     location_data = f"{location}" if location else "Unknown"
+    agent_chat_model = agent.chat_model if agent else None
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
     )
@@ -140,6 +141,7 @@ async def apick_next_tool(
                 user=user,
                 query_images=query_images,
                 query_files=query_files,
+                agent_chat_model=agent_chat_model,
                 tracer=tracer,
             )
     except Exception as e:

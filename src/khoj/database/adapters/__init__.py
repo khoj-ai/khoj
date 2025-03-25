@@ -1182,7 +1182,7 @@ class ConversationAdapters:
 
     @staticmethod
     async def aget_default_chat_model(user: KhojUser = None, fallback_chat_model: Optional[ChatModel] = None):
-        """Get default conversation config. Prefer chat model by server admin > user > first created chat model"""
+        """Get default conversation config. Prefer chat model by server admin > agent > user > first created chat model"""
         # Get the server chat settings
         server_chat_settings: ServerChatSettings = (
             await ServerChatSettings.objects.filter()
