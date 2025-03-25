@@ -134,8 +134,6 @@ def gemini_send_message_to_model(
     """
     Send message to model
     """
-    messages_for_gemini, system_prompt = format_messages_for_gemini(messages)
-
     model_kwargs = {}
 
     # This caused unwanted behavior and terminates response early for gemini 1.5 series. Monitor for flakiness with 2.0 series.
@@ -145,8 +143,8 @@ def gemini_send_message_to_model(
 
     # Get Response from Gemini
     return gemini_completion_with_backoff(
-        messages=messages_for_gemini,
-        system_prompt=system_prompt,
+        messages=messages,
+        system_prompt="",
         model_name=model,
         api_key=api_key,
         api_base_url=api_base_url,
@@ -244,12 +242,11 @@ def converse_gemini(
         program_execution_context=program_execution_context,
     )
 
-    messages_for_gemini, system_prompt = format_messages_for_gemini(messages, system_prompt)
     logger.debug(f"Conversation Context for Gemini: {messages_to_print(messages)}")
 
     # Get Response from Google AI
     return gemini_chat_completion_with_backoff(
-        messages=messages_for_gemini,
+        messages=messages,
         compiled_references=references,
         online_results=online_results,
         model_name=model,

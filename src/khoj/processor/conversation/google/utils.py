@@ -80,6 +80,8 @@ def gemini_completion_with_backoff(
         client = get_gemini_client(api_key, api_base_url)
         gemini_clients[api_key] = client
 
+    formatted_messages, system_prompt = format_messages_for_gemini(messages, system_prompt)
+
     seed = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
     config = gtypes.GenerateContentConfig(
         system_instruction=system_prompt,
@@ -90,8 +92,6 @@ def gemini_completion_with_backoff(
         response_schema=model_kwargs.get("response_schema", None) if model_kwargs else None,
         seed=seed,
     )
-
-    formatted_messages = [gtypes.Content(role=message.role, parts=message.content) for message in messages]
 
     try:
         # Generate the response
@@ -165,6 +165,8 @@ def gemini_llm_thread(
             client = get_gemini_client(api_key, api_base_url)
             gemini_clients[api_key] = client
 
+        formatted_messages, system_prompt = format_messages_for_gemini(messages, system_prompt)
+
         seed = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
         config = gtypes.GenerateContentConfig(
             system_instruction=system_prompt,
@@ -176,7 +178,6 @@ def gemini_llm_thread(
         )
 
         aggregated_response = ""
-        formatted_messages = [gtypes.Content(role=message.role, parts=message.content) for message in messages]
 
         for chunk in client.models.generate_content_stream(
             model=model_name, config=config, contents=formatted_messages
@@ -300,4 +301,5 @@ def format_messages_for_gemini(
     if len(messages) == 1:
         messages[0].role = "user"
 
-    return messages, system_prompt
+    formatted_messages = [gtypes.Content(role=message.role, parts=message.content) for message in messages]
+    return formatted_messages, system_prompt
