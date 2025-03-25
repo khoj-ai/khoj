@@ -11,7 +11,7 @@ from urllib.parse import unquote
 
 from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import RedirectResponse, Response, StreamingResponse
 from starlette.authentication import has_required_scope, requires
 
 from khoj.app.settings import ALLOWED_HOSTS
@@ -255,6 +255,7 @@ def chat_history(
             "conversation_id": conversation.id,
             "slug": conversation.title if conversation.title else conversation.slug,
             "agent": agent_metadata,
+            "is_owner": conversation.user == user,
         }
     )
 
@@ -332,6 +333,7 @@ def get_shared_chat(
             "conversation_id": conversation.id,
             "slug": scrubbed_title,
             "agent": agent_metadata,
+            "is_owner": conversation.source_owner == user,
         }
     )
 
@@ -446,6 +448,33 @@ def duplicate_chat_history_public_conversation(
 
     return Response(
         status_code=200, content=json.dumps({"status": "ok", "url": f"{scheme}://{domain}{public_conversation_url}"})
+    )
+
+
+@api_chat.delete("/share")
+@requires(["authenticated"])
+def delete_public_conversation(
+    request: Request,
+    common: CommonQueryParams,
+    public_conversation_slug: str,
+):
+    user = request.user.object
+
+    # Delete Public Conversation
+    PublicConversationAdapters.delete_public_conversation_by_slug(user=user, slug=public_conversation_slug)
+
+    update_telemetry_state(
+        request=request,
+        telemetry_type="api",
+        api="delete_chat_share",
+        **common.__dict__,
+    )
+
+    # Redirect to the main chat page
+    redirect_uri = str(request.app.url_path_for("chat_page"))
+    return RedirectResponse(
+        url=redirect_uri,
+        status_code=301,
     )
 
 
