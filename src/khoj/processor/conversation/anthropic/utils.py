@@ -53,7 +53,7 @@ def get_anthropic_client(api_key, api_base_url=None) -> anthropic.Anthropic | an
     reraise=True,
 )
 def anthropic_completion_with_backoff(
-    messages,
+    messages: list[ChatMessage],
     system_prompt,
     model_name: str,
     temperature=0.4,
@@ -70,11 +70,12 @@ def anthropic_completion_with_backoff(
         client = get_anthropic_client(api_key, api_base_url)
         anthropic_clients[api_key] = client
 
-    formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
+    formatted_messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)
+
     aggregated_response = ""
     if response_type == "json_object" and not deepthought:
         # Prefill model response with '{' to make it output a valid JSON object. Not supported with extended thinking.
-        formatted_messages += [{"role": "assistant", "content": "{"}]
+        formatted_messages.append(anthropic.types.MessageParam(role="assistant", content="{"))
         aggregated_response += "{"
 
     final_message = None
@@ -126,14 +127,14 @@ def anthropic_completion_with_backoff(
     reraise=True,
 )
 def anthropic_chat_completion_with_backoff(
-    messages,
+    messages: list[ChatMessage],
     compiled_references,
     online_results,
     model_name,
     temperature,
     api_key,
     api_base_url,
-    system_prompt,
+    system_prompt: str,
     max_prompt_size=None,
     completion_func=None,
     deepthought=False,
@@ -163,9 +164,9 @@ def anthropic_chat_completion_with_backoff(
 
 def anthropic_llm_thread(
     g,
-    messages,
-    system_prompt,
-    model_name,
+    messages: list[ChatMessage],
+    system_prompt: str,
+    model_name: str,
     temperature,
     api_key,
     api_base_url=None,
@@ -188,9 +189,7 @@ def anthropic_llm_thread(
             # Temperature control not supported when using extended thinking
             temperature = 1.0
 
-        formatted_messages: List[anthropic.types.MessageParam] = [
-            anthropic.types.MessageParam(role=message.role, content=message.content) for message in messages
-        ]
+        formatted_messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)
 
         aggregated_response = ""
         final_message = None
@@ -228,7 +227,7 @@ def anthropic_llm_thread(
         g.close()
 
 
-def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt=None):
+def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt: str = None):
     """
     Format messages for Anthropic
     """
@@ -277,4 +276,8 @@ def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt=Non
                     )
             message.content = content
 
-    return messages, system_prompt
+    formatted_messages: List[anthropic.types.MessageParam] = [
+        anthropic.types.MessageParam(role=message.role, content=message.content) for message in messages
+    ]
+
+    return formatted_messages, system_prompt

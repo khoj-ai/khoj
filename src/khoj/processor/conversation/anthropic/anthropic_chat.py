@@ -82,7 +82,7 @@ def extract_questions_anthropic(
         text=text,
     )
 
-    prompt = construct_structured_message(
+    content = construct_structured_message(
         message=prompt,
         images=query_images,
         model_type=ChatModel.ModelType.ANTHROPIC,
@@ -90,11 +90,7 @@ def extract_questions_anthropic(
         attached_file_context=query_files,
     )
 
-    messages = []
-
-    messages.append(ChatMessage(content=prompt, role="user"))
-
-    messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)
+    messages = [ChatMessage(content=content, role="user")]
 
     response = anthropic_completion_with_backoff(
         messages=messages,
@@ -128,12 +124,10 @@ def anthropic_send_message_to_model(
     """
     Send message to model
     """
-    messages, system_prompt = format_messages_for_anthropic(messages)
-
     # Get Response from GPT. Don't use response_type because Anthropic doesn't support it.
     return anthropic_completion_with_backoff(
         messages=messages,
-        system_prompt=system_prompt,
+        system_prompt="",
         model_name=model,
         api_key=api_key,
         api_base_url=api_base_url,
@@ -231,7 +225,6 @@ def converse_anthropic(
         program_execution_context=program_execution_context,
     )
 
-    messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)
     logger.debug(f"Conversation Context for Claude: {messages_to_print(messages)}")
 
     # Get Response from Claude
