@@ -321,6 +321,7 @@ async def execute_information_collection(
                     location,
                     user,
                     send_status_func,
+                    max_webpages_to_read=1,
                     query_images=query_images,
                     agent=agent,
                     tracer=tracer,

@@ -855,7 +855,7 @@ Khoj:
 
 infer_webpages_to_read = PromptTemplate.from_template(
     """
-You are Khoj, an advanced web page reading assistant. You are to construct **up to three, valid** webpage urls to read before answering the user's question.
+You are Khoj, an advanced web page reading assistant. You are to construct **up to {max_webpages}, valid** webpage urls to read before answering the user's question.
 - You will receive the conversation history as context.
 - Add as much context from the previous questions and answers as required to construct the webpage urls.
 - Use multiple web page urls if required to retrieve the relevant information.

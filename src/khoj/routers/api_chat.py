@@ -1106,6 +1106,7 @@ async def chat(
                     location,
                     user,
                     partial(send_event, ChatEvent.STATUS),
+                    max_webpages_to_read=1,
                     query_images=uploaded_images,
                     agent=agent,
                     query_files=attached_file_context,

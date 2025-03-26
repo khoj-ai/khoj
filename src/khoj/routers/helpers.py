@@ -450,6 +450,7 @@ async def aget_data_sources_and_output_format(
 
 async def infer_webpage_urls(
     q: str,
+    max_webpages: int,
     conversation_history: dict,
     location_data: LocationData,
     user: KhojUser,
@@ -471,9 +472,10 @@ async def infer_webpage_urls(
     )
 
     online_queries_prompt = prompts.infer_webpages_to_read.format(
-        current_date=utc_date,
         query=q,
+        max_webpages=max_webpages,
         chat_history=chat_history,
+        current_date=utc_date,
         location=location,
         username=username,
         personality_context=personality_context,
@@ -502,7 +504,7 @@ async def infer_webpage_urls(
         if len(valid_unique_urls) == 0:
             logger.error(f"No valid URLs found in response: {response}")
             return []
-        return list(valid_unique_urls)
+        return list(valid_unique_urls)[:max_webpages]
     except Exception:
         raise ValueError(f"Invalid list of urls: {response}")
 
