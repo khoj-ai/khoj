@@ -43,12 +43,9 @@ class MagicLinkForm(BaseModel):
 if not state.anonymous_mode:
     missing_requirements = []
     from authlib.integrations.starlette_client import OAuth, OAuthError
+    from google.auth.transport import requests as google_requests
+    from google.oauth2 import id_token
 
-    try:
-        from google.auth.transport import requests as google_requests
-        from google.oauth2 import id_token
-    except ImportError:
-        missing_requirements += ["Install the Khoj production package with `pip install khoj[prod]`"]
     if not os.environ.get("RESEND_API_KEY") and (
         not os.environ.get("GOOGLE_CLIENT_ID") or not os.environ.get("GOOGLE_CLIENT_SECRET")
     ):

@@ -93,10 +93,8 @@ div.agentIndicator {
     padding: 10px;
 }
 
-@media (max-width: 768px) {
-    div.chatBody {
-        grid-template-columns: 0fr 1fr;
-    }
+div.chatTitleWrapper {
+    grid-template-columns: 1fr auto;
 }
 
 @media screen and (max-width: 768px) {
@@ -106,6 +104,15 @@ div.agentIndicator {
 
     div.chatBoxBody {
         width: 100%;
+    }
+
+    div.chatBody {
+        grid-template-columns: 0fr 1fr;
+    }
+
+    div.chatBox {
+        padding: 0;
+        height: 100%;
     }
 
     div.chatLayout {

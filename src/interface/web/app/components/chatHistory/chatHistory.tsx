@@ -42,6 +42,7 @@ interface ChatHistoryProps {
     setAgent: (agent: AgentData) => void;
     customClassName?: string;
     setIsChatSideBarOpen?: (isOpen: boolean) => void;
+    setIsOwner?: (isOwner: boolean) => void;
 }
 
 interface TrainOfThoughtComponentProps {
@@ -60,13 +61,13 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
         open: {
             height: "auto",
             opacity: 1,
-            transition: { duration: 0.3, ease: "easeOut" }
+            transition: { duration: 0.3, ease: "easeOut" },
         },
         closed: {
             height: 0,
             opacity: 0,
-            transition: { duration: 0.3, ease: "easeIn" }
-        }
+            transition: { duration: 0.3, ease: "easeIn" },
+        },
     };
 
     useEffect(() => {
@@ -103,17 +104,14 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
                 ))}
             <AnimatePresence initial={false}>
                 {!collapsed && (
-                    <motion.div
-                        initial="closed"
-                        animate="open"
-                        exit="closed"
-                        variants={variants}
-                    >
+                    <motion.div initial="closed" animate="open" exit="closed" variants={variants}>
                         {props.trainOfThought.map((train, index) => (
                             <TrainOfThought
                                 key={`train-${index}`}
                                 message={train}
-                                primary={index === lastIndex && props.lastMessage && !props.completed}
+                                primary={
+                                    index === lastIndex && props.lastMessage && !props.completed
+                                }
                                 agentColor={props.agentColor}
                             />
                         ))}
@@ -174,7 +172,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
                 latestUserMessageRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
             });
         }
-
     }, [data, currentPage]);
 
     useEffect(() => {
@@ -247,6 +244,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
             .then((response) => response.json())
             .then((chatData: ChatResponse) => {
                 props.setTitle(chatData.response.slug);
+                props.setIsOwner && props.setIsOwner(chatData?.response?.is_owner);
                 if (
                     chatData &&
                     chatData.response &&
@@ -274,6 +272,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                             agent: chatData.response.agent,
                             conversation_id: chatData.response.conversation_id,
                             slug: chatData.response.slug,
+                            is_owner: chatData.response.is_owner,
                         };
                         props.setAgent(chatData.response.agent);
                         setData(chatMetadata);
@@ -312,7 +311,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
 
     function constructAgentName() {
         if (!data || !data.agent || !data.agent?.name) return `Agent`;
-        if (data.agent.is_hidden) return 'Khoj';
+        if (data.agent.is_hidden) return "Khoj";
         return data.agent?.name;
     }
 
@@ -359,8 +358,8 @@ export default function ChatHistory(props: ChatHistoryProps) {
             md:h-[calc(100svh-theme(spacing.44))]
             lg:h-[calc(100svh-theme(spacing.72))]
         `}
-            ref={scrollAreaRef}>
-
+            ref={scrollAreaRef}
+        >
             <div>
                 <div className={`${styles.chatHistory} ${props.customClassName}`}>
                     <div ref={sentinelRef} style={{ height: "1px" }}>
@@ -389,12 +388,12 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         index === data.chat.length - 2
                                             ? latestUserMessageRef
                                             : // attach ref to the newest fetched message to handle scroll on fetch
-                                            // note: stabilize index selection against last page having less messages than fetchMessageCount
-                                            index ===
+                                              // note: stabilize index selection against last page having less messages than fetchMessageCount
+                                              index ===
                                                 data.chat.length -
-                                                (currentPage - 1) * fetchMessageCount
-                                                ? latestFetchedMessageRef
-                                                : null
+                                                    (currentPage - 1) * fetchMessageCount
+                                              ? latestFetchedMessageRef
+                                              : null
                                     }
                                     isMobileWidth={isMobileWidth}
                                     chatMessage={chatMessage}
@@ -472,7 +471,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         onDeleteMessage={handleDeleteMessage}
                                         customClassName="fullHistory"
                                         borderLeftColor={`${data?.agent?.color}-500`}
-                                        isLastMessage={index === (props.incomingMessages!.length - 1)}
+                                        isLastMessage={index === props.incomingMessages!.length - 1}
                                     />
                                 </React.Fragment>
                             );

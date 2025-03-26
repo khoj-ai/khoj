@@ -34,7 +34,7 @@ def extract_questions_gemini(
     model: Optional[str] = "gemini-2.0-flash",
     conversation_log={},
     api_key=None,
-    temperature=0.6,
+    api_base_url=None,
     max_tokens=None,
     location_data: LocationData = None,
     user: KhojUser = None,
@@ -97,7 +97,12 @@ def extract_questions_gemini(
     messages.append(ChatMessage(content=system_prompt, role="system"))
 
     response = gemini_send_message_to_model(
-        messages, api_key, model, response_type="json_object", temperature=temperature, tracer=tracer
+        messages,
+        api_key,
+        model,
+        api_base_url=api_base_url,
+        response_type="json_object",
+        tracer=tracer,
     )
 
     # Extract, Clean Message from Gemini's Response
@@ -120,17 +125,15 @@ def gemini_send_message_to_model(
     messages,
     api_key,
     model,
+    api_base_url=None,
     response_type="text",
     response_schema=None,
-    temperature=0.6,
     model_kwargs=None,
     tracer={},
 ):
     """
     Send message to model
     """
-    messages_for_gemini, system_prompt = format_messages_for_gemini(messages)
-
     model_kwargs = {}
 
     # This caused unwanted behavior and terminates response early for gemini 1.5 series. Monitor for flakiness with 2.0 series.
@@ -140,11 +143,11 @@ def gemini_send_message_to_model(
 
     # Get Response from Gemini
     return gemini_completion_with_backoff(
-        messages=messages_for_gemini,
-        system_prompt=system_prompt,
+        messages=messages,
+        system_prompt="",
         model_name=model,
         api_key=api_key,
-        temperature=temperature,
+        api_base_url=api_base_url,
         model_kwargs=model_kwargs,
         tracer=tracer,
     )
@@ -158,7 +161,8 @@ def converse_gemini(
     conversation_log={},
     model: Optional[str] = "gemini-2.0-flash",
     api_key: Optional[str] = None,
-    temperature: float = 0.6,
+    api_base_url: Optional[str] = None,
+    temperature: float = 0.4,
     completion_func=None,
     conversation_commands=[ConversationCommand.Default],
     max_prompt_size=None,
@@ -238,17 +242,17 @@ def converse_gemini(
         program_execution_context=program_execution_context,
     )
 
-    messages_for_gemini, system_prompt = format_messages_for_gemini(messages, system_prompt)
     logger.debug(f"Conversation Context for Gemini: {messages_to_print(messages)}")
 
     # Get Response from Google AI
     return gemini_chat_completion_with_backoff(
-        messages=messages_for_gemini,
+        messages=messages,
         compiled_references=references,
         online_results=online_results,
         model_name=model,
         temperature=temperature,
         api_key=api_key,
+        api_base_url=api_base_url,
         system_prompt=system_prompt,
         completion_func=completion_func,
         tracer=tracer,

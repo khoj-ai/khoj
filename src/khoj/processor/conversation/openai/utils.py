@@ -48,14 +48,15 @@ openai_clients: Dict[str, openai.OpenAI] = {}
 def completion_with_backoff(
     messages,
     model_name: str,
-    temperature=0,
+    temperature=0.8,
     openai_api_key=None,
     api_base_url=None,
+    deepthought: bool = False,
     model_kwargs: dict = {},
     tracer: dict = {},
 ) -> str:
     client_key = f"{openai_api_key}--{api_base_url}"
-    client: openai.OpenAI | None = openai_clients.get(client_key)
+    client = openai_clients.get(client_key)
     if not client:
         client = get_openai_client(openai_api_key, api_base_url)
         openai_clients[client_key] = client
@@ -93,7 +94,9 @@ def completion_with_backoff(
         chunk.usage.model_extra.get("estimated_cost", 0) if hasattr(chunk, "usage") and chunk.usage else 0
     )  # Estimated costs returned by DeepInfra API
 
-    tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, tracer.get("usage"), cost)
+    tracer["usage"] = get_chat_usage_metrics(
+        model_name, input_tokens, output_tokens, usage=tracer.get("usage"), cost=cost
+    )
 
     # Save conversation trace
     tracer["chat_model"] = model_name
@@ -126,13 +129,14 @@ def chat_completion_with_backoff(
     openai_api_key=None,
     api_base_url=None,
     completion_func=None,
+    deepthought=False,
     model_kwargs=None,
     tracer: dict = {},
 ):
     g = ThreadedGenerator(compiled_references, online_results, completion_func=completion_func)
     t = Thread(
         target=llm_thread,
-        args=(g, messages, model_name, temperature, openai_api_key, api_base_url, model_kwargs, tracer),
+        args=(g, messages, model_name, temperature, openai_api_key, api_base_url, deepthought, model_kwargs, tracer),
     )
     t.start()
     return g
@@ -145,24 +149,25 @@ def llm_thread(
     temperature,
     openai_api_key=None,
     api_base_url=None,
+    deepthought=False,
     model_kwargs: dict = {},
     tracer: dict = {},
 ):
     try:
         client_key = f"{openai_api_key}--{api_base_url}"
-        if client_key in openai_clients:
-            client = openai_clients[client_key]
-        else:
+        client = openai_clients.get(client_key)
+        if not client:
             client = get_openai_client(openai_api_key, api_base_url)
             openai_clients[client_key] = client
 
         formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
 
         # Tune reasoning models arguments
-        if model_name.startswith("o1"):
+        if model_name.startswith("o1") or model_name.startswith("o3"):
             temperature = 1
-        elif model_name.startswith("o3"):
-            temperature = 1
+            model_kwargs["reasoning_effort"] = "medium"
+
+        if model_name.startswith("o3"):
             # Get the first system message and add the string `Formatting re-enabled` to it.
             # See https://platform.openai.com/docs/guides/reasoning-best-practices
             if len(formatted_messages) > 0:
@@ -227,7 +232,9 @@ def llm_thread(
         cost = (
             chunk.usage.model_extra.get("estimated_cost", 0) if hasattr(chunk, "usage") and chunk.usage else 0
         )  # Estimated costs returned by DeepInfra API
-        tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, tracer.get("usage"), cost)
+        tracer["usage"] = get_chat_usage_metrics(
+            model_name, input_tokens, output_tokens, usage=tracer.get("usage"), cost=cost
+        )
 
         # Save conversation trace
         tracer["chat_model"] = model_name
@@ -246,5 +253,7 @@ def get_openai_api_json_support(model_name: str, api_base_url: str = None) -> Js
     if api_base_url:
         host = urlparse(api_base_url).hostname
         if host and host.endswith(".ai.azure.com"):
+            return JsonSupport.OBJECT
+        if host == "api.deepinfra.com":
             return JsonSupport.OBJECT
     return JsonSupport.SCHEMA

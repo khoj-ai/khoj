@@ -1,7 +1,9 @@
 import logging
+import os
 import random
 from copy import deepcopy
 from threading import Thread
+from typing import Dict
 
 from google import genai
 from google.genai import errors as gerrors
@@ -22,6 +24,7 @@ from khoj.processor.conversation.utils import (
     get_image_from_url,
 )
 from khoj.utils.helpers import (
+    get_ai_api_info,
     get_chat_usage_metrics,
     is_none_or_empty,
     is_promptrace_enabled,
@@ -29,6 +32,7 @@ from khoj.utils.helpers import (
 
 logger = logging.getLogger(__name__)
 
+gemini_clients: Dict[str, genai.Client] = {}
 
 MAX_OUTPUT_TOKENS_GEMINI = 8192
 SAFETY_SETTINGS = [
@@ -51,6 +55,17 @@ SAFETY_SETTINGS = [
 ]
 
 
+def get_gemini_client(api_key, api_base_url=None) -> genai.Client:
+    api_info = get_ai_api_info(api_key, api_base_url)
+    return genai.Client(
+        location=api_info.region,
+        project=api_info.project,
+        credentials=api_info.credentials,
+        api_key=api_info.api_key,
+        vertexai=api_info.api_key is None,
+    )
+
+
 @retry(
     wait=wait_random_exponential(min=1, max=10),
     stop=stop_after_attempt(2),
@@ -58,9 +73,16 @@ SAFETY_SETTINGS = [
     reraise=True,
 )
 def gemini_completion_with_backoff(
-    messages, system_prompt, model_name, temperature=0, api_key=None, model_kwargs=None, tracer={}
+    messages, system_prompt, model_name, temperature=0.8, api_key=None, api_base_url=None, model_kwargs=None, tracer={}
 ) -> str:
-    client = genai.Client(api_key=api_key)
+    client = gemini_clients.get(api_key)
+    if not client:
+        client = get_gemini_client(api_key, api_base_url)
+        gemini_clients[api_key] = client
+
+    formatted_messages, system_prompt = format_messages_for_gemini(messages, system_prompt)
+
+    seed = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
     config = gtypes.GenerateContentConfig(
         system_instruction=system_prompt,
         temperature=temperature,
@@ -68,9 +90,8 @@ def gemini_completion_with_backoff(
         safety_settings=SAFETY_SETTINGS,
         response_mime_type=model_kwargs.get("response_mime_type", "text/plain") if model_kwargs else "text/plain",
         response_schema=model_kwargs.get("response_schema", None) if model_kwargs else None,
+        seed=seed,
     )
-
-    formatted_messages = [gtypes.Content(role=message.role, parts=message.content) for message in messages]
 
     try:
         # Generate the response
@@ -88,7 +109,7 @@ def gemini_completion_with_backoff(
     # Aggregate cost of chat
     input_tokens = response.usage_metadata.prompt_token_count if response else 0
     output_tokens = response.usage_metadata.candidates_token_count if response else 0
-    tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, tracer.get("usage"))
+    tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, usage=tracer.get("usage"))
 
     # Save conversation trace
     tracer["chat_model"] = model_name
@@ -112,6 +133,7 @@ def gemini_chat_completion_with_backoff(
     model_name,
     temperature,
     api_key,
+    api_base_url,
     system_prompt,
     completion_func=None,
     model_kwargs=None,
@@ -120,27 +142,42 @@ def gemini_chat_completion_with_backoff(
     g = ThreadedGenerator(compiled_references, online_results, completion_func=completion_func)
     t = Thread(
         target=gemini_llm_thread,
-        args=(g, messages, system_prompt, model_name, temperature, api_key, model_kwargs, tracer),
+        args=(g, messages, system_prompt, model_name, temperature, api_key, api_base_url, model_kwargs, tracer),
     )
     t.start()
     return g
 
 
 def gemini_llm_thread(
-    g, messages, system_prompt, model_name, temperature, api_key, model_kwargs=None, tracer: dict = {}
+    g,
+    messages,
+    system_prompt,
+    model_name,
+    temperature,
+    api_key,
+    api_base_url=None,
+    model_kwargs=None,
+    tracer: dict = {},
 ):
     try:
-        client = genai.Client(api_key=api_key)
+        client = gemini_clients.get(api_key)
+        if not client:
+            client = get_gemini_client(api_key, api_base_url)
+            gemini_clients[api_key] = client
+
+        formatted_messages, system_prompt = format_messages_for_gemini(messages, system_prompt)
+
+        seed = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
         config = gtypes.GenerateContentConfig(
             system_instruction=system_prompt,
             temperature=temperature,
             max_output_tokens=MAX_OUTPUT_TOKENS_GEMINI,
             stop_sequences=["Notes:\n["],
             safety_settings=SAFETY_SETTINGS,
+            seed=seed,
         )
 
         aggregated_response = ""
-        formatted_messages = [gtypes.Content(role=message.role, parts=message.content) for message in messages]
 
         for chunk in client.models.generate_content_stream(
             model=model_name, config=config, contents=formatted_messages
@@ -155,7 +192,7 @@ def gemini_llm_thread(
         # Calculate cost of chat
         input_tokens = chunk.usage_metadata.prompt_token_count
         output_tokens = chunk.usage_metadata.candidates_token_count
-        tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, tracer.get("usage"))
+        tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, usage=tracer.get("usage"))
 
         # Save conversation trace
         tracer["chat_model"] = model_name
@@ -264,4 +301,5 @@ def format_messages_for_gemini(
     if len(messages) == 1:
         messages[0].role = "user"
 
-    return messages, system_prompt
+    formatted_messages = [gtypes.Content(role=message.role, parts=message.content) for message in messages]
+    return formatted_messages, system_prompt

@@ -1,5 +1,6 @@
 from __future__ import annotations  # to avoid quoting type hints
 
+import base64
 import copy
 import datetime
 import io
@@ -19,15 +20,18 @@ from itertools import islice
 from os import path
 from pathlib import Path
 from time import perf_counter
-from typing import TYPE_CHECKING, Any, Optional, Union
-from urllib.parse import urlparse
+from typing import TYPE_CHECKING, Any, NamedTuple, Optional, Tuple, Union
+from urllib.parse import ParseResult, urlparse
 
 import openai
 import psutil
+import pyjson5
 import requests
 import torch
 from asgiref.sync import sync_to_async
 from email_validator import EmailNotValidError, EmailUndeliverableError, validate_email
+from google.auth.credentials import Credentials
+from google.oauth2 import service_account
 from magika import Magika
 from PIL import Image
 from pytz import country_names, country_timezones
@@ -592,7 +596,14 @@ def get_country_name_from_timezone(tz: str) -> str:
     return country_names.get(get_country_code_from_timezone(tz), "United States")
 
 
-def get_cost_of_chat_message(model_name: str, input_tokens: int = 0, output_tokens: int = 0, prev_cost: float = 0.0):
+def get_cost_of_chat_message(
+    model_name: str,
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    cache_read_tokens: int = 0,
+    cache_write_tokens: int = 0,
+    prev_cost: float = 0.0,
+):
     """
     Calculate cost of chat message based on input and output tokens
     """
@@ -600,22 +611,93 @@ def get_cost_of_chat_message(model_name: str, input_tokens: int = 0, output_toke
     # Calculate cost of input and output tokens. Costs are per million tokens
     input_cost = constants.model_to_cost.get(model_name, {}).get("input", 0) * (input_tokens / 1e6)
     output_cost = constants.model_to_cost.get(model_name, {}).get("output", 0) * (output_tokens / 1e6)
+    cache_read_cost = constants.model_to_cost.get(model_name, {}).get("cache_read", 0) * (cache_read_tokens / 1e6)
+    cache_write_cost = constants.model_to_cost.get(model_name, {}).get("cache_write", 0) * (cache_write_tokens / 1e6)
 
-    return input_cost + output_cost + prev_cost
+    return input_cost + output_cost + cache_read_cost + cache_write_cost + prev_cost
 
 
 def get_chat_usage_metrics(
-    model_name: str, input_tokens: int = 0, output_tokens: int = 0, usage: dict = {}, cost: float = None
+    model_name: str,
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    cache_read_tokens: int = 0,
+    cache_write_tokens: int = 0,
+    usage: dict = {},
+    cost: float = None,
 ):
     """
     Get usage metrics for chat message based on input and output tokens and cost
     """
-    prev_usage = usage or {"input_tokens": 0, "output_tokens": 0, "cost": 0.0}
+    prev_usage = usage or {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "cost": 0.0,
+    }
     return {
         "input_tokens": prev_usage["input_tokens"] + input_tokens,
         "output_tokens": prev_usage["output_tokens"] + output_tokens,
-        "cost": cost or get_cost_of_chat_message(model_name, input_tokens, output_tokens, prev_cost=prev_usage["cost"]),
+        "cache_read_tokens": prev_usage.get("cache_read_tokens", 0) + cache_read_tokens,
+        "cache_write_tokens": prev_usage.get("cache_write_tokens", 0) + cache_write_tokens,
+        "cost": cost
+        or get_cost_of_chat_message(
+            model_name, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, prev_cost=prev_usage["cost"]
+        ),
     }
+
+
+class AiApiInfo(NamedTuple):
+    region: str
+    project: str
+    credentials: Credentials
+    api_key: str
+
+
+def get_gcp_credentials(credentials_b64: str) -> Optional[Credentials]:
+    """
+    Get GCP credentials from base64 encoded service account credentials json keyfile
+    """
+    credentials_json = base64.b64decode(credentials_b64).decode("utf-8")
+    credentials_dict = pyjson5.loads(credentials_json)
+    credentials = service_account.Credentials.from_service_account_info(credentials_dict)
+    return credentials.with_scopes(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+
+
+def get_gcp_project_info(parsed_api_url: ParseResult) -> Tuple[str, str]:
+    """
+    Extract region, project id from GCP API url
+    API url is of form https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}...
+    """
+    # Extract region from hostname
+    hostname = parsed_api_url.netloc
+    region = hostname.split("-aiplatform")[0] if "-aiplatform" in hostname else ""
+
+    # Extract project ID from path (e.g., "/v1/projects/my-project/...")
+    path_parts = parsed_api_url.path.split("/")
+    project_id = ""
+    for i, part in enumerate(path_parts):
+        if part == "projects" and i + 1 < len(path_parts):
+            project_id = path_parts[i + 1]
+            break
+
+    return region, project_id
+
+
+def get_ai_api_info(api_key, api_base_url: str = None) -> AiApiInfo:
+    """
+    Get the GCP Vertex or default AI API client info based on the API key and URL.
+    """
+    region, project_id, credentials = None, None, None
+    # Check if AI model to be used via GCP Vertex API
+    parsed_api_url = urlparse(api_base_url)
+    if parsed_api_url.hostname and parsed_api_url.hostname.endswith(".googleapis.com"):
+        region, project_id = get_gcp_project_info(parsed_api_url)
+        credentials = get_gcp_credentials(api_key)
+    if credentials:
+        api_key = None
+    return AiApiInfo(region=region, project=project_id, credentials=credentials, api_key=api_key)
 
 
 def get_openai_client(api_key: str, api_base_url: str) -> Union[openai.OpenAI, openai.AzureOpenAI]:

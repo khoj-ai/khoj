@@ -34,7 +34,7 @@ def extract_questions_anthropic(
     model: Optional[str] = "claude-3-7-sonnet-latest",
     conversation_log={},
     api_key=None,
-    temperature=0.7,
+    api_base_url=None,
     location_data: LocationData = None,
     user: KhojUser = None,
     query_images: Optional[list[str]] = None,
@@ -82,7 +82,7 @@ def extract_questions_anthropic(
         text=text,
     )
 
-    prompt = construct_structured_message(
+    content = construct_structured_message(
         message=prompt,
         images=query_images,
         model_type=ChatModel.ModelType.ANTHROPIC,
@@ -90,18 +90,14 @@ def extract_questions_anthropic(
         attached_file_context=query_files,
     )
 
-    messages = []
-
-    messages.append(ChatMessage(content=prompt, role="user"))
-
-    messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)
+    messages = [ChatMessage(content=content, role="user")]
 
     response = anthropic_completion_with_backoff(
         messages=messages,
         system_prompt=system_prompt,
         model_name=model,
-        temperature=temperature,
         api_key=api_key,
+        api_base_url=api_base_url,
         response_type="json_object",
         tracer=tracer,
     )
@@ -122,18 +118,19 @@ def extract_questions_anthropic(
     return questions
 
 
-def anthropic_send_message_to_model(messages, api_key, model, response_type="text", deepthought=False, tracer={}):
+def anthropic_send_message_to_model(
+    messages, api_key, api_base_url, model, response_type="text", deepthought=False, tracer={}
+):
     """
     Send message to model
     """
-    messages, system_prompt = format_messages_for_anthropic(messages)
-
     # Get Response from GPT. Don't use response_type because Anthropic doesn't support it.
     return anthropic_completion_with_backoff(
         messages=messages,
-        system_prompt=system_prompt,
+        system_prompt="",
         model_name=model,
         api_key=api_key,
+        api_base_url=api_base_url,
         response_type=response_type,
         deepthought=deepthought,
         tracer=tracer,
@@ -148,6 +145,7 @@ def converse_anthropic(
     conversation_log={},
     model: Optional[str] = "claude-3-7-sonnet-latest",
     api_key: Optional[str] = None,
+    api_base_url: Optional[str] = None,
     completion_func=None,
     conversation_commands=[ConversationCommand.Default],
     max_prompt_size=None,
@@ -227,7 +225,6 @@ def converse_anthropic(
         program_execution_context=program_execution_context,
     )
 
-    messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)
     logger.debug(f"Conversation Context for Claude: {messages_to_print(messages)}")
 
     # Get Response from Claude
@@ -236,8 +233,9 @@ def converse_anthropic(
         compiled_references=references,
         online_results=online_results,
         model_name=model,
-        temperature=0,
+        temperature=0.2,
         api_key=api_key,
+        api_base_url=api_base_url,
         system_prompt=system_prompt,
         completion_func=completion_func,
         max_prompt_size=max_prompt_size,

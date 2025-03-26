@@ -463,12 +463,14 @@ async def extract_references_and_questions(
             )
         elif chat_model.model_type == ChatModel.ModelType.ANTHROPIC:
             api_key = chat_model.ai_model_api.api_key
+            api_base_url = chat_model.ai_model_api.api_base_url
             chat_model_name = chat_model.name
             inferred_queries = extract_questions_anthropic(
                 defiltered_query,
                 query_images=query_images,
                 model=chat_model_name,
                 api_key=api_key,
+                api_base_url=api_base_url,
                 conversation_log=meta_log,
                 location_data=location_data,
                 user=user,
@@ -479,12 +481,14 @@ async def extract_references_and_questions(
             )
         elif chat_model.model_type == ChatModel.ModelType.GOOGLE:
             api_key = chat_model.ai_model_api.api_key
+            api_base_url = chat_model.ai_model_api.api_base_url
             chat_model_name = chat_model.name
             inferred_queries = extract_questions_gemini(
                 defiltered_query,
                 query_images=query_images,
                 model=chat_model_name,
                 api_key=api_key,
+                api_base_url=api_base_url,
                 conversation_log=meta_log,
                 location_data=location_data,
                 max_tokens=chat_model.max_prompt_size,

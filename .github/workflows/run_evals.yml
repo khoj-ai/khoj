@@ -58,7 +58,7 @@ jobs:
       matrix:
         # Use input from manual trigger if available, else run all combinations
         khoj_mode: ${{ github.event_name == 'workflow_dispatch' && fromJSON(format('["{0}"]', inputs.khoj_mode)) || fromJSON('["general", "default", "research"]') }}
-        dataset: ${{ github.event_name == 'workflow_dispatch' && fromJSON(format('["{0}"]', inputs.dataset)) || fromJSON('["frames", "simpleqa", "gpqa"]') }}
+        dataset: ${{ github.event_name == 'workflow_dispatch' && fromJSON(format('["{0}"]', inputs.dataset)) || fromJSON('["frames", "gpqa"]') }}
 
     services:
       postgres:
@@ -117,10 +117,10 @@ jobs:
           KHOJ_LLM_SEED: "42"
           KHOJ_RESEARCH_ITERATIONS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_research_iterations || 5 }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          SERPER_DEV_API_KEY: ${{ matrix.dataset != 'math500' && secrets.SERPER_DEV_API_KEY }}
-          OLOSTEP_API_KEY: ${{ matrix.dataset != 'math500' && secrets.OLOSTEP_API_KEY }}
+          SERPER_DEV_API_KEY: ${{ matrix.dataset != 'math500' && secrets.SERPER_DEV_API_KEY || '' }}
+          OLOSTEP_API_KEY: ${{ matrix.dataset != 'math500' && secrets.OLOSTEP_API_KEY || ''}}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          E2B_API_KEY: ${{ inputs.sandbox == 'e2b' && secrets.E2B_API_KEY }}
+          E2B_API_KEY: ${{ inputs.sandbox == 'e2b' && secrets.E2B_API_KEY || '' }}
           E2B_TEMPLATE: ${{ vars.E2B_TEMPLATE }}
           KHOJ_ADMIN_EMAIL: khoj
           KHOJ_ADMIN_PASSWORD: khoj
@@ -169,8 +169,8 @@ jobs:
           echo "## Evaluation Summary of Khoj on ${{ matrix.dataset }} in ${{ matrix.khoj_mode }} mode" >> $GITHUB_STEP_SUMMARY
           echo "**$(head -n 1 *_evaluation_summary_*.txt)**" >> $GITHUB_STEP_SUMMARY
           echo "- Khoj Version: ${{ steps.hatch.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Chat Model: ${{ inputs.chat_model }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Code Sandbox: ${{ inputs.sandbox}}" >> $GITHUB_STEP_SUMMARY
+          echo "- Chat Model: ${{ inputs.chat_model || 'gemini-2.0-flash' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Code Sandbox: ${{ inputs.sandbox || 'terrarium' }}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           tail -n +2 *_evaluation_summary_*.txt >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

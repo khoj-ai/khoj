@@ -196,6 +196,7 @@ export interface ChatHistoryData {
     agent: AgentData;
     conversation_id: string;
     slug: string;
+    is_owner: boolean;
 }
 
 function sendFeedback(uquery: string, kquery: string, sentiment: string) {

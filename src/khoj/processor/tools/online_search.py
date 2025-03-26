@@ -55,9 +55,6 @@ OLOSTEP_QUERY_PARAMS = {
     "expandHtml": "False",
 }
 
-DEFAULT_MAX_WEBPAGES_TO_READ = 1
-MAX_WEBPAGES_TO_INFER = 10
-
 
 async def search_online(
     query: str,
@@ -66,7 +63,7 @@ async def search_online(
     user: KhojUser,
     send_status_func: Optional[Callable] = None,
     custom_filters: List[str] = [],
-    max_webpages_to_read: int = DEFAULT_MAX_WEBPAGES_TO_READ,
+    max_webpages_to_read: int = 1,
     query_images: List[str] = None,
     previous_subqueries: Set = set(),
     agent: Agent = None,
@@ -282,7 +279,7 @@ async def read_webpages(
     send_status_func: Optional[Callable] = None,
     query_images: List[str] = None,
     agent: Agent = None,
-    max_webpages_to_read: int = DEFAULT_MAX_WEBPAGES_TO_READ,
+    max_webpages_to_read: int = 1,
     query_files: str = None,
     tracer: dict = {},
 ):
@@ -290,6 +287,7 @@ async def read_webpages(
     logger.info(f"Inferring web pages to read")
     urls = await infer_webpage_urls(
         query,
+        max_webpages_to_read,
         conversation_history,
         location,
         user,
@@ -298,9 +296,6 @@ async def read_webpages(
         query_files=query_files,
         tracer=tracer,
     )
-
-    # Get the top 10 web pages to read
-    urls = urls[:max_webpages_to_read]
 
     logger.info(f"Reading web pages at: {urls}")
     if send_status_func:

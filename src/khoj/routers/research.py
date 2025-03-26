@@ -113,6 +113,7 @@ async def apick_next_tool(
 
     today = datetime.today()
     location_data = f"{location}" if location else "Unknown"
+    agent_chat_model = agent.chat_model if agent else None
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
     )
@@ -140,6 +141,7 @@ async def apick_next_tool(
                 user=user,
                 query_images=query_images,
                 query_files=query_files,
+                agent_chat_model=agent_chat_model,
                 tracer=tracer,
             )
     except Exception as e:
@@ -233,6 +235,10 @@ async def execute_information_collection(
         if this_iteration.warning:
             logger.warning(f"Research mode: {this_iteration.warning}.")
 
+        # Terminate research if query, tool not set for next iteration
+        elif not this_iteration.query or not this_iteration.tool:
+            current_iteration = MAX_ITERATIONS
+
         elif this_iteration.tool == ConversationCommand.Notes:
             this_iteration.context = []
             document_results = []
@@ -315,6 +321,7 @@ async def execute_information_collection(
                     location,
                     user,
                     send_status_func,
+                    max_webpages_to_read=1,
                     query_images=query_images,
                     agent=agent,
                     tracer=tracer,
