@@ -4,6 +4,7 @@ from typing import Dict, List, Optional
 
 import pyjson5
 from langchain.schema import ChatMessage
+from pydantic import BaseModel
 
 from khoj.database.models import Agent, ChatModel, KhojUser
 from khoj.processor.conversation import prompts
@@ -96,12 +97,16 @@ def extract_questions_gemini(
     messages.append(ChatMessage(content=prompt, role="user"))
     messages.append(ChatMessage(content=system_prompt, role="system"))
 
+    class DocumentQueries(BaseModel):
+        queries: List[str]
+
     response = gemini_send_message_to_model(
         messages,
         api_key,
         model,
         api_base_url=api_base_url,
         response_type="json_object",
+        response_schema=DocumentQueries,
         tracer=tracer,
     )
 
