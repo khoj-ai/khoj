@@ -119,6 +119,8 @@ async def get_agent_by_conversation(
             media_type="application/json",
             status_code=404,
         )
+    if not conversation.agent:
+        agent = await AgentAdapters.aget_default_agent()
 
     agent = await AgentAdapters.aget_agent_by_slug(conversation.agent.slug, user)
 
