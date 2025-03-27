@@ -52,6 +52,10 @@ SAFETY_SETTINGS = [
         category=gtypes.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
         threshold=gtypes.HarmBlockThreshold.BLOCK_ONLY_HIGH,
     ),
+    gtypes.SafetySetting(
+        category=gtypes.HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY,
+        threshold=gtypes.HarmBlockThreshold.BLOCK_ONLY_HIGH,
+    ),
 ]
 
 
@@ -246,6 +250,7 @@ def generate_safety_response(safety_ratings: list[gtypes.SafetyRating]):
     # Add a bit of variety to the discomfort level based on the safety rating probability
     discomfort_level = {
         gtypes.HarmProbability.HARM_PROBABILITY_UNSPECIFIED: " ",
+        gtypes.HarmProbability.NEGLIGIBLE: "a little ",
         gtypes.HarmProbability.LOW: "a bit ",
         gtypes.HarmProbability.MEDIUM: "moderately ",
         gtypes.HarmProbability.HIGH: random.choice(["very ", "quite ", "fairly "]),
