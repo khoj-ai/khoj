@@ -313,7 +313,7 @@ class Agent(DbBaseModel):
         if self.creator is None:
             self.managed_by_admin = True
 
-        if is_new:
+        if is_new and not self.slug:
             random_sequence = "".join(choice("0123456789") for i in range(6))
             slug = f"{self.name.lower().replace(' ', '-')}-{random_sequence}"
             self.slug = slug
