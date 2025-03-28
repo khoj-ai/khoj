@@ -19,7 +19,7 @@ default_offline_chat_models = [
 ]
 default_openai_chat_models = ["gpt-4o-mini", "gpt-4o"]
 default_gemini_chat_models = ["gemini-2.0-flash", "gemini-1.5-pro"]
-default_anthropic_chat_models = ["claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022"]
+default_anthropic_chat_models = ["claude-3-7-sonnet-latest", "claude-3-5-haiku-latest"]
 
 empty_config = {
     "search-type": {

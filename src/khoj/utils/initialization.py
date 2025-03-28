@@ -104,7 +104,7 @@ def initialization(interactive: bool = True):
             )
 
         # Set up Google's Gemini online chat models
-        _setup_chat_model_provider(
+        google_ai_configured, google_ai_provider = _setup_chat_model_provider(
             ChatModel.ModelType.GOOGLE,
             default_gemini_chat_models,
             default_api_key=os.getenv("GEMINI_API_KEY"),
@@ -113,6 +113,22 @@ def initialization(interactive: bool = True):
             interactive=interactive,
             provider_name="Google Gemini",
         )
+
+        # Setup Google text to image model
+        if google_ai_configured:
+            default_text_to_image_model = "imagen-3.0-generate-002"
+            if interactive:
+                gemini_text_to_image_model = input(
+                    f"Enter the Google text to image model you want to use (default: {default_text_to_image_model}): "
+                )
+                gemini_text_to_image_model = gemini_text_to_image_model or default_text_to_image_model
+            else:
+                gemini_text_to_image_model = default_text_to_image_model
+            TextToImageModelConfig.objects.create(
+                model_name=gemini_text_to_image_model,
+                model_type=TextToImageModelConfig.ModelType.GOOGLE,
+                ai_model_api=google_ai_provider,
+            )
 
         # Set up Anthropic's online chat models
         _setup_chat_model_provider(
