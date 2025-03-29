@@ -92,3 +92,51 @@ While we're using Django for the ORM, we're still using the FastAPI server for t
 ```bash
 python3 src/khoj/main.py --anonymous-mode
 ```
+
+
+## 🚀 HPU Support
+### 🛠️ Setup for HPU
+
+To run Khoj on a Habana Gaudi device, follow these steps:
+
+1. **Build the HPU Docker Image**:
+   Use the provided `Dockerfile.hpu` to build a Docker image optimized for HPU:
+   ```bash
+   docker build -t khoj-hpu -f Dockerfile.hpu .
+   ```
+
+2. **Run the Docker Container**:
+   Start the container with the appropriate environment variables for HPU:
+   ```bash
+   docker run --runtime=habana -e HABANA_VISIBLE_DEVICES=all -p <PORT>:<PORT> khoj-hpu
+   ```
+   Replace `<PORT>` with the port number you want to expose.
+
+3. **Verify HPU Support**:
+   Ensure that the application detects the HPU device by checking the logs. The application will automatically use the HPU if available.
+
+### 📦 New Dependencies
+
+To support HPU and other advanced features, we've added the following dependencies:
+
+- **`optimum-habana`**: Optimizes models for Habana Gaudi accelerators.
+- **`torch-geometric`**: Enables deep learning on graph-based data structures.
+- **`numba`**: Accelerates Python code by compiling it to machine code at runtime.
+
+These dependencies are automatically installed when you build the Docker image or install the project locally.
+
+### 🧠 Device Selection
+
+The application now supports multiple device types, including **CUDA**, **HPU**, **MPS** (Apple Silicon), and **CPU**. You can specify your preferred device by passing the `preferred_device` argument to the `get_device()` function in `helpers.py`. For example:
+
+```python
+device = get_device(preferred_device="hpu")  # Use HPU if available
+```
+
+If no preferred device is specified, the application will automatically select the best available device.
+
+### 📝 Notes
+
+- Ensure that your system has the necessary Habana drivers and software stack installed to use HPUs.
+- For more information on Habana Gaudi accelerators, visit the [Habana Labs documentation](https://docs.habana.ai/).
+
