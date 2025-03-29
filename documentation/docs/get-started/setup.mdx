@@ -115,53 +115,7 @@ Your setup is complete once you see `🌖 Khoj is ready to use` in the server lo
   </TabItem>
   <TabItem value="pip" label="Pip">
 
-<h3>1. Install Postgres (with PgVector)</h3>
-
-Khoj uses Postgres DB for all server configuration and to scale to multi-user setups. It uses the pgvector package in Postgres to manage your document embeddings. Both Postgres and pgvector need to be installed for Khoj to work.
-
-  <Tabs groupId="operating-systems" queryString="os">
-    <TabItem value="macos" label="MacOS">
-Install [Postgres.app](https://postgresapp.com/). This comes pre-installed with `pgvector` and relevant dependencies.
-    </TabItem>
-    <TabItem value="windows" label="Windows">
-    For detailed instructions and troubleshooting, see [this section](/contributing/development#2-postgres-installation--setup).
-    1. Use the [recommended installer](https://www.postgresql.org/download/windows/).
-    2. Follow instructions to [Install PgVector](https://github.com/pgvector/pgvector#windows) in case you need to manually install it. Windows support is experimental for pgvector currently, so we recommend using Docker.
-    </TabItem>
-    <TabItem value="linux" label="Linux">
-    From [official instructions](https://wiki.postgresql.org/wiki/Apt)
-    </TabItem>
-    <TabItem value="source" label="From Source">
-    1. Follow instructions to [Install Postgres](https://www.postgresql.org/download/)
-    2. Follow instructions to [Install PgVector](https://github.com/pgvector/pgvector#installation) in case you need to manually install it.
-    </TabItem>
-  </Tabs>
-
-<h3>2. Create the Khoj database</h3>
-
-<Tabs groupId="operating-systems" queryString="os">
-  <TabItem value="macos" label="MacOS">
-    ```shell
-    createdb khoj -U postgres --password
-    ```
-  </TabItem>
-  <TabItem value="windows" label="Windows">
-    ```shell
-    createdb -U postgres khoj --password
-    ```
-  </TabItem>
-  <TabItem value="linux" label="Linux">
-    ```shell
-    sudo -u postgres createdb khoj --password
-    ```
-  </TabItem>
-</Tabs>
-
-:::info[Postgres Env Config]
-Make sure to update the `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_DB` or `POSTGRES_PASSWORD` environment variables to match any customizations in your Postgres configuration.
-:::
-
-<h3>3. Install Khoj Server</h3>
+<h3>1. Install Khoj Server</h3>
 - Make sure [python](https://realpython.com/installing-python/) and [pip](https://pip.pypa.io/en/stable/installation/) are installed on your machine
 - Check [llama-cpp-python setup](https://github.com/abetlen/llama-cpp-python?tab=readme-ov-file#supported-backends) if you hit any llama-cpp issues with the installation
 
@@ -172,12 +126,12 @@ Run the following command in your terminal to install the Khoj server.
       <Tabs groupId="gpu" queryString="gpu">
         <TabItem value="arm" label="ARM/M1+">
     ```shell
-CMAKE_ARGS="-DGGML_METAL=on" python -m pip install khoj
+CMAKE_ARGS="-DGGML_METAL=on" python -m pip install 'khoj[local]'
     ```
         </TabItem>
         <TabItem value="intel" label="Intel">
     ```shell
-python -m pip install khoj
+python -m pip install 'khoj[local]'
     ```
         </TabItem>
       </Tabs>
@@ -188,7 +142,7 @@ python -m pip install khoj
         <TabItem value="cpu" label="CPU">
        ```shell
  # Install Khoj
- py -m pip install khoj
+ py -m pip install 'khoj[local]'
       ```
         </TabItem>
         <TabItem value="nvidia" label="NVIDIA (CUDA) GPU">
@@ -196,7 +150,7 @@ python -m pip install khoj
  # 1. To use NVIDIA (CUDA) GPU
  $env:CMAKE_ARGS = "-DGGML_CUDA=on"
  # 2. Install Khoj
- py -m pip install khoj
+ py -m pip install 'khoj[local]'
       ```
         </TabItem>
         <TabItem value="amd" label="AMD (ROCm) GPU">
@@ -204,7 +158,7 @@ python -m pip install khoj
  # 1. To use AMD (ROCm) GPU
  $env:CMAKE_ARGS = "-DGGML_HIPBLAS=on"
  # 2. Install Khoj
- py -m pip install khoj
+ py -m pip install 'khoj[local]'
       ```
         </TabItem>
         <TabItem value="vulkan" label="VULKAN GPU">
@@ -212,7 +166,7 @@ python -m pip install khoj
  # 1. To use VULCAN GPU
  $env:CMAKE_ARGS = "-DGGML_VULKAN=on"
  # 2. Install Khoj
- py -m pip install khoj
+ py -m pip install 'khoj[local]'
       ```
         </TabItem>
       </Tabs>
@@ -221,34 +175,34 @@ python -m pip install khoj
       <Tabs groupId="gpu" queryString="gpu">
         <TabItem value="cpu" label="CPU">
           ```shell
-          python -m pip install khoj
+          python -m pip install 'khoj[local]'
           ```
         </TabItem>
         <TabItem value="nvidia" label="NVIDIA (CUDA) GPU">
           ```shell
-          CMAKE_ARGS="-DGGML_CUDA=on" FORCE_CMAKE=1 python -m pip install khoj
+          CMAKE_ARGS="-DGGML_CUDA=on" FORCE_CMAKE=1 python -m pip install 'khoj[local]'
           ```
         </TabItem>
         <TabItem value="amd" label="AMD (ROCm) GPU">
           ```shell
-          CMAKE_ARGS="-DGGML_HIPBLAS=on" FORCE_CMAKE=1 python -m pip install khoj
+          CMAKE_ARGS="-DGGML_HIPBLAS=on" FORCE_CMAKE=1 python -m pip install 'khoj[local]'
           ```
         </TabItem>
         <TabItem value="vulkan" label="VULKAN GPU">
           ```shell
-          CMAKE_ARGS="-DGGML_VULKAN=on" FORCE_CMAKE=1 python -m pip install khoj
+          CMAKE_ARGS="-DGGML_VULKAN=on" FORCE_CMAKE=1 python -m pip install 'khoj[local]'
           ```
         </TabItem>
       </Tabs>
     </TabItem>
   </Tabs>
 
-<h3>4. Start Khoj Server</h3>
+<h3>2. Start Khoj Server</h3>
 
 Run the following command from your terminal to start the Khoj service.
 
 ```shell
-khoj --anonymous-mode
+USE_EMBEDDED_DB="true" khoj --anonymous-mode
 ```
 `--anonymous-mode` allows access to Khoj without requiring login. This is usually fine for local only, single user setups. If you need authentication follow the [authentication setup docs](/advanced/authentication).
 
