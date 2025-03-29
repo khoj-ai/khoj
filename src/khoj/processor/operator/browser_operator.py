@@ -2,6 +2,7 @@ import asyncio
 import base64
 import json
 import logging
+import os
 from datetime import datetime
 from typing import Callable, List, Literal, Optional
 
@@ -60,7 +61,7 @@ async def operate_browser(
     playwright, browser, page = await start_browser(width, height)
 
     # Operate the browser
-    max_iterations = 30
+    max_iterations = 40
     with timer(f"Operating browser with {chat_model.model_type} {chat_model.name}", logger):
         try:
             if chat_model.model_type == ChatModel.ModelType.OPENAI:
@@ -114,11 +115,18 @@ async def operate_browser(
 async def start_browser(width: int = 1024, height: int = 768):
     playwright = await async_playwright().start()
 
-    launch_args = [f"--window-size={width},{height}", "--disable-extensions", "--disable-file-system"]
-    browser = await playwright.chromium.launch(chromium_sandbox=True, headless=False, args=launch_args, env={})
+    if cdp_url := os.getenv("KHOJ_CDP_URL"):
+        browser = await playwright.chromium.connect_over_cdp(cdp_url)
+    else:
+        launch_args = [f"--window-size={width},{height}", "--disable-extensions", "--disable-file-system"]
+        browser = await playwright.chromium.launch(chromium_sandbox=True, headless=False, args=launch_args, env={})
 
-    page = await browser.new_page()
-    await page.goto("https://duckduckgo.com")
+    default_context = browser.contexts[0] if browser.contexts else await browser.new_context()
+
+    page = default_context.pages[0] if default_context.pages else await default_context.new_page()
+    # If page url is blank, navigate to DuckDuckGo
+    if page.url == "about:blank":
+        await page.goto("https://duckduckgo.com")
     await page.set_viewport_size({"width": width, "height": height})
     return playwright, browser, page
 
