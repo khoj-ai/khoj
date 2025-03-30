@@ -294,11 +294,21 @@ def format_messages_for_gemini(
                     else:
                         image = get_image_from_base64(image_data, type="bytes")
                     message_content += [gtypes.Part.from_bytes(data=image.content, mime_type=image.type)]
+                elif not is_none_or_empty(item.get("text")):
+                    message_content += [gtypes.Part.from_text(text=item["text"])]
                 else:
-                    message_content += [gtypes.Part.from_text(text=item.get("text", ""))]
+                    logger.error(f"Dropping invalid message content part: {item}")
+            if not message_content:
+                logger.error(f"Dropping empty message content")
+                messages.remove(message)
+                continue
             message.content = message_content
         elif isinstance(message.content, str):
             message.content = [gtypes.Part.from_text(text=message.content)]
+        else:
+            logger.error(f"Dropping invalid type: {type(message.content)} of message content: {message.content}")
+            messages.remove(message)
+            continue
 
         if message.role == "assistant":
             message.role = "model"
