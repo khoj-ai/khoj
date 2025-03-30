@@ -4,12 +4,11 @@ from typing import Dict, List, Optional
 
 import pyjson5
 from langchain.schema import ChatMessage
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from khoj.database.models import Agent, ChatModel, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.google.utils import (
-    format_messages_for_gemini,
     gemini_chat_completion_with_backoff,
     gemini_completion_with_backoff,
 )
@@ -98,7 +97,7 @@ def extract_questions_gemini(
     messages.append(ChatMessage(content=system_prompt, role="system"))
 
     class DocumentQueries(BaseModel):
-        queries: List[str]
+        queries: List[str] = Field(..., min_items=1)
 
     response = gemini_send_message_to_model(
         messages,
