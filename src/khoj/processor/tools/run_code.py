@@ -139,12 +139,14 @@ async def generate_python_code(
         prompts.e2b_sandbox_context if is_e2b_code_sandbox_enabled() else prompts.terrarium_sandbox_context
     )
     personality_context = f"{sandbox_context}\n{personality_context}"
+    network_access_context = "**NO** " if not is_e2b_code_sandbox_enabled() else ""
 
     code_generation_prompt = prompts.python_code_generation_prompt.format(
-        current_date=utc_date,
         query=q,
         chat_history=chat_history,
         context=context,
+        has_network_access=network_access_context,
+        current_date=utc_date,
         location=location,
         username=username,
         personality_context=personality_context,
