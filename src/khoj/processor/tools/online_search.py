@@ -398,16 +398,16 @@ async def read_webpage_with_olostep(web_url: str, api_key: str, api_url: str) ->
 
 
 async def read_webpage_with_jina(web_url: str, api_key: str, api_url: str) -> str:
-    jina_reader_api_url = f"{api_url}/{web_url}"
-    headers = {"Accept": "application/json", "X-Timeout": "30"}
+    headers = {"Accept": "application/json", "X-Timeout": "30", "X-With-Generated-Alt": "true"}
+    data = {"url": web_url}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
 
     async with aiohttp.ClientSession() as session:
-        async with session.get(jina_reader_api_url, headers=headers) as response:
+        async with session.post(api_url, json=data, headers=headers) as response:
             response.raise_for_status()
-            response_json = await response.json()
-            return response_json["data"]["content"]
+            content = await response.text()
+            return content
 
 
 async def read_webpage_with_firecrawl(web_url: str, api_key: str, api_url: str) -> str:
@@ -459,10 +459,6 @@ Collate only relevant information from the website to answer the target query an
 
 
 async def search_with_jina(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:
-    encoded_query = urllib.parse.quote(query)
-    jina_search_api_url = f"{JINA_SEARCH_API_URL}/{encoded_query}"
-    headers = {"Accept": "application/json"}
-
     # First check for jina scraper configuration in database
     default_jina_scraper = (
         await ServerChatSettings.objects.filter()
@@ -477,13 +473,15 @@ async def search_with_jina(query: str, location: LocationData) -> Tuple[str, Dic
         jina_scraper = await WebScraper.objects.filter(type=WebScraper.WebScraperType.JINA).afirst()
 
     # Get API key from DB scraper config or environment variable
+    data = {"q": query}
+    headers = {"Accept": "application/json", "X-Respond-With": "no-content"}
     api_key = jina_scraper.api_key if jina_scraper and jina_scraper.api_key else JINA_API_KEY
 
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
 
     async with aiohttp.ClientSession() as session:
-        async with session.get(jina_search_api_url, headers=headers) as response:
+        async with session.post(JINA_SEARCH_API_URL, json=data, headers=headers) as response:
             if response.status != 200:
                 error_text = await response.text()
                 logger.error(f"Jina search failed: {error_text}")
