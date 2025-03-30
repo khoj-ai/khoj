@@ -251,9 +251,16 @@ async def search_with_google(query: str, location: LocationData) -> Tuple[str, D
 
 
 async def search_with_serper(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:
-    country_code = location.country_code.lower() if location and location.country_code else "us"
-    payload = json.dumps({"q": query, "gl": country_code})
     headers = {"X-API-KEY": SERPER_DEV_API_KEY, "Content-Type": "application/json"}
+    country_code = location.country_code.lower() if location and location.country_code else "us"
+    max_query_length = 2048
+    if len(query) > max_query_length:
+        logger.warning(
+            f"Truncate online query. Query length {len(query)} exceeds {max_query_length} supported by Serper. Query: {query}"
+        )
+        query = query[:max_query_length]
+
+    payload = json.dumps({"q": query, "gl": country_code})
 
     async with aiohttp.ClientSession() as session:
         async with session.post(SERPER_DEV_URL, headers=headers, data=payload) as response:
