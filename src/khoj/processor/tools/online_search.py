@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 GOOGLE_SEARCH_API_KEY = os.getenv("GOOGLE_SEARCH_API_KEY")
 GOOGLE_SEARCH_ENGINE_ID = os.getenv("GOOGLE_SEARCH_ENGINE_ID")
 SERPER_DEV_API_KEY = os.getenv("SERPER_DEV_API_KEY")
+AUTO_READ_WEBPAGE = is_env_var_true("AUTO_READ_WEBPAGE")
 SERPER_DEV_URL = "https://google.serper.dev/search"
 
 JINA_SEARCH_API_URL = "https://s.jina.ai/"
@@ -130,6 +131,10 @@ async def search_online(
             except Exception as e:
                 logger.error(f"Error searching with {search_engine}: {e}")
                 response_dict = {}
+
+    if not AUTO_READ_WEBPAGE:
+        yield response_dict
+        return
 
     # Gather distinct web pages from organic results for subqueries without an instant answer.
     webpages: Dict[str, Dict] = {}
