@@ -95,29 +95,37 @@ async def search_online(
         yield response_dict
         return
 
+    search_engines = []
+    if SERPER_DEV_API_KEY:
+        search_engine = "Serper"
+        search_engines.append((search_engine, search_with_serper))
     if GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_ENGINE_ID:
         search_engine = "Google"
-        search_func = search_with_google
-    elif SERPER_DEV_API_KEY:
-        search_engine = "Serper"
-        search_func = search_with_serper
-    elif JINA_API_KEY:
+        search_engines.append((search_engine, search_with_google))
+    if JINA_API_KEY:
         search_engine = "Jina"
-        search_func = search_with_jina
-    else:
-        search_engine = "Searxng"
-        search_func = search_with_searxng
+        search_engines.append((search_engine, search_with_jina))
+    search_engine = "Searxng"
+    search_engines.append((search_engine, search_with_searxng))
 
-    logger.info(f"🌐 Searching the Internet with {search_engine} for {subqueries}")
+    logger.info(f"🌐 Searching the Internet for {subqueries}")
     if send_status_func:
         subqueries_str = "\n- " + "\n- ".join(subqueries)
         async for event in send_status_func(f"**Searching the Internet for**: {subqueries_str}"):
             yield {ChatEvent.STATUS: event}
 
-    with timer(f"Internet searches for {subqueries} took", logger):
-        search_tasks = [search_func(subquery, location) for subquery in subqueries]
-        search_results = await asyncio.gather(*search_tasks)
-        response_dict = {subquery: search_result for subquery, search_result in search_results}
+    response_dict = {}
+    for search_engine, search_func in search_engines:
+        with timer(f"Internet searches with {search_engine} for {subqueries} took", logger):
+            try:
+                search_tasks = [search_func(subquery, location) for subquery in subqueries]
+                search_results = await asyncio.gather(*search_tasks)
+                response_dict = {subquery: search_result for subquery, search_result in search_results if search_result}
+                if not is_none_or_empty(response_dict):
+                    break
+            except Exception as e:
+                logger.error(f"Error searching with {search_engine}: {e}")
+                response_dict = {}
 
     # Gather distinct web pages from organic results for subqueries without an instant answer.
     webpages: Dict[str, Dict] = {}
