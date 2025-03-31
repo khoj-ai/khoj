@@ -38,6 +38,7 @@ SERPER_DEV_URL = "https://google.serper.dev/search"
 JINA_SEARCH_API_URL = "https://s.jina.ai/"
 JINA_API_KEY = os.getenv("JINA_API_KEY")
 
+FIRECRAWL_API_KEY = os.getenv("FIRECRAWL_API_KEY")
 FIRECRAWL_USE_LLM_EXTRACT = is_env_var_true("FIRECRAWL_USE_LLM_EXTRACT")
 
 OLOSTEP_QUERY_PARAMS = {
@@ -102,6 +103,9 @@ async def search_online(
     if GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_ENGINE_ID:
         search_engine = "Google"
         search_engines.append((search_engine, search_with_google))
+    if FIRECRAWL_API_KEY:
+        search_engine = "Firecrawl"
+        search_engines.append((search_engine, search_with_firecrawl))
     if JINA_API_KEY:
         search_engine = "Jina"
         search_engines.append((search_engine, search_with_jina))
@@ -165,6 +169,69 @@ async def search_online(
             response_dict[subqueries.pop()]["webpages"] = {"link": url, "snippet": webpage_extract}
 
     yield response_dict
+
+
+async def search_with_firecrawl(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:
+    """
+    Search using Firecrawl API.
+
+    Args:
+        query: The search query string
+        location: Location data for geolocation-based search
+
+    Returns:
+        Tuple containing the original query and a dictionary of search results
+    """
+    # Set up API endpoint and headers
+    firecrawl_api_url = "https://api.firecrawl.dev/v1/search"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {FIRECRAWL_API_KEY}"}
+
+    # Prepare request payload
+    country_code = location.country_code.lower() if location and location.country_code else "us"
+    payload = {
+        "query": query,
+        "limit": 10,  # Maximum number of results
+        "country": country_code,
+        "lang": "en",
+        "timeout": 10000,
+        "scrapeOptions": {},
+    }
+
+    # Add location parameter if available
+    if location and location.city:
+        payload["location"] = f"{location.city}, {location.region}, {location.country}"
+
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.post(firecrawl_api_url, headers=headers, json=payload) as response:
+                if response.status != 200:
+                    error_text = await response.text()
+                    logger.error(f"Firecrawl search failed: {error_text}")
+                    return query, {}
+
+                response_json = await response.json()
+
+                if not response_json.get("success", False):
+                    logger.error(f"Firecrawl search failed: {response_json.get('warning', 'Unknown error')}")
+                    return query, {}
+
+                # Transform Firecrawl response to match the expected format
+                organic_results = []
+                for item in response_json.get("data", []):
+                    organic_results.append(
+                        {
+                            "title": item["title"],
+                            "link": item["url"],
+                            "snippet": item["description"],
+                            "content": item.get("markdown", None),
+                        }
+                    )
+
+                return query, {"organic": organic_results}
+
+        except Exception as e:
+            logger.error(f"Error searching with Firecrawl: {str(e)}")
+            return query, {}
 
 
 async def search_with_searxng(query: str, location: LocationData) -> Tuple[str, Dict[str, List[Dict]]]:
