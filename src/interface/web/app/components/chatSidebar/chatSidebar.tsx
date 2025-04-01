@@ -34,6 +34,7 @@ interface ChatSideBarProps {
     isOpen: boolean;
     isMobileWidth?: boolean;
     onOpenChange: (open: boolean) => void;
+    isActive?: boolean;
 }
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -527,9 +528,10 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                                 <SidebarMenu className="p-0 m-0">
                                     <SidebarMenuItem key={"model"} className="list-none">
                                         <ModelSelector
-                                            disabled={!isEditable || !isSubscribed}
+                                            disabled={!isEditable}
                                             onSelect={(model) => handleModelSelect(model.name)}
                                             initialModel={isDefaultAgent ? undefined : agentData?.chat_model}
+                                            isActive={props.isActive}
                                         />
                                     </SidebarMenuItem>
                                 </SidebarMenu>

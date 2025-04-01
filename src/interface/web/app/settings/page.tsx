@@ -77,10 +77,11 @@ import { saveAs } from 'file-saver';
 interface DropdownComponentProps {
     items: ModelOptions[];
     selected: number;
+    isActive?: boolean;
     callbackFunc: (value: string) => Promise<void>;
 }
 
-const DropdownComponent: React.FC<DropdownComponentProps> = ({ items, selected, callbackFunc }) => {
+const DropdownComponent: React.FC<DropdownComponentProps> = ({ items, selected, isActive, callbackFunc }) => {
     const [position, setPosition] = useState(selected?.toString() ?? "0");
 
     return (
@@ -111,8 +112,9 @@ const DropdownComponent: React.FC<DropdownComponentProps> = ({ items, selected, 
                                 <DropdownMenuRadioItem
                                     key={item.id.toString()}
                                     value={item.id.toString()}
+                                    disabled={!isActive && item.tier !== "free"}
                                 >
-                                    {item.name}
+                                    {item.name} {item.tier === "standard" && <span className="text-green-500 ml-2">(Futurist)</span>}
                                 </DropdownMenuRadioItem>
                             ))}
                         </DropdownMenuRadioGroup>
@@ -520,33 +522,44 @@ export default function SettingsView() {
         }
     };
 
-    const updateModel = (name: string) => async (id: string) => {
-        if (!userConfig?.is_active) {
+    const updateModel = (modelType: string) => async (id: string) => {
+        // Get the selected model from the options
+        const modelOptions = modelType === "chat"
+            ? userConfig?.chat_model_options
+            : modelType === "paint"
+                ? userConfig?.paint_model_options
+                : userConfig?.voice_model_options;
+
+        const selectedModel = modelOptions?.find(model => model.id.toString() === id);
+        const modelName = selectedModel?.name;
+
+        // Check if the model is free tier or if the user is active
+        if (!userConfig?.is_active && selectedModel?.tier !== "free") {
             toast({
                 title: `Model Update`,
-                description: `You need to be subscribed to update ${name} models`,
+                description: `Subscribe to switch ${modelType} model to ${modelName}.`,
                 variant: "destructive",
             });
             return;
         }
 
         try {
-            const response = await fetch(`/api/model/${name}?id=` + id, {
+            const response = await fetch(`/api/model/${modelType}?id=` + id, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
             });
 
-            if (!response.ok) throw new Error("Failed to update model");
+            if (!response.ok) throw new Error(`Failed to switch ${modelType} model to ${modelName}`);
 
             toast({
-                title: `✅ Updated ${toTitleCase(name)} Model`,
+                title: `✅ Switched ${modelType} model to ${modelName}`,
             });
         } catch (error) {
-            console.error(`Failed to update ${name} model:`, error);
+            console.error(`Failed to update ${modelType} model to ${modelName}:`, error);
             toast({
-                description: `❌ Failed to update ${toTitleCase(name)} model. Try again.`,
+                description: `❌ Failed to switch ${modelType} model to ${modelName}. Try again.`,
                 variant: "destructive",
             });
         }
@@ -1103,13 +1116,16 @@ export default function SettingsView() {
                                                             selected={
                                                                 userConfig.selected_chat_model_config
                                                             }
+                                                            isActive={userConfig.is_active}
                                                             callbackFunc={updateModel("chat")}
                                                         />
                                                     </CardContent>
                                                     <CardFooter className="flex flex-wrap gap-4">
                                                         {!userConfig.is_active && (
                                                             <p className="text-gray-400">
-                                                                Subscribe to switch model
+                                                                {userConfig.chat_model_options.some(model => model.tier === "free")
+                                                                    ? "Free models available"
+                                                                    : "Subscribe to switch model"}
                                                             </p>
                                                         )}
                                                     </CardFooter>
@@ -1131,13 +1147,16 @@ export default function SettingsView() {
                                                             selected={
                                                                 userConfig.selected_paint_model_config
                                                             }
+                                                            isActive={userConfig.is_active}
                                                             callbackFunc={updateModel("paint")}
                                                         />
                                                     </CardContent>
                                                     <CardFooter className="flex flex-wrap gap-4">
                                                         {!userConfig.is_active && (
                                                             <p className="text-gray-400">
-                                                                Subscribe to switch model
+                                                                {userConfig.paint_model_options.some(model => model.tier === "free")
+                                                                    ? "Free models available"
+                                                                    : "Subscribe to switch model"}
                                                             </p>
                                                         )}
                                                     </CardFooter>
@@ -1159,13 +1178,16 @@ export default function SettingsView() {
                                                             selected={
                                                                 userConfig.selected_voice_model_config
                                                             }
+                                                            isActive={userConfig.is_active}
                                                             callbackFunc={updateModel("voice")}
                                                         />
                                                     </CardContent>
                                                     <CardFooter className="flex flex-wrap gap-4">
                                                         {!userConfig.is_active && (
                                                             <p className="text-gray-400">
-                                                                Subscribe to switch model
+                                                                {userConfig.voice_model_options.some(model => model.tier === "free")
+                                                                    ? "Free models available"
+                                                                    : "Subscribe to switch model"}
                                                             </p>
                                                         )}
                                                     </CardFooter>
