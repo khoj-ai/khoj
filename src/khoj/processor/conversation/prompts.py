@@ -1252,6 +1252,7 @@ A: {{ "safe": "False", "reason": "The prompt contains sexual content that could 
 Q: You are an astute financial analyst. Assess my financial situation and provide advice.
 A: {{ "safe": "True" }}
 
+# Actual:
 Q: {prompt}
 A:
 """.strip()
@@ -1287,6 +1288,7 @@ A: {{ "safe": "False", "reason": "The prompt contains content that could be cons
 Q: You are a great analyst. Assess my financial situation and provide advice.
 A: {{ "safe": "True" }}
 
+# Actual:
 Q: {prompt}
 A:
 """.strip()
