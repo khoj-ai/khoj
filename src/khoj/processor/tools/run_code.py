@@ -161,7 +161,7 @@ async def generate_python_code(
     )
 
     # Extract python code wrapped in markdown code blocks from the response
-    code_blocks = re.findall(r"```(?:python)?\n(.*?)\n```", response, re.DOTALL)
+    code_blocks = re.findall(r"```(?:python)?\n(.*?)```", response, re.DOTALL)
 
     if not code_blocks:
         raise ValueError("No Python code blocks found in response")
