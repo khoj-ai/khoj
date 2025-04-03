@@ -4,6 +4,8 @@ from typing import Dict, List, Optional
 
 import pyjson5
 from langchain.schema import ChatMessage
+from openai.lib._pydantic import _ensure_strict_json_schema
+from pydantic import BaseModel
 
 from khoj.database.models import Agent, ChatModel, KhojUser
 from khoj.processor.conversation import prompts
@@ -135,7 +137,16 @@ def send_message_to_model(
     model_kwargs = {}
     json_support = get_openai_api_json_support(model, api_base_url)
     if response_schema and json_support == JsonSupport.SCHEMA:
-        model_kwargs["response_format"] = response_schema
+        # Drop unsupported fields from schema passed to OpenAI APi
+        cleaned_response_schema = clean_response_schema(response_schema)
+        model_kwargs["response_format"] = {
+            "type": "json_schema",
+            "json_schema": {
+                "schema": cleaned_response_schema,
+                "name": response_schema.__name__,
+                "strict": True,
+            },
+        }
     elif response_type == "json_object" and json_support == JsonSupport.OBJECT:
         model_kwargs["response_format"] = {"type": response_type}
 
@@ -257,3 +268,30 @@ def converse_openai(
         model_kwargs={"stop": ["Notes:\n["]},
         tracer=tracer,
     )
+
+
+def clean_response_schema(schema: BaseModel | dict) -> dict:
+    """
+    Format response schema to be compatible with OpenAI API.
+
+    Clean the response schema by removing unsupported fields.
+    """
+    # Normalize schema to OpenAI compatible JSON schema format
+    schema_json = schema if isinstance(schema, dict) else schema.model_json_schema()
+    schema_json = _ensure_strict_json_schema(schema_json, path=(), root=schema_json)
+
+    # Recursively drop unsupported fields from schema passed to OpenAI API
+    # See https://platform.openai.com/docs/guides/structured-outputs#supported-schemas
+    fields_to_exclude = ["minItems", "maxItems"]
+    if isinstance(schema_json, dict) and isinstance(schema_json.get("properties"), dict):
+        for _, prop_value in schema_json["properties"].items():
+            if isinstance(prop_value, dict):
+                # Remove specified fields from direct properties
+                for field in fields_to_exclude:
+                    prop_value.pop(field, None)
+            # Recursively remove specified fields from child properties
+            if "items" in prop_value and isinstance(prop_value["items"], dict):
+                clean_response_schema(prop_value["items"])
+
+    # Return cleaned schema
+    return schema_json

@@ -34,7 +34,7 @@ from apscheduler.job import Job
 from apscheduler.triggers.cron import CronTrigger
 from asgiref.sync import sync_to_async
 from fastapi import Depends, Header, HTTPException, Request, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from starlette.authentication import has_required_scope
 from starlette.requests import URL
 
@@ -321,13 +321,19 @@ async def acheck_if_safe_prompt(system_prompt: str, user: KhojUser = None, lax: 
     is_safe = True
     reason = ""
 
+    class SafetyCheck(BaseModel):
+        safe: bool
+        reason: str
+
     with timer("Chat actor: Check if safe prompt", logger):
-        response = await send_message_to_model_wrapper(safe_prompt_check, user=user)
+        response = await send_message_to_model_wrapper(
+            safe_prompt_check, user=user, response_type="json_object", response_schema=SafetyCheck
+        )
 
         response = response.strip()
         try:
             response = json.loads(clean_json(response))
-            is_safe = response.get("safe", "True") == "True"
+            is_safe = str(response.get("safe", "true")).lower() == "true"
             if not is_safe:
                 reason = response.get("reason", "")
         except Exception:
@@ -400,7 +406,7 @@ async def aget_data_sources_and_output_format(
     agent_chat_model = agent.chat_model if agent else None
 
     class PickTools(BaseModel):
-        source: List[str]
+        source: List[str] = Field(..., min_items=1)
         output: str
 
     with timer("Chat actor: Infer information sources to refer", logger):
@@ -489,7 +495,7 @@ async def infer_webpage_urls(
     agent_chat_model = agent.chat_model if agent else None
 
     class WebpageUrls(BaseModel):
-        links: List[str]
+        links: List[str] = Field(..., min_items=1, max_items=max_webpages)
 
     with timer("Chat actor: Infer webpage urls to read", logger):
         response = await send_message_to_model_wrapper(
@@ -535,15 +541,17 @@ async def generate_online_subqueries(
     username = prompts.user_name.format(name=user.get_full_name()) if user.get_full_name() else ""
     chat_history = construct_chat_history(conversation_history)
 
+    max_queries = 3
     utc_date = datetime.utcnow().strftime("%Y-%m-%d")
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
     )
 
     online_queries_prompt = prompts.online_search_conversation_subqueries.format(
-        current_date=utc_date,
         query=q,
         chat_history=chat_history,
+        max_queries=max_queries,
+        current_date=utc_date,
         location=location,
         username=username,
         personality_context=personality_context,
@@ -552,7 +560,7 @@ async def generate_online_subqueries(
     agent_chat_model = agent.chat_model if agent else None
 
     class OnlineQueries(BaseModel):
-        queries: List[str]
+        queries: List[str] = Field(..., min_items=1, max_items=max_queries)
 
     with timer("Chat actor: Generate online search subqueries", logger):
         response = await send_message_to_model_wrapper(

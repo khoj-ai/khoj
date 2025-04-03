@@ -900,7 +900,7 @@ Khoj:
 
 online_search_conversation_subqueries = PromptTemplate.from_template(
     """
-You are Khoj, an advanced web search assistant. You are tasked with constructing **up to three** google search queries to answer the user's question.
+You are Khoj, an advanced web search assistant. You are tasked with constructing **up to {max_queries}** google search queries to answer the user's question.
 - You will receive the actual chat history as context.
 - Add as much context from the chat history as required into your search queries.
 - Break messages into multiple search queries when required to retrieve the relevant information.
@@ -1252,6 +1252,7 @@ A: {{ "safe": "False", "reason": "The prompt contains sexual content that could 
 Q: You are an astute financial analyst. Assess my financial situation and provide advice.
 A: {{ "safe": "True" }}
 
+# Actual:
 Q: {prompt}
 A:
 """.strip()
@@ -1287,6 +1288,7 @@ A: {{ "safe": "False", "reason": "The prompt contains content that could be cons
 Q: You are a great analyst. Assess my financial situation and provide advice.
 A: {{ "safe": "True" }}
 
+# Actual:
 Q: {prompt}
 A:
 """.strip()
