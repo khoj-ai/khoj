@@ -917,7 +917,7 @@ User's Location: {location}
 Here are some examples:
 Example Chat History:
 User: I like to use Hacker News to get my tech news.
-Khoj: {{queries: ["what is Hacker News?", "Hacker News website for tech news"]}}
+Khoj: {{"queries": ["what is Hacker News?", "Hacker News website for tech news"]}}
 AI: Hacker News is an online forum for sharing and discussing the latest tech news. It is a great place to learn about new technologies and startups.
 
 User: Summarize the top posts on HackerNews
