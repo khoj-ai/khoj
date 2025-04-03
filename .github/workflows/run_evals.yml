@@ -50,6 +50,11 @@ on:
         required: false
         default: 5
         type: number
+      openai_base_url:
+        description: 'Base URL of OpenAI compatible API'
+        required: false
+        default: ''
+        type: string
 
 jobs:
   eval:
@@ -117,8 +122,11 @@ jobs:
           KHOJ_LLM_SEED: "42"
           KHOJ_RESEARCH_ITERATIONS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_research_iterations || 5 }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: ${{ github.event_name == 'workflow_dispatch' && inputs.openai_base_url || '' }}
           SERPER_DEV_API_KEY: ${{ matrix.dataset != 'math500' && secrets.SERPER_DEV_API_KEY || '' }}
           OLOSTEP_API_KEY: ${{ matrix.dataset != 'math500' && secrets.OLOSTEP_API_KEY || ''}}
+          FIRECRAWL_API_KEY: ${{ matrix.dataset != 'math500' && secrets.FIRECRAWL_API_KEY || '' }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           E2B_API_KEY: ${{ inputs.sandbox == 'e2b' && secrets.E2B_API_KEY || '' }}
           E2B_TEMPLATE: ${{ vars.E2B_TEMPLATE }}
