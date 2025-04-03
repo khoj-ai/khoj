@@ -98,9 +98,8 @@ jobs:
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          # install postgres and other dependencies
+          # install dependencies
           sudo apt update && sudo apt install -y git python3-pip libegl1 sqlite3 libsqlite3-dev libsqlite3-0 ffmpeg libsm6 libxext6
-          sudo apt install -y postgresql postgresql-client && sudo apt install -y postgresql-server-dev-16
           # upgrade pip
           python -m ensurepip --upgrade && python -m pip install --upgrade pip
           # install terrarium for code sandbox
@@ -137,6 +136,7 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: postgres
+          USE_EMBEDDED_DB: "true"
           KHOJ_TELEMETRY_DISABLE: "True"  # To disable telemetry for tests
         run: |
           # Start Khoj server in background
