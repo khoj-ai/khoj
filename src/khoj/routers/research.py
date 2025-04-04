@@ -99,6 +99,7 @@ async def apick_next_tool(
         # Skip showing Notes tool as an option if user has no entries
         if tool == ConversationCommand.Notes and not user_has_entries:
             continue
+        # Add tool if agent does not have any tools defined or the tool is supported by the agent.
         if len(agent_tools) == 0 or tool.value in agent_tools:
             tool_options[tool.name] = tool.value
             tool_options_str += f'- "{tool.value}": "{description}"\n'
@@ -170,7 +171,9 @@ async def apick_next_tool(
         # Only send client status updates if we'll execute this iteration
         elif send_status_func:
             determined_tool_message = "**Determined Tool**: "
-            determined_tool_message += f"{selected_tool}({generated_query})." if selected_tool else "respond."
+            determined_tool_message += (
+                f"{selected_tool}({generated_query})." if selected_tool != ConversationCommand.Text else "respond."
+            )
             determined_tool_message += f"\nReason: {scratchpad}" if scratchpad else ""
             async for event in send_status_func(f"{scratchpad}"):
                 yield {ChatEvent.STATUS: event}
@@ -237,8 +240,8 @@ async def execute_information_collection(
         if this_iteration.warning:
             logger.warning(f"Research mode: {this_iteration.warning}.")
 
-        # Terminate research if query, tool not set for next iteration
-        elif not this_iteration.query or not this_iteration.tool:
+        # Terminate research if selected text tool or query, tool not set for next iteration
+        elif not this_iteration.query or not this_iteration.tool or this_iteration.tool == ConversationCommand.Text:
             current_iteration = MAX_ITERATIONS
 
         elif this_iteration.tool == ConversationCommand.Notes:

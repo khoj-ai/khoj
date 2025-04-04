@@ -735,7 +735,7 @@ Create a multi-step plan and intelligently iterate on the plan based on the retr
 - Ensure that all required context is passed to the tool AIs for successful execution. They only know the context provided in your query.
 - Think step by step to come up with creative strategies when the previous iteration did not yield useful results.
 - You are allowed upto {max_iterations} iterations to use the help of the provided tool AIs to answer the user's question.
-- Stop when you have the required information by returning a JSON object with an empty "tool" field. E.g., {{scratchpad: "I have all I need", tool: "", query: ""}}
+- Stop when you have the required information by returning a JSON object with the "tool" field set to "text" and "query" field empty. E.g., {{"scratchpad": "I have all I need", "tool": "text", "query": ""}}
 
 # Examples
 Assuming you can search the user's notes and the internet.
