@@ -41,11 +41,9 @@ logger = logging.getLogger(__name__)
 class PlanningResponse(BaseModel):
     """
     Schema for the response from planning agent when deciding the next tool to pick.
-    The tool field is dynamically validated based on available tools.
     """
 
-    scratchpad: str = Field(..., description="Reasoning about which tool to use next")
-    query: str = Field(..., description="Detailed query for the selected tool")
+    scratchpad: str = Field(..., description="Scratchpad to reason about which tool to use next")
 
     class Config:
         arbitrary_types_allowed = True
@@ -55,6 +53,9 @@ class PlanningResponse(BaseModel):
         """
         Factory method that creates a customized PlanningResponse model
         with a properly typed tool field based on available tools.
+
+        The tool field is dynamically generated based on available tools.
+        The query field should be filled by the model after the tool field for a more logical reasoning flow.
 
         Args:
             tool_options: Dictionary mapping tool names to values
@@ -68,6 +69,7 @@ class PlanningResponse(BaseModel):
         # Create and return a customized response model with the enum
         class PlanningResponseWithTool(PlanningResponse):
             tool: tool_enum = Field(..., description="Name of the tool to use")
+            query: str = Field(..., description="Detailed query for the selected tool")
 
         return PlanningResponseWithTool
 
