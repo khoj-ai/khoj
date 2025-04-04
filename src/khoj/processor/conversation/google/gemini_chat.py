@@ -166,7 +166,7 @@ def converse_gemini(
     model: Optional[str] = "gemini-2.0-flash",
     api_key: Optional[str] = None,
     api_base_url: Optional[str] = None,
-    temperature: float = 0.4,
+    temperature: float = 1.0,
     completion_func=None,
     conversation_commands=[ConversationCommand.Default],
     max_prompt_size=None,

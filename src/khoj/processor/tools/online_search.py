@@ -2,7 +2,6 @@ import asyncio
 import json
 import logging
 import os
-import urllib.parse
 from collections import defaultdict
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
@@ -33,7 +32,7 @@ logger = logging.getLogger(__name__)
 GOOGLE_SEARCH_API_KEY = os.getenv("GOOGLE_SEARCH_API_KEY")
 GOOGLE_SEARCH_ENGINE_ID = os.getenv("GOOGLE_SEARCH_ENGINE_ID")
 SERPER_DEV_API_KEY = os.getenv("SERPER_DEV_API_KEY")
-AUTO_READ_WEBPAGE = is_env_var_true("AUTO_READ_WEBPAGE")
+AUTO_READ_WEBPAGE = is_env_var_true("KHOJ_AUTO_READ_WEBPAGE")
 SERPER_DEV_URL = "https://google.serper.dev/search"
 
 JINA_SEARCH_API_URL = "https://s.jina.ai/"
@@ -113,7 +112,6 @@ async def search_online(
     search_engine = "Searxng"
     search_engines.append((search_engine, search_with_searxng))
 
-    logger.info(f"🌐 Searching the Internet for {subqueries}")
     if send_status_func:
         subqueries_str = "\n- " + "\n- ".join(subqueries)
         async for event in send_status_func(f"**Searching the Internet for**: {subqueries_str}"):
@@ -121,6 +119,7 @@ async def search_online(
 
     response_dict = {}
     for search_engine, search_func in search_engines:
+        logger.info(f"🌐 Searching the Internet with {search_engine} for {subqueries}")
         with timer(f"Internet searches with {search_engine} for {subqueries} took", logger):
             try:
                 search_tasks = [search_func(subquery, location) for subquery in subqueries]

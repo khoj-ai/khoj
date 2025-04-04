@@ -52,12 +52,14 @@ except ImportError:
 model_to_prompt_size = {
     # OpenAI Models
     "gpt-4o": 60000,
-    "gpt-4o-mini": 60000,
+    "gpt-4o-mini": 120000,
     "o1": 20000,
     "o1-mini": 60000,
     "o3-mini": 60000,
     # Google Models
-    "gemini-1.5-flash": 60000,
+    "gemini-2.0-flash": 120000,
+    "gemini-2.0-flash-lite": 120000,
+    "gemini-1.5-flash": 120000,
     "gemini-1.5-pro": 60000,
     # Anthropic Models
     "claude-3-5-sonnet-20241022": 60000,

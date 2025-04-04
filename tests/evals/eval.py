@@ -37,8 +37,9 @@ KHOJ_API_KEY = os.getenv("KHOJ_API_KEY")
 KHOJ_MODE = os.getenv("KHOJ_MODE", "default").lower()  # E.g research, general, notes etc.
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_EVAL_MODEL = os.getenv("GEMINI_EVAL_MODEL", "gemini-1.5-pro-002")
+GEMINI_EVAL_MODEL = os.getenv("GEMINI_EVAL_MODEL", "gemini-2.0-flash-001")
 
+LLM_SEED = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
 SAMPLE_SIZE = os.getenv("SAMPLE_SIZE")  # Number of examples to evaluate
 RANDOMIZE = os.getenv("RANDOMIZE", "false").lower() == "true"  # Randomize examples
 BATCH_SIZE = int(
@@ -469,7 +470,7 @@ def evaluate_response_with_gemini(
             headers={"Content-Type": "application/json"},
             json={
                 "contents": [{"parts": [{"text": evaluation_prompt}]}],
-                "generationConfig": {"response_mime_type": "application/json"},
+                "generationConfig": {"response_mime_type": "application/json", "seed": LLM_SEED},
             },
         )
         response.raise_for_status()

@@ -41,11 +41,9 @@ logger = logging.getLogger(__name__)
 class PlanningResponse(BaseModel):
     """
     Schema for the response from planning agent when deciding the next tool to pick.
-    The tool field is dynamically validated based on available tools.
     """
 
-    scratchpad: str = Field(..., description="Reasoning about which tool to use next")
-    query: str = Field(..., description="Detailed query for the selected tool")
+    scratchpad: str = Field(..., description="Scratchpad to reason about which tool to use next")
 
     class Config:
         arbitrary_types_allowed = True
@@ -55,6 +53,9 @@ class PlanningResponse(BaseModel):
         """
         Factory method that creates a customized PlanningResponse model
         with a properly typed tool field based on available tools.
+
+        The tool field is dynamically generated based on available tools.
+        The query field should be filled by the model after the tool field for a more logical reasoning flow.
 
         Args:
             tool_options: Dictionary mapping tool names to values
@@ -68,6 +69,7 @@ class PlanningResponse(BaseModel):
         # Create and return a customized response model with the enum
         class PlanningResponseWithTool(PlanningResponse):
             tool: tool_enum = Field(..., description="Name of the tool to use")
+            query: str = Field(..., description="Detailed query for the selected tool")
 
         return PlanningResponseWithTool
 
@@ -97,6 +99,7 @@ async def apick_next_tool(
         # Skip showing Notes tool as an option if user has no entries
         if tool == ConversationCommand.Notes and not user_has_entries:
             continue
+        # Add tool if agent does not have any tools defined or the tool is supported by the agent.
         if len(agent_tools) == 0 or tool.value in agent_tools:
             tool_options[tool.name] = tool.value
             tool_options_str += f'- "{tool.value}": "{description}"\n'
@@ -168,7 +171,9 @@ async def apick_next_tool(
         # Only send client status updates if we'll execute this iteration
         elif send_status_func:
             determined_tool_message = "**Determined Tool**: "
-            determined_tool_message += f"{selected_tool}({generated_query})." if selected_tool else "respond."
+            determined_tool_message += (
+                f"{selected_tool}({generated_query})." if selected_tool != ConversationCommand.Text else "respond."
+            )
             determined_tool_message += f"\nReason: {scratchpad}" if scratchpad else ""
             async for event in send_status_func(f"{scratchpad}"):
                 yield {ChatEvent.STATUS: event}
@@ -235,8 +240,8 @@ async def execute_information_collection(
         if this_iteration.warning:
             logger.warning(f"Research mode: {this_iteration.warning}.")
 
-        # Terminate research if query, tool not set for next iteration
-        elif not this_iteration.query or not this_iteration.tool:
+        # Terminate research if selected text tool or query, tool not set for next iteration
+        elif not this_iteration.query or not this_iteration.tool or this_iteration.tool == ConversationCommand.Text:
             current_iteration = MAX_ITERATIONS
 
         elif this_iteration.tool == ConversationCommand.Notes:

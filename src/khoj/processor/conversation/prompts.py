@@ -735,7 +735,7 @@ Create a multi-step plan and intelligently iterate on the plan based on the retr
 - Ensure that all required context is passed to the tool AIs for successful execution. They only know the context provided in your query.
 - Think step by step to come up with creative strategies when the previous iteration did not yield useful results.
 - You are allowed upto {max_iterations} iterations to use the help of the provided tool AIs to answer the user's question.
-- Stop when you have the required information by returning a JSON object with an empty "tool" field. E.g., {{scratchpad: "I have all I need", tool: "", query: ""}}
+- Stop when you have the required information by returning a JSON object with the "tool" field set to "text" and "query" field empty. E.g., {{"scratchpad": "I have all I need", "tool": "text", "query": ""}}
 
 # Examples
 Assuming you can search the user's notes and the internet.
@@ -770,7 +770,7 @@ Which of the tool AIs listed below would you use to answer the user's question? 
 
 Return the next tool AI to use and the query to ask it. Your response should always be a valid JSON object. Do not say anything else.
 Response format:
-{{"scratchpad": "<your_scratchpad_to_reason_about_which_tool_to_use>", "query": "<your_detailed_query_for_the_tool_ai>", "tool": "<name_of_tool_ai>"}}
+{{"scratchpad": "<your_scratchpad_to_reason_about_which_tool_to_use>", "tool": "<name_of_tool_ai>", "query": "<your_detailed_query_for_the_tool_ai>"}}
 """.strip()
 )
 
@@ -917,7 +917,7 @@ User's Location: {location}
 Here are some examples:
 Example Chat History:
 User: I like to use Hacker News to get my tech news.
-Khoj: {{queries: ["what is Hacker News?", "Hacker News website for tech news"]}}
+Khoj: {{"queries": ["what is Hacker News?", "Hacker News website for tech news"]}}
 AI: Hacker News is an online forum for sharing and discussing the latest tech news. It is a great place to learn about new technologies and startups.
 
 User: Summarize the top posts on HackerNews
