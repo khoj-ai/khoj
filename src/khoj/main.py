@@ -217,7 +217,7 @@ def set_state(args):
 
 
 def start_server(app, host=None, port=None, socket=None):
-    logger.info("🌖 Khoj is ready to use")
+    logger.info("🌖 Khoj is ready to engage")
     if socket:
         uvicorn.run(app, proxy_headers=True, uds=socket, log_level="debug", use_colors=True, log_config=None)
     else:
