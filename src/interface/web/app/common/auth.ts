@@ -33,6 +33,7 @@ export function useAuthenticatedData() {
 export interface ModelOptions {
     id: number;
     name: string;
+    tier: string;
     description: string;
     strengths: string;
 }

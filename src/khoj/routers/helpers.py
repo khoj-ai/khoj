@@ -2335,6 +2335,7 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
                 "id": chat_model.id,
                 "strengths": chat_model.strengths,
                 "description": chat_model.description,
+                "tier": chat_model.price_tier,
             }
         )
 
@@ -2342,12 +2343,24 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
     paint_model_options = ConversationAdapters.get_text_to_image_model_options().all()
     all_paint_model_options = list()
     for paint_model in paint_model_options:
-        all_paint_model_options.append({"name": paint_model.model_name, "id": paint_model.id})
+        all_paint_model_options.append(
+            {
+                "name": paint_model.model_name,
+                "id": paint_model.id,
+                "tier": paint_model.price_tier,
+            }
+        )
 
     voice_models = ConversationAdapters.get_voice_model_options()
     voice_model_options = list()
     for voice_model in voice_models:
-        voice_model_options.append({"name": voice_model.name, "id": voice_model.model_id})
+        voice_model_options.append(
+            {
+                "name": voice_model.name,
+                "id": voice_model.model_id,
+                "tier": voice_model.price_tier,
+            }
+        )
 
     if len(voice_model_options) == 0:
         eleven_labs_enabled = False
