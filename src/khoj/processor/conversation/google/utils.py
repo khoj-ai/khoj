@@ -89,7 +89,7 @@ def gemini_completion_with_backoff(
 
     # format model response schema
     response_schema = None
-    if model_kwargs and "response_schema" in model_kwargs:
+    if model_kwargs and not is_none_or_empty(model_kwargs.get("response_schema")):
         response_schema = clean_response_schema(model_kwargs["response_schema"])
 
     seed = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
