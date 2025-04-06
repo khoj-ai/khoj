@@ -730,8 +730,26 @@ class EntryDates(DbBaseModel):
 
 
 class UserRequests(DbBaseModel):
+    """Stores user requests to the server for rate limiting."""
+
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
     slug = models.CharField(max_length=200)
+
+
+class RateLimitRecord(DbBaseModel):
+    """Stores individual request timestamps for rate limiting."""
+
+    identifier = models.CharField(max_length=255, db_index=True)  # IP address or email
+    slug = models.CharField(max_length=255, db_index=True)  # Differentiates limit types
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["identifier", "slug", "created_at"]),
+        ]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.slug} - {self.identifier} at {self.created_at}"
 
 
 class DataStore(DbBaseModel):

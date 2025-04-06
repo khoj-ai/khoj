@@ -25,6 +25,7 @@ from khoj.database.models import (
     KhojUser,
     NotionConfig,
     ProcessLock,
+    RateLimitRecord,
     ReflectiveQuestion,
     SearchModelConfig,
     ServerChatSettings,
@@ -179,6 +180,7 @@ admin.site.register(NotionConfig, unfold_admin.ModelAdmin)
 admin.site.register(UserVoiceModelConfig, unfold_admin.ModelAdmin)
 admin.site.register(VoiceModelOption, unfold_admin.ModelAdmin)
 admin.site.register(UserRequests, unfold_admin.ModelAdmin)
+admin.site.register(RateLimitRecord, unfold_admin.ModelAdmin)
 
 
 @admin.register(Agent)

@@ -52,10 +52,6 @@ export default function LoginPrompt(props: LoginPromptProps) {
 
     const [useEmailSignIn, setUseEmailSignIn] = useState(false);
 
-    const [email, setEmail] = useState("");
-    const [checkEmail, setCheckEmail] = useState(false);
-    const [recheckEmail, setRecheckEmail] = useState(false);
-
     useEffect(() => {
         const google = (window as any).google;
 
@@ -118,49 +114,13 @@ export default function LoginPrompt(props: LoginPromptProps) {
         });
     };
 
-    function handleMagicLinkSignIn() {
-        fetch("/auth/magic", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ email: email }),
-        })
-            .then((res) => {
-                if (res.ok) {
-                    setCheckEmail(true);
-                    if (checkEmail) {
-                        setRecheckEmail(true);
-                    }
-                    return res.json();
-                } else {
-                    throw new Error("Failed to send magic link");
-                }
-            })
-            .then((data) => {
-                console.log(data);
-            })
-            .catch((err) => {
-                console.error(err);
-            });
-    }
-
     if (props.isMobileWidth) {
         return (
             <Drawer open={true} onOpenChange={props.onOpenChange}>
                 <DrawerContent className={`flex flex-col gap-4 w-full mb-4`}>
                     <div>
                         {useEmailSignIn ? (
-                            <EmailSignInContext
-                                email={email}
-                                setEmail={setEmail}
-                                checkEmail={checkEmail}
-                                setCheckEmail={setCheckEmail}
-                                setUseEmailSignIn={setUseEmailSignIn}
-                                recheckEmail={recheckEmail}
-                                setRecheckEmail={setRecheckEmail}
-                                handleMagicLinkSignIn={handleMagicLinkSignIn}
-                            />
+                            <EmailSignInContext setUseEmailSignIn={setUseEmailSignIn} />
                         ) : (
                             <MainSignInContext
                                 handleGoogleScriptLoad={handleGoogleScriptLoad}
@@ -187,16 +147,7 @@ export default function LoginPrompt(props: LoginPromptProps) {
                 </VisuallyHidden.Root>
                 <div>
                     {useEmailSignIn ? (
-                        <EmailSignInContext
-                            email={email}
-                            setEmail={setEmail}
-                            checkEmail={checkEmail}
-                            setCheckEmail={setCheckEmail}
-                            setUseEmailSignIn={setUseEmailSignIn}
-                            recheckEmail={recheckEmail}
-                            setRecheckEmail={setRecheckEmail}
-                            handleMagicLinkSignIn={handleMagicLinkSignIn}
-                        />
+                        <EmailSignInContext setUseEmailSignIn={setUseEmailSignIn} />
                     ) : (
                         <MainSignInContext
                             handleGoogleScriptLoad={handleGoogleScriptLoad}
@@ -214,26 +165,17 @@ export default function LoginPrompt(props: LoginPromptProps) {
 }
 
 function EmailSignInContext({
-    email,
-    setEmail,
-    checkEmail,
-    setCheckEmail,
     setUseEmailSignIn,
-    recheckEmail,
-    handleMagicLinkSignIn,
 }: {
-    email: string;
-    setEmail: (email: string) => void;
-    checkEmail: boolean;
-    setCheckEmail: (checkEmail: boolean) => void;
     setUseEmailSignIn: (useEmailSignIn: boolean) => void;
-    recheckEmail: boolean;
-    setRecheckEmail: (recheckEmail: boolean) => void;
-    handleMagicLinkSignIn: () => void;
 }) {
     const [otp, setOTP] = useState("");
     const [otpError, setOTPError] = useState("");
     const [numFailures, setNumFailures] = useState(0);
+    const [email, setEmail] = useState("");
+    const [checkEmail, setCheckEmail] = useState(false);
+    const [recheckEmail, setRecheckEmail] = useState(false);
+    const [sendEmailError, setSendEmailError] = useState("");
 
     function checkOTPAndRedirect() {
         const verifyUrl = `/auth/magic?code=${encodeURIComponent(otp)}&email=${encodeURIComponent(email)}`;
@@ -275,6 +217,39 @@ function EmailSignInContext({
             });
     }
 
+    function handleMagicLinkSignIn() {
+        fetch("/auth/magic", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email: email }),
+        })
+            .then((res) => {
+                if (res.ok) {
+                    setCheckEmail(true);
+                    if (checkEmail) {
+                        setRecheckEmail(true);
+                    }
+                    return res.json();
+                } else if (res.status === 429 || res.status === 404) {
+                    res.json().then((data) => {
+                        setSendEmailError(data.detail);
+                        throw new Error(data.detail);
+                    });
+                } else {
+                    setSendEmailError("Failed to send email. Contact developers for assistance.");
+                    throw new Error("Failed to send magic link via email.");
+                }
+            })
+            .then((data) => {
+                console.log(data);
+            })
+            .catch((err) => {
+                console.error(err);
+            });
+    }
+
     return (
         <div className="flex flex-col gap-4 p-4">
             <Button
@@ -297,7 +272,7 @@ function EmailSignInContext({
                     : "You will receive a sign-in code on the email address you provide below"}
             </div>
             {!checkEmail && (
-                <>
+                <div className="flex items-center justify-center gap-4 text-muted-foreground flex-col">
                     <Input
                         placeholder="Email"
                         className="p-6 w-[300px] mx-auto rounded-lg"
@@ -320,7 +295,8 @@ function EmailSignInContext({
                         <PaperPlaneTilt className="h-6 w-6 mr-2 font-bold" />
                         {checkEmail ? "Check your email" : "Send sign in code"}
                     </Button>
-                </>
+                    {sendEmailError && <div className="text-red-500 text-sm">{sendEmailError}</div>}
+                </div>
             )}
             {checkEmail && (
                 <div className="flex items-center justify-center gap-4 text-muted-foreground flex-col">
@@ -359,9 +335,7 @@ function EmailSignInContext({
                         variant="ghost"
                         className="p-0 text-orange-500"
                         disabled={recheckEmail}
-                        onClick={() => {
-                            handleMagicLinkSignIn();
-                        }}
+                        onClick={handleMagicLinkSignIn}
                     >
                         <ArrowsClockwise className="h-6 w-6 mr-2 text-gray-500" />
                         Resend email

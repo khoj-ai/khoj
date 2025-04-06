@@ -27,6 +27,7 @@ from django.contrib.sessions.backends.db import SessionStore
 from django.db.models import Prefetch, Q
 from django.db.models.manager import BaseManager
 from django.db.utils import IntegrityError
+from django.utils import timezone as django_timezone
 from django_apscheduler import util
 from django_apscheduler.models import DjangoJob, DjangoJobExecution
 from fastapi import HTTPException
@@ -49,6 +50,7 @@ from khoj.database.models import (
     NotionConfig,
     ProcessLock,
     PublicConversation,
+    RateLimitRecord,
     ReflectiveQuestion,
     SearchModelConfig,
     ServerChatSettings,
@@ -233,20 +235,21 @@ async def acreate_user_by_phone_number(phone_number: str) -> KhojUser:
     return user
 
 
-async def aget_or_create_user_by_email(input_email: str) -> tuple[KhojUser, bool]:
-    email, is_valid_email = normalize_email(input_email)
+async def aget_or_create_user_by_email(input_email: str, check_deliverability=False) -> tuple[KhojUser, bool]:
+    # Validate deliverability to email address of new user
+    email, is_valid_email = normalize_email(input_email, check_deliverability=check_deliverability)
     is_existing_user = await KhojUser.objects.filter(email=email).aexists()
-    # Validate email address of new users
     if not is_existing_user and not is_valid_email:
         logger.error(f"Account creation failed. Invalid email address: {email}")
         return None, False
 
+    # Get/create user based on email address
     user, is_new = await KhojUser.objects.filter(email=email).aupdate_or_create(
         defaults={"username": email, "email": email}
     )
 
     # Generate a secure 6-digit numeric code
-    user.email_verification_code = f"{secrets.randbelow(1000000):06}"
+    user.email_verification_code = f"{secrets.randbelow(int(1e6)):06}"
     user.email_verification_code_expiry = datetime.now(tz=timezone.utc) + timedelta(minutes=5)
     await user.asave()
 
@@ -516,8 +519,18 @@ def get_user_notion_config(user: KhojUser):
     return config
 
 
-def delete_user_requests(window: timedelta = timedelta(days=1)):
-    return UserRequests.objects.filter(created_at__lte=datetime.now(tz=timezone.utc) - window).delete()
+def delete_user_requests(max_age: timedelta = timedelta(days=1)):
+    """Deletes UserRequests entries older than the specified max_age."""
+    cutoff = django_timezone.now() - max_age
+    deleted_count, _ = UserRequests.objects.filter(created_at__lte=cutoff).delete()
+    return deleted_count
+
+
+def delete_ratelimit_records(max_age: timedelta = timedelta(days=1)):
+    """Deletes RateLimitRecord entries older than the specified max_age."""
+    cutoff = django_timezone.now() - max_age
+    deleted_count, _ = RateLimitRecord.objects.filter(created_at__lt=cutoff).delete()
+    return deleted_count
 
 
 @arequire_valid_user

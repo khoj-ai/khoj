@@ -33,8 +33,9 @@ import requests
 from apscheduler.job import Job
 from apscheduler.triggers.cron import CronTrigger
 from asgiref.sync import sync_to_async
+from django.utils import timezone as django_timezone
 from fastapi import Depends, Header, HTTPException, Request, UploadFile
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 from starlette.authentication import has_required_scope
 from starlette.requests import URL
 
@@ -46,10 +47,10 @@ from khoj.database.adapters import (
     ConversationAdapters,
     EntryAdapters,
     FileObjectAdapters,
+    aget_user_by_email,
     ais_user_subscribed,
     create_khoj_token,
     get_khoj_tokens,
-    get_user_by_email,
     get_user_name,
     get_user_notion_config,
     get_user_subscription_state,
@@ -64,6 +65,7 @@ from khoj.database.models import (
     KhojUser,
     NotionConfig,
     ProcessLock,
+    RateLimitRecord,
     Subscription,
     TextToImageModelConfig,
     UserRequests,
@@ -112,6 +114,7 @@ from khoj.utils.helpers import (
     LRU,
     ConversationCommand,
     get_file_type,
+    in_debug_mode,
     is_none_or_empty,
     is_valid_url,
     log_telemetry,
@@ -1613,47 +1616,71 @@ class FeedbackData(BaseModel):
     sentiment: str
 
 
-class EmailVerificationApiRateLimiter:
+class MagicLinkForm(BaseModel):
+    email: EmailStr
+
+
+class EmailAttemptRateLimiter:
+    """Rate limiter for email attempts BEFORE get/create user with valid email address."""
+
     def __init__(self, requests: int, window: int, slug: str):
         self.requests = requests
-        self.window = window
+        self.window = window  # Window in seconds
         self.slug = slug
 
-    def __call__(self, request: Request):
-        # Rate limiting disabled if billing is disabled
-        if state.billing_enabled is False:
+    async def __call__(self, form: MagicLinkForm):
+        # Disable login rate limiting in debug mode
+        if in_debug_mode():
             return
 
-        # Extract the email query parameter
-        email = request.query_params.get("email")
+        # Calculate the time window cutoff
+        cutoff = django_timezone.now() - timedelta(seconds=self.window)
 
-        if email:
-            logger.info(f"Email query parameter: {email}")
+        # Count recent attempts for this email and slug
+        count = await RateLimitRecord.objects.filter(
+            identifier=form.email, slug=self.slug, created_at__gte=cutoff
+        ).acount()
 
-        user: KhojUser = get_user_by_email(email)
-
-        if not user:
+        if count >= self.requests:
+            logger.warning(f"Email attempt rate limit exceeded for {form.email} (slug: {self.slug})")
             raise HTTPException(
-                status_code=404,
-                detail="User not found.",
+                status_code=429, detail="Too many requests for your email address. Please wait before trying again."
             )
 
+        # Record the current attempt
+        await RateLimitRecord.objects.acreate(identifier=form.email, slug=self.slug)
+
+
+class EmailVerificationApiRateLimiter:
+    """Rate limiter for actions AFTER user with valid email address is known to exist"""
+
+    def __init__(self, requests: int, window: int, slug: str):
+        self.requests = requests
+        self.window = window  # Window in seconds
+        self.slug = slug
+
+    async def __call__(self, email: str = None):
+        # Disable login rate limiting in debug mode
+        if in_debug_mode():
+            return
+
+        user: KhojUser = await aget_user_by_email(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found.")
+
         # Remove requests outside of the time window
-        cutoff = datetime.now(tz=timezone.utc) - timedelta(seconds=self.window)
-        count_requests = UserRequests.objects.filter(user=user, created_at__gte=cutoff, slug=self.slug).count()
+        cutoff = django_timezone.now() - timedelta(seconds=self.window)
+        count_requests = await UserRequests.objects.filter(user=user, created_at__gte=cutoff, slug=self.slug).acount()
 
         # Check if the user has exceeded the rate limit
         if count_requests >= self.requests:
-            logger.info(
+            logger.warning(
                 f"Rate limit: {count_requests}/{self.requests} requests not allowed in {self.window} seconds for email: {email}."
             )
-            raise HTTPException(
-                status_code=429,
-                detail="Ran out of login attempts",
-            )
+            raise HTTPException(status_code=429, detail="Ran out of login attempts. Please wait before trying again.")
 
         # Add the current request to the db
-        UserRequests.objects.create(user=user, slug=self.slug)
+        await UserRequests.objects.acreate(user=user, slug=self.slug)
 
 
 class ApiUserRateLimiter:
@@ -1677,7 +1704,7 @@ class ApiUserRateLimiter:
         subscribed = has_required_scope(request, ["premium"])
 
         # Remove requests outside of the time window
-        cutoff = datetime.now(tz=timezone.utc) - timedelta(seconds=self.window)
+        cutoff = django_timezone.now() - timedelta(seconds=self.window)
         count_requests = UserRequests.objects.filter(user=user, created_at__gte=cutoff, slug=self.slug).count()
 
         # Check if the user has exceeded the rate limit
@@ -1779,7 +1806,7 @@ class ConversationCommandRateLimiter:
         subscribed = has_required_scope(request, ["premium"])
 
         # Remove requests outside of the 24-hr time window
-        cutoff = datetime.now(tz=timezone.utc) - timedelta(seconds=60 * 60 * 24)
+        cutoff = django_timezone.now() - timedelta(seconds=60 * 60 * 24)
         command_slug = f"{self.slug}_{conversation_command.value}"
         count_requests = await UserRequests.objects.filter(
             user=user, created_at__gte=cutoff, slug=command_slug

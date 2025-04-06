@@ -37,6 +37,7 @@ from khoj.database.adapters import (
     aget_or_create_user_by_phone_number,
     aget_user_by_phone_number,
     ais_user_subscribed,
+    delete_ratelimit_records,
     delete_user_requests,
     get_all_users,
     get_or_create_search_models,
@@ -428,8 +429,10 @@ def upload_telemetry():
 @schedule.repeat(schedule.every(31).minutes)
 @clean_connections
 def delete_old_user_requests():
-    num_deleted = delete_user_requests()
-    logger.debug(f"🗑️ Deleted {num_deleted[0]} day-old user requests")
+    num_user_ratelimit_requests = delete_user_requests()
+    num_ratelimit_requests = delete_ratelimit_records()
+    if state.verbose > 2:
+        logger.debug(f"🗑️ Deleted {num_user_ratelimit_requests + num_ratelimit_requests} stale rate limit requests")
 
 
 @schedule.repeat(schedule.every(17).minutes)
