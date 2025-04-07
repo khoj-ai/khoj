@@ -38,6 +38,7 @@ async def operate_browser(
     query_images: Optional[List[str]] = None,
     agent: Agent = None,
     query_files: str = None,
+    cancellation_event: Optional[asyncio.Event] = None,
     tracer: dict = {},
 ):
     response, safety_check_message = None, None
@@ -75,6 +76,7 @@ async def operate_browser(
                     send_status_func=send_status_func,
                     user=user,
                     agent=agent,
+                    cancellation_event=cancellation_event,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -92,6 +94,7 @@ async def operate_browser(
                     send_status_func=send_status_func,
                     user=user,
                     agent=agent,
+                    cancellation_event=cancellation_event,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -142,6 +145,7 @@ async def browser_use_openai(
     send_status_func: Optional[Callable] = None,
     user: KhojUser = None,
     agent: Agent = None,
+    cancellation_event: Optional[asyncio.Event] = None,
     tracer: dict = {},
 ):
     """
@@ -212,6 +216,11 @@ async def browser_use_openai(
     last_call_id = None
     iterations = 0
     while iterations < max_iterations:
+        # Check for cancellation at the start of each iteration
+        if cancellation_event and cancellation_event.is_set():
+            logger.info(f"Browser operator cancelled by client disconnect")
+            break
+
         iterations += 1
 
         # Send the screenshot back as a computer_call_output
@@ -345,6 +354,7 @@ async def browser_use_anthropic(
     send_status_func: Optional[Callable] = None,
     user: KhojUser = None,
     agent: Agent = None,
+    cancellation_event: Optional[asyncio.Event] = None,
     tracer: dict = {},
 ):
     """
@@ -420,6 +430,11 @@ async def browser_use_anthropic(
     task_completed = False
     iterations = 0
     while iterations < max_iterations:
+        # Check for cancellation at the start of each iteration
+        if cancellation_event and cancellation_event.is_set():
+            logger.info(f"Browser operator cancelled by client disconnect")
+            break
+
         iterations += 1
         # Set up optional thinking parameter (for Claude 3.7 Sonnet)
         thinking = {"type": "disabled"}
