@@ -13,7 +13,7 @@ from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.db import close_old_connections, connections
 from django.utils.timezone import make_aware
-from fastapi import Response
+from fastapi import Request, Response
 from starlette.authentication import (
     AuthCredentials,
     AuthenticationBackend,
@@ -26,7 +26,7 @@ from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.requests import HTTPConnection
+from starlette.requests import ClientDisconnect, HTTPConnection
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from khoj.database.adapters import (
@@ -355,8 +355,19 @@ def configure_middleware(app, ssl_enabled: bool = False):
             super().__init__(app)
             self.app = app
 
+    class SuppressClientDisconnectMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request: Request, call_next):
+            try:
+                return await call_next(request)
+            except ClientDisconnect:
+                logger.debug("Client disconnected before response completion.")
+                # Return a minimal response to potentially satisfy the ASGI server
+                # and prevent further error logging.
+                return Response(status_code=499)
+
     if ssl_enabled:
         app.add_middleware(HTTPSRedirectMiddleware)
+    app.add_middleware(SuppressClientDisconnectMiddleware)
     app.add_middleware(AsyncCloseConnectionsMiddleware)
     app.add_middleware(AuthenticationMiddleware, backend=UserAuthenticationBackend())
     app.add_middleware(NextJsMiddleware)
