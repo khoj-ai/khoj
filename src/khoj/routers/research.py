@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from datetime import datetime
@@ -205,11 +206,17 @@ async def execute_information_collection(
     file_filters: List[str] = [],
     tracer: dict = {},
     query_files: str = None,
+    cancellation_event: Optional[asyncio.Event] = None,
 ):
     current_iteration = 0
     MAX_ITERATIONS = int(os.getenv("KHOJ_RESEARCH_ITERATIONS", 5))
     previous_iterations: List[InformationCollectionIteration] = []
     while current_iteration < MAX_ITERATIONS:
+        # Check for cancellation at the start of each iteration
+        if cancellation_event and cancellation_event.is_set():
+            logger.debug(f"User {user} disconnected client. Research cancelled.")
+            break
+
         online_results: Dict = dict()
         code_results: Dict = dict()
         document_results: List[Dict[str, str]] = []

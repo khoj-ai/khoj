@@ -241,8 +241,7 @@ export default function Chat() {
             handleAbortedMessage();
             setTriggeredAbort(false);
         }
-    }),
-        [triggeredAbort];
+    }, [triggeredAbort]);
 
     useEffect(() => {
         if (queryToProcess) {
