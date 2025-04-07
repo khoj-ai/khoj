@@ -159,23 +159,7 @@ def initialization(interactive: bool = True):
             interactive=interactive,
         )
 
-        # Explicitly set default chat model
-        chat_models_configured = ChatModel.objects.count()
-        if chat_models_configured > 0:
-            default_chat_model_name = ChatModel.objects.first().name
-            # If there are multiple chat models, ask the user to choose the default chat model
-            if chat_models_configured > 1 and interactive:
-                user_chat_model_name = input(
-                    f"Enter the default chat model to use (default: {default_chat_model_name}): "
-                )
-            else:
-                user_chat_model_name = None
-
-            # If the user's choice is valid, set it as the default chat model
-            if user_chat_model_name and ChatModel.objects.filter(name=user_chat_model_name).exists():
-                default_chat_model_name = user_chat_model_name
-
-            logger.info("🗣️ Chat model configuration complete")
+        logger.info("🗣️ Chat model configuration complete")
 
         # Set up offline speech to text model
         use_offline_speech2text_model = "n" if not interactive else input("Use offline speech to text model? (y/n): ")
