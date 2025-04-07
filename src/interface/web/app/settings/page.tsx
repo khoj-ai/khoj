@@ -1175,6 +1175,14 @@ export default function SettingsView() {
                                     </div>
                                     <div className="section grid gap-8">
                                         <div id="clients" className="text-2xl">
+                                            Clients
+                                        </div>
+                                        <div className="cards flex flex-col flex-wrap gap-8">
+                                            {!userConfig.anonymous_mode && <ApiKeyCard />}
+                                        </div>
+                                    </div>
+                                    <div className="section grid gap-8">
+                                        <div id="clients" className="text-2xl">
                                             Account
                                         </div>
                                         <div className="cards flex flex-wrap gap-16">
