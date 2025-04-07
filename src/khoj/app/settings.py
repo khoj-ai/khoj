@@ -17,7 +17,7 @@ from pathlib import Path
 
 from django.templatetags.static import static
 
-from khoj.utils.helpers import in_debug_mode, is_env_var_true
+from khoj.utils.helpers import is_env_var_true
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -29,11 +29,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("KHOJ_DJANGO_SECRET_KEY", "!secret")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = in_debug_mode()
-
 # All Subdomains of KHOJ_DOMAIN are trusted
-KHOJ_DOMAIN = os.getenv("KHOJ_DOMAIN", "khoj.dev")
+KHOJ_DOMAIN = os.getenv("KHOJ_DOMAIN") or "khoj.dev"
 KHOJ_ALLOWED_DOMAIN = os.getenv("KHOJ_ALLOWED_DOMAIN", KHOJ_DOMAIN)
 ALLOWED_HOSTS = [f".{KHOJ_ALLOWED_DOMAIN}", "localhost", "127.0.0.1", "[::1]", f"{KHOJ_ALLOWED_DOMAIN}"]
 
@@ -47,8 +44,12 @@ CSRF_TRUSTED_ORIGINS = [
 
 DISABLE_HTTPS = is_env_var_true("KHOJ_NO_HTTPS")
 
-COOKIE_SAMESITE = "None"
-if DEBUG and os.getenv("KHOJ_DOMAIN") == None:
+# KHOJ_DOMAIN is tri-state.
+# - Unset it for local deployments.
+# - Set it to empty for official production deployment.
+# - Set it to custom domain for other production deployments.
+# WARNING: Change this check only if you know what you are doing.
+if os.getenv("KHOJ_DOMAIN") == None:
     SESSION_COOKIE_DOMAIN = "localhost"
     CSRF_COOKIE_DOMAIN = "localhost"
 else:
@@ -58,6 +59,7 @@ else:
     if not DISABLE_HTTPS:
         SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+COOKIE_SAMESITE = "None"
 if DISABLE_HTTPS:
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
