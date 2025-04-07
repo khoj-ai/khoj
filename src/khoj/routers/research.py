@@ -411,6 +411,7 @@ async def execute_information_collection(
                     query_images=query_images,
                     agent=agent,
                     query_files=query_files,
+                    cancellation_event=cancellation_event,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:

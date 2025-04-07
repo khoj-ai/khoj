@@ -1228,6 +1228,7 @@ async def chat(
                     query_files=attached_file_context,
                     send_status_func=partial(send_event, ChatEvent.STATUS),
                     agent=agent,
+                    cancellation_event=cancellation_event,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
