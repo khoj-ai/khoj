@@ -9,6 +9,7 @@ from starlette.authentication import has_required_scope, requires
 
 from khoj.database import adapters
 from khoj.database.adapters import ConversationAdapters, EntryAdapters
+from khoj.database.models import ChatModel, TextToImageModelConfig, VoiceModelOption
 from khoj.routers.helpers import update_telemetry_state
 
 api_model = APIRouter()
@@ -53,13 +54,24 @@ def get_user_chat_model(
 
 
 @api_model.post("/chat", status_code=200)
-@requires(["authenticated", "premium"])
+@requires(["authenticated"])
 async def update_chat_model(
     request: Request,
     id: str,
     client: Optional[str] = None,
 ):
     user = request.user.object
+    subscribed = has_required_scope(request, ["premium"])
+
+    # Validate if model can be switched
+    chat_model = await ChatModel.objects.filter(id=int(id)).afirst()
+    if chat_model is None:
+        return Response(status_code=404, content=json.dumps({"status": "error", "message": "Chat model not found"}))
+    if not subscribed and chat_model.price_tier != ChatModel.PriceTier.FREE:
+        raise Response(
+            status_code=403,
+            content=json.dumps({"status": "error", "message": "Subscribe to switch to this chat model"}),
+        )
 
     new_config = await ConversationAdapters.aset_user_conversation_processor(user, int(id))
 
@@ -78,13 +90,24 @@ async def update_chat_model(
 
 
 @api_model.post("/voice", status_code=200)
-@requires(["authenticated", "premium"])
+@requires(["authenticated"])
 async def update_voice_model(
     request: Request,
     id: str,
     client: Optional[str] = None,
 ):
     user = request.user.object
+    subscribed = has_required_scope(request, ["premium"])
+
+    # Validate if model can be switched
+    voice_model = await VoiceModelOption.objects.filter(id=int(id)).afirst()
+    if voice_model is None:
+        return Response(status_code=404, content=json.dumps({"status": "error", "message": "Voice model not found"}))
+    if not subscribed and voice_model.price_tier != VoiceModelOption.PriceTier.FREE:
+        raise Response(
+            status_code=403,
+            content=json.dumps({"status": "error", "message": "Subscribe to switch to this voice model"}),
+        )
 
     new_config = await ConversationAdapters.aset_user_voice_model(user, id)
 
@@ -111,8 +134,15 @@ async def update_paint_model(
     user = request.user.object
     subscribed = has_required_scope(request, ["premium"])
 
-    if not subscribed:
-        raise HTTPException(status_code=403, detail="User is not subscribed to premium")
+    # Validate if model can be switched
+    image_model = await TextToImageModelConfig.objects.filter(id=int(id)).afirst()
+    if image_model is None:
+        return Response(status_code=404, content=json.dumps({"status": "error", "message": "Image model not found"}))
+    if not subscribed and image_model.price_tier != TextToImageModelConfig.PriceTier.FREE:
+        raise Response(
+            status_code=403,
+            content=json.dumps({"status": "error", "message": "Subscribe to switch to this image model"}),
+        )
 
     new_config = await ConversationAdapters.aset_user_text_to_image_model(user, int(id))
 

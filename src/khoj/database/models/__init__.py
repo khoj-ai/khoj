@@ -202,11 +202,16 @@ class ChatModel(DbBaseModel):
         ANTHROPIC = "anthropic"
         GOOGLE = "google"
 
+    class PriceTier(models.TextChoices):
+        FREE = "free"
+        STANDARD = "standard"
+
     max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
     subscribed_max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
     tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
     name = models.CharField(max_length=200, default="bartowski/Meta-Llama-3.1-8B-Instruct-GGUF")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
+    price_tier = models.CharField(max_length=20, choices=PriceTier.choices, default=PriceTier.FREE)
     vision_enabled = models.BooleanField(default=False)
     ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)
     description = models.TextField(default=None, null=True, blank=True)
@@ -217,8 +222,13 @@ class ChatModel(DbBaseModel):
 
 
 class VoiceModelOption(DbBaseModel):
+    class PriceTier(models.TextChoices):
+        FREE = "free"
+        STANDARD = "standard"
+
     model_id = models.CharField(max_length=200)
     name = models.CharField(max_length=200)
+    price_tier = models.CharField(max_length=20, choices=PriceTier.choices, default=PriceTier.STANDARD)
 
 
 class Agent(DbBaseModel):
@@ -452,6 +462,17 @@ class ServerChatSettings(DbBaseModel):
         WebScraper, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="web_scraper"
     )
 
+    def clean(self):
+        error = {}
+        if self.chat_default and self.chat_default.price_tier != ChatModel.PriceTier.FREE:
+            error["chat_default"] = "Set the price tier of the chat model to free."
+        if error:
+            raise ValidationError(error)
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
 
 class LocalOrgConfig(DbBaseModel):
     input_files = models.JSONField(default=list, null=True)
@@ -532,8 +553,13 @@ class TextToImageModelConfig(DbBaseModel):
         REPLICATE = "replicate"
         GOOGLE = "google"
 
+    class PriceTier(models.TextChoices):
+        FREE = "free"
+        STANDARD = "standard"
+
     model_name = models.CharField(max_length=200, default="dall-e-3")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OPENAI)
+    price_tier = models.CharField(max_length=20, choices=PriceTier.choices, default=PriceTier.FREE)
     api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
     ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
@@ -569,8 +595,13 @@ class SpeechToTextModelOptions(DbBaseModel):
         OPENAI = "openai"
         OFFLINE = "offline"
 
+    class PriceTier(models.TextChoices):
+        FREE = "free"
+        STANDARD = "standard"
+
     model_name = models.CharField(max_length=200, default="base")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
+    price_tier = models.CharField(max_length=20, choices=PriceTier.choices, default=PriceTier.FREE)
     ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
     def __str__(self):

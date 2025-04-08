@@ -123,6 +123,10 @@ async def get_agent_by_conversation(
         agent = await AgentAdapters.aget_default_agent()
 
     agent = await AgentAdapters.aget_agent_by_slug(conversation.agent.slug, user)
+    if not is_subscribed and agent.chat_model.price_tier != agent.chat_model.PriceTier.FREE:
+        agent_chat_model = None
+    else:
+        agent_chat_model = agent.chat_model.name
 
     has_files = agent.fileobject_set.exists()
 
@@ -135,7 +139,7 @@ async def get_agent_by_conversation(
         "color": agent.style_color,
         "icon": agent.style_icon,
         "privacy_level": agent.privacy_level,
-        "chat_model": agent.chat_model.name if is_subscribed else None,
+        "chat_model": agent_chat_model,
         "has_files": has_files,
         "input_tools": agent.input_tools,
         "output_modes": agent.output_modes,
@@ -245,7 +249,11 @@ async def update_hidden_agent(
     user: KhojUser = request.user.object
 
     subscribed = has_required_scope(request, ["premium"])
-    chat_model = body.chat_model if subscribed else None
+    chat_model = await ConversationAdapters.aget_chat_model_by_name(body.chat_model)
+    if not subscribed and chat_model.price_tier != chat_model.PriceTier.FREE:
+        agent_chat_model = None
+    else:
+        agent_chat_model = body.chat_model
 
     selected_agent = await AgentAdapters.aget_agent_by_slug(body.slug, user)
 
@@ -260,7 +268,7 @@ async def update_hidden_agent(
         user=user,
         slug=body.slug,
         persona=body.persona,
-        chat_model=chat_model,
+        chat_model=agent_chat_model,
         input_tools=body.input_tools,
         output_modes=body.output_modes,
         existing_agent=selected_agent,
@@ -290,7 +298,11 @@ async def create_hidden_agent(
     user: KhojUser = request.user.object
 
     subscribed = has_required_scope(request, ["premium"])
-    chat_model = body.chat_model if subscribed else None
+    chat_model = await ConversationAdapters.aget_chat_model_by_name(body.chat_model)
+    if not subscribed and chat_model.price_tier != chat_model.PriceTier.FREE:
+        agent_chat_model = None
+    else:
+        agent_chat_model = body.chat_model
 
     conversation = await ConversationAdapters.aget_conversation_by_user(user=user, conversation_id=conversation_id)
     if not conversation:
@@ -315,7 +327,7 @@ async def create_hidden_agent(
         user=user,
         slug=body.slug,
         persona=body.persona,
-        chat_model=chat_model,
+        chat_model=agent_chat_model,
         input_tools=body.input_tools,
         output_modes=body.output_modes,
         existing_agent=None,
@@ -358,7 +370,11 @@ async def create_agent(
         )
 
     subscribed = has_required_scope(request, ["premium"])
-    chat_model = body.chat_model if subscribed else None
+    chat_model = await ConversationAdapters.aget_chat_model_by_name(body.chat_model)
+    if not subscribed and chat_model.price_tier != chat_model.PriceTier.FREE:
+        agent_chat_model = None
+    else:
+        agent_chat_model = body.chat_model
 
     agent = await AgentAdapters.aupdate_agent(
         user,
@@ -367,7 +383,7 @@ async def create_agent(
         body.privacy_level,
         body.icon,
         body.color,
-        chat_model,
+        agent_chat_model,
         body.files,
         body.input_tools,
         body.output_modes,
@@ -424,7 +440,11 @@ async def update_agent(
         )
 
     subscribed = has_required_scope(request, ["premium"])
-    chat_model = body.chat_model if subscribed else None
+    chat_model = await ConversationAdapters.aget_chat_model_by_name(body.chat_model)
+    if not subscribed and chat_model.price_tier != chat_model.PriceTier.FREE:
+        agent_chat_model = None
+    else:
+        agent_chat_model = body.chat_model
 
     agent = await AgentAdapters.aupdate_agent(
         user,
@@ -433,7 +453,7 @@ async def update_agent(
         body.privacy_level,
         body.icon,
         body.color,
-        chat_model,
+        agent_chat_model,
         body.files,
         body.input_tools,
         body.output_modes,
