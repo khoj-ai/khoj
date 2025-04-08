@@ -1,6 +1,6 @@
 services:
   database:
-    image: docker.io/pgvector/pgvector
+    image: docker.io/pgvector/pgvector:pg15
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
