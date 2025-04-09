@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 
 import "../globals.css";
-import { ContentSecurityPolicy } from "../common/layoutHelper";
-import { Toaster } from "@/components/ui/toaster";
-import { ThemeProvider } from "../components/providers/themeProvider";
 
 export const metadata: Metadata = {
     title: "Khoj AI - Search",
@@ -29,33 +26,10 @@ export const metadata: Metadata = {
     },
 };
 
-export default function RootLayout({
+export default function ChildLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
-    return (
-        <html>
-            <head>
-                <script
-                    dangerouslySetInnerHTML={{
-                        __html: `
-                            try {
-                                if (localStorage.getItem('theme') === 'dark' ||
-                                    (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                                    document.documentElement.classList.add('dark');
-                                }
-                            } catch (e) {}
-                        `,
-                    }}
-                />
-            </head>
-            <ContentSecurityPolicy />
-            <body>
-                <ThemeProvider>
-                    {children}
-                </ThemeProvider>
-            </body>
-        </html>
-    );
+    return <>{children}</>;
 }
