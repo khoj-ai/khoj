@@ -48,7 +48,11 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en" className={`${noto_sans.variable} ${noto_sans_arabic.variable}`}>
+        <html
+            lang="en"
+            className={`${noto_sans.variable} ${noto_sans_arabic.variable}`}
+            suppressHydrationWarning
+        >
             <head>
                 <script
                     dangerouslySetInnerHTML={{
@@ -65,9 +69,7 @@ export default function RootLayout({
             </head>
             <ContentSecurityPolicy />
             <body>
-                <ThemeProvider>
-                    {children}
-                </ThemeProvider>
+                <ThemeProvider>{children}</ThemeProvider>
             </body>
         </html>
     );
