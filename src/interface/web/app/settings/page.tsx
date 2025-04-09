@@ -746,7 +746,7 @@ export default function SettingsView() {
                                                     <Input
                                                         type="text"
                                                         onChange={(e) => setName(e.target.value)}
-                                                        value={name}
+                                                        value={name || ""}
                                                         className="w-full border border-gray-300 rounded-lg p-4 py-6"
                                                     />
                                                 </CardContent>

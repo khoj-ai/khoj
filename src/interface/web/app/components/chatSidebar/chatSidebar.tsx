@@ -502,7 +502,7 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                             <SidebarMenuItem className="list-none">
                                 <Textarea
                                     className="w-full h-32 resize-none hover:resize-y"
-                                    value={customPrompt}
+                                    value={customPrompt || ""}
                                     onChange={(e) => handleCustomPromptChange(e.target.value)}
                                     readOnly={!isEditable}
                                     disabled={!isEditable} />
