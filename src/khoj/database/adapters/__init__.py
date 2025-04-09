@@ -799,6 +799,30 @@ class AgentAdapters:
         return await Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).afirst()
 
     @staticmethod
+    def get_agent_chat_model(agent: Agent, user: Optional[KhojUser]) -> Optional[ChatModel]:
+        """
+        Gets the appropriate chat model for an agent.
+        For the default agent, it dynamically determines the model based on user/server settings.
+        For other agents, it returns their statically assigned chat model.
+        Requires the user context to determine the correct default model.
+        """
+        if agent.slug == AgentAdapters.DEFAULT_AGENT_SLUG:
+            # Dynamically get the default model based on context
+            return ConversationAdapters.get_default_chat_model(user)
+        elif agent.chat_model:
+            # Return the model assigned directly to the specific agent
+            # Ensure the related object is loaded if necessary (prefetching is recommended)
+            return agent.chat_model
+        else:
+            # Fallback if agent has no unset chat_model. For example if chat_model associated with agent was deleted.
+            logger.warning(f"Agent {agent.slug} has no chat_model or agent is None, returning overall default.")
+            return ConversationAdapters.get_default_chat_model(user)
+
+    @staticmethod
+    async def aget_agent_chat_model(agent: Agent, user: Optional[KhojUser]) -> Optional[ChatModel]:
+        return await sync_to_async(AgentAdapters.get_agent_chat_model)(agent, user)
+
+    @staticmethod
     @arequire_valid_user
     async def aupdate_agent(
         user: KhojUser,

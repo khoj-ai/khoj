@@ -8,7 +8,7 @@ import yaml
 from fastapi import Request
 from pydantic import BaseModel, Field
 
-from khoj.database.adapters import EntryAdapters
+from khoj.database.adapters import AgentAdapters, EntryAdapters
 from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
@@ -116,7 +116,7 @@ async def apick_next_tool(
 
     today = datetime.today()
     location_data = f"{location}" if location else "Unknown"
-    agent_chat_model = agent.chat_model if agent else None
+    agent_chat_model = AgentAdapters.get_agent_chat_model(agent, user) if agent else None
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
     )

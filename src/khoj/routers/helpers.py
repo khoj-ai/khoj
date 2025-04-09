@@ -403,7 +403,7 @@ async def aget_data_sources_and_output_format(
         personality_context=personality_context,
     )
 
-    agent_chat_model = agent.chat_model if agent else None
+    agent_chat_model = AgentAdapters.get_agent_chat_model(agent, user) if agent else None
 
     class PickTools(BaseModel):
         source: List[str] = Field(..., min_items=1)
@@ -492,7 +492,7 @@ async def infer_webpage_urls(
         personality_context=personality_context,
     )
 
-    agent_chat_model = agent.chat_model if agent else None
+    agent_chat_model = AgentAdapters.get_agent_chat_model(agent, user) if agent else None
 
     class WebpageUrls(BaseModel):
         links: List[str] = Field(..., min_items=1, max_items=max_webpages)
@@ -557,7 +557,7 @@ async def generate_online_subqueries(
         personality_context=personality_context,
     )
 
-    agent_chat_model = agent.chat_model if agent else None
+    agent_chat_model = AgentAdapters.get_agent_chat_model(agent, user) if agent else None
 
     class OnlineQueries(BaseModel):
         queries: List[str] = Field(..., min_items=1, max_items=max_queries)
@@ -666,7 +666,7 @@ async def extract_relevant_info(
         personality_context=personality_context,
     )
 
-    agent_chat_model = agent.chat_model if agent else None
+    agent_chat_model = AgentAdapters.get_agent_chat_model(agent, user) if agent else None
 
     response = await send_message_to_model_wrapper(
         extract_relevant_information,
@@ -707,7 +707,7 @@ async def extract_relevant_summary(
         personality_context=personality_context,
     )
 
-    agent_chat_model = agent.chat_model if agent else None
+    agent_chat_model = AgentAdapters.get_agent_chat_model(agent, user) if agent else None
 
     with timer("Chat actor: Extract relevant information from data", logger):
         response = await send_message_to_model_wrapper(
@@ -878,7 +878,7 @@ async def generate_better_diagram_description(
         personality_context=personality_context,
     )
 
-    agent_chat_model = agent.chat_model if agent else None
+    agent_chat_model = AgentAdapters.get_agent_chat_model(agent, user) if agent else None
 
     with timer("Chat actor: Generate better diagram description", logger):
         response = await send_message_to_model_wrapper(
@@ -911,7 +911,7 @@ async def generate_excalidraw_diagram_from_description(
         query=q,
     )
 
-    agent_chat_model = agent.chat_model if agent else None
+    agent_chat_model = AgentAdapters.get_agent_chat_model(agent, user) if agent else None
 
     with timer("Chat actor: Generate excalidraw diagram", logger):
         raw_response = await send_message_to_model_wrapper(
@@ -1029,7 +1029,7 @@ async def generate_better_mermaidjs_diagram_description(
         personality_context=personality_context,
     )
 
-    agent_chat_model = agent.chat_model if agent else None
+    agent_chat_model = AgentAdapters.get_agent_chat_model(agent, user) if agent else None
 
     with timer("Chat actor: Generate better Mermaid.js diagram description", logger):
         response = await send_message_to_model_wrapper(
@@ -1062,7 +1062,7 @@ async def generate_mermaidjs_diagram_from_description(
         query=q,
     )
 
-    agent_chat_model = agent.chat_model if agent else None
+    agent_chat_model = AgentAdapters.get_agent_chat_model(agent, user) if agent else None
 
     with timer("Chat actor: Generate Mermaid.js diagram", logger):
         raw_response = await send_message_to_model_wrapper(
@@ -1132,7 +1132,7 @@ async def generate_better_image_prompt(
             personality_context=personality_context,
         )
 
-    agent_chat_model = agent.chat_model if agent else None
+    agent_chat_model = AgentAdapters.get_agent_chat_model(agent, user) if agent else None
 
     with timer("Chat actor: Generate contextual image prompt", logger):
         response = await send_message_to_model_wrapper(

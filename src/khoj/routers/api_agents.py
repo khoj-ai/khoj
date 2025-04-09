@@ -62,6 +62,7 @@ async def all_agents(
     for agent in agents:
         files = agent.fileobject_set.all()
         file_names = [file.file_name for file in files]
+        agent_chat_model = await AgentAdapters.aget_agent_chat_model(default_agent, user)
         agent_packet = {
             "slug": agent.slug,
             "name": agent.name,
@@ -71,7 +72,7 @@ async def all_agents(
             "color": agent.style_color,
             "icon": agent.style_icon,
             "privacy_level": agent.privacy_level,
-            "chat_model": agent.chat_model.name,
+            "chat_model": agent_chat_model.name,
             "files": file_names,
             "input_tools": agent.input_tools,
             "output_modes": agent.output_modes,
@@ -125,6 +126,7 @@ async def get_agent_by_conversation(
         agent = await AgentAdapters.aget_default_agent()
 
     has_files = agent.fileobject_set.exists()
+    agent.chat_model = await AgentAdapters.aget_agent_chat_model(agent, user)
 
     agents_packet = {
         "slug": agent.slug,
@@ -194,6 +196,8 @@ async def get_agent(
 
     files = agent.fileobject_set.all()
     file_names = [file.file_name for file in files]
+    agent.chat_model = await AgentAdapters.aget_agent_chat_model(agent, user)
+
     agents_packet = {
         "slug": agent.slug,
         "name": agent.name,
@@ -265,6 +269,7 @@ async def update_hidden_agent(
         output_modes=body.output_modes,
         existing_agent=selected_agent,
     )
+    agent.chat_model = await AgentAdapters.aget_agent_chat_model(agent, user)
 
     agents_packet = {
         "slug": agent.slug,
@@ -320,6 +325,7 @@ async def create_hidden_agent(
         output_modes=body.output_modes,
         existing_agent=None,
     )
+    agent.chat_model = await AgentAdapters.aget_agent_chat_model(agent, user)
 
     conversation.agent = agent
     await conversation.asave()
@@ -374,6 +380,7 @@ async def create_agent(
         body.slug,
         body.is_hidden,
     )
+    agent.chat_model = await AgentAdapters.aget_agent_chat_model(agent, user)
 
     agents_packet = {
         "slug": agent.slug,
@@ -439,6 +446,7 @@ async def update_agent(
         body.output_modes,
         body.slug,
     )
+    agent.chat_model = await AgentAdapters.aget_agent_chat_model(agent, user)
 
     agents_packet = {
         "slug": agent.slug,
