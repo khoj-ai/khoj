@@ -61,7 +61,7 @@
         "jszip": "^3.10.1",
         "katex": "^0.16.21",
         "libphonenumber-js": "^1.11.4",
-        "lucide-react": "^0.468.0",
+        "lucide-react": "^0.483.0",
         "markdown-it": "^14.1.0",
         "markdown-it-highlightjs": "^4.1.0",
         "mermaid": "^11.4.1",
