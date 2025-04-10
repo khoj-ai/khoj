@@ -140,8 +140,8 @@ def gemini_send_message_to_model(
     """
     model_kwargs = {}
 
-    # This caused unwanted behavior and terminates response early for gemini 1.5 series. Monitor for flakiness with 2.0 series.
-    if response_type == "json_object" and model in ["gemini-2.0-flash"]:
+    # Monitor for flakiness in 1.5+ models. This would cause unwanted behavior and terminate response early in 1.5 models.
+    if response_type == "json_object" and not model.startswith("gemini-1.5"):
         model_kwargs["response_mime_type"] = "application/json"
         if response_schema:
             model_kwargs["response_schema"] = response_schema
