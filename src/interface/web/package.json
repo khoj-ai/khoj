@@ -47,7 +47,7 @@
         "autoprefixer": "^10.4.19",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
-        "cmdk": "^1.0.0",
+        "cmdk": "^1.1.1",
         "cronstrue": "^2.50.0",
         "dompurify": "^3.1.6",
         "embla-carousel-autoplay": "^8.5.1",
