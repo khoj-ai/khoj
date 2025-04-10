@@ -39,7 +39,7 @@ Khoj can use Google's Gemini and Anthropic's Claude family of AI models from [Ve
 - 🧪 Testing the API Key  
   Before adding it to Khoj, you can verify that your key works by making a simple curl request to Vertex AI. This helps debug auth issues early.
 
-- 💡 Use Environment Variables  
+- 💡 Use Environment Variable   
   For better security, consider using environment variables to manage sensitive keys and inject them at runtime during base64 encoding.
 
 If you encounter any issues, the [Khoj Discord](https://discord.gg/BDgyabRM6e) is a great place to ask for help!
