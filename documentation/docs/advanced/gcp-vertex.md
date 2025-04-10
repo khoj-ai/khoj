@@ -25,21 +25,21 @@ Khoj can use Google's Gemini and Anthropic's Claude family of AI models from [Ve
    - **Tokenizer**: *Do not set*
 5. Select the chat model on [your settings page](http://localhost:42110/settings) and start a conversation.
 
-##  Troubleshooting & Tips
+##  Troubleshooting & gcp AI Tips
 
-- 🔒 Permission Denied?  
+-  Permission Denied?  
   Ensure your service account has the `Vertex AI User` role and that the API is enabled in your GCP project.
 
-- 🌍 Region Errors?  
+-  Region Errors?  
   Double-check that the model you're trying to use is supported in your selected region. Some Claude or Gemini models are restricted to specific zones like `us-east5` or `us-central1`.
 
-- 📏 Prompt Size Limitations  
-  The `Max prompt size` should align with the limits defined in the model documentation. Exceeding it can silently fail or truncate inputs.
+-  Prompt Size Limitations  
+  The "Max prompt size" should align with the limits defined in the model documentation. Exceeding it can silently fail or truncate inputs.
 
-- 🧪 Testing the API Key  
+-  Testing the API Key  
   Before adding it to Khoj, you can verify that your key works by making a simple curl request to Vertex AI. This helps debug auth issues early.
 
-- 💡 Use Environment Variable   
+-  Use Environment Variables   
   For better security, consider using environment variables to manage sensitive keys and inject them at runtime during base64 encoding.
 
 If you encounter any issues, the [Khoj Discord](https://discord.gg/BDgyabRM6e) is a great place to ask for help!
