@@ -42,9 +42,9 @@
 
 [Khoj](https://khoj.dev) is a personal AI app to extend your capabilities. It smoothly scales up from an on-device personal AI to a cloud-scale enterprise AI.
 
-- Chat with any local or online LLM (e.g llama3, qwen, gemma, mistral, gpt, claude, gemini).
+- Chat with any local or online LLM (e.g llama3, qwen, gemma, mistral, gpt, claude, gemini, deepseek).
 - Get answers from the internet and your docs (including image, pdf, markdown, org-mode, word, notion files).
-- Access it from your Browser, Obsidian, Emacs, Desktop, Phone or Whatsapp.
+- Access it from your Browser, Obsidian, Vim, Emacs, Desktop, Phone or Whatsapp.
 - Create agents with custom knowledge, persona, chat model and tools to take on any role.
 - Automate away repetitive research. Get personal newsletters and smart notifications delivered to your inbox.
 - Find relevant docs quickly and easily using our advanced semantic search.
@@ -71,6 +71,19 @@ To get started with self-hosting Khoj, [read the docs](https://docs.khoj.dev/get
 
 Khoj is available as a cloud service, on-premises, or as a hybrid solution. To learn more about Khoj Enterprise, [visit our website](https://khoj.dev/teams).
 
+## Frequently Asked Questions (FAQ)
+
+Q: Can I use Khoj without self-hosting?  
+Yes! You can use Khoj right away at [https://app.khoj.dev](https://app.khoj.dev) — no setup required.
+
+Q: What kinds of documents can Khoj read?  
+Khoj supports a wide variety: PDFs, Markdown, Notion, Word docs, org-mode files, and more.
+
+Q: How can I make my own agent?  
+Check out [this blog post](https://blog.khoj.dev/posts/create-agents-on-khoj/) for a step-by-step guide to custom agents.
+For more questions, head over to our [Discord](https://discord.gg/BDgyabRM6e)!
+
+
 ## Contributors
 Cheers to our awesome contributors! 🎉
 
@@ -79,6 +92,8 @@ Cheers to our awesome contributors! 🎉
 </a>
 
 Made with [contrib.rocks](https://contrib.rocks).
+
+
 
 ### Interested in Contributing?
 
