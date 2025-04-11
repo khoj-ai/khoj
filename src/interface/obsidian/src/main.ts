@@ -2,6 +2,7 @@ import { Plugin, WorkspaceLeaf } from 'obsidian';
 import { KhojSetting, KhojSettingTab, DEFAULT_SETTINGS } from 'src/settings'
 import { KhojSearchModal } from 'src/search_modal'
 import { KhojChatView } from 'src/chat_view'
+import { KhojSimilarView } from 'src/similar_view'
 import { updateContentIndex, canConnectToBackend, KhojView, jumpToPreviousView } from './utils';
 import { KhojPaneView } from './pane_view';
 
@@ -17,6 +18,7 @@ export default class Khoj extends Plugin {
         this.addCommand({
             id: 'search',
             name: 'Search',
+            hotkeys: [{ modifiers: ["Ctrl", "Alt"], key: "S" }],
             callback: () => { new KhojSearchModal(this.app, this.settings).open(); }
         });
 
@@ -24,7 +26,8 @@ export default class Khoj extends Plugin {
         this.addCommand({
             id: 'similar',
             name: 'Find similar notes',
-            editorCallback: () => { new KhojSearchModal(this.app, this.settings, true).open(); }
+            hotkeys: [{ modifiers: ["Ctrl", "Alt"], key: "F" }],
+            editorCallback: () => { this.activateView(KhojView.SIMILAR); }
         });
 
         // Add chat command. It can be triggered from anywhere
@@ -32,6 +35,64 @@ export default class Khoj extends Plugin {
             id: 'chat',
             name: 'Chat',
             callback: () => { this.activateView(KhojView.CHAT); }
+        });
+
+        // Add similar documents view command
+        this.addCommand({
+            id: 'similar-view',
+            name: 'Open Similar Documents View',
+            callback: () => { this.activateView(KhojView.SIMILAR); }
+        });
+
+        // Add new chat command with hotkey
+        this.addCommand({
+            id: 'new-chat',
+            name: 'New Chat',
+            hotkeys: [{ modifiers: ["Ctrl", "Alt"], key: "N" }],
+            callback: async () => {
+                // First, activate the chat view
+                await this.activateView(KhojView.CHAT);
+
+                // Wait a short moment for the view to activate
+                setTimeout(() => {
+                    // Try to get the active chat view
+                    const chatView = this.app.workspace.getActiveViewOfType(KhojChatView);
+                    if (chatView) {
+                        chatView.createNewConversation();
+                    }
+                }, 100);
+            }
+        });
+
+        // Add conversation history command with hotkey
+        this.addCommand({
+            id: 'conversation-history',
+            name: 'Show Conversation History',
+            hotkeys: [{ modifiers: ["Ctrl", "Alt"], key: "O" }],
+            callback: () => {
+                this.activateView(KhojView.CHAT).then(() => {
+                    const chatView = this.app.workspace.getActiveViewOfType(KhojChatView);
+                    if (chatView) {
+                        chatView.toggleChatSessions(true);
+                    }
+                });
+            }
+        });
+
+        // Add voice capture command with hotkey
+        this.addCommand({
+            id: 'voice-capture',
+            name: 'Start Voice Capture',
+            hotkeys: [{ modifiers: ["Ctrl", "Alt"], key: "V" }],
+            callback: () => {
+                this.activateView(KhojView.CHAT).then(() => {
+                    const chatView = this.app.workspace.getActiveViewOfType(KhojChatView);
+                    if (chatView) {
+                        // Trigger speech to text functionality
+                        chatView.speechToText(new KeyboardEvent('keydown'));
+                    }
+                });
+            }
         });
 
         // Add sync command to manually sync new changes
@@ -49,7 +110,34 @@ export default class Khoj extends Plugin {
             }
         });
 
+        // Add edit confirmation commands
+        this.addCommand({
+            id: 'apply-edits',
+            name: 'Apply pending edits',
+            hotkeys: [{ modifiers: ["Ctrl", "Shift"], key: "Enter" }],
+            callback: () => {
+                const chatView = this.app.workspace.getActiveViewOfType(KhojChatView);
+                if (chatView) {
+                    chatView.applyPendingEdits();
+                }
+            }
+        });
+
+        this.addCommand({
+            id: 'cancel-edits',
+            name: 'Cancel pending edits',
+            hotkeys: [{ modifiers: ["Ctrl", "Shift"], key: "Backspace" }],
+            callback: () => {
+                const chatView = this.app.workspace.getActiveViewOfType(KhojChatView);
+                if (chatView) {
+                    chatView.cancelPendingEdits();
+                }
+            }
+        });
+
+        // Register views
         this.registerView(KhojView.CHAT, (leaf) => new KhojChatView(leaf, this.settings));
+        this.registerView(KhojView.SIMILAR, (leaf) => new KhojSimilarView(leaf, this.settings));
 
         // Create an icon in the left ribbon.
         this.addRibbonIcon('message-circle', 'Khoj', (_: MouseEvent) => {
