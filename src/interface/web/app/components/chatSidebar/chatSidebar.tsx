@@ -328,12 +328,12 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
         if (agentData) {
             setInputTools(agentData.input_tools);
             setDisplayInputTools(agentData.input_tools);
-            if (agentData.input_tools === undefined) {
+            if (agentData.input_tools === undefined || agentData.input_tools.length === 0) {
                 setDisplayInputTools(agentConfigurationOptions?.input_tools ? Object.keys(agentConfigurationOptions.input_tools) : []);
             }
             setOutputModes(agentData.output_modes);
             setDisplayOutputModes(agentData.output_modes);
-            if (agentData.output_modes === undefined) {
+            if (agentData.output_modes === undefined || agentData.output_modes.length === 0) {
                 setDisplayOutputModes(agentConfigurationOptions?.output_modes ? Object.keys(agentConfigurationOptions.output_modes) : []);
             }
 
