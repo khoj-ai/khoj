@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
 
 import "../globals.css";
-import { ContentSecurityPolicy } from "../common/layoutHelper";
 
 export const metadata: Metadata = {
     title: "Khoj AI - Automations",
@@ -34,18 +33,15 @@ export const metadata: Metadata = {
     },
 };
 
-export default function RootLayout({
+export default function ChildLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
     return (
-        <html>
-            <ContentSecurityPolicy />
-            <body>
-                {children}
-                <Toaster />
-            </body>
-        </html>
+        <>
+            {children}
+            <Toaster />
+        </>
     );
 }
