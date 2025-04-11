@@ -643,7 +643,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                 >
                     <input
                         type="file"
-                        accept=".pdf,.doc,.docx,.txt,.md,.org,.jpg,.jpeg,.png,.webp,.py,.js,.json,.html,.css"
+                        accept=".pdf,.doc,.docx,.txt,.md,.org,.jpg,.jpeg,.png,.webp,.py,.tsx,.js,.json,.html,.css"
                         multiple={true}
                         ref={fileInputRef}
                         onChange={handleFileChange}

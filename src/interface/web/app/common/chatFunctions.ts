@@ -288,7 +288,7 @@ export async function packageFilesForUpload(files: FileList): Promise<FormData> 
                         fileType = "text/org";
                     } else if (fileExtension === "md") {
                         fileType = "text/markdown";
-                    } else if (fileExtension === "txt") {
+                    } else if (fileExtension === "txt" || fileExtension === "tsx") {
                         fileType = "text/plain";
                     } else if (fileExtension === "html") {
                         fileType = "text/html";
@@ -299,12 +299,16 @@ export async function packageFilesForUpload(files: FileList): Promise<FormData> 
                             "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
                     } else {
                         // Skip this file if its type is not supported
+                        console.warn(
+                            `File type ${fileType} not supported. Skipping file: ${fileName}`,
+                        );
                         resolve();
                         return;
                     }
                 }
 
                 if (fileContents === null) {
+                    console.warn(`Could not read file content. Skipping file: ${fileName}`);
                     reject();
                     return;
                 }
