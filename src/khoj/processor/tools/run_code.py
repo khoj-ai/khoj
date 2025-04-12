@@ -244,6 +244,7 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
 
         # Collect output files
         output_files = []
+        image_file_ext = {".png", ".jpeg", ".jpg", ".svg"}
 
         # Identify new files created during execution
         new_files = set(E2bFile(f.name, f.path) for f in await sandbox.files.list("~")) - original_files
@@ -254,7 +255,7 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
             if isinstance(content, bytes):
                 # Binary files like PNG - encode as base64
                 b64_data = base64.b64encode(content).decode("utf-8")
-            elif Path(f.name).suffix in [".png", ".jpeg", ".jpg", ".svg"]:
+            elif Path(f.name).suffix in image_file_ext:
                 # Ignore image files as they are extracted from execution results below for inline display
                 continue
             else:
@@ -263,8 +264,12 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
             output_files.append({"filename": f.name, "b64_data": b64_data})
 
         # Collect output files from execution results
+        # Repect ordering of output result types to disregard text output associated with images
+        output_result_types = ["png", "jpeg", "svg", "text", "markdown", "json"]
         for idx, result in enumerate(execution.results):
-            for result_type in {"png", "jpeg", "svg", "text", "markdown", "json"}:
+            if getattr(result, "chart", None):
+                continue
+            for result_type in output_result_types:
                 if b64_data := getattr(result, result_type, None):
                     output_files.append({"filename": f"{idx}.{result_type}", "b64_data": b64_data})
                     break
