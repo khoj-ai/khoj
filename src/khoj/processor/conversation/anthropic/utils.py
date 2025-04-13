@@ -276,6 +276,11 @@ def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt: st
                     )
             message.content = content
 
+        if is_none_or_empty(message.content):
+            logger.error(f"Drop message with empty content as not supported:\n{message}")
+            messages.remove(message)
+            continue
+
     formatted_messages: List[anthropic.types.MessageParam] = [
         anthropic.types.MessageParam(role=message.role, content=message.content) for message in messages
     ]

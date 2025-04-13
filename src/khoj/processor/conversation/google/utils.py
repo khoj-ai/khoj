@@ -305,7 +305,7 @@ def format_messages_for_gemini(
                 else:
                     logger.error(f"Dropping invalid message content part: {item}")
             if not message_content:
-                logger.error(f"Dropping empty message content")
+                logger.error(f"Dropping message with empty content as not supported:\n{message}")
                 messages.remove(message)
                 continue
             message.content = message_content
