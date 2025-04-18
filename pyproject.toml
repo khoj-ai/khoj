@@ -88,7 +88,7 @@ dependencies = [
     "django_apscheduler == 0.7.0",
     "anthropic == 0.49.0",
     "docx2txt == 0.8",
-    "google-genai == 1.5.0",
+    "google-genai == 1.11.0",
     "google-auth ~= 2.23.3",
     "pyjson5 == 1.6.7",
     "resend == 1.0.1",

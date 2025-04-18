@@ -601,6 +601,7 @@ def get_cost_of_chat_message(
     model_name: str,
     input_tokens: int = 0,
     output_tokens: int = 0,
+    thought_tokens: int = 0,
     cache_read_tokens: int = 0,
     cache_write_tokens: int = 0,
     prev_cost: float = 0.0,
@@ -612,10 +613,11 @@ def get_cost_of_chat_message(
     # Calculate cost of input and output tokens. Costs are per million tokens
     input_cost = constants.model_to_cost.get(model_name, {}).get("input", 0) * (input_tokens / 1e6)
     output_cost = constants.model_to_cost.get(model_name, {}).get("output", 0) * (output_tokens / 1e6)
+    thought_cost = constants.model_to_cost.get(model_name, {}).get("thought", 0) * (thought_tokens / 1e6)
     cache_read_cost = constants.model_to_cost.get(model_name, {}).get("cache_read", 0) * (cache_read_tokens / 1e6)
     cache_write_cost = constants.model_to_cost.get(model_name, {}).get("cache_write", 0) * (cache_write_tokens / 1e6)
 
-    return input_cost + output_cost + cache_read_cost + cache_write_cost + prev_cost
+    return input_cost + output_cost + thought_cost + cache_read_cost + cache_write_cost + prev_cost
 
 
 def get_chat_usage_metrics(
@@ -624,6 +626,7 @@ def get_chat_usage_metrics(
     output_tokens: int = 0,
     cache_read_tokens: int = 0,
     cache_write_tokens: int = 0,
+    thought_tokens: int = 0,
     usage: dict = {},
     cost: float = None,
 ):
@@ -633,6 +636,7 @@ def get_chat_usage_metrics(
     prev_usage = usage or {
         "input_tokens": 0,
         "output_tokens": 0,
+        "thought_tokens": 0,
         "cache_read_tokens": 0,
         "cache_write_tokens": 0,
         "cost": 0.0,
@@ -640,11 +644,18 @@ def get_chat_usage_metrics(
     return {
         "input_tokens": prev_usage["input_tokens"] + input_tokens,
         "output_tokens": prev_usage["output_tokens"] + output_tokens,
+        "thought_tokens": prev_usage.get("thought_tokens", 0) + thought_tokens,
         "cache_read_tokens": prev_usage.get("cache_read_tokens", 0) + cache_read_tokens,
         "cache_write_tokens": prev_usage.get("cache_write_tokens", 0) + cache_write_tokens,
         "cost": cost
         or get_cost_of_chat_message(
-            model_name, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, prev_cost=prev_usage["cost"]
+            model_name,
+            input_tokens,
+            output_tokens,
+            thought_tokens,
+            cache_read_tokens,
+            cache_write_tokens,
+            prev_cost=prev_usage["cost"],
         ),
     }
 

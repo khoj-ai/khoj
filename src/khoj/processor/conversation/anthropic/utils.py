@@ -108,7 +108,7 @@ def anthropic_completion_with_backoff(
     cache_read_tokens = final_message.usage.cache_read_input_tokens
     cache_write_tokens = final_message.usage.cache_creation_input_tokens
     tracer["usage"] = get_chat_usage_metrics(
-        model_name, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, tracer.get("usage")
+        model_name, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, usage=tracer.get("usage")
     )
 
     # Save conversation trace
@@ -213,7 +213,7 @@ def anthropic_llm_thread(
         cache_read_tokens = final_message.usage.cache_read_input_tokens
         cache_write_tokens = final_message.usage.cache_creation_input_tokens
         tracer["usage"] = get_chat_usage_metrics(
-            model_name, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, tracer.get("usage")
+            model_name, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, usage=tracer.get("usage")
         )
 
         # Save conversation trace

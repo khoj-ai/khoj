@@ -36,6 +36,8 @@ logger = logging.getLogger(__name__)
 gemini_clients: Dict[str, genai.Client] = {}
 
 MAX_OUTPUT_TOKENS_GEMINI = 8192
+MAX_REASONING_TOKENS_GEMINI = 10000
+
 SAFETY_SETTINGS = [
     gtypes.SafetySetting(
         category=gtypes.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
@@ -78,7 +80,15 @@ def get_gemini_client(api_key, api_base_url=None) -> genai.Client:
     reraise=True,
 )
 def gemini_completion_with_backoff(
-    messages, system_prompt, model_name, temperature=1.0, api_key=None, api_base_url=None, model_kwargs=None, tracer={}
+    messages,
+    system_prompt,
+    model_name: str,
+    temperature=1.0,
+    api_key=None,
+    api_base_url: str = None,
+    model_kwargs=None,
+    deepthought=False,
+    tracer={},
 ) -> str:
     client = gemini_clients.get(api_key)
     if not client:
@@ -92,10 +102,15 @@ def gemini_completion_with_backoff(
     if model_kwargs and model_kwargs.get("response_schema"):
         response_schema = clean_response_schema(model_kwargs["response_schema"])
 
+    thinking_config = None
+    if deepthought and model_name.startswith("gemini-2-5"):
+        thinking_config = gtypes.ThinkingConfig(thinking_budget=MAX_REASONING_TOKENS_GEMINI)
+
     seed = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
     config = gtypes.GenerateContentConfig(
         system_instruction=system_prompt,
         temperature=temperature,
+        thinking_config=thinking_config,
         max_output_tokens=MAX_OUTPUT_TOKENS_GEMINI,
         safety_settings=SAFETY_SETTINGS,
         response_mime_type=model_kwargs.get("response_mime_type", "text/plain") if model_kwargs else "text/plain",
@@ -119,7 +134,10 @@ def gemini_completion_with_backoff(
     # Aggregate cost of chat
     input_tokens = response.usage_metadata.prompt_token_count if response else 0
     output_tokens = response.usage_metadata.candidates_token_count if response else 0
-    tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, usage=tracer.get("usage"))
+    thought_tokens = response.usage_metadata.thoughts_token_count or 0 if response else 0
+    tracer["usage"] = get_chat_usage_metrics(
+        model_name, input_tokens, output_tokens, thought_tokens=thought_tokens, usage=tracer.get("usage")
+    )
 
     # Save conversation trace
     tracer["chat_model"] = model_name
@@ -147,12 +165,24 @@ def gemini_chat_completion_with_backoff(
     system_prompt,
     completion_func=None,
     model_kwargs=None,
+    deepthought=False,
     tracer: dict = {},
 ):
     g = ThreadedGenerator(compiled_references, online_results, completion_func=completion_func)
     t = Thread(
         target=gemini_llm_thread,
-        args=(g, messages, system_prompt, model_name, temperature, api_key, api_base_url, model_kwargs, tracer),
+        args=(
+            g,
+            messages,
+            system_prompt,
+            model_name,
+            temperature,
+            api_key,
+            api_base_url,
+            model_kwargs,
+            deepthought,
+            tracer,
+        ),
     )
     t.start()
     return g
@@ -167,6 +197,7 @@ def gemini_llm_thread(
     api_key,
     api_base_url=None,
     model_kwargs=None,
+    deepthought=False,
     tracer: dict = {},
 ):
     try:
@@ -177,10 +208,15 @@ def gemini_llm_thread(
 
         formatted_messages, system_prompt = format_messages_for_gemini(messages, system_prompt)
 
+        thinking_config = None
+        if deepthought and model_name.startswith("gemini-2-5"):
+            thinking_config = gtypes.ThinkingConfig(thinking_budget=MAX_REASONING_TOKENS_GEMINI)
+
         seed = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
         config = gtypes.GenerateContentConfig(
             system_instruction=system_prompt,
             temperature=temperature,
+            thinking_config=thinking_config,
             max_output_tokens=MAX_OUTPUT_TOKENS_GEMINI,
             stop_sequences=["Notes:\n["],
             safety_settings=SAFETY_SETTINGS,
@@ -202,7 +238,10 @@ def gemini_llm_thread(
         # Calculate cost of chat
         input_tokens = chunk.usage_metadata.prompt_token_count
         output_tokens = chunk.usage_metadata.candidates_token_count
-        tracer["usage"] = get_chat_usage_metrics(model_name, input_tokens, output_tokens, usage=tracer.get("usage"))
+        thought_tokens = chunk.usage_metadata.thoughts_token_count or 0
+        tracer["usage"] = get_chat_usage_metrics(
+            model_name, input_tokens, output_tokens, thought_tokens=thought_tokens, usage=tracer.get("usage")
+        )
 
         # Save conversation trace
         tracer["chat_model"] = model_name

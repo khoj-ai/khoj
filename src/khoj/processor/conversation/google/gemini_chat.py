@@ -133,6 +133,7 @@ def gemini_send_message_to_model(
     response_type="text",
     response_schema=None,
     model_kwargs=None,
+    deepthought=False,
     tracer={},
 ):
     """
@@ -154,6 +155,7 @@ def gemini_send_message_to_model(
         api_key=api_key,
         api_base_url=api_base_url,
         model_kwargs=model_kwargs,
+        deepthought=deepthought,
         tracer=tracer,
     )
 
@@ -181,6 +183,7 @@ def converse_gemini(
     generated_files: List[FileAttachment] = None,
     generated_asset_results: Dict[str, Dict] = {},
     program_execution_context: List[str] = None,
+    deepthought: Optional[bool] = False,
     tracer={},
 ):
     """
@@ -260,5 +263,6 @@ def converse_gemini(
         api_base_url=api_base_url,
         system_prompt=system_prompt,
         completion_func=completion_func,
+        deepthought=deepthought,
         tracer=tracer,
     )
