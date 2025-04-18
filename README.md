@@ -73,13 +73,13 @@ Khoj is available as a cloud service, on-premises, or as a hybrid solution. To l
 
 ## Frequently Asked Questions (FAQ)
 
-Q: Can I use Khoj without self-hosting?  
+Q: Can I use Khoj without self-hosting?
 Yes! You can use Khoj right away at [https://app.khoj.dev](https://app.khoj.dev) — no setup required.
 
-Q: What kinds of documents can Khoj read?  
+Q: What kinds of documents can Khoj read?
 Khoj supports a wide variety: PDFs, Markdown, Notion, Word docs, org-mode files, and more.
 
-Q: How can I make my own agent?  
+Q: How can I make my own agent?
 Check out [this blog post](https://blog.khoj.dev/posts/create-agents-on-khoj/) for a step-by-step guide to custom agents.
 For more questions, head over to our [Discord](https://discord.gg/BDgyabRM6e)!
 
