@@ -480,7 +480,7 @@ async def infer_webpage_urls(
     username = prompts.user_name.format(name=user.get_full_name()) if user.get_full_name() else ""
     chat_history = construct_chat_history(conversation_history)
 
-    utc_date = datetime.utcnow().strftime("%Y-%m-%d")
+    utc_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
     )
@@ -545,7 +545,7 @@ async def generate_online_subqueries(
     chat_history = construct_chat_history(conversation_history)
 
     max_queries = 3
-    utc_date = datetime.utcnow().strftime("%Y-%m-%d")
+    utc_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
     )
