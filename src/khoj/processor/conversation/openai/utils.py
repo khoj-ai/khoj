@@ -68,6 +68,9 @@ def completion_with_backoff(
         temperature = 1
         reasoning_effort = "medium" if deepthought else "low"
         model_kwargs["reasoning_effort"] = reasoning_effort
+    elif is_twitter_reasoning_model(model_name, api_base_url):
+        reasoning_effort = "high" if deepthought else "low"
+        model_kwargs["reasoning_effort"] = reasoning_effort
 
     model_kwargs["stream_options"] = {"include_usage": True}
     if os.getenv("KHOJ_LLM_SEED"):
@@ -181,6 +184,9 @@ def llm_thread(
                     formatted_messages[first_system_message_index][
                         "content"
                     ] = f"{first_system_message} Formatting re-enabled"
+        elif is_twitter_reasoning_model(model_name, api_base_url):
+            reasoning_effort = "high" if deepthought else "low"
+            model_kwargs["reasoning_effort"] = reasoning_effort
         elif model_name.startswith("deepseek-reasoner"):
             # Two successive messages cannot be from the same role. Should merge any back-to-back messages from the same role.
             # The first message should always be a user message (except system message).
@@ -266,3 +272,14 @@ def is_openai_reasoning_model(model_name: str, api_base_url: str = None) -> bool
     Check if the model is an OpenAI reasoning model
     """
     return model_name.startswith("o") and (api_base_url is None or api_base_url.startswith("https://api.openai.com/v1"))
+
+
+def is_twitter_reasoning_model(model_name: str, api_base_url: str = None) -> bool:
+    """
+    Check if the model is a Twitter reasoning model
+    """
+    return (
+        model_name.startswith("grok-3-mini")
+        and api_base_url is not None
+        and api_base_url.startswith("https://api.x.ai/v1")
+    )
