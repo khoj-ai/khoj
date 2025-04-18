@@ -64,9 +64,10 @@ def completion_with_backoff(
     formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
 
     # Tune reasoning models arguments
-    if model_name.startswith("o1") or model_name.startswith("o3"):
+    if is_openai_reasoning_model(model_name, api_base_url):
         temperature = 1
-        model_kwargs["reasoning_effort"] = "medium"
+        reasoning_effort = "medium" if deepthought else "low"
+        model_kwargs["reasoning_effort"] = reasoning_effort
 
     model_kwargs["stream_options"] = {"include_usage": True}
     if os.getenv("KHOJ_LLM_SEED"):
@@ -162,12 +163,13 @@ def llm_thread(
 
         formatted_messages = [{"role": message.role, "content": message.content} for message in messages]
 
-        # Tune reasoning models arguments
-        if model_name.startswith("o1") or model_name.startswith("o3"):
+        # Configure thinking for openai reasoning models
+        if is_openai_reasoning_model(model_name, api_base_url):
             temperature = 1
-            model_kwargs["reasoning_effort"] = "medium"
+            reasoning_effort = "medium" if deepthought else "low"
+            model_kwargs["reasoning_effort"] = reasoning_effort
+            model_kwargs.pop("stop", None)  # Remove unsupported stop param for reasoning models
 
-        if model_name.startswith("o3"):
             # Get the first system message and add the string `Formatting re-enabled` to it.
             # See https://platform.openai.com/docs/guides/reasoning-best-practices
             if len(formatted_messages) > 0:
@@ -257,3 +259,10 @@ def get_openai_api_json_support(model_name: str, api_base_url: str = None) -> Js
         if host == "api.deepinfra.com":
             return JsonSupport.OBJECT
     return JsonSupport.SCHEMA
+
+
+def is_openai_reasoning_model(model_name: str, api_base_url: str = None) -> bool:
+    """
+    Check if the model is an OpenAI reasoning model
+    """
+    return model_name.startswith("o") and (api_base_url is None or api_base_url.startswith("https://api.openai.com/v1"))
