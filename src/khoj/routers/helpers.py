@@ -1534,10 +1534,9 @@ async def agenerate_chat_response(
             )
 
         elif chat_model.model_type == ChatModel.ModelType.ANTHROPIC:
-            # Assuming converse_anthropic remains sync or is refactored separately
             api_key = chat_model.ai_model_api.api_key
             api_base_url = chat_model.ai_model_api.api_base_url
-            chat_response_generator = converse_anthropic(  # Needs adaptation if it becomes async
+            chat_response_generator = converse_anthropic(
                 compiled_references,
                 query_to_run,
                 query_images=query_images,

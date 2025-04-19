@@ -1,5 +1,5 @@
 import logging
-from threading import Thread
+from time import perf_counter
 from typing import Dict, List
 
 import anthropic
@@ -13,12 +13,12 @@ from tenacity import (
 )
 
 from khoj.processor.conversation.utils import (
-    ThreadedGenerator,
     commit_conversation_trace,
     get_image_from_base64,
     get_image_from_url,
 )
 from khoj.utils.helpers import (
+    get_anthropic_async_client,
     get_anthropic_client,
     get_chat_usage_metrics,
     is_none_or_empty,
@@ -28,6 +28,7 @@ from khoj.utils.helpers import (
 logger = logging.getLogger(__name__)
 
 anthropic_clients: Dict[str, anthropic.Anthropic | anthropic.AnthropicVertex] = {}
+anthropic_async_clients: Dict[str, anthropic.AsyncAnthropic | anthropic.AsyncAnthropicVertex] = {}
 
 DEFAULT_MAX_TOKENS_ANTHROPIC = 8000
 MAX_REASONING_TOKENS_ANTHROPIC = 12000
@@ -113,60 +114,23 @@ def anthropic_completion_with_backoff(
     before_sleep=before_sleep_log(logger, logging.DEBUG),
     reraise=True,
 )
-def anthropic_chat_completion_with_backoff(
+async def anthropic_chat_completion_with_backoff(
     messages: list[ChatMessage],
-    compiled_references,
-    online_results,
     model_name,
     temperature,
     api_key,
     api_base_url,
     system_prompt: str,
     max_prompt_size=None,
-    completion_func=None,
-    deepthought=False,
-    model_kwargs=None,
-    tracer={},
-):
-    g = ThreadedGenerator(compiled_references, online_results, completion_func=completion_func)
-    t = Thread(
-        target=anthropic_llm_thread,
-        args=(
-            g,
-            messages,
-            system_prompt,
-            model_name,
-            temperature,
-            api_key,
-            api_base_url,
-            max_prompt_size,
-            deepthought,
-            model_kwargs,
-            tracer,
-        ),
-    )
-    t.start()
-    return g
-
-
-def anthropic_llm_thread(
-    g,
-    messages: list[ChatMessage],
-    system_prompt: str,
-    model_name: str,
-    temperature,
-    api_key,
-    api_base_url=None,
-    max_prompt_size=None,
     deepthought=False,
     model_kwargs=None,
     tracer={},
 ):
     try:
-        client = anthropic_clients.get(api_key)
+        client = anthropic_async_clients.get(api_key)
         if not client:
-            client = get_anthropic_client(api_key, api_base_url)
-            anthropic_clients[api_key] = client
+            client = get_anthropic_async_client(api_key, api_base_url)
+            anthropic_async_clients[api_key] = client
 
         model_kwargs = model_kwargs or dict()
         max_tokens = DEFAULT_MAX_TOKENS_ANTHROPIC
@@ -180,7 +144,8 @@ def anthropic_llm_thread(
 
         aggregated_response = ""
         final_message = None
-        with client.messages.stream(
+        start_time = perf_counter()
+        async with client.messages.stream(
             messages=formatted_messages,
             model=model_name,  # type: ignore
             temperature=temperature,
@@ -189,10 +154,17 @@ def anthropic_llm_thread(
             max_tokens=max_tokens,
             **model_kwargs,
         ) as stream:
-            for text in stream.text_stream:
+            async for text in stream.text_stream:
+                # Log the time taken to start response
+                if aggregated_response == "":
+                    logger.info(f"First response took: {perf_counter() - start_time:.3f} seconds")
+                # Handle streamed response chunk
                 aggregated_response += text
-                g.send(text)
-            final_message = stream.get_final_message()
+                yield text
+            final_message = await stream.get_final_message()
+
+        # Log the time taken to stream the entire response
+        logger.info(f"Chat streaming took: {perf_counter() - start_time:.3f} seconds")
 
         # Calculate cost of chat
         input_tokens = final_message.usage.input_tokens
@@ -209,9 +181,7 @@ def anthropic_llm_thread(
         if is_promptrace_enabled():
             commit_conversation_trace(messages, aggregated_response, tracer)
     except Exception as e:
-        logger.error(f"Error in anthropic_llm_thread: {e}", exc_info=True)
-    finally:
-        g.close()
+        logger.error(f"Error in anthropic_chat_completion_with_backoff stream: {e}", exc_info=True)
 
 
 def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt: str = None):

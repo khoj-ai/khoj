@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import AsyncGenerator, Dict, List, Optional
 
 import pyjson5
 from langchain.schema import ChatMessage
@@ -137,7 +137,7 @@ def anthropic_send_message_to_model(
     )
 
 
-def converse_anthropic(
+async def converse_anthropic(
     references,
     user_query,
     online_results: Optional[Dict[str, Dict]] = None,
@@ -161,7 +161,7 @@ def converse_anthropic(
     generated_asset_results: Dict[str, Dict] = {},
     deepthought: Optional[bool] = False,
     tracer: dict = {},
-):
+) -> AsyncGenerator[str, None]:
     """
     Converse with user using Anthropic's Claude
     """
@@ -191,11 +191,17 @@ def converse_anthropic(
 
     # Get Conversation Primer appropriate to Conversation Type
     if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(references):
-        completion_func(chat_response=prompts.no_notes_found.format())
-        return iter([prompts.no_notes_found.format()])
+        response = prompts.no_notes_found.format()
+        if completion_func:
+            await completion_func(chat_response=response)
+        yield response
+        return
     elif conversation_commands == [ConversationCommand.Online] and is_none_or_empty(online_results):
-        completion_func(chat_response=prompts.no_online_results_found.format())
-        return iter([prompts.no_online_results_found.format()])
+        response = prompts.no_online_results_found.format()
+        if completion_func:
+            await completion_func(chat_response=response)
+        yield response
+        return
 
     context_message = ""
     if not is_none_or_empty(references):
@@ -228,17 +234,21 @@ def converse_anthropic(
     logger.debug(f"Conversation Context for Claude: {messages_to_print(messages)}")
 
     # Get Response from Claude
-    return anthropic_chat_completion_with_backoff(
+    full_response = ""
+    async for chunk in anthropic_chat_completion_with_backoff(
         messages=messages,
-        compiled_references=references,
-        online_results=online_results,
         model_name=model,
         temperature=0.2,
         api_key=api_key,
         api_base_url=api_base_url,
         system_prompt=system_prompt,
-        completion_func=completion_func,
         max_prompt_size=max_prompt_size,
         deepthought=deepthought,
         tracer=tracer,
-    )
+    ):
+        full_response += chunk
+        yield chunk
+
+    # Call completion_func once finish streaming and we have the full response
+    if completion_func:
+        await completion_func(chat_response=full_response)
