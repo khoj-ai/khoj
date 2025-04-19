@@ -254,7 +254,7 @@ def message_to_log(
     return conversation_log
 
 
-def save_to_conversation_log(
+async def save_to_conversation_log(
     q: str,
     chat_response: str,
     user: KhojUser,
@@ -306,7 +306,7 @@ def save_to_conversation_log(
         khoj_message_metadata=khoj_message_metadata,
         conversation_log=meta_log.get("chat", []),
     )
-    ConversationAdapters.save_conversation(
+    await ConversationAdapters.save_conversation(
         user,
         {"chat": updated_conversation},
         client_application=client_application,

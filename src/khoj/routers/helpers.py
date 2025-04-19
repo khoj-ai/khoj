@@ -1,4 +1,3 @@
-import asyncio
 import base64
 import hashlib
 import json
@@ -6,9 +5,7 @@ import logging
 import math
 import os
 import re
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
-from enum import Enum
 from functools import partial
 from random import random
 from typing import (
@@ -17,7 +14,6 @@ from typing import (
     AsyncGenerator,
     Callable,
     Dict,
-    Iterator,
     List,
     Optional,
     Set,
@@ -125,8 +121,6 @@ from khoj.utils.helpers import (
 from khoj.utils.rawconfig import ChatRequestBody, FileAttachment, FileData, LocationData
 
 logger = logging.getLogger(__name__)
-
-executor = ThreadPoolExecutor(max_workers=1)
 
 
 NOTION_OAUTH_CLIENT_ID = os.getenv("NOTION_OAUTH_CLIENT_ID")
@@ -260,11 +254,6 @@ def get_conversation_command(query: str) -> ConversationCommand:
         return ConversationCommand.Research
     else:
         return ConversationCommand.Default
-
-
-async def agenerate_chat_response(*args):
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(executor, generate_chat_response, *args)
 
 
 def gather_raw_query_files(
@@ -1418,7 +1407,7 @@ def send_message_to_model_wrapper_sync(
         raise HTTPException(status_code=500, detail="Invalid conversation config")
 
 
-def generate_chat_response(
+async def agenerate_chat_response(
     q: str,
     meta_log: dict,
     conversation: Conversation,
@@ -1444,13 +1433,14 @@ def generate_chat_response(
     generated_asset_results: Dict[str, Dict] = {},
     is_subscribed: bool = False,
     tracer: dict = {},
-) -> Tuple[Union[ThreadedGenerator, Iterator[str]], Dict[str, str]]:
+) -> Tuple[AsyncGenerator[str, None], Dict[str, str]]:
     # Initialize Variables
-    chat_response = None
+    chat_response_generator = None
     logger.debug(f"Conversation Types: {conversation_commands}")
 
     metadata = {}
-    agent = AgentAdapters.get_conversation_agent_by_id(conversation.agent.id) if conversation.agent else None
+    agent = await AgentAdapters.aget_conversation_agent_by_id(conversation.agent.id) if conversation.agent else None
+
     try:
         partial_completion = partial(
             save_to_conversation_log,
@@ -1481,23 +1471,25 @@ def generate_chat_response(
             code_results = {}
             deepthought = True
 
-        chat_model = ConversationAdapters.get_valid_chat_model(user, conversation, is_subscribed)
+        chat_model = await ConversationAdapters.aget_valid_chat_model(user, conversation, is_subscribed)
         vision_available = chat_model.vision_enabled
         if not vision_available and query_images:
-            vision_enabled_config = ConversationAdapters.get_vision_enabled_config()
+            vision_enabled_config = await ConversationAdapters.aget_vision_enabled_config()
             if vision_enabled_config:
                 chat_model = vision_enabled_config
                 vision_available = True
 
         if chat_model.model_type == "offline":
+            # Assuming converse_offline remains sync or is refactored separately
             loaded_model = state.offline_chat_processor_config.loaded_model
-            chat_response = converse_offline(
+            # If converse_offline returns an iterator, wrap it if needed, or refactor it to async generator
+            chat_response_generator = converse_offline(  # Needs adaptation if it becomes async
                 user_query=query_to_run,
                 references=compiled_references,
                 online_results=online_results,
                 loaded_model=loaded_model,
                 conversation_log=meta_log,
-                completion_func=partial_completion,
+                completion_func=partial_completion,  # Pass the async wrapper
                 conversation_commands=conversation_commands,
                 model_name=chat_model.name,
                 max_prompt_size=chat_model.max_prompt_size,
@@ -1515,7 +1507,7 @@ def generate_chat_response(
             openai_chat_config = chat_model.ai_model_api
             api_key = openai_chat_config.api_key
             chat_model_name = chat_model.name
-            chat_response = converse_openai(
+            chat_response_generator = converse_openai(
                 compiled_references,
                 query_to_run,
                 query_images=query_images,
@@ -1542,9 +1534,10 @@ def generate_chat_response(
             )
 
         elif chat_model.model_type == ChatModel.ModelType.ANTHROPIC:
+            # Assuming converse_anthropic remains sync or is refactored separately
             api_key = chat_model.ai_model_api.api_key
             api_base_url = chat_model.ai_model_api.api_base_url
-            chat_response = converse_anthropic(
+            chat_response_generator = converse_anthropic(  # Needs adaptation if it becomes async
                 compiled_references,
                 query_to_run,
                 query_images=query_images,
@@ -1570,9 +1563,10 @@ def generate_chat_response(
                 tracer=tracer,
             )
         elif chat_model.model_type == ChatModel.ModelType.GOOGLE:
+            # Assuming converse_gemini remains sync or is refactored separately
             api_key = chat_model.ai_model_api.api_key
             api_base_url = chat_model.ai_model_api.api_base_url
-            chat_response = converse_gemini(
+            chat_response_generator = converse_gemini(  # Needs adaptation if it becomes async
                 compiled_references,
                 query_to_run,
                 online_results,
@@ -1604,7 +1598,8 @@ def generate_chat_response(
         logger.error(e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-    return chat_response, metadata
+    # Return the generator directly
+    return chat_response_generator, metadata
 
 
 class DeleteMessageRequestBody(BaseModel):

@@ -763,9 +763,9 @@ class AgentAdapters:
         return False
 
     @staticmethod
-    def get_conversation_agent_by_id(agent_id: int):
-        agent = Agent.objects.filter(id=agent_id).first()
-        if agent == AgentAdapters.get_default_agent():
+    async def aget_conversation_agent_by_id(agent_id: int):
+        agent = await Agent.objects.filter(id=agent_id).afirst()
+        if agent == await AgentAdapters.aget_default_agent():
             # If the agent is set to the default agent, then return None and let the default application code be used
             return None
         return agent
@@ -1110,14 +1110,6 @@ class ConversationAdapters:
         return await sync_to_async(list)(ChatModel.objects.prefetch_related("ai_model_api").all())
 
     @staticmethod
-    def get_vision_enabled_config():
-        chat_models = ConversationAdapters.get_all_chat_models()
-        for config in chat_models:
-            if config.vision_enabled:
-                return config
-        return None
-
-    @staticmethod
     async def aget_vision_enabled_config():
         chat_models = await ConversationAdapters.aget_all_chat_models()
         for config in chat_models:
@@ -1171,7 +1163,11 @@ class ConversationAdapters:
     @staticmethod
     async def aget_chat_model(user: KhojUser):
         subscribed = await ais_user_subscribed(user)
-        config = await UserConversationConfig.objects.filter(user=user).prefetch_related("setting").afirst()
+        config = (
+            await UserConversationConfig.objects.filter(user=user)
+            .prefetch_related("setting", "setting__ai_model_api")
+            .afirst()
+        )
         if subscribed:
             # Subscibed users can use any available chat model
             if config:
@@ -1387,7 +1383,7 @@ class ConversationAdapters:
 
     @staticmethod
     @require_valid_user
-    def save_conversation(
+    async def save_conversation(
         user: KhojUser,
         conversation_log: dict,
         client_application: ClientApplication = None,
@@ -1396,19 +1392,21 @@ class ConversationAdapters:
     ):
         slug = user_message.strip()[:200] if user_message else None
         if conversation_id:
-            conversation = Conversation.objects.filter(user=user, client=client_application, id=conversation_id).first()
+            conversation = await Conversation.objects.filter(
+                user=user, client=client_application, id=conversation_id
+            ).afirst()
         else:
             conversation = (
-                Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at").first()
+                await Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at").afirst()
             )
 
         if conversation:
             conversation.conversation_log = conversation_log
             conversation.slug = slug
             conversation.updated_at = datetime.now(tz=timezone.utc)
-            conversation.save()
+            await conversation.asave()
         else:
-            Conversation.objects.create(
+            await Conversation.objects.acreate(
                 user=user, conversation_log=conversation_log, client=client_application, slug=slug
             )
 
@@ -1455,17 +1453,21 @@ class ConversationAdapters:
         return random.sample(all_questions, max_results)
 
     @staticmethod
-    def get_valid_chat_model(user: KhojUser, conversation: Conversation, is_subscribed: bool):
+    async def aget_valid_chat_model(user: KhojUser, conversation: Conversation, is_subscribed: bool):
         agent: Agent = (
-            conversation.agent if is_subscribed and AgentAdapters.get_default_agent() != conversation.agent else None
+            conversation.agent
+            if is_subscribed and await AgentAdapters.aget_default_agent() != conversation.agent
+            else None
         )
         if agent and agent.chat_model:
-            chat_model = conversation.agent.chat_model
+            chat_model = await ChatModel.objects.select_related("ai_model_api").aget(
+                pk=conversation.agent.chat_model.pk
+            )
         else:
-            chat_model = ConversationAdapters.get_chat_model(user)
+            chat_model = await ConversationAdapters.aget_chat_model(user)
 
         if chat_model is None:
-            chat_model = ConversationAdapters.get_default_chat_model()
+            chat_model = await ConversationAdapters.aget_default_chat_model()
 
         if chat_model.model_type == ChatModel.ModelType.OFFLINE:
             if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:

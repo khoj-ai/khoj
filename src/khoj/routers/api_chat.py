@@ -67,7 +67,6 @@ from khoj.routers.research import (
 from khoj.routers.storage import upload_user_image_to_bucket
 from khoj.utils import state
 from khoj.utils.helpers import (
-    AsyncIteratorWrapper,
     ConversationCommand,
     command_descriptions,
     convert_image_to_webp,
@@ -999,7 +998,7 @@ async def chat(
                 return
 
             llm_response = construct_automation_created_message(automation, crontime, query_to_run, subject)
-            await sync_to_async(save_to_conversation_log)(
+            await save_to_conversation_log(
                 q,
                 llm_response,
                 user,
@@ -1308,26 +1307,31 @@ async def chat(
             yield result
 
         continue_stream = True
-        iterator = AsyncIteratorWrapper(llm_response)
-        async for item in iterator:
+        async for item in llm_response:
+            # Should not happen with async generator, end is signaled by loop exit. Skip.
             if item is None:
-                async for result in send_event(ChatEvent.END_LLM_RESPONSE, ""):
-                    yield result
-                # Send Usage Metadata once llm interactions are complete
-                async for event in send_event(ChatEvent.USAGE, tracer.get("usage")):
-                    yield event
-                async for result in send_event(ChatEvent.END_RESPONSE, ""):
-                    yield result
-                logger.debug("Finished streaming response")
-                return
+                continue
             if not connection_alive or not continue_stream:
+                # Drain the generator if disconnected but keep processing internally
                 continue
             try:
                 async for result in send_event(ChatEvent.MESSAGE, f"{item}"):
                     yield result
             except Exception as e:
                 continue_stream = False
-                logger.info(f"User {user} disconnected. Emitting rest of responses to clear thread: {e}")
+                logger.info(f"User {user} disconnected or error during streaming. Stopping send: {e}")
+
+        # Signal end of LLM response after the loop finishes
+        if connection_alive:
+            async for result in send_event(ChatEvent.END_LLM_RESPONSE, ""):
+                yield result
+            # Send Usage Metadata once llm interactions are complete
+            if tracer.get("usage"):
+                async for event in send_event(ChatEvent.USAGE, tracer.get("usage")):
+                    yield event
+            async for result in send_event(ChatEvent.END_RESPONSE, ""):
+                yield result
+            logger.debug("Finished streaming response")
 
     ## Stream Text Response
     if stream:
