@@ -889,7 +889,6 @@ async def chat(
 
         if conversation_commands == [ConversationCommand.Research]:
             async for research_result in execute_information_collection(
-                request=request,
                 user=user,
                 query=defiltered_query,
                 conversation_id=conversation_id,
@@ -1025,7 +1024,7 @@ async def chat(
         if not ConversationCommand.Research in conversation_commands:
             try:
                 async for result in extract_references_and_questions(
-                    request,
+                    user,
                     meta_log,
                     q,
                     (n or 7),

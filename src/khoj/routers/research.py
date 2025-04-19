@@ -193,7 +193,6 @@ async def apick_next_tool(
 
 
 async def execute_information_collection(
-    request: Request,
     user: KhojUser,
     query: str,
     conversation_id: str,
@@ -251,7 +250,7 @@ async def execute_information_collection(
                 c["query"] for iteration in previous_iterations if iteration.context for c in iteration.context
             }
             async for result in extract_references_and_questions(
-                request,
+                user,
                 construct_tool_chat_history(previous_iterations, ConversationCommand.Notes),
                 this_iteration.query,
                 7,

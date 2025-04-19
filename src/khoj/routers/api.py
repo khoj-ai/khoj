@@ -352,7 +352,7 @@ def set_user_name(
 
 
 async def extract_references_and_questions(
-    request: Request,
+    user: KhojUser,
     meta_log: dict,
     q: str,
     n: int,
@@ -367,8 +367,6 @@ async def extract_references_and_questions(
     query_files: str = None,
     tracer: dict = {},
 ):
-    user = request.user.object if request.user.is_authenticated else None
-
     # Initialize Variables
     compiled_references: List[dict[str, str]] = []
     inferred_queries: List[str] = []
