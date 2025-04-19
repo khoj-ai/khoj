@@ -93,7 +93,6 @@ from khoj.processor.conversation.openai.gpt import (
 )
 from khoj.processor.conversation.utils import (
     ChatEvent,
-    ThreadedGenerator,
     clean_json,
     clean_mermaidjs,
     construct_chat_history,
@@ -1480,16 +1479,14 @@ async def agenerate_chat_response(
                 vision_available = True
 
         if chat_model.model_type == "offline":
-            # Assuming converse_offline remains sync or is refactored separately
             loaded_model = state.offline_chat_processor_config.loaded_model
-            # If converse_offline returns an iterator, wrap it if needed, or refactor it to async generator
-            chat_response_generator = converse_offline(  # Needs adaptation if it becomes async
+            chat_response_generator = converse_offline(
                 user_query=query_to_run,
                 references=compiled_references,
                 online_results=online_results,
                 loaded_model=loaded_model,
                 conversation_log=meta_log,
-                completion_func=partial_completion,  # Pass the async wrapper
+                completion_func=partial_completion,
                 conversation_commands=conversation_commands,
                 model_name=chat_model.name,
                 max_prompt_size=chat_model.max_prompt_size,
