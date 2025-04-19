@@ -1563,10 +1563,9 @@ async def agenerate_chat_response(
                 tracer=tracer,
             )
         elif chat_model.model_type == ChatModel.ModelType.GOOGLE:
-            # Assuming converse_gemini remains sync or is refactored separately
             api_key = chat_model.ai_model_api.api_key
             api_base_url = chat_model.ai_model_api.api_base_url
-            chat_response_generator = converse_gemini(  # Needs adaptation if it becomes async
+            chat_response_generator = converse_gemini(
                 compiled_references,
                 query_to_run,
                 online_results,
