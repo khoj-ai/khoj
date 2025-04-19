@@ -773,11 +773,7 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                                         <p>Which chat model would you like to use?</p>
                                     )}
                                 </FormDescription>
-                                <Select
-                                    onValueChange={field.onChange}
-                                    defaultValue={field.value}
-                                    disabled={!props.isSubscribed}
-                                >
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
                                     <FormControl>
                                         <SelectTrigger className="text-left dark:bg-muted">
                                             <SelectValue />
@@ -788,9 +784,18 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                                             <SelectItem
                                                 key={modelOption.id}
                                                 value={modelOption.name}
+                                                disabled={
+                                                    !props.isSubscribed &&
+                                                    modelOption.tier !== "free"
+                                                }
                                             >
                                                 <div className="flex items-center space-x-2">
-                                                    {modelOption.name}
+                                                    {modelOption.name}{" "}
+                                                    {modelOption.tier === "standard" && (
+                                                        <span className="text-green-500 ml-2">
+                                                            (Futurist)
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </SelectItem>
                                         ))}

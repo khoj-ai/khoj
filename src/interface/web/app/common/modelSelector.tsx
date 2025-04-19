@@ -30,6 +30,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface ModelSelectorProps extends PopoverProps {
     onSelect: (model: ModelOptions) => void;
     disabled?: boolean;
+    isActive?: boolean;
     initialModel?: string;
 }
 
@@ -116,6 +117,7 @@ export function ModelSelector({ ...props }: ModelSelectorProps) {
                                                             setSelectedModel(model)
                                                             setOpen(false)
                                                         }}
+                                                        isActive={props.isActive}
                                                     />
                                                 ))}
                                         </CommandGroup>
@@ -165,6 +167,7 @@ export function ModelSelector({ ...props }: ModelSelectorProps) {
                                                                 setSelectedModel(model)
                                                                 setOpen(false)
                                                             }}
+                                                            isActive={props.isActive}
                                                         />
                                                     ))}
                                             </CommandGroup>
@@ -184,9 +187,10 @@ interface ModelItemProps {
     isSelected: boolean,
     onSelect: () => void,
     onPeek: (model: ModelOptions) => void
+    isActive?: boolean
 }
 
-function ModelItem({ model, isSelected, onSelect, onPeek }: ModelItemProps) {
+function ModelItem({ model, isSelected, onSelect, onPeek, isActive }: ModelItemProps) {
     const ref = React.useRef<HTMLDivElement>(null)
 
     useMutationObserver(ref, (mutations) => {
@@ -207,8 +211,9 @@ function ModelItem({ model, isSelected, onSelect, onPeek }: ModelItemProps) {
             onSelect={onSelect}
             ref={ref}
             className="data-[selected=true]:bg-muted data-[selected=true]:text-secondary-foreground"
+            disabled={!isActive && model.tier !== "free"}
         >
-            {model.name}
+            {model.name} {model.tier === "standard" && <span className="text-green-500 ml-2">(Futurist)</span>}
             <Check
                 className={cn("ml-auto", isSelected ? "opacity-100" : "opacity-0")}
             />

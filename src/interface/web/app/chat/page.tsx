@@ -24,9 +24,7 @@ import {
     ChatOptions,
 } from "../components/chatInputArea/chatInputArea";
 import { useAuthenticatedData } from "../common/auth";
-import {
-    AgentData,
-} from "@/app/components/agentCard/agentCard";
+import { AgentData } from "@/app/components/agentCard/agentCard";
 import { ChatSessionActionMenu } from "../components/allConversations/allConversations";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "../components/appSidebar/appSidebar";
@@ -50,6 +48,7 @@ interface ChatBodyDataProps {
     setTriggeredAbort: (triggeredAbort: boolean) => void;
     isChatSideBarOpen: boolean;
     setIsChatSideBarOpen: (open: boolean) => void;
+    isActive?: boolean;
 }
 
 function ChatBodyData(props: ChatBodyDataProps) {
@@ -180,9 +179,11 @@ function ChatBodyData(props: ChatBodyDataProps) {
             </div>
             <ChatSidebar
                 conversationId={conversationId}
+                isActive={props.isActive}
                 isOpen={props.isChatSideBarOpen}
                 onOpenChange={props.setIsChatSideBarOpen}
-                isMobileWidth={props.isMobileWidth} />
+                isMobileWidth={props.isMobileWidth}
+            />
         </div>
     );
 }
@@ -480,12 +481,13 @@ export default function Chat() {
                                     setTriggeredAbort={setTriggeredAbort}
                                     isChatSideBarOpen={isChatSideBarOpen}
                                     setIsChatSideBarOpen={setIsChatSideBarOpen}
+                                    isActive={authenticatedData?.is_active}
                                 />
                             </Suspense>
                         </div>
                     </div>
                 </div>
             </SidebarInset>
-        </SidebarProvider >
+        </SidebarProvider>
     );
 }
