@@ -1,4 +1,4 @@
-import { FileSystemAdapter, Notice, Vault, Modal, TFile, request, setIcon, Editor } from 'obsidian';
+import { FileSystemAdapter, Notice, Vault, Modal, TFile, request, setIcon, Editor, App } from 'obsidian';
 import { KhojSetting, UserInfo } from 'src/settings'
 
 export function getVaultAbsolutePath(vault: Vault): string {
@@ -162,8 +162,9 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
         batch.forEach(fileItem => { formData.append('files', fileItem.blob, fileItem.path) });
 
         // Call Khoj backend to sync index with updated files in vault
+        const method = regenerate ? "PUT" : "PATCH";
         const response = await fetch(`${setting.khojUrl}/api/content?client=obsidian`, {
-            method: "PATCH",
+            method: method,
             headers: {
                 'Authorization': `Bearer ${setting.khojApiKey}`,
             },
@@ -334,7 +335,7 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     // Add Khoj title to header element
     const titleEl = headerEl.createDiv();
     titleEl.className = 'khoj-logo';
-    titleEl.textContent = "KHOJ"
+    titleEl.textContent = "Khoj Chat";
 
     // Populate the header element with the navigation pane
     // Create the nav element
@@ -345,6 +346,7 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     const chatLink = nav.createEl('a');
     chatLink.id = 'chat-nav';
     chatLink.className = 'khoj-nav chat-nav';
+    chatLink.dataset.view = KhojView.CHAT;
 
     // Create the chat icon
     const chatIcon = chatLink.createEl('span');
@@ -368,6 +370,7 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     // Create the search icon
     const searchIcon = searchLink.createEl('span');
     searchIcon.className = 'khoj-nav-icon khoj-nav-icon-search';
+    setIcon(searchIcon, 'khoj-search');
 
     // Create the search text
     const searchText = searchLink.createEl('span');
@@ -378,38 +381,138 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     searchLink.appendChild(searchIcon);
     searchLink.appendChild(searchText);
 
-    // Create the search link
+    // Create the similar link
     const similarLink = nav.createEl('a');
     similarLink.id = 'similar-nav';
     similarLink.className = 'khoj-nav similar-nav';
+    similarLink.dataset.view = KhojView.SIMILAR;
 
-    // Create the search icon
-    const similarIcon = searchLink.createEl('span');
+    // Create the similar icon
+    const similarIcon = similarLink.createEl('span');
     similarIcon.id = 'similar-nav-icon';
     similarIcon.className = 'khoj-nav-icon khoj-nav-icon-similar';
     setIcon(similarIcon, 'webhook');
 
-    // Create the search text
-    const similarText = searchLink.createEl('span');
+    // Create the similar text
+    const similarText = similarLink.createEl('span');
     similarText.className = 'khoj-nav-item-text';
     similarText.textContent = 'Similar';
 
-    // Append the search icon and text to the search link
+    // Append the similar icon and text to the similar link
     similarLink.appendChild(similarIcon);
     similarLink.appendChild(similarText);
+
+    // Add event listeners to the navigation links
+    const app = (window as any).app;
+
+    // Chat link event listener
+    chatLink.addEventListener('click', () => {
+        // Get the activateView method from the plugin instance
+        const khojPlugin = app.plugins.plugins.khoj;
+        if (khojPlugin && khojPlugin.activateView) {
+            khojPlugin.activateView(KhojView.CHAT);
+        }
+    });
+
+    // Search link event listener
+    searchLink.addEventListener('click', () => {
+        // Open the search modal
+        const khojPlugin = app.plugins.plugins.khoj;
+        if (khojPlugin) {
+            new (window as any).khoj.KhojSearchModal(app, khojPlugin.settings).open();
+        }
+    });
+
+    // Similar link event listener
+    similarLink.addEventListener('click', () => {
+        // Get the activateView method from the plugin instance
+        const khojPlugin = app.plugins.plugins.khoj;
+        if (khojPlugin && khojPlugin.activateView) {
+            khojPlugin.activateView(KhojView.SIMILAR);
+        }
+    });
 
     // Append the nav items to the nav element
     nav.appendChild(chatLink);
     nav.appendChild(searchLink);
     nav.appendChild(similarLink);
 
-    // Append the title, nav items to the header element
+    // Create right side container for New Chat button and agent selector
+    const rightSideContainer = headerEl.createDiv("khoj-header-right-container");
+
+    // Add agent selector container
+    const agentContainer = rightSideContainer.createDiv("khoj-header-agent-container");
+
+    // Add agent selector
+    const agentSelect = agentContainer.createEl("select", {
+        attr: {
+            class: "khoj-header-agent-select",
+            id: "khoj-header-agent-select"
+        }
+    });
+
+    // Add New Chat button
+    const newChatButton = rightSideContainer.createEl('button');
+    newChatButton.className = 'khoj-header-new-chat-button';
+    newChatButton.title = 'Start New Chat (Ctrl+Alt+N)';
+    setIcon(newChatButton, 'plus-circle');
+    newChatButton.textContent = 'New Chat';
+
+    // Add event listener to the New Chat button
+    newChatButton.addEventListener('click', () => {
+        const khojPlugin = app.plugins.plugins.khoj;
+        if (khojPlugin) {
+            // First activate the chat view
+            khojPlugin.activateView(KhojView.CHAT).then(() => {
+                // Then create a new conversation
+                setTimeout(() => {
+                    // Access the chat view directly from the leaf after activation
+                    const leaves = app.workspace.getLeavesOfType(KhojView.CHAT);
+                    if (leaves.length > 0) {
+                        const chatView = leaves[0].view;
+                        if (chatView && typeof chatView.createNewConversation === 'function') {
+                            chatView.createNewConversation();
+                        }
+                    }
+                }, 100);
+            });
+        }
+    });
+
+    // Append the title, nav items and right container to the header element
     headerEl.appendChild(titleEl);
     headerEl.appendChild(nav);
+    headerEl.appendChild(rightSideContainer);
+
+    // Update active state based on current view
+    const updateActiveState = () => {
+        const activeLeaf = app.workspace.activeLeaf;
+        if (!activeLeaf) return;
+
+        const viewType = activeLeaf.view?.getViewType();
+
+        // Remove active class from all links
+        chatLink.classList.remove('khoj-nav-selected');
+        similarLink.classList.remove('khoj-nav-selected');
+
+        // Add active class to the current view link
+        if (viewType === KhojView.CHAT) {
+            chatLink.classList.add('khoj-nav-selected');
+        } else if (viewType === KhojView.SIMILAR) {
+            similarLink.classList.add('khoj-nav-selected');
+        }
+    };
+
+    // Initial update
+    updateActiveState();
+
+    // Register event for workspace changes
+    app.workspace.on('active-leaf-change', updateActiveState);
 }
 
 export enum KhojView {
     CHAT = "khoj-chat-view",
+    SIMILAR = "khoj-similar-view",
 }
 
 function copyParentText(event: MouseEvent, message: string, originalButton: string) {
@@ -425,7 +528,7 @@ function copyParentText(event: MouseEvent, message: string, originalButton: stri
     }).catch((error) => {
         console.error("Error copying text to clipboard:", error);
         const originalButtonText = button.innerHTML;
-        button.innerHTML = "⛔️";
+        setIcon((button as HTMLElement), 'x-circle');
         setTimeout(() => {
             button.innerHTML = originalButtonText;
             setIcon((button as HTMLElement), originalButton);
