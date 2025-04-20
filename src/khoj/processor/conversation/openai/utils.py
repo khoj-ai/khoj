@@ -181,9 +181,10 @@ def llm_thread(
                 ]
                 if len(system_messages) > 0:
                     first_system_message_index, first_system_message = system_messages[0]
+                    first_system_message_content = first_system_message["content"]
                     formatted_messages[first_system_message_index][
                         "content"
-                    ] = f"{first_system_message} Formatting re-enabled"
+                    ] = f"{first_system_message_content}\nFormatting re-enabled"
         elif is_twitter_reasoning_model(model_name, api_base_url):
             reasoning_effort = "high" if deepthought else "low"
             model_kwargs["reasoning_effort"] = reasoning_effort
