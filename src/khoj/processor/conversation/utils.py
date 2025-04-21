@@ -77,42 +77,6 @@ model_to_prompt_size = {
 model_to_tokenizer: Dict[str, str] = {}
 
 
-class ThreadedGenerator:
-    def __init__(self, compiled_references, online_results, completion_func=None):
-        self.queue = queue.Queue()
-        self.compiled_references = compiled_references
-        self.online_results = online_results
-        self.completion_func = completion_func
-        self.response = ""
-        self.start_time = perf_counter()
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        item = self.queue.get()
-        if item is StopIteration:
-            time_to_response = perf_counter() - self.start_time
-            logger.info(f"Chat streaming took: {time_to_response:.3f} seconds")
-            if self.completion_func:
-                # The completion func effectively acts as a callback.
-                # It adds the aggregated response to the conversation history.
-                self.completion_func(chat_response=self.response)
-            raise StopIteration
-        return item
-
-    def send(self, data):
-        if self.response == "":
-            time_to_first_response = perf_counter() - self.start_time
-            logger.info(f"First response took: {time_to_first_response:.3f} seconds")
-
-        self.response += data
-        self.queue.put(data)
-
-    def close(self):
-        self.queue.put(StopIteration)
-
-
 class InformationCollectionIteration:
     def __init__(
         self,
@@ -254,7 +218,7 @@ def message_to_log(
     return conversation_log
 
 
-def save_to_conversation_log(
+async def save_to_conversation_log(
     q: str,
     chat_response: str,
     user: KhojUser,
@@ -306,7 +270,7 @@ def save_to_conversation_log(
         khoj_message_metadata=khoj_message_metadata,
         conversation_log=meta_log.get("chat", []),
     )
-    ConversationAdapters.save_conversation(
+    await ConversationAdapters.save_conversation(
         user,
         {"chat": updated_conversation},
         client_application=client_application,

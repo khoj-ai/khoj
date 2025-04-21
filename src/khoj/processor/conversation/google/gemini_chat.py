@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import AsyncGenerator, Dict, List, Optional
 
 import pyjson5
 from langchain.schema import ChatMessage
@@ -160,7 +160,7 @@ def gemini_send_message_to_model(
     )
 
 
-def converse_gemini(
+async def converse_gemini(
     references,
     user_query,
     online_results: Optional[Dict[str, Dict]] = None,
@@ -185,7 +185,7 @@ def converse_gemini(
     program_execution_context: List[str] = None,
     deepthought: Optional[bool] = False,
     tracer={},
-):
+) -> AsyncGenerator[str, None]:
     """
     Converse with user using Google's Gemini
     """
@@ -216,11 +216,17 @@ def converse_gemini(
 
     # Get Conversation Primer appropriate to Conversation Type
     if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(references):
-        completion_func(chat_response=prompts.no_notes_found.format())
-        return iter([prompts.no_notes_found.format()])
+        response = prompts.no_notes_found.format()
+        if completion_func:
+            await completion_func(chat_response=response)
+        yield response
+        return
     elif conversation_commands == [ConversationCommand.Online] and is_none_or_empty(online_results):
-        completion_func(chat_response=prompts.no_online_results_found.format())
-        return iter([prompts.no_online_results_found.format()])
+        response = prompts.no_online_results_found.format()
+        if completion_func:
+            await completion_func(chat_response=response)
+        yield response
+        return
 
     context_message = ""
     if not is_none_or_empty(references):
@@ -253,16 +259,20 @@ def converse_gemini(
     logger.debug(f"Conversation Context for Gemini: {messages_to_print(messages)}")
 
     # Get Response from Google AI
-    return gemini_chat_completion_with_backoff(
+    full_response = ""
+    async for chunk in gemini_chat_completion_with_backoff(
         messages=messages,
-        compiled_references=references,
-        online_results=online_results,
         model_name=model,
         temperature=temperature,
         api_key=api_key,
         api_base_url=api_base_url,
         system_prompt=system_prompt,
-        completion_func=completion_func,
         deepthought=deepthought,
         tracer=tracer,
-    )
+    ):
+        full_response += chunk
+        yield chunk
+
+    # Call completion_func once finish streaming and we have the full response
+    if completion_func:
+        await completion_func(chat_response=full_response)

@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import AsyncGenerator, Dict, List, Optional
 
 import pyjson5
 from langchain.schema import ChatMessage
@@ -162,7 +162,7 @@ def send_message_to_model(
     )
 
 
-def converse_openai(
+async def converse_openai(
     references,
     user_query,
     online_results: Optional[Dict[str, Dict]] = None,
@@ -187,7 +187,7 @@ def converse_openai(
     program_execution_context: List[str] = None,
     deepthought: Optional[bool] = False,
     tracer: dict = {},
-):
+) -> AsyncGenerator[str, None]:
     """
     Converse with user using OpenAI's ChatGPT
     """
@@ -217,11 +217,17 @@ def converse_openai(
 
     # Get Conversation Primer appropriate to Conversation Type
     if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(references):
-        completion_func(chat_response=prompts.no_notes_found.format())
-        return iter([prompts.no_notes_found.format()])
+        response = prompts.no_notes_found.format()
+        if completion_func:
+            await completion_func(chat_response=response)
+        yield response
+        return
     elif conversation_commands == [ConversationCommand.Online] and is_none_or_empty(online_results):
-        completion_func(chat_response=prompts.no_online_results_found.format())
-        return iter([prompts.no_online_results_found.format()])
+        response = prompts.no_online_results_found.format()
+        if completion_func:
+            await completion_func(chat_response=response)
+        yield response
+        return
 
     context_message = ""
     if not is_none_or_empty(references):
@@ -255,19 +261,23 @@ def converse_openai(
     logger.debug(f"Conversation Context for GPT: {messages_to_print(messages)}")
 
     # Get Response from GPT
-    return chat_completion_with_backoff(
+    full_response = ""
+    async for chunk in chat_completion_with_backoff(
         messages=messages,
-        compiled_references=references,
-        online_results=online_results,
         model_name=model,
         temperature=temperature,
         openai_api_key=api_key,
         api_base_url=api_base_url,
-        completion_func=completion_func,
         deepthought=deepthought,
         model_kwargs={"stop": ["Notes:\n["]},
         tracer=tracer,
-    )
+    ):
+        full_response += chunk
+        yield chunk
+
+    # Call completion_func once finish streaming and we have the full response
+    if completion_func:
+        await completion_func(chat_response=full_response)
 
 
 def clean_response_schema(schema: BaseModel | dict) -> dict:

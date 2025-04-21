@@ -23,6 +23,7 @@ from time import perf_counter
 from typing import TYPE_CHECKING, Any, NamedTuple, Optional, Tuple, Union
 from urllib.parse import ParseResult, urlparse
 
+import anthropic
 import openai
 import psutil
 import pyjson5
@@ -30,6 +31,7 @@ import requests
 import torch
 from asgiref.sync import sync_to_async
 from email_validator import EmailNotValidError, EmailUndeliverableError, validate_email
+from google import genai
 from google.auth.credentials import Credentials
 from google.oauth2 import service_account
 from magika import Magika
@@ -727,6 +729,60 @@ def get_openai_client(api_key: str, api_base_url: str) -> Union[openai.OpenAI, o
             base_url=api_base_url,
         )
     return client
+
+
+def get_openai_async_client(api_key: str, api_base_url: str) -> Union[openai.AsyncOpenAI, openai.AsyncAzureOpenAI]:
+    """Get OpenAI or AzureOpenAI client based on the API Base URL"""
+    parsed_url = urlparse(api_base_url)
+    if parsed_url.hostname and parsed_url.hostname.endswith(".openai.azure.com"):
+        client = openai.AsyncAzureOpenAI(
+            api_key=api_key,
+            azure_endpoint=api_base_url,
+            api_version="2024-10-21",
+        )
+    else:
+        client = openai.AsyncOpenAI(
+            api_key=api_key,
+            base_url=api_base_url,
+        )
+    return client
+
+
+def get_anthropic_client(api_key, api_base_url=None) -> anthropic.Anthropic | anthropic.AnthropicVertex:
+    api_info = get_ai_api_info(api_key, api_base_url)
+    if api_info.api_key:
+        client = anthropic.Anthropic(api_key=api_info.api_key)
+    else:
+        client = anthropic.AnthropicVertex(
+            region=api_info.region,
+            project_id=api_info.project,
+            credentials=api_info.credentials,
+        )
+    return client
+
+
+def get_anthropic_async_client(api_key, api_base_url=None) -> anthropic.AsyncAnthropic | anthropic.AsyncAnthropicVertex:
+    api_info = get_ai_api_info(api_key, api_base_url)
+    if api_info.api_key:
+        client = anthropic.AsyncAnthropic(api_key=api_info.api_key)
+    else:
+        client = anthropic.AsyncAnthropicVertex(
+            region=api_info.region,
+            project_id=api_info.project,
+            credentials=api_info.credentials,
+        )
+    return client
+
+
+def get_gemini_client(api_key, api_base_url=None) -> genai.Client:
+    api_info = get_ai_api_info(api_key, api_base_url)
+    return genai.Client(
+        location=api_info.region,
+        project=api_info.project,
+        credentials=api_info.credentials,
+        api_key=api_info.api_key,
+        vertexai=api_info.api_key is None,
+    )
 
 
 def normalize_email(email: str, check_deliverability=False) -> tuple[str, bool]:
