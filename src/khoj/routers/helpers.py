@@ -1070,7 +1070,7 @@ async def generate_better_mermaidjs_diagram_description(
     user: KhojUser = None,
     agent: Agent = None,
     query_files: str = None,
-    relevant_memories: List[Dict] = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ) -> str:
     """
