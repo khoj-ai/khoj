@@ -33,6 +33,7 @@ from khoj.database.models import (
     Subscription,
     TextToImageModelConfig,
     UserConversationConfig,
+    UserMemory,
     UserRequests,
     UserVoiceModelConfig,
     VoiceModelOption,
@@ -181,6 +182,7 @@ admin.site.register(UserVoiceModelConfig, unfold_admin.ModelAdmin)
 admin.site.register(VoiceModelOption, unfold_admin.ModelAdmin)
 admin.site.register(UserRequests, unfold_admin.ModelAdmin)
 admin.site.register(RateLimitRecord, unfold_admin.ModelAdmin)
+admin.site.register(UserMemory, unfold_admin.ModelAdmin)
 
 
 @admin.register(Agent)

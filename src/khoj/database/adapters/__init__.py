@@ -59,6 +59,7 @@ from khoj.database.models import (
     Subscription,
     TextToImageModelConfig,
     UserConversationConfig,
+    UserMemory,
     UserRequests,
     UserTextToImageModelConfig,
     UserVoiceModelConfig,
@@ -1999,3 +2000,81 @@ class AutomationAdapters:
 
         automation.remove()
         return automation_metadata
+
+
+class UserMemoryAdapters:
+    @staticmethod
+    @require_valid_user
+    async def pull_memories(user: KhojUser, window=10, limit=5) -> list[UserMemory]:
+        """
+        Pulls memories from the database for a given user. Medium term memory.
+        """
+        time_frame = datetime.now(timezone.utc) - timedelta(days=window)
+        memories = UserMemory.objects.filter(user=user, updated_at__gte=time_frame).order_by("-created_at")[:limit]
+        return memories
+
+    @staticmethod
+    @require_valid_user
+    async def save_memory(user: KhojUser, memory: str) -> UserMemory:
+        """
+        Saves a memory to the database for a given user.
+        """
+        embeddings_model = state.embeddings_model
+        model = await aget_default_search_model()
+
+        embeddings = await sync_to_async(embeddings_model[model.name].embed_query)(memory)
+        memory_instance = await UserMemory.objects.acreate(
+            user=user, embeddings=embeddings, raw=memory, search_model=model
+        )
+
+        return memory_instance
+
+    @staticmethod
+    @require_valid_user
+    async def search_memories(user: KhojUser, query: str) -> list[UserMemory]:
+        """
+        Searches for memories in the database for a given user. Long term memory.
+        """
+        embeddings_model = state.embeddings_model
+        model = await aget_default_search_model()
+
+        max_distance = model.bi_encoder_confidence_threshold or math.inf
+
+        embedded_query = await sync_to_async(embeddings_model[model.name].embed_query)(query)
+
+        relevant_memories = (
+            UserMemory.objects.filter(user=user)
+            .annotate(distance=CosineDistance("embeddings", embedded_query))
+            .order_by("distance")
+        )
+
+        relevant_memories = relevant_memories.filter(distance__lte=max_distance)
+
+        return relevant_memories[:10]
+
+    @staticmethod
+    @require_valid_user
+    async def delete_memory(user: KhojUser, memory_id: str) -> bool:
+        """
+        Deletes a memory from the database for a given user.
+        """
+        try:
+            memory = await UserMemory.objects.aget(user=user, id=memory_id)
+            await memory.adelete()
+            return True
+        except UserMemory.DoesNotExist:
+            return False
+
+    @staticmethod
+    def convert_memories_to_dict(memories: List[UserMemory]) -> List[dict]:
+        """
+        Converts a list of Memory objects to a list of dictionaries.
+        """
+        return [
+            {
+                "id": memory.id,
+                "raw": memory.raw,
+                "updated_at": memory.updated_at,
+            }
+            for memory in memories
+        ]
