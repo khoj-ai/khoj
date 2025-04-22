@@ -20,6 +20,7 @@ from khoj.database.adapters import (
     ConversationAdapters,
     EntryAdapters,
     PublicConversationAdapters,
+    UserMemoryAdapters,
     aget_user_name,
 )
 from khoj.database.models import Agent, KhojUser
@@ -88,7 +89,6 @@ logger = logging.getLogger(__name__)
 conversation_command_rate_limiter = ConversationCommandRateLimiter(
     trial_rate_limit=20, subscribed_rate_limit=75, slug="command"
 )
-
 
 api_chat = APIRouter()
 
@@ -833,6 +833,16 @@ async def chat(
         user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         meta_log = conversation.conversation_log
 
+        # Get most recent memories and long term relevant memories
+        recent_memories = await UserMemoryAdapters.pull_memories(user)
+        recent_memories = await sync_to_async(list)(recent_memories)
+
+        long_term_memories = await UserMemoryAdapters.search_memories(user=user, query=q)
+        long_term_memories = await sync_to_async(list)(long_term_memories)
+
+        # Create a de-duped set of memories
+        relevant_memories = set(recent_memories + long_term_memories)
+
         researched_results = ""
         online_results: Dict = dict()
         code_results: Dict = dict()
@@ -1286,6 +1296,7 @@ async def chat(
             user,
             request.user.client_app,
             conversation_id,
+            relevant_memories,
             location,
             user_name,
             researched_results,

@@ -4,14 +4,12 @@ import logging
 import math
 import mimetypes
 import os
-import queue
 import re
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from io import BytesIO
-from time import perf_counter
 from typing import Any, Callable, Dict, List, Optional
 
 import PIL.Image
@@ -24,7 +22,7 @@ from llama_cpp.llama import Llama
 from transformers import AutoTokenizer
 
 from khoj.database.adapters import ConversationAdapters
-from khoj.database.models import ChatModel, ClientApplication, KhojUser
+from khoj.database.models import ChatModel, ClientApplication, KhojUser, UserMemory
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.utils import download_model, infer_max_tokens
 from khoj.search_filter.base_filter import BaseFilter
@@ -232,6 +230,7 @@ async def save_to_conversation_log(
     client_application: ClientApplication = None,
     conversation_id: str = None,
     automation_id: str = None,
+    matching_memories: List[UserMemory] = [],
     query_images: List[str] = None,
     raw_query_files: List[FileAttachment] = [],
     generated_images: List[str] = [],
@@ -240,6 +239,8 @@ async def save_to_conversation_log(
     train_of_thought: List[Any] = [],
     tracer: Dict[str, Any] = {},
 ):
+    from khoj.routers.helpers import ai_update_memories
+
     user_message_time = user_message_time or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     turn_id = tracer.get("mid") or str(uuid.uuid4())
 
@@ -277,6 +278,15 @@ async def save_to_conversation_log(
         conversation_id=conversation_id,
         user_message=q,
     )
+
+    if not automation_id:
+        # Don't update memories from automations, as this could get noisy.
+        await ai_update_memories(
+            user=user,
+            conversation_history={"chat": updated_conversation},
+            memories=matching_memories,
+            tracer=tracer,
+        )
 
     if is_promptrace_enabled():
         merge_message_into_conversation_trace(q, chat_response, tracer)
