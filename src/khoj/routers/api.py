@@ -421,10 +421,11 @@ async def extract_references_and_questions(
 
     personality_context = prompts.personality_context.format(personality=agent.personality) if agent else ""
 
-    memory_context = UserMemoryAdapters.convert_memories_to_dict(relevant_memories) if relevant_memories else None
-    if memory_context:
+    dict_memories = UserMemoryAdapters.convert_memories_to_dict(relevant_memories) if relevant_memories else None
+    memory_context = None
+    if dict_memories:
         memory_context = "Here are some relevant memories about me stored in the system context:\n\n"
-        for memory in relevant_memories:
+        for memory in dict_memories:
             friendly_dt = memory.created_at.strftime("%Y-%m-%d %H:%M:%S")
             memory_context += f"- {memory.raw} ({friendly_dt})\n"
         logger.debug(memory_context)
