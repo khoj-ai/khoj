@@ -321,7 +321,7 @@ async def converse_offline(
 
     # Call the completion function after streaming is done
     if completion_func:
-        await completion_func(chat_response=aggregated_response_container["response"])
+        asyncio.create_task(completion_func(chat_response=aggregated_response_container["response"]))
 
 
 def send_message_to_model_offline(
