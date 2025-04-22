@@ -1296,7 +1296,7 @@ async def chat(
             user,
             request.user.client_app,
             conversation_id,
-            relevant_memories,
+            list(relevant_memories),
             location,
             user_name,
             researched_results,

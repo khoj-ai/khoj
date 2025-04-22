@@ -972,9 +972,7 @@ async def extract_facts_from_query(
 
 
 @require_valid_user
-async def ai_update_memories(
-    user: KhojUser, conversation_history: dict, memories: List[UserMemory], tracer: dict = {}
-) -> List[UserMemory]:
+async def ai_update_memories(user: KhojUser, conversation_history: dict, memories: List[UserMemory], tracer: dict = {}):
     """
     Updates the memories for a given user, based on their latest input query.
     """
@@ -983,7 +981,7 @@ async def ai_update_memories(
     )
 
     if not new_data:
-        return []
+        return
 
     # Save the new data to the database
     created_memories = new_data.create
