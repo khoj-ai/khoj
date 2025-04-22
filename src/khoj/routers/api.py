@@ -26,10 +26,17 @@ from khoj.database.adapters import (
     AutomationAdapters,
     ConversationAdapters,
     EntryAdapters,
+    UserMemoryAdapters,
     get_default_search_model,
     get_user_photo,
 )
-from khoj.database.models import Agent, ChatModel, KhojUser, SpeechToTextModelOptions
+from khoj.database.models import (
+    Agent,
+    ChatModel,
+    KhojUser,
+    SpeechToTextModelOptions,
+    UserMemory,
+)
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.anthropic.anthropic_chat import (
     extract_questions_anthropic,
@@ -365,6 +372,7 @@ async def extract_references_and_questions(
     previous_inferred_queries: Set = set(),
     agent: Agent = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ):
     # Initialize Variables
@@ -413,6 +421,14 @@ async def extract_references_and_questions(
 
     personality_context = prompts.personality_context.format(personality=agent.personality) if agent else ""
 
+    memory_context = UserMemoryAdapters.convert_memories_to_dict(relevant_memories) if relevant_memories else None
+    if memory_context:
+        memory_context = "Here are some relevant memories about me stored in the system context:\n\n"
+        for memory in relevant_memories:
+            friendly_dt = memory.created_at.strftime("%Y-%m-%d %H:%M:%S")
+            memory_context += f"- {memory.raw} ({friendly_dt})\n"
+        logger.debug(memory_context)
+
     # Infer search queries from user message
     with timer("Extracting search queries took", logger):
         # If we've reached here, either the user has enabled offline chat or the openai model is enabled.
@@ -439,6 +455,7 @@ async def extract_references_and_questions(
                 max_prompt_size=chat_model.max_prompt_size,
                 personality_context=personality_context,
                 query_files=query_files,
+                relevant_memories=relevant_memories,
                 tracer=tracer,
             )
         elif chat_model.model_type == ChatModel.ModelType.OPENAI:
@@ -457,6 +474,7 @@ async def extract_references_and_questions(
                 vision_enabled=vision_enabled,
                 personality_context=personality_context,
                 query_files=query_files,
+                memory_context=memory_context,
                 tracer=tracer,
             )
         elif chat_model.model_type == ChatModel.ModelType.ANTHROPIC:
@@ -475,6 +493,7 @@ async def extract_references_and_questions(
                 vision_enabled=vision_enabled,
                 personality_context=personality_context,
                 query_files=query_files,
+                memory_context=memory_context,
                 tracer=tracer,
             )
         elif chat_model.model_type == ChatModel.ModelType.GOOGLE:
@@ -494,6 +513,7 @@ async def extract_references_and_questions(
                 vision_enabled=vision_enabled,
                 personality_context=personality_context,
                 query_files=query_files,
+                memory_context=memory_context,
                 tracer=tracer,
             )
 

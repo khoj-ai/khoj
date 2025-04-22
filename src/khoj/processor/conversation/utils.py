@@ -307,6 +307,7 @@ def construct_structured_message(
     model_type: str,
     vision_enabled: bool,
     attached_file_context: str = None,
+    relevant_memories_context: str = None,
 ):
     """
     Format messages into appropriate multimedia format for supported chat model types
@@ -316,13 +317,17 @@ def construct_structured_message(
         ChatModel.ModelType.GOOGLE,
         ChatModel.ModelType.ANTHROPIC,
     ]:
-        if not attached_file_context and not (vision_enabled and images):
+        if not any([images and vision_enabled, attached_file_context, relevant_memories_context]):
             return message
 
         constructed_messages: List[Any] = [{"type": "text", "text": message}]
 
         if not is_none_or_empty(attached_file_context):
             constructed_messages.append({"type": "text", "text": attached_file_context})
+
+        if not is_none_or_empty(relevant_memories_context):
+            constructed_messages.append({"type": "text", "text": relevant_memories_context})
+
         if vision_enabled and images:
             for image in images:
                 constructed_messages.append({"type": "image_url", "image_url": {"url": image}})
@@ -459,7 +464,7 @@ def generate_chatml_messages_with_context(
         )
 
     if not is_none_or_empty(relevant_memories):
-        memory_context = "Here are some relevant memories about me stored in the system context:\n\n"
+        memory_context = "Here are some relevant memories about me stored in the system context. You can ignore them if they are not relevant to the query:\n\n"
         for memory in relevant_memories:
             friendly_dt = memory.created_at.strftime("%Y-%m-%d %H:%M:%S")
             memory_context += f"- {memory.raw} ({friendly_dt})\n"

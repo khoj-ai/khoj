@@ -1047,6 +1047,7 @@ async def chat(
                     query_images=uploaded_images,
                     agent=agent,
                     query_files=attached_file_context,
+                    relevant_memories=relevant_memories,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:

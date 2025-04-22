@@ -5,7 +5,7 @@ from typing import AsyncGenerator, Dict, List, Optional
 import pyjson5
 from langchain.schema import ChatMessage
 
-from khoj.database.models import Agent, ChatModel, KhojUser
+from khoj.database.models import Agent, ChatModel, KhojUser, UserMemory
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.anthropic.utils import (
     anthropic_chat_completion_with_backoff,
@@ -41,6 +41,7 @@ def extract_questions_anthropic(
     vision_enabled: bool = False,
     personality_context: Optional[str] = None,
     query_files: str = None,
+    memory_context: Optional[str] = None,
     tracer: dict = {},
 ):
     """
@@ -88,6 +89,7 @@ def extract_questions_anthropic(
         model_type=ChatModel.ModelType.ANTHROPIC,
         vision_enabled=vision_enabled,
         attached_file_context=query_files,
+        relevant_memories_context=memory_context,
     )
 
     messages = [ChatMessage(content=content, role="user")]
@@ -156,6 +158,7 @@ async def converse_anthropic(
     query_images: Optional[list[str]] = None,
     vision_available: bool = False,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     generated_files: List[FileAttachment] = None,
     program_execution_context: Optional[List[str]] = None,
     generated_asset_results: Dict[str, Dict] = {},
@@ -226,6 +229,7 @@ async def converse_anthropic(
         vision_enabled=vision_available,
         model_type=ChatModel.ModelType.ANTHROPIC,
         query_files=query_files,
+        relevant_memories=relevant_memories,
         generated_files=generated_files,
         generated_asset_results=generated_asset_results,
         program_execution_context=program_execution_context,

@@ -6,7 +6,7 @@ import pyjson5
 from langchain.schema import ChatMessage
 from pydantic import BaseModel, Field
 
-from khoj.database.models import Agent, ChatModel, KhojUser
+from khoj.database.models import Agent, ChatModel, KhojUser, UserMemory
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.google.utils import (
     gemini_chat_completion_with_backoff,
@@ -42,6 +42,7 @@ def extract_questions_gemini(
     vision_enabled: bool = False,
     personality_context: Optional[str] = None,
     query_files: str = None,
+    memory_context: Optional[str] = None,
     tracer: dict = {},
 ):
     """
@@ -89,6 +90,7 @@ def extract_questions_gemini(
         model_type=ChatModel.ModelType.GOOGLE,
         vision_enabled=vision_enabled,
         attached_file_context=query_files,
+        relevant_memories_context=memory_context,
     )
 
     messages = []
@@ -180,6 +182,7 @@ async def converse_gemini(
     query_images: Optional[list[str]] = None,
     vision_available: bool = False,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     generated_files: List[FileAttachment] = None,
     generated_asset_results: Dict[str, Dict] = {},
     program_execution_context: List[str] = None,
@@ -251,6 +254,7 @@ async def converse_gemini(
         vision_enabled=vision_available,
         model_type=ChatModel.ModelType.GOOGLE,
         query_files=query_files,
+        relevant_memories=relevant_memories,
         generated_files=generated_files,
         generated_asset_results=generated_asset_results,
         program_execution_context=program_execution_context,

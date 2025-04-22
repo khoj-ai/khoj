@@ -266,8 +266,9 @@ async def execute_information_collection(
                 query_images,
                 previous_inferred_queries=previous_inferred_queries,
                 agent=agent,
-                tracer=tracer,
                 query_files=query_files,
+                relevant_memories=relevant_memories,
+                tracer=tracer,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
                     yield result[ChatEvent.STATUS]
