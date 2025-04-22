@@ -574,6 +574,16 @@ def get_default_search_model() -> SearchModelConfig:
     return SearchModelConfig.objects.first()
 
 
+async def aget_default_search_model() -> SearchModelConfig:
+    default_search_model = await SearchModelConfig.objects.filter(name="default").afirst()
+
+    if default_search_model:
+        return default_search_model
+    elif await SearchModelConfig.objects.count() == 0:
+        await SearchModelConfig.objects.acreate()
+    return await SearchModelConfig.objects.afirst()
+
+
 def get_or_create_search_models():
     search_models = SearchModelConfig.objects.all()
     if search_models.count() == 0:
