@@ -841,7 +841,7 @@ async def chat(
         long_term_memories = await sync_to_async(list)(long_term_memories)
 
         # Create a de-duped set of memories
-        relevant_memories = set(recent_memories + long_term_memories)
+        relevant_memories = list(set(recent_memories + long_term_memories))
 
         researched_results = ""
         online_results: Dict = dict()
@@ -868,6 +868,7 @@ async def chat(
                     query_images=uploaded_images,
                     agent=agent,
                     query_files=attached_file_context,
+                    relevant_memories=relevant_memories,
                     tracer=tracer,
                 )
             except ValueError as e:
@@ -909,6 +910,7 @@ async def chat(
                 location=location,
                 file_filters=conversation.file_filters if conversation else [],
                 query_files=attached_file_context,
+                relevant_memories=relevant_memories,
                 tracer=tracer,
             ):
                 if isinstance(research_result, InformationCollectionIteration):
@@ -1091,6 +1093,7 @@ async def chat(
                     query_images=uploaded_images,
                     agent=agent,
                     query_files=attached_file_context,
+                    relevant_memories=relevant_memories,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1118,6 +1121,7 @@ async def chat(
                     query_images=uploaded_images,
                     agent=agent,
                     query_files=attached_file_context,
+                    relevant_memories=relevant_memories,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1159,6 +1163,7 @@ async def chat(
                     query_images=uploaded_images,
                     agent=agent,
                     query_files=attached_file_context,
+                    relevant_memories=relevant_memories,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1201,6 +1206,7 @@ async def chat(
                 query_images=uploaded_images,
                 agent=agent,
                 query_files=attached_file_context,
+                relevant_memories=relevant_memories,
                 tracer=tracer,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1246,6 +1252,7 @@ async def chat(
                 agent=agent,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
                 query_files=attached_file_context,
+                relevant_memories=relevant_memories,
                 tracer=tracer,
             ):
                 if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1296,7 +1303,7 @@ async def chat(
             user,
             request.user.client_app,
             conversation_id,
-            list(relevant_memories),
+            relevant_memories,
             location,
             user_name,
             researched_results,

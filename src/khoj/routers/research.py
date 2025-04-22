@@ -9,7 +9,7 @@ from fastapi import Request
 from pydantic import BaseModel, Field
 
 from khoj.database.adapters import AgentAdapters, EntryAdapters
-from khoj.database.models import Agent, KhojUser
+from khoj.database.models import Agent, KhojUser, UserMemory
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
     InformationCollectionIteration,
@@ -85,8 +85,9 @@ async def apick_next_tool(
     previous_iterations: List[InformationCollectionIteration] = [],
     max_iterations: int = 5,
     send_status_func: Optional[Callable] = None,
-    tracer: dict = {},
     query_files: str = None,
+    relevant_memories: List[UserMemory] = [],
+    tracer: dict = {},
 ):
     """Given a query, determine which of the available tools the agent should use in order to answer appropriately."""
 
@@ -144,6 +145,7 @@ async def apick_next_tool(
                 user=user,
                 query_images=query_images,
                 query_files=query_files,
+                relevant_memories=relevant_memories,
                 agent_chat_model=agent_chat_model,
                 tracer=tracer,
             )
@@ -203,6 +205,7 @@ async def execute_information_collection(
     user_name: str = None,
     location: LocationData = None,
     file_filters: List[str] = [],
+    relevant_memories: List[UserMemory] = [],
     tracer: dict = {},
     query_files: str = None,
 ):
@@ -227,8 +230,9 @@ async def execute_information_collection(
             previous_iterations,
             MAX_ITERATIONS,
             send_status_func,
-            tracer=tracer,
             query_files=query_files,
+            relevant_memories=relevant_memories,
+            tracer=tracer,
         ):
             if isinstance(result, dict) and ChatEvent.STATUS in result:
                 yield result[ChatEvent.STATUS]
@@ -304,6 +308,7 @@ async def execute_information_collection(
                     query_images=query_images,
                     previous_subqueries=previous_subqueries,
                     agent=agent,
+                    relevant_memories=relevant_memories,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -328,8 +333,9 @@ async def execute_information_collection(
                     max_webpages_to_read=1,
                     query_images=query_images,
                     agent=agent,
-                    tracer=tracer,
                     query_files=query_files,
+                    relevant_memories=relevant_memories,
+                    tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -362,6 +368,7 @@ async def execute_information_collection(
                     query_images=query_images,
                     agent=agent,
                     query_files=query_files,
+                    relevant_memories=relevant_memories,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:

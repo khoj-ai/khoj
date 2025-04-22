@@ -347,6 +347,7 @@ async def aget_data_sources_and_output_format(
     query_images: List[str] = None,
     agent: Agent = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ) -> Dict[str, Any]:
     """
@@ -410,6 +411,7 @@ async def aget_data_sources_and_output_format(
             response_schema=PickTools,
             user=user,
             query_files=query_files,
+            relevant_memories=relevant_memories,
             agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
@@ -462,6 +464,7 @@ async def infer_webpage_urls(
     query_images: List[str] = None,
     agent: Agent = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ) -> List[str]:
     """
@@ -499,6 +502,7 @@ async def infer_webpage_urls(
             response_schema=WebpageUrls,
             user=user,
             query_files=query_files,
+            relevant_memories=relevant_memories,
             agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
@@ -526,6 +530,7 @@ async def generate_online_subqueries(
     query_images: List[str] = None,
     agent: Agent = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ) -> Set[str]:
     """
@@ -564,6 +569,7 @@ async def generate_online_subqueries(
             response_schema=OnlineQueries,
             user=user,
             query_files=query_files,
+            relevant_memories=relevant_memories,
             agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
@@ -641,7 +647,12 @@ async def aschedule_query(
 
 
 async def extract_relevant_info(
-    qs: set[str], corpus: str, user: KhojUser = None, agent: Agent = None, tracer: dict = {}
+    qs: set[str],
+    corpus: str,
+    user: KhojUser = None,
+    agent: Agent = None,
+    relevant_memories: List[UserMemory] = None,
+    tracer: dict = {},
 ) -> Union[str, None]:
     """
     Extract relevant information for a given query from the target corpus
@@ -667,6 +678,7 @@ async def extract_relevant_info(
         prompts.system_prompt_extract_relevant_information,
         user=user,
         agent_chat_model=agent_chat_model,
+        relevant_memories=relevant_memories,
         tracer=tracer,
     )
     return response.strip()
@@ -785,6 +797,7 @@ async def generate_excalidraw_diagram(
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ):
     if send_status_func:
@@ -801,6 +814,7 @@ async def generate_excalidraw_diagram(
         user=user,
         agent=agent,
         query_files=query_files,
+        relevant_memories=relevant_memories,
         tracer=tracer,
     )
 
@@ -836,6 +850,7 @@ async def generate_better_diagram_description(
     user: KhojUser = None,
     agent: Agent = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ) -> str:
     """
@@ -880,6 +895,7 @@ async def generate_better_diagram_description(
             query_images=query_images,
             user=user,
             query_files=query_files,
+            relevant_memories=relevant_memories,
             agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
@@ -1007,6 +1023,7 @@ async def generate_mermaidjs_diagram(
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ):
     if send_status_func:
@@ -1023,6 +1040,7 @@ async def generate_mermaidjs_diagram(
         user=user,
         agent=agent,
         query_files=query_files,
+        relevant_memories=relevant_memories,
         tracer=tracer,
     )
 
@@ -1052,6 +1070,7 @@ async def generate_better_mermaidjs_diagram_description(
     user: KhojUser = None,
     agent: Agent = None,
     query_files: str = None,
+    relevant_memories: List[Dict] = None,
     tracer: dict = {},
 ) -> str:
     """
@@ -1096,6 +1115,7 @@ async def generate_better_mermaidjs_diagram_description(
             query_images=query_images,
             user=user,
             query_files=query_files,
+            relevant_memories=relevant_memories,
             agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
@@ -1141,6 +1161,7 @@ async def generate_better_image_prompt(
     user: KhojUser = None,
     agent: Agent = None,
     query_files: str = "",
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ) -> str:
     """
@@ -1199,6 +1220,7 @@ async def generate_better_image_prompt(
             query_images=query_images,
             user=user,
             query_files=query_files,
+            relevant_memories=relevant_memories,
             agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
@@ -1219,6 +1241,7 @@ async def send_message_to_model_wrapper(
     query_images: List[str] = None,
     context: str = "",
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     agent_chat_model: ChatModel = None,
     tracer: dict = {},
 ):
@@ -1260,6 +1283,7 @@ async def send_message_to_model_wrapper(
             vision_enabled=vision_available,
             model_type=chat_model.model_type,
             query_files=query_files,
+            relevant_memories=relevant_memories,
         )
 
         return send_message_to_model_offline(
@@ -1287,6 +1311,7 @@ async def send_message_to_model_wrapper(
             query_images=query_images,
             model_type=chat_model.model_type,
             query_files=query_files,
+            relevant_memories=relevant_memories,
         )
 
         return send_message_to_model(
@@ -1313,6 +1338,7 @@ async def send_message_to_model_wrapper(
             query_images=query_images,
             model_type=chat_model.model_type,
             query_files=query_files,
+            relevant_memories=relevant_memories,
         )
 
         return anthropic_send_message_to_model(
@@ -1338,6 +1364,7 @@ async def send_message_to_model_wrapper(
             query_images=query_images,
             model_type=chat_model.model_type,
             query_files=query_files,
+            relevant_memories=relevant_memories,
         )
 
         return gemini_send_message_to_model(

@@ -7,7 +7,7 @@ from langchain.schema import ChatMessage
 from openai.lib._pydantic import _ensure_strict_json_schema
 from pydantic import BaseModel
 
-from khoj.database.models import Agent, ChatModel, KhojUser
+from khoj.database.models import Agent, ChatModel, KhojUser, UserMemory
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.openai.utils import (
     chat_completion_with_backoff,

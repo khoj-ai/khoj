@@ -20,7 +20,7 @@ from tenacity import (
 )
 
 from khoj.database.adapters import FileObjectAdapters
-from khoj.database.models import Agent, FileObject, KhojUser
+from khoj.database.models import Agent, FileObject, KhojUser, UserMemory
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
     ChatEvent,
@@ -59,6 +59,7 @@ async def run_code(
     agent: Agent = None,
     sandbox_url: str = SANDBOX_URL,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ):
     # Generate Code
@@ -124,6 +125,7 @@ async def generate_python_code(
     agent: Agent = None,
     tracer: dict = {},
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
 ) -> GeneratedCode:
     location = f"{location_data}" if location_data else "Unknown"
     username = prompts.user_name.format(name=user.get_full_name()) if user.get_full_name() else ""
@@ -158,6 +160,7 @@ async def generate_python_code(
         user=user,
         tracer=tracer,
         query_files=query_files,
+        relevant_memories=relevant_memories,
     )
 
     # Extract python code wrapped in markdown code blocks from the response
