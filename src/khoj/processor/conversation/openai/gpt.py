@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import datetime, timedelta
 from typing import AsyncGenerator, Dict, List, Optional
@@ -219,13 +220,13 @@ async def converse_openai(
     if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(references):
         response = prompts.no_notes_found.format()
         if completion_func:
-            await completion_func(chat_response=response)
+            asyncio.create_task(completion_func(chat_response=response))
         yield response
         return
     elif conversation_commands == [ConversationCommand.Online] and is_none_or_empty(online_results):
         response = prompts.no_online_results_found.format()
         if completion_func:
-            await completion_func(chat_response=response)
+            asyncio.create_task(completion_func(chat_response=response))
         yield response
         return
 
@@ -277,7 +278,7 @@ async def converse_openai(
 
     # Call completion_func once finish streaming and we have the full response
     if completion_func:
-        await completion_func(chat_response=full_response)
+        asyncio.create_task(completion_func(chat_response=full_response))
 
 
 def clean_response_schema(schema: BaseModel | dict) -> dict:

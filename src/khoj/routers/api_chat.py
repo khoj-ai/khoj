@@ -998,22 +998,26 @@ async def chat(
                 return
 
             llm_response = construct_automation_created_message(automation, crontime, query_to_run, subject)
-            await save_to_conversation_log(
-                q,
-                llm_response,
-                user,
-                meta_log,
-                user_message_time,
-                intent_type="automation",
-                client_application=request.user.client_app,
-                conversation_id=conversation_id,
-                inferred_queries=[query_to_run],
-                automation_id=automation.id,
-                query_images=uploaded_images,
-                train_of_thought=train_of_thought,
-                raw_query_files=raw_query_files,
-                tracer=tracer,
+            # Trigger task to save conversation to DB
+            asyncio.create_task(
+                save_to_conversation_log(
+                    q,
+                    llm_response,
+                    user,
+                    meta_log,
+                    user_message_time,
+                    intent_type="automation",
+                    client_application=request.user.client_app,
+                    conversation_id=conversation_id,
+                    inferred_queries=[query_to_run],
+                    automation_id=automation.id,
+                    query_images=uploaded_images,
+                    train_of_thought=train_of_thought,
+                    raw_query_files=raw_query_files,
+                    tracer=tracer,
+                )
             )
+            # Send LLM Response
             async for result in send_llm_response(llm_response, tracer.get("usage")):
                 yield result
             return
