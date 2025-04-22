@@ -772,8 +772,12 @@ class RateLimitRecord(DbBaseModel):
         return f"{self.slug} - {self.identifier} at {self.created_at}"
 
 
-class DataStore(DbBaseModel):
-    key = models.CharField(max_length=200, unique=True)
-    value = models.JSONField(default=dict)
-    private = models.BooleanField(default=False)
-    owner = models.ForeignKey(KhojUser, on_delete=models.CASCADE, default=None, null=True, blank=True)
+class UserMemory(DbBaseModel):
+    """
+    A class to represent a memory storage model for longer term memories
+    """
+
+    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
+    embeddings = VectorField(dimensions=None)
+    raw = models.TextField()
+    search_model = models.ForeignKey(SearchModelConfig, on_delete=models.SET_NULL, default=None, null=True, blank=True)
