@@ -288,7 +288,11 @@ export async function packageFilesForUpload(files: FileList): Promise<FormData> 
                         fileType = "text/org";
                     } else if (fileExtension === "md") {
                         fileType = "text/markdown";
-                    } else if (fileExtension === "txt" || fileExtension === "tsx") {
+                    } else if (
+                        fileExtension === "txt" ||
+                        fileExtension === "tsx" ||
+                        fileExtension === "ipynb"
+                    ) {
                         fileType = "text/plain";
                     } else if (fileExtension === "html") {
                         fileType = "text/html";
