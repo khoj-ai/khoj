@@ -99,5 +99,12 @@ Cheers to our awesome contributors! 🎉
 Made with [contrib.rocks](https://contrib.rocks).
 
 ### Interested in Contributing?
+.
 
+💡 Want to Contribute?
+Khoj is an open-source project, and we’d love for you to join us! Whether you’re a coder, designer, writer, or enthusiast, there’s a place for you.
+
+Why Contribute?
+Make an Impact: Help build a tool used by thousands to boost productivity.
+Learn & Grow: Work on cutting-edge AI, LLMs, and semantic search technologies.
 We are always looking for contributors to help us build new features, improve the project documentation, or fix bugs. If you're interested, please see our [Contributing Guidelines](https://docs.khoj.dev/contributing/development) and check out our [Contributors Project Board](https://github.com/orgs/khoj-ai/projects/4).
