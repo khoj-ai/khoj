@@ -124,9 +124,25 @@ async def start_browser(width: int = 1024, height: int = 768):
         launch_args = [f"--window-size={width},{height}", "--disable-extensions", "--disable-file-system"]
         browser = await playwright.chromium.launch(chromium_sandbox=True, headless=False, args=launch_args, env={})
 
+    # Get the initial browser, page or create one if none exist
     default_context = browser.contexts[0] if browser.contexts else await browser.new_context()
-
     page = default_context.pages[0] if default_context.pages else await default_context.new_page()
+
+    # Define a handler for new pages
+    async def handle_new_page(new_page: Page):
+        # Get the target URL of the new page
+        target_url = new_page.url
+        # Close the new page if it is not closed
+        if not new_page.is_closed():
+            await new_page.close()
+        # Open the target url in the current page instead
+        if target_url and target_url != "about:blank":
+            logger.debug(f"Load {target_url} in current page instead of new tab to stay in operator context.")
+            await page.goto(target_url)
+
+    # Listen for new pages being created in the context
+    default_context.on("page", handle_new_page)
+
     # If page url is blank, navigate to DuckDuckGo
     if page.url == "about:blank":
         await page.goto("https://duckduckgo.com")
