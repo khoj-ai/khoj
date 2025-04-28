@@ -3,6 +3,7 @@ import base64
 import json
 import logging
 import os
+from copy import deepcopy
 from datetime import datetime
 from typing import Callable, List, Literal, Optional
 
@@ -18,6 +19,7 @@ from khoj.database.models import Agent, ChatModel, KhojUser
 from khoj.processor.conversation.utils import commit_conversation_trace
 from khoj.routers.helpers import ChatEvent
 from khoj.utils.helpers import (
+    convert_image_to_webp,
     get_anthropic_async_client,
     get_chat_usage_metrics,
     get_openai_async_client,
@@ -477,7 +479,8 @@ async def browser_use_anthropic(
         compiled_operator_messages.append(ChatMessage(role="assistant", content=compiled_response))
         logger.debug(f"Claude response: {response.model_dump_json()}")
         if send_status_func:
-            async for event in send_status_func(f"**Operating Browser**:\n{compiled_response}"):
+            rendered_response = await render_claude_response(response_content, page)
+            async for event in send_status_func(f"**Operating Browser**:\n{rendered_response}"):
                 yield {ChatEvent.STATUS: event}
 
         # Check if Claude used any tools
@@ -798,7 +801,10 @@ async def handle_browser_action_anthropic(page: Page, action_input: dict):
         return {"error": "Missing action type in input"}
 
     try:
-        logger.debug(f"Anthropic Action: {action_type} with input: {action_input}")
+        render_action_input = action_input.copy()
+        if render_action_input.get("image"):
+            render_action_input["image"] = "[placeholder for screenshot data]"
+        logger.debug(f"Anthropic Action: {action_type} with input: {render_action_input}")
 
         match action_type:
             case "mouse_move":
@@ -1021,6 +1027,32 @@ def compile_claude_response(response_content: list[BetaContentBlock]) -> str:
                 block_input = {"action": block.name}
             else:
                 block_input = block.input
+            compiled_response.append(f"**Action**: {json.dumps(block_input)}")
+        elif block.type == "thinking":
+            compiled_response.append(f"**Thought**: {block.thinking}")
+    return "\n- ".join(compiled_response)
+
+
+async def render_claude_response(response_content: list[BetaContentBlock], page: Page) -> str:
+    """
+    Share the response from Anthropic AI model to be rendered by the client.
+    """
+    compiled_response = [""]
+    for block in deepcopy(response_content):
+        if block.type == "text":
+            compiled_response.append(block.text)
+        elif block.type == "tool_use":
+            if hasattr(block, "name") and block.name == "goto":
+                block_input = {"action": block.name, "url": block.input.get("url")}
+            elif hasattr(block, "name") and block.name == "back":
+                block_input = {"action": block.name}
+            else:
+                block_input = block.input
+
+            if block_input.get("action") == "screenshot":
+                screenshot_base64 = await get_screenshot(page)
+                block_input["image"] = f"data:image/webp;base64,{screenshot_base64}"
+
             compiled_response.append(f"**Action**: {json.dumps(block_input)}")
         elif block.type == "thinking":
             compiled_response.append(f"**Thought**: {block.thinking}")
