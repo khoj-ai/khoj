@@ -47,7 +47,13 @@ export default function GitHubRepoSelector({ openExternally }: { openExternally?
             .then((res) => res.json())
             .then((data) => {
                 setRepos(data);
-                setSelected(new Set(data.filter((r) => r.selected).map((r) => r.full_name)));
+                setSelected(
+                    new Set(
+                        data
+                            .filter((r: { selected: boolean }) => r.selected)
+                            .map((r: { full_name: string }) => r.full_name),
+                    ),
+                );
 
                 if (shouldOpen) {
                     setOpen(true);
