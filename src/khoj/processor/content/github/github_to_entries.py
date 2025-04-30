@@ -1,10 +1,12 @@
 import logging
+import re
 import time
 from typing import Dict, List, Tuple
 
 import requests
 from magika import Magika
 
+from khoj.database.adapters import EntryAdapters
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import GithubConfig, KhojUser
 from khoj.processor.content.markdown.markdown_to_entries import MarkdownToEntries
@@ -54,6 +56,10 @@ class GithubToEntries(TextToEntries):
             logger.warning(
                 f"Github PAT token is not set. Private repositories cannot be indexed and lower rate limits apply."
             )
+
+        if user:
+            self.resync_github_entries(user)
+
         current_entries = []
         for repo in self.config.repos:
             current_entries += self.process_repo(repo)
@@ -112,6 +118,43 @@ class GithubToEntries(TextToEntries):
             )
 
         return num_new_embeddings, num_deleted_embeddings
+
+    def resync_github_entries(self, user: KhojUser = None) -> None:
+        """
+        Resync GitHub entries for the user.
+
+        This ensures that if a user deselects a repo, its files are no longer indexed.
+        Does not add or update entries — call `process()` separately for full re-index.
+        """
+
+        config = GithubConfig.objects.filter(user=user).prefetch_related("githubrepoconfig").first()
+        if config:
+            # Fetch all GitHub Entries for the user
+            files = EntryAdapters.get_all_filenames_by_source(user, "github")
+            raw_repos = config.githubrepoconfig.all()
+            repos = []
+            for repo in raw_repos:
+                repos.append(repo.owner + "/" + repo.name)
+
+            if files:
+                # Check if the entries' repository is still selected in the config
+                for file in files:
+                    # We need to extract the repo name and owner from the entry's file path
+                    # https://{url}/{owner}/{name}}/blob/...
+                    match = re.search(r"github\.com/([^/]+)/([^/]+)", file)
+                    if not match:
+                        logger.warning(f"Unable to parse repo from file path: {file}")
+                        continue
+
+                    owner = match.group(1)
+                    name = match.group(2)
+                    # Construct the repo name
+                    repo_name = f"{owner}/{name}"
+
+                    if repo_name and repo_name not in repos:
+                        # If not, delete the entry
+                        logger.debug(f"Deleting entry {file} as the repo {repo_name} is not selected anymore")
+                        EntryAdapters.delete_entry_by_file(user, file)
 
     def get_files(self, repo_url: str, repo: GithubRepoConfig):
         # Get the contents of the repository

@@ -314,6 +314,7 @@ def configure_routes(app):
     from khoj.routers.api_agents import api_agents
     from khoj.routers.api_chat import api_chat
     from khoj.routers.api_content import api_content
+    from khoj.routers.api_github import github_router
     from khoj.routers.api_model import api_model
     from khoj.routers.notion import notion_router
     from khoj.routers.web_client import web_client
@@ -323,8 +324,11 @@ def configure_routes(app):
     app.include_router(api_agents, prefix="/api/agents")
     app.include_router(api_model, prefix="/api/model")
     app.include_router(api_content, prefix="/api/content")
+    app.include_router(github_router, prefix="/api/github")
     app.include_router(notion_router, prefix="/api/notion")
     app.include_router(web_client)
+
+    logger.info("🛣️ API Routes configured")
 
     if not state.anonymous_mode:
         from khoj.routers.auth import auth_router
