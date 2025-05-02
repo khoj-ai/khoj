@@ -17,6 +17,7 @@ from khoj.processor.conversation.openai.utils import (
 )
 from khoj.processor.conversation.utils import (
     JsonSupport,
+    ResponseWithThought,
     clean_json,
     construct_structured_message,
     generate_chatml_messages_with_context,
@@ -188,7 +189,7 @@ async def converse_openai(
     program_execution_context: List[str] = None,
     deepthought: Optional[bool] = False,
     tracer: dict = {},
-) -> AsyncGenerator[str, None]:
+) -> AsyncGenerator[ResponseWithThought, None]:
     """
     Converse with user using OpenAI's ChatGPT
     """
@@ -273,7 +274,8 @@ async def converse_openai(
         model_kwargs={"stop": ["Notes:\n["]},
         tracer=tracer,
     ):
-        full_response += chunk
+        if chunk.response:
+            full_response += chunk.response
         yield chunk
 
     # Call completion_func once finish streaming and we have the full response

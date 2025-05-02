@@ -93,6 +93,7 @@ from khoj.processor.conversation.openai.gpt import (
 )
 from khoj.processor.conversation.utils import (
     ChatEvent,
+    ResponseWithThought,
     clean_json,
     clean_mermaidjs,
     construct_chat_history,
@@ -1432,9 +1433,9 @@ async def agenerate_chat_response(
     generated_asset_results: Dict[str, Dict] = {},
     is_subscribed: bool = False,
     tracer: dict = {},
-) -> Tuple[AsyncGenerator[str, None], Dict[str, str]]:
+) -> Tuple[AsyncGenerator[str | ResponseWithThought, None], Dict[str, str]]:
     # Initialize Variables
-    chat_response_generator = None
+    chat_response_generator: AsyncGenerator[str | ResponseWithThought, None] = None
     logger.debug(f"Conversation Types: {conversation_commands}")
 
     metadata = {}

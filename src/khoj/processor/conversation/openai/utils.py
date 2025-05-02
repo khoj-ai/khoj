@@ -25,7 +25,11 @@ from tenacity import (
     wait_random_exponential,
 )
 
-from khoj.processor.conversation.utils import JsonSupport, commit_conversation_trace
+from khoj.processor.conversation.utils import (
+    JsonSupport,
+    ResponseWithThought,
+    commit_conversation_trace,
+)
 from khoj.utils.helpers import (
     get_chat_usage_metrics,
     get_openai_async_client,
@@ -99,10 +103,7 @@ def completion_with_backoff(
         **model_kwargs,
     ) as chat:
         for chunk in stream_processor(chat):
-            if chunk.type == "error":
-                logger.error(f"Openai api response error: {chunk.error}", exc_info=True)
-                continue
-            elif chunk.type == "content.delta":
+            if chunk.type == "content.delta":
                 aggregated_response += chunk.delta
             elif chunk.type == "thought.delta":
                 pass
@@ -149,7 +150,7 @@ async def chat_completion_with_backoff(
     deepthought=False,
     model_kwargs: dict = {},
     tracer: dict = {},
-) -> AsyncGenerator[str, None]:
+) -> AsyncGenerator[ResponseWithThought, None]:
     try:
         client_key = f"{openai_api_key}--{api_base_url}"
         client = openai_async_clients.get(client_key)
@@ -224,18 +225,19 @@ async def chat_completion_with_backoff(
                 logger.info(f"First response took: {perf_counter() - start_time:.3f} seconds")
             # Keep track of the last chunk for usage data
             final_chunk = chunk
-            # Handle streamed response chunk
+            # Skip empty chunks
             if len(chunk.choices) == 0:
                 continue
-            delta_chunk = chunk.choices[0].delta
-            text_chunk = ""
-            if isinstance(delta_chunk, str):
-                text_chunk = delta_chunk
-            elif delta_chunk and delta_chunk.content:
-                text_chunk = delta_chunk.content
-            if text_chunk:
-                aggregated_response += text_chunk
-                yield text_chunk
+            # Handle streamed response chunk
+            response_chunk: ResponseWithThought = None
+            response_delta = chunk.choices[0].delta
+            if response_delta.content:
+                response_chunk = ResponseWithThought(response=response_delta.content)
+                aggregated_response += response_chunk.response
+            elif response_delta.thought:
+                response_chunk = ResponseWithThought(thought=response_delta.thought)
+            if response_chunk:
+                yield response_chunk
 
         # Log the time taken to stream the entire response
         logger.info(f"Chat streaming took: {perf_counter() - start_time:.3f} seconds")

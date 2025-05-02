@@ -97,6 +97,17 @@ export function processMessageChunk(
         console.log(`status: ${chunk.data}`);
         const statusMessage = chunk.data as string;
         currentMessage.trainOfThought.push(statusMessage);
+    } else if (chunk.type === "thought") {
+        const thoughtChunk = chunk.data as string;
+        const lastThoughtIndex = currentMessage.trainOfThought.length - 1;
+        const previousThought =
+            lastThoughtIndex >= 0 ? currentMessage.trainOfThought[lastThoughtIndex] : "";
+        // If the last train of thought started with "Thinking: " append the new thought chunk to it
+        if (previousThought.startsWith("**Thinking:** ")) {
+            currentMessage.trainOfThought[lastThoughtIndex] += thoughtChunk;
+        } else {
+            currentMessage.trainOfThought.push(`**Thinking:** ${thoughtChunk}`);
+        }
     } else if (chunk.type === "references") {
         const references = chunk.data as RawReferenceData;
 

@@ -25,7 +25,11 @@ from khoj.database.adapters import (
 from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.prompts import help_message, no_entries_found
-from khoj.processor.conversation.utils import defilter_query, save_to_conversation_log
+from khoj.processor.conversation.utils import (
+    ResponseWithThought,
+    defilter_query,
+    save_to_conversation_log,
+)
 from khoj.processor.image.generate import text_to_image
 from khoj.processor.speech.text_to_speech import generate_text_to_speech
 from khoj.processor.tools.online_search import (
@@ -726,6 +730,16 @@ async def chat(
                     ttft = time.perf_counter() - start_time
                 elif event_type == ChatEvent.STATUS:
                     train_of_thought.append({"type": event_type.value, "data": data})
+                elif event_type == ChatEvent.THOUGHT:
+                    # Append the data to the last thought as thoughts are streamed
+                    if (
+                        len(train_of_thought) > 0
+                        and train_of_thought[-1]["type"] == ChatEvent.THOUGHT.value
+                        and type(train_of_thought[-1]["data"]) == type(data) == str
+                    ):
+                        train_of_thought[-1]["data"] += data
+                    else:
+                        train_of_thought.append({"type": event_type.value, "data": data})
 
                 if event_type == ChatEvent.MESSAGE:
                     yield data
@@ -1306,10 +1320,6 @@ async def chat(
             tracer,
         )
 
-        # Send Response
-        async for result in send_event(ChatEvent.START_LLM_RESPONSE, ""):
-            yield result
-
         continue_stream = True
         async for item in llm_response:
             # Should not happen with async generator, end is signaled by loop exit. Skip.
@@ -1318,8 +1328,18 @@ async def chat(
             if not connection_alive or not continue_stream:
                 # Drain the generator if disconnected but keep processing internally
                 continue
+            message = item.response if isinstance(item, ResponseWithThought) else item
+            if isinstance(item, ResponseWithThought) and item.thought:
+                async for result in send_event(ChatEvent.THOUGHT, item.thought):
+                    yield result
+                continue
+
+            # Start sending response
+            async for result in send_event(ChatEvent.START_LLM_RESPONSE, ""):
+                yield result
+
             try:
-                async for result in send_event(ChatEvent.MESSAGE, f"{item}"):
+                async for result in send_event(ChatEvent.MESSAGE, message):
                     yield result
             except Exception as e:
                 continue_stream = False

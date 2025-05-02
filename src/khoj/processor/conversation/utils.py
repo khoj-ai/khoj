@@ -191,6 +191,7 @@ class ChatEvent(Enum):
     REFERENCES = "references"
     GENERATED_ASSETS = "generated_assets"
     STATUS = "status"
+    THOUGHT = "thought"
     METADATA = "metadata"
     USAGE = "usage"
     END_RESPONSE = "end_response"
@@ -873,3 +874,9 @@ class JsonSupport(int, Enum):
     NONE = 0
     OBJECT = 1
     SCHEMA = 2
+
+
+class ResponseWithThought:
+    def __init__(self, response: str = None, thought: str = None):
+        self.response = response
+        self.thought = thought
