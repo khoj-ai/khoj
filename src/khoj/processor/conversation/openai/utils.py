@@ -81,6 +81,10 @@ def completion_with_backoff(
         model_kwargs["reasoning_effort"] = reasoning_effort
     elif is_qwen_reasoning_model(model_name, api_base_url):
         stream_processor = partial(in_stream_thought_processor, thought_tag="think")
+        # Reasoning is enabled by default. Disable when deepthought is False.
+        # See https://qwenlm.github.io/blog/qwen3/#advanced-usages
+        if not deepthought and len(formatted_messages) > 0:
+            formatted_messages[-1]["content"] = formatted_messages[-1]["content"] + " /no_think"
 
     model_kwargs["stream_options"] = {"include_usage": True}
     if os.getenv("KHOJ_LLM_SEED"):
@@ -193,6 +197,10 @@ async def chat_completion_with_backoff(
             formatted_messages = updated_messages
         elif is_qwen_reasoning_model(model_name, api_base_url):
             stream_processor = partial(ain_stream_thought_processor, thought_tag="think")
+            # Reasoning is enabled by default. Disable when deepthought is False.
+            # See https://qwenlm.github.io/blog/qwen3/#advanced-usages
+            if not deepthought and len(formatted_messages) > 0:
+                formatted_messages[-1]["content"] = formatted_messages[-1]["content"] + " /no_think"
 
         stream = True
         model_kwargs["stream_options"] = {"include_usage": True}
