@@ -14,6 +14,7 @@ from khoj.processor.conversation.anthropic.utils import (
     format_messages_for_anthropic,
 )
 from khoj.processor.conversation.utils import (
+    ResponseWithThought,
     clean_json,
     construct_structured_message,
     generate_chatml_messages_with_context,
@@ -162,7 +163,7 @@ async def converse_anthropic(
     generated_asset_results: Dict[str, Dict] = {},
     deepthought: Optional[bool] = False,
     tracer: dict = {},
-) -> AsyncGenerator[str, None]:
+) -> AsyncGenerator[ResponseWithThought, None]:
     """
     Converse with user using Anthropic's Claude
     """
@@ -247,7 +248,8 @@ async def converse_anthropic(
         deepthought=deepthought,
         tracer=tracer,
     ):
-        full_response += chunk
+        if chunk.response:
+            full_response += chunk.response
         yield chunk
 
     # Call completion_func once finish streaming and we have the full response

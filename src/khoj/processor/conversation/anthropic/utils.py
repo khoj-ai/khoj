@@ -13,6 +13,7 @@ from tenacity import (
 )
 
 from khoj.processor.conversation.utils import (
+    ResponseWithThought,
     commit_conversation_trace,
     get_image_from_base64,
     get_image_from_url,
@@ -154,13 +155,23 @@ async def anthropic_chat_completion_with_backoff(
             max_tokens=max_tokens,
             **model_kwargs,
         ) as stream:
-            async for text in stream.text_stream:
+            async for chunk in stream:
                 # Log the time taken to start response
                 if aggregated_response == "":
                     logger.info(f"First response took: {perf_counter() - start_time:.3f} seconds")
+                # Skip empty chunks
+                if chunk.type != "content_block_delta":
+                    continue
                 # Handle streamed response chunk
-                aggregated_response += text
-                yield text
+                response_chunk: ResponseWithThought = None
+                if chunk.delta.type == "text_delta":
+                    response_chunk = ResponseWithThought(response=chunk.delta.text)
+                    aggregated_response += chunk.delta.text
+                if chunk.delta.type == "thinking_delta":
+                    response_chunk = ResponseWithThought(thought=chunk.delta.thinking)
+                # Handle streamed response chunk
+                if response_chunk:
+                    yield response_chunk
             final_message = await stream.get_final_message()
 
         # Log the time taken to stream the entire response
