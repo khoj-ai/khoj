@@ -10,7 +10,7 @@ from google import genai
 from google.genai import types as gtypes
 
 from khoj.database.adapters import ConversationAdapters
-from khoj.database.models import Agent, KhojUser, TextToImageModelConfig
+from khoj.database.models import Agent, KhojUser, TextToImageModelConfig, UserMemory
 from khoj.routers.helpers import ChatEvent, generate_better_image_prompt
 from khoj.routers.storage import upload_generated_image_to_bucket
 from khoj.utils import state
@@ -31,6 +31,7 @@ async def text_to_image(
     query_images: Optional[List[str]] = None,
     agent: Agent = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ):
     status_code = 200
@@ -72,6 +73,7 @@ async def text_to_image(
         user=user,
         agent=agent,
         query_files=query_files,
+        relevant_memories=relevant_memories,
         tracer=tracer,
     )
 

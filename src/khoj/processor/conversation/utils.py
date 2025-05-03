@@ -4,14 +4,12 @@ import logging
 import math
 import mimetypes
 import os
-import queue
 import re
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from io import BytesIO
-from time import perf_counter
 from typing import Any, Callable, Dict, List, Optional
 
 import PIL.Image
@@ -24,7 +22,7 @@ from llama_cpp.llama import Llama
 from transformers import AutoTokenizer
 
 from khoj.database.adapters import ConversationAdapters
-from khoj.database.models import ChatModel, ClientApplication, KhojUser
+from khoj.database.models import ChatModel, ClientApplication, KhojUser, UserMemory
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.utils import download_model, infer_max_tokens
 from khoj.search_filter.base_filter import BaseFilter
@@ -240,6 +238,7 @@ async def save_to_conversation_log(
     client_application: ClientApplication = None,
     conversation_id: str = None,
     automation_id: str = None,
+    matching_memories: List[UserMemory] = [],
     query_images: List[str] = None,
     raw_query_files: List[FileAttachment] = [],
     generated_images: List[str] = [],
@@ -248,6 +247,8 @@ async def save_to_conversation_log(
     train_of_thought: List[Any] = [],
     tracer: Dict[str, Any] = {},
 ):
+    from khoj.routers.helpers import ai_update_memories
+
     user_message_time = user_message_time or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     turn_id = tracer.get("mid") or str(uuid.uuid4())
 
@@ -286,6 +287,15 @@ async def save_to_conversation_log(
         user_message=q,
     )
 
+    if not automation_id:
+        # Don't update memories from automations, as this could get noisy.
+        await ai_update_memories(
+            user=user,
+            conversation_history={"chat": updated_conversation},
+            memories=matching_memories,
+            tracer=tracer,
+        )
+
     if is_promptrace_enabled():
         merge_message_into_conversation_trace(q, chat_response, tracer)
 
@@ -300,7 +310,12 @@ Khoj: "{chat_response}"
 
 
 def construct_structured_message(
-    message: str, images: list[str], model_type: str, vision_enabled: bool, attached_file_context: str = None
+    message: str,
+    images: list[str],
+    model_type: str,
+    vision_enabled: bool,
+    attached_file_context: str = None,
+    relevant_memories_context: str = None,
 ):
     """
     Format messages into appropriate multimedia format for supported chat model types
@@ -310,13 +325,17 @@ def construct_structured_message(
         ChatModel.ModelType.GOOGLE,
         ChatModel.ModelType.ANTHROPIC,
     ]:
-        if not attached_file_context and not (vision_enabled and images):
+        if not any([images and vision_enabled, attached_file_context, relevant_memories_context]):
             return message
 
         constructed_messages: List[Any] = [{"type": "text", "text": message}]
 
         if not is_none_or_empty(attached_file_context):
             constructed_messages.append({"type": "text", "text": attached_file_context})
+
+        if not is_none_or_empty(relevant_memories_context):
+            constructed_messages.append({"type": "text", "text": relevant_memories_context})
+
         if vision_enabled and images:
             for image in images:
                 constructed_messages.append({"type": "image_url", "image_url": {"url": image}})
@@ -357,6 +376,7 @@ def generate_chatml_messages_with_context(
     model_type="",
     context_message="",
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     generated_files: List[FileAttachment] = None,
     generated_asset_results: Dict[str, Dict] = {},
     program_execution_context: List[str] = [],
@@ -450,6 +470,14 @@ def generate_chatml_messages_with_context(
                 role="user",
             )
         )
+
+    if not is_none_or_empty(relevant_memories):
+        memory_context = "Here are some relevant memories about me stored in the system context. You can ignore them if they are not relevant to the query:\n\n"
+        for memory in relevant_memories:
+            friendly_dt = memory.created_at.strftime("%Y-%m-%d %H:%M:%S")
+            memory_context += f"- {memory.raw} ({friendly_dt})\n"
+        memory_context += "\n"
+        messages.append(ChatMessage(content=memory_context, role="user"))
 
     if not is_none_or_empty(user_message):
         messages.append(

@@ -10,7 +10,7 @@ import pyjson5
 from langchain.schema import ChatMessage
 from llama_cpp import Llama
 
-from khoj.database.models import Agent, ChatModel, KhojUser
+from khoj.database.models import Agent, ChatModel, KhojUser, UserMemory
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.utils import download_model
 from khoj.processor.conversation.utils import (
@@ -46,6 +46,7 @@ def extract_questions_offline(
     temperature: float = 0.7,
     personality_context: Optional[str] = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ) -> List[str]:
     """
@@ -97,6 +98,7 @@ def extract_questions_offline(
         max_prompt_size=max_prompt_size,
         model_type=ChatModel.ModelType.OFFLINE,
         query_files=query_files,
+        relevant_memories=relevant_memories,
     )
 
     state.chat_lock.acquire()
@@ -163,6 +165,7 @@ async def converse_offline(
     user_name: str = None,
     agent: Agent = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     generated_files: List[FileAttachment] = None,
     additional_context: List[str] = None,
     generated_asset_results: Dict[str, Dict] = {},
@@ -240,6 +243,7 @@ async def converse_offline(
         tokenizer_name=tokenizer_name,
         model_type=ChatModel.ModelType.OFFLINE,
         query_files=query_files,
+        relevant_memories=relevant_memories,
         generated_files=generated_files,
         generated_asset_results=generated_asset_results,
         program_execution_context=additional_context,

@@ -43,6 +43,7 @@ from khoj.database.adapters import (
     ConversationAdapters,
     EntryAdapters,
     FileObjectAdapters,
+    UserMemoryAdapters,
     aget_user_by_email,
     ais_user_subscribed,
     create_khoj_token,
@@ -50,6 +51,7 @@ from khoj.database.adapters import (
     get_user_name,
     get_user_notion_config,
     get_user_subscription_state,
+    require_valid_user,
     run_with_process_lock,
 )
 from khoj.database.models import (
@@ -64,6 +66,7 @@ from khoj.database.models import (
     RateLimitRecord,
     Subscription,
     TextToImageModelConfig,
+    UserMemory,
     UserRequests,
 )
 from khoj.processor.content.docx.docx_to_entries import DocxToEntries
@@ -345,6 +348,7 @@ async def aget_data_sources_and_output_format(
     query_images: List[str] = None,
     agent: Agent = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ) -> Dict[str, Any]:
     """
@@ -408,6 +412,7 @@ async def aget_data_sources_and_output_format(
             response_schema=PickTools,
             user=user,
             query_files=query_files,
+            relevant_memories=relevant_memories,
             agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
@@ -460,6 +465,7 @@ async def infer_webpage_urls(
     query_images: List[str] = None,
     agent: Agent = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ) -> List[str]:
     """
@@ -497,6 +503,7 @@ async def infer_webpage_urls(
             response_schema=WebpageUrls,
             user=user,
             query_files=query_files,
+            relevant_memories=relevant_memories,
             agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
@@ -524,6 +531,7 @@ async def generate_online_subqueries(
     query_images: List[str] = None,
     agent: Agent = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ) -> Set[str]:
     """
@@ -562,6 +570,7 @@ async def generate_online_subqueries(
             response_schema=OnlineQueries,
             user=user,
             query_files=query_files,
+            relevant_memories=relevant_memories,
             agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
@@ -639,7 +648,12 @@ async def aschedule_query(
 
 
 async def extract_relevant_info(
-    qs: set[str], corpus: str, user: KhojUser = None, agent: Agent = None, tracer: dict = {}
+    qs: set[str],
+    corpus: str,
+    user: KhojUser = None,
+    agent: Agent = None,
+    relevant_memories: List[UserMemory] = None,
+    tracer: dict = {},
 ) -> Union[str, None]:
     """
     Extract relevant information for a given query from the target corpus
@@ -665,6 +679,7 @@ async def extract_relevant_info(
         prompts.system_prompt_extract_relevant_information,
         user=user,
         agent_chat_model=agent_chat_model,
+        relevant_memories=relevant_memories,
         tracer=tracer,
     )
     return response.strip()
@@ -783,6 +798,7 @@ async def generate_excalidraw_diagram(
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ):
     if send_status_func:
@@ -799,6 +815,7 @@ async def generate_excalidraw_diagram(
         user=user,
         agent=agent,
         query_files=query_files,
+        relevant_memories=relevant_memories,
         tracer=tracer,
     )
 
@@ -834,6 +851,7 @@ async def generate_better_diagram_description(
     user: KhojUser = None,
     agent: Agent = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ) -> str:
     """
@@ -878,6 +896,7 @@ async def generate_better_diagram_description(
             query_images=query_images,
             user=user,
             query_files=query_files,
+            relevant_memories=relevant_memories,
             agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
@@ -929,6 +948,71 @@ async def generate_excalidraw_diagram_from_description(
     return response
 
 
+class ExtractedFacts(BaseModel):
+    create: List[str] = Field(..., min_items=0)
+    delete: List[str] = Field(..., min_items=0)
+
+
+async def extract_facts_from_query(
+    user: KhojUser,
+    conversation_history: dict,
+    existing_facts: List[UserMemory] = None,
+    tracer: dict = {},
+) -> ExtractedFacts:
+    """
+    Extract facts from the given query
+    """
+    chat_history = construct_chat_history(conversation_history, n=2)
+
+    formatted_memories = UserMemoryAdapters.convert_memories_to_dict(existing_facts) if existing_facts else []
+
+    extract_facts_prompt = prompts.extract_facts_from_query.format(
+        chat_history=chat_history,
+        matched_facts=formatted_memories,
+    )
+
+    with timer("Chat actor: Extract facts from query", logger):
+        response = await send_message_to_model_wrapper(extract_facts_prompt, user=user, tracer=tracer)
+        response = response.strip()
+        # JSON parse the list of strings
+        try:
+            response = clean_json(response)
+            response = json.loads(response)
+            parsed_response = ExtractedFacts(**response)
+            if not isinstance(parsed_response, ExtractedFacts):
+                raise ValueError(f"Invalid response for extracting facts: {response}")
+            return parsed_response
+
+        except Exception:
+            logger.error(f"Invalid response for extracting facts: {response}")
+            return ExtractedFacts(create=[], delete=[])
+
+
+@require_valid_user
+async def ai_update_memories(user: KhojUser, conversation_history: dict, memories: List[UserMemory], tracer: dict = {}):
+    """
+    Updates the memories for a given user, based on their latest input query.
+    """
+    new_data = await extract_facts_from_query(
+        user=user, conversation_history=conversation_history, existing_facts=memories, tracer=tracer
+    )
+
+    if not new_data:
+        return
+
+    # Save the new data to the database
+    created_memories = new_data.create
+    deleted_memories = new_data.delete
+
+    for m in created_memories:
+        logger.info(f"Creating memory: {m}")
+        await UserMemoryAdapters.save_memory(user, m)
+
+    for m in deleted_memories:
+        logger.info(f"Deleting memory: {m}")
+        await UserMemoryAdapters.delete_memory(user, m)
+
+
 async def generate_mermaidjs_diagram(
     q: str,
     conversation_history: Dict[str, Any],
@@ -940,6 +1024,7 @@ async def generate_mermaidjs_diagram(
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ):
     if send_status_func:
@@ -956,6 +1041,7 @@ async def generate_mermaidjs_diagram(
         user=user,
         agent=agent,
         query_files=query_files,
+        relevant_memories=relevant_memories,
         tracer=tracer,
     )
 
@@ -985,6 +1071,7 @@ async def generate_better_mermaidjs_diagram_description(
     user: KhojUser = None,
     agent: Agent = None,
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ) -> str:
     """
@@ -1029,6 +1116,7 @@ async def generate_better_mermaidjs_diagram_description(
             query_images=query_images,
             user=user,
             query_files=query_files,
+            relevant_memories=relevant_memories,
             agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
@@ -1074,6 +1162,7 @@ async def generate_better_image_prompt(
     user: KhojUser = None,
     agent: Agent = None,
     query_files: str = "",
+    relevant_memories: List[UserMemory] = None,
     tracer: dict = {},
 ) -> str:
     """
@@ -1132,6 +1221,7 @@ async def generate_better_image_prompt(
             query_images=query_images,
             user=user,
             query_files=query_files,
+            relevant_memories=relevant_memories,
             agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
@@ -1152,6 +1242,7 @@ async def send_message_to_model_wrapper(
     query_images: List[str] = None,
     context: str = "",
     query_files: str = None,
+    relevant_memories: List[UserMemory] = None,
     agent_chat_model: ChatModel = None,
     tracer: dict = {},
 ):
@@ -1193,6 +1284,7 @@ async def send_message_to_model_wrapper(
             vision_enabled=vision_available,
             model_type=chat_model.model_type,
             query_files=query_files,
+            relevant_memories=relevant_memories,
         )
 
         return send_message_to_model_offline(
@@ -1220,6 +1312,7 @@ async def send_message_to_model_wrapper(
             query_images=query_images,
             model_type=chat_model.model_type,
             query_files=query_files,
+            relevant_memories=relevant_memories,
         )
 
         return send_message_to_model(
@@ -1246,6 +1339,7 @@ async def send_message_to_model_wrapper(
             query_images=query_images,
             model_type=chat_model.model_type,
             query_files=query_files,
+            relevant_memories=relevant_memories,
         )
 
         return anthropic_send_message_to_model(
@@ -1271,6 +1365,7 @@ async def send_message_to_model_wrapper(
             query_images=query_images,
             model_type=chat_model.model_type,
             query_files=query_files,
+            relevant_memories=relevant_memories,
         )
 
         return gemini_send_message_to_model(
@@ -1419,6 +1514,7 @@ async def agenerate_chat_response(
     user: KhojUser = None,
     client_application: ClientApplication = None,
     conversation_id: str = None,
+    matching_memories: List[UserMemory] = [],
     location_data: LocationData = None,
     user_name: Optional[str] = None,
     meta_research: str = "",
@@ -1453,6 +1549,7 @@ async def agenerate_chat_response(
             inferred_queries=inferred_queries,
             client_application=client_application,
             conversation_id=conversation_id,
+            matching_memories=matching_memories,
             query_images=query_images,
             train_of_thought=train_of_thought,
             raw_query_files=raw_query_files,
@@ -1496,6 +1593,7 @@ async def agenerate_chat_response(
                 user_name=user_name,
                 agent=agent,
                 query_files=query_files,
+                relevant_memories=matching_memories,
                 generated_files=raw_generated_files,
                 generated_asset_results=generated_asset_results,
                 tracer=tracer,
@@ -1524,6 +1622,7 @@ async def agenerate_chat_response(
                 agent=agent,
                 vision_available=vision_available,
                 query_files=query_files,
+                relevant_memories=matching_memories,
                 generated_files=raw_generated_files,
                 generated_asset_results=generated_asset_results,
                 program_execution_context=program_execution_context,
@@ -1553,6 +1652,7 @@ async def agenerate_chat_response(
                 agent=agent,
                 vision_available=vision_available,
                 query_files=query_files,
+                relevant_memories=matching_memories,
                 generated_files=raw_generated_files,
                 generated_asset_results=generated_asset_results,
                 program_execution_context=program_execution_context,
@@ -1581,6 +1681,7 @@ async def agenerate_chat_response(
                 query_images=query_images,
                 vision_available=vision_available,
                 query_files=query_files,
+                relevant_memories=matching_memories,
                 generated_files=raw_generated_files,
                 generated_asset_results=generated_asset_results,
                 program_execution_context=program_execution_context,
