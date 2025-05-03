@@ -83,6 +83,18 @@ def completion_with_backoff(
     elif is_twitter_reasoning_model(model_name, api_base_url):
         reasoning_effort = "high" if deepthought else "low"
         model_kwargs["reasoning_effort"] = reasoning_effort
+    elif model_name.startswith("deepseek-reasoner"):
+        # Two successive messages cannot be from the same role. Should merge any back-to-back messages from the same role.
+        # The first message should always be a user message (except system message).
+        updated_messages: List[dict] = []
+        for i, message in enumerate(formatted_messages):
+            if i > 0 and message["role"] == formatted_messages[i - 1]["role"]:
+                updated_messages[-1]["content"] += " " + message["content"]
+            elif i == 1 and formatted_messages[i - 1]["role"] == "system" and message["role"] == "assistant":
+                updated_messages[-1]["content"] += " " + message["content"]
+            else:
+                updated_messages.append(message)
+        formatted_messages = updated_messages
     elif is_qwen_reasoning_model(model_name, api_base_url):
         stream_processor = partial(in_stream_thought_processor, thought_tag="think")
         # Reasoning is enabled by default. Disable when deepthought is False.
