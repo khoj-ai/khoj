@@ -193,6 +193,7 @@ async def chat_completion_with_backoff(
                         "content"
                     ] = f"{first_system_message_content}\nFormatting re-enabled"
         elif is_twitter_reasoning_model(model_name, api_base_url):
+            stream_processor = adeepseek_stream_processor
             reasoning_effort = "high" if deepthought else "low"
             model_kwargs["reasoning_effort"] = reasoning_effort
         elif model_name.startswith("deepseek-reasoner"):
@@ -369,7 +370,11 @@ async def adeepseek_stream_processor(
     """
     async for chunk in chat_stream:
         tchunk = ChatCompletionWithThoughtsChunk.model_validate(chunk.model_dump())
-        if len(tchunk.choices) > 0 and tchunk.choices[0].delta.reasoning_content:
+        if (
+            len(tchunk.choices) > 0
+            and hasattr(tchunk.choices[0].delta, "reasoning_content")
+            and tchunk.choices[0].delta.reasoning_content
+        ):
             tchunk.choices[0].delta.thought = chunk.choices[0].delta.reasoning_content
         yield tchunk
 
