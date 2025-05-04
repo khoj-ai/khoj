@@ -720,6 +720,39 @@ class OpenAIOperatorAgent(OperatorAgent):
                 compiled_response.append(f"**Thought**: {block.summary}")
         return "\n- ".join(filter(None, compiled_response))  # Filter out empty strings
 
+    @staticmethod
+    async def render_response(response_content: list[ResponseOutputItem], screenshot: Optional[str] = None) -> str:
+        """Render OpenAI response for display, potentially including screenshots."""
+        compiled_response = [""]
+        for block in deepcopy(response_content):  # Use deepcopy to avoid modifying original
+            if block.type == "message":
+                text_content = block.text if hasattr(block, "text") else block.model_dump_json()
+                compiled_response.append(text_content)
+            elif block.type == "function_call":
+                block_input = {"action": block.name}
+                if block.name == "goto":
+                    try:
+                        args = json.loads(block.arguments)
+                        block_input["url"] = args.get("url", "[Missing URL]")
+                    except json.JSONDecodeError:
+                        block_input["arguments"] = block.arguments
+                compiled_response.append(f"**Action**: {json.dumps(block_input)}")
+            elif block.type == "computer_call":
+                block_input = block.action
+                # If it's a screenshot action and we have a screenshot, render it
+                if block_input.type == "screenshot":
+                    block_input_render = block_input.model_dump()
+                    if screenshot:
+                        block_input_render["image"] = f"data:image/webp;base64,{screenshot}"
+                    else:
+                        block_input_render["image"] = "[Failed to get screenshot]"
+                    compiled_response.append(f"**Action**: {json.dumps(block_input_render)}")
+                else:
+                    compiled_response.append(f"**Action**: {block_input.model_dump_json()}")
+            elif block.type == "reasoning" and block.summary:
+                compiled_response.append(f"**Thought**: {block.summary}")
+        return "\n- ".join(filter(None, compiled_response))
+
 
 class AnthropicOperatorAgent(OperatorAgent):
     async def act(self, messages: List[dict], current_state: EnvState) -> AgentActResult:
@@ -1068,7 +1101,10 @@ async def operate_browser(
                     rendered_response = await operator_agent.render_response(
                         agent_result.raw_agent_response.content, browser_state.screenshot
                     )
-
+                elif chat_model.model_type == ChatModel.ModelType.OPENAI:
+                    rendered_response = await operator_agent.render_response(
+                        agent_result.raw_agent_response.output, browser_state.screenshot
+                    )
                 if send_status_func:
                     async for event in send_status_func(f"**Operating Browser**:\n{rendered_response}"):
                         yield {ChatEvent.STATUS: event}
