@@ -1233,8 +1233,16 @@ async def chat(
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
-                    elif isinstance(result, str):
-                        operator_results.append(result)
+                    else:
+                        operator_results.append(result["text"])
+                        # Add webpages visited while operating browser to references
+                        if result.get("webpages"):
+                            if not online_results.get(defiltered_query):
+                                online_results[defiltered_query] = {"webpages": result["webpages"]}
+                            elif not online_results[defiltered_query].get("webpages"):
+                                online_results[defiltered_query]["webpages"] = result["webpages"]
+                            else:
+                                online_results[defiltered_query]["webpages"] += result["webpages"]
             except ValueError as e:
                 program_execution_context.append(f"Browser operation error: {e}")
                 logger.warning(f"Failed to operate browser with {e}", exc_info=True)

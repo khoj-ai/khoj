@@ -6,7 +6,7 @@ import os
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from datetime import datetime
-from typing import Callable, List, Literal, Optional, Union
+from typing import Callable, List, Literal, Optional, Set, Union
 
 import requests
 from anthropic.types.beta import BetaContentBlock, BetaMessage
@@ -224,6 +224,8 @@ class BrowserEnvironment(Environment):
         self.page: Optional[Page] = None
         self.width: int = 1024
         self.height: int = 768
+        self.visited_urls: Set[str] = set()
+        self.excluded_urls = {"about:blank", "https://duckduckgo.com", "https://www.bing.com", "https://www.google.com"}
 
     async def start(self, width: int = 1024, height: int = 768) -> None:
         self.width = width
@@ -241,6 +243,16 @@ class BrowserEnvironment(Environment):
         # Get the initial browser, page or create one if none exist
         default_context = self.browser.contexts[0] if self.browser.contexts else await self.browser.new_context()
         self.page = default_context.pages[0] if default_context.pages else await default_context.new_page()
+
+        # Define a handler for page load events to capture URLs
+        async def handle_load(loaded_page: Page):
+            url = loaded_page.url
+            if url and url not in self.excluded_urls and url not in self.visited_urls:
+                logger.debug(f"Page loaded: {url}")
+                self.visited_urls.add(url)
+
+        # Listen for load events on the main page
+        self.page.on("load", handle_load)
 
         # Define a handler for new pages
         async def handle_new_page(new_page: Page):
@@ -1211,4 +1223,7 @@ async def operate_browser(
         if environment and not safety_check_message:  # Don't close browser if safety check pending
             await environment.close()
 
-    yield safety_check_message or response
+    yield {
+        "text": safety_check_message or response,
+        "webpages": [{"link": url, "snippet": ""} for url in environment.visited_urls],
+    }

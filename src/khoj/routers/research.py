@@ -416,9 +416,18 @@ async def execute_information_collection(
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
-                    elif isinstance(result, str):
-                        operator_results = result  # type: ignore
+                    else:
+                        operator_results = result["text"]  # type: ignore
                         this_iteration.operatorContext = operator_results
+                        # Add webpages visited while operating browser to references
+                        if result.get("webpages"):
+                            if not online_results.get(this_iteration.query):
+                                online_results[this_iteration.query] = {"webpages": result["webpages"]}
+                            elif not online_results[this_iteration.query].get("webpages"):
+                                online_results[this_iteration.query]["webpages"] = result["webpages"]
+                            else:
+                                online_results[this_iteration.query]["webpages"] += result["webpages"]
+                            this_iteration.onlineContext = online_results
             except Exception as e:
                 this_iteration.warning = f"Error operating browser: {e}"
                 logger.error(this_iteration.warning, exc_info=True)
