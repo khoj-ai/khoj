@@ -352,7 +352,7 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
     // Render screenshot image in screenshot action message
     let screenshotData = null;
     try {
-        const jsonMatch = message.match(/\{"action": "screenshot".*\}/);
+        const jsonMatch = message.match(/\{.*("action": "screenshot"|"type": "screenshot").*\}/);
         if (jsonMatch) {
             screenshotData = JSON.parse(jsonMatch[0]);
             const screenshotHtmlString = `<img src="${screenshotData.image}" alt="State of browser" class="max-w-full" />`;
