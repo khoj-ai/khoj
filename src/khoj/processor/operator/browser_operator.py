@@ -582,12 +582,15 @@ class OpenAIOperatorAgent(OperatorAgent):
         actions: List[BrowserAction] = []
         action_results: List[dict] = []
         self._commit_trace()  # Commit trace before next action
-
         system_prompt = f"""<SYSTEM_CAPABILITY>
 * You are Khoj, a smart web browser operating assistant. You help the users accomplish tasks using a web browser.
+* You operate a single Chromium browser page using Playwright.
+* You cannot access the OS or filesystem.
 * You can interact with the web browser to perform tasks like clicking, typing, scrolling, and more using the computer_use_preview tool.
-* You can use the additional back() and goto() helper functions to navigate the browser. If you see nothing, try goto duckduckgo.com
+* You can use the additional back() and goto() functions to navigate the browser.
+* Always use the goto() function to navigate to a specific URL. If you see nothing, try goto duckduckgo.com
 * When viewing a webpage it can be helpful to zoom out so that you can see everything on the page. Either that, or make sure you scroll down to see everything before deciding something isn't available.
+* When using your computer function calls, they take a while to run and send back to you. Where possible/feasible, try to chain multiple of these calls all into one function calls request.
 * Perform web searches using DuckDuckGo. Don't use Google even if requested as the query will fail.
 * The current date is {datetime.today().strftime('%A, %B %-d, %Y')}.
 * The current URL is {current_state.url}.
@@ -595,6 +598,7 @@ class OpenAIOperatorAgent(OperatorAgent):
 
 <IMPORTANT>
 * You are allowed upto {self.max_iterations} iterations to complete the task.
+* After initialization if the browser is blank, enter a website URL using the goto() function instead of waiting
 </IMPORTANT>
 """
         tools = [
@@ -647,6 +651,7 @@ class OpenAIOperatorAgent(OperatorAgent):
         rendered_response = await self._render_response(response.output, current_state.screenshot)
 
         last_call_id = None
+        content = None
         for block in response.output:
             action_to_run: Optional[BrowserAction] = None
             if block.type == "function_call":
@@ -701,17 +706,22 @@ class OpenAIOperatorAgent(OperatorAgent):
                     elif action_type == "drag":
                         action_to_run = DragAction(path=[Point(x=p.x, y=p.y) for p in openai_action.path])
                     else:
-                        logger.warning(f"Unsupported OpenAI computer action type: {action_type}")
+                        raise ValueError(f"Unsupported OpenAI computer action type: {action_type}")
+                except ValueError as ve:
+                    logger.error(f"Error converting OpenAI action {action_type}: {ve}")
+                    content = f"ValueError: {action_type}: {ve}"
                 except Exception as e:
                     logger.error(f"Error converting OpenAI action {action_type}: {e}")
+                    content = f"Error: {action_type}: {e}"
 
-            if action_to_run:
+            if action_to_run or content:
                 actions.append(action_to_run)
-                # Prepare the result structure expected in the message history
+            if action_to_run or content:
+                # Prepare the action result
                 action_results.append(
                     {
                         "type": f"{block.type}_output",
-                        "output": None,  # Updated by environment step
+                        "output": content,  # Updated by environment step
                         "call_id": last_call_id,
                     }
                 )
