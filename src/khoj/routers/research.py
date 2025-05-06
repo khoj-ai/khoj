@@ -17,7 +17,7 @@ from khoj.processor.conversation.utils import (
     construct_tool_chat_history,
     load_complex_json,
 )
-from khoj.processor.operator.browser_operator import operate_browser
+from khoj.processor.operator.operate_browser import operate_browser
 from khoj.processor.tools.online_search import read_webpages, search_online
 from khoj.processor.tools.run_code import run_code
 from khoj.routers.api import extract_references_and_questions
