@@ -31,7 +31,7 @@ from khoj.processor.conversation.utils import (
     save_to_conversation_log,
 )
 from khoj.processor.image.generate import text_to_image
-from khoj.processor.operator.browser_operator import operate_browser
+from khoj.processor.operator.operate_browser import operate_browser
 from khoj.processor.speech.text_to_speech import generate_text_to_speech
 from khoj.processor.tools.online_search import (
     deduplicate_organic_results,
