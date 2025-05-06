@@ -499,7 +499,7 @@ async def read_webpage_with_jina(web_url: str, api_key: str, api_url: str) -> st
 async def read_webpage_with_firecrawl(web_url: str, api_key: str, api_url: str) -> str:
     firecrawl_api_url = f"{api_url}/v1/scrape"
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
-    params = {"url": web_url, "formats": ["markdown"], "excludeTags": ["script", ".ad"]}
+    params = {"url": web_url, "formats": ["markdown"], "excludeTags": ["script", ".ad"], "removeBase64Images": True}
 
     async with aiohttp.ClientSession() as session:
         async with session.post(firecrawl_api_url, json=params, headers=headers) as response:

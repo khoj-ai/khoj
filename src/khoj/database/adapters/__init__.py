@@ -1454,12 +1454,12 @@ class ConversationAdapters:
 
     @staticmethod
     async def aget_valid_chat_model(user: KhojUser, conversation: Conversation, is_subscribed: bool):
-        agent: Agent = (
-            conversation.agent
-            if is_subscribed and await AgentAdapters.aget_default_agent() != conversation.agent
-            else None
-        )
-        if agent and agent.chat_model:
+        """
+        For paid users: Prefer any custom agent chat model > user default chat model > server default chat model.
+        For free users: Prefer conversation specific agent's chat model > user default chat model > server default chat model.
+        """
+        agent: Agent = conversation.agent if await AgentAdapters.aget_default_agent() != conversation.agent else None
+        if agent and agent.chat_model and (agent.is_hidden or is_subscribed):
             chat_model = await ChatModel.objects.select_related("ai_model_api").aget(
                 pk=conversation.agent.chat_model.pk
             )
@@ -1488,7 +1488,7 @@ class ConversationAdapters:
             return chat_model
 
         else:
-            raise ValueError("Invalid conversation config - either configure offline chat or openai chat")
+            raise ValueError("Invalid conversation settings. Configure some chat model on server.")
 
     @staticmethod
     async def aget_text_to_image_model_config():
