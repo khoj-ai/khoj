@@ -16,6 +16,7 @@ import warnings
 from importlib.metadata import version
 
 from khoj.utils.helpers import in_debug_mode, is_env_var_true
+from khoj.utils.service_manager import ServiceManager, BackgroundService
 
 # Ignore non-actionable warnings
 warnings.filterwarnings("ignore", message=r"snapshot_download.py has been made private", category=FutureWarning)
@@ -101,6 +102,9 @@ from django.db.utils import IntegrityError
 
 SCHEDULE_LEADER_NAME = ProcessLock.Operation.SCHEDULE_LEADER
 
+# Initialize Service Manager
+service_manager = ServiceManager()
+
 
 def shutdown_scheduler():
     logger.info("🌑 Shutting down Khoj")
@@ -109,10 +113,25 @@ def shutdown_scheduler():
         logger.info("🔓 Schedule Leader released")
         ProcessLockAdapters.remove_process_lock(state.schedule_leader_process_lock)
 
+        # Stop all background services
+        service_manager.stop_all()
+
     try:
         state.scheduler.shutdown()
     except Exception as e:
         logger.debug(f"Did not shutdown scheduler: {e}")
+
+
+# Initialize Background Services
+@app.on_event("startup")
+def initialize_background_services():
+    from khoj.processor.content.github.github_sync import github_sync_task
+
+    # Register the GitHub sync task
+    service_manager.register_service(name="github_sync", interval=3600, fn=github_sync_task)  # 1 hour
+
+    # Start the background services
+    service_manager.start_all()
 
 
 def run(should_start_server=True):

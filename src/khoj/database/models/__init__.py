@@ -365,6 +365,19 @@ class GithubConfig(DbBaseModel):
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
 
 
+class BackgroundServiceConfig(models.Model):
+    class Meta:
+        verbose_name = "Background Service Config"
+        verbose_name_plural = "Background Service Configs"
+
+    task_id = models.CharField(max_length=200)
+    task_name = models.CharField(max_length=200)
+    task_interval = models.IntegerField(default=3600)  # interval in seconds (1 hour)
+    task_last_run = models.DateTimeField(null=True, default=None, blank=True)
+    task_next_run = models.DateTimeField(null=True, default=None, blank=True)
+    task_is_enabled = models.BooleanField(default=True)
+
+
 class GithubRepoConfig(DbBaseModel):
     name = models.CharField(max_length=200)
     owner = models.CharField(max_length=200)
