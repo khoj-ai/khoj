@@ -64,7 +64,7 @@ class GithubToEntries(TextToEntries):
         for repo in self.config.repos:
             current_entries += self.process_repo(repo)
 
-        return self.update_entries_with_ids(current_entries, user=user)
+        return self.update_entries_with_ids(current_entries, user=user, regenerate=regenerate)
 
     def process_repo(self, repo: GithubRepoConfig):
         repo_url = f"https://api.github.com/repos/{repo.owner}/{repo.name}"
@@ -105,7 +105,7 @@ class GithubToEntries(TextToEntries):
 
         return current_entries
 
-    def update_entries_with_ids(self, current_entries, user: KhojUser = None):
+    def update_entries_with_ids(self, current_entries, user: KhojUser = None, regenerate: bool = False):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
             num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
@@ -115,6 +115,7 @@ class GithubToEntries(TextToEntries):
                 DbEntry.EntrySource.GITHUB,
                 key="compiled",
                 logger=logger,
+                regenerate=regenerate,
             )
 
         return num_new_embeddings, num_deleted_embeddings
@@ -219,22 +220,37 @@ class GithubToEntries(TextToEntries):
     def get_file_contents(self, file_url, decode=True):
         # Get text from each markdown file
         headers = {"Accept": "application/vnd.github.v3.raw"}
-        response = self.session.get(file_url, headers=headers, stream=True)
 
-        # Stop indexing on hitting rate limit
-        if response.status_code != 200 and response.headers.get("X-RateLimit-Remaining") == "0":
-            raise ConnectionAbortedError("Github rate limit reached")
+        for attempt in range(3):
+            try:
+                # Retry on rate limit
+                if attempt > 2:
+                    logger.error(f"Unable to download file {file_url} after 3 attempts")
+                    break
 
-        content = "" if decode else b""
-        for chunk in response.iter_content(chunk_size=2048):
-            if chunk:
-                try:
-                    content += chunk.decode("utf-8") if decode else chunk
-                except Exception as e:
-                    logger.error(f"Unable to decode chunk from {file_url}")
-                    logger.error(e)
+                response = self.session.get(file_url, headers=headers, stream=True)
 
-        return content
+                # Stop indexing on hitting rate limit
+                if response.status_code != 200 and response.headers.get("X-RateLimit-Remaining") == "0":
+                    raise ConnectionAbortedError("Github rate limit reached")
+
+                content = "" if decode else b""
+                for chunk in response.iter_content(chunk_size=2048):
+                    if chunk:
+                        try:
+                            content += chunk.decode("utf-8") if decode else chunk
+                        except Exception as e:
+                            logger.error(f"Unable to decode chunk from {file_url}")
+                            logger.error(e)
+
+                return content
+            except requests.exceptions.ChunkedEncodingError as e:
+                logger.error(f"Chunked encoding error while downloading {file_url}. Retrying...")
+                # Retry on chunked encoding error with exponential backoff approach
+                time.sleep(2**attempt)
+
+        logger.error(f"Failed to download file {file_url} after 3 attempts")
+        return "" if decode else b""
 
     @staticmethod
     def extract_markdown_entries(markdown_files):
