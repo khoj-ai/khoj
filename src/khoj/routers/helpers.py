@@ -1507,9 +1507,10 @@ async def agenerate_chat_response(
             chat_response_generator = converse_gemini(
                 compiled_references,
                 query_to_run,
-                online_results,
-                code_results,
-                meta_log,
+                online_results=online_results,
+                code_results=code_results,
+                operator_results=operator_results,
+                conversation_log=meta_log,
                 model=chat_model.name,
                 api_key=api_key,
                 api_base_url=api_base_url,
