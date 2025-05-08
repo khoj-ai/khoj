@@ -5,8 +5,8 @@ from pydantic import BaseModel
 
 
 class Point(BaseModel):
-    x: int
-    y: int
+    x: float
+    y: float
 
 
 class BaseAction(BaseModel):
@@ -15,32 +15,32 @@ class BaseAction(BaseModel):
 
 class ClickAction(BaseAction):
     type: Literal["click"] = "click"
-    x: int
-    y: int
+    x: float
+    y: float
     button: Literal["left", "right", "middle", "wheel"] = "left"
     modifiers: str = None
 
 
 class DoubleClickAction(BaseAction):
     type: Literal["double_click"] = "double_click"
-    x: int
-    y: int
+    x: float
+    y: float
 
 
 class TripleClickAction(BaseAction):
     type: Literal["triple_click"] = "triple_click"
-    x: int
-    y: int
+    x: float
+    y: float
 
 
 class ScrollAction(BaseAction):
     type: Literal["scroll"] = "scroll"
-    x: Optional[int] = None
-    y: Optional[int] = None
-    scroll_x: Optional[int] = None
-    scroll_y: Optional[int] = None
+    x: Optional[float] = None
+    y: Optional[float] = None
+    scroll_x: Optional[float] = None
+    scroll_y: Optional[float] = None
     scroll_direction: Optional[Literal["up", "down", "left", "right"]] = None
-    scroll_amount: Optional[int] = 2
+    scroll_amount: Optional[float] = 2.0
 
 
 class KeypressAction(BaseAction):
@@ -64,8 +64,8 @@ class ScreenshotAction(BaseAction):
 
 class MoveAction(BaseAction):
     type: Literal["move"] = "move"
-    x: int
-    y: int
+    x: float
+    y: float
 
 
 class DragAction(BaseAction):
@@ -87,6 +87,16 @@ class HoldKeyAction(BaseAction):
     type: Literal["hold_key"] = "hold_key"
     text: str  # xdotool style key combination string
     duration: float = 1.0
+
+
+class KeyUpAction(BaseAction):
+    type: Literal["key_up"] = "key_up"
+    key: str
+
+
+class KeyDownAction(BaseAction):
+    type: Literal["key_down"] = "key_down"
+    key: str
 
 
 class CursorPositionAction(BaseAction):
@@ -123,7 +133,10 @@ OperatorAction = Union[
     MouseDownAction,
     MouseUpAction,
     HoldKeyAction,
+    KeyDownAction,
+    KeyUpAction,
     CursorPositionAction,
     GotoAction,
     BackAction,
+    RequestUserAction,
 ]
