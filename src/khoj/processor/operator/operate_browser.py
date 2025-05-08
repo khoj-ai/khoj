@@ -53,7 +53,6 @@ async def operate_browser(
         operator_agent = AnthropicOperatorAgent(chat_model, max_iterations, tracer)
     else:
         grounding_model_name = "ui-tars-1.5-7b"
-        reasoning_model = await ConversationAdapters.aget_chat_model_by_name(reasoning_model.name)
         grounding_model = await ConversationAdapters.aget_chat_model_by_name(grounding_model_name)
         if (
             not grounding_model
@@ -61,8 +60,6 @@ async def operate_browser(
             or grounding_model.model_type != ChatModel.ModelType.OPENAI
         ):
             raise ValueError("No supported visual grounding model for binary operator agent found.")
-        if not reasoning_model or not reasoning_model.vision_enabled:
-            raise ValueError("No supported visual reasoning model for binary operator agent found.")
         operator_agent = BinaryOperatorAgent(reasoning_model, grounding_model, max_iterations, tracer)
 
     # Initialize Environment
