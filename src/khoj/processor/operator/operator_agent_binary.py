@@ -59,7 +59,13 @@ class BinaryOperatorAgent(OperatorAgent):
         reasoner_response = await self.act_reason(query, current_state)
         natural_language_action = reasoner_response["message"]
         if reasoner_response["type"] == "error":
-            logger.error(f"Error in reasoning LLM: {natural_language_action}")
+            logger.error(natural_language_action)
+            return AgentActResult(
+                actions=[],
+                action_results=[],
+                rendered_response=natural_language_action,
+            )
+        elif reasoner_response["type"] == "done":
             return AgentActResult(
                 actions=[],
                 action_results=[],
@@ -73,7 +79,7 @@ class BinaryOperatorAgent(OperatorAgent):
         """
         Uses the reasoning LLM to determine the next high-level action based on the operation trajectory.
         """
-        vision_system_prompt = f"""
+        reasoning_system_prompt = f"""
 # Introduction
 * You are Khoj, a smart web browsing assistant. You help the user accomplish their task using a web browser.
 * You are given the user's query and screenshots of the browser's state transitions.
@@ -94,7 +100,7 @@ class BinaryOperatorAgent(OperatorAgent):
 # IMPORTANT
 * You are allowed upto {self.max_iterations} iterations to complete the task.
 * Explicitly tell the tool AI to use the `goto` function to navigate to a specific URL.
-* Once you've verified that the task has been completed, just say "DONE" (without the quotes). Do not say anything else.
+* Once you've verified that the main objective has been achieved, just say "DONE" (without the quotes). Do not say anything else.
 
 # Examples
 ## Example 1
@@ -112,10 +118,10 @@ Focus on the visual action and provide all necessary context.
 """.strip()
 
         if is_none_or_empty(self.messages):
-            query_text = query
+            query_text = f"**Main Objective**: {query}"
             query_screenshot = [f"data:image/png;base64,{convert_image_to_png(current_state.screenshot)}"]
             first_message_content = construct_structured_message(
-                message=query,
+                message=query_text,
                 images=query_screenshot,
                 model_type=self.vision_chat_model.model_type,
                 vision_enabled=True,
@@ -132,7 +138,7 @@ Focus on the visual action and provide all necessary context.
             natural_language_action = await send_message_to_model_wrapper(
                 query=query_text,
                 query_images=query_screenshot,
-                system_message=vision_system_prompt,
+                system_message=reasoning_system_prompt,
                 conversation_log=visual_reasoner_history,
                 agent_chat_model=self.vision_chat_model,
                 tracer=self.tracer,
@@ -140,13 +146,13 @@ Focus on the visual action and provide all necessary context.
             self.messages.append(current_message)
             self.messages.append(AgentMessage(role="assistant", content=natural_language_action))
 
-            if natural_language_action == "DONE":
+            if natural_language_action.strip().endswith("DONE"):
                 return {"type": "done", "message": "Completed task."}
 
-            logger.info(f"Vision LLM suggested action: {natural_language_action}")
+            logger.info(f"Reasoning LLM suggested action: {natural_language_action}")
 
         except Exception as e:
-            return {"type": "error", "message": f"Error calling Vision LLM: {e}"}
+            return {"type": "error", "message": f"Error calling Reasoning LLM: {e}"}
 
         return {"type": "action", "message": natural_language_action}
 
@@ -158,7 +164,7 @@ Focus on the visual action and provide all necessary context.
         grounding_user_prompt = f"""
 You are a GUI agent. You are given a task and a screenshot of the web browser tab you operate. You need to decide the next action to complete the task.
 You control a single tab in a Chromium browser. You cannot access the OS, filesystem or the application window.
-Always use the `goto` function to navigate to a specific URL.
+Always use the `goto` function to navigate to a specific URL. Ctrl+t, Ctrl+w, Ctrl+q, Ctrl+Shift+T, Ctrl+Shift+W are not allowed.
 
 ## Output Format
 ```
@@ -178,7 +184,6 @@ scroll(start_box='<|box_start|>(x1,y1)<|box_end|>', direction='down or up or rig
 wait(duration='time') # Sleep for specified time. Default is 1s and take a screenshot to check for any changes.
 goto(url='xxx') # Always use this to navigate to a specific URL. Use escape characters \\', \\", and \\n in url part to ensure we can parse the url in normal python string format.
 back() # Use this to go back to the previous page.
-finished(content='xxx') # Use escape characters \\', \\", and \\n in content part to ensure we can parse the content in normal python string format.
 
 ## Note
 - Use English in `Thought` part.
@@ -344,18 +349,6 @@ finished(content='xxx') # Use escape characters \\', \\", and \\n in content par
                     "parameters": {"type": "object", "properties": {}},
                 },
             },
-            {
-                "type": "function",
-                "function": {
-                    "name": "finished",
-                    "description": "If no further actions to take.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {"content": {"type": "string", "description": "Text to type"}},
-                        "required": ["content"],
-                    },
-                },
-            },
         ]
 
         # Construct grounding LLM input (using only the latest user prompt + image)
@@ -381,7 +374,7 @@ finished(content='xxx') # Use escape characters \\', \\", and \\n in content par
                 model=self.grounding_chat_model.name,
                 messages=grounding_messages_for_api,
                 tools=grounding_tools,
-                tool_choice="auto",
+                tool_choice="required",
                 temperature=0.0,  # Grounding should be precise
                 max_tokens=1000,  # Allow for thoughts + actions
             )
