@@ -1152,6 +1152,7 @@ async def send_message_to_model_wrapper(
     query_images: List[str] = None,
     context: str = "",
     query_files: str = None,
+    conversation_log: dict = {},
     agent_chat_model: ChatModel = None,
     tracer: dict = {},
 ):
@@ -1189,6 +1190,7 @@ async def send_message_to_model_wrapper(
         user_message=query,
         context_message=context,
         system_message=system_message,
+        conversation_log=conversation_log,
         model_name=chat_model_name,
         loaded_model=loaded_model,
         tokenizer_name=tokenizer,
@@ -1254,6 +1256,7 @@ def send_message_to_model_wrapper_sync(
     user: KhojUser = None,
     query_images: List[str] = None,
     query_files: str = "",
+    conversation_log: dict = {},
     tracer: dict = {},
 ):
     chat_model: ChatModel = ConversationAdapters.get_default_chat_model(user)
@@ -1282,6 +1285,7 @@ def send_message_to_model_wrapper_sync(
     truncated_messages = generate_chatml_messages_with_context(
         user_message=message,
         system_message=system_message,
+        conversation_log=conversation_log,
         model_name=chat_model_name,
         loaded_model=loaded_model,
         max_prompt_size=max_tokens,
