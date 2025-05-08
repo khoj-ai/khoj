@@ -20,9 +20,9 @@ logger = logging.getLogger(__name__)
 
 # --- Anthropic Operator Agent ---
 class AnthropicOperatorAgent(OperatorAgent):
-    async def act(self, query: str, current_state: EnvState) -> AgentActResult:
+    async def act(self, current_state: EnvState) -> AgentActResult:
         client = get_anthropic_async_client(
-            self.chat_model.ai_model_api.api_key, self.chat_model.ai_model_api.api_base_url
+            self.vision_model.ai_model_api.api_key, self.vision_model.ai_model_api.api_base_url
         )
         tool_version = "2025-01-24"
         betas = [f"computer-use-{tool_version}", "token-efficient-tools-2025-02-19"]
@@ -51,7 +51,7 @@ class AnthropicOperatorAgent(OperatorAgent):
 </IMPORTANT>
 """
         if is_none_or_empty(self.messages):
-            self.messages = [AgentMessage(role="user", content=query)]
+            self.messages = [AgentMessage(role="user", content=self.query)]
 
         tools = [
             {
@@ -77,13 +77,13 @@ class AnthropicOperatorAgent(OperatorAgent):
         ]
 
         thinking = {"type": "disabled"}
-        if self.chat_model.name.startswith("claude-3-7"):
+        if self.vision_model.name.startswith("claude-3-7"):
             thinking = {"type": "enabled", "budget_tokens": 1024}
 
         messages_for_api = self._format_message_for_api(self.messages)
         response = await client.beta.messages.create(
             messages=messages_for_api,
-            model=self.chat_model.name,
+            model=self.vision_model.name,
             system=system_prompt,
             tools=tools,
             betas=betas,
@@ -187,8 +187,8 @@ class AnthropicOperatorAgent(OperatorAgent):
                         {
                             "type": "tool_result",
                             "tool_use_id": tool_use_id,
-                            "content": None,  # Updated by environment step
-                            "is_error": False,  # Updated by environment step
+                            "content": None,  # Updated after environment step
+                            "is_error": False,  # Updated after environment step
                         }
                     )
 
@@ -206,13 +206,9 @@ class AnthropicOperatorAgent(OperatorAgent):
             rendered_response=rendered_response,
         )
 
-    def add_action_results(
-        self, env_steps: list[EnvStepResult], agent_action: AgentActResult, summarize_prompt: str = None
-    ):
-        if not agent_action.action_results and not summarize_prompt:
+    def add_action_results(self, env_steps: list[EnvStepResult], agent_action: AgentActResult):
+        if not agent_action.action_results:
             return
-        elif not agent_action.action_results:
-            agent_action.action_results = []
 
         # Update action results with results of applying suggested actions on the environment
         for idx, env_step in enumerate(env_steps):
@@ -235,10 +231,6 @@ class AnthropicOperatorAgent(OperatorAgent):
                 action_result["content"] = result_content
             if env_step.error:
                 action_result["is_error"] = True
-
-        # If summarize prompt provided, append as text within the tool results user message
-        if summarize_prompt:
-            agent_action.action_results.append({"type": "text", "text": summarize_prompt})
 
         # Append tool results to the message history
         self.messages += [AgentMessage(role="environment", content=agent_action.action_results)]

@@ -3,7 +3,6 @@ import logging
 from datetime import datetime
 from typing import List, Optional
 
-from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletion
 
 from khoj.database.models import ChatModel
@@ -18,7 +17,6 @@ from khoj.processor.operator.operator_environment_base import EnvState, EnvStepR
 from khoj.routers.helpers import send_message_to_model_wrapper
 from khoj.utils.helpers import (
     convert_image_to_png,
-    get_chat_usage_metrics,
     get_openai_async_client,
     is_none_or_empty,
 )
@@ -29,34 +27,35 @@ logger = logging.getLogger(__name__)
 # --- Binary Operator Agent ---
 class BinaryOperatorAgent(OperatorAgent):
     """
-    An OperatorAgent that uses two LLMs (OpenAI compatible):
-    1. Vision LLM: Determines the next high-level action based on the visual state.
+    An OperatorAgent that uses two LLMs:
+    1. Reasoning LLM: Determines the next high-level action based on the objective and current visual reasoning trajectory.
     2. Grounding LLM: Converts the high-level action into specific, executable browser actions.
     """
 
     def __init__(
         self,
-        vision_chat_model: ChatModel,
-        grounding_chat_model: ChatModel,  # Assuming a second model is provided/configured
+        query: str,
+        reasoning_model: ChatModel,
+        grounding_model: ChatModel,
         max_iterations: int,
         tracer: dict,
     ):
-        super().__init__(vision_chat_model, max_iterations, tracer)  # Use vision model for primary tracking
-        self.vision_chat_model = vision_chat_model
-        self.grounding_chat_model = grounding_chat_model
-        # Initialize OpenAI clients
-        self.grounding_client: AsyncOpenAI = get_openai_async_client(
-            grounding_chat_model.ai_model_api.api_key, grounding_chat_model.ai_model_api.api_base_url
+        super().__init__(query, reasoning_model, max_iterations, tracer)  # Use reasoning model for primary tracking
+        self.reasoning_model = reasoning_model
+        self.grounding_model = grounding_model
+        # Initialize openai api compatible client for grounding model
+        self.grounding_client = get_openai_async_client(
+            grounding_model.ai_model_api.api_key, grounding_model.ai_model_api.api_base_url
         )
 
-    async def act(self, query: str, current_state: EnvState) -> AgentActResult:
+    async def act(self, current_state: EnvState) -> AgentActResult:
         """
         Uses a two-step LLM process to determine and structure the next action.
         """
         self._commit_trace()  # Commit trace before next action
 
         # --- Step 1: Reasoning LLM determines high-level action ---
-        reasoner_response = await self.act_reason(query, current_state)
+        reasoner_response = await self.act_reason(current_state)
         natural_language_action = reasoner_response["message"]
         if reasoner_response["type"] == "error":
             logger.error(natural_language_action)
@@ -75,7 +74,7 @@ class BinaryOperatorAgent(OperatorAgent):
         # --- Step 2: Grounding LLM converts NL action to structured action ---
         return await self.act_ground(natural_language_action, current_state)
 
-    async def act_reason(self, query: str, current_state: EnvState) -> dict[str, str]:
+    async def act_reason(self, current_state: EnvState) -> dict[str, str]:
         """
         Uses the reasoning LLM to determine the next high-level action based on the operation trajectory.
         """
@@ -118,12 +117,12 @@ Focus on the visual action and provide all necessary context.
 """.strip()
 
         if is_none_or_empty(self.messages):
-            query_text = f"**Main Objective**: {query}"
+            query_text = f"**Main Objective**: {self.query}"
             query_screenshot = [f"data:image/png;base64,{convert_image_to_png(current_state.screenshot)}"]
             first_message_content = construct_structured_message(
                 message=query_text,
                 images=query_screenshot,
-                model_type=self.vision_chat_model.model_type,
+                model_type=self.reasoning_model.model_type,
                 vision_enabled=True,
             )
             current_message = AgentMessage(role="user", content=first_message_content)
@@ -140,7 +139,7 @@ Focus on the visual action and provide all necessary context.
                 query_images=query_screenshot,
                 system_message=reasoning_system_prompt,
                 conversation_log=visual_reasoner_history,
-                agent_chat_model=self.vision_chat_model,
+                agent_chat_model=self.reasoning_model,
                 tracer=self.tracer,
             )
             self.messages.append(current_message)
@@ -371,7 +370,7 @@ back() # Use this to go back to the previous page.
 
         try:
             grounding_response: ChatCompletion = await self.grounding_client.chat.completions.create(
-                model=self.grounding_chat_model.name,
+                model=self.grounding_model.name,
                 messages=grounding_messages_for_api,
                 tools=grounding_tools,
                 tool_choice="required",
@@ -465,14 +464,12 @@ back() # Use this to go back to the previous page.
             rendered_response=rendered_response,
         )
 
-    def add_action_results(
-        self, env_steps: list[EnvStepResult], agent_action: AgentActResult, summarize_prompt: str = None
-    ) -> None:
+    def add_action_results(self, env_steps: list[EnvStepResult], agent_action: AgentActResult) -> None:
         """
         Adds the results of executed actions back into the message history,
         formatted for the next OpenAI vision LLM call.
         """
-        if not agent_action.action_results and not summarize_prompt:
+        if not agent_action.action_results:
             return
 
         tool_outputs = []
@@ -493,44 +490,38 @@ back() # Use this to go back to the previous page.
             tool_output_content = construct_structured_message(
                 message=tool_outputs_str,
                 images=[formatted_screenshot],
-                model_type=self.vision_chat_model.model_type,
+                model_type=self.reasoning_model.model_type,
                 vision_enabled=True,
             )
             self.messages.append(AgentMessage(role="environment", content=tool_output_content))
 
-        # Append summarize prompt if provided
-        if summarize_prompt:
-            self.messages.append(AgentMessage(role="user", content=summarize_prompt))
-
-    async def summarize(self, query: str, env_state: EnvState) -> str:
-        # Construct vision LLM input following OpenAI format
+    async def summarize(self, summarize_prompt: str, env_state: EnvState) -> str:
         conversation_history = self._format_message_for_api(self.messages)
         try:
             summary = await send_message_to_model_wrapper(
-                query=query,
+                query=summarize_prompt,
                 conversation_log=conversation_history,
-                agent_chat_model=self.vision_chat_model,
+                agent_chat_model=self.reasoning_model,
                 tracer=self.tracer,
             )
-
-            # Return last action message if no summary
+            # Set summary to last action message
             if not summary:
-                return self.compile_response(self.messages[-1].content)  # Compile the last action message
-
-            # Append summary messages to history
-            trigger_summary = AgentMessage(role="user", content=query)
-            summary_message = AgentMessage(role="assistant", content=summary)
-            self.messages.extend([trigger_summary, summary_message])
-
-            return summary
+                raise ValueError("Summary is empty.")
         except Exception as e:
-            logger.error(f"Error calling Vision LLM for summary: {e}")
-            return f"Error generating summary: {e}"
+            logger.error(f"Error calling Reasoning LLM for summary: {e}")
+            summary = "\n".join([self._get_message_text(msg) for msg in self.messages])
+
+        # Append summary messages to history
+        trigger_summary = AgentMessage(role="user", content=summarize_prompt)
+        summary_message = AgentMessage(role="assistant", content=summary)
+        self.messages.extend([trigger_summary, summary_message])
+
+        return summary
 
     def compile_response(self, response_content: Union[str, List, dict]) -> str:
         """Compile response content into a string, handling OpenAI message structures."""
         if isinstance(response_content, str):
-            return response_content  # Simple text (e.g., initial user query, vision response)
+            return response_content
 
         if isinstance(response_content, dict) and response_content.get("role") == "assistant":
             # Grounding LLM response message (might contain tool calls)
@@ -544,7 +535,7 @@ back() # Use this to go back to the previous page.
                     compiled.append(
                         f"**Action ({tc.get('function', {}).get('name')})**: {tc.get('function', {}).get('arguments')}"
                     )
-            return "\n- ".join(filter(None, compiled)) or "[Assistant Message]"
+            return "\n- ".join(filter(None, compiled))
 
         if isinstance(response_content, list):  # Tool results list
             compiled = ["**Tool Results**:"]
