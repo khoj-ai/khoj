@@ -47,10 +47,10 @@ async def operate_browser(
     # Initialize Agent
     max_iterations = 40  # TODO: Configurable?
     operator_agent: OperatorAgent
-    if chat_model.name.startswith("gpt-"):
-        operator_agent = OpenAIOperatorAgent(chat_model, max_iterations, tracer)
-    elif chat_model.name.startswith("claude-"):
-        operator_agent = AnthropicOperatorAgent(chat_model, max_iterations, tracer)
+    if reasoning_model.name.startswith("gpt-"):
+        operator_agent = OpenAIOperatorAgent(query, reasoning_model, max_iterations, tracer)
+    elif reasoning_model.name.startswith("claude-"):
+        operator_agent = AnthropicOperatorAgent(query, reasoning_model, max_iterations, tracer)
     else:
         grounding_model_name = "ui-tars-1.5-7b"
         grounding_model = await ConversationAdapters.aget_chat_model_by_name(grounding_model_name)
@@ -60,7 +60,7 @@ async def operate_browser(
             or grounding_model.model_type != ChatModel.ModelType.OPENAI
         ):
             raise ValueError("No supported visual grounding model for binary operator agent found.")
-        operator_agent = BinaryOperatorAgent(reasoning_model, grounding_model, max_iterations, tracer)
+        operator_agent = BinaryOperatorAgent(query, reasoning_model, grounding_model, max_iterations, tracer)
 
     # Initialize Environment
     if send_status_func:
@@ -87,7 +87,7 @@ async def operate_browser(
                 browser_state = await environment.get_state()
 
                 # 2. Agent decides action(s)
-                agent_result = await operator_agent.act(query, browser_state)
+                agent_result = await operator_agent.act(browser_state)
 
                 # Render status update
                 rendered_response = agent_result.rendered_response
@@ -118,8 +118,8 @@ async def operate_browser(
                     break
                 if task_completed or trigger_iteration_limit:
                     # Summarize results of operator run on last iteration
-                    operator_agent.add_action_results(env_steps, agent_result, summarize_prompt)
-                    summary_message = await operator_agent.summarize(query, browser_state)
+                    operator_agent.add_action_results(env_steps, agent_result)
+                    summary_message = await operator_agent.summarize(summarize_prompt, browser_state)
                     logger.info(f"Task completed: {task_completed}, Iteration limit: {trigger_iteration_limit}")
                     break
 

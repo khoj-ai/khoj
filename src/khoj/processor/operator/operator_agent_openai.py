@@ -20,9 +20,9 @@ logger = logging.getLogger(__name__)
 
 # --- Anthropic Operator Agent ---
 class OpenAIOperatorAgent(OperatorAgent):
-    async def act(self, query: str, current_state: EnvState) -> AgentActResult:
+    async def act(self, current_state: EnvState) -> AgentActResult:
         client = get_openai_async_client(
-            self.chat_model.ai_model_api.api_key, self.chat_model.ai_model_api.api_base_url
+            self.vision_model.ai_model_api.api_key, self.vision_model.ai_model_api.api_base_url
         )
         safety_check_prefix = "Say 'continue' after resolving the following safety checks to proceed:"
         safety_check_message = None
@@ -80,7 +80,7 @@ class OpenAIOperatorAgent(OperatorAgent):
         ]
 
         if is_none_or_empty(self.messages):
-            self.messages = [AgentMessage(role="user", content=query)]
+            self.messages = [AgentMessage(role="user", content=self.query)]
 
         messages_for_api = self._format_message_for_api(self.messages)
         response: Response = await client.responses.create(
@@ -168,7 +168,7 @@ class OpenAIOperatorAgent(OperatorAgent):
                 action_results.append(
                     {
                         "type": f"{block.type}_output",
-                        "output": content,  # Updated by environment step
+                        "output": content,  # Updated after environment step
                         "call_id": last_call_id,
                     }
                 )
@@ -181,10 +181,8 @@ class OpenAIOperatorAgent(OperatorAgent):
             rendered_response=rendered_response,
         )
 
-    def add_action_results(
-        self, env_steps: list[EnvStepResult], agent_action: AgentActResult, summarize_prompt: str = None
-    ) -> None:
-        if not agent_action.action_results and not summarize_prompt:
+    def add_action_results(self, env_steps: list[EnvStepResult], agent_action: AgentActResult) -> None:
+        if not agent_action.action_results:
             return
 
         # Update action results with results of applying suggested actions on the environment
@@ -209,11 +207,7 @@ class OpenAIOperatorAgent(OperatorAgent):
                 # Add text data
                 action_result["output"] = result_content
 
-        if agent_action.action_results:
-            self.messages += [AgentMessage(role="environment", content=agent_action.action_results)]
-        # Append summarize prompt as a user message after tool results
-        if summarize_prompt:
-            self.messages += [AgentMessage(role="user", content=summarize_prompt)]
+        self.messages += [AgentMessage(role="environment", content=agent_action.action_results)]
 
     def _format_message_for_api(self, messages: list[AgentMessage]) -> list:
         """Format the message for OpenAI API."""
