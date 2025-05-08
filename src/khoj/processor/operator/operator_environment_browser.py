@@ -243,6 +243,18 @@ class BrowserEnvironment(Environment):
                     output = f"Held key{'s' if len(keys) > 1 else ''} {keys_to_parse} for {duration} seconds"
                     logger.debug(f"Action: {action.type} '{keys_to_parse}' for {duration}s")
 
+                case "key_down":
+                    key = action.key
+                    await self.page.keyboard.down(key)
+                    output = f"Key down: {key}"
+                    logger.debug(f"Action: {action.type} {key}")
+
+                case "key_up":
+                    key = action.key
+                    await self.page.keyboard.up(key)
+                    output = f"Key up: {key}"
+                    logger.debug(f"Action: {action.type} {key}")
+
                 case "cursor_position":
                     # Playwright doesn't directly expose mouse position easily without JS injection
                     # Returning a placeholder for now
