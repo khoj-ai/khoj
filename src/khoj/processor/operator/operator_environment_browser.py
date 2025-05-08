@@ -27,6 +27,7 @@ class BrowserEnvironment(Environment):
         self.height: int = 768
         self.visited_urls: Set[str] = set()
         self.excluded_urls = {"about:blank", "https://duckduckgo.com", "https://www.bing.com", "https://www.google.com"}
+        self.navigation_history: list[str] = []
 
     async def start(self, width: int = 1024, height: int = 768) -> None:
         self.width = width
@@ -48,7 +49,13 @@ class BrowserEnvironment(Environment):
         # Define a handler for page load events to capture URLs
         async def handle_load(loaded_page: Page):
             url = loaded_page.url
-            if url and url not in self.excluded_urls and url not in self.visited_urls:
+            if not url:
+                return
+
+            if not self.navigation_history or self.navigation_history[-1] != url:
+                self.navigation_history.append(url)
+
+            if url not in self.excluded_urls and url not in self.visited_urls:
                 logger.debug(f"Page loaded: {url}")
                 self.visited_urls.add(url)
 
@@ -252,9 +259,15 @@ class BrowserEnvironment(Environment):
                         logger.debug(f"Action: {action.type} to {url}")
 
                 case "back":
-                    await self.page.go_back()
-                    output = "Navigated back"
-                    logger.debug(f"Action: {action.type}")
+                    if len(self.navigation_history) > 1:
+                        self.navigation_history.pop()
+                        previous_url = self.navigation_history[-1]
+                        await self.page.goto(previous_url)
+                        output = f"Navigated back to {previous_url}"
+                    else:
+                        output = "No previous URL to navigate back"
+                        previous_url = "about:blank"
+                    logger.debug(f"Action: {action.type} to {previous_url}")
 
                 case _:
                     error = f"Unrecognized action type: {action.type}"
