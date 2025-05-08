@@ -431,12 +431,11 @@ back() # Use this to go back to the previous page.
 
                         if action_to_run:
                             actions.append(action_to_run)
-                            # Prepare action result structure (similar to OpenAIOperatorAgent)
                             action_results.append(
                                 {
                                     "type": "tool_result",
                                     "tool_call_id": tool_call.id,
-                                    "content": None,  # Updated by environment step
+                                    "content": None,  # Updated after environment step
                                 }
                             )
                             rendered_parts.append(action_render_str)
@@ -472,28 +471,30 @@ back() # Use this to go back to the previous page.
         if not agent_action.action_results:
             return
 
-        tool_outputs = []
         for idx, env_step in enumerate(env_steps):
-            if idx < len(agent_action.action_results):  # Ensure we don't go out of bounds
-                result_content = env_step.error or env_step.output or "[Action completed]"
-                tool_outputs.append(["Took screenshot" if env_step.type == "image" else json.dumps(result_content)])
+            result_content = env_step.error or env_step.output or "[Action completed]"
+            action_result = agent_action.action_results[idx]
+            if env_step.type == "image":
+                message = "**Action Result**: Took screenshot"
+                images = [f"data:image/png;base64,{convert_image_to_png(env_step.screenshot_base64)}"]
+            elif idx == len(env_steps) - 1:
+                message = f"**Action Result**: {json.dumps(result_content)}"
+                images = [f"data:image/png;base64,{convert_image_to_png(env_step.screenshot_base64)}"]
             else:
-                logger.warning(
-                    f"Mismatch between env_steps ({len(env_steps)}) and action_results ({len(agent_action.action_results)})"
-                )
-
-        # Append tool results message to history
-        if tool_outputs:
-            tool_outputs_list = "\n".join([f"- {idx}: {str(item)}" for idx, item in enumerate(tool_outputs)])
-            tool_outputs_str = "**Action Results**:\n" + tool_outputs_list
-            formatted_screenshot = f"data:image/png;base64,{convert_image_to_png(env_step.screenshot_base64)}"
-            tool_output_content = construct_structured_message(
-                message=tool_outputs_str,
-                images=[formatted_screenshot],
+                message = f"**Action Result**: {json.dumps(result_content)}"
+                images = []
+            action_result["content"] = construct_structured_message(
+                message=message,
+                images=images,
                 model_type=self.reasoning_model.model_type,
                 vision_enabled=True,
             )
-            self.messages.append(AgentMessage(role="environment", content=tool_output_content))
+
+        # Append action results to history
+        action_results_content = []
+        for action_result in agent_action.action_results:
+            action_results_content.extend(action_result["content"])
+        self.messages.append(AgentMessage(role="environment", content=action_results_content))
 
     async def summarize(self, summarize_prompt: str, env_state: EnvState) -> str:
         conversation_history = self._format_message_for_api(self.messages)
