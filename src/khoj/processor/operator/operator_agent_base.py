@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class AgentActResult(BaseModel):
     actions: List[OperatorAction] = []
     action_results: List[dict] = []  # Model-specific format
-    rendered_response: Optional[str] = None
+    rendered_response: Optional[dict] = None
 
 
 class AgentMessage(BaseModel):

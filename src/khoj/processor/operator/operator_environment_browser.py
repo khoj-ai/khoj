@@ -133,7 +133,7 @@ class BrowserEnvironment(Environment):
         if not self.page or self.page.is_closed():
             return EnvStepResult(error="Browser page is not available or closed.")
 
-        state = await self.get_state()
+        before_state = await self.get_state()
         output, error, step_type = None, None, "text"
         try:
             match action.type:
@@ -232,7 +232,7 @@ class BrowserEnvironment(Environment):
 
                 case "screenshot":
                     step_type = "image"
-                    output = {"image": state.screenshot, "url": state.url}
+                    output = {"image": before_state.screenshot, "url": before_state.url}
                     logger.debug(f"Action: {action.type}")
 
                 case "move":
@@ -324,12 +324,13 @@ class BrowserEnvironment(Environment):
             error = f"Error executing action {action.type}: {e}"
             logger.exception(f"Error during step execution for action: {action.model_dump_json()}")
 
+        after_state = await self.get_state()
         return EnvStepResult(
             type=step_type,
             output=output,
             error=error,
-            current_url=state.url,
-            screenshot_base64=state.screenshot,
+            current_url=after_state.url,
+            screenshot_base64=after_state.screenshot,
         )
 
     def reset(self) -> None:

@@ -273,35 +273,38 @@ class OpenAIOperatorAgent(OperatorAgent):
         return "\n- ".join(filter(None, compiled_response))  # Filter out empty strings
 
     @staticmethod
-    async def _render_response(response_content: list[ResponseOutputItem], screenshot: Optional[str] = None) -> str:
+    async def _render_response(response_content: list[ResponseOutputItem], screenshot: Optional[str] = None) -> dict:
         """Render OpenAI response for display, potentially including screenshots."""
-        rendered_response = [""]
+        render_texts = []
         for block in deepcopy(response_content):  # Use deepcopy to avoid modifying original
             if block.type == "message":
                 text_content = block.text if hasattr(block, "text") else block.model_dump_json()
-                rendered_response.append(text_content)
+                render_texts += [text_content]
             elif block.type == "function_call":
                 block_input = {"action": block.name}
                 if block.name == "goto":
-                    try:
-                        args = json.loads(block.arguments)
-                        block_input["url"] = args.get("url", "[Missing URL]")
-                    except json.JSONDecodeError:
-                        block_input["arguments"] = block.arguments
-                rendered_response.append(f"**Action**: {json.dumps(block_input)}")
+                    args = json.loads(block.arguments)
+                    render_texts = [f'Open URL: {args.get("url", "[Missing URL]")}']
+                else:
+                    render_texts += [block.name]
             elif block.type == "computer_call":
                 block_input = block.action
-                # If it's a screenshot action
-                if block_input.type == "screenshot":
-                    #  Render screenshot if available
-                    block_input_render = block_input.model_dump()
-                    if screenshot:
-                        block_input_render["image"] = f"data:image/webp;base64,{screenshot}"
-                    else:
-                        block_input_render["image"] = "[Failed to get screenshot]"
-                    rendered_response.append(f"**Action**: {json.dumps(block_input_render)}")
+                if block_input.type == "screenshot" and not screenshot:
+                    render_texts += ["Failed to get screenshot"]
+                elif block_input.type == "type":
+                    render_texts += [f'Type "{block_input.text}"']
+                elif block_input.type == "keypress":
+                    render_texts += [f"Press {'+'.join(block_input.keys)}"]
                 else:
-                    rendered_response.append(f"**Action**: {block_input.model_dump_json()}")
+                    render_texts += [f"{block_input.type.capitalize()}"]
             elif block.type == "reasoning" and block.summary:
-                rendered_response.append(f"**Thought**: {block.summary}")
-        return "\n- ".join(filter(None, rendered_response))
+                render_texts += [f"**Thought**: {block.summary}"]
+
+        render_payload = {
+            # Combine text into a single string and filter out empty strings
+            "text": "\n- ".join(filter(None, render_texts)),
+            # Add screenshot data if available
+            "image": f"data:image/webp;base64,{screenshot}" if screenshot else None,
+        }
+
+        return render_payload

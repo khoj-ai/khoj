@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 from typing import Callable, List, Optional
 
@@ -89,12 +90,6 @@ async def operate_browser(
                 # 2. Agent decides action(s)
                 agent_result = await operator_agent.act(browser_state)
 
-                # Render status update
-                rendered_response = agent_result.rendered_response
-                if send_status_func and rendered_response:
-                    async for event in send_status_func(f"**Operating Browser**:\n{rendered_response}"):
-                        yield {ChatEvent.STATUS: event}
-
                 # 3. Execute actions in the environment
                 env_steps: List[EnvStepResult] = []
                 for action in agent_result.actions:
@@ -109,6 +104,15 @@ async def operate_browser(
                         break
                     env_step = await environment.step(action)
                     env_steps.append(env_step)
+
+                # Render status update
+                latest_screenshot = f"data:image/webp;base64,{env_steps[-1].screenshot_base64 if env_steps else browser_state.screenshot}"
+                render_payload = agent_result.rendered_response
+                render_payload["image"] = latest_screenshot
+                render_content = f"**Action**: {json.dumps(render_payload)}"
+                if send_status_func:
+                    async for event in send_status_func(f"**Operating Browser**:\n{render_content}"):
+                        yield {ChatEvent.STATUS: event}
 
                 # Check if termination conditions are met
                 task_completed = not agent_result.actions  # No actions requested by agent
