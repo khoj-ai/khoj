@@ -106,18 +106,21 @@ class BinaryOperatorAgent(OperatorAgent):
 
 # IMPORTANT
 * You are allowed upto {self.max_iterations} iterations to complete the task.
-* Explicitly tell the tool AI to use the `goto` function to navigate to a specific URL.
-* Once you've verified that the main objective has been achieved, just say "DONE" (without the quotes). Do not say anything else.
+* To navigate to a specific URL, put "GOTO <URL>" (without quotes) on the last line of your response.
+* To navigate back to the previous page, end your response with "BACK" (without quotes).
+* Once you've verified that the main objective has been achieved, end your response with "DONE" (without quotes).
 
 # Examples
 ## Example 1
-- use the 'goto' function to navigate to https://example.com
+GOTO https://example.com
 ## Example 2
-- 'click the blue login button located at the top right corner'
+click the blue login button located at the top right corner
 ## Example 3
-- 'scroll down the page to find the contact section'
+scroll down the page
 ## Example 4
-- 'type the username example@email.com into the input field labeled Username')
+type the username example@email.com into the input field labeled Username
+## Example 5
+DONE
 
 # Instructions
 Now describe a single high-level action to take next to progress towards the user's goal in detail.
