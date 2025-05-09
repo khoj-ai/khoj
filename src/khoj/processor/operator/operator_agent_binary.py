@@ -7,6 +7,8 @@ from openai.types.chat import ChatCompletion
 
 from khoj.database.models import ChatModel
 from khoj.processor.conversation.utils import construct_structured_message
+from khoj.processor.operator.grounding_agent import GroundingAgent
+from khoj.processor.operator.grounding_agent_uitars import GroundingAgentUitars
 from khoj.processor.operator.operator_actions import *
 from khoj.processor.operator.operator_agent_base import (
     AgentActResult,
@@ -44,9 +46,15 @@ class BinaryOperatorAgent(OperatorAgent):
         self.reasoning_model = reasoning_model
         self.grounding_model = grounding_model
         # Initialize openai api compatible client for grounding model
-        self.grounding_client = get_openai_async_client(
+        grounding_client = get_openai_async_client(
             grounding_model.ai_model_api.api_key, grounding_model.ai_model_api.api_base_url
         )
+        if "ui-tars-1.5" in grounding_model.name:
+            self.grounding_agent = GroundingAgentUitars(
+                grounding_model.name, grounding_client, environment_type="web", tracer=tracer
+            )
+        else:
+            self.grounding_agent = GroundingAgent(grounding_model.name, grounding_client, tracer=tracer)
 
     async def act(self, current_state: EnvState) -> AgentActResult:
         """
@@ -155,308 +163,36 @@ Focus on the visual action and provide all necessary context.
 
         return {"type": "action", "message": natural_language_action}
 
-    async def act_ground(self, natural_language_action: str, current_state: EnvState) -> AgentActResult:
+    async def act_ground(self, action_instruction: str, current_state: EnvState) -> AgentActResult:
         """Uses the grounding LLM to convert the high-level action into structured browser actions."""
         actions: List[OperatorAction] = []
         action_results: List[dict] = []
-        rendered_response = "No action determined."
-        grounding_user_prompt = f"""
-You are a GUI agent. You are given a task and a screenshot of the web browser tab you operate. You need to decide the next action to complete the task.
-You control a single tab in a Chromium browser. You cannot access the OS, filesystem or the application window.
-Always use the `goto` function to navigate to a specific URL. Ctrl+t, Ctrl+w, Ctrl+q, Ctrl+Shift+T, Ctrl+Shift+W are not allowed.
-
-## Output Format
-```
-Thought: ...
-Action: ...
-```
-
-## Action Space
-
-click(start_box='<|box_start|>(x1,y1)<|box_end|>')
-left_double(start_box='<|box_start|>(x1,y1)<|box_end|>')
-right_single(start_box='<|box_start|>(x1,y1)<|box_end|>')
-drag(start_box='<|box_start|>(x1,y1)<|box_end|>', end_box='<|box_start|>(x3,y3)<|box_end|>')
-hotkey(key='')
-type(content='xxx') # Use escape characters \\', \\\", and \\n in content part to ensure we can parse the content in normal python string format. If you want to submit your input, use \\n at the end of content.
-scroll(start_box='<|box_start|>(x1,y1)<|box_end|>', direction='down or up or right or left')
-wait(duration='time') # Sleep for specified time. Default is 1s and take a screenshot to check for any changes.
-goto(url='xxx') # Always use this to navigate to a specific URL. Use escape characters \\', \\", and \\n in url part to ensure we can parse the url in normal python string format.
-back() # Use this to go back to the previous page.
-
-## Note
-- Use English in `Thought` part.
-- Write a small plan and finally summarize your next action (with its target element) in one sentence in `Thought` part.
-
-## User Instruction
-{natural_language_action}
-"""
-
-        # Define tools for the grounding LLM (OpenAI format)
-        grounding_tools = [
-            {
-                "type": "function",
-                "function": {
-                    "name": "click",
-                    "description": "Click on a specific coordinate.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "x": {"type": "integer", "description": "X coordinate"},
-                            "y": {"type": "integer", "description": "Y coordinate"},
-                        },
-                        "required": ["x", "y"],
-                    },
-                },
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "left_double",
-                    "description": "Double click on a specific coordinate.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "x": {"type": "integer", "description": "X coordinate"},
-                            "y": {"type": "integer", "description": "Y coordinate"},
-                        },
-                        "required": ["x", "y"],
-                    },
-                },
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "right_single",
-                    "description": "Right click on a specific coordinate.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "x": {"type": "integer", "description": "X coordinate"},
-                            "y": {"type": "integer", "description": "Y coordinate"},
-                        },
-                        "required": ["x", "y"],
-                    },
-                },
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "drag",
-                    "description": "Perform a drag-and-drop operation along a path.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "path": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "x": {"type": "integer"},
-                                        "y": {"type": "integer"},
-                                    },
-                                    "required": ["x", "y"],
-                                },
-                                "description": "List of points (x, y coordinates) defining the drag path.",
-                            }
-                        },
-                        "required": ["path"],
-                    },
-                },
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "hotkey",
-                    "description": "Press a key or key combination.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "keys": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "List of keys to press (e.g., ['Control', 'a'], ['Enter'])",
-                            }
-                        },
-                        "required": ["keys"],
-                    },
-                },
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "type",
-                    "description": "Type text, usually into a focused input field.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {"content": {"type": "string", "description": "Text to type"}},
-                        "required": ["content"],
-                    },
-                },
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "scroll",
-                    "description": "Scroll the page.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "x": {"type": "integer", "description": "X coordinate to scroll from"},
-                            "y": {"type": "integer", "description": "Y coordinate to scroll from"},
-                            "direction": {
-                                "type": "string",
-                                "enum": ["up", "down", "left", "right"],
-                                "default": "down",
-                            },
-                        },
-                        "required": [],  # None is strictly required
-                    },
-                },
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "wait",
-                    "description": "Pause execution for a specified duration.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "duration": {"type": "number", "description": "Duration in seconds", "default": 1.0}
-                        },
-                        "required": [],
-                    },
-                },
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "goto",
-                    "description": "Navigate to a specific URL.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {"url": {"type": "string", "description": "Fully qualified URL"}},
-                        "required": ["url"],
-                    },
-                },
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "back",
-                    "description": "navigate back to the previous page.",
-                    "parameters": {"type": "object", "properties": {}},
-                },
-            },
-        ]
-
-        # Construct grounding LLM input (using only the latest user prompt + image)
-        # We don't pass the full history here, as grounding depends on the *current* state + NL action
-        grounding_messages_for_api = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": grounding_user_prompt},
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/png;base64,{convert_image_to_png(current_state.screenshot)}",
-                            "detail": "high",
-                        },
-                    },
-                ],
-            }
-        ]
+        rendered_parts = [f"**Thought (Vision)**: {action_instruction}"]
+        self.grounding_agent.reset()  # Reset grounding agent state
 
         try:
-            grounding_response: ChatCompletion = await self.grounding_client.chat.completions.create(
-                model=self.grounding_model.name,
-                messages=grounding_messages_for_api,
-                tools=grounding_tools,
-                tool_choice="required",
-                temperature=0.0,  # Grounding should be precise
-                max_tokens=1000,  # Allow for thoughts + actions
-            )
-            logger.debug(f"Grounding LLM response: {grounding_response.model_dump_json()}")
+            grounding_response, actions = await self.grounding_agent.act(action_instruction, current_state)
 
-            grounding_message = grounding_response.choices[0].message
-            # Parse tool calls
-            if grounding_message.tool_calls:
-                # Start rendering with vision output
-                rendered_parts = [f"**Thought (Vision)**: {natural_language_action}"]
-                for tool_call in grounding_message.tool_calls:
-                    function_name = tool_call.function.name
-                    try:
-                        arguments = json.loads(tool_call.function.arguments)
-                        action_to_run: Optional[OperatorAction] = None
-                        action_render_str = f"**Action ({function_name})**: {tool_call.function.arguments}"
-
-                        if function_name == "click":
-                            action_to_run = ClickAction(**arguments)
-                        elif function_name == "left_double":
-                            action_to_run = DoubleClickAction(**arguments)
-                        elif function_name == "right_single":
-                            action_to_run = ClickAction(button="right", **arguments)
-                        elif function_name == "type":
-                            content = arguments.get("content")
-                            action_to_run = TypeAction(text=content)
-                        elif function_name == "scroll":
-                            direction = arguments.get("direction", "down")
-                            amount = 3
-                            action_to_run = ScrollAction(scroll_direction=direction, scroll_amount=amount, **arguments)
-                        elif function_name == "hotkey":
-                            action_to_run = KeypressAction(**arguments)
-                        elif function_name == "goto":
-                            action_to_run = GotoAction(**arguments)
-                        elif function_name == "back":
-                            action_to_run = BackAction(**arguments)
-                        elif function_name == "wait":
-                            action_to_run = WaitAction(**arguments)
-                        elif function_name == "screenshot":
-                            action_to_run = ScreenshotAction(**arguments)
-                        elif function_name == "drag":
-                            # Need to convert list of dicts to list of Point objects
-                            path_dicts = arguments.get("path", [])
-                            path_points = [Point(**p) for p in path_dicts]
-                            if path_points:
-                                action_to_run = DragAction(path=path_points)
-                            else:
-                                logger.warning(f"Drag action called with empty path: {arguments}")
-                                action_render_str += " [Skipped - empty path]"
-                        elif function_name == "finished":
-                            action_to_run = None
-                        else:
-                            logger.warning(f"Grounding LLM called unhandled tool: {function_name}")
-                            action_render_str += " [Unhandled]"
-
-                        if action_to_run:
-                            actions.append(action_to_run)
-                            action_results.append(
-                                {
-                                    "type": "tool_result",
-                                    "tool_call_id": tool_call.id,
-                                    "content": None,  # Updated after environment step
-                                }
-                            )
-                            rendered_parts.append(action_render_str)
-                    except (json.JSONDecodeError, TypeError, ValueError) as arg_err:
-                        logger.error(
-                            f"Error parsing arguments for tool {function_name}: {arg_err} - Args: {tool_call.function.arguments}"
-                        )
-                        rendered_parts.append(f"**Error**: Failed to parse arguments for {function_name}")
-                rendered_response = "\n- ".join(rendered_parts)
+            # Process grounding response
+            if grounding_response.strip().endswith("DONE"):
+                rendered_parts += ["Completed task."]
+            elif grounding_response.strip().endswith("FAIL"):
+                rendered_parts += ["Error in grounding LLM response."]
             else:
-                # Grounding LLM responded but didn't call a tool
-                logger.warning("Grounding LLM did not produce a tool call.")
-                rendered_response = f"**Thought (Vision)**: {natural_language_action}\n- **Response (Grounding)**: {grounding_message.content or '[No tool call]'}"
-
-            # Update usage by grounding model
-            self._update_usage(grounding_response.usage.prompt_tokens, grounding_response.usage.completion_tokens)
+                rendered_parts += [f"**Thought (Grounding)**: {grounding_response}"]
+                for action in actions:
+                    rendered_parts += [f"**Action**: {action}"]
+                    action_results += [
+                        {
+                            "content": None,  # Updated after environment step
+                        }
+                    ]
         except Exception as e:
             logger.error(f"Error calling Grounding LLM: {e}")
-            rendered_response = (
-                f"**Thought (Vision)**: {natural_language_action}\n- **Error**: Error contacting Grounding LLM: {e}"
-            )
+            rendered_parts += [f"**Error**: Error contacting Grounding LLM: {e}"]
+
+        rendered_response = "\n- ".join(rendered_parts)
+
         return AgentActResult(
             actions=actions,
             action_results=action_results,
@@ -476,10 +212,10 @@ back() # Use this to go back to the previous page.
             action_result = agent_action.action_results[idx]
             if env_step.type == "image":
                 message = "**Action Result**: Took screenshot"
-                images = [f"data:image/png;base64,{convert_image_to_png(env_step.screenshot_base64)}"]
+                images = [f"data:image/png;base64,{env_step.screenshot_base64}"]
             elif idx == len(env_steps) - 1:
                 message = f"**Action Result**: {json.dumps(result_content)}"
-                images = [f"data:image/png;base64,{convert_image_to_png(env_step.screenshot_base64)}"]
+                images = [f"data:image/png;base64,{env_step.screenshot_base64}"]
             else:
                 message = f"**Action Result**: {json.dumps(result_content)}"
                 images = []
