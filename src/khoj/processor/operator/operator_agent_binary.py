@@ -70,13 +70,13 @@ class BinaryOperatorAgent(OperatorAgent):
             return AgentActResult(
                 actions=[],
                 action_results=[],
-                rendered_response=natural_language_action,
+                rendered_response={"text": natural_language_action, "image": None},
             )
         elif reasoner_response["type"] == "done":
             return AgentActResult(
                 actions=[],
                 action_results=[],
-                rendered_response=natural_language_action,
+                rendered_response={"text": natural_language_action, "image": None},
             )
 
         # --- Step 2: Grounding LLM converts NL action to structured action ---
@@ -185,15 +185,31 @@ Focus on the visual action and provide all necessary context.
                 actions.append(WaitAction(duration=1.0))
                 rendered_parts += ["Could not process response."]
             else:
-                rendered_parts += [f"**Thought (Grounding)**: {grounding_response}"]
+                grounding_thoughts = grounding_response.rsplit("\nAction: ", 1)[0]
+                rendered_parts += [f"**Thought (Grounding)**: {grounding_thoughts}"]
                 for action in actions:
-                    rendered_parts += [f"**Action**: {action}"]
+                    if action.type == "type":
+                        rendered_parts += [f'**Action**: Type "{action.text}"']
+                    elif action.type == "keypress":
+                        rendered_parts += [f'**Action**: Press "{action.keys}"']
+                    elif action.type == "hold_key":
+                        rendered_parts += [f'**Action**: Hold "{action.text}" for {action.duration} seconds']
+                    elif action.type == "key_up":
+                        rendered_parts += [f'**Action**: Release Key "{action.key}"']
+                    elif action.type == "key_down":
+                        rendered_parts += [f'**Action**: Press Key "{action.key}"']
+                    elif action.type == "screenshot" and not current_state.screenshot:
+                        rendered_parts += [f"**Error**: Failed to take screenshot"]
+                    elif action.type == "goto":
+                        rendered_parts += [f"**Action**: Open URL {action.url}"]
+                    else:
+                        rendered_parts += [f"**Action**: {action.type}"]
             action_results += [{"content": None}]  # content set after environment step
         except Exception as e:
             logger.error(f"Error calling Grounding LLM: {e}")
             rendered_parts += [f"**Error**: Error contacting Grounding LLM: {e}"]
 
-        rendered_response = "\n- ".join(rendered_parts)
+        rendered_response = self._render_response(rendered_parts, current_state.screenshot)
 
         return AgentActResult(
             actions=actions,
@@ -291,11 +307,13 @@ Focus on the visual action and provide all necessary context.
         # Fallback for unexpected types
         return str(response_content)
 
-    def _render_response(self, response: List, screenshot: Optional[str]) -> Optional[str]:
-        """Render response for display. Currently uses compile_response."""
-        # TODO: Could potentially enhance rendering, e.g., showing vision thought + grounding actions distinctly.
-        # For now, rely on the structure built during the 'act' phase.
-        return response  # The rendered_response is already built in act()
+    def _render_response(self, response: List, screenshot: str | None) -> dict:
+        """Render response for display"""
+        render_payload = {
+            "text": "\n- ".join(response),
+            "image": f"data:image/webp;base64,{screenshot}" if screenshot else None,
+        }
+        return render_payload
 
     def _get_message_text(self, message: AgentMessage) -> str:
         if isinstance(message.content, list):

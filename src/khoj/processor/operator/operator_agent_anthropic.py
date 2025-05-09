@@ -292,31 +292,60 @@ class AnthropicOperatorAgent(OperatorAgent):
         return "\n- ".join(filter(None, compiled_response))  # Filter out empty strings
 
     @staticmethod
-    async def _render_response(response_content: list[BetaContentBlock], screenshot: Optional[str] = None) -> str:
+    async def _render_response(response_content: list[BetaContentBlock], screenshot: Optional[str] = None) -> dict:
         """Render Anthropic response, potentially including actual screenshots."""
-        rendered_response = [""]
+        render_texts = []
         for block in deepcopy(response_content):  # Use deepcopy to avoid modifying original
-            if block.type == "text":
-                rendered_response.append(block.text)
-            elif block.type == "tool_use":
-                block_input = {"action": block.name}
-                if block.name == "computer":
-                    block_input = block.input
-                elif block.name == "goto":
-                    block_input["url"] = block.input.get("url", "[Missing URL]")
-
-                # If it's a screenshot action
-                if isinstance(block_input, dict) and block_input.get("action") == "screenshot":
-                    # Render the screenshot data if available
-                    if screenshot:
-                        block_input["image"] = f"data:image/webp;base64,{screenshot}"
-                    else:
-                        block_input["image"] = "[Failed to get screenshot]"
-
-                rendered_response.append(f"**Action**: {json.dumps(block_input)}")
-            elif block.type == "thinking":
+            if block.type == "thinking":
                 thinking_content = getattr(block, "thinking", None)
                 if thinking_content:
-                    rendered_response.append(f"**Thought**: {thinking_content}")
+                    render_texts += [f"**Thought**: {thinking_content}"]
+            elif block.type == "text":
+                render_texts += [block.text]
+            elif block.type == "tool_use":
+                if block.name == "goto":
+                    render_texts += [f"Open URL: {block.input.get('url', '[Missing URL]')}"]
+                elif block.name == "back":
+                    render_texts += ["Go back to the previous page."]
+                elif block.name == "computer":
+                    block_input = block.input
+                    if not isinstance(block_input, dict):
+                        render_texts += [json.dumps(block_input)]
+                    # Handle computer action details
+                    elif "action" in block_input:
+                        action = block_input["action"]
+                        if action == "type":
+                            text = block_input.get("text")
+                            if text:
+                                render_texts += [f'Type "{text}"']
+                        elif action == "key":
+                            text: str = block_input.get("text")
+                            if text:
+                                render_texts += [f"Press {text}"]
+                        elif action == "hold_key":
+                            text = block_input.get("text")
+                            duration = block_input.get("duration", 1.0)
+                            if text:
+                                render_texts += [f"Hold {text} for {duration} seconds"]
+                        else:
+                            # Handle other actions
+                            render_texts += [f"{action.capitalize()}"]
 
-        return "\n- ".join(filter(None, rendered_response))
+                # If screenshot is not available when screenshot action was requested
+                if isinstance(block.input, dict) and block.input.get("action") == "screenshot" and not screenshot:
+                    render_texts += ["Failed to get screenshot"]
+
+        # Do not show screenshot if no actions requested
+        if all([block.type != "tool_use" for block in response_content]):
+            # If all blocks are not tool_use, return None
+            screenshot = None
+
+        # Create render payload
+        render_payload = {
+            # Combine text into a single string and filter out empty strings
+            "text": "\n- ".join(filter(None, render_texts)),
+            # Add screenshot data if available
+            "image": f"data:image/webp;base64,{screenshot}" if screenshot else None,
+        }
+
+        return render_payload
