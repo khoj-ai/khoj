@@ -79,6 +79,7 @@ from khoj.utils.helpers import (
     get_country_name_from_timezone,
     get_device,
     is_none_or_empty,
+    is_operator_enabled,
 )
 from khoj.utils.rawconfig import (
     ChatRequestBody,
@@ -570,6 +571,8 @@ async def chat_options(
 ) -> Response:
     cmd_options = {}
     for cmd in ConversationCommand:
+        if cmd == ConversationCommand.Operator and not is_operator_enabled():
+            continue
         if cmd in command_descriptions:
             cmd_options[cmd.value] = command_descriptions[cmd]
 
