@@ -177,18 +177,18 @@ Focus on the visual action and provide all necessary context.
 
             # Process grounding response
             if grounding_response.strip().endswith("DONE"):
-                rendered_parts += ["Completed task."]
+                # Ignore DONE response by the grounding agent. Reasoning agent handles termination.
+                actions.append(WaitAction(duration=1.0))
+                rendered_parts += ["Nothing to do."]
             elif grounding_response.strip().endswith("FAIL"):
-                rendered_parts += ["Error in grounding LLM response."]
+                # Ignore FAIL response by the grounding agent. Reasoning agent handles termination.
+                actions.append(WaitAction(duration=1.0))
+                rendered_parts += ["Could not process response."]
             else:
                 rendered_parts += [f"**Thought (Grounding)**: {grounding_response}"]
                 for action in actions:
                     rendered_parts += [f"**Action**: {action}"]
-                    action_results += [
-                        {
-                            "content": None,  # Updated after environment step
-                        }
-                    ]
+            action_results += [{"content": None}]  # content set after environment step
         except Exception as e:
             logger.error(f"Error calling Grounding LLM: {e}")
             rendered_parts += [f"**Error**: Error contacting Grounding LLM: {e}"]
