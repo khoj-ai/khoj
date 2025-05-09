@@ -4,8 +4,6 @@ import logging
 import os
 from typing import Optional, Set
 
-from playwright.async_api import Browser, Page, Playwright, async_playwright
-
 from khoj.processor.operator.operator_actions import OperatorAction
 from khoj.processor.operator.operator_environment_base import (
     Environment,
@@ -15,6 +13,13 @@ from khoj.processor.operator.operator_environment_base import (
 from khoj.utils.helpers import convert_image_to_webp
 
 logger = logging.getLogger(__name__)
+
+try:
+    from playwright.async_api import Browser, Page, Playwright, async_playwright
+except ImportError:
+    logger.debug(
+        "Playwright not found. To use browser operator, run 'pip install playwright' and 'playwright install' first."
+    )
 
 
 # --- Concrete BrowserEnvironment ---

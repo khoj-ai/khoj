@@ -490,6 +490,18 @@ def is_promptrace_enabled():
     return not is_none_or_empty(os.getenv("PROMPTRACE_DIR"))
 
 
+def is_operator_enabled():
+    """Check if Khoj can operate GUI applications.
+    Set KHOJ_OPERATOR_ENABLED env var to true and install playwright to enable it."""
+    try:
+        import playwright
+
+        is_playwright_installed = True
+    except ImportError:
+        is_playwright_installed = False
+    return is_env_var_true("KHOJ_OPERATOR_ENABLED") and is_playwright_installed
+
+
 def is_valid_url(url: str) -> bool:
     """Check if a string is a valid URL"""
     try:
