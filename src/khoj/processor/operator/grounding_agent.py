@@ -204,7 +204,7 @@ class GroundingAgent:
 
             # Parse tool calls
             grounding_message = grounding_response.choices[0].message
-            action_results = self._parse_action(grounding_message, instruction)
+            action_results = self._parse_action(grounding_message, instruction, current_state)
 
             # Update usage by grounding model
             self.tracer["usage"] = get_chat_usage_metrics(
@@ -262,7 +262,9 @@ back() # Use this to go back to the previous page.
         )
         return [{"role": "user", "content": grounding_messages_content}]
 
-    def _parse_action(self, grounding_message: ChatCompletionMessage, instruction: str) -> AgentActResult:
+    def _parse_action(
+        self, grounding_message: ChatCompletionMessage, instruction: str, current_state: EnvState
+    ) -> AgentActResult:
         """Parse the tool calls from the grounding LLM response and convert them to action objects."""
         actions: List[OperatorAction] = []
         action_results: List[dict] = []
@@ -340,7 +342,10 @@ back() # Use this to go back to the previous page.
         return AgentActResult(
             actions=actions,
             action_results=action_results,
-            rendered_response=rendered_response,
+            rendered_response={
+                "text": rendered_response,
+                "image": f"data:image/webp;base64,{current_state.screenshot}",
+            },
         )
 
     def reset(self):
