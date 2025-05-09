@@ -221,12 +221,15 @@ Focus on the visual action and provide all necessary context.
             else:
                 message = f"**Action Result**: {json.dumps(result_content)}"
                 images = []
-            action_result["content"] = construct_structured_message(
-                message=message,
-                images=images,
-                model_type=self.reasoning_model.model_type,
-                vision_enabled=True,
-            )
+            if not images:
+                action_result["content"] = [{"type": "text", "text": message}]
+            else:
+                action_result["content"] = construct_structured_message(
+                    message=message,
+                    images=images,
+                    model_type=self.reasoning_model.model_type,
+                    vision_enabled=True,
+                )
 
         # Append action results to history
         action_results_content = []
