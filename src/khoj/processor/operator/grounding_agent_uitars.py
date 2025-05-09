@@ -133,13 +133,19 @@ class GroundingAgentUitars:
         Suggest the next action(s) based on the instruction and current environment.
         """
         messages = self._format_messages_for_api(instruction, env_state)
+
         recent_screenshot = Image.open(BytesIO(self.history_images[-1]))
         origin_resized_height = recent_screenshot.height
         origin_resized_width = recent_screenshot.width
+
+        prediction, parsed_responses = self.parse_instruction_to_action(
+            instruction, origin_resized_height, origin_resized_width
+        )
+
         temperature = self.temperature
         top_k = self.top_k
         try_times = 3
-        while True:
+        while not parsed_responses:
             if try_times <= 0:
                 print(f"Reach max retry times to fetch response from client, as error flag.")
                 return "client error\nFAIL", []
@@ -194,7 +200,7 @@ class GroundingAgentUitars:
 
         return self._parse_action(parsed_responses, prediction)
 
-    def _parse_action(self, parsed_responses: dict, prediction: str) -> tuple[str, list[OperatorAction]]:
+    def _parse_action(self, parsed_responses: list[dict], prediction: str) -> tuple[str, list[OperatorAction]]:
         """
         Parse the model's prediction into actions and return the result.
         """
@@ -505,7 +511,7 @@ class GroundingAgentUitars:
             all_action.append(action_str)
 
         parsed_actions = [self.parse_action_string(action.replace("\n", "\\n").lstrip()) for action in all_action]
-        actions = []
+        actions: list[dict] = []
         for action_instance, raw_str in zip(parsed_actions, all_action):
             if action_instance == None:
                 print(f"Action can't parse: {raw_str}")
@@ -912,6 +918,29 @@ class GroundingAgentUitars:
                 pyautogui_code += f"\n# Unrecognized action type: {action_type}"
 
         return pyautogui_code
+
+    def parse_instruction_to_action(
+        self, instruction: str, origin_resized_height: int, origin_resized_width: int
+    ) -> tuple[str, list[dict]]:
+        """
+        Parse instruction into action with simple string match for GOTO and BACK actions.
+
+        Useful for actions that do not need to invoke the visual grounding model.
+        """
+        prediction, parsed_responses = None, []
+        # handle GOTO <URL>, BACK actions at the end of the response.
+        if instruction.strip().splitlines()[-1].strip().startswith("GOTO"):
+            url = instruction.split("GOTO")[-1].strip()
+            prediction = f"Thought: Let me go to {url}\nAction: goto(url='{url}')"
+            parsed_responses = self.parse_action_to_structure_output(
+                prediction, origin_resized_height, origin_resized_width, self.max_pixels, self.min_pixels
+            )
+        elif instruction.strip().endswith("BACK"):
+            prediction = "Thought: Let me go back to the previous page.\nAction: back()"
+            parsed_responses = self.parse_action_to_structure_output(
+                prediction, origin_resized_height, origin_resized_width, self.max_pixels, self.min_pixels
+            )
+        return prediction, parsed_responses
 
     def add_box_token(self, input_string):
         # Step 1: Split the string into individual actions
