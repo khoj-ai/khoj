@@ -350,13 +350,18 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
     let message = props.message;
 
     // Render screenshot image in screenshot action message
-    let screenshotData = null;
+    let jsonMessage = null;
     try {
-        const jsonMatch = message.match(/\{.*("action": "screenshot"|"type": "screenshot").*\}/);
+        const jsonMatch = message.match(
+            /\{.*("action": "screenshot"|"type": "screenshot"|"image": "data:image\/.*").*\}/,
+        );
         if (jsonMatch) {
-            screenshotData = JSON.parse(jsonMatch[0]);
-            const screenshotHtmlString = `<img src="${screenshotData.image}" alt="State of browser" class="max-w-full" />`;
-            message = message.replace(jsonMatch[0], `Screenshot\n\n${screenshotHtmlString}`);
+            jsonMessage = JSON.parse(jsonMatch[0]);
+            const screenshotHtmlString = `<img src="${jsonMessage.image}" alt="State of environment" class="max-w-full" />`;
+            message = message.replace(
+                `:\n**Action**: ${jsonMatch[0]}`,
+                `\n\n- ${jsonMessage.text}\n${screenshotHtmlString}`,
+            );
         }
     } catch (e) {
         console.error("Failed to parse screenshot data", e);
