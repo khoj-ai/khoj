@@ -144,6 +144,8 @@ async def operate_browser(
     finally:
         if environment and not user_input_message:  # Don't close browser if user input required
             await environment.close()
+        if operator_agent:
+            operator_agent.reset()
 
     yield {
         "text": user_input_message or response,
