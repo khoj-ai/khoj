@@ -113,6 +113,7 @@ from khoj.utils.helpers import (
     get_file_type,
     in_debug_mode,
     is_none_or_empty,
+    is_operator_enabled,
     is_valid_url,
     log_telemetry,
     mode_descriptions_for_llm,
@@ -253,7 +254,7 @@ def get_conversation_command(query: str) -> ConversationCommand:
         return ConversationCommand.Code
     elif query.startswith("/research"):
         return ConversationCommand.Research
-    elif query.startswith("/operator"):
+    elif query.startswith("/operator") and is_operator_enabled():
         return ConversationCommand.Operator
     else:
         return ConversationCommand.Default
@@ -363,6 +364,8 @@ async def aget_data_sources_and_output_format(
     for source, description in tool_descriptions_for_llm.items():
         # Skip showing Notes tool as an option if user has no entries
         if source == ConversationCommand.Notes and not user_has_entries:
+            continue
+        if source == ConversationCommand.Operator and not is_operator_enabled():
             continue
         source_options[source.value] = description
         if len(agent_sources) == 0 or source.value in agent_sources:

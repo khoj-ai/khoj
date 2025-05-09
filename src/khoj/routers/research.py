@@ -29,6 +29,7 @@ from khoj.routers.helpers import (
 from khoj.utils.helpers import (
     ConversationCommand,
     is_none_or_empty,
+    is_operator_enabled,
     timer,
     tool_description_for_research_llm,
     truncate_code_context,
@@ -99,6 +100,9 @@ async def apick_next_tool(
     agent_tools = agent.input_tools if agent else []
     user_has_entries = await EntryAdapters.auser_has_entries(user)
     for tool, description in tool_description_for_research_llm.items():
+        # Skip showing operator tool as an option if not enabled
+        if tool == ConversationCommand.Operator and not is_operator_enabled():
+            continue
         # Skip showing Notes tool as an option if user has no entries
         if tool == ConversationCommand.Notes:
             if not user_has_entries:

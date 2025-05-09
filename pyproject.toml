@@ -93,7 +93,6 @@ dependencies = [
     "resend == 1.0.1",
     "email-validator == 2.2.0",
     "e2b-code-interpreter ~= 1.0.0",
-    "playwright >= 1.49.0",
 ]
 dynamic = ["version"]
 
@@ -114,6 +113,7 @@ prod = [
 ]
 local = [
     "pgserver == 0.1.4",
+    "playwright >= 1.49.0",
 ]
 dev = [
     "khoj[prod,local]",
