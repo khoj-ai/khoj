@@ -168,7 +168,6 @@ Focus on the visual action and provide all necessary context.
         actions: List[OperatorAction] = []
         action_results: List[dict] = []
         rendered_parts = [f"**Thought (Vision)**: {action_instruction}"]
-        self.grounding_agent.reset()  # Reset grounding agent state
 
         try:
             grounding_response, actions = await self.grounding_agent.act(action_instruction, current_state)
@@ -318,3 +317,4 @@ Focus on the visual action and provide all necessary context.
     def reset(self):
         """Reset the agent state."""
         super().reset()
+        self.grounding_agent.reset()  # Reset grounding agent state
