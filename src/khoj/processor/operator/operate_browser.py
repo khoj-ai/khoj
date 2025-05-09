@@ -48,17 +48,17 @@ async def operate_browser(
     # Initialize Agent
     max_iterations = 40  # TODO: Configurable?
     operator_agent: OperatorAgent
-    if reasoning_model.name.startswith("gpt-"):
+    if reasoning_model.name.startswith("gpt-4o"):
         operator_agent = OpenAIOperatorAgent(query, reasoning_model, max_iterations, tracer)
-    elif reasoning_model.name.startswith("claude-"):
+    elif reasoning_model.name.startswith("claude-3-7-sonnet"):
         operator_agent = AnthropicOperatorAgent(query, reasoning_model, max_iterations, tracer)
     else:
-        grounding_model_name = "ui-tars-1.5-7b"
+        grounding_model_name = "ui-tars-1.5"
         grounding_model = await ConversationAdapters.aget_chat_model_by_name(grounding_model_name)
         if (
             not grounding_model
             or not grounding_model.vision_enabled
-            or grounding_model.model_type != ChatModel.ModelType.OPENAI
+            or not grounding_model.model_type == ChatModel.ModelType.OPENAI
         ):
             raise ValueError("No supported visual grounding model for binary operator agent found.")
         operator_agent = BinaryOperatorAgent(query, reasoning_model, grounding_model, max_iterations, tracer)
