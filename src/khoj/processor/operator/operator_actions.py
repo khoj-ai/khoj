@@ -119,6 +119,12 @@ class RequestUserAction(BaseAction):
     request: str
 
 
+class NoopAction(BaseAction):
+    """No operation action."""
+
+    type: Literal["noop"] = "noop"
+
+
 OperatorAction = Union[
     ClickAction,
     DoubleClickAction,
@@ -139,4 +145,5 @@ OperatorAction = Union[
     GotoAction,
     BackAction,
     RequestUserAction,
+    NoopAction,
 ]

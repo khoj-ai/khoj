@@ -160,7 +160,11 @@ class OpenAIOperatorAgent(OperatorAgent):
                 except Exception as e:
                     logger.error(f"Error converting OpenAI action {action_type}: {e}")
                     content = f"Error: {action_type}: {e}"
-
+            elif block.type == "message":
+                rendered_response["text"] = response.output_text
+            elif block.type == "reasoning":
+                actions.append(NoopAction())
+                action_results.append(block)
             if action_to_run or content:
                 actions.append(action_to_run)
             if action_to_run or content:
