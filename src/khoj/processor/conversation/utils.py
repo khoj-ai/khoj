@@ -105,9 +105,9 @@ class InformationCollectionIteration:
 
 
 def construct_iteration_history(
-    previous_iterations: List[InformationCollectionIteration], previous_iteration_prompt: str
-) -> str:
-    previous_iterations_history = ""
+    query: str, previous_iterations: List[InformationCollectionIteration], previous_iteration_prompt: str
+) -> list[dict]:
+    previous_iterations_history = []
     for idx, iteration in enumerate(previous_iterations):
         iteration_data = previous_iteration_prompt.format(
             tool=iteration.tool,
@@ -116,8 +116,23 @@ def construct_iteration_history(
             index=idx + 1,
         )
 
-        previous_iterations_history += iteration_data
-    return previous_iterations_history
+        previous_iterations_history.append(iteration_data)
+
+    return (
+        [
+            {
+                "by": "you",
+                "message": query,
+            },
+            {
+                "by": "khoj",
+                "intent": {"type": "remember", "query": query},
+                "message": previous_iterations_history,
+            },
+        ]
+        if previous_iterations_history
+        else []
+    )
 
 
 def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:
@@ -316,7 +331,11 @@ Khoj: "{chat_response}"
 
 
 def construct_structured_message(
-    message: str, images: list[str], model_type: str, vision_enabled: bool, attached_file_context: str = None
+    message: list[str] | str,
+    images: list[str],
+    model_type: str,
+    vision_enabled: bool,
+    attached_file_context: str = None,
 ):
     """
     Format messages into appropriate multimedia format for supported chat model types
@@ -326,10 +345,11 @@ def construct_structured_message(
         ChatModel.ModelType.GOOGLE,
         ChatModel.ModelType.ANTHROPIC,
     ]:
-        if not attached_file_context and not (vision_enabled and images):
-            return message
+        message = [message] if isinstance(message, str) else message
 
-        constructed_messages: List[Any] = [{"type": "text", "text": message}]
+        constructed_messages: List[dict[str, Any]] = [
+            {"type": "text", "text": message_part} for message_part in message
+        ]
 
         if not is_none_or_empty(attached_file_context):
             constructed_messages.append({"type": "text", "text": attached_file_context})
