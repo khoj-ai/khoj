@@ -31,6 +31,7 @@ import {
     Shapes,
     Trash,
     Toolbox,
+    Browser,
 } from "@phosphor-icons/react";
 
 import DOMPurify from "dompurify";
@@ -333,6 +334,10 @@ function chooseIconFromHeader(header: string, iconColor: string) {
         return <Code className={`${classNames}`} />;
     }
 
+    if (compareHeader.includes("operating")) {
+        return <Browser className={`${classNames}`} />;
+    }
+
     return <Brain className={`${classNames}`} />;
 }
 
@@ -342,10 +347,32 @@ export function TrainOfThought(props: TrainOfThoughtProps) {
     let header = extractedHeader ? extractedHeader[1] : "";
     const iconColor = props.primary ? convertColorToTextClass(props.agentColor) : "text-gray-500";
     const icon = chooseIconFromHeader(header, iconColor);
-    let markdownRendered = DOMPurify.sanitize(md.render(props.message));
+    let message = props.message;
 
-    // Remove any header tags from markdownRendered
+    // Render screenshot image in screenshot action message
+    let jsonMessage = null;
+    try {
+        const jsonMatch = message.match(
+            /\{.*("action": "screenshot"|"type": "screenshot"|"image": "data:image\/.*").*\}/,
+        );
+        if (jsonMatch) {
+            jsonMessage = JSON.parse(jsonMatch[0]);
+            const screenshotHtmlString = `<img src="${jsonMessage.image}" alt="State of environment" class="max-w-full" />`;
+            message = message.replace(
+                `:\n**Action**: ${jsonMatch[0]}`,
+                `\n\n- ${jsonMessage.text}\n${screenshotHtmlString}`,
+            );
+        }
+    } catch (e) {
+        console.error("Failed to parse screenshot data", e);
+    }
+
+    // Render the sanitized train of thought as markdown
+    let markdownRendered = DOMPurify.sanitize(md.render(message));
+
+    // Remove any header tags from the rendered markdown
     markdownRendered = markdownRendered.replace(/<h[1-6].*?<\/h[1-6]>/g, "");
+
     return (
         <div
             className={`${styles.trainOfThoughtElement} break-words items-center ${props.primary ? "text-gray-400" : "text-gray-300"} ${styles.trainOfThought} ${props.primary ? styles.primary : ""}`}
