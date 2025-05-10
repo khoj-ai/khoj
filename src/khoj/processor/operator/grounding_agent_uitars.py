@@ -38,6 +38,7 @@ class GroundingAgentUitars:
     UITARS_USR_PROMPT_THOUGHT = """
     You are a GUI agent. You are given a task and a screenshot of the web browser tab you operate. You need to perform the next action to complete the task.
     You control a single tab in a Chromium browser. You cannot access the OS, filesystem, the application window or the addressbar.
+    Try fulfill the user instruction to the best of your ability, especially when the instruction is given multiple times. Do not ignore the instruction.
 
     ## Output Format
     ```

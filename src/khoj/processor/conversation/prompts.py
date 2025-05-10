@@ -1121,7 +1121,7 @@ terrarium_sandbox_context = """
 
 operator_execution_context = PromptTemplate.from_template(
     """
-Use the provided context from operating a browser to inform your response.
+Use the results of operating a web browser to inform your response.
 
 Browser Operation Results:
 {operator_results}
