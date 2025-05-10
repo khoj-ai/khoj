@@ -138,14 +138,6 @@ async def operate_browser(
                 response = summary_message
             else:  # Hit iteration limit
                 response = f"Operator hit iteration limit ({max_iterations}). If the results seem incomplete try again, assign a smaller task or try a different approach.\nThese were the results till now:\n{summary_message}"
-    except requests.RequestException as e:
-        error_msg = f"Browser use failed due to a network error: {e}"
-        logger.error(error_msg)
-        raise ValueError(error_msg)
-    except Exception as e:
-        error_msg = f"Browser use failed due to an unexpected error: {e}"
-        logger.exception(error_msg)  # Log full traceback for unexpected errors
-        raise ValueError(error_msg)
     finally:
         if environment and not user_input_message:  # Don't close browser if user input required
             await environment.close()

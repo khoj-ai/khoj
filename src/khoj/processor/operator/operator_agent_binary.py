@@ -168,6 +168,7 @@ Focus on the visual action and provide all necessary context.
             logger.info(f"Reasoning LLM suggested action: {natural_language_action}")
 
         except Exception as e:
+            logger.error(f"Error calling Reasoning LLM: {e}", exc_info=True)
             return {"type": "error", "message": f"Error calling Reasoning LLM: {e}"}
 
         return {"type": "action", "message": natural_language_action}
@@ -212,7 +213,7 @@ Focus on the visual action and provide all necessary context.
                         rendered_parts += [f"**Action**: {action.type}"]
             action_results += [{"content": None}]  # content set after environment step
         except Exception as e:
-            logger.error(f"Error calling Grounding LLM: {e}")
+            logger.error(f"Error calling Grounding LLM: {e}", exc_info=True)
             rendered_parts += [f"**Error**: Error contacting Grounding LLM: {e}"]
 
         rendered_response = self._render_response(rendered_parts, current_state.screenshot)
@@ -256,6 +257,8 @@ Focus on the visual action and provide all necessary context.
         # Append action results to history
         action_results_content = []
         for action_result in agent_action.action_results:
+            if not action_result.get("content"):
+                logger.error("Action result content is empty or None: {action_result}")
             action_results_content.extend(action_result["content"])
         self.messages.append(AgentMessage(role="environment", content=action_results_content))
 
