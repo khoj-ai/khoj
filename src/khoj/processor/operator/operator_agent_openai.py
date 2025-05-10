@@ -164,7 +164,16 @@ class OpenAIOperatorAgent(OperatorAgent):
                 rendered_response["text"] = response.output_text
             elif block.type == "reasoning":
                 actions.append(NoopAction())
-                action_results.append(block)
+                # Add placeholder action result for reasoning
+                # This is to prevent run termination.
+                # It will be removed later by add_action_results func
+                action_results.append(
+                    {
+                        "type": block.type,
+                        "id": block.id,
+                        "summary": [],
+                    }
+                )
             if action_to_run or content:
                 actions.append(action_to_run)
             if action_to_run or content:
@@ -190,6 +199,7 @@ class OpenAIOperatorAgent(OperatorAgent):
             return
 
         # Update action results with results of applying suggested actions on the environment
+        items_to_pop = []
         for idx, env_step in enumerate(env_steps):
             action_result = agent_action.action_results[idx]
             result_content = env_step.error or env_step.output or "[Action completed]"
@@ -207,9 +217,15 @@ class OpenAIOperatorAgent(OperatorAgent):
                     "image_url": f"data:image/webp;base64,{env_step.screenshot_base64}",
                     "current_url": env_step.current_url,
                 }
+            elif action_result["type"] == "reasoning":
+                items_to_pop.append(idx)  # Mark placeholder reasoning action result for removal
+                continue
             else:
                 # Add text data
                 action_result["output"] = result_content
+
+        for idx in reversed(items_to_pop):
+            agent_action.action_results.pop(idx)
 
         self.messages += [AgentMessage(role="environment", content=agent_action.action_results)]
 
@@ -219,6 +235,21 @@ class OpenAIOperatorAgent(OperatorAgent):
         for message in messages:
             if message.role == "environment":
                 if isinstance(message.content, list):
+                    # Remove reasoning message if not followed by computer call
+                    if (
+                        len(message.content) > 1
+                        and all(hasattr(item, "type") for item in message.content)
+                        and message.content[0].type == "reasoning"
+                        and message.content[1].type != "computer_call"
+                    ) or (
+                        len(message.content) == 1
+                        and all(hasattr(item, "type") for item in message.content)
+                        and message.content[0].type == "reasoning"
+                    ):
+                        logger.warning(
+                            f"Removing reasoning message not followed by a computer call action: {message.content}"
+                        )
+                        message.content.pop(0)
                     formatted_messages.extend(message.content)
                 else:
                     logger.warning(f"Expected message content list from environment, got {type(message.content)}")
@@ -242,7 +273,7 @@ class OpenAIOperatorAgent(OperatorAgent):
         # Handle case where response_content is a dictionary and not ResponseOutputItem
         # This is the case when response_content contains action results
         if not hasattr(response_content[0], "type"):
-            return "**Action**: " + json.dumps(response_content[0]["output"])
+            return "**Action**: " + json.dumps(response_content[0].get("output", "Noop"))
 
         compiled_response = [""]
         for block in deepcopy(response_content):
