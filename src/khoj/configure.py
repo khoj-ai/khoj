@@ -328,8 +328,6 @@ def configure_routes(app):
     app.include_router(notion_router, prefix="/api/notion")
     app.include_router(web_client)
 
-    logger.info("🛣️ API Routes configured")
-
     if not state.anonymous_mode:
         from khoj.routers.auth import auth_router
 

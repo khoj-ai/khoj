@@ -17,7 +17,6 @@ from unfold import admin as unfold_admin
 from khoj.database.models import (
     Agent,
     AiModelApi,
-    BackgroundServiceConfig,
     ChatModel,
     ClientApplication,
     Conversation,
@@ -424,15 +423,3 @@ class UserConversationConfigAdmin(unfold_admin.ModelAdmin):
 
     get_subscription_type.short_description = "Subscription Type"  # type: ignore
     get_subscription_type.admin_order_field = "user__subscription__type"  # type: ignore
-
-
-@admin.register(BackgroundServiceConfig)
-class BackgroundServiceConfigAdmin(admin.ModelAdmin):
-    list_display = ("task_name", "task_interval", "task_last_run", "task_next_run", "task_is_enabled")
-    list_editable = ("task_interval", "task_is_enabled")
-    list_filter = ("task_is_enabled",)
-    search_fields = ("task_name", "task_id")
-    ordering = ("task_name",)
-
-    def has_add_permission(self, request):
-        return False  # ❌ disables the "Add" button in the admin panel because we don't want to add new tasks manually
