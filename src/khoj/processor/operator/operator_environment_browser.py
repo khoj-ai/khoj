@@ -3,7 +3,7 @@ import base64
 import io
 import logging
 import os
-from typing import Optional, Set
+from typing import Optional, Set, Union
 
 from khoj.processor.operator.operator_actions import OperatorAction, Point
 from khoj.processor.operator.operator_environment_base import (
@@ -124,7 +124,7 @@ class BrowserEnvironment(Environment):
 
     async def get_state(self) -> EnvState:
         if not self.page or self.page.is_closed():
-            return "about:blank", None
+            return EnvState(url="about:blank", screenshot=None)
         url = self.page.url
         screenshot = await self._get_screenshot()
         return EnvState(url=url, screenshot=screenshot)
@@ -134,7 +134,9 @@ class BrowserEnvironment(Environment):
             return EnvStepResult(error="Browser page is not available or closed.")
 
         before_state = await self.get_state()
-        output, error, step_type = None, None, "text"
+        output: Optional[Union[str, dict]] = None
+        error: Optional[str] = None
+        step_type: str = "text"
         try:
             match action.type:
                 case "click":
@@ -180,16 +182,16 @@ class BrowserEnvironment(Environment):
                         logger.debug(f"Action: {action.type} by ({scroll_x},{scroll_y}) at ({action.x},{action.y})")
                     # Otherwise use direction/amount (from Anthropic style)
                     elif action.scroll_direction:
-                        dx, dy = 0, 0
+                        dx, dy = 0.0, 0.0
                         amount = action.scroll_amount or 1
                         if action.scroll_direction == "up":
-                            dy = -100 * amount
+                            dy = -100.0 * amount
                         elif action.scroll_direction == "down":
-                            dy = 100 * amount
+                            dy = 100.0 * amount
                         elif action.scroll_direction == "left":
-                            dx = -100 * amount
+                            dx = -100.0 * amount
                         elif action.scroll_direction == "right":
-                            dx = 100 * amount
+                            dx = 100.0 * amount
 
                         if action.x is not None and action.y is not None:
                             await self.page.mouse.move(action.x, action.y)

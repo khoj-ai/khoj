@@ -144,7 +144,7 @@ async def converse_anthropic(
     user_query,
     online_results: Optional[Dict[str, Dict]] = None,
     code_results: Optional[Dict[str, Dict]] = None,
-    operator_results: Optional[Dict[str, Dict]] = None,
+    operator_results: Optional[List[str]] = None,
     conversation_log={},
     model: Optional[str] = "claude-3-7-sonnet-latest",
     api_key: Optional[str] = None,

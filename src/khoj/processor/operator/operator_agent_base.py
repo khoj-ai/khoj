@@ -50,11 +50,11 @@ class OperatorAgent(ABC):
         return self.compile_response(self.messages[-1].content)
 
     @abstractmethod
-    def compile_response(self, response: List) -> str:
+    def compile_response(self, response: List | str) -> str:
         pass
 
     @abstractmethod
-    def _render_response(self, response: List, screenshot: Optional[str]) -> Optional[str]:
+    def _render_response(self, response: List, screenshot: Optional[str]) -> dict:
         pass
 
     @abstractmethod

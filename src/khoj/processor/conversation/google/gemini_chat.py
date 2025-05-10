@@ -166,7 +166,7 @@ async def converse_gemini(
     user_query,
     online_results: Optional[Dict[str, Dict]] = None,
     code_results: Optional[Dict[str, Dict]] = None,
-    operator_results: Optional[Dict[str, Dict]] = None,
+    operator_results: Optional[List[str]] = None,
     conversation_log={},
     model: Optional[str] = "gemini-2.0-flash",
     api_key: Optional[str] = None,
