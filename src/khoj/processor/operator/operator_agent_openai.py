@@ -2,7 +2,7 @@ import json
 import logging
 from copy import deepcopy
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, cast
 
 from openai.types.responses import Response, ResponseOutputItem
 
@@ -95,7 +95,7 @@ class OpenAIOperatorAgent(OperatorAgent):
 
         logger.debug(f"Openai response: {response.model_dump_json()}")
         self.messages += [AgentMessage(role="environment", content=response.output)]
-        rendered_response = await self._render_response(response.output, current_state.screenshot)
+        rendered_response = self._render_response(response.output, current_state.screenshot)
 
         last_call_id = None
         content = None
@@ -193,7 +193,7 @@ class OpenAIOperatorAgent(OperatorAgent):
         for idx, env_step in enumerate(env_steps):
             action_result = agent_action.action_results[idx]
             result_content = env_step.error or env_step.output or "[Action completed]"
-            if env_step.type == "image":
+            if env_step.type == "image" and isinstance(result_content, dict):
                 # Add screenshot data in openai message format
                 action_result["output"] = {
                     "type": "input_image",
@@ -215,10 +215,13 @@ class OpenAIOperatorAgent(OperatorAgent):
 
     def _format_message_for_api(self, messages: list[AgentMessage]) -> list:
         """Format the message for OpenAI API."""
-        formatted_messages = []
+        formatted_messages: list = []
         for message in messages:
             if message.role == "environment":
-                formatted_messages.extend(message.content)
+                if isinstance(message.content, list):
+                    formatted_messages.extend(message.content)
+                else:
+                    logger.warning(f"Expected message content list from environment, got {type(message.content)}")
             else:
                 formatted_messages.append(
                     {
@@ -228,13 +231,14 @@ class OpenAIOperatorAgent(OperatorAgent):
                 )
         return formatted_messages
 
-    @staticmethod
-    def compile_response(response_content: str | list[dict | ResponseOutputItem]) -> str:
+    def compile_response(self, response_content: str | list[dict | ResponseOutputItem]) -> str:
         """Compile the response from model into a single string."""
         # Handle case where response content is a string.
         # This is the case when response content is a user query
-        if is_none_or_empty(response_content) or isinstance(response_content, str):
+        if isinstance(response_content, str):
             return response_content
+        elif is_none_or_empty(response_content):
+            return ""
         # Handle case where response_content is a dictionary and not ResponseOutputItem
         # This is the case when response_content contains action results
         if not hasattr(response_content[0], "type"):
@@ -242,6 +246,8 @@ class OpenAIOperatorAgent(OperatorAgent):
 
         compiled_response = [""]
         for block in deepcopy(response_content):
+            block = cast(ResponseOutputItem, block)  # Ensure block is of type ResponseOutputItem
+            # Handle different block types
             if block.type == "message":
                 # Extract text content if available
                 for content in block.content:
@@ -254,30 +260,29 @@ class OpenAIOperatorAgent(OperatorAgent):
                         text_content += content.model_dump_json()
                 compiled_response.append(text_content)
             elif block.type == "function_call":
-                block_input = {"action": block.name}
+                block_function_input = {"action": block.name}
                 if block.name == "goto":
                     try:
                         args = json.loads(block.arguments)
-                        block_input["url"] = args.get("url", "[Missing URL]")
+                        block_function_input["url"] = args.get("url", "[Missing URL]")
                     except json.JSONDecodeError:
-                        block_input["arguments"] = block.arguments  # Show raw args on error
-                compiled_response.append(f"**Action**: {json.dumps(block_input)}")
+                        block_function_input["arguments"] = block.arguments  # Show raw args on error
+                compiled_response.append(f"**Action**: {json.dumps(block_function_input)}")
             elif block.type == "computer_call":
-                block_input = block.action
+                block_computer_input = block.action
                 # If it's a screenshot action
-                if block_input.type == "screenshot":
+                if block_computer_input.type == "screenshot":
                     # Use a placeholder for screenshot data
-                    block_input_render = block_input.model_dump()
+                    block_input_render = block_computer_input.model_dump()
                     block_input_render["image"] = "[placeholder for screenshot]"
                     compiled_response.append(f"**Action**: {json.dumps(block_input_render)}")
                 else:
-                    compiled_response.append(f"**Action**: {block_input.model_dump_json()}")
+                    compiled_response.append(f"**Action**: {block_computer_input.model_dump_json()}")
             elif block.type == "reasoning" and block.summary:
                 compiled_response.append(f"**Thought**: {block.summary}")
         return "\n- ".join(filter(None, compiled_response))  # Filter out empty strings
 
-    @staticmethod
-    async def _render_response(response_content: list[ResponseOutputItem], screenshot: Optional[str] = None) -> dict:
+    def _render_response(self, response_content: list[ResponseOutputItem], screenshot: str | None) -> dict:
         """Render OpenAI response for display, potentially including screenshots."""
         render_texts = []
         for block in deepcopy(response_content):  # Use deepcopy to avoid modifying original
@@ -285,7 +290,6 @@ class OpenAIOperatorAgent(OperatorAgent):
                 text_content = block.text if hasattr(block, "text") else block.model_dump_json()
                 render_texts += [text_content]
             elif block.type == "function_call":
-                block_input = {"action": block.name}
                 if block.name == "goto":
                     args = json.loads(block.arguments)
                     render_texts = [f'Open URL: {args.get("url", "[Missing URL]")}']

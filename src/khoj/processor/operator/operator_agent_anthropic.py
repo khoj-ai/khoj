@@ -2,7 +2,7 @@ import json
 import logging
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, List, Optional, cast
 
 from anthropic.types.beta import BetaContentBlock
 
@@ -76,7 +76,7 @@ class AnthropicOperatorAgent(OperatorAgent):
             },
         ]
 
-        thinking = {"type": "disabled"}
+        thinking: dict[str, str | int] = {"type": "disabled"}
         if self.vision_model.name.startswith("claude-3-7"):
             thinking = {"type": "enabled", "budget_tokens": 1024}
 
@@ -94,7 +94,7 @@ class AnthropicOperatorAgent(OperatorAgent):
 
         logger.debug(f"Anthropic response: {response.model_dump_json()}")
         self.messages.append(AgentMessage(role="assistant", content=response.content))
-        rendered_response = await self._render_response(response.content, current_state.screenshot)
+        rendered_response = self._render_response(response.content, current_state.screenshot)
 
         for block in response.content:
             if block.type == "tool_use":
@@ -140,7 +140,7 @@ class AnthropicOperatorAgent(OperatorAgent):
                     elif tool_name == "left_mouse_up":
                         action_to_run = MouseUpAction(button="left")
                     elif tool_name == "type":
-                        text = tool_input.get("text")
+                        text: str = tool_input.get("text")
                         if text:
                             action_to_run = TypeAction(text=text)
                     elif tool_name == "scroll":
@@ -152,7 +152,7 @@ class AnthropicOperatorAgent(OperatorAgent):
                         if direction:
                             action_to_run = ScrollAction(scroll_direction=direction, scroll_amount=amount, x=x, y=y)
                     elif tool_name == "key":
-                        text: str = tool_input.get("text")
+                        text = tool_input.get("text")
                         if text:
                             action_to_run = KeypressAction(keys=text.split("+"))  # Split xdotool style
                     elif tool_name == "hold_key":
@@ -214,7 +214,7 @@ class AnthropicOperatorAgent(OperatorAgent):
         for idx, env_step in enumerate(env_steps):
             action_result = agent_action.action_results[idx]
             result_content = env_step.error or env_step.output or "[Action completed]"
-            if env_step.type == "image":
+            if env_step.type == "image" and isinstance(result_content, dict):
                 # Add screenshot data in anthropic message format
                 action_result["content"] = [
                     {
@@ -262,12 +262,20 @@ class AnthropicOperatorAgent(OperatorAgent):
             )
         return formatted_messages
 
-    def compile_response(self, response_content: list[BetaContentBlock | Any]) -> str:
+    def compile_response(self, response_content: list[BetaContentBlock | dict] | str) -> str:
         """Compile Anthropic response into a single string."""
-        if is_none_or_empty(response_content) or not all(hasattr(item, "type") for item in response_content):
+        if isinstance(response_content, str):
             return response_content
+        elif is_none_or_empty(response_content):
+            return ""
+        # action results are a list dictionaries,
+        # beta content blocks are objects with a type attribute
+        elif isinstance(response_content[0], dict):
+            return json.dumps(response_content)
+
         compiled_response = [""]
         for block in deepcopy(response_content):
+            block = cast(BetaContentBlock, block)  # Ensure block is of type BetaContentBlock
             if block.type == "text":
                 compiled_response.append(block.text)
             elif block.type == "tool_use":
@@ -291,8 +299,7 @@ class AnthropicOperatorAgent(OperatorAgent):
 
         return "\n- ".join(filter(None, compiled_response))  # Filter out empty strings
 
-    @staticmethod
-    async def _render_response(response_content: list[BetaContentBlock], screenshot: Optional[str] = None) -> dict:
+    def _render_response(self, response_content: list[BetaContentBlock], screenshot: str | None) -> dict:
         """Render Anthropic response, potentially including actual screenshots."""
         render_texts = []
         for block in deepcopy(response_content):  # Use deepcopy to avoid modifying original
@@ -315,11 +322,11 @@ class AnthropicOperatorAgent(OperatorAgent):
                     elif "action" in block_input:
                         action = block_input["action"]
                         if action == "type":
-                            text = block_input.get("text")
+                            text: str = block_input.get("text")
                             if text:
                                 render_texts += [f'Type "{text}"']
                         elif action == "key":
-                            text: str = block_input.get("text")
+                            text = block_input.get("text")
                             if text:
                                 render_texts += [f"Press {text}"]
                         elif action == "hold_key":

@@ -210,7 +210,7 @@ class GroundingAgent:
             self.tracer["usage"] = get_chat_usage_metrics(
                 self.model.name,
                 input_tokens=grounding_response.usage.prompt_tokens,
-                completion_tokens=grounding_response.usage.completion_tokens,
+                output_tokens=grounding_response.usage.completion_tokens,
                 usage=self.tracer.get("usage"),
             )
         except Exception as e:

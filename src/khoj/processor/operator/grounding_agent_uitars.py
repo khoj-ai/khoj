@@ -10,7 +10,7 @@ import logging
 import math
 import re
 from io import BytesIO
-from typing import List
+from typing import Any, List
 
 import numpy as np
 from openai import AzureOpenAI, OpenAI
@@ -112,11 +112,11 @@ class GroundingAgentUitars:
         self.min_pixels = self.runtime_conf["min_pixels"]
         self.callusr_tolerance = self.runtime_conf["callusr_tolerance"]
 
-        self.thoughts = []
-        self.actions = []
-        self.observations = []
-        self.history_images = []
-        self.history_responses = []
+        self.thoughts: list[str] = []
+        self.actions: list[list[OperatorAction]] = []
+        self.observations: list[dict] = []
+        self.history_images: list[bytes] = []
+        self.history_responses: list[str] = []
 
         self.prompt_template = self.UITARS_USR_PROMPT_THOUGHT
         self.prompt_action_space = self.UITARS_NORMAL_ACTION_SPACE
@@ -159,7 +159,7 @@ class GroundingAgentUitars:
                     # top_k=top_k,
                     top_p=self.top_p,
                 )
-                prediction: str = response.choices[0].message.content.strip()
+                prediction = response.choices[0].message.content.strip()
                 self.tracer["usage"] = get_chat_usage_metrics(
                     self.model_name,
                     input_tokens=response.usage.prompt_tokens,
@@ -235,11 +235,15 @@ class GroundingAgentUitars:
                     self.parsing_response_to_action(parsed_response, obs_image_height, obs_image_width, self.input_swap)
                 )
             else:
-                actions.append(
-                    self.parsing_response_to_pyautogui_code(
-                        parsed_response, obs_image_height, obs_image_width, self.input_swap
-                    )
-                )
+                pass
+                # TODO: Add PyautoguiAction when enable computer environment
+                # actions.append(
+                #     PyautoguiAction(code=
+                #         self.parsing_response_to_pyautogui_code(
+                #             parsed_response, obs_image_height, obs_image_width, self.input_swap
+                #         )
+                #     )
+                # )
 
         self.actions.append(actions)
 
@@ -268,7 +272,8 @@ class GroundingAgentUitars:
         if len(self.history_images) > self.history_n:
             self.history_images = self.history_images[-self.history_n :]
 
-        messages, images = [], []
+        messages: list[dict] = []
+        images: list[Any] = []
         if isinstance(self.history_images, bytes):
             self.history_images = [self.history_images]
         elif isinstance(self.history_images, np.ndarray):
@@ -414,11 +419,11 @@ class GroundingAgentUitars:
         """Returns the closest integer to 'number' that is divisible by 'factor'."""
         return round(number / factor) * factor
 
-    def ceil_by_factor(self, number: int, factor: int) -> int:
+    def ceil_by_factor(self, number: float, factor: int) -> int:
         """Returns the smallest integer greater than or equal to 'number' that is divisible by 'factor'."""
         return math.ceil(number / factor) * factor
 
-    def floor_by_factor(self, number: int, factor: int) -> int:
+    def floor_by_factor(self, number: float, factor: int) -> int:
         """Returns the largest integer less than or equal to 'number' that is divisible by 'factor'."""
         return math.floor(number / factor) * factor
 
