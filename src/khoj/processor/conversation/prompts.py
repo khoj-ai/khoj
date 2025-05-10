@@ -762,29 +762,32 @@ Assuming you can search the user's notes and the internet.
 - User Name: {username}
 
 # Available Tool AIs
-Which of the tool AIs listed below would you use to answer the user's question? You **only** have access to the following tool AIs:
+You decide which of the tool AIs listed below would you use to answer the user's question. You **only** have access to the following tool AIs:
 
 {tools}
 
-# Previous Iterations
-{previous_iterations}
-
-# Chat History:
-{chat_history}
-
-Return the next tool AI to use and the query to ask it. Your response should always be a valid JSON object. Do not say anything else.
+Your response should always be a valid JSON object. Do not say anything else.
 Response format:
 {{"scratchpad": "<your_scratchpad_to_reason_about_which_tool_to_use>", "tool": "<name_of_tool_ai>", "query": "<your_detailed_query_for_the_tool_ai>"}}
 """.strip()
 )
 
+plan_function_execution_next_tool = PromptTemplate.from_template(
+    """
+Given the results of your previous iterations, which tool AI will you use next to answer the target query?
+
+# Target Query:
+{query}
+""".strip()
+)
+
 previous_iteration = PromptTemplate.from_template(
     """
-## Iteration {index}:
+# Iteration {index}:
 - tool: {tool}
 - query: {query}
 - result: {result}
-"""
+""".strip()
 )
 
 pick_relevant_tools = PromptTemplate.from_template(

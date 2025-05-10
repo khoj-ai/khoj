@@ -108,13 +108,6 @@ async def apick_next_tool(
     # Create planning reponse model with dynamically populated tool enum class
     planning_response_model = PlanningResponse.create_model_with_enum(tool_options)
 
-    # Construct chat history with user and iteration history with researcher agent for context
-    chat_history = construct_chat_history(conversation_history, agent_name=agent.name if agent else "Khoj")
-    previous_iterations_history = construct_iteration_history(previous_iterations, prompts.previous_iteration)
-
-    if query_images:
-        query = f"[placeholder for user attached images]\n{query}"
-
     today = datetime.today()
     location_data = f"{location}" if location else "Unknown"
     agent_chat_model = AgentAdapters.get_agent_chat_model(agent, user) if agent else None
@@ -124,21 +117,30 @@ async def apick_next_tool(
 
     function_planning_prompt = prompts.plan_function_execution.format(
         tools=tool_options_str,
-        chat_history=chat_history,
         personality_context=personality_context,
         current_date=today.strftime("%Y-%m-%d"),
         day_of_week=today.strftime("%A"),
         username=user_name or "Unknown",
         location=location_data,
-        previous_iterations=previous_iterations_history,
         max_iterations=max_iterations,
     )
+
+    if query_images:
+        query = f"[placeholder for user attached images]\n{query}"
+
+    # Construct chat history with user and iteration history with researcher agent for context
+    previous_iterations_history = construct_iteration_history(query, previous_iterations, prompts.previous_iteration)
+    iteration_chat_log = {"chat": conversation_history.get("chat", []) + previous_iterations_history}
+
+    # Plan function execution for the next tool
+    query = prompts.plan_function_execution_next_tool.format(query=query) if previous_iterations_history else query
 
     try:
         with timer("Chat actor: Infer information sources to refer", logger):
             response = await send_message_to_model_wrapper(
                 query=query,
-                context=function_planning_prompt,
+                system_message=function_planning_prompt,
+                conversation_log=iteration_chat_log,
                 response_type="json_object",
                 response_schema=planning_response_model,
                 deepthought=True,
