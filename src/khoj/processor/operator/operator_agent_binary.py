@@ -49,12 +49,14 @@ class BinaryOperatorAgent(OperatorAgent):
         grounding_client = get_openai_async_client(
             grounding_model.ai_model_api.api_key, grounding_model.ai_model_api.api_base_url
         )
+
+        self.grounding_agent: GroundingAgent | GroundingAgentUitars = None
         if "ui-tars-1.5" in grounding_model.name:
             self.grounding_agent = GroundingAgentUitars(
-                grounding_model.name, grounding_client, environment_type="web", tracer=tracer
+                grounding_model.name, grounding_client, max_iterations, environment_type="web", tracer=tracer
             )
         else:
-            self.grounding_agent = GroundingAgent(grounding_model.name, grounding_client, tracer=tracer)
+            self.grounding_agent = GroundingAgent(grounding_model.name, grounding_client, max_iterations, tracer=tracer)
 
     async def act(self, current_state: EnvState) -> AgentActResult:
         """
@@ -143,7 +145,7 @@ Focus on the visual action and provide all necessary context.
             query_screenshot = self._get_message_images(current_message)
 
         # Construct input for visual reasoner history
-        visual_reasoner_history = self._format_message_for_api(self.messages)
+        visual_reasoner_history = {"chat": self._format_message_for_api(self.messages)}
         try:
             natural_language_action = await send_message_to_model_wrapper(
                 query=query_text,
@@ -153,6 +155,10 @@ Focus on the visual action and provide all necessary context.
                 agent_chat_model=self.reasoning_model,
                 tracer=self.tracer,
             )
+
+            if not isinstance(natural_language_action, str) or not natural_language_action.strip():
+                raise ValueError(f"Natural language action is empty or not a string. Got {natural_language_action}")
+
             self.messages.append(current_message)
             self.messages.append(AgentMessage(role="assistant", content=natural_language_action))
 
@@ -254,7 +260,7 @@ Focus on the visual action and provide all necessary context.
         self.messages.append(AgentMessage(role="environment", content=action_results_content))
 
     async def summarize(self, summarize_prompt: str, env_state: EnvState) -> str:
-        conversation_history = self._format_message_for_api(self.messages)
+        conversation_history = {"chat": self._format_message_for_api(self.messages)}
         try:
             summary = await send_message_to_model_wrapper(
                 query=summarize_prompt,
@@ -276,24 +282,10 @@ Focus on the visual action and provide all necessary context.
 
         return summary
 
-    def compile_response(self, response_content: Union[str, List, dict]) -> str:
+    def compile_response(self, response_content: str | List) -> str:
         """Compile response content into a string, handling OpenAI message structures."""
         if isinstance(response_content, str):
             return response_content
-
-        if isinstance(response_content, dict) and response_content.get("role") == "assistant":
-            # Grounding LLM response message (might contain tool calls)
-            text_content = response_content.get("content")
-            tool_calls = response_content.get("tool_calls")
-            compiled = []
-            if text_content:
-                compiled.append(text_content)
-            if tool_calls:
-                for tc in tool_calls:
-                    compiled.append(
-                        f"**Action ({tc.get('function', {}).get('name')})**: {tc.get('function', {}).get('arguments')}"
-                    )
-            return "\n- ".join(filter(None, compiled))
 
         if isinstance(response_content, list):  # Tool results list
             compiled = ["**Tool Results**:"]
@@ -336,7 +328,7 @@ Focus on the visual action and provide all necessary context.
             }
             for message in messages
         ]
-        return {"chat": formatted_messages}
+        return formatted_messages
 
     def reset(self):
         """Reset the agent state."""
