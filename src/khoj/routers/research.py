@@ -361,7 +361,7 @@ async def execute_information_collection(
             try:
                 async for result in run_code(
                     this_iteration.query,
-                    construct_tool_chat_history(previous_iterations, ConversationCommand.Webpage),
+                    construct_tool_chat_history(previous_iterations, ConversationCommand.Code),
                     "",
                     location,
                     user,
@@ -388,7 +388,7 @@ async def execute_information_collection(
                     this_iteration.query,
                     user,
                     file_filters,
-                    construct_tool_chat_history(previous_iterations),
+                    construct_tool_chat_history(previous_iterations, ConversationCommand.Summarize),
                     query_images=query_images,
                     agent=agent,
                     send_status_func=send_status_func,
