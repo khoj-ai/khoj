@@ -38,7 +38,6 @@ class GroundingAgentUitars:
     UITARS_USR_PROMPT_THOUGHT = """
     You are a GUI agent. You are given a task and a screenshot of the web browser tab you operate. You need to perform the next action to complete the task.
     You control a single tab in a Chromium browser. You cannot access the OS, filesystem, the application window or the addressbar.
-    ALWAYS use the `goto()` function to navigate to a specific URL. Ctrl+t, Ctrl+w, Ctrl+q, Ctrl+Shift+T, Ctrl+Shift+W are not allowed.
 
     ## Output Format
     ```
@@ -66,8 +65,6 @@ class GroundingAgentUitars:
     type(content='') #If you want to submit your input, use "\\n" at the end of `content`.
     scroll(start_box='<|box_start|>(x1,y1)<|box_end|>', direction='down or up or right or left')
     wait() #Sleep for 5s and take a screenshot to check for any changes.
-    goto(url='') # ALWAYS use the goto function to navigate to a specific URL.
-    back() # Use this to go back to the previous page.
     finished(content='xxx') # Use escape characters \\', \\", and \\n in content part to ensure we can parse the content in normal python string format.
     """.lstrip()
 

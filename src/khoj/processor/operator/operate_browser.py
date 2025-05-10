@@ -79,7 +79,7 @@ async def operate_browser(
         with timer(f"Operating browser with {reasoning_model.model_type} {reasoning_model.name}", logger):
             while iterations < max_iterations and not task_completed:
                 if cancellation_event and cancellation_event.is_set():
-                    logger.info(f"Browser operator cancelled by client disconnect")
+                    logger.debug(f"Browser operator cancelled by client disconnect")
                     break
 
                 iterations += 1
@@ -94,6 +94,7 @@ async def operate_browser(
                 env_steps: List[EnvStepResult] = []
                 for action in agent_result.actions:
                     if cancellation_event and cancellation_event.is_set():
+                        logger.debug(f"Browser operator cancelled by client disconnect")
                         break
                     # Handle request for user action and break the loop
                     if isinstance(action, RequestUserAction):
