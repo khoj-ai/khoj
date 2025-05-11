@@ -9,7 +9,7 @@ from khoj.processor.conversation.utils import construct_structured_message
 from khoj.processor.operator.operator_actions import *
 from khoj.processor.operator.operator_agent_base import AgentActResult
 from khoj.processor.operator.operator_environment_base import EnvState
-from khoj.utils.helpers import convert_image_to_png, get_chat_usage_metrics
+from khoj.utils.helpers import get_chat_usage_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -256,7 +256,7 @@ back() # Use this to go back to the previous page.
 
         # Construct grounding LLM input (using only the latest user prompt + image)
         # We don't pass the full history here, as grounding depends on the *current* state + NL action
-        screenshots = [f"data:image/png;base64,{convert_image_to_png(current_state.screenshot)}"]
+        screenshots = [f"data:image/webp;base64,{current_state.screenshot}"]
         grounding_messages_content = construct_structured_message(
             grounding_user_prompt, screenshots, self.model.name, vision_enabled=True
         )
