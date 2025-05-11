@@ -572,20 +572,6 @@ def convert_image_to_webp(image_bytes):
         return webp_image_bytes
 
 
-def convert_image_to_png(image_base64: str) -> str:
-    """Convert base64 image to png format for wider support"""
-    image_bytes = base64.b64decode(image_base64)
-    image_io = io.BytesIO(image_bytes)
-    with Image.open(image_io) as original_image:
-        output_image_io = io.BytesIO()
-        original_image.save(output_image_io, "PNG")
-
-        # Encode the WebP image back to base64
-        output_image_bytes = output_image_io.getvalue()
-        output_image_io.close()
-        return base64.b64encode(output_image_bytes).decode("utf-8")
-
-
 def convert_image_data_uri(image_data_uri: str, target_format: str = "png") -> str:
     """
     Convert image (in data URI) to target format.

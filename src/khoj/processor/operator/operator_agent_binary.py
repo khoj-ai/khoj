@@ -17,11 +17,7 @@ from khoj.processor.operator.operator_agent_base import (
 )
 from khoj.processor.operator.operator_environment_base import EnvState, EnvStepResult
 from khoj.routers.helpers import send_message_to_model_wrapper
-from khoj.utils.helpers import (
-    convert_image_to_png,
-    get_openai_async_client,
-    is_none_or_empty,
-)
+from khoj.utils.helpers import get_openai_async_client, is_none_or_empty
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +128,7 @@ Focus on the visual action and provide all necessary context.
 
         if is_none_or_empty(self.messages):
             query_text = f"**Main Objective**: {self.query}"
-            query_screenshot = [f"data:image/png;base64,{convert_image_to_png(current_state.screenshot)}"]
+            query_screenshot = [f"data:image/webp;base64,{current_state.screenshot}"]
             first_message_content = construct_structured_message(
                 message=query_text,
                 images=query_screenshot,

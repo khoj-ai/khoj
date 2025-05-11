@@ -19,7 +19,7 @@ from PIL import Image
 
 from khoj.processor.operator.operator_actions import *
 from khoj.processor.operator.operator_environment_base import EnvState
-from khoj.utils.helpers import convert_image_to_png, get_chat_usage_metrics
+from khoj.utils.helpers import get_chat_usage_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -257,11 +257,8 @@ class GroundingAgentUitars:
             self.thoughts
         ), "The number of observations and actions should be the same."
 
-        screenshot = convert_image_to_png(env_state.screenshot)
-        self.history_images.append(base64.b64decode(screenshot))
-
-        base64_image = screenshot
-        self.observations.append({"screenshot": base64_image, "accessibility_tree": None})
+        self.history_images.append(base64.b64decode(env_state.screenshot))
+        self.observations.append({"screenshot": env_state.screenshot, "accessibility_tree": None})
 
         user_prompt = self.prompt_template.format(
             instruction=instruction, action_space=self.prompt_action_space, language=self.language
