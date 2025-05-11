@@ -555,6 +555,32 @@ def convert_image_to_webp(image_bytes):
         return webp_image_bytes
 
 
+def convert_image_data_uri(image_data_uri: str, target_format: str = "png") -> str:
+    """
+    Convert image (in data URI) to target format.
+
+    Target format can be png, jpg, webp etc.
+    Returns the converted image as a data URI.
+    """
+    base64_data = image_data_uri.split(",", 1)[1]
+    image_type = image_data_uri.split(";")[0].split(":")[1].split("/")[1]
+    if image_type.lower() == target_format.lower():
+        return image_data_uri
+
+    image_bytes = base64.b64decode(base64_data)
+    image_io = io.BytesIO(image_bytes)
+    with Image.open(image_io) as original_image:
+        output_image_io = io.BytesIO()
+        original_image.save(output_image_io, target_format.upper())
+
+        # Encode the image back to base64
+        output_image_bytes = output_image_io.getvalue()
+        output_image_io.close()
+        output_base64_data = base64.b64encode(output_image_bytes).decode("utf-8")
+        output_data_uri = f"data:image/{target_format};base64,{output_base64_data}"
+        return output_data_uri
+
+
 def truncate_code_context(original_code_results: dict[str, Any], max_chars=10000) -> dict[str, Any]:
     """
     Truncate large output files and drop image file data from code results.
