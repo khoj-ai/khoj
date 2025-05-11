@@ -301,7 +301,10 @@ def format_messages_for_gemini(
     messages = deepcopy(original_messages)
     for message in messages.copy():
         if message.role == "system":
-            system_prompt += message.content
+            if isinstance(message.content, list):
+                system_prompt += "\n".join([part["text"] for part in message.content if part["type"] == "text"])
+            else:
+                system_prompt += message.content
             messages.remove(message)
     system_prompt = None if is_none_or_empty(system_prompt) else system_prompt
 
