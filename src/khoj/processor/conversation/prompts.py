@@ -666,21 +666,25 @@ As a professional analyst, your job is to extract all pertinent information from
 You will be provided raw text directly from within the document.
 Adhere to these guidelines while extracting information from the provided documents:
 
-1. Extract all relevant text and links from the document that can assist with further research or answer the user's query.
+1. Extract all relevant text and links from the document that can assist with further research or answer the target query.
 2. Craft a comprehensive but compact report with all the necessary data from the document to generate an informed response.
 3. Rely strictly on the provided text to generate your summary, without including external information.
 4. Provide specific, important snippets from the document in your report to establish trust in your summary.
+5. Verbatim quote all necessary text, code or data from the provided document to answer the target query.
 """.strip()
 
 extract_relevant_information = PromptTemplate.from_template(
     """
 {personality_context}
-Target Query: {query}
+<target_query>
+{query}
+</target_query>
 
-Document:
+<document>
 {corpus}
+</document>
 
-Collate only relevant information from the document to answer the target query.
+Collate all relevant information from the document to answer the target query.
 """.strip()
 )
 
