@@ -18,7 +18,7 @@ default_offline_chat_models = [
     "bartowski/Qwen2.5-14B-Instruct-GGUF",
 ]
 default_openai_chat_models = ["gpt-4o-mini", "gpt-4.1"]
-default_gemini_chat_models = ["gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25"]
+default_gemini_chat_models = ["gemini-2.0-flash", "gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25"]
 default_anthropic_chat_models = ["claude-3-7-sonnet-latest", "claude-3-5-haiku-latest"]
 
 empty_config = {
