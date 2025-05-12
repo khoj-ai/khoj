@@ -27,10 +27,11 @@ export interface KhojSetting {
     userInfo: UserInfo | null;
     syncFolders: string[];
     syncInterval: number;
+    autoVoiceResponse: boolean;
 }
 
 export const DEFAULT_SETTINGS: KhojSetting = {
-    resultsCount: 6,
+    resultsCount: 15,
     khojUrl: 'https://app.khoj.dev',
     khojApiKey: '',
     connectedToBackend: false,
@@ -44,6 +45,7 @@ export const DEFAULT_SETTINGS: KhojSetting = {
     userInfo: null,
     syncFolders: [],
     syncInterval: 60,
+    autoVoiceResponse: true,
 }
 
 export class KhojSettingTab extends PluginSettingTab {
@@ -106,7 +108,7 @@ export class KhojSettingTab extends PluginSettingTab {
             .setName('Results Count')
             .setDesc('The number of results to show in search and use for chat.')
             .addSlider(slider => slider
-                .setLimits(1, 10, 1)
+                .setLimits(1, 30, 1)
                 .setValue(this.plugin.settings.resultsCount)
                 .setDynamicTooltip()
                 .onChange(async (value) => {
@@ -250,6 +252,17 @@ export class KhojSettingTab extends PluginSettingTab {
                     indexVaultSetting = indexVaultSetting.setDisabled(false);
                 })
             );
+
+        // Add new setting for auto voice response after voice input
+        new Setting(containerEl)
+            .setName('Auto Voice Response')
+            .setDesc('Automatically read responses after voice messages')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.autoVoiceResponse)
+                .onChange(async (value) => {
+                    this.plugin.settings.autoVoiceResponse = value;
+                    await this.plugin.saveSettings();
+                }));
     }
 
     // Helper method to update the folder list display
