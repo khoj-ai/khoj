@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { ArrowCircleDown, ArrowRight, Code, Note } from "@phosphor-icons/react";
+import { ArrowCircleDown, ArrowRight, Code, Note, Clipboard } from "@phosphor-icons/react";
 
 import markdownIt from "markdown-it";
 const md = new markdownIt({
@@ -32,6 +32,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import DOMPurify from "dompurify";
 import { getIconFromFilename } from "@/app/common/iconUtils";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 interface NotesContextReferenceData {
     title: string;
@@ -606,6 +607,22 @@ export default function ReferencePanel(props: ReferencePanelDataProps) {
                   .slice(0, numTeaserSlots - codeDataToShow.length - notesDataToShow.length)
             : [];
 
+    const copyReferencesToClipboard = () => {
+        const allReferences = [
+            ...props.notesReferenceCardData.map(
+                (note) => `- [${note.title}](#)`,
+            ),
+            ...props.onlineReferenceCardData.map(
+                (online) => `- [${online.title}](${online.link})`,
+            ),
+            ...props.codeReferenceCardData.map(
+                (code) => `- [Code Reference](#)`,
+            ),
+        ].join("\n");
+
+        navigator.clipboard.writeText(allReferences);
+    };
+
     return (
         <Sheet>
             <SheetTrigger className="text-balance w-auto justify-start overflow-hidden break-words p-0 bg-transparent border-none text-gray-400 align-middle items-center m-0 inline-flex">
@@ -642,6 +659,14 @@ export default function ReferencePanel(props: ReferencePanelDataProps) {
                 <SheetHeader>
                     <SheetTitle>References</SheetTitle>
                     <SheetDescription>View all references for this response</SheetDescription>
+                    <Button
+                        variant="outline"
+                        onClick={copyReferencesToClipboard}
+                        className="mt-4"
+                    >
+                        <Clipboard className="mr-2" />
+                        Copy References
+                    </Button>
                 </SheetHeader>
                 <div className="flex flex-wrap gap-2 w-auto mt-2">
                     {props.codeReferenceCardData.map((code, index) => {
