@@ -182,16 +182,17 @@ class BrowserEnvironment(Environment):
                         logger.debug(f"Action: {action.type} by ({scroll_x},{scroll_y}) at ({action.x},{action.y})")
                     # Otherwise use direction/amount (from Anthropic style)
                     elif action.scroll_direction:
+                        scale = 40.0
                         dx, dy = 0.0, 0.0
                         amount = action.scroll_amount or 1
                         if action.scroll_direction == "up":
-                            dy = -100.0 * amount
+                            dy = -scale * amount
                         elif action.scroll_direction == "down":
-                            dy = 100.0 * amount
+                            dy = scale * amount
                         elif action.scroll_direction == "left":
-                            dx = -100.0 * amount
+                            dx = -scale * amount
                         elif action.scroll_direction == "right":
-                            dx = 100.0 * amount
+                            dx = scale * amount
 
                         if action.x is not None and action.y is not None:
                             await self.page.mouse.move(action.x, action.y)
