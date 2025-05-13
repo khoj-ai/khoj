@@ -226,6 +226,7 @@ async def chat_completion_with_backoff(
 
         aggregated_response = ""
         final_chunk = None
+        response_started = False
         start_time = perf_counter()
         chat_stream: openai.AsyncStream[ChatCompletionChunk] = await client.chat.completions.create(
             messages=formatted_messages,  # type: ignore
@@ -237,7 +238,8 @@ async def chat_completion_with_backoff(
         )
         async for chunk in stream_processor(chat_stream):
             # Log the time taken to start response
-            if final_chunk is None:
+            if not response_started:
+                response_started = True
                 logger.info(f"First response took: {perf_counter() - start_time:.3f} seconds")
             # Keep track of the last chunk for usage data
             final_chunk = chunk
