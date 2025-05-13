@@ -51,7 +51,7 @@ except ImportError:
 model_to_prompt_size = {
     # OpenAI Models
     "gpt-4o": 60000,
-    "gpt-4o-mini": 120000,
+    "gpt-4o-mini": 60000,
     "gpt-4.1": 60000,
     "gpt-4.1-mini": 120000,
     "gpt-4.1-nano": 120000,
