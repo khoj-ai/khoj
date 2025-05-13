@@ -523,8 +523,9 @@ async def generate_online_subqueries(
     location_data: LocationData,
     user: KhojUser,
     query_images: List[str] = None,
-    agent: Agent = None,
     query_files: str = None,
+    max_queries: int = 3,
+    agent: Agent = None,
     tracer: dict = {},
 ) -> Set[str]:
     """
@@ -534,7 +535,6 @@ async def generate_online_subqueries(
     username = prompts.user_name.format(name=user.get_full_name()) if user.get_full_name() else ""
     chat_history = construct_chat_history(conversation_history)
 
-    max_queries = 3
     utc_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
