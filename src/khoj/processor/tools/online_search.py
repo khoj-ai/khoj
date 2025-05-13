@@ -64,11 +64,12 @@ async def search_online(
     user: KhojUser,
     send_status_func: Optional[Callable] = None,
     custom_filters: List[str] = [],
+    max_online_searches: int = 3,
     max_webpages_to_read: int = 1,
     query_images: List[str] = None,
+    query_files: str = None,
     previous_subqueries: Set = set(),
     agent: Agent = None,
-    query_files: str = None,
     tracer: dict = {},
 ):
     query += " ".join(custom_filters)
@@ -84,9 +85,10 @@ async def search_online(
         location,
         user,
         query_images=query_images,
+        query_files=query_files,
+        max_queries=max_online_searches,
         agent=agent,
         tracer=tracer,
-        query_files=query_files,
     )
     subqueries = list(new_subqueries - previous_subqueries)
     response_dict: Dict[str, Dict[str, List[Dict] | Dict]] = {}
