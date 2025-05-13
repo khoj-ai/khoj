@@ -144,6 +144,7 @@ async def anthropic_chat_completion_with_backoff(
         formatted_messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)
 
         aggregated_response = ""
+        response_started = False
         final_message = None
         start_time = perf_counter()
         async with client.messages.stream(
@@ -157,7 +158,8 @@ async def anthropic_chat_completion_with_backoff(
         ) as stream:
             async for chunk in stream:
                 # Log the time taken to start response
-                if aggregated_response == "":
+                if not response_started:
+                    response_started = True
                     logger.info(f"First response took: {perf_counter() - start_time:.3f} seconds")
                 # Skip empty chunks
                 if chunk.type != "content_block_delta":
