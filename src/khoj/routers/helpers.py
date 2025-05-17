@@ -50,6 +50,7 @@ from khoj.database.adapters import (
     get_user_name,
     get_user_notion_config,
     get_user_subscription_state,
+    is_user_subscribed,
     run_with_process_lock,
 )
 from khoj.database.models import (
@@ -1264,7 +1265,7 @@ def send_message_to_model_wrapper_sync(
     if chat_model is None:
         raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
 
-    subscribed = ais_user_subscribed(user) if user else False
+    subscribed = is_user_subscribed(user) if user else False
     max_tokens = (
         chat_model.subscribed_max_prompt_size
         if subscribed and chat_model.subscribed_max_prompt_size
