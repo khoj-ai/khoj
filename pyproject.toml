@@ -81,7 +81,7 @@ dependencies = [
     "markdown-it-py ~= 3.0.0",
     "websockets == 13.0",
     "psutil >= 5.8.0",
-    "huggingface-hub >= 0.22.2",
+    "huggingface-hub[hf_xet] >= 0.22.2",
     "apscheduler ~= 3.10.0",
     "pytz ~= 2024.1",
     "cron-descriptor == 1.4.3",
