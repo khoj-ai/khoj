@@ -5,6 +5,7 @@ from time import perf_counter
 from typing import AsyncGenerator, Dict, Generator, List, Literal, Optional, Union
 from urllib.parse import urlparse
 
+import httpx
 import openai
 from openai.lib.streaming.chat import (
     ChatCompletionStream,
@@ -102,6 +103,7 @@ def completion_with_backoff(
         if not deepthought and len(formatted_messages) > 0:
             formatted_messages[-1]["content"] = formatted_messages[-1]["content"] + " /no_think"
 
+    read_timeout = 300 if is_local_api(api_base_url) else 60
     model_kwargs["stream_options"] = {"include_usage": True}
     if os.getenv("KHOJ_LLM_SEED"):
         model_kwargs["seed"] = int(os.getenv("KHOJ_LLM_SEED"))
@@ -111,7 +113,7 @@ def completion_with_backoff(
         messages=formatted_messages,  # type: ignore
         model=model_name,
         temperature=temperature,
-        timeout=20,
+        timeout=httpx.Timeout(30, read=read_timeout),
         **model_kwargs,
     ) as chat:
         for chunk in stream_processor(chat):
@@ -217,6 +219,7 @@ async def chat_completion_with_backoff(
                 formatted_messages[-1]["content"] = formatted_messages[-1]["content"] + " /no_think"
 
         stream = True
+        read_timeout = 300 if is_local_api(api_base_url) else 60
         model_kwargs["stream_options"] = {"include_usage": True}
         if os.getenv("KHOJ_LLM_SEED"):
             model_kwargs["seed"] = int(os.getenv("KHOJ_LLM_SEED"))
@@ -229,7 +232,7 @@ async def chat_completion_with_backoff(
             model=model_name,
             stream=stream,
             temperature=temperature,
-            timeout=20,
+            timeout=httpx.Timeout(30, read=read_timeout),
             **model_kwargs,
         )
         async for chunk in stream_processor(chat_stream):
@@ -311,6 +314,17 @@ def is_qwen_reasoning_model(model_name: str, api_base_url: str = None) -> bool:
     Check if the model is a Qwen reasoning model
     """
     return "qwen3" in model_name.lower() and api_base_url is not None
+
+
+def is_local_api(api_base_url: str) -> bool:
+    """
+    Check if the API base URL is a local API
+    """
+    if not api_base_url:
+        return False
+
+    host = urlparse(api_base_url).hostname
+    return host == "localhost" or host == "127.0.0.1"
 
 
 class ThoughtDeltaEvent(ContentDeltaEvent):
