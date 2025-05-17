@@ -9,7 +9,7 @@ import httpx
 from google import genai
 from google.genai import errors as gerrors
 from google.genai import types as gtypes
-from langchain.schema import ChatMessage
+from langchain_core.messages.chat import ChatMessage
 from pydantic import BaseModel
 from tenacity import (
     before_sleep_log,

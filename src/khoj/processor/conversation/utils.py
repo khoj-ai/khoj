@@ -17,7 +17,7 @@ import pyjson5
 import requests
 import tiktoken
 import yaml
-from langchain.schema import ChatMessage
+from langchain_core.messages.chat import ChatMessage
 from llama_cpp import LlamaTokenizer
 from llama_cpp.llama import Llama
 from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast

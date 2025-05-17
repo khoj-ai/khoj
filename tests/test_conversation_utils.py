@@ -1,7 +1,7 @@
 from copy import deepcopy
 
 import tiktoken
-from langchain.schema import ChatMessage
+from langchain_core.messages.chat import ChatMessage
 
 from khoj.processor.conversation import utils
 

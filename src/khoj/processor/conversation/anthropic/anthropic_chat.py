@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from typing import AsyncGenerator, Dict, List, Optional
 
 import pyjson5
-from langchain.schema import ChatMessage
+from langchain_core.messages.chat import ChatMessage
 
 from khoj.database.models import Agent, ChatModel, KhojUser
 from khoj.processor.conversation import prompts

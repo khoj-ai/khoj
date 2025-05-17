@@ -3,7 +3,7 @@ from time import perf_counter
 from typing import Dict, List
 
 import anthropic
-from langchain.schema import ChatMessage
+from langchain_core.messages.chat import ChatMessage
 from tenacity import (
     before_sleep_log,
     retry,
