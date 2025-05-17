@@ -516,6 +516,7 @@ def process_batch(batch, batch_start, results, dataset_length, response_evaluato
         if is_none_or_empty(agent_response):
             decision = None
             explanation = "Agent response is empty. This maybe due to a service error."
+            eval_cost = 0.0
         else:
             decision, explanation, eval_cost = response_evaluator(prompt, agent_response, answer, agent_references)
 
