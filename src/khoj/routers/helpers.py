@@ -50,6 +50,7 @@ from khoj.database.adapters import (
     get_user_name,
     get_user_notion_config,
     get_user_subscription_state,
+    is_user_subscribed,
     run_with_process_lock,
 )
 from khoj.database.models import (
@@ -522,8 +523,9 @@ async def generate_online_subqueries(
     location_data: LocationData,
     user: KhojUser,
     query_images: List[str] = None,
-    agent: Agent = None,
     query_files: str = None,
+    max_queries: int = 3,
+    agent: Agent = None,
     tracer: dict = {},
 ) -> Set[str]:
     """
@@ -533,7 +535,6 @@ async def generate_online_subqueries(
     username = prompts.user_name.format(name=user.get_full_name()) if user.get_full_name() else ""
     chat_history = construct_chat_history(conversation_history)
 
-    max_queries = 3
     utc_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
@@ -1264,7 +1265,7 @@ def send_message_to_model_wrapper_sync(
     if chat_model is None:
         raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
 
-    subscribed = ais_user_subscribed(user) if user else False
+    subscribed = is_user_subscribed(user) if user else False
     max_tokens = (
         chat_model.subscribed_max_prompt_size
         if subscribed and chat_model.subscribed_max_prompt_size

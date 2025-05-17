@@ -809,11 +809,11 @@ async def chat(
             chat_metadata = chat_metadata or {}
             chat_metadata["conversation_command"] = cmd_set
             chat_metadata["agent"] = conversation.agent.slug if conversation and conversation.agent else None
-            chat_metadata["latency"] = f"{latency:.3f}"
-            chat_metadata["ttft_latency"] = f"{ttft:.3f}"
             chat_metadata["cost"] = f"{cost:.5f}"
-
-            logger.info(f"Chat response time to first token: {ttft:.3f} seconds")
+            chat_metadata["latency"] = f"{latency:.3f}"
+            if ttft:
+                chat_metadata["ttft_latency"] = f"{ttft:.3f}"
+                logger.info(f"Chat response time to first token: {ttft:.3f} seconds")
             logger.info(f"Chat response total time: {latency:.3f} seconds")
             logger.info(f"Chat response cost: ${cost:.5f}")
             update_telemetry_state(
@@ -1129,9 +1129,10 @@ async def chat(
                     user,
                     partial(send_event, ChatEvent.STATUS),
                     custom_filters,
+                    max_online_searches=3,
                     query_images=uploaded_images,
-                    agent=agent,
                     query_files=attached_file_context,
+                    agent=agent,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:

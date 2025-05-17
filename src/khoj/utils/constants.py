@@ -52,6 +52,7 @@ model_to_cost: Dict[str, Dict[str, float]] = {
     "gemini-1.5-pro": {"input": 1.25, "output": 5.00},
     "gemini-1.5-pro-002": {"input": 1.25, "output": 5.00},
     "gemini-2.0-flash": {"input": 0.10, "output": 0.40},
+    "gemini-2.0-flash-lite": {"input": 0.0075, "output": 0.30},
     "gemini-2.5-flash-preview-04-17": {"input": 0.15, "output": 0.60, "thought": 3.50},
     "gemini-2.5-pro-preview-03-25": {"input": 1.25, "output": 10.0},
     # Anthropic Pricing: https://www.anthropic.com/pricing#anthropic-api

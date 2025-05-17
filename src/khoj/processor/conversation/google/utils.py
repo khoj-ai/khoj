@@ -5,14 +5,17 @@ from copy import deepcopy
 from time import perf_counter
 from typing import AsyncGenerator, AsyncIterator, Dict
 
+import httpx
 from google import genai
 from google.genai import errors as gerrors
 from google.genai import types as gtypes
+from httpcore import NetworkError, TimeoutException
 from langchain.schema import ChatMessage
 from pydantic import BaseModel
 from tenacity import (
     before_sleep_log,
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
     wait_random_exponential,
@@ -61,7 +64,19 @@ SAFETY_SETTINGS = [
 ]
 
 
+def _is_retryable_error(exception: BaseException) -> bool:
+    """Check if the exception is a retryable error"""
+    # server errors
+    if isinstance(exception, gerrors.APIError):
+        return exception.code in [429, 502, 503, 504]
+    # client errors
+    if isinstance(exception, NetworkError) or isinstance(exception, TimeoutException):
+        return True
+    return False
+
+
 @retry(
+    retry=retry_if_exception_type(_is_retryable_error),
     wait=wait_random_exponential(min=1, max=10),
     stop=stop_after_attempt(2),
     before_sleep=before_sleep_log(logger, logging.DEBUG),
@@ -104,6 +119,7 @@ def gemini_completion_with_backoff(
         response_mime_type=model_kwargs.get("response_mime_type", "text/plain") if model_kwargs else "text/plain",
         response_schema=response_schema,
         seed=seed,
+        http_options=gtypes.HttpOptions(client_args={"timeout": httpx.Timeout(20.0)}),
     )
 
     try:
@@ -137,8 +153,9 @@ def gemini_completion_with_backoff(
 
 
 @retry(
+    retry=retry_if_exception_type(_is_retryable_error),
     wait=wait_exponential(multiplier=1, min=4, max=10),
-    stop=stop_after_attempt(2),
+    stop=stop_after_attempt(3),
     before_sleep=before_sleep_log(logger, logging.DEBUG),
     reraise=True,
 )
@@ -174,17 +191,20 @@ async def gemini_chat_completion_with_backoff(
             stop_sequences=["Notes:\n["],
             safety_settings=SAFETY_SETTINGS,
             seed=seed,
+            http_options=gtypes.HttpOptions(async_client_args={"timeout": httpx.Timeout(20.0)}),
         )
 
         aggregated_response = ""
         final_chunk = None
+        response_started = False
         start_time = perf_counter()
         chat_stream: AsyncIterator[gtypes.GenerateContentResponse] = await client.aio.models.generate_content_stream(
             model=model_name, config=config, contents=formatted_messages
         )
         async for chunk in chat_stream:
             # Log the time taken to start response
-            if final_chunk is None:
+            if not response_started:
+                response_started = True
                 logger.info(f"First response took: {perf_counter() - start_time:.3f} seconds")
             # Keep track of the last chunk for usage data
             final_chunk = chunk
@@ -284,7 +304,10 @@ def format_messages_for_gemini(
     messages = deepcopy(original_messages)
     for message in messages.copy():
         if message.role == "system":
-            system_prompt += message.content
+            if isinstance(message.content, list):
+                system_prompt += "\n".join([part["text"] for part in message.content if part["type"] == "text"])
+            else:
+                system_prompt += message.content
             messages.remove(message)
     system_prompt = None if is_none_or_empty(system_prompt) else system_prompt
 
