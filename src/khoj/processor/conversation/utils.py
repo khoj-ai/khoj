@@ -189,6 +189,9 @@ def construct_tool_chat_history(
         ConversationCommand.Code: (
             lambda iteration: list(iteration.codeContext.keys()) if iteration.codeContext else []
         ),
+        ConversationCommand.Operator: (
+            lambda iteration: list(iteration.operatorContext.keys()) if iteration.operatorContext else []
+        ),
     }
     for iteration in previous_iterations:
         # If a tool is provided use the inferred query extractor for that tool if available
@@ -450,6 +453,11 @@ def generate_chatml_messages_with_context(
 
         if not is_none_or_empty(chat.get("codeContext")):
             message_context += f"{prompts.code_executed_context.format(online_results=chat.get('codeContext'))}"
+
+        if not is_none_or_empty(chat.get("operatorContext")):
+            message_context += (
+                f"{prompts.operator_execution_context.format(operator_results=chat.get('operatorContext'))}"
+            )
 
         if not is_none_or_empty(message_context):
             reconstructed_context_message = ChatMessage(content=message_context, role="user")
