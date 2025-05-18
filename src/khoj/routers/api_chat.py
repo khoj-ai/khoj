@@ -1129,9 +1129,10 @@ async def chat(
                     user,
                     partial(send_event, ChatEvent.STATUS),
                     custom_filters,
+                    max_online_searches=3,
                     query_images=uploaded_images,
-                    agent=agent,
                     query_files=attached_file_context,
+                    agent=agent,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:

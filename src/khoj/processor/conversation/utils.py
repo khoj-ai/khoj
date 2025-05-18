@@ -4,14 +4,12 @@ import logging
 import math
 import mimetypes
 import os
-import queue
 import re
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from io import BytesIO
-from time import perf_counter
 from typing import Any, Callable, Dict, List, Optional
 
 import PIL.Image
@@ -19,9 +17,10 @@ import pyjson5
 import requests
 import tiktoken
 import yaml
-from langchain.schema import ChatMessage
+from langchain_core.messages.chat import ChatMessage
+from llama_cpp import LlamaTokenizer
 from llama_cpp.llama import Llama
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast
 
 from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import ChatModel, ClientApplication, KhojUser
@@ -52,7 +51,7 @@ except ImportError:
 model_to_prompt_size = {
     # OpenAI Models
     "gpt-4o": 60000,
-    "gpt-4o-mini": 120000,
+    "gpt-4o-mini": 60000,
     "gpt-4.1": 60000,
     "gpt-4.1-mini": 120000,
     "gpt-4.1-nano": 120000,
@@ -105,9 +104,9 @@ class InformationCollectionIteration:
 
 
 def construct_iteration_history(
-    previous_iterations: List[InformationCollectionIteration], previous_iteration_prompt: str
-) -> str:
-    previous_iterations_history = ""
+    query: str, previous_iterations: List[InformationCollectionIteration], previous_iteration_prompt: str
+) -> list[dict]:
+    previous_iterations_history = []
     for idx, iteration in enumerate(previous_iterations):
         iteration_data = previous_iteration_prompt.format(
             tool=iteration.tool,
@@ -116,8 +115,23 @@ def construct_iteration_history(
             index=idx + 1,
         )
 
-        previous_iterations_history += iteration_data
-    return previous_iterations_history
+        previous_iterations_history.append(iteration_data)
+
+    return (
+        [
+            {
+                "by": "you",
+                "message": query,
+            },
+            {
+                "by": "khoj",
+                "intent": {"type": "remember", "query": query},
+                "message": previous_iterations_history,
+            },
+        ]
+        if previous_iterations_history
+        else []
+    )
 
 
 def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:
@@ -152,19 +166,35 @@ def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="A
 def construct_tool_chat_history(
     previous_iterations: List[InformationCollectionIteration], tool: ConversationCommand = None
 ) -> Dict[str, list]:
+    """
+    Construct chat history from previous iterations for a specific tool
+
+    If a tool is provided, only the inferred queries for that tool is added.
+    If no tool is provided inferred query for all tools used are added.
+    """
     chat_history: list = []
-    inferred_query_extractor: Callable[[InformationCollectionIteration], List[str]] = lambda x: []
-    if tool == ConversationCommand.Notes:
-        inferred_query_extractor = (
+    base_extractor: Callable[[InformationCollectionIteration], List[str]] = lambda x: []
+    extract_inferred_query_map: Dict[ConversationCommand, Callable[[InformationCollectionIteration], List[str]]] = {
+        ConversationCommand.Notes: (
             lambda iteration: [c["query"] for c in iteration.context] if iteration.context else []
-        )
-    elif tool == ConversationCommand.Online:
-        inferred_query_extractor = (
+        ),
+        ConversationCommand.Online: (
             lambda iteration: list(iteration.onlineContext.keys()) if iteration.onlineContext else []
-        )
-    elif tool == ConversationCommand.Code:
-        inferred_query_extractor = lambda iteration: list(iteration.codeContext.keys()) if iteration.codeContext else []
+        ),
+        ConversationCommand.Webpage: (
+            lambda iteration: list(iteration.onlineContext.keys()) if iteration.onlineContext else []
+        ),
+        ConversationCommand.Code: (
+            lambda iteration: list(iteration.codeContext.keys()) if iteration.codeContext else []
+        ),
+    }
     for iteration in previous_iterations:
+        # If a tool is provided use the inferred query extractor for that tool if available
+        # If no tool is provided, use inferred query extractor for the tool used in the iteration
+        # Fallback to base extractor if the tool does not have an inferred query extractor
+        inferred_query_extractor = extract_inferred_query_map.get(
+            tool or ConversationCommand(iteration.tool), base_extractor
+        )
         chat_history += [
             {
                 "by": "you",
@@ -300,7 +330,11 @@ Khoj: "{chat_response}"
 
 
 def construct_structured_message(
-    message: str, images: list[str], model_type: str, vision_enabled: bool, attached_file_context: str = None
+    message: list[str] | str,
+    images: list[str],
+    model_type: str,
+    vision_enabled: bool,
+    attached_file_context: str = None,
 ):
     """
     Format messages into appropriate multimedia format for supported chat model types
@@ -310,10 +344,11 @@ def construct_structured_message(
         ChatModel.ModelType.GOOGLE,
         ChatModel.ModelType.ANTHROPIC,
     ]:
-        if not attached_file_context and not (vision_enabled and images):
-            return message
+        message = [message] if isinstance(message, str) else message
 
-        constructed_messages: List[Any] = [{"type": "text", "text": message}]
+        constructed_messages: List[dict[str, Any]] = [
+            {"type": "text", "text": message_part} for message_part in message
+        ]
 
         if not is_none_or_empty(attached_file_context):
             constructed_messages.append({"type": "text", "text": attached_file_context})
@@ -346,7 +381,7 @@ def gather_raw_query_files(
 
 def generate_chatml_messages_with_context(
     user_message,
-    system_message=None,
+    system_message: str = None,
     conversation_log={},
     model_name="gpt-4o-mini",
     loaded_model: Optional[Llama] = None,
@@ -409,6 +444,9 @@ def generate_chatml_messages_with_context(
         if not is_none_or_empty(chat.get("onlineContext")):
             message_context += f"{prompts.online_search_conversation.format(online_results=chat.get('onlineContext'))}"
 
+        if not is_none_or_empty(chat.get("codeContext")):
+            message_context += f"{prompts.code_executed_context.format(online_results=chat.get('codeContext'))}"
+
         if not is_none_or_empty(message_context):
             reconstructed_context_message = ChatMessage(content=message_context, role="user")
             chatml_messages.insert(0, reconstructed_context_message)
@@ -441,7 +479,7 @@ def generate_chatml_messages_with_context(
         if len(chatml_messages) >= 3 * lookback_turns:
             break
 
-    messages = []
+    messages: list[ChatMessage] = []
 
     if not is_none_or_empty(generated_asset_results):
         messages.append(
@@ -478,6 +516,11 @@ def generate_chatml_messages_with_context(
     if not is_none_or_empty(system_message):
         messages.append(ChatMessage(content=system_message, role="system"))
 
+    # Normalize message content to list of chatml dictionaries
+    for message in messages:
+        if isinstance(message.content, str):
+            message.content = [{"type": "text", "text": message.content}]
+
     # Truncate oldest messages from conversation history until under max supported prompt size by model
     messages = truncate_messages(messages, max_prompt_size, model_name, loaded_model, tokenizer_name)
 
@@ -485,14 +528,11 @@ def generate_chatml_messages_with_context(
     return messages[::-1]
 
 
-def truncate_messages(
-    messages: list[ChatMessage],
-    max_prompt_size: int,
+def get_encoder(
     model_name: str,
     loaded_model: Optional[Llama] = None,
     tokenizer_name=None,
-) -> list[ChatMessage]:
-    """Truncate messages to fit within max prompt size supported by model"""
+) -> tiktoken.Encoding | PreTrainedTokenizer | PreTrainedTokenizerFast | LlamaTokenizer:
     default_tokenizer = "gpt-4o"
 
     try:
@@ -515,6 +555,48 @@ def truncate_messages(
             logger.debug(
                 f"Fallback to default chat model tokenizer: {default_tokenizer}.\nConfigure tokenizer for model: {model_name} in Khoj settings to improve context stuffing."
             )
+    return encoder
+
+
+def count_tokens(
+    message_content: str | list[str | dict],
+    encoder: PreTrainedTokenizer | PreTrainedTokenizerFast | LlamaTokenizer | tiktoken.Encoding,
+) -> int:
+    """
+    Count the total number of tokens in a list of messages.
+
+    Assumes each images takes 500 tokens for approximation.
+    """
+    if isinstance(message_content, list):
+        image_count = 0
+        message_content_parts: list[str] = []
+        # Collate message content into single string to ease token counting
+        for part in message_content:
+            if isinstance(part, dict) and part.get("type") == "text":
+                message_content_parts.append(part["text"])
+            elif isinstance(part, dict) and part.get("type") == "image_url":
+                image_count += 1
+            elif isinstance(part, str):
+                message_content_parts.append(part)
+            else:
+                logger.warning(f"Unknown message type: {part}. Skipping.")
+        message_content = "\n".join(message_content_parts).rstrip()
+        return len(encoder.encode(message_content)) + image_count * 500
+    elif isinstance(message_content, str):
+        return len(encoder.encode(message_content))
+    else:
+        return len(encoder.encode(json.dumps(message_content)))
+
+
+def truncate_messages(
+    messages: list[ChatMessage],
+    max_prompt_size: int,
+    model_name: str,
+    loaded_model: Optional[Llama] = None,
+    tokenizer_name=None,
+) -> list[ChatMessage]:
+    """Truncate messages to fit within max prompt size supported by model"""
+    encoder = get_encoder(model_name, loaded_model, tokenizer_name)
 
     # Extract system message from messages
     system_message = None
@@ -523,35 +605,55 @@ def truncate_messages(
             system_message = messages.pop(idx)
             break
 
-    # TODO: Handle truncation of multi-part message.content, i.e when message.content is a list[dict] rather than a string
-    system_message_tokens = (
-        len(encoder.encode(system_message.content)) if system_message and type(system_message.content) == str else 0
-    )
-
-    tokens = sum([len(encoder.encode(message.content)) for message in messages if type(message.content) == str])
-
     # Drop older messages until under max supported prompt size by model
     # Reserves 4 tokens to demarcate each message (e.g <|im_start|>user, <|im_end|>, <|endoftext|> etc.)
-    while (tokens + system_message_tokens + 4 * len(messages)) > max_prompt_size and len(messages) > 1:
-        messages.pop()
-        tokens = sum([len(encoder.encode(message.content)) for message in messages if type(message.content) == str])
+    system_message_tokens = count_tokens(system_message.content, encoder) if system_message else 0
+    tokens = sum([count_tokens(message.content, encoder) for message in messages])
+    total_tokens = tokens + system_message_tokens + 4 * len(messages)
+
+    while total_tokens > max_prompt_size and (len(messages) > 1 or len(messages[0].content) > 1):
+        if len(messages[-1].content) > 1:
+            # The oldest content part is earlier in content list. So pop from the front.
+            messages[-1].content.pop(0)
+        else:
+            # The oldest message is the last one. So pop from the back.
+            messages.pop()
+        tokens = sum([count_tokens(message.content, encoder) for message in messages])
+        total_tokens = tokens + system_message_tokens + 4 * len(messages)
 
     # Truncate current message if still over max supported prompt size by model
-    if (tokens + system_message_tokens) > max_prompt_size:
-        current_message = "\n".join(messages[0].content.split("\n")[:-1]) if type(messages[0].content) == str else ""
-        original_question = "\n".join(messages[0].content.split("\n")[-1:]) if type(messages[0].content) == str else ""
-        original_question = f"\n{original_question}"
-        original_question_tokens = len(encoder.encode(original_question))
+    total_tokens = tokens + system_message_tokens + 4 * len(messages)
+    if total_tokens > max_prompt_size:
+        # At this point, a single message with a single content part of type dict should remain
+        assert (
+            len(messages) == 1 and len(messages[0].content) == 1 and isinstance(messages[0].content[0], dict)
+        ), "Expected a single message with a single content part remaining at this point in truncation"
+
+        # Collate message content into single string to ease truncation
+        part = messages[0].content[0]
+        message_content: str = part["text"] if part["type"] == "text" else json.dumps(part)
+        message_role = messages[0].role
+
+        remaining_context = "\n".join(message_content.split("\n")[:-1])
+        original_question = "\n" + "\n".join(message_content.split("\n")[-1:])
+
+        original_question_tokens = count_tokens(original_question, encoder)
         remaining_tokens = max_prompt_size - system_message_tokens
         if remaining_tokens > original_question_tokens:
             remaining_tokens -= original_question_tokens
-            truncated_message = encoder.decode(encoder.encode(current_message)[:remaining_tokens]).strip()
-            messages = [ChatMessage(content=truncated_message + original_question, role=messages[0].role)]
+            truncated_context = encoder.decode(encoder.encode(remaining_context)[:remaining_tokens]).strip()
+            truncated_content = truncated_context + original_question
         else:
-            truncated_message = encoder.decode(encoder.encode(original_question)[:remaining_tokens]).strip()
-            messages = [ChatMessage(content=truncated_message, role=messages[0].role)]
+            truncated_content = encoder.decode(encoder.encode(original_question)[:remaining_tokens]).strip()
+        messages = [ChatMessage(content=[{"type": "text", "text": truncated_content}], role=message_role)]
+
+        truncated_snippet = (
+            f"{truncated_content[:1000]}\n...\n{truncated_content[-1000:]}"
+            if len(truncated_content) > 2000
+            else truncated_content
+        )
         logger.debug(
-            f"Truncate current message to fit within max prompt size of {max_prompt_size} supported by {model_name} model:\n {truncated_message[:1000]}..."
+            f"Truncate current message to fit within max prompt size of {max_prompt_size} supported by {model_name} model:\n {truncated_snippet}"
         )
 
     if system_message:

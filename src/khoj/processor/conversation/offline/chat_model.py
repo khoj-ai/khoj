@@ -7,7 +7,7 @@ from time import perf_counter
 from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 
 import pyjson5
-from langchain.schema import ChatMessage
+from langchain_core.messages.chat import ChatMessage
 from llama_cpp import Llama
 
 from khoj.database.models import Agent, ChatModel, KhojUser

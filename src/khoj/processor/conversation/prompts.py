@@ -1,4 +1,4 @@
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 
 ## Personality
 ## --
@@ -666,21 +666,25 @@ As a professional analyst, your job is to extract all pertinent information from
 You will be provided raw text directly from within the document.
 Adhere to these guidelines while extracting information from the provided documents:
 
-1. Extract all relevant text and links from the document that can assist with further research or answer the user's query.
+1. Extract all relevant text and links from the document that can assist with further research or answer the target query.
 2. Craft a comprehensive but compact report with all the necessary data from the document to generate an informed response.
 3. Rely strictly on the provided text to generate your summary, without including external information.
 4. Provide specific, important snippets from the document in your report to establish trust in your summary.
+5. Verbatim quote all necessary text, code or data from the provided document to answer the target query.
 """.strip()
 
 extract_relevant_information = PromptTemplate.from_template(
     """
 {personality_context}
-Target Query: {query}
+<target_query>
+{query}
+</target_query>
 
-Document:
+<document>
 {corpus}
+</document>
 
-Collate only relevant information from the document to answer the target query.
+Collate all relevant information from the document to answer the target query.
 """.strip()
 )
 
@@ -758,29 +762,32 @@ Assuming you can search the user's notes and the internet.
 - User Name: {username}
 
 # Available Tool AIs
-Which of the tool AIs listed below would you use to answer the user's question? You **only** have access to the following tool AIs:
+You decide which of the tool AIs listed below would you use to answer the user's question. You **only** have access to the following tool AIs:
 
 {tools}
 
-# Previous Iterations
-{previous_iterations}
-
-# Chat History:
-{chat_history}
-
-Return the next tool AI to use and the query to ask it. Your response should always be a valid JSON object. Do not say anything else.
+Your response should always be a valid JSON object. Do not say anything else.
 Response format:
 {{"scratchpad": "<your_scratchpad_to_reason_about_which_tool_to_use>", "tool": "<name_of_tool_ai>", "query": "<your_detailed_query_for_the_tool_ai>"}}
 """.strip()
 )
 
+plan_function_execution_next_tool = PromptTemplate.from_template(
+    """
+Given the results of your previous iterations, which tool AI will you use next to answer the target query?
+
+# Target Query:
+{query}
+""".strip()
+)
+
 previous_iteration = PromptTemplate.from_template(
     """
-## Iteration {index}:
+# Iteration {index}:
 - tool: {tool}
 - query: {query}
 - result: {result}
-"""
+""".strip()
 )
 
 pick_relevant_tools = PromptTemplate.from_template(
@@ -858,8 +865,7 @@ infer_webpages_to_read = PromptTemplate.from_template(
 You are Khoj, an advanced web page reading assistant. You are to construct **up to {max_webpages}, valid** webpage urls to read before answering the user's question.
 - You will receive the conversation history as context.
 - Add as much context from the previous questions and answers as required to construct the webpage urls.
-- Use multiple web page urls if required to retrieve the relevant information.
-- You have access to the the whole internet to retrieve information.
+- You have access to the whole internet to retrieve information.
 {personality_context}
 Which webpages will you need to read to answer the user's question?
 Provide web page links as a list of strings in a JSON object.

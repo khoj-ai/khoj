@@ -3,7 +3,7 @@ from time import perf_counter
 from typing import Dict, List
 
 import anthropic
-from langchain.schema import ChatMessage
+from langchain_core.messages.chat import ChatMessage
 from tenacity import (
     before_sleep_log,
     retry,
@@ -144,6 +144,7 @@ async def anthropic_chat_completion_with_backoff(
         formatted_messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)
 
         aggregated_response = ""
+        response_started = False
         final_message = None
         start_time = perf_counter()
         async with client.messages.stream(
@@ -157,7 +158,8 @@ async def anthropic_chat_completion_with_backoff(
         ) as stream:
             async for chunk in stream:
                 # Log the time taken to start response
-                if aggregated_response == "":
+                if not response_started:
+                    response_started = True
                     logger.info(f"First response took: {perf_counter() - start_time:.3f} seconds")
                 # Skip empty chunks
                 if chunk.type != "content_block_delta":
@@ -203,7 +205,10 @@ def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt: st
     system_prompt = system_prompt or ""
     for message in messages.copy():
         if message.role == "system":
-            system_prompt += message.content
+            if isinstance(message.content, list):
+                system_prompt += "\n".join([part["text"] for part in message.content if part["type"] == "text"])
+            else:
+                system_prompt += message.content
             messages.remove(message)
     system_prompt = None if is_none_or_empty(system_prompt) else system_prompt
 

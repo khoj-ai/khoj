@@ -9,7 +9,7 @@ import httpx
 from google import genai
 from google.genai import errors as gerrors
 from google.genai import types as gtypes
-from langchain.schema import ChatMessage
+from langchain_core.messages.chat import ChatMessage
 from pydantic import BaseModel
 from tenacity import (
     before_sleep_log,
@@ -195,13 +195,15 @@ async def gemini_chat_completion_with_backoff(
 
         aggregated_response = ""
         final_chunk = None
+        response_started = False
         start_time = perf_counter()
         chat_stream: AsyncIterator[gtypes.GenerateContentResponse] = await client.aio.models.generate_content_stream(
             model=model_name, config=config, contents=formatted_messages
         )
         async for chunk in chat_stream:
             # Log the time taken to start response
-            if final_chunk is None:
+            if not response_started:
+                response_started = True
                 logger.info(f"First response took: {perf_counter() - start_time:.3f} seconds")
             # Keep track of the last chunk for usage data
             final_chunk = chunk
@@ -301,7 +303,10 @@ def format_messages_for_gemini(
     messages = deepcopy(original_messages)
     for message in messages.copy():
         if message.role == "system":
-            system_prompt += message.content
+            if isinstance(message.content, list):
+                system_prompt += "\n".join([part["text"] for part in message.content if part["type"] == "text"])
+            else:
+                system_prompt += message.content
             messages.remove(message)
     system_prompt = None if is_none_or_empty(system_prompt) else system_prompt
 
