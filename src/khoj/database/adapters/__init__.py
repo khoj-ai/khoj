@@ -1296,9 +1296,10 @@ class ConversationAdapters:
         server_chat_settings = ServerChatSettings.objects.first()
         if server_chat_settings:
             server_chat_settings.chat_default = chat_model
+            server_chat_settings.chat_advanced = chat_model
             server_chat_settings.save()
         else:
-            ServerChatSettings.objects.create(chat_default=chat_model)
+            ServerChatSettings.objects.create(chat_default=chat_model, chat_advanced=chat_model)
 
     @staticmethod
     async def aget_server_webscraper():
