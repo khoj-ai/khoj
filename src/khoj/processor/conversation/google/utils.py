@@ -36,7 +36,9 @@ logger = logging.getLogger(__name__)
 
 gemini_clients: Dict[str, genai.Client] = {}
 
-MAX_OUTPUT_TOKENS_GEMINI = 8192
+# Output tokens should be more than reasoning tokens.
+# This avoids premature response termination.
+MAX_OUTPUT_TOKENS_GEMINI = 20000
 MAX_REASONING_TOKENS_GEMINI = 10000
 
 SAFETY_SETTINGS = [
