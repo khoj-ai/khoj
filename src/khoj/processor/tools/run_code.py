@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import Any, Callable, List, NamedTuple, Optional
 
 import aiohttp
+import httpx
 from asgiref.sync import sync_to_async
-from httpx import RemoteProtocolError
 from tenacity import (
     before_sleep_log,
     retry,
@@ -192,7 +192,9 @@ async def generate_python_code(
         | retry_if_exception_type(aiohttp.ClientTimeout)
         | retry_if_exception_type(asyncio.TimeoutError)
         | retry_if_exception_type(ConnectionError)
-        | retry_if_exception_type(RemoteProtocolError)
+        | retry_if_exception_type(httpx.RemoteProtocolError)
+        | retry_if_exception_type(httpx.NetworkError)
+        | retry_if_exception_type(httpx.TimeoutException)
     ),
     wait=wait_random_exponential(min=1, max=5),
     stop=stop_after_attempt(3),
