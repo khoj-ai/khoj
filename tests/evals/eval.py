@@ -46,7 +46,7 @@ BATCH_SIZE = int(
     os.getenv("BATCH_SIZE", int(SAMPLE_SIZE) / 10 if SAMPLE_SIZE else 10)
 )  # Examples to evaluate in each batch
 SLEEP_SECONDS = 3 if KHOJ_MODE == "general" else 1  # Sleep between API calls to avoid rate limiting
-KHOJ_API_TIMEOUT_SECONDS = 600  # Default to 10 minutes
+KHOJ_API_TIMEOUT_SECONDS = 1200  # Default to 20 minutes
 
 
 class Counter:
@@ -365,7 +365,7 @@ def get_agent_response(prompt: str) -> Dict[str, Any]:
             "references": response_json.get("references", {}),
         }
     except requests.exceptions.Timeout:
-        logger.error(f"Timeout error getting agent response for prompt: {prompt[:100]}...")
+        logger.error(f"Timeout error getting agent response for prompt: {prompt[:100]}...{prompt[-100:]}")
     except Exception as e:
         logger.error(f"Error getting agent response: {e}")
     return {"response": "", "usage": {}, "references": {}}
@@ -544,20 +544,21 @@ def process_batch(batch, batch_start, results, dataset_length, response_evaluato
         running_cost.add(query_cost + eval_cost)
 
         # Update running accuracy
-        running_accuracy = 0.0
         if decision is not None:
             running_true_count.add(decision)
             running_total_count.add(1)
-            running_accuracy = running_true_count.get() / running_total_count.get()
+        running_accuracy = running_true_count.get() / running_total_count.get()
 
         ## Log results
-        decision_color = {True: "green", None: "blue", False: "red"}[decision > 0.5]
+        key_for_color_map = None if decision is None else (decision > 0.5)
+        decision_color = {True: "green", None: "blue", False: "red"}[key_for_color_map]
         colored_decision = color_text(str(decision), decision_color)
         result_to_print = f"""
 ---------
 Decision: {colored_decision}
 Accuracy: {running_accuracy:.2%}
 Progress: {running_total_count.get()/dataset_length:.2%}
+Index: {current_index}
 Question: {prompt}
 Expected Answer: {answer}
 Agent Answer: {agent_response}
