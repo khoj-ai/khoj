@@ -38,6 +38,7 @@ from khoj.utils.helpers import (
     get_chat_usage_metrics,
     get_openai_async_client,
     get_openai_client,
+    is_none_or_empty,
     is_promptrace_enabled,
 )
 
@@ -54,6 +55,7 @@ openai_async_clients: Dict[str, openai.AsyncOpenAI] = {}
         | retry_if_exception_type(openai._exceptions.APIConnectionError)
         | retry_if_exception_type(openai._exceptions.RateLimitError)
         | retry_if_exception_type(openai._exceptions.APIStatusError)
+        | retry_if_exception_type(ValueError)
     ),
     wait=wait_random_exponential(min=1, max=10),
     stop=stop_after_attempt(3),
@@ -136,6 +138,11 @@ def completion_with_backoff(
         model_name, input_tokens, output_tokens, usage=tracer.get("usage"), cost=cost
     )
 
+    # Validate the response. If empty, raise an error to retry.
+    if is_none_or_empty(aggregated_response):
+        logger.warning(f"No response by {model_name}\nLast Message by {messages[-1].role}: {messages[-1].content}.")
+        raise ValueError(f"Empty or no response by {model_name} over API. Retry if needed.")
+
     # Save conversation trace
     tracer["chat_model"] = model_name
     tracer["temperature"] = temperature
@@ -152,14 +159,15 @@ def completion_with_backoff(
         | retry_if_exception_type(openai._exceptions.APIConnectionError)
         | retry_if_exception_type(openai._exceptions.RateLimitError)
         | retry_if_exception_type(openai._exceptions.APIStatusError)
+        | retry_if_exception_type(ValueError)
     ),
     wait=wait_exponential(multiplier=1, min=4, max=10),
     stop=stop_after_attempt(3),
-    before_sleep=before_sleep_log(logger, logging.DEBUG),
-    reraise=True,
+    before_sleep=before_sleep_log(logger, logging.WARNING),
+    reraise=False,
 )
 async def chat_completion_with_backoff(
-    messages,
+    messages: list[ChatMessage],
     model_name: str,
     temperature,
     openai_api_key=None,
@@ -168,120 +176,122 @@ async def chat_completion_with_backoff(
     model_kwargs: dict = {},
     tracer: dict = {},
 ) -> AsyncGenerator[ResponseWithThought, None]:
-    try:
-        client_key = f"{openai_api_key}--{api_base_url}"
-        client = openai_async_clients.get(client_key)
-        if not client:
-            client = get_openai_async_client(openai_api_key, api_base_url)
-            openai_async_clients[client_key] = client
+    client_key = f"{openai_api_key}--{api_base_url}"
+    client = openai_async_clients.get(client_key)
+    if not client:
+        client = get_openai_async_client(openai_api_key, api_base_url)
+        openai_async_clients[client_key] = client
 
-        stream_processor = adefault_stream_processor
-        formatted_messages = format_message_for_api(messages, api_base_url)
+    stream_processor = adefault_stream_processor
+    formatted_messages = format_message_for_api(messages, api_base_url)
 
-        # Configure thinking for openai reasoning models
-        if is_openai_reasoning_model(model_name, api_base_url):
-            temperature = 1
-            reasoning_effort = "medium" if deepthought else "low"
-            model_kwargs["reasoning_effort"] = reasoning_effort
-            model_kwargs.pop("stop", None)  # Remove unsupported stop param for reasoning models
+    # Configure thinking for openai reasoning models
+    if is_openai_reasoning_model(model_name, api_base_url):
+        temperature = 1
+        reasoning_effort = "medium" if deepthought else "low"
+        model_kwargs["reasoning_effort"] = reasoning_effort
+        model_kwargs.pop("stop", None)  # Remove unsupported stop param for reasoning models
 
-            # Get the first system message and add the string `Formatting re-enabled` to it.
-            # See https://platform.openai.com/docs/guides/reasoning-best-practices
-            if len(formatted_messages) > 0:
-                system_messages = [
-                    (i, message) for i, message in enumerate(formatted_messages) if message["role"] == "system"
-                ]
-                if len(system_messages) > 0:
-                    first_system_message_index, first_system_message = system_messages[0]
-                    first_system_message_content = first_system_message["content"]
-                    formatted_messages[first_system_message_index][
-                        "content"
-                    ] = f"{first_system_message_content}\nFormatting re-enabled"
-        elif is_twitter_reasoning_model(model_name, api_base_url):
-            stream_processor = adeepseek_stream_processor
-            reasoning_effort = "high" if deepthought else "low"
-            model_kwargs["reasoning_effort"] = reasoning_effort
-        elif model_name.startswith("deepseek-reasoner"):
-            stream_processor = adeepseek_stream_processor
-            # Two successive messages cannot be from the same role. Should merge any back-to-back messages from the same role.
-            # The first message should always be a user message (except system message).
-            updated_messages: List[dict] = []
-            for i, message in enumerate(formatted_messages):
-                if i > 0 and message["role"] == formatted_messages[i - 1]["role"]:
-                    updated_messages[-1]["content"] += " " + message["content"]
-                elif i == 1 and formatted_messages[i - 1]["role"] == "system" and message["role"] == "assistant":
-                    updated_messages[-1]["content"] += " " + message["content"]
-                else:
-                    updated_messages.append(message)
-            formatted_messages = updated_messages
-        elif is_qwen_reasoning_model(model_name, api_base_url):
-            stream_processor = partial(ain_stream_thought_processor, thought_tag="think")
-            # Reasoning is enabled by default. Disable when deepthought is False.
-            # See https://qwenlm.github.io/blog/qwen3/#advanced-usages
-            if not deepthought and len(formatted_messages) > 0:
-                formatted_messages[-1]["content"] = formatted_messages[-1]["content"] + " /no_think"
+        # Get the first system message and add the string `Formatting re-enabled` to it.
+        # See https://platform.openai.com/docs/guides/reasoning-best-practices
+        if len(formatted_messages) > 0:
+            system_messages = [
+                (i, message) for i, message in enumerate(formatted_messages) if message["role"] == "system"
+            ]
+            if len(system_messages) > 0:
+                first_system_message_index, first_system_message = system_messages[0]
+                first_system_message_content = first_system_message["content"]
+                formatted_messages[first_system_message_index][
+                    "content"
+                ] = f"{first_system_message_content}\nFormatting re-enabled"
+    elif is_twitter_reasoning_model(model_name, api_base_url):
+        stream_processor = adeepseek_stream_processor
+        reasoning_effort = "high" if deepthought else "low"
+        model_kwargs["reasoning_effort"] = reasoning_effort
+    elif model_name.startswith("deepseek-reasoner"):
+        stream_processor = adeepseek_stream_processor
+        # Two successive messages cannot be from the same role. Should merge any back-to-back messages from the same role.
+        # The first message should always be a user message (except system message).
+        updated_messages: List[dict] = []
+        for i, message in enumerate(formatted_messages):
+            if i > 0 and message["role"] == formatted_messages[i - 1]["role"]:
+                updated_messages[-1]["content"] += " " + message["content"]
+            elif i == 1 and formatted_messages[i - 1]["role"] == "system" and message["role"] == "assistant":
+                updated_messages[-1]["content"] += " " + message["content"]
+            else:
+                updated_messages.append(message)
+        formatted_messages = updated_messages
+    elif is_qwen_reasoning_model(model_name, api_base_url):
+        stream_processor = partial(ain_stream_thought_processor, thought_tag="think")
+        # Reasoning is enabled by default. Disable when deepthought is False.
+        # See https://qwenlm.github.io/blog/qwen3/#advanced-usages
+        if not deepthought and len(formatted_messages) > 0:
+            formatted_messages[-1]["content"] = formatted_messages[-1]["content"] + " /no_think"
 
-        stream = True
-        read_timeout = 300 if is_local_api(api_base_url) else 60
-        model_kwargs["stream_options"] = {"include_usage": True}
-        if os.getenv("KHOJ_LLM_SEED"):
-            model_kwargs["seed"] = int(os.getenv("KHOJ_LLM_SEED"))
+    stream = True
+    read_timeout = 300 if is_local_api(api_base_url) else 60
+    model_kwargs["stream_options"] = {"include_usage": True}
+    if os.getenv("KHOJ_LLM_SEED"):
+        model_kwargs["seed"] = int(os.getenv("KHOJ_LLM_SEED"))
 
-        aggregated_response = ""
-        final_chunk = None
-        response_started = False
-        start_time = perf_counter()
-        chat_stream: openai.AsyncStream[ChatCompletionChunk] = await client.chat.completions.create(
-            messages=formatted_messages,  # type: ignore
-            model=model_name,
-            stream=stream,
-            temperature=temperature,
-            timeout=httpx.Timeout(30, read=read_timeout),
-            **model_kwargs,
-        )
-        async for chunk in stream_processor(chat_stream):
-            # Log the time taken to start response
-            if not response_started:
-                response_started = True
-                logger.info(f"First response took: {perf_counter() - start_time:.3f} seconds")
-            # Keep track of the last chunk for usage data
-            final_chunk = chunk
-            # Skip empty chunks
-            if len(chunk.choices) == 0:
-                continue
-            # Handle streamed response chunk
-            response_chunk: ResponseWithThought = None
-            response_delta = chunk.choices[0].delta
-            if response_delta.content:
-                response_chunk = ResponseWithThought(response=response_delta.content)
-                aggregated_response += response_chunk.response
-            elif response_delta.thought:
-                response_chunk = ResponseWithThought(thought=response_delta.thought)
-            if response_chunk:
-                yield response_chunk
+    aggregated_response = ""
+    final_chunk = None
+    response_started = False
+    start_time = perf_counter()
+    chat_stream: openai.AsyncStream[ChatCompletionChunk] = await client.chat.completions.create(
+        messages=formatted_messages,  # type: ignore
+        model=model_name,
+        stream=stream,
+        temperature=temperature,
+        timeout=httpx.Timeout(30, read=read_timeout),
+        **model_kwargs,
+    )
+    async for chunk in stream_processor(chat_stream):
+        # Log the time taken to start response
+        if not response_started:
+            response_started = True
+            logger.info(f"First response took: {perf_counter() - start_time:.3f} seconds")
+        # Keep track of the last chunk for usage data
+        final_chunk = chunk
+        # Skip empty chunks
+        if len(chunk.choices) == 0:
+            continue
+        # Handle streamed response chunk
+        response_chunk: ResponseWithThought = None
+        response_delta = chunk.choices[0].delta
+        if response_delta.content:
+            response_chunk = ResponseWithThought(response=response_delta.content)
+            aggregated_response += response_chunk.response
+        elif response_delta.thought:
+            response_chunk = ResponseWithThought(thought=response_delta.thought)
+        if response_chunk:
+            yield response_chunk
 
-        # Log the time taken to stream the entire response
-        logger.info(f"Chat streaming took: {perf_counter() - start_time:.3f} seconds")
+    # Calculate cost of chat after stream finishes
+    input_tokens, output_tokens, cost = 0, 0, 0
+    if final_chunk and hasattr(final_chunk, "usage") and final_chunk.usage:
+        input_tokens = final_chunk.usage.prompt_tokens
+        output_tokens = final_chunk.usage.completion_tokens
+        # Estimated costs returned by DeepInfra API
+        if final_chunk.usage.model_extra and "estimated_cost" in final_chunk.usage.model_extra:
+            cost = final_chunk.usage.model_extra.get("estimated_cost", 0)
+    tracer["usage"] = get_chat_usage_metrics(
+        model_name, input_tokens, output_tokens, usage=tracer.get("usage"), cost=cost
+    )
 
-        # Calculate cost of chat after stream finishes
-        input_tokens, output_tokens, cost = 0, 0, 0
-        if final_chunk and hasattr(final_chunk, "usage") and final_chunk.usage:
-            input_tokens = final_chunk.usage.prompt_tokens
-            output_tokens = final_chunk.usage.completion_tokens
-            # Estimated costs returned by DeepInfra API
-            if final_chunk.usage.model_extra and "estimated_cost" in final_chunk.usage.model_extra:
-                cost = final_chunk.usage.model_extra.get("estimated_cost", 0)
+    # Validate the response. If empty, raise an error to retry.
+    if is_none_or_empty(aggregated_response):
+        logger.warning(f"No response by {model_name}\nLast Message by {messages[-1].role}: {messages[-1].content}.")
+        raise ValueError(f"Empty or no response by {model_name} over API. Retry if needed.")
 
-        # Save conversation trace
-        tracer["chat_model"] = model_name
-        tracer["temperature"] = temperature
-        tracer["usage"] = get_chat_usage_metrics(
-            model_name, input_tokens, output_tokens, usage=tracer.get("usage"), cost=cost
-        )
-        if is_promptrace_enabled():
-            commit_conversation_trace(messages, aggregated_response, tracer)
-    except Exception as e:
-        logger.error(f"Error in chat_completion_with_backoff stream: {e}", exc_info=True)
+    # Log the time taken to stream the entire response
+    logger.info(f"Chat streaming took: {perf_counter() - start_time:.3f} seconds")
+
+    # Save conversation trace
+    tracer["chat_model"] = model_name
+    tracer["temperature"] = temperature
+    if is_promptrace_enabled():
+        commit_conversation_trace(messages, aggregated_response, tracer)
 
 
 def get_openai_api_json_support(model_name: str, api_base_url: str = None) -> JsonSupport:

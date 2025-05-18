@@ -73,6 +73,9 @@ def _is_retryable_error(exception: BaseException) -> bool:
     # client errors
     if isinstance(exception, httpx.TimeoutException) or isinstance(exception, httpx.NetworkError):
         return True
+    # validation errors
+    if isinstance(exception, ValueError):
+        return True
     return False
 
 
@@ -84,8 +87,8 @@ def _is_retryable_error(exception: BaseException) -> bool:
     reraise=True,
 )
 def gemini_completion_with_backoff(
-    messages,
-    system_prompt,
+    messages: list[ChatMessage],
+    system_prompt: str,
     model_name: str,
     temperature=1.0,
     api_key=None,
@@ -144,6 +147,11 @@ def gemini_completion_with_backoff(
         model_name, input_tokens, output_tokens, thought_tokens=thought_tokens, usage=tracer.get("usage")
     )
 
+    # Validate the response. If empty, raise an error to retry.
+    if is_none_or_empty(response_text):
+        logger.warning(f"No response by {model_name}\nLast Message by {messages[-1].role}: {messages[-1].content}.")
+        raise ValueError(f"Empty or no response by {model_name} over API. Retry if needed.")
+
     # Save conversation trace
     tracer["chat_model"] = model_name
     tracer["temperature"] = temperature
@@ -157,89 +165,90 @@ def gemini_completion_with_backoff(
     retry=retry_if_exception(_is_retryable_error),
     wait=wait_exponential(multiplier=1, min=4, max=10),
     stop=stop_after_attempt(3),
-    before_sleep=before_sleep_log(logger, logging.DEBUG),
-    reraise=True,
+    before_sleep=before_sleep_log(logger, logging.WARNING),
+    reraise=False,
 )
 async def gemini_chat_completion_with_backoff(
-    messages,
-    model_name,
-    temperature,
-    api_key,
-    api_base_url,
-    system_prompt,
+    messages: list[ChatMessage],
+    model_name: str,
+    temperature: float,
+    api_key: str,
+    api_base_url: str,
+    system_prompt: str,
     model_kwargs=None,
     deepthought=False,
     tracer: dict = {},
 ) -> AsyncGenerator[str, None]:
-    try:
-        client = gemini_clients.get(api_key)
-        if not client:
-            client = get_gemini_client(api_key, api_base_url)
-            gemini_clients[api_key] = client
+    client = gemini_clients.get(api_key)
+    if not client:
+        client = get_gemini_client(api_key, api_base_url)
+        gemini_clients[api_key] = client
 
-        formatted_messages, system_prompt = format_messages_for_gemini(messages, system_prompt)
+    formatted_messages, system_prompt = format_messages_for_gemini(messages, system_prompt)
 
-        thinking_config = None
-        if deepthought and model_name.startswith("gemini-2-5"):
-            thinking_config = gtypes.ThinkingConfig(thinking_budget=MAX_REASONING_TOKENS_GEMINI)
+    thinking_config = None
+    if deepthought and model_name.startswith("gemini-2-5"):
+        thinking_config = gtypes.ThinkingConfig(thinking_budget=MAX_REASONING_TOKENS_GEMINI)
 
-        seed = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
-        config = gtypes.GenerateContentConfig(
-            system_instruction=system_prompt,
-            temperature=temperature,
-            thinking_config=thinking_config,
-            max_output_tokens=MAX_OUTPUT_TOKENS_GEMINI,
-            stop_sequences=["Notes:\n["],
-            safety_settings=SAFETY_SETTINGS,
-            seed=seed,
-            http_options=gtypes.HttpOptions(async_client_args={"timeout": httpx.Timeout(30.0, read=60.0)}),
-        )
+    seed = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
+    config = gtypes.GenerateContentConfig(
+        system_instruction=system_prompt,
+        temperature=temperature,
+        thinking_config=thinking_config,
+        max_output_tokens=MAX_OUTPUT_TOKENS_GEMINI,
+        stop_sequences=["Notes:\n["],
+        safety_settings=SAFETY_SETTINGS,
+        seed=seed,
+        http_options=gtypes.HttpOptions(async_client_args={"timeout": httpx.Timeout(30.0, read=60.0)}),
+    )
 
-        aggregated_response = ""
-        final_chunk = None
-        response_started = False
-        start_time = perf_counter()
-        chat_stream: AsyncIterator[gtypes.GenerateContentResponse] = await client.aio.models.generate_content_stream(
-            model=model_name, config=config, contents=formatted_messages
-        )
-        async for chunk in chat_stream:
-            # Log the time taken to start response
-            if not response_started:
-                response_started = True
-                logger.info(f"First response took: {perf_counter() - start_time:.3f} seconds")
-            # Keep track of the last chunk for usage data
-            final_chunk = chunk
-            # Handle streamed response chunk
-            message, stopped = handle_gemini_response(chunk.candidates, chunk.prompt_feedback)
-            message = message or chunk.text
-            aggregated_response += message
-            yield message
-            if stopped:
-                raise ValueError(message)
+    aggregated_response = ""
+    final_chunk = None
+    response_started = False
+    start_time = perf_counter()
+    chat_stream: AsyncIterator[gtypes.GenerateContentResponse] = await client.aio.models.generate_content_stream(
+        model=model_name, config=config, contents=formatted_messages
+    )
+    async for chunk in chat_stream:
+        # Log the time taken to start response
+        if not response_started:
+            response_started = True
+            logger.info(f"First response took: {perf_counter() - start_time:.3f} seconds")
+        # Keep track of the last chunk for usage data
+        final_chunk = chunk
+        # Handle streamed response chunk
+        stop_message, stopped = handle_gemini_response(chunk.candidates, chunk.prompt_feedback)
+        message = stop_message or chunk.text
+        aggregated_response += message
+        yield message
+        if stopped:
+            logger.warning(
+                f"LLM Response Prevented for {model_name}: {stop_message}.\n"
+                + f"Last Message by {messages[-1].role}: {messages[-1].content}"
+            )
+            break
 
-        # Log the time taken to stream the entire response
-        logger.info(f"Chat streaming took: {perf_counter() - start_time:.3f} seconds")
+    # Calculate cost of chat
+    input_tokens = final_chunk.usage_metadata.prompt_token_count or 0 if final_chunk else 0
+    output_tokens = final_chunk.usage_metadata.candidates_token_count or 0 if final_chunk else 0
+    thought_tokens = final_chunk.usage_metadata.thoughts_token_count or 0 if final_chunk else 0
+    tracer["usage"] = get_chat_usage_metrics(
+        model_name, input_tokens, output_tokens, thought_tokens=thought_tokens, usage=tracer.get("usage")
+    )
 
-        # Calculate cost of chat
-        input_tokens = final_chunk.usage_metadata.prompt_token_count or 0 if final_chunk else 0
-        output_tokens = final_chunk.usage_metadata.candidates_token_count or 0 if final_chunk else 0
-        thought_tokens = final_chunk.usage_metadata.thoughts_token_count or 0 if final_chunk else 0
-        tracer["usage"] = get_chat_usage_metrics(
-            model_name, input_tokens, output_tokens, thought_tokens=thought_tokens, usage=tracer.get("usage")
-        )
+    # Validate the response. If empty, raise an error to retry.
+    if is_none_or_empty(aggregated_response):
+        logger.warning(f"No response by {model_name}\nLast Message by {messages[-1].role}: {messages[-1].content}.")
+        raise ValueError(f"Empty or no response by {model_name} over API. Retry if needed.")
 
-        # Save conversation trace
-        tracer["chat_model"] = model_name
-        tracer["temperature"] = temperature
-        if is_promptrace_enabled():
-            commit_conversation_trace(messages, aggregated_response, tracer)
-    except ValueError as e:
-        logger.warning(
-            f"LLM Response Prevented for {model_name}: {e.args[0]}.\n"
-            + f"Last Message by {messages[-1].role}: {messages[-1].content}"
-        )
-    except Exception as e:
-        logger.error(f"Error in gemini_chat_completion_with_backoff stream: {e}", exc_info=True)
+    # Log the time taken to stream the entire response
+    logger.info(f"Chat streaming took: {perf_counter() - start_time:.3f} seconds")
+
+    # Save conversation trace
+    tracer["chat_model"] = model_name
+    tracer["temperature"] = temperature
+    if is_promptrace_enabled():
+        commit_conversation_trace(messages, aggregated_response, tracer)
 
 
 def handle_gemini_response(

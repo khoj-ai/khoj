@@ -1,6 +1,6 @@
 import logging
 from time import perf_counter
-from typing import Dict, List
+from typing import AsyncGenerator, Dict, List
 
 import anthropic
 from langchain_core.messages.chat import ChatMessage
@@ -100,6 +100,11 @@ def anthropic_completion_with_backoff(
         model_name, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, usage=tracer.get("usage")
     )
 
+    # Validate the response. If empty, raise an error to retry.
+    if is_none_or_empty(aggregated_response):
+        logger.warning(f"No response by {model_name}\nLast Message by {messages[-1].role}: {messages[-1].content}.")
+        raise ValueError(f"Empty or no response by {model_name} over API. Retry if needed.")
+
     # Save conversation trace
     tracer["chat_model"] = model_name
     tracer["temperature"] = temperature
@@ -112,8 +117,8 @@ def anthropic_completion_with_backoff(
 @retry(
     wait=wait_exponential(multiplier=1, min=4, max=10),
     stop=stop_after_attempt(2),
-    before_sleep=before_sleep_log(logger, logging.DEBUG),
-    reraise=True,
+    before_sleep=before_sleep_log(logger, logging.WARNING),
+    reraise=False,
 )
 async def anthropic_chat_completion_with_backoff(
     messages: list[ChatMessage],
@@ -126,75 +131,77 @@ async def anthropic_chat_completion_with_backoff(
     deepthought=False,
     model_kwargs=None,
     tracer={},
-):
-    try:
-        client = anthropic_async_clients.get(api_key)
-        if not client:
-            client = get_anthropic_async_client(api_key, api_base_url)
-            anthropic_async_clients[api_key] = client
+) -> AsyncGenerator[ResponseWithThought, None]:
+    client = anthropic_async_clients.get(api_key)
+    if not client:
+        client = get_anthropic_async_client(api_key, api_base_url)
+        anthropic_async_clients[api_key] = client
 
-        model_kwargs = model_kwargs or dict()
-        max_tokens = DEFAULT_MAX_TOKENS_ANTHROPIC
-        if deepthought and model_name.startswith("claude-3-7"):
-            model_kwargs["thinking"] = {"type": "enabled", "budget_tokens": MAX_REASONING_TOKENS_ANTHROPIC}
-            max_tokens += MAX_REASONING_TOKENS_ANTHROPIC
-            # Temperature control not supported when using extended thinking
-            temperature = 1.0
+    model_kwargs = model_kwargs or dict()
+    max_tokens = DEFAULT_MAX_TOKENS_ANTHROPIC
+    if deepthought and model_name.startswith("claude-3-7"):
+        model_kwargs["thinking"] = {"type": "enabled", "budget_tokens": MAX_REASONING_TOKENS_ANTHROPIC}
+        max_tokens += MAX_REASONING_TOKENS_ANTHROPIC
+        # Temperature control not supported when using extended thinking
+        temperature = 1.0
 
-        formatted_messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)
+    formatted_messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)
 
-        aggregated_response = ""
-        response_started = False
-        final_message = None
-        start_time = perf_counter()
-        async with client.messages.stream(
-            messages=formatted_messages,
-            model=model_name,  # type: ignore
-            temperature=temperature,
-            system=system_prompt,
-            timeout=20,
-            max_tokens=max_tokens,
-            **model_kwargs,
-        ) as stream:
-            async for chunk in stream:
-                # Log the time taken to start response
-                if not response_started:
-                    response_started = True
-                    logger.info(f"First response took: {perf_counter() - start_time:.3f} seconds")
-                # Skip empty chunks
-                if chunk.type != "content_block_delta":
-                    continue
-                # Handle streamed response chunk
-                response_chunk: ResponseWithThought = None
-                if chunk.delta.type == "text_delta":
-                    response_chunk = ResponseWithThought(response=chunk.delta.text)
-                    aggregated_response += chunk.delta.text
-                if chunk.delta.type == "thinking_delta":
-                    response_chunk = ResponseWithThought(thought=chunk.delta.thinking)
-                # Handle streamed response chunk
-                if response_chunk:
-                    yield response_chunk
-            final_message = await stream.get_final_message()
+    aggregated_response = ""
+    response_started = False
+    final_message = None
+    start_time = perf_counter()
+    async with client.messages.stream(
+        messages=formatted_messages,
+        model=model_name,  # type: ignore
+        temperature=temperature,
+        system=system_prompt,
+        timeout=20,
+        max_tokens=max_tokens,
+        **model_kwargs,
+    ) as stream:
+        async for chunk in stream:
+            # Log the time taken to start response
+            if not response_started:
+                response_started = True
+                logger.info(f"First response took: {perf_counter() - start_time:.3f} seconds")
+            # Skip empty chunks
+            if chunk.type != "content_block_delta":
+                continue
+            # Handle streamed response chunk
+            response_chunk: ResponseWithThought = None
+            if chunk.delta.type == "text_delta":
+                response_chunk = ResponseWithThought(response=chunk.delta.text)
+                aggregated_response += chunk.delta.text
+            if chunk.delta.type == "thinking_delta":
+                response_chunk = ResponseWithThought(thought=chunk.delta.thinking)
+            # Handle streamed response chunk
+            if response_chunk:
+                yield response_chunk
+        final_message = await stream.get_final_message()
 
-        # Log the time taken to stream the entire response
-        logger.info(f"Chat streaming took: {perf_counter() - start_time:.3f} seconds")
+    # Calculate cost of chat
+    input_tokens = final_message.usage.input_tokens
+    output_tokens = final_message.usage.output_tokens
+    cache_read_tokens = final_message.usage.cache_read_input_tokens
+    cache_write_tokens = final_message.usage.cache_creation_input_tokens
+    tracer["usage"] = get_chat_usage_metrics(
+        model_name, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, usage=tracer.get("usage")
+    )
 
-        # Calculate cost of chat
-        input_tokens = final_message.usage.input_tokens
-        output_tokens = final_message.usage.output_tokens
-        cache_read_tokens = final_message.usage.cache_read_input_tokens
-        cache_write_tokens = final_message.usage.cache_creation_input_tokens
-        tracer["usage"] = get_chat_usage_metrics(
-            model_name, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, usage=tracer.get("usage")
-        )
+    # Validate the response. If empty, raise an error to retry.
+    if is_none_or_empty(aggregated_response):
+        logger.warning(f"No response by {model_name}\nLast Message by {messages[-1].role}: {messages[-1].content}.")
+        raise ValueError(f"Empty or no response by {model_name} over API. Retry if needed.")
 
-        # Save conversation trace
-        tracer["chat_model"] = model_name
-        tracer["temperature"] = temperature
-        if is_promptrace_enabled():
-            commit_conversation_trace(messages, aggregated_response, tracer)
-    except Exception as e:
-        logger.error(f"Error in anthropic_chat_completion_with_backoff stream: {e}", exc_info=True)
+    # Log the time taken to stream the entire response
+    logger.info(f"Chat streaming took: {perf_counter() - start_time:.3f} seconds")
+
+    # Save conversation trace
+    tracer["chat_model"] = model_name
+    tracer["temperature"] = temperature
+    if is_promptrace_enabled():
+        commit_conversation_trace(messages, aggregated_response, tracer)
 
 
 def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt: str = None):
