@@ -46,6 +46,7 @@ BATCH_SIZE = int(
     os.getenv("BATCH_SIZE", int(SAMPLE_SIZE) / 10 if SAMPLE_SIZE else 10)
 )  # Examples to evaluate in each batch
 SLEEP_SECONDS = 3 if KHOJ_MODE == "general" else 1  # Sleep between API calls to avoid rate limiting
+KHOJ_API_TIMEOUT_SECONDS = 600  # Default to 10 minutes
 
 
 class Counter:
@@ -354,6 +355,7 @@ def get_agent_response(prompt: str) -> Dict[str, Any]:
                 "q": prompt,
                 "create_new": True,
             },
+            timeout=KHOJ_API_TIMEOUT_SECONDS,
         )
         response.raise_for_status()
         response_json = response.json()
@@ -362,9 +364,11 @@ def get_agent_response(prompt: str) -> Dict[str, Any]:
             "usage": response_json.get("usage", {}),
             "references": response_json.get("references", {}),
         }
+    except requests.exceptions.Timeout:
+        logger.error(f"Timeout error getting agent response for prompt: {prompt[:100]}...")
     except Exception as e:
         logger.error(f"Error getting agent response: {e}")
-        return {"response": "", "usage": {}, "references": {}}
+    return {"response": "", "usage": {}, "references": {}}
 
 
 def calculate_precision_recall(numerator: int, denominator: int) -> float:
