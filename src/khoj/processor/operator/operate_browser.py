@@ -145,6 +145,7 @@ async def operate_browser(
             operator_agent.reset()
 
     yield {
-        "text": user_input_message or response,
+        "query": query,
+        "result": user_input_message or response,
         "webpages": [{"link": url, "snippet": ""} for url in environment.visited_urls],
     }

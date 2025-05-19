@@ -886,7 +886,7 @@ async def chat(
         researched_results = ""
         online_results: Dict = dict()
         code_results: Dict = dict()
-        operator_results: List[str] = []
+        operator_results: Dict[str, str] = {}
         generated_asset_results: Dict = dict()
         ## Extract Document References
         compiled_references: List[Any] = []
@@ -962,8 +962,7 @@ async def chat(
                         if research_result.context:
                             compiled_references.extend(research_result.context)
                         if research_result.operatorContext:
-                            operator_results.append(research_result.operatorContext)
-
+                            operator_results.update(research_result.operatorContext)
                         researched_results += research_result.summarizedResult
 
                 else:
@@ -1237,7 +1236,7 @@ async def chat(
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
                     else:
-                        operator_results.append(result["text"])
+                        operator_results = {result["query"]: result["result"]}
                         # Add webpages visited while operating browser to references
                         if result.get("webpages"):
                             if not online_results.get(defiltered_query):

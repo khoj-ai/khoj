@@ -1354,7 +1354,7 @@ async def agenerate_chat_response(
     compiled_references: List[Dict] = [],
     online_results: Dict[str, Dict] = {},
     code_results: Dict[str, Dict] = {},
-    operator_results: List[str] = [],
+    operator_results: Dict[str, str] = {},
     inferred_queries: List[str] = [],
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     user: KhojUser = None,
@@ -1411,7 +1411,7 @@ async def agenerate_chat_response(
             compiled_references = []
             online_results = {}
             code_results = {}
-            operator_results = []
+            operator_results = {}
             deepthought = True
 
         chat_model = await ConversationAdapters.aget_valid_chat_model(user, conversation, is_subscribed)

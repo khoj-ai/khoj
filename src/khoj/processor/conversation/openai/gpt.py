@@ -169,7 +169,7 @@ async def converse_openai(
     user_query,
     online_results: Optional[Dict[str, Dict]] = None,
     code_results: Optional[Dict[str, Dict]] = None,
-    operator_results: Optional[List[str]] = None,
+    operator_results: Optional[Dict[str, str]] = None,
     conversation_log={},
     model: str = "gpt-4o-mini",
     api_key: Optional[str] = None,

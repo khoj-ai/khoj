@@ -91,7 +91,7 @@ class InformationCollectionIteration:
         context: list = None,
         onlineContext: dict = None,
         codeContext: dict = None,
-        operatorContext: str = None,
+        operatorContext: dict[str, str] = None,
         summarizedResult: str = None,
         warning: str = None,
     ):
@@ -267,7 +267,7 @@ async def save_to_conversation_log(
     compiled_references: List[Dict[str, Any]] = [],
     online_results: Dict[str, Any] = {},
     code_results: Dict[str, Any] = {},
-    operator_results: Dict[str, Any] = {},
+    operator_results: Dict[str, str] = {},
     inferred_queries: List[str] = [],
     intent_type: str = "remember",
     client_application: ClientApplication = None,

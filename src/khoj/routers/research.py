@@ -237,7 +237,7 @@ async def execute_information_collection(
         online_results: Dict = dict()
         code_results: Dict = dict()
         document_results: List[Dict[str, str]] = []
-        operator_results: str = ""
+        operator_results: Dict[str, str] = {}
         summarize_files: str = ""
         this_iteration = InformationCollectionIteration(tool=None, query=query)
 
@@ -421,7 +421,7 @@ async def execute_information_collection(
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
                     else:
-                        operator_results = result["text"]  # type: ignore
+                        operator_results = {result["query"]: result["result"]}
                         this_iteration.operatorContext = operator_results
                         # Add webpages visited while operating browser to references
                         if result.get("webpages"):
@@ -478,7 +478,7 @@ async def execute_information_collection(
             if code_results:
                 results_data += f"\n<code_results>\n{yaml.dump(truncate_code_context(code_results), allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</code_results>"
             if operator_results:
-                results_data += f"\n<browser_operator_results>\n{operator_results}\n</browser_operator_results>"
+                results_data += f"\n<browser_operator_results>\n{next(iter(operator_results.values()))}\n</browser_operator_results>"
             if summarize_files:
                 results_data += f"\n<summarized_files>\n{yaml.dump(summarize_files, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</summarized_files>"
             if this_iteration.warning:
