@@ -43,7 +43,7 @@ def initialization(interactive: bool = True):
             "🗣️ Configure chat models available to your server. You can always update these at /server/admin using your admin account"
         )
 
-        openai_base_url = os.getenv("OPENAI_BASE_URL")
+        openai_base_url = os.getenv("OPENAI_BASE_URL") or None
         provider = "Ollama" if openai_base_url and openai_base_url.endswith(":11434/v1/") else "OpenAI"
         openai_api_key = os.getenv("OPENAI_API_KEY", "placeholder" if openai_base_url else None)
         default_chat_models = default_openai_chat_models
@@ -329,4 +329,4 @@ def initialization(interactive: bool = True):
             )
             return
         ConversationAdapters.set_default_chat_model(chat_model)
-        logger.info(f"🗣️ Default chat model set to {chat_model.name}")
+        logger.info(f"🗣️ Default chat model set to {chat_model.name} served by {chat_model.ai_model_api}")
