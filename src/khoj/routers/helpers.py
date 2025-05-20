@@ -1392,6 +1392,7 @@ async def agenerate_chat_response(
             online_results=online_results,
             code_results=code_results,
             operator_results=operator_results,
+            research_results=research_results,
             inferred_queries=inferred_queries,
             client_application=client_application,
             conversation_id=str(conversation.id),

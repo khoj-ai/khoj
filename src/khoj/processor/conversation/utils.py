@@ -110,9 +110,12 @@ class InformationCollectionIteration:
 
 
 def construct_iteration_history(
-    query: str, previous_iterations: List[InformationCollectionIteration], previous_iteration_prompt: str
+    previous_iterations: List[InformationCollectionIteration],
+    previous_iteration_prompt: str,
+    query: str = None,
 ) -> list[dict]:
-    previous_iterations_history = []
+    iteration_history: list[dict] = []
+    previous_iteration_messages: list[dict] = []
     for idx, iteration in enumerate(previous_iterations):
         iteration_data = previous_iteration_prompt.format(
             tool=iteration.tool,
@@ -121,23 +124,19 @@ def construct_iteration_history(
             index=idx + 1,
         )
 
-        previous_iterations_history.append({"type": "text", "text": iteration_data})
+        previous_iteration_messages.append({"type": "text", "text": iteration_data})
 
-    return (
-        [
-            {
-                "by": "you",
-                "message": query,
-            },
+    if previous_iteration_messages:
+        if query:
+            iteration_history.append({"by": "you", "message": query})
+        iteration_history.append(
             {
                 "by": "khoj",
                 "intent": {"type": "remember", "query": query},
-                "message": previous_iterations_history,
-            },
-        ]
-        if previous_iterations_history
-        else []
-    )
+                "message": previous_iteration_messages,
+            }
+        )
+    return iteration_history
 
 
 def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:
@@ -285,6 +284,7 @@ async def save_to_conversation_log(
     generated_images: List[str] = [],
     raw_generated_files: List[FileAttachment] = [],
     generated_mermaidjs_diagram: str = None,
+    research_results: Optional[List[InformationCollectionIteration]] = None,
     train_of_thought: List[Any] = [],
     tracer: Dict[str, Any] = {},
 ):
@@ -302,6 +302,7 @@ async def save_to_conversation_log(
         "onlineContext": online_results,
         "codeContext": code_results,
         "operatorContext": operator_results,
+        "researchContext": [vars(r) for r in research_results] if research_results and not chat_response else None,
         "automationId": automation_id,
         "trainOfThought": train_of_thought,
         "turnId": turn_id,
