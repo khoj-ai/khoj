@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os
 from typing import Callable, List, Optional
 
 import requests
@@ -46,7 +47,7 @@ async def operate_browser(
         raise ValueError(f"No vision enabled chat model found. Configure a vision chat model to operate browser.")
 
     # Initialize Agent
-    max_iterations = 40  # TODO: Configurable?
+    max_iterations = int(os.getenv("KHOJ_OPERATOR_ITERATIONS", 40))
     operator_agent: OperatorAgent
     if reasoning_model.name.startswith("gpt-4o"):
         operator_agent = OpenAIOperatorAgent(query, reasoning_model, max_iterations, tracer)
