@@ -883,7 +883,7 @@ async def chat(
         user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         meta_log = conversation.conversation_log
 
-        researched_results = ""
+        research_results: List[InformationCollectionIteration] = []
         online_results: Dict = dict()
         code_results: Dict = dict()
         operator_results: Dict[str, str] = {}
@@ -963,14 +963,14 @@ async def chat(
                             compiled_references.extend(research_result.context)
                         if research_result.operatorContext:
                             operator_results.update(research_result.operatorContext)
-                        researched_results += research_result.summarizedResult
+                        research_results.append(research_result)
 
                 else:
                     yield research_result
 
             # researched_results = await extract_relevant_info(q, researched_results, agent)
             if state.verbose > 1:
-                logger.debug(f"Researched Results: {researched_results}")
+                logger.debug(f'Researched Results: {"".join(r.summarizedResult for r in research_results)}')
 
         used_slash_summarize = conversation_commands == [ConversationCommand.Summarize]
         file_filters = conversation.file_filters if conversation else []
@@ -1379,13 +1379,13 @@ async def chat(
             online_results,
             code_results,
             operator_results,
+            research_results,
             inferred_queries,
             conversation_commands,
             user,
             request.user.client_app,
             location,
             user_name,
-            researched_results,
             uploaded_images,
             train_of_thought,
             attached_file_context,

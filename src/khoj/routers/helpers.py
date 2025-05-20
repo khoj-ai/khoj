@@ -94,6 +94,7 @@ from khoj.processor.conversation.openai.gpt import (
 )
 from khoj.processor.conversation.utils import (
     ChatEvent,
+    InformationCollectionIteration,
     ResponseWithThought,
     clean_json,
     clean_mermaidjs,
@@ -1355,13 +1356,13 @@ async def agenerate_chat_response(
     online_results: Dict[str, Dict] = {},
     code_results: Dict[str, Dict] = {},
     operator_results: Dict[str, str] = {},
+    research_results: List[InformationCollectionIteration] = [],
     inferred_queries: List[str] = [],
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     user: KhojUser = None,
     client_application: ClientApplication = None,
     location_data: LocationData = None,
     user_name: Optional[str] = None,
-    meta_research: str = "",
     query_images: Optional[List[str]] = None,
     train_of_thought: List[Any] = [],
     query_files: str = None,
@@ -1405,8 +1406,10 @@ async def agenerate_chat_response(
 
         query_to_run = q
         deepthought = False
-        if meta_research:
-            query_to_run = f"<query>{q}</query>\n<collected_research>\n{meta_research}\n</collected_research>"
+        if research_results:
+            compiled_research = "".join([r.summarizedResult for r in research_results if r.summarizedResult])
+            if compiled_research:
+                query_to_run = f"<query>{q}</query>\n<collected_research>\n{compiled_research}\n</collected_research>"
             compiled_references = []
             online_results = {}
             code_results = {}
