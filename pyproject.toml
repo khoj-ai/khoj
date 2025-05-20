@@ -113,6 +113,7 @@ prod = [
 ]
 local = [
     "pgserver == 0.1.4",
+    "playwright >= 1.49.0",
 ]
 dev = [
     "khoj[prod,local]",

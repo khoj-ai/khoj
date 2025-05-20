@@ -17,6 +17,7 @@ from khoj.processor.conversation.utils import (
     construct_tool_chat_history,
     load_complex_json,
 )
+from khoj.processor.operator.operate_browser import operate_browser
 from khoj.processor.tools.online_search import read_webpages, search_online
 from khoj.processor.tools.run_code import run_code
 from khoj.routers.api import extract_references_and_questions
@@ -28,6 +29,7 @@ from khoj.routers.helpers import (
 from khoj.utils.helpers import (
     ConversationCommand,
     is_none_or_empty,
+    is_operator_enabled,
     timer,
     tool_description_for_research_llm,
     truncate_code_context,
@@ -98,6 +100,9 @@ async def apick_next_tool(
     agent_tools = agent.input_tools if agent else []
     user_has_entries = await EntryAdapters.auser_has_entries(user)
     for tool, description in tool_description_for_research_llm.items():
+        # Skip showing operator tool as an option if not enabled
+        if tool == ConversationCommand.Operator and not is_operator_enabled():
+            continue
         # Skip showing Notes tool as an option if user has no entries
         if tool == ConversationCommand.Notes:
             if not user_has_entries:
@@ -232,6 +237,7 @@ async def execute_information_collection(
         online_results: Dict = dict()
         code_results: Dict = dict()
         document_results: List[Dict[str, str]] = []
+        operator_results: Dict[str, str] = {}
         summarize_files: str = ""
         this_iteration = InformationCollectionIteration(tool=None, query=query)
 
@@ -398,6 +404,38 @@ async def execute_information_collection(
                 this_iteration.warning = f"Error running code: {e}"
                 logger.warning(this_iteration.warning, exc_info=True)
 
+        elif this_iteration.tool == ConversationCommand.Operator:
+            try:
+                async for result in operate_browser(
+                    this_iteration.query,
+                    user,
+                    construct_tool_chat_history(previous_iterations, ConversationCommand.Operator),
+                    location,
+                    send_status_func,
+                    query_images=query_images,
+                    agent=agent,
+                    query_files=query_files,
+                    cancellation_event=cancellation_event,
+                    tracer=tracer,
+                ):
+                    if isinstance(result, dict) and ChatEvent.STATUS in result:
+                        yield result[ChatEvent.STATUS]
+                    else:
+                        operator_results = {result["query"]: result["result"]}
+                        this_iteration.operatorContext = operator_results
+                        # Add webpages visited while operating browser to references
+                        if result.get("webpages"):
+                            if not online_results.get(this_iteration.query):
+                                online_results[this_iteration.query] = {"webpages": result["webpages"]}
+                            elif not online_results[this_iteration.query].get("webpages"):
+                                online_results[this_iteration.query]["webpages"] = result["webpages"]
+                            else:
+                                online_results[this_iteration.query]["webpages"] += result["webpages"]
+                            this_iteration.onlineContext = online_results
+            except Exception as e:
+                this_iteration.warning = f"Error operating browser: {e}"
+                logger.error(this_iteration.warning, exc_info=True)
+
         elif this_iteration.tool == ConversationCommand.Summarize:
             try:
                 async for result in generate_summary_from_files(
@@ -424,7 +462,14 @@ async def execute_information_collection(
 
         current_iteration += 1
 
-        if document_results or online_results or code_results or summarize_files or this_iteration.warning:
+        if (
+            document_results
+            or online_results
+            or code_results
+            or operator_results
+            or summarize_files
+            or this_iteration.warning
+        ):
             results_data = f"\n<iteration>{current_iteration}\n<tool>{this_iteration.tool}</tool>\n<query>{this_iteration.query}</query>\n<results>"
             if document_results:
                 results_data += f"\n<document_references>\n{yaml.dump(document_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</document_references>"
@@ -432,6 +477,8 @@ async def execute_information_collection(
                 results_data += f"\n<online_results>\n{yaml.dump(online_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</online_results>"
             if code_results:
                 results_data += f"\n<code_results>\n{yaml.dump(truncate_code_context(code_results), allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</code_results>"
+            if operator_results:
+                results_data += f"\n<browser_operator_results>\n{next(iter(operator_results.values()))}\n</browser_operator_results>"
             if summarize_files:
                 results_data += f"\n<summarized_files>\n{yaml.dump(summarize_files, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</summarized_files>"
             if this_iteration.warning:

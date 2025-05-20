@@ -144,6 +144,7 @@ async def converse_anthropic(
     user_query,
     online_results: Optional[Dict[str, Dict]] = None,
     code_results: Optional[Dict[str, Dict]] = None,
+    operator_results: Optional[Dict[str, str]] = None,
     conversation_log={},
     model: Optional[str] = "claude-3-7-sonnet-latest",
     api_key: Optional[str] = None,
@@ -213,6 +214,10 @@ async def converse_anthropic(
     if ConversationCommand.Code in conversation_commands and not is_none_or_empty(code_results):
         context_message += (
             f"{prompts.code_executed_context.format(code_results=truncate_code_context(code_results))}\n\n"
+        )
+    if ConversationCommand.Operator in conversation_commands and not is_none_or_empty(operator_results):
+        context_message += (
+            f"{prompts.operator_execution_context.format(operator_results=yaml_dump(operator_results))}\n\n"
         )
     context_message = context_message.strip()
 

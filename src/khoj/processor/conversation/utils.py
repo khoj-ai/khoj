@@ -91,6 +91,7 @@ class InformationCollectionIteration:
         context: list = None,
         onlineContext: dict = None,
         codeContext: dict = None,
+        operatorContext: dict[str, str] = None,
         summarizedResult: str = None,
         warning: str = None,
     ):
@@ -99,6 +100,7 @@ class InformationCollectionIteration:
         self.context = context
         self.onlineContext = onlineContext
         self.codeContext = codeContext
+        self.operatorContext = operatorContext
         self.summarizedResult = summarizedResult
         self.warning = warning
 
@@ -187,6 +189,9 @@ def construct_tool_chat_history(
         ConversationCommand.Code: (
             lambda iteration: list(iteration.codeContext.keys()) if iteration.codeContext else []
         ),
+        ConversationCommand.Operator: (
+            lambda iteration: list(iteration.operatorContext.keys()) if iteration.operatorContext else []
+        ),
     }
     for iteration in previous_iterations:
         # If a tool is provided use the inferred query extractor for that tool if available
@@ -265,6 +270,7 @@ async def save_to_conversation_log(
     compiled_references: List[Dict[str, Any]] = [],
     online_results: Dict[str, Any] = {},
     code_results: Dict[str, Any] = {},
+    operator_results: Dict[str, str] = {},
     inferred_queries: List[str] = [],
     intent_type: str = "remember",
     client_application: ClientApplication = None,
@@ -291,6 +297,7 @@ async def save_to_conversation_log(
         "intent": {"inferred-queries": inferred_queries, "type": intent_type},
         "onlineContext": online_results,
         "codeContext": code_results,
+        "operatorContext": operator_results,
         "automationId": automation_id,
         "trainOfThought": train_of_thought,
         "turnId": turn_id,
@@ -446,6 +453,11 @@ def generate_chatml_messages_with_context(
 
         if not is_none_or_empty(chat.get("codeContext")):
             message_context += f"{prompts.code_executed_context.format(code_results=chat.get('codeContext'))}"
+
+        if not is_none_or_empty(chat.get("operatorContext")):
+            message_context += (
+                f"{prompts.operator_execution_context.format(operator_results=chat.get('operatorContext'))}"
+            )
 
         if not is_none_or_empty(message_context):
             reconstructed_context_message = ChatMessage(content=message_context, role="user")

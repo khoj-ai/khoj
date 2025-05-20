@@ -736,7 +736,7 @@ Create a multi-step plan and intelligently iterate on the plan based on the retr
 - Ask highly diverse, detailed queries to the tool AIs, one tool AI at a time, to discover required information or run calculations. Their response will be shown to you in the next iteration.
 - Break down your research process into independent, self-contained steps that can be executed sequentially using the available tool AIs to answer the user's query. Write your step-by-step plan in the scratchpad.
 - Always ask a new query that was not asked to the tool AI in a previous iteration. Build on the results of the previous iterations.
-- Ensure that all required context is passed to the tool AIs for successful execution. They only know the context provided in your query.
+- Ensure that all required context is passed to the tool AIs for successful execution. Include any relevant stuff that has previously been attempted. They only know the context provided in your query.
 - Think step by step to come up with creative strategies when the previous iteration did not yield useful results.
 - You are allowed upto {max_iterations} iterations to use the help of the provided tool AIs to answer the user's question.
 - Stop when you have the required information by returning a JSON object with the "tool" field set to "text" and "query" field empty. E.g., {{"scratchpad": "I have all I need", "tool": "text", "query": ""}}
@@ -1119,6 +1119,16 @@ terrarium_sandbox_context = """
 - The sandbox has access to only the standard library and the matplotlib, pandas, numpy, scipy, bs5 and sympy packages. The requests, torch, catboost, tensorflow, rdkit and tkinter packages are not available.
 """.strip()
 
+operator_execution_context = PromptTemplate.from_template(
+    """
+Use the results of operating a web browser to inform your response.
+
+Browser Operation Results:
+{operator_results}
+""".strip()
+)
+
+
 # Automations
 # --
 crontime_prompt = PromptTemplate.from_template(
@@ -1371,6 +1381,7 @@ help_message = PromptTemplate.from_template(
 - **/online**: Chat using the internet as a source of information.
 - **/image**: Generate an image based on your message.
 - **/research**: Go deeper in a topic for more accurate, in-depth responses.
+- **/operator**: Use a web browser to execute actions and search for information.
 - **/help**: Show this help message.
 
 You are using the **{model}** model on the **{device}**.

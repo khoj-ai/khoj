@@ -113,6 +113,7 @@ from khoj.utils.helpers import (
     get_file_type,
     in_debug_mode,
     is_none_or_empty,
+    is_operator_enabled,
     is_valid_url,
     log_telemetry,
     mode_descriptions_for_llm,
@@ -253,6 +254,8 @@ def get_conversation_command(query: str) -> ConversationCommand:
         return ConversationCommand.Code
     elif query.startswith("/research"):
         return ConversationCommand.Research
+    elif query.startswith("/operator") and is_operator_enabled():
+        return ConversationCommand.Operator
     else:
         return ConversationCommand.Default
 
@@ -361,6 +364,8 @@ async def aget_data_sources_and_output_format(
     for source, description in tool_descriptions_for_llm.items():
         # Skip showing Notes tool as an option if user has no entries
         if source == ConversationCommand.Notes and not user_has_entries:
+            continue
+        if source == ConversationCommand.Operator and not is_operator_enabled():
             continue
         source_options[source.value] = description
         if len(agent_sources) == 0 or source.value in agent_sources:
@@ -1349,6 +1354,7 @@ async def agenerate_chat_response(
     compiled_references: List[Dict] = [],
     online_results: Dict[str, Dict] = {},
     code_results: Dict[str, Dict] = {},
+    operator_results: Dict[str, str] = {},
     inferred_queries: List[str] = [],
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     user: KhojUser = None,
@@ -1385,6 +1391,7 @@ async def agenerate_chat_response(
             compiled_references=compiled_references,
             online_results=online_results,
             code_results=code_results,
+            operator_results=operator_results,
             inferred_queries=inferred_queries,
             client_application=client_application,
             conversation_id=conversation_id,
@@ -1404,6 +1411,7 @@ async def agenerate_chat_response(
             compiled_references = []
             online_results = {}
             code_results = {}
+            operator_results = {}
             deepthought = True
 
         chat_model = await ConversationAdapters.aget_valid_chat_model(user, conversation, is_subscribed)
@@ -1446,6 +1454,7 @@ async def agenerate_chat_response(
                 query_images=query_images,
                 online_results=online_results,
                 code_results=code_results,
+                operator_results=operator_results,
                 conversation_log=meta_log,
                 model=chat_model_name,
                 api_key=api_key,
@@ -1475,6 +1484,7 @@ async def agenerate_chat_response(
                 query_images=query_images,
                 online_results=online_results,
                 code_results=code_results,
+                operator_results=operator_results,
                 conversation_log=meta_log,
                 model=chat_model.name,
                 api_key=api_key,
@@ -1500,9 +1510,10 @@ async def agenerate_chat_response(
             chat_response_generator = converse_gemini(
                 compiled_references,
                 query_to_run,
-                online_results,
-                code_results,
-                meta_log,
+                online_results=online_results,
+                code_results=code_results,
+                operator_results=operator_results,
+                conversation_log=meta_log,
                 model=chat_model.name,
                 api_key=api_key,
                 api_base_url=api_base_url,
