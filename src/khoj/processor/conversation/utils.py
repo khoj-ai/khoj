@@ -445,7 +445,7 @@ def generate_chatml_messages_with_context(
             message_context += f"{prompts.online_search_conversation.format(online_results=chat.get('onlineContext'))}"
 
         if not is_none_or_empty(chat.get("codeContext")):
-            message_context += f"{prompts.code_executed_context.format(online_results=chat.get('codeContext'))}"
+            message_context += f"{prompts.code_executed_context.format(code_results=chat.get('codeContext'))}"
 
         if not is_none_or_empty(message_context):
             reconstructed_context_message = ChatMessage(content=message_context, role="user")
