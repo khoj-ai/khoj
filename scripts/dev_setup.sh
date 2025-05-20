@@ -2,6 +2,24 @@
 # ---
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 
+# Default to minimal installation unless --full flag passed
+INSTALL_FULL=false
+for arg in "$@"
+do
+    if [ "$arg" == "--full" ]
+    then
+        INSTALL_FULL=true
+        break
+    fi
+done
+
+# Install Server App
+# ---
+echo "Installing Server App..."
+cd $PROJECT_ROOT
+# pip install --user pipenv && pipenv install -e '.[dev]' --skip-lock && pipenv shell
+python3 -m venv .venv && . .venv/bin/activate && python3 -m pip install -e '.[dev]'
+
 # Install Web App
 # ---
 echo "Installing Web App..."
@@ -10,22 +28,19 @@ yarn install
 
 # Install Obsidian App
 # ---
-echo "Installing Obsidian App..."
-cd $PROJECT_ROOT/src/interface/obsidian
-yarn install
+if [ "$INSTALL_FULL" = true ] ; then
+    echo "Installing Obsidian App..."
+    cd $PROJECT_ROOT/src/interface/obsidian
+    yarn install
+fi
 
 # Install Desktop App
 # ---
-echo "Installing Desktop App..."
-cd $PROJECT_ROOT/src/interface/desktop
-yarn install
-
-# Install Server App
-# ---
-echo "Installing Server App..."
-cd $PROJECT_ROOT
-# pip install --user pipenv && pipenv install -e '.[dev]' --skip-lock && pipenv shell
-python3 -m venv .venv && pip install -e '.[dev]' && . .venv/bin/activate
+if [ "$INSTALL_FULL" = true ] ; then
+    echo "Installing Desktop App..."
+    cd $PROJECT_ROOT/src/interface/desktop
+    yarn install
+fi
 
 # Install pre-commit hooks
 # ----
