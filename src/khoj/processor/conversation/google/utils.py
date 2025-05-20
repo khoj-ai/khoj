@@ -259,6 +259,10 @@ def handle_gemini_response(
     if len(candidates) == 0 and prompt_feedback:
         message = f"\nI'd prefer to not respond to that due to **{prompt_feedback.block_reason.name}** issues with your query."
         stopped = True
+    # If response hits rate limit
+    elif isinstance(candidates[0], str):
+        message = candidates[0]
+        stopped = True
     # Check if the response was blocked due to safety concerns with the generated content
     elif candidates[0].finish_reason == gtypes.FinishReason.SAFETY:
         message = generate_safety_response(candidates[0].safety_ratings)
