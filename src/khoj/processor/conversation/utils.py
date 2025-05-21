@@ -387,7 +387,7 @@ def gather_raw_query_files(
 
 
 def generate_chatml_messages_with_context(
-    user_message,
+    user_message: str,
     system_message: str = None,
     conversation_log={},
     model_name="gpt-4o-mini",

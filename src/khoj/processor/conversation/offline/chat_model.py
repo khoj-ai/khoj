@@ -148,8 +148,8 @@ def filter_questions(questions: List[str]):
 
 
 async def converse_offline(
-    user_query,
-    references=[],
+    user_query: str,
+    references: list[dict] = [],
     online_results={},
     code_results={},
     conversation_log={},

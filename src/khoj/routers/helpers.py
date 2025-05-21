@@ -1449,8 +1449,8 @@ async def agenerate_chat_response(
             api_key = openai_chat_config.api_key
             chat_model_name = chat_model.name
             chat_response_generator = converse_openai(
-                compiled_references,
                 query_to_run,
+                compiled_references,
                 query_images=query_images,
                 online_results=online_results,
                 code_results=code_results,
@@ -1479,8 +1479,8 @@ async def agenerate_chat_response(
             api_key = chat_model.ai_model_api.api_key
             api_base_url = chat_model.ai_model_api.api_base_url
             chat_response_generator = converse_anthropic(
-                compiled_references,
                 query_to_run,
+                compiled_references,
                 query_images=query_images,
                 online_results=online_results,
                 code_results=code_results,
@@ -1508,8 +1508,8 @@ async def agenerate_chat_response(
             api_key = chat_model.ai_model_api.api_key
             api_base_url = chat_model.ai_model_api.api_base_url
             chat_response_generator = converse_gemini(
-                compiled_references,
                 query_to_run,
+                compiled_references,
                 online_results=online_results,
                 code_results=code_results,
                 operator_results=operator_results,
