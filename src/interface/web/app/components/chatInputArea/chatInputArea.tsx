@@ -195,6 +195,11 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
             return;
         }
 
+        // If currently processing, trigger abort first
+        if (props.sendDisabled) {
+            props.setTriggeredAbort(true);
+        }
+
         let messageToSend = message.trim();
         // Check if message starts with an explicit slash command
         const startsWithSlashCommand =
@@ -657,7 +662,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                     <Button
                                         variant={"ghost"}
                                         className="!bg-none p-0 m-2 h-auto text-3xl rounded-full text-gray-300 hover:text-gray-500"
-                                        disabled={props.sendDisabled || !props.isLoggedIn}
+                                        disabled={!props.isLoggedIn}
                                         onClick={handleFileButtonClick}
                                         ref={fileInputButtonRef}
                                     >
@@ -686,7 +691,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                     e.key === "Enter" &&
                                     !e.shiftKey &&
                                     !props.isMobileWidth &&
-                                    !props.sendDisabled
+                                    !recording &&
+                                    message
                                 ) {
                                     setImageUploaded(false);
                                     setImagePaths([]);
@@ -725,7 +731,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        {props.sendDisabled ? (
+                                        {props.sendDisabled && !message ? (
                                             <Button
                                                 variant="default"
                                                 className={`${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
@@ -758,8 +764,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                             </TooltipProvider>
                         )}
                         <Button
-                            className={`${(!message || recording || props.sendDisabled) && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
-                            disabled={props.sendDisabled || !props.isLoggedIn}
+                            className={`${(!message || recording) && "hidden"} ${props.agentColor ? convertToBGClass(props.agentColor) : "bg-orange-300 hover:bg-orange-500"} rounded-full p-1 m-2 h-auto text-3xl transition transform md:hover:-translate-y-1`}
+                            disabled={!message || recording || !props.isLoggedIn}
                             onClick={onSendMessage}
                         >
                             <ArrowUp className="w-6 h-6" weight="bold" />
