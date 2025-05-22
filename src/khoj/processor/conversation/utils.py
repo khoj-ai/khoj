@@ -420,7 +420,7 @@ def generate_chatml_messages_with_context(
     # Extract Chat History for Context
     chatml_messages: List[ChatMessage] = []
     for chat in conversation_log.get("chat", []):
-        message_context = ""
+        message_context = []
         message_attached_files = ""
 
         generated_assets = {}
@@ -432,16 +432,6 @@ def generate_chatml_messages_with_context(
         if chat["by"] == "khoj" and "excalidraw" in chat["intent"].get("type", ""):
             chat_message = chat["intent"].get("inferred-queries")[0]
 
-        if not is_none_or_empty(chat.get("context")):
-            references = "\n\n".join(
-                {
-                    f"# File: {item['file']}\n## {item['compiled']}\n"
-                    for item in chat.get("context") or []
-                    if isinstance(item, dict)
-                }
-            )
-            message_context += f"{prompts.notes_conversation.format(references=references)}\n\n"
-
         if chat.get("queryFiles"):
             raw_query_files = chat.get("queryFiles")
             query_files_dict = dict()
@@ -452,15 +442,38 @@ def generate_chatml_messages_with_context(
             chatml_messages.append(ChatMessage(content=message_attached_files, role=role))
 
         if not is_none_or_empty(chat.get("onlineContext")):
-            message_context += f"{prompts.online_search_conversation.format(online_results=chat.get('onlineContext'))}"
+            message_context += [
+                {
+                    "type": "text",
+                    "text": f"{prompts.online_search_conversation.format(online_results=chat.get('onlineContext'))}",
+                }
+            ]
 
         if not is_none_or_empty(chat.get("codeContext")):
-            message_context += f"{prompts.code_executed_context.format(code_results=chat.get('codeContext'))}"
+            message_context += [
+                {
+                    "type": "text",
+                    "text": f"{prompts.code_executed_context.format(code_results=chat.get('codeContext'))}",
+                }
+            ]
 
         if not is_none_or_empty(chat.get("operatorContext")):
-            message_context += (
-                f"{prompts.operator_execution_context.format(operator_results=chat.get('operatorContext'))}"
+            message_context += [
+                {
+                    "type": "text",
+                    "text": f"{prompts.operator_execution_context.format(operator_results=chat.get('operatorContext'))}",
+                }
+            ]
+
+        if not is_none_or_empty(chat.get("context")):
+            references = "\n\n".join(
+                {
+                    f"# File: {item['file']}\n## {item['compiled']}\n"
+                    for item in chat.get("context") or []
+                    if isinstance(item, dict)
+                }
             )
+            message_context += [{"type": "text", "text": f"{prompts.notes_conversation.format(references=references)}"}]
 
         if not is_none_or_empty(message_context):
             reconstructed_context_message = ChatMessage(content=message_context, role="user")
