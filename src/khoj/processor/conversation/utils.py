@@ -121,7 +121,7 @@ def construct_iteration_history(
             index=idx + 1,
         )
 
-        previous_iterations_history.append(iteration_data)
+        previous_iterations_history.append({"type": "text", "text": iteration_data})
 
     return (
         [
@@ -341,7 +341,7 @@ Khoj: "{chat_response}"
 
 
 def construct_structured_message(
-    message: list[str] | str,
+    message: list[dict] | str,
     images: list[str],
     model_type: str,
     vision_enabled: bool,
@@ -355,11 +355,9 @@ def construct_structured_message(
         ChatModel.ModelType.GOOGLE,
         ChatModel.ModelType.ANTHROPIC,
     ]:
-        message = [message] if isinstance(message, str) else message
-
-        constructed_messages: List[dict[str, Any]] = [
-            {"type": "text", "text": message_part} for message_part in message
-        ]
+        constructed_messages: List[dict[str, Any]] = (
+            [{"type": "text", "text": message}] if isinstance(message, str) else message
+        )
 
         if not is_none_or_empty(attached_file_context):
             constructed_messages.append({"type": "text", "text": attached_file_context})
@@ -368,6 +366,7 @@ def construct_structured_message(
                 constructed_messages.append({"type": "image_url", "image_url": {"url": image}})
         return constructed_messages
 
+    message = message if isinstance(message, str) else "\n\n".join(m["text"] for m in message)
     if not is_none_or_empty(attached_file_context):
         return f"{attached_file_context}\n\n{message}"
 
