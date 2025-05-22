@@ -43,16 +43,16 @@ MAX_REASONING_TOKENS_ANTHROPIC = 12000
 )
 def anthropic_completion_with_backoff(
     messages: list[ChatMessage],
-    system_prompt,
+    system_prompt: str,
     model_name: str,
-    temperature=0.4,
-    api_key=None,
-    api_base_url: str = None,
-    model_kwargs=None,
-    max_tokens=None,
-    response_type="text",
-    deepthought=False,
-    tracer={},
+    temperature: float = 0.4,
+    api_key: str | None = None,
+    api_base_url: str | None = None,
+    model_kwargs: dict | None = None,
+    max_tokens: int | None = None,
+    response_type: str = "text",
+    deepthought: bool = False,
+    tracer: dict = {},
 ) -> str:
     client = anthropic_clients.get(api_key)
     if not client:
@@ -122,15 +122,15 @@ def anthropic_completion_with_backoff(
 )
 async def anthropic_chat_completion_with_backoff(
     messages: list[ChatMessage],
-    model_name,
-    temperature,
-    api_key,
-    api_base_url,
+    model_name: str | None,
+    temperature: float,
+    api_key: str | None,
+    api_base_url: str,
     system_prompt: str,
-    max_prompt_size=None,
-    deepthought=False,
-    model_kwargs=None,
-    tracer={},
+    max_prompt_size: int | None = None,
+    deepthought: bool = False,
+    model_kwargs: dict | None = None,
+    tracer: dict = {},
 ) -> AsyncGenerator[ResponseWithThought, None]:
     client = anthropic_async_clients.get(api_key)
     if not client:
