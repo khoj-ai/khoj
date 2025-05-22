@@ -73,6 +73,10 @@ model_to_prompt_size = {
     "claude-3-7-sonnet-20250219": 60000,
     "claude-3-7-sonnet-latest": 60000,
     "claude-3-5-haiku-20241022": 60000,
+    "claude-sonnet-4": 60000,
+    "claude-sonnet-4-20250514": 60000,
+    "claude-opus-4": 60000,
+    "claude-opus-4-20250514": 60000,
     # Offline Models
     "bartowski/Qwen2.5-14B-Instruct-GGUF": 20000,
     "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF": 20000,
