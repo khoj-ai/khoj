@@ -180,13 +180,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
     }, [props.isResearchModeEnabled]);
 
     function onSendMessage() {
-        if (imageUploaded) {
-            setImageUploaded(false);
-            setImagePaths([]);
-            imageData.forEach((data) => props.sendImage(data));
-        }
-        if (!message.trim()) return;
-
+        if (!message.trim() && imageData.length === 0) return;
         if (!props.isLoggedIn) {
             setLoginRedirectMessage(
                 "Hey there, you need to be signed in to send messages to Khoj AI",
@@ -198,6 +192,12 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         // If currently processing, trigger abort first
         if (props.sendDisabled) {
             props.setTriggeredAbort(true);
+        }
+
+        if (imageUploaded) {
+            setImageUploaded(false);
+            setImagePaths([]);
+            imageData.forEach((data) => props.sendImage(data));
         }
 
         let messageToSend = message.trim();
