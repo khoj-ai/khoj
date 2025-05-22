@@ -766,7 +766,7 @@ You decide which of the tool AIs listed below would you use to answer the user's
 
 {tools}
 
-Your response should always be a valid JSON object. Do not say anything else.
+Your response should always be a valid JSON object with keys: "scratchpad" (str), "tool" (str) and "query" (str). Do not say anything else.
 Response format:
 {{"scratchpad": "<your_scratchpad_to_reason_about_which_tool_to_use>", "tool": "<name_of_tool_ai>", "query": "<your_detailed_query_for_the_tool_ai>"}}
 """.strip()
