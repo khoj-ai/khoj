@@ -860,9 +860,9 @@ async def chat(
             async for result in send_llm_response(f"Conversation {conversation_id} not found", tracer.get("usage")):
                 yield result
             return
-        conversation_id = conversation.id
+        conversation_id = str(conversation.id)
 
-        async for event in send_event(ChatEvent.METADATA, {"conversationId": str(conversation_id), "turnId": turn_id}):
+        async for event in send_event(ChatEvent.METADATA, {"conversationId": conversation_id, "turnId": turn_id}):
             yield event
 
         agent: Agent | None = None
@@ -1383,7 +1383,6 @@ async def chat(
             conversation_commands,
             user,
             request.user.client_app,
-            conversation_id,
             location,
             user_name,
             researched_results,
