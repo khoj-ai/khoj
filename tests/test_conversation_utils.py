@@ -175,16 +175,46 @@ class TestTruncateMessage:
         assert truncated_chat_history[0] != copy_big_chat_message, "Original message should be modified"
 
 
-def test_load_complex_raw_json_string():
-    # Arrange
-    raw_json = r"""{"key": "value with unescaped " and unescaped \' and escaped \" and escaped \\'"}"""
-    expeced_json = {"key": "value with unescaped \" and unescaped \\' and escaped \" and escaped \\'"}
+class TestLoadComplexJson:
+    def test_load_complex_raw_json_string(self):
+        # Arrange
+        raw_json = r"""{"key": "value with unescaped " and unescaped \' and escaped \" and escaped \\'"}"""
+        expected_json = {"key": "value with unescaped \" and unescaped \\' and escaped \" and escaped \\'"}
 
-    # Act
-    parsed_json = utils.load_complex_json(raw_json)
+        # Act
+        parsed_json = utils.load_complex_json(raw_json)
 
-    # Assert
-    assert parsed_json == expeced_json
+        # Assert
+        assert parsed_json == expected_json
+
+    def test_load_complex_json_with_python_code(self):
+        # Arrange
+        raw_json = r"""{"python": "import os\nvalue = \"\"\"\nfirst line of "text"\nsecond line of 'text'\n\"\"\"\nprint(value)"}"""
+        expected_json = {
+            "python": 'import os\nvalue = """\nfirst line of "text"\nsecond line of \'text\'\n"""\nprint(value)'
+        }
+
+        # Act
+        parsed_json = utils.load_complex_json(raw_json)
+
+        # Assert
+        assert parsed_json == expected_json
+
+    def test_load_complex_json_inline(self):
+        # Arrange
+        raw_json = """
+    {"key1": "value1", "key2": "value2"}plain text suffix
+    """
+        expected_json = {
+            "key1": "value1",
+            "key2": "value2",
+        }
+
+        # Act
+        parsed_json = utils.load_complex_json(raw_json)
+
+        # Assert
+        assert parsed_json == expected_json
 
 
 def generate_content(count, suffix=""):
