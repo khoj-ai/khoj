@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 class Context(PydanticBaseModel):
     compiled: str
     file: str
+    query: str
 
 
 class CodeContextFile(PydanticBaseModel):
@@ -105,6 +106,8 @@ class ChatMessage(PydanticBaseModel):
     context: List[Context] = []
     onlineContext: Dict[str, OnlineContext] = {}
     codeContext: Dict[str, CodeContextData] = {}
+    researchContext: Optional[List] = None
+    operatorContext: Optional[Dict[str, str]] = None
     created: str
     images: Optional[List[str]] = None
     queryFiles: Optional[List[Dict]] = None
