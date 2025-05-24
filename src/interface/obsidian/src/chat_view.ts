@@ -74,7 +74,7 @@ export class KhojChatView extends KhojPaneView {
     userMessages: string[] = [];  // Store user sent messages for input history cycling
     currentMessageIndex: number = -1;  // Track current message index in userMessages array
     private currentUserInput: string = ""; // Stores the current user input that is being typed in chat
-    private startingMessage: string = "Start with '/' to select the response mode.";
+    private startingMessage: string = this.getLearningMoment();
     chatMessageState: ChatMessageState;
     private agents: Agent[] = [];
     private currentAgent: string | null = null;
@@ -178,8 +178,7 @@ export class KhojChatView extends KhojPaneView {
 
             this.userMessages.push(user_message);
             // Update starting message after sending a new message
-            const modifierKey = Platform.isMacOS ? '⌘' : '^';
-            this.startingMessage = `Start with '/' to select the response mode. (${modifierKey}+↑/↓) for prev messages`;
+            this.startingMessage = this.getLearningMoment();
             input_el.placeholder = this.startingMessage;
 
             // Clear input and resize
@@ -912,13 +911,26 @@ export class KhojChatView extends KhojPaneView {
         return `${time_string}, ${date_string}`;
     }
 
+    getLearningMoment(): string {
+        const modifierKey = Platform.isMacOS ? '⌘' : '^';
+        const learningMoments = [
+            "Type '/' to select response mode.",
+        ];
+        if (this.userMessages.length > 0) {
+            learningMoments.push(`Load previous messages with ${modifierKey}+↑/↓`);
+        }
+
+        // Return a random learning moment
+        return learningMoments[Math.floor(Math.random() * learningMoments.length)];
+    }
+
     async createNewConversation(agentSlug?: string) {
         let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
         chatBodyEl.innerHTML = "";
         chatBodyEl.dataset.conversationId = "";
         chatBodyEl.dataset.conversationTitle = "";
         this.userMessages = [];
-        this.startingMessage = "Start with '/' to select the response mode.";
+        this.startingMessage = this.getLearningMoment();
 
         // Update the placeholder of the chat input
         const chatInput = this.contentEl.querySelector('.khoj-chat-input') as HTMLTextAreaElement;
@@ -1231,10 +1243,7 @@ export class KhojChatView extends KhojPaneView {
                 });
 
                 // Update starting message after loading history
-                const modifierKey: string = Platform.isMacOS ? '⌘' : '^';
-                this.startingMessage = this.userMessages.length > 0
-                    ? `Start with '/' to select the response mode. (${modifierKey}+↑/↓)`
-                    : "Start with '/' to select the response mode.";
+                this.startingMessage = this.getLearningMoment();
 
                 // Update the placeholder of the chat input
                 const chatInput = this.contentEl.querySelector('.khoj-chat-input') as HTMLTextAreaElement;
