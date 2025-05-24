@@ -4,7 +4,7 @@ import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
 import { KhojView, createCopyParentText, getLinkToEntry, pasteTextAtCursor, populateHeaderPane } from 'src/utils';
 import { KhojSearchModal } from 'src/search_modal';
-import { FileInteractions, EditBlock } from './interact_with_files';
+import { FileInteractions, EditBlock } from 'src/interact_with_files';
 
 export interface ChatJsonResult {
     image?: string;
@@ -30,7 +30,7 @@ interface ChatMessageState {
     turnId: string;
     editBlocks: EditBlock[];
     editRetryCount: number;
-    parentRetryCount?: number; // Ajout du compteur parent
+    parentRetryCount?: number;
 }
 
 interface Location {
@@ -55,7 +55,7 @@ interface RenderMessageOptions {
 interface ChatMode {
     value: string;
     label: string;
-    iconName: string; // Changed from emoji to iconName
+    iconName: string;
     command: string;
 }
 
@@ -63,16 +63,6 @@ interface Agent {
     name: string;
     slug: string;
     description: string;
-}
-
-interface ParseKhojEditResult {
-    editData: any;
-    cleanContent: string;
-    error?: {
-        type: 'missing_field' | 'invalid_json' | 'preprocessing' | 'unknown';
-        message: string;
-        details?: string;
-    };
 }
 
 export class KhojChatView extends KhojPaneView {
@@ -97,7 +87,7 @@ export class KhojChatView extends KhojPaneView {
         { value: "image", label: "Image", iconName: "image", command: "/image" },
         { value: "research", label: "Research", iconName: "microscope", command: "/research" }
     ];
-    private editRetryCount: number = 0;  // Ajout du compteur au niveau de la classe
+    private editRetryCount: number = 0;  // Track number of retries for edit blocks
     private fileInteractions: FileInteractions;
     private modeDropdown: HTMLElement | null = null;
     private selectedOptionIndex: number = -1;
@@ -206,7 +196,6 @@ export class KhojChatView extends KhojPaneView {
 
         // The parent class handles creating the header and attaching the click on the "New Chat" button
         // We handle the rest of the interface here
-
         // Call the parent class's onOpen method first
         await super.onOpen();
 
@@ -333,10 +322,6 @@ export class KhojChatView extends KhojPaneView {
         let sendImg = <SVGElement>send.getElementsByClassName("lucide-arrow-up-circle")[0]
         sendImg.addEventListener('click', async (_) => { await this.chat() });
 
-        // After all the input row elements, add the mode selector
-        // We're removing the radio buttons as they've been replaced by a dropdown
-        // that's shown when the user is typing/selecting a mode
-
         // Get chat history from Khoj backend and set chat input state
         let getChatHistorySucessfully = await this.getChatHistory(chatBodyEl);
 
@@ -461,7 +446,7 @@ export class KhojChatView extends KhojPaneView {
         referenceButton.tabIndex = 0;
 
         // Add event listener to toggle full reference on click
-        referenceButton.addEventListener('click', function () {
+        referenceButton.addEventListener('click', function() {
             if (this.classList.contains("collapsed")) {
                 this.classList.remove("collapsed");
                 this.classList.add("expanded");
@@ -476,7 +461,7 @@ export class KhojChatView extends KhojPaneView {
         return referenceButton;
     }
 
-    generateReference(messageEl: Element, referenceJson: any, index: number | string) {
+    generateReference(messageEl: Element, referenceJson: any, index: number) {
         let reference: string = referenceJson.hasOwnProperty("compiled") ? referenceJson.compiled : referenceJson;
         let referenceFile = referenceJson.hasOwnProperty("file") ? referenceJson.file : null;
 
@@ -516,7 +501,7 @@ export class KhojChatView extends KhojPaneView {
         referenceButton.tabIndex = 0;
 
         // Add event listener to toggle full reference on click
-        referenceButton.addEventListener('click', function () {
+        referenceButton.addEventListener('click', function() {
             if (this.classList.contains("collapsed")) {
                 this.classList.remove("collapsed");
                 this.classList.add("expanded");
@@ -568,7 +553,7 @@ export class KhojChatView extends KhojPaneView {
                 source.buffer = audioBuffer;
                 source.connect(context.destination);
                 source.start(0);
-                source.onended = function () {
+                source.onended = function() {
                     speechButton.removeChild(loader);
                     speechButton.disabled = false;
                 };
@@ -695,7 +680,7 @@ export class KhojChatView extends KhojPaneView {
             imageMarkdown = `![](${message})`;
         } else if (intentType === "excalidraw" || excalidrawDiagram) {
             const domain = this.setting.khojUrl.endsWith("/") ? this.setting.khojUrl : `${this.setting.khojUrl}/`;
-            const redirectMessage = `Hey, I'm not ready to show you diagrams yet here. But you can view it in ${domain}`;
+            const redirectMessage = `Hey, I'm not ready to show you diagrams yet here. But you can view it in ${domain}chat?conversationId=${conversationId}`;
             imageMarkdown = redirectMessage;
         } else if (mermaidjsDiagram) {
             imageMarkdown = "```mermaid\n" + mermaidjsDiagram + "\n```";
@@ -789,11 +774,11 @@ export class KhojChatView extends KhojPaneView {
         // Apply transformations including partial edit block detection
         const transformedResponse = this.transformKhojEditBlocks(sanitizedResponse);
 
-        // Créer un élément temporaire pour obtenir le HTML rendu
+        // Create a temporary element to get the rendered HTML
         const tempElement = document.createElement('div');
         tempElement.innerHTML = this.markdownTextToSanitizedHtml(transformedResponse, this);
 
-        // Mettre à jour le contenu avec une transition plus douce
+        // Update the content in separate step for a smoother transition
         htmlElement.innerHTML = tempElement.innerHTML;
 
         // Render action buttons for the message
@@ -1082,10 +1067,10 @@ export class KhojChatView extends KhojPaneView {
             let editConversationTitleInputEl = this.contentEl.createEl('input');
             editConversationTitleInputEl.classList.add("conversation-title-input");
             editConversationTitleInputEl.value = conversationTitle;
-            editConversationTitleInputEl.addEventListener('click', function (event) {
+            editConversationTitleInputEl.addEventListener('click', function(event) {
                 event.stopPropagation();
             });
-            editConversationTitleInputEl.addEventListener('keydown', function (event) {
+            editConversationTitleInputEl.addEventListener('keydown', function(event) {
                 if (event.key === "Enter") {
                     event.preventDefault();
                     editConversationTitleSaveButtonEl.click();
@@ -1687,11 +1672,11 @@ export class KhojChatView extends KhojPaneView {
             const recordingConfig = { mimeType: 'audio/webm' };
             this.mediaRecorder = new MediaRecorder(stream, recordingConfig);
 
-            this.mediaRecorder.addEventListener("dataavailable", function (event) {
+            this.mediaRecorder.addEventListener("dataavailable", function(event) {
                 if (event.data.size > 0) audioChunks.push(event.data);
             });
 
-            this.mediaRecorder.addEventListener("stop", async function () {
+            this.mediaRecorder.addEventListener("stop", async function() {
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                 await sendToServer(audioBlob);
             });
@@ -1951,7 +1936,7 @@ export class KhojChatView extends KhojPaneView {
             numReferences += references["notes"].length;
 
             references["notes"].forEach((reference: any, index: number) => {
-                let polishedReference = this.generateReference(referenceSection, reference, index.toString());
+                let polishedReference = this.generateReference(referenceSection, reference, index);
                 referenceSection.appendChild(polishedReference);
             });
         }
@@ -1963,7 +1948,7 @@ export class KhojChatView extends KhojPaneView {
         referenceExpandButton.classList.add("reference-expand-button");
         referenceExpandButton.innerHTML = numReferences == 1 ? "1 reference" : `${numReferences} references`;
 
-        referenceExpandButton.addEventListener('click', function () {
+        referenceExpandButton.addEventListener('click', function() {
             if (referenceSection.classList.contains("collapsed")) {
                 referenceSection.classList.remove("collapsed");
                 referenceSection.classList.add("expanded");
@@ -2076,7 +2061,7 @@ export class KhojChatView extends KhojPaneView {
         if (!messageContainer) return;
 
         // Get paired message to delete if needed
-        let pairedMessageContainer = null;
+        let pairedMessageContainer: Element | null = null;
         if (!skipPaired) {
             const messages = Array.from(document.getElementsByClassName('khoj-chat-message'));
             const currentIndex = messages.indexOf(messageContainer as HTMLElement);
