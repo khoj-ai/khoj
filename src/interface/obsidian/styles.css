@@ -415,7 +415,7 @@ div.selected-conversation {
     align-items: center;
     background-color: var(--background-secondary-alt, var(--background-secondary));
     border-radius: 16px;
-    padding: 10px 16px;
+    padding: 4px 16px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
     transition: all 0.3s ease;
     position: relative;
@@ -439,14 +439,14 @@ div.selected-conversation {
     background: transparent;
     color: var(--text-normal);
     font-size: calc(var(--font-ui-medium) * 1.05);
-    padding: 16px;
+    padding: 12px;
     min-height: 24px;
-    max-height: 150px;
+    max-height: 400px;
     resize: none;
     border-radius: 8px;
     outline: none;
     font-family: inherit;
-    line-height: 1.5;
+    line-height: normal;
     overflow: hidden;
     transition: none;
     align-self: flex-start;

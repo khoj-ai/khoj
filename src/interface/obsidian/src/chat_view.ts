@@ -328,6 +328,7 @@ export class KhojChatView extends KhojPaneView {
         let placeholderText: string = getChatHistorySucessfully ? this.startingMessage : "Configure Khoj to enable chat";
         chatInput.placeholder = placeholderText;
         chatInput.disabled = !getChatHistorySucessfully;
+        this.autoResize();
 
         // Scroll to bottom of chat messages and focus on chat input field, once messages rendered
         requestAnimationFrame(() => {
@@ -1802,10 +1803,9 @@ export class KhojChatView extends KhojPaneView {
         chatInput.style.height = 'auto';
 
         // Calculate new height based on content with a larger maximum height
-        const maxHeight = 400; // Increase maximum height from 300px to 400px
+        const maxHeight = 400;
         const newHeight = Math.min(chatInput.scrollHeight, maxHeight);
         chatInput.style.height = newHeight + 'px';
-
         // Add overflow-y: auto only if content exceeds max height
         if (chatInput.scrollHeight > maxHeight) {
             chatInput.style.overflowY = 'auto';
