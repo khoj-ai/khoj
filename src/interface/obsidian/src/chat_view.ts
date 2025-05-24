@@ -574,10 +574,8 @@ export class KhojChatView extends KhojPaneView {
             message = this.transformKhojEditBlocks(message);
         }
 
-        // Sanitize the markdown message if DOMPurify is available
-        if (DOMPurify && typeof DOMPurify.sanitize === 'function') {
-            message = DOMPurify.sanitize(message);
-        }
+        // Sanitize the markdown message
+        message = DOMPurify.sanitize(message);
 
         // Convert the message to html, sanitize the message html and render it to the real DOM
         let chatMessageBodyTextEl = this.contentEl.createDiv();
@@ -604,14 +602,8 @@ export class KhojChatView extends KhojPaneView {
             ''
         );
 
-        // Sanitize the markdown text rendered as HTML if DOMPurify is available
-        if (DOMPurify && typeof DOMPurify.sanitize === 'function') {
-            return DOMPurify.sanitize(virtualChatMessageBodyTextEl.innerHTML);
-        }
-
-        // If DOMPurify is not available, return the innerHTML directly
-        // This is not ideal but prevents the application from crashing
-        return virtualChatMessageBodyTextEl.innerHTML;
+        // Sanitize the markdown text rendered as HTML
+        return DOMPurify.sanitize(virtualChatMessageBodyTextEl.innerHTML);
     }
 
     renderMessageWithReferences(
@@ -714,10 +706,8 @@ export class KhojChatView extends KhojPaneView {
         chatMessageBodyEl.addClasses(["khoj-chat-message-text", sender]);
         let chatMessageBodyTextEl = chatMessageBodyEl.createDiv();
 
-        // Sanitize the markdown to render if DOMPurify is available
-        if (DOMPurify && typeof DOMPurify.sanitize === 'function') {
-            message = DOMPurify.sanitize(message);
-        }
+        // Sanitize the markdown to render
+        message = DOMPurify.sanitize(message);
 
         if (raw) {
             chatMessageBodyTextEl.innerHTML = message;
@@ -762,14 +752,8 @@ export class KhojChatView extends KhojPaneView {
     async renderIncrementalMessage(htmlElement: HTMLDivElement, additionalMessage: string) {
         this.chatMessageState.rawResponse += additionalMessage;
 
-        // Plutôt que de réinitialiser tout le HTML à chaque fois (ce qui cause un clignotement),
-        // nous allons simplement mettre à jour le contenu avec le nouveau texte
-
-        // Sanitize the markdown to render if DOMPurify is available
-        let sanitizedResponse = this.chatMessageState.rawResponse;
-        if (DOMPurify && typeof DOMPurify.sanitize === 'function') {
-            sanitizedResponse = DOMPurify.sanitize(this.chatMessageState.rawResponse);
-        }
+        // Sanitize the markdown to render
+        let sanitizedResponse = DOMPurify.sanitize(this.chatMessageState.rawResponse);
 
         // Apply transformations including partial edit block detection
         const transformedResponse = this.transformKhojEditBlocks(sanitizedResponse);
