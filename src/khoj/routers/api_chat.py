@@ -25,8 +25,13 @@ from khoj.database.adapters import (
 from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.prompts import help_message, no_entries_found
-from khoj.processor.conversation.utils import defilter_query, save_to_conversation_log
+from khoj.processor.conversation.utils import (
+    ResponseWithThought,
+    defilter_query,
+    save_to_conversation_log,
+)
 from khoj.processor.image.generate import text_to_image
+from khoj.processor.operator.operate_browser import operate_browser
 from khoj.processor.speech.text_to_speech import generate_text_to_speech
 from khoj.processor.tools.online_search import (
     deduplicate_organic_results,
@@ -67,7 +72,6 @@ from khoj.routers.research import (
 from khoj.routers.storage import upload_user_image_to_bucket
 from khoj.utils import state
 from khoj.utils.helpers import (
-    AsyncIteratorWrapper,
     ConversationCommand,
     command_descriptions,
     convert_image_to_webp,
@@ -75,6 +79,7 @@ from khoj.utils.helpers import (
     get_country_name_from_timezone,
     get_device,
     is_none_or_empty,
+    is_operator_enabled,
 )
 from khoj.utils.rawconfig import (
     ChatRequestBody,
@@ -566,6 +571,8 @@ async def chat_options(
 ) -> Response:
     cmd_options = {}
     for cmd in ConversationCommand:
+        if cmd == ConversationCommand.Operator and not is_operator_enabled():
+            continue
         if cmd in command_descriptions:
             cmd_options[cmd.value] = command_descriptions[cmd]
 
@@ -680,14 +687,13 @@ async def chat(
         start_time = time.perf_counter()
         ttft = None
         chat_metadata: dict = {}
-        connection_alive = True
         user: KhojUser = request.user.object
         is_subscribed = has_required_scope(request, ["premium"])
-        event_delimiter = "␃🔚␗"
         q = unquote(q)
         train_of_thought = []
         nonlocal conversation_id
         nonlocal raw_query_files
+        cancellation_event = asyncio.Event()
 
         tracer: dict = {
             "mid": turn_id,
@@ -714,11 +720,33 @@ async def chat(
             for file in raw_query_files:
                 query_files[file.name] = file.content
 
+        # Create a task to monitor for disconnections
+        disconnect_monitor_task = None
+
+        async def monitor_disconnection():
+            try:
+                msg = await request.receive()
+                if msg["type"] == "http.disconnect":
+                    logger.debug(f"User {user} disconnected from {common.client} client.")
+                    cancellation_event.set()
+            except Exception as e:
+                logger.error(f"Error in disconnect monitor: {e}")
+
+        # Cancel the disconnect monitor task if it is still running
+        async def cancel_disconnect_monitor():
+            if disconnect_monitor_task and not disconnect_monitor_task.done():
+                logger.debug(f"Cancelling disconnect monitor task for user {user}")
+                disconnect_monitor_task.cancel()
+                try:
+                    await disconnect_monitor_task
+                except asyncio.CancelledError:
+                    pass
+
         async def send_event(event_type: ChatEvent, data: str | dict):
-            nonlocal connection_alive, ttft, train_of_thought
-            if not connection_alive or await request.is_disconnected():
-                connection_alive = False
-                logger.warning(f"User {user} disconnected from {common.client} client")
+            nonlocal ttft, train_of_thought
+            event_delimiter = "␃🔚␗"
+            if cancellation_event.is_set():
+                logger.debug(f"User {user} disconnected from {common.client} client. Setting cancellation event.")
                 return
             try:
                 if event_type == ChatEvent.END_LLM_RESPONSE:
@@ -727,23 +755,41 @@ async def chat(
                     ttft = time.perf_counter() - start_time
                 elif event_type == ChatEvent.STATUS:
                     train_of_thought.append({"type": event_type.value, "data": data})
+                elif event_type == ChatEvent.THOUGHT:
+                    # Append the data to the last thought as thoughts are streamed
+                    if (
+                        len(train_of_thought) > 0
+                        and train_of_thought[-1]["type"] == ChatEvent.THOUGHT.value
+                        and type(train_of_thought[-1]["data"]) == type(data) == str
+                    ):
+                        train_of_thought[-1]["data"] += data
+                    else:
+                        train_of_thought.append({"type": event_type.value, "data": data})
 
                 if event_type == ChatEvent.MESSAGE:
                     yield data
                 elif event_type == ChatEvent.REFERENCES or ChatEvent.METADATA or stream:
                     yield json.dumps({"type": event_type.value, "data": data}, ensure_ascii=False)
             except asyncio.CancelledError as e:
-                connection_alive = False
-                logger.warn(f"User {user} disconnected from {common.client} client: {e}")
-                return
+                if cancellation_event.is_set():
+                    logger.debug(f"Request cancelled. User {user} disconnected from {common.client} client: {e}.")
             except Exception as e:
-                connection_alive = False
-                logger.error(f"Failed to stream chat API response to {user} on {common.client}: {e}", exc_info=True)
-                return
+                if not cancellation_event.is_set():
+                    logger.error(
+                        f"Failed to stream chat API response to {user} on {common.client}: {e}.",
+                        exc_info=True,
+                    )
             finally:
-                yield event_delimiter
+                if not cancellation_event.is_set():
+                    yield event_delimiter
+                # Cancel the disconnect monitor task if it is still running
+                if cancellation_event.is_set() or event_type == ChatEvent.END_RESPONSE:
+                    await cancel_disconnect_monitor()
 
         async def send_llm_response(response: str, usage: dict = None):
+            # Check if the client is still connected
+            if cancellation_event.is_set():
+                return
             # Send Chat Response
             async for result in send_event(ChatEvent.START_LLM_RESPONSE, ""):
                 yield result
@@ -767,11 +813,11 @@ async def chat(
             chat_metadata = chat_metadata or {}
             chat_metadata["conversation_command"] = cmd_set
             chat_metadata["agent"] = conversation.agent.slug if conversation and conversation.agent else None
-            chat_metadata["latency"] = f"{latency:.3f}"
-            chat_metadata["ttft_latency"] = f"{ttft:.3f}"
             chat_metadata["cost"] = f"{cost:.5f}"
-
-            logger.info(f"Chat response time to first token: {ttft:.3f} seconds")
+            chat_metadata["latency"] = f"{latency:.3f}"
+            if ttft:
+                chat_metadata["ttft_latency"] = f"{ttft:.3f}"
+                logger.info(f"Chat response time to first token: {ttft:.3f} seconds")
             logger.info(f"Chat response total time: {latency:.3f} seconds")
             logger.info(f"Chat response cost: ${cost:.5f}")
             update_telemetry_state(
@@ -783,6 +829,9 @@ async def chat(
                 host=request.headers.get("host"),
                 metadata=chat_metadata,
             )
+
+        # Start the disconnect monitor in the background
+        disconnect_monitor_task = asyncio.create_task(monitor_disconnection())
 
         if is_query_empty(q):
             async for result in send_llm_response("Please ask your query to get started.", tracer.get("usage")):
@@ -837,6 +886,7 @@ async def chat(
         researched_results = ""
         online_results: Dict = dict()
         code_results: Dict = dict()
+        operator_results: Dict[str, str] = {}
         generated_asset_results: Dict = dict()
         ## Extract Document References
         compiled_references: List[Any] = []
@@ -889,7 +939,6 @@ async def chat(
 
         if conversation_commands == [ConversationCommand.Research]:
             async for research_result in execute_information_collection(
-                request=request,
                 user=user,
                 query=defiltered_query,
                 conversation_id=conversation_id,
@@ -902,6 +951,7 @@ async def chat(
                 file_filters=conversation.file_filters if conversation else [],
                 query_files=attached_file_context,
                 tracer=tracer,
+                cancellation_event=cancellation_event,
             ):
                 if isinstance(research_result, InformationCollectionIteration):
                     if research_result.summarizedResult:
@@ -911,7 +961,8 @@ async def chat(
                             code_results.update(research_result.codeContext)
                         if research_result.context:
                             compiled_references.extend(research_result.context)
-
+                        if research_result.operatorContext:
+                            operator_results.update(research_result.operatorContext)
                         researched_results += research_result.summarizedResult
 
                 else:
@@ -1000,22 +1051,26 @@ async def chat(
                 return
 
             llm_response = construct_automation_created_message(automation, crontime, query_to_run, subject)
-            await sync_to_async(save_to_conversation_log)(
-                q,
-                llm_response,
-                user,
-                meta_log,
-                user_message_time,
-                intent_type="automation",
-                client_application=request.user.client_app,
-                conversation_id=conversation_id,
-                inferred_queries=[query_to_run],
-                automation_id=automation.id,
-                query_images=uploaded_images,
-                train_of_thought=train_of_thought,
-                raw_query_files=raw_query_files,
-                tracer=tracer,
+            # Trigger task to save conversation to DB
+            asyncio.create_task(
+                save_to_conversation_log(
+                    q,
+                    llm_response,
+                    user,
+                    meta_log,
+                    user_message_time,
+                    intent_type="automation",
+                    client_application=request.user.client_app,
+                    conversation_id=conversation_id,
+                    inferred_queries=[query_to_run],
+                    automation_id=automation.id,
+                    query_images=uploaded_images,
+                    train_of_thought=train_of_thought,
+                    raw_query_files=raw_query_files,
+                    tracer=tracer,
+                )
             )
+            # Send LLM Response
             async for result in send_llm_response(llm_response, tracer.get("usage")):
                 yield result
             return
@@ -1025,7 +1080,7 @@ async def chat(
         if not ConversationCommand.Research in conversation_commands:
             try:
                 async for result in extract_references_and_questions(
-                    request,
+                    user,
                     meta_log,
                     q,
                     (n or 7),
@@ -1080,9 +1135,10 @@ async def chat(
                     user,
                     partial(send_event, ChatEvent.STATUS),
                     custom_filters,
+                    max_online_searches=3,
                     query_images=uploaded_images,
-                    agent=agent,
                     query_files=attached_file_context,
+                    agent=agent,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
@@ -1157,14 +1213,45 @@ async def chat(
                         yield result[ChatEvent.STATUS]
                     else:
                         code_results = result
-                async for result in send_event(ChatEvent.STATUS, f"**Ran code snippets**: {len(code_results)}"):
-                    yield result
             except ValueError as e:
                 program_execution_context.append(f"Failed to run code")
                 logger.warning(
                     f"Failed to use code tool: {e}. Attempting to respond without code results",
                     exc_info=True,
                 )
+        if ConversationCommand.Operator in conversation_commands:
+            try:
+                async for result in operate_browser(
+                    defiltered_query,
+                    user,
+                    meta_log,
+                    location,
+                    query_images=uploaded_images,
+                    query_files=attached_file_context,
+                    send_status_func=partial(send_event, ChatEvent.STATUS),
+                    agent=agent,
+                    cancellation_event=cancellation_event,
+                    tracer=tracer,
+                ):
+                    if isinstance(result, dict) and ChatEvent.STATUS in result:
+                        yield result[ChatEvent.STATUS]
+                    else:
+                        operator_results = {result["query"]: result["result"]}
+                        # Add webpages visited while operating browser to references
+                        if result.get("webpages"):
+                            if not online_results.get(defiltered_query):
+                                online_results[defiltered_query] = {"webpages": result["webpages"]}
+                            elif not online_results[defiltered_query].get("webpages"):
+                                online_results[defiltered_query]["webpages"] = result["webpages"]
+                            else:
+                                online_results[defiltered_query]["webpages"] += result["webpages"]
+            except ValueError as e:
+                program_execution_context.append(f"Browser operation error: {e}")
+                logger.warning(f"Failed to operate browser with {e}", exc_info=True)
+                async for result in send_event(
+                    ChatEvent.STATUS, "Operating browser failed. I'll try respond appropriately"
+                ):
+                    yield result
 
         ## Send Gathered References
         unique_online_results = deduplicate_organic_results(online_results)
@@ -1175,6 +1262,7 @@ async def chat(
                 "context": compiled_references,
                 "onlineContext": unique_online_results,
                 "codeContext": code_results,
+                "operatorContext": operator_results,
             },
         ):
             yield result
@@ -1272,6 +1360,13 @@ async def chat(
                         async for result in send_event(ChatEvent.STATUS, error_message):
                             yield result
 
+        # Check if the user has disconnected
+        if cancellation_event.is_set():
+            logger.debug(f"User {user} disconnected from {common.client} client. Stopping LLM response.")
+            # Cancel the disconnect monitor task if it is still running
+            await cancel_disconnect_monitor()
+            return
+
         ## Generate Text Output
         async for result in send_event(ChatEvent.STATUS, f"**Generating a well-informed response**"):
             yield result
@@ -1283,6 +1378,7 @@ async def chat(
             compiled_references,
             online_results,
             code_results,
+            operator_results,
             inferred_queries,
             conversation_commands,
             user,
@@ -1304,31 +1400,44 @@ async def chat(
             tracer,
         )
 
-        # Send Response
-        async for result in send_event(ChatEvent.START_LLM_RESPONSE, ""):
-            yield result
-
-        continue_stream = True
-        iterator = AsyncIteratorWrapper(llm_response)
-        async for item in iterator:
+        async for item in llm_response:
+            # Should not happen with async generator, end is signaled by loop exit. Skip.
             if item is None:
-                async for result in send_event(ChatEvent.END_LLM_RESPONSE, ""):
-                    yield result
-                # Send Usage Metadata once llm interactions are complete
-                async for event in send_event(ChatEvent.USAGE, tracer.get("usage")):
-                    yield event
-                async for result in send_event(ChatEvent.END_RESPONSE, ""):
-                    yield result
-                logger.debug("Finished streaming response")
-                return
-            if not connection_alive or not continue_stream:
                 continue
+            if cancellation_event.is_set():
+                break
+            message = item.response if isinstance(item, ResponseWithThought) else item
+            if isinstance(item, ResponseWithThought) and item.thought:
+                async for result in send_event(ChatEvent.THOUGHT, item.thought):
+                    yield result
+                continue
+
+            # Start sending response
+            async for result in send_event(ChatEvent.START_LLM_RESPONSE, ""):
+                yield result
+
             try:
-                async for result in send_event(ChatEvent.MESSAGE, f"{item}"):
+                async for result in send_event(ChatEvent.MESSAGE, message):
                     yield result
             except Exception as e:
-                continue_stream = False
-                logger.info(f"User {user} disconnected. Emitting rest of responses to clear thread: {e}")
+                if not cancellation_event.is_set():
+                    logger.warning(f"Error during streaming. Stopping send: {e}")
+                break
+
+        # Signal end of LLM response after the loop finishes
+        if not cancellation_event.is_set():
+            async for result in send_event(ChatEvent.END_LLM_RESPONSE, ""):
+                yield result
+            # Send Usage Metadata once llm interactions are complete
+            if tracer.get("usage"):
+                async for event in send_event(ChatEvent.USAGE, tracer.get("usage")):
+                    yield event
+            async for result in send_event(ChatEvent.END_RESPONSE, ""):
+                yield result
+            logger.debug("Finished streaming response")
+
+        # Cancel the disconnect monitor task if it is still running
+        await cancel_disconnect_monitor()
 
     ## Stream Text Response
     if stream:

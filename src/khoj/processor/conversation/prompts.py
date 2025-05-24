@@ -1,4 +1,4 @@
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 
 ## Personality
 ## --
@@ -666,21 +666,25 @@ As a professional analyst, your job is to extract all pertinent information from
 You will be provided raw text directly from within the document.
 Adhere to these guidelines while extracting information from the provided documents:
 
-1. Extract all relevant text and links from the document that can assist with further research or answer the user's query.
+1. Extract all relevant text and links from the document that can assist with further research or answer the target query.
 2. Craft a comprehensive but compact report with all the necessary data from the document to generate an informed response.
 3. Rely strictly on the provided text to generate your summary, without including external information.
 4. Provide specific, important snippets from the document in your report to establish trust in your summary.
+5. Verbatim quote all necessary text, code or data from the provided document to answer the target query.
 """.strip()
 
 extract_relevant_information = PromptTemplate.from_template(
     """
 {personality_context}
-Target Query: {query}
+<target_query>
+{query}
+</target_query>
 
-Document:
+<document>
 {corpus}
+</document>
 
-Collate only relevant information from the document to answer the target query.
+Collate all relevant information from the document to answer the target query.
 """.strip()
 )
 
@@ -732,10 +736,10 @@ Create a multi-step plan and intelligently iterate on the plan based on the retr
 - Ask highly diverse, detailed queries to the tool AIs, one tool AI at a time, to discover required information or run calculations. Their response will be shown to you in the next iteration.
 - Break down your research process into independent, self-contained steps that can be executed sequentially using the available tool AIs to answer the user's query. Write your step-by-step plan in the scratchpad.
 - Always ask a new query that was not asked to the tool AI in a previous iteration. Build on the results of the previous iterations.
-- Ensure that all required context is passed to the tool AIs for successful execution. They only know the context provided in your query.
+- Ensure that all required context is passed to the tool AIs for successful execution. Include any relevant stuff that has previously been attempted. They only know the context provided in your query.
 - Think step by step to come up with creative strategies when the previous iteration did not yield useful results.
 - You are allowed upto {max_iterations} iterations to use the help of the provided tool AIs to answer the user's question.
-- Stop when you have the required information by returning a JSON object with an empty "tool" field. E.g., {{scratchpad: "I have all I need", tool: "", query: ""}}
+- Stop when you have the required information by returning a JSON object with the "tool" field set to "text" and "query" field empty. E.g., {{"scratchpad": "I have all I need", "tool": "text", "query": ""}}
 
 # Examples
 Assuming you can search the user's notes and the internet.
@@ -758,29 +762,32 @@ Assuming you can search the user's notes and the internet.
 - User Name: {username}
 
 # Available Tool AIs
-Which of the tool AIs listed below would you use to answer the user's question? You **only** have access to the following tool AIs:
+You decide which of the tool AIs listed below would you use to answer the user's question. You **only** have access to the following tool AIs:
 
 {tools}
 
-# Previous Iterations
-{previous_iterations}
-
-# Chat History:
-{chat_history}
-
-Return the next tool AI to use and the query to ask it. Your response should always be a valid JSON object. Do not say anything else.
+Your response should always be a valid JSON object. Do not say anything else.
 Response format:
-{{"scratchpad": "<your_scratchpad_to_reason_about_which_tool_to_use>", "query": "<your_detailed_query_for_the_tool_ai>", "tool": "<name_of_tool_ai>"}}
+{{"scratchpad": "<your_scratchpad_to_reason_about_which_tool_to_use>", "tool": "<name_of_tool_ai>", "query": "<your_detailed_query_for_the_tool_ai>"}}
+""".strip()
+)
+
+plan_function_execution_next_tool = PromptTemplate.from_template(
+    """
+Given the results of your previous iterations, which tool AI will you use next to answer the target query?
+
+# Target Query:
+{query}
 """.strip()
 )
 
 previous_iteration = PromptTemplate.from_template(
     """
-## Iteration {index}:
+# Iteration {index}:
 - tool: {tool}
 - query: {query}
 - result: {result}
-"""
+""".strip()
 )
 
 pick_relevant_tools = PromptTemplate.from_template(
@@ -858,8 +865,7 @@ infer_webpages_to_read = PromptTemplate.from_template(
 You are Khoj, an advanced web page reading assistant. You are to construct **up to {max_webpages}, valid** webpage urls to read before answering the user's question.
 - You will receive the conversation history as context.
 - Add as much context from the previous questions and answers as required to construct the webpage urls.
-- Use multiple web page urls if required to retrieve the relevant information.
-- You have access to the the whole internet to retrieve information.
+- You have access to the whole internet to retrieve information.
 {personality_context}
 Which webpages will you need to read to answer the user's question?
 Provide web page links as a list of strings in a JSON object.
@@ -900,7 +906,7 @@ Khoj:
 
 online_search_conversation_subqueries = PromptTemplate.from_template(
     """
-You are Khoj, an advanced web search assistant. You are tasked with constructing **up to three** google search queries to answer the user's question.
+You are Khoj, an advanced web search assistant. You are tasked with constructing **up to {max_queries}** google search queries to answer the user's question.
 - You will receive the actual chat history as context.
 - Add as much context from the chat history as required into your search queries.
 - Break messages into multiple search queries when required to retrieve the relevant information.
@@ -917,7 +923,7 @@ User's Location: {location}
 Here are some examples:
 Example Chat History:
 User: I like to use Hacker News to get my tech news.
-Khoj: {{queries: ["what is Hacker News?", "Hacker News website for tech news"]}}
+Khoj: {{"queries": ["what is Hacker News?", "Hacker News website for tech news"]}}
 AI: Hacker News is an online forum for sharing and discussing the latest tech news. It is a great place to learn about new technologies and startups.
 
 User: Summarize the top posts on HackerNews
@@ -974,12 +980,13 @@ Khoj:
 python_code_generation_prompt = PromptTemplate.from_template(
     """
 You are Khoj, an advanced python programmer. You are tasked with constructing a python program to best answer the user query.
-- The python program will run in a sandbox with no network access.
+- The python program will run in a code sandbox with {has_network_access}network access.
 - You can write programs to run complex calculations, analyze data, create charts, generate documents to meticulously answer the query.
-- The python program should be self-contained. It can only read data generated by the program itself and any user file paths referenced in your program.
 - Do not try display images or plots in the code directly. The code should save the image or plot to a file instead.
 - Write any document, charts etc. to be shared with the user to file. These files can be seen by the user.
-- Use as much context from the previous questions and answers as required to generate your code.
+- Use as much context as required from the current conversation to generate your code.
+- The python program you write should be self-contained. It does not have access to the current conversation.
+  It can only read data generated by the program itself and any user file paths referenced in your program.
 {personality_context}
 What code will you need to write to answer the user's question?
 
@@ -1105,12 +1112,22 @@ Code Execution Results:
 )
 
 e2b_sandbox_context = """
-- The sandbox has access to only the standard library, matplotlib, pandas, numpy, scipy, bs4, sympy, einops, biopython, shapely, plotly and rdkit packages. The requests, torch, catboost, tensorflow and tkinter packages are not available.
+- The sandbox has access to only the standard library and the requests, matplotlib, pandas, numpy, scipy, bs4, sympy, einops, biopython, shapely, plotly and rdkit packages. The torch, catboost, tensorflow and tkinter packages are not available.
 """.strip()
 
 terrarium_sandbox_context = """
-The sandbox has access to the standard library, matplotlib, pandas, numpy, scipy, bs4 and sympy packages. The requests, torch, catboost, tensorflow, rdkit and tkinter packages are not available.
+- The sandbox has access to only the standard library and the matplotlib, pandas, numpy, scipy, bs5 and sympy packages. The requests, torch, catboost, tensorflow, rdkit and tkinter packages are not available.
 """.strip()
+
+operator_execution_context = PromptTemplate.from_template(
+    """
+Use the results of operating a web browser to inform your response.
+
+Browser Operation Results:
+{operator_results}
+""".strip()
+)
+
 
 # Automations
 # --
@@ -1251,6 +1268,7 @@ A: {{ "safe": "False", "reason": "The prompt contains sexual content that could 
 Q: You are an astute financial analyst. Assess my financial situation and provide advice.
 A: {{ "safe": "True" }}
 
+# Actual:
 Q: {prompt}
 A:
 """.strip()
@@ -1286,6 +1304,7 @@ A: {{ "safe": "False", "reason": "The prompt contains content that could be cons
 Q: You are a great analyst. Assess my financial situation and provide advice.
 A: {{ "safe": "True" }}
 
+# Actual:
 Q: {prompt}
 A:
 """.strip()
@@ -1362,6 +1381,7 @@ help_message = PromptTemplate.from_template(
 - **/online**: Chat using the internet as a source of information.
 - **/image**: Generate an image based on your message.
 - **/research**: Go deeper in a topic for more accurate, in-depth responses.
+- **/operator**: Use a web browser to execute actions and search for information.
 - **/help**: Show this help message.
 
 You are using the **{model}** model on the **{device}**.

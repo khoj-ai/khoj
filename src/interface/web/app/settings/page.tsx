@@ -77,10 +77,11 @@ import { saveAs } from 'file-saver';
 interface DropdownComponentProps {
     items: ModelOptions[];
     selected: number;
+    isActive?: boolean;
     callbackFunc: (value: string) => Promise<void>;
 }
 
-const DropdownComponent: React.FC<DropdownComponentProps> = ({ items, selected, callbackFunc }) => {
+const DropdownComponent: React.FC<DropdownComponentProps> = ({ items, selected, isActive, callbackFunc }) => {
     const [position, setPosition] = useState(selected?.toString() ?? "0");
 
     return (
@@ -111,8 +112,9 @@ const DropdownComponent: React.FC<DropdownComponentProps> = ({ items, selected, 
                                 <DropdownMenuRadioItem
                                     key={item.id.toString()}
                                     value={item.id.toString()}
+                                    disabled={!isActive && item.tier !== "free"}
                                 >
-                                    {item.name}
+                                    {item.name} {item.tier === "standard" && <span className="text-green-500 ml-2">(Futurist)</span>}
                                 </DropdownMenuRadioItem>
                             ))}
                         </DropdownMenuRadioGroup>
@@ -520,33 +522,44 @@ export default function SettingsView() {
         }
     };
 
-    const updateModel = (name: string) => async (id: string) => {
-        if (!userConfig?.is_active) {
+    const updateModel = (modelType: string) => async (id: string) => {
+        // Get the selected model from the options
+        const modelOptions = modelType === "chat"
+            ? userConfig?.chat_model_options
+            : modelType === "paint"
+                ? userConfig?.paint_model_options
+                : userConfig?.voice_model_options;
+
+        const selectedModel = modelOptions?.find(model => model.id.toString() === id);
+        const modelName = selectedModel?.name;
+
+        // Check if the model is free tier or if the user is active
+        if (!userConfig?.is_active && selectedModel?.tier !== "free") {
             toast({
                 title: `Model Update`,
-                description: `You need to be subscribed to update ${name} models`,
+                description: `Subscribe to switch ${modelType} model to ${modelName}.`,
                 variant: "destructive",
             });
             return;
         }
 
         try {
-            const response = await fetch(`/api/model/${name}?id=` + id, {
+            const response = await fetch(`/api/model/${modelType}?id=` + id, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
             });
 
-            if (!response.ok) throw new Error("Failed to update model");
+            if (!response.ok) throw new Error(`Failed to switch ${modelType} model to ${modelName}`);
 
             toast({
-                title: `✅ Updated ${toTitleCase(name)} Model`,
+                title: `✅ Switched ${modelType} model to ${modelName}`,
             });
         } catch (error) {
-            console.error(`Failed to update ${name} model:`, error);
+            console.error(`Failed to update ${modelType} model to ${modelName}:`, error);
             toast({
-                description: `❌ Failed to update ${toTitleCase(name)} model. Try again.`,
+                description: `❌ Failed to switch ${modelType} model to ${modelName}. Try again.`,
                 variant: "destructive",
             });
         }
@@ -746,7 +759,7 @@ export default function SettingsView() {
                                                     <Input
                                                         type="text"
                                                         onChange={(e) => setName(e.target.value)}
-                                                        value={name}
+                                                        value={name || ""}
                                                         className="w-full border border-gray-300 rounded-lg p-4 py-6"
                                                     />
                                                 </CardContent>
@@ -1103,13 +1116,16 @@ export default function SettingsView() {
                                                             selected={
                                                                 userConfig.selected_chat_model_config
                                                             }
+                                                            isActive={userConfig.is_active}
                                                             callbackFunc={updateModel("chat")}
                                                         />
                                                     </CardContent>
                                                     <CardFooter className="flex flex-wrap gap-4">
                                                         {!userConfig.is_active && (
                                                             <p className="text-gray-400">
-                                                                Subscribe to switch model
+                                                                {userConfig.chat_model_options.some(model => model.tier === "free")
+                                                                    ? "Free models available"
+                                                                    : "Subscribe to switch model"}
                                                             </p>
                                                         )}
                                                     </CardFooter>
@@ -1131,13 +1147,16 @@ export default function SettingsView() {
                                                             selected={
                                                                 userConfig.selected_paint_model_config
                                                             }
+                                                            isActive={userConfig.is_active}
                                                             callbackFunc={updateModel("paint")}
                                                         />
                                                     </CardContent>
                                                     <CardFooter className="flex flex-wrap gap-4">
                                                         {!userConfig.is_active && (
                                                             <p className="text-gray-400">
-                                                                Subscribe to switch model
+                                                                {userConfig.paint_model_options.some(model => model.tier === "free")
+                                                                    ? "Free models available"
+                                                                    : "Subscribe to switch model"}
                                                             </p>
                                                         )}
                                                     </CardFooter>
@@ -1159,13 +1178,16 @@ export default function SettingsView() {
                                                             selected={
                                                                 userConfig.selected_voice_model_config
                                                             }
+                                                            isActive={userConfig.is_active}
                                                             callbackFunc={updateModel("voice")}
                                                         />
                                                     </CardContent>
                                                     <CardFooter className="flex flex-wrap gap-4">
                                                         {!userConfig.is_active && (
                                                             <p className="text-gray-400">
-                                                                Subscribe to switch model
+                                                                {userConfig.voice_model_options.some(model => model.tier === "free")
+                                                                    ? "Free models available"
+                                                                    : "Subscribe to switch model"}
                                                             </p>
                                                         )}
                                                     </CardFooter>
@@ -1179,138 +1201,6 @@ export default function SettingsView() {
                                         </div>
                                         <div className="cards flex flex-col flex-wrap gap-8">
                                             {!userConfig.anonymous_mode && <ApiKeyCard />}
-                                            <Card className={`${cardClassName} lg:w-2/3`}>
-                                                <CardHeader className="text-xl flex flex-row">
-                                                    <WhatsappLogo className="h-7 w-7 mr-2" />
-                                                    Chat on Whatsapp
-                                                    {(numberValidationState ===
-                                                        PhoneNumberValidationState.Verified && (
-                                                            <CheckCircle
-                                                                weight="bold"
-                                                                className="h-4 w-4 ml-1 text-green-400"
-                                                            />
-                                                        )) ||
-                                                        (numberValidationState !==
-                                                            PhoneNumberValidationState.Setup && (
-                                                                <ExclamationMark
-                                                                    weight="bold"
-                                                                    className="h-4 w-4 ml-1 text-yellow-400"
-                                                                />
-                                                            ))}
-                                                </CardHeader>
-                                                <CardContent className="grid gap-4">
-                                                    <p className="text-gray-400">
-                                                        Connect your number to chat with Khoj on
-                                                        WhatsApp. Learn more about the integration{" "}
-                                                        <a href="https://docs.khoj.dev/clients/whatsapp">
-                                                            here
-                                                        </a>
-                                                        .
-                                                    </p>
-                                                    <div>
-                                                        <IntlTelInput
-                                                            initialValue={phoneNumber || ""}
-                                                            onChangeNumber={setPhoneNumber}
-                                                            disabled={
-                                                                numberValidationState ===
-                                                                PhoneNumberValidationState.VerifyOTP
-                                                            }
-                                                            initOptions={{
-                                                                separateDialCode: true,
-                                                                initialCountry: "af",
-                                                                utilsScript:
-                                                                    "https://assets.khoj.dev/intl-tel-input%4023.8.0_build_js_utils.js",
-                                                                containerClass: `${styles.phoneInput}`,
-                                                            }}
-                                                        />
-                                                        {numberValidationState ===
-                                                            PhoneNumberValidationState.VerifyOTP && (
-                                                                <>
-                                                                    <p>{`Enter the OTP sent to your number: ${phoneNumber}`}</p>
-                                                                    <InputOTP
-                                                                        autoFocus={true}
-                                                                        maxLength={6}
-                                                                        value={otp || ""}
-                                                                        onChange={setOTP}
-                                                                        onComplete={() =>
-                                                                            setNumberValidationState(
-                                                                                PhoneNumberValidationState.VerifyOTP,
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <InputOTPGroup>
-                                                                            <InputOTPSlot index={0} />
-                                                                            <InputOTPSlot index={1} />
-                                                                            <InputOTPSlot index={2} />
-                                                                            <InputOTPSlot index={3} />
-                                                                            <InputOTPSlot index={4} />
-                                                                            <InputOTPSlot index={5} />
-                                                                        </InputOTPGroup>
-                                                                    </InputOTP>
-                                                                </>
-                                                            )}
-                                                    </div>
-                                                </CardContent>
-                                                <CardFooter className="flex flex-wrap gap-4">
-                                                    {(numberValidationState ===
-                                                        PhoneNumberValidationState.VerifyOTP && (
-                                                            <Button
-                                                                variant="outline"
-                                                                onClick={verifyOTP}
-                                                            >
-                                                                Verify
-                                                            </Button>
-                                                        )) || (
-                                                            <Button
-                                                                variant="outline"
-                                                                disabled={
-                                                                    !phoneNumber ||
-                                                                    (phoneNumber ===
-                                                                        userConfig.phone_number &&
-                                                                        numberValidationState ===
-                                                                        PhoneNumberValidationState.Verified) ||
-                                                                    !isValidPhoneNumber(phoneNumber)
-                                                                }
-                                                                onClick={sendOTP}
-                                                            >
-                                                                {!userConfig.phone_number ? (
-                                                                    <>
-                                                                        <Plugs className="inline mr-2" />
-                                                                        Setup Whatsapp
-                                                                    </>
-                                                                ) : !phoneNumber ||
-                                                                    (phoneNumber ===
-                                                                        userConfig.phone_number &&
-                                                                        numberValidationState ===
-                                                                        PhoneNumberValidationState.Verified) ||
-                                                                    !isValidPhoneNumber(phoneNumber) ? (
-                                                                    <>
-                                                                        <PlugsConnected className="inline mr-2 text-green-400" />
-                                                                        Switch Number
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        Send OTP{" "}
-                                                                        <ArrowRight
-                                                                            className="inline ml-2"
-                                                                            weight="bold"
-                                                                        />
-                                                                    </>
-                                                                )}
-                                                            </Button>
-                                                        )}
-                                                    {numberValidationState ===
-                                                        PhoneNumberValidationState.Verified && (
-                                                            <Button
-                                                                variant="outline"
-                                                                onClick={() => disconnectNumber()}
-                                                            >
-                                                                <CloudSlash className="h-5 w-5 mr-2" />
-                                                                Disconnect
-                                                            </Button>
-                                                        )}
-                                                </CardFooter>
-                                            </Card>
                                         </div>
                                     </div>
                                     <div className="section grid gap-8">

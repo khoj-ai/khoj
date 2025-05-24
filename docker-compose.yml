@@ -1,6 +1,6 @@
 services:
   database:
-    image: ankane/pgvector
+    image: docker.io/pgvector/pgvector:pg15
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres

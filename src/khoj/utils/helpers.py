@@ -23,6 +23,7 @@ from time import perf_counter
 from typing import TYPE_CHECKING, Any, NamedTuple, Optional, Tuple, Union
 from urllib.parse import ParseResult, urlparse
 
+import anthropic
 import openai
 import psutil
 import pyjson5
@@ -30,6 +31,7 @@ import requests
 import torch
 from asgiref.sync import sync_to_async
 from email_validator import EmailNotValidError, EmailUndeliverableError, validate_email
+from google import genai
 from google.auth.credentials import Credentials
 from google.oauth2 import service_account
 from magika import Magika
@@ -346,6 +348,7 @@ class ConversationCommand(str, Enum):
     Summarize = "summarize"
     Diagram = "diagram"
     Research = "research"
+    Operator = "operator"
 
 
 command_descriptions = {
@@ -361,6 +364,7 @@ command_descriptions = {
     ConversationCommand.Summarize: "Get help with a question pertaining to an entire document.",
     ConversationCommand.Diagram: "Draw a flowchart, diagram, or any other visual representation best expressed with primitives like lines, rectangles, and text.",
     ConversationCommand.Research: "Do deep research on a topic. This will take longer than usual, but give a more detailed, comprehensive answer.",
+    ConversationCommand.Operator: "Operate and perform tasks using a GUI web browser.",
 }
 
 command_descriptions_for_agent = {
@@ -370,6 +374,7 @@ command_descriptions_for_agent = {
     ConversationCommand.Webpage: "Agent can read suggested web pages for information.",
     ConversationCommand.Research: "Agent can do deep research on a topic.",
     ConversationCommand.Code: "Agent can run Python code to parse information, run complex calculations, create documents and charts.",
+    ConversationCommand.Operator: "Agent can operate and perform actions using a GUI web browser to complete a task.",
 }
 
 e2b_tool_description = "To run Python code in a E2B sandbox with no network access. Helpful to parse complex information, run calculations, create text documents and create charts with quantitative data. Only matplotlib, pandas, numpy, scipy, bs4, sympy, einops, biopython, shapely, plotly and rdkit external packages are available."
@@ -382,13 +387,16 @@ tool_descriptions_for_llm = {
     ConversationCommand.Online: "To search for the latest, up-to-date information from the internet. Note: **Questions about Khoj should always use this data source**",
     ConversationCommand.Webpage: "To use if the user has directly provided the webpage urls or you are certain of the webpage urls to read.",
     ConversationCommand.Code: e2b_tool_description if is_e2b_code_sandbox_enabled() else terrarium_tool_description,
+    ConversationCommand.Operator: "To use when you need to operate and take actions using a GUI web browser.",
 }
 
-function_calling_description_for_llm = {
-    ConversationCommand.Notes: "To search the user's personal knowledge base. Especially helpful if the question expects context from the user's notes or documents.",
-    ConversationCommand.Online: "To search the internet for information. Useful to get a quick, broad overview from the internet. Provide all relevant context to ensure new searches, not in previous iterations, are performed.",
-    ConversationCommand.Webpage: "To extract information from webpages. Useful for more detailed research from the internet. Usually used when you know the webpage links to refer to. Share the webpage links and information to extract in your query.",
+tool_description_for_research_llm = {
+    ConversationCommand.Notes: "To search the user's personal knowledge base. Especially helpful if the question expects context from the user's notes or documents. Max {max_search_queries} search queries allowed per iteration.",
+    ConversationCommand.Online: "To search the internet for information. Useful to get a quick, broad overview from the internet. Provide all relevant context to ensure new searches, not in previous iterations, are performed. Max {max_search_queries} search queries allowed per iteration.",
+    ConversationCommand.Webpage: "To extract information from webpages. Useful for more detailed research from the internet. Usually used when you know the webpage links to refer to. Share upto {max_webpages_to_read} webpage links and what information to extract from them in your query.",
     ConversationCommand.Code: e2b_tool_description if is_e2b_code_sandbox_enabled() else terrarium_tool_description,
+    ConversationCommand.Text: "To respond to the user once you've completed your research and have the required information.",
+    ConversationCommand.Operator: "To operate and take actions using a GUI web browser.",
 }
 
 mode_descriptions_for_llm = {
@@ -482,6 +490,18 @@ def is_promptrace_enabled():
     return not is_none_or_empty(os.getenv("PROMPTRACE_DIR"))
 
 
+def is_operator_enabled():
+    """Check if Khoj can operate GUI applications.
+    Set KHOJ_OPERATOR_ENABLED env var to true and install playwright to enable it."""
+    try:
+        import playwright
+
+        is_playwright_installed = True
+    except ImportError:
+        is_playwright_installed = False
+    return is_env_var_true("KHOJ_OPERATOR_ENABLED") and is_playwright_installed
+
+
 def is_valid_url(url: str) -> bool:
     """Check if a string is a valid URL"""
     try:
@@ -552,6 +572,32 @@ def convert_image_to_webp(image_bytes):
         return webp_image_bytes
 
 
+def convert_image_data_uri(image_data_uri: str, target_format: str = "png") -> str:
+    """
+    Convert image (in data URI) to target format.
+
+    Target format can be png, jpg, webp etc.
+    Returns the converted image as a data URI.
+    """
+    base64_data = image_data_uri.split(",", 1)[1]
+    image_type = image_data_uri.split(";")[0].split(":")[1].split("/")[1]
+    if image_type.lower() == target_format.lower():
+        return image_data_uri
+
+    image_bytes = base64.b64decode(base64_data)
+    image_io = io.BytesIO(image_bytes)
+    with Image.open(image_io) as original_image:
+        output_image_io = io.BytesIO()
+        original_image.save(output_image_io, target_format.upper())
+
+        # Encode the image back to base64
+        output_image_bytes = output_image_io.getvalue()
+        output_image_io.close()
+        output_base64_data = base64.b64encode(output_image_bytes).decode("utf-8")
+        output_data_uri = f"data:image/{target_format};base64,{output_base64_data}"
+        return output_data_uri
+
+
 def truncate_code_context(original_code_results: dict[str, Any], max_chars=10000) -> dict[str, Any]:
     """
     Truncate large output files and drop image file data from code results.
@@ -600,6 +646,7 @@ def get_cost_of_chat_message(
     model_name: str,
     input_tokens: int = 0,
     output_tokens: int = 0,
+    thought_tokens: int = 0,
     cache_read_tokens: int = 0,
     cache_write_tokens: int = 0,
     prev_cost: float = 0.0,
@@ -611,10 +658,11 @@ def get_cost_of_chat_message(
     # Calculate cost of input and output tokens. Costs are per million tokens
     input_cost = constants.model_to_cost.get(model_name, {}).get("input", 0) * (input_tokens / 1e6)
     output_cost = constants.model_to_cost.get(model_name, {}).get("output", 0) * (output_tokens / 1e6)
+    thought_cost = constants.model_to_cost.get(model_name, {}).get("thought", 0) * (thought_tokens / 1e6)
     cache_read_cost = constants.model_to_cost.get(model_name, {}).get("cache_read", 0) * (cache_read_tokens / 1e6)
     cache_write_cost = constants.model_to_cost.get(model_name, {}).get("cache_write", 0) * (cache_write_tokens / 1e6)
 
-    return input_cost + output_cost + cache_read_cost + cache_write_cost + prev_cost
+    return input_cost + output_cost + thought_cost + cache_read_cost + cache_write_cost + prev_cost
 
 
 def get_chat_usage_metrics(
@@ -623,6 +671,7 @@ def get_chat_usage_metrics(
     output_tokens: int = 0,
     cache_read_tokens: int = 0,
     cache_write_tokens: int = 0,
+    thought_tokens: int = 0,
     usage: dict = {},
     cost: float = None,
 ):
@@ -632,6 +681,7 @@ def get_chat_usage_metrics(
     prev_usage = usage or {
         "input_tokens": 0,
         "output_tokens": 0,
+        "thought_tokens": 0,
         "cache_read_tokens": 0,
         "cache_write_tokens": 0,
         "cost": 0.0,
@@ -639,11 +689,18 @@ def get_chat_usage_metrics(
     return {
         "input_tokens": prev_usage["input_tokens"] + input_tokens,
         "output_tokens": prev_usage["output_tokens"] + output_tokens,
+        "thought_tokens": prev_usage.get("thought_tokens", 0) + thought_tokens,
         "cache_read_tokens": prev_usage.get("cache_read_tokens", 0) + cache_read_tokens,
         "cache_write_tokens": prev_usage.get("cache_write_tokens", 0) + cache_write_tokens,
         "cost": cost
         or get_cost_of_chat_message(
-            model_name, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, prev_cost=prev_usage["cost"]
+            model_name,
+            input_tokens,
+            output_tokens,
+            thought_tokens,
+            cache_read_tokens,
+            cache_write_tokens,
+            prev_cost=prev_usage["cost"],
         ),
     }
 
@@ -715,6 +772,60 @@ def get_openai_client(api_key: str, api_base_url: str) -> Union[openai.OpenAI, o
             base_url=api_base_url,
         )
     return client
+
+
+def get_openai_async_client(api_key: str, api_base_url: str) -> Union[openai.AsyncOpenAI, openai.AsyncAzureOpenAI]:
+    """Get OpenAI or AzureOpenAI client based on the API Base URL"""
+    parsed_url = urlparse(api_base_url)
+    if parsed_url.hostname and parsed_url.hostname.endswith(".openai.azure.com"):
+        client = openai.AsyncAzureOpenAI(
+            api_key=api_key,
+            azure_endpoint=api_base_url,
+            api_version="2024-10-21",
+        )
+    else:
+        client = openai.AsyncOpenAI(
+            api_key=api_key,
+            base_url=api_base_url,
+        )
+    return client
+
+
+def get_anthropic_client(api_key, api_base_url=None) -> anthropic.Anthropic | anthropic.AnthropicVertex:
+    api_info = get_ai_api_info(api_key, api_base_url)
+    if api_info.api_key:
+        client = anthropic.Anthropic(api_key=api_info.api_key)
+    else:
+        client = anthropic.AnthropicVertex(
+            region=api_info.region,
+            project_id=api_info.project,
+            credentials=api_info.credentials,
+        )
+    return client
+
+
+def get_anthropic_async_client(api_key, api_base_url=None) -> anthropic.AsyncAnthropic | anthropic.AsyncAnthropicVertex:
+    api_info = get_ai_api_info(api_key, api_base_url)
+    if api_info.api_key:
+        client = anthropic.AsyncAnthropic(api_key=api_info.api_key)
+    else:
+        client = anthropic.AsyncAnthropicVertex(
+            region=api_info.region,
+            project_id=api_info.project,
+            credentials=api_info.credentials,
+        )
+    return client
+
+
+def get_gemini_client(api_key, api_base_url=None) -> genai.Client:
+    api_info = get_ai_api_info(api_key, api_base_url)
+    return genai.Client(
+        location=api_info.region,
+        project=api_info.project,
+        credentials=api_info.credentials,
+        api_key=api_info.api_key,
+        vertexai=api_info.api_key is None,
+    )
 
 
 def normalize_email(email: str, check_deliverability=False) -> tuple[str, bool]:

@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from itertools import repeat
 from typing import Any, Callable, List, Set, Tuple
 
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from tqdm import tqdm
 
 from khoj.database.adapters import (

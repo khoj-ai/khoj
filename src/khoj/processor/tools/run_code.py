@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import Any, Callable, List, NamedTuple, Optional
 
 import aiohttp
+import httpx
 from asgiref.sync import sync_to_async
-from httpx import RemoteProtocolError
 from tenacity import (
     before_sleep_log,
     retry,
@@ -139,12 +139,14 @@ async def generate_python_code(
         prompts.e2b_sandbox_context if is_e2b_code_sandbox_enabled() else prompts.terrarium_sandbox_context
     )
     personality_context = f"{sandbox_context}\n{personality_context}"
+    network_access_context = "**NO** " if not is_e2b_code_sandbox_enabled() else ""
 
     code_generation_prompt = prompts.python_code_generation_prompt.format(
-        current_date=utc_date,
         query=q,
         chat_history=chat_history,
         context=context,
+        has_network_access=network_access_context,
+        current_date=utc_date,
         location=location,
         username=username,
         personality_context=personality_context,
@@ -159,7 +161,7 @@ async def generate_python_code(
     )
 
     # Extract python code wrapped in markdown code blocks from the response
-    code_blocks = re.findall(r"```(?:python)?\n(.*?)\n```", response, re.DOTALL)
+    code_blocks = re.findall(r"```(?:python)?\n(.*?)```", response, re.DOTALL)
 
     if not code_blocks:
         raise ValueError("No Python code blocks found in response")
@@ -190,7 +192,9 @@ async def generate_python_code(
         | retry_if_exception_type(aiohttp.ClientTimeout)
         | retry_if_exception_type(asyncio.TimeoutError)
         | retry_if_exception_type(ConnectionError)
-        | retry_if_exception_type(RemoteProtocolError)
+        | retry_if_exception_type(httpx.RemoteProtocolError)
+        | retry_if_exception_type(httpx.NetworkError)
+        | retry_if_exception_type(httpx.TimeoutException)
     ),
     wait=wait_random_exponential(min=1, max=5),
     stop=stop_after_attempt(3),
@@ -242,6 +246,7 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
 
         # Collect output files
         output_files = []
+        image_file_ext = {".png", ".jpeg", ".jpg", ".svg"}
 
         # Identify new files created during execution
         new_files = set(E2bFile(f.name, f.path) for f in await sandbox.files.list("~")) - original_files
@@ -252,7 +257,7 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
             if isinstance(content, bytes):
                 # Binary files like PNG - encode as base64
                 b64_data = base64.b64encode(content).decode("utf-8")
-            elif Path(f.name).suffix in [".png", ".jpeg", ".jpg", ".svg"]:
+            elif Path(f.name).suffix in image_file_ext:
                 # Ignore image files as they are extracted from execution results below for inline display
                 continue
             else:
@@ -261,8 +266,12 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
             output_files.append({"filename": f.name, "b64_data": b64_data})
 
         # Collect output files from execution results
+        # Repect ordering of output result types to disregard text output associated with images
+        output_result_types = ["png", "jpeg", "svg", "text", "markdown", "json"]
         for idx, result in enumerate(execution.results):
-            for result_type in {"png", "jpeg", "svg", "text", "markdown", "json"}:
+            if getattr(result, "chart", None):
+                continue
+            for result_type in output_result_types:
                 if b64_data := getattr(result, result_type, None):
                     output_files.append({"filename": f"{idx}.{result_type}", "b64_data": b64_data})
                     break

@@ -25,6 +25,7 @@ from khoj.database.models import (
     KhojUser,
     NotionConfig,
     ProcessLock,
+    RateLimitRecord,
     ReflectiveQuestion,
     SearchModelConfig,
     ServerChatSettings,
@@ -152,13 +153,17 @@ class KhojUserAdmin(UserAdmin, unfold_admin.ModelAdmin):
     actions = ["get_email_login_url"]
 
     def get_email_login_url(self, request, queryset):
+        any_valid_otps = False
         for user in queryset:
-            if user.email:
+            if user.email and user.email_verification_code:
+                any_valid_otps = True
                 host = request.get_host()
                 otp = quote(user.email_verification_code)
                 encoded_email = quote(user.email)
                 login_url = f"{host}/auth/magic?code={otp}&email={encoded_email}"
                 messages.info(request, f"Email login URL for {user.email}: {login_url}")
+        if not any_valid_otps:
+            messages.error(request, "No valid OTPs found for the selected users.")
 
     get_email_login_url.short_description = "Get email login URL"  # type: ignore
 
@@ -175,6 +180,7 @@ admin.site.register(NotionConfig, unfold_admin.ModelAdmin)
 admin.site.register(UserVoiceModelConfig, unfold_admin.ModelAdmin)
 admin.site.register(VoiceModelOption, unfold_admin.ModelAdmin)
 admin.site.register(UserRequests, unfold_admin.ModelAdmin)
+admin.site.register(RateLimitRecord, unfold_admin.ModelAdmin)
 
 
 @admin.register(Agent)

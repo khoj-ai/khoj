@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from datetime import datetime
@@ -5,19 +6,18 @@ from enum import Enum
 from typing import Callable, Dict, List, Optional, Type
 
 import yaml
-from fastapi import Request
 from pydantic import BaseModel, Field
 
-from khoj.database.adapters import EntryAdapters
+from khoj.database.adapters import AgentAdapters, EntryAdapters
 from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
     InformationCollectionIteration,
-    construct_chat_history,
     construct_iteration_history,
     construct_tool_chat_history,
     load_complex_json,
 )
+from khoj.processor.operator.operate_browser import operate_browser
 from khoj.processor.tools.online_search import read_webpages, search_online
 from khoj.processor.tools.run_code import run_code
 from khoj.routers.api import extract_references_and_questions
@@ -28,9 +28,10 @@ from khoj.routers.helpers import (
 )
 from khoj.utils.helpers import (
     ConversationCommand,
-    function_calling_description_for_llm,
     is_none_or_empty,
+    is_operator_enabled,
     timer,
+    tool_description_for_research_llm,
     truncate_code_context,
 )
 from khoj.utils.rawconfig import LocationData
@@ -41,11 +42,9 @@ logger = logging.getLogger(__name__)
 class PlanningResponse(BaseModel):
     """
     Schema for the response from planning agent when deciding the next tool to pick.
-    The tool field is dynamically validated based on available tools.
     """
 
-    scratchpad: str = Field(..., description="Reasoning about which tool to use next")
-    query: str = Field(..., description="Detailed query for the selected tool")
+    scratchpad: str = Field(..., description="Scratchpad to reason about which tool to use next")
 
     class Config:
         arbitrary_types_allowed = True
@@ -55,6 +54,9 @@ class PlanningResponse(BaseModel):
         """
         Factory method that creates a customized PlanningResponse model
         with a properly typed tool field based on available tools.
+
+        The tool field is dynamically generated based on available tools.
+        The query field should be filled by the model after the tool field for a more logical reasoning flow.
 
         Args:
             tool_options: Dictionary mapping tool names to values
@@ -68,6 +70,7 @@ class PlanningResponse(BaseModel):
         # Create and return a customized response model with the enum
         class PlanningResponseWithTool(PlanningResponse):
             tool: tool_enum = Field(..., description="Name of the tool to use")
+            query: str = Field(..., description="Detailed query for the selected tool")
 
         return PlanningResponseWithTool
 
@@ -76,15 +79,18 @@ async def apick_next_tool(
     query: str,
     conversation_history: dict,
     user: KhojUser = None,
-    query_images: List[str] = [],
     location: LocationData = None,
     user_name: str = None,
     agent: Agent = None,
     previous_iterations: List[InformationCollectionIteration] = [],
     max_iterations: int = 5,
+    query_images: List[str] = [],
+    query_files: str = None,
+    max_document_searches: int = 7,
+    max_online_searches: int = 3,
+    max_webpages_to_read: int = 1,
     send_status_func: Optional[Callable] = None,
     tracer: dict = {},
-    query_files: str = None,
 ):
     """Given a query, determine which of the available tools the agent should use in order to answer appropriately."""
 
@@ -93,10 +99,20 @@ async def apick_next_tool(
     tool_options_str = ""
     agent_tools = agent.input_tools if agent else []
     user_has_entries = await EntryAdapters.auser_has_entries(user)
-    for tool, description in function_calling_description_for_llm.items():
-        # Skip showing Notes tool as an option if user has no entries
-        if tool == ConversationCommand.Notes and not user_has_entries:
+    for tool, description in tool_description_for_research_llm.items():
+        # Skip showing operator tool as an option if not enabled
+        if tool == ConversationCommand.Operator and not is_operator_enabled():
             continue
+        # Skip showing Notes tool as an option if user has no entries
+        if tool == ConversationCommand.Notes:
+            if not user_has_entries:
+                continue
+            description = description.format(max_search_queries=max_document_searches)
+        if tool == ConversationCommand.Webpage:
+            description = description.format(max_webpages_to_read=max_webpages_to_read)
+        if tool == ConversationCommand.Online:
+            description = description.format(max_search_queries=max_online_searches)
+        # Add tool if agent does not have any tools defined or the tool is supported by the agent.
         if len(agent_tools) == 0 or tool.value in agent_tools:
             tool_options[tool.name] = tool.value
             tool_options_str += f'- "{tool.value}": "{description}"\n'
@@ -104,37 +120,39 @@ async def apick_next_tool(
     # Create planning reponse model with dynamically populated tool enum class
     planning_response_model = PlanningResponse.create_model_with_enum(tool_options)
 
-    # Construct chat history with user and iteration history with researcher agent for context
-    chat_history = construct_chat_history(conversation_history, agent_name=agent.name if agent else "Khoj")
-    previous_iterations_history = construct_iteration_history(previous_iterations, prompts.previous_iteration)
-
-    if query_images:
-        query = f"[placeholder for user attached images]\n{query}"
-
     today = datetime.today()
     location_data = f"{location}" if location else "Unknown"
-    agent_chat_model = agent.chat_model if agent else None
+    agent_chat_model = AgentAdapters.get_agent_chat_model(agent, user) if agent else None
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
     )
 
     function_planning_prompt = prompts.plan_function_execution.format(
         tools=tool_options_str,
-        chat_history=chat_history,
         personality_context=personality_context,
         current_date=today.strftime("%Y-%m-%d"),
         day_of_week=today.strftime("%A"),
         username=user_name or "Unknown",
         location=location_data,
-        previous_iterations=previous_iterations_history,
         max_iterations=max_iterations,
     )
+
+    if query_images:
+        query = f"[placeholder for user attached images]\n{query}"
+
+    # Construct chat history with user and iteration history with researcher agent for context
+    previous_iterations_history = construct_iteration_history(query, previous_iterations, prompts.previous_iteration)
+    iteration_chat_log = {"chat": conversation_history.get("chat", []) + previous_iterations_history}
+
+    # Plan function execution for the next tool
+    query = prompts.plan_function_execution_next_tool.format(query=query) if previous_iterations_history else query
 
     try:
         with timer("Chat actor: Infer information sources to refer", logger):
             response = await send_message_to_model_wrapper(
                 query=query,
-                context=function_planning_prompt,
+                system_message=function_planning_prompt,
+                conversation_log=iteration_chat_log,
                 response_type="json_object",
                 response_schema=planning_response_model,
                 deepthought=True,
@@ -168,7 +186,9 @@ async def apick_next_tool(
         # Only send client status updates if we'll execute this iteration
         elif send_status_func:
             determined_tool_message = "**Determined Tool**: "
-            determined_tool_message += f"{selected_tool}({generated_query})." if selected_tool else "respond."
+            determined_tool_message += (
+                f"{selected_tool}({generated_query})." if selected_tool != ConversationCommand.Text else "respond."
+            )
             determined_tool_message += f"\nReason: {scratchpad}" if scratchpad else ""
             async for event in send_status_func(f"{scratchpad}"):
                 yield {ChatEvent.STATUS: event}
@@ -188,7 +208,6 @@ async def apick_next_tool(
 
 
 async def execute_information_collection(
-    request: Request,
     user: KhojUser,
     query: str,
     conversation_id: str,
@@ -201,14 +220,24 @@ async def execute_information_collection(
     file_filters: List[str] = [],
     tracer: dict = {},
     query_files: str = None,
+    cancellation_event: Optional[asyncio.Event] = None,
 ):
+    max_document_searches = 7
+    max_online_searches = 3
+    max_webpages_to_read = 1
     current_iteration = 0
     MAX_ITERATIONS = int(os.getenv("KHOJ_RESEARCH_ITERATIONS", 5))
     previous_iterations: List[InformationCollectionIteration] = []
     while current_iteration < MAX_ITERATIONS:
+        # Check for cancellation at the start of each iteration
+        if cancellation_event and cancellation_event.is_set():
+            logger.debug(f"User {user} disconnected client. Research cancelled.")
+            break
+
         online_results: Dict = dict()
         code_results: Dict = dict()
         document_results: List[Dict[str, str]] = []
+        operator_results: Dict[str, str] = {}
         summarize_files: str = ""
         this_iteration = InformationCollectionIteration(tool=None, query=query)
 
@@ -216,15 +245,18 @@ async def execute_information_collection(
             query,
             conversation_history,
             user,
-            query_images,
             location,
             user_name,
             agent,
             previous_iterations,
             MAX_ITERATIONS,
-            send_status_func,
-            tracer=tracer,
+            query_images=query_images,
             query_files=query_files,
+            max_document_searches=max_document_searches,
+            max_online_searches=max_online_searches,
+            max_webpages_to_read=max_webpages_to_read,
+            send_status_func=send_status_func,
+            tracer=tracer,
         ):
             if isinstance(result, dict) and ChatEvent.STATUS in result:
                 yield result[ChatEvent.STATUS]
@@ -235,8 +267,8 @@ async def execute_information_collection(
         if this_iteration.warning:
             logger.warning(f"Research mode: {this_iteration.warning}.")
 
-        # Terminate research if query, tool not set for next iteration
-        elif not this_iteration.query or not this_iteration.tool:
+        # Terminate research if selected text tool or query, tool not set for next iteration
+        elif not this_iteration.query or not this_iteration.tool or this_iteration.tool == ConversationCommand.Text:
             current_iteration = MAX_ITERATIONS
 
         elif this_iteration.tool == ConversationCommand.Notes:
@@ -246,10 +278,10 @@ async def execute_information_collection(
                 c["query"] for iteration in previous_iterations if iteration.context for c in iteration.context
             }
             async for result in extract_references_and_questions(
-                request,
+                user,
                 construct_tool_chat_history(previous_iterations, ConversationCommand.Notes),
                 this_iteration.query,
-                7,
+                max_document_searches,
                 None,
                 conversation_id,
                 [ConversationCommand.Default],
@@ -296,6 +328,7 @@ async def execute_information_collection(
                     user,
                     send_status_func,
                     [],
+                    max_online_searches=max_online_searches,
                     max_webpages_to_read=0,
                     query_images=query_images,
                     previous_subqueries=previous_subqueries,
@@ -321,7 +354,7 @@ async def execute_information_collection(
                     location,
                     user,
                     send_status_func,
-                    max_webpages_to_read=1,
+                    max_webpages_to_read=max_webpages_to_read,
                     query_images=query_images,
                     agent=agent,
                     tracer=tracer,
@@ -350,7 +383,7 @@ async def execute_information_collection(
             try:
                 async for result in run_code(
                     this_iteration.query,
-                    construct_tool_chat_history(previous_iterations, ConversationCommand.Webpage),
+                    construct_tool_chat_history(previous_iterations, ConversationCommand.Code),
                     "",
                     location,
                     user,
@@ -371,13 +404,45 @@ async def execute_information_collection(
                 this_iteration.warning = f"Error running code: {e}"
                 logger.warning(this_iteration.warning, exc_info=True)
 
+        elif this_iteration.tool == ConversationCommand.Operator:
+            try:
+                async for result in operate_browser(
+                    this_iteration.query,
+                    user,
+                    construct_tool_chat_history(previous_iterations, ConversationCommand.Operator),
+                    location,
+                    send_status_func,
+                    query_images=query_images,
+                    agent=agent,
+                    query_files=query_files,
+                    cancellation_event=cancellation_event,
+                    tracer=tracer,
+                ):
+                    if isinstance(result, dict) and ChatEvent.STATUS in result:
+                        yield result[ChatEvent.STATUS]
+                    else:
+                        operator_results = {result["query"]: result["result"]}
+                        this_iteration.operatorContext = operator_results
+                        # Add webpages visited while operating browser to references
+                        if result.get("webpages"):
+                            if not online_results.get(this_iteration.query):
+                                online_results[this_iteration.query] = {"webpages": result["webpages"]}
+                            elif not online_results[this_iteration.query].get("webpages"):
+                                online_results[this_iteration.query]["webpages"] = result["webpages"]
+                            else:
+                                online_results[this_iteration.query]["webpages"] += result["webpages"]
+                            this_iteration.onlineContext = online_results
+            except Exception as e:
+                this_iteration.warning = f"Error operating browser: {e}"
+                logger.error(this_iteration.warning, exc_info=True)
+
         elif this_iteration.tool == ConversationCommand.Summarize:
             try:
                 async for result in generate_summary_from_files(
                     this_iteration.query,
                     user,
                     file_filters,
-                    construct_tool_chat_history(previous_iterations),
+                    construct_tool_chat_history(previous_iterations, ConversationCommand.Summarize),
                     query_images=query_images,
                     agent=agent,
                     send_status_func=send_status_func,
@@ -397,7 +462,14 @@ async def execute_information_collection(
 
         current_iteration += 1
 
-        if document_results or online_results or code_results or summarize_files or this_iteration.warning:
+        if (
+            document_results
+            or online_results
+            or code_results
+            or operator_results
+            or summarize_files
+            or this_iteration.warning
+        ):
             results_data = f"\n<iteration>{current_iteration}\n<tool>{this_iteration.tool}</tool>\n<query>{this_iteration.query}</query>\n<results>"
             if document_results:
                 results_data += f"\n<document_references>\n{yaml.dump(document_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</document_references>"
@@ -405,6 +477,8 @@ async def execute_information_collection(
                 results_data += f"\n<online_results>\n{yaml.dump(online_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</online_results>"
             if code_results:
                 results_data += f"\n<code_results>\n{yaml.dump(truncate_code_context(code_results), allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</code_results>"
+            if operator_results:
+                results_data += f"\n<browser_operator_results>\n{next(iter(operator_results.values()))}\n</browser_operator_results>"
             if summarize_files:
                 results_data += f"\n<summarized_files>\n{yaml.dump(summarize_files, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</summarized_files>"
             if this_iteration.warning:

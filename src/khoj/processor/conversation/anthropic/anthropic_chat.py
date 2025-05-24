@@ -1,9 +1,10 @@
+import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import AsyncGenerator, Dict, List, Optional
 
 import pyjson5
-from langchain.schema import ChatMessage
+from langchain_core.messages.chat import ChatMessage
 
 from khoj.database.models import Agent, ChatModel, KhojUser
 from khoj.processor.conversation import prompts
@@ -13,6 +14,7 @@ from khoj.processor.conversation.anthropic.utils import (
     format_messages_for_anthropic,
 )
 from khoj.processor.conversation.utils import (
+    ResponseWithThought,
     clean_json,
     construct_structured_message,
     generate_chatml_messages_with_context,
@@ -137,11 +139,12 @@ def anthropic_send_message_to_model(
     )
 
 
-def converse_anthropic(
+async def converse_anthropic(
     references,
     user_query,
     online_results: Optional[Dict[str, Dict]] = None,
     code_results: Optional[Dict[str, Dict]] = None,
+    operator_results: Optional[Dict[str, str]] = None,
     conversation_log={},
     model: Optional[str] = "claude-3-7-sonnet-latest",
     api_key: Optional[str] = None,
@@ -161,7 +164,7 @@ def converse_anthropic(
     generated_asset_results: Dict[str, Dict] = {},
     deepthought: Optional[bool] = False,
     tracer: dict = {},
-):
+) -> AsyncGenerator[ResponseWithThought, None]:
     """
     Converse with user using Anthropic's Claude
     """
@@ -191,11 +194,17 @@ def converse_anthropic(
 
     # Get Conversation Primer appropriate to Conversation Type
     if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(references):
-        completion_func(chat_response=prompts.no_notes_found.format())
-        return iter([prompts.no_notes_found.format()])
+        response = prompts.no_notes_found.format()
+        if completion_func:
+            asyncio.create_task(completion_func(chat_response=response))
+        yield response
+        return
     elif conversation_commands == [ConversationCommand.Online] and is_none_or_empty(online_results):
-        completion_func(chat_response=prompts.no_online_results_found.format())
-        return iter([prompts.no_online_results_found.format()])
+        response = prompts.no_online_results_found.format()
+        if completion_func:
+            asyncio.create_task(completion_func(chat_response=response))
+        yield response
+        return
 
     context_message = ""
     if not is_none_or_empty(references):
@@ -205,6 +214,10 @@ def converse_anthropic(
     if ConversationCommand.Code in conversation_commands and not is_none_or_empty(code_results):
         context_message += (
             f"{prompts.code_executed_context.format(code_results=truncate_code_context(code_results))}\n\n"
+        )
+    if ConversationCommand.Operator in conversation_commands and not is_none_or_empty(operator_results):
+        context_message += (
+            f"{prompts.operator_execution_context.format(operator_results=yaml_dump(operator_results))}\n\n"
         )
     context_message = context_message.strip()
 
@@ -228,17 +241,22 @@ def converse_anthropic(
     logger.debug(f"Conversation Context for Claude: {messages_to_print(messages)}")
 
     # Get Response from Claude
-    return anthropic_chat_completion_with_backoff(
+    full_response = ""
+    async for chunk in anthropic_chat_completion_with_backoff(
         messages=messages,
-        compiled_references=references,
-        online_results=online_results,
         model_name=model,
         temperature=0.2,
         api_key=api_key,
         api_base_url=api_base_url,
         system_prompt=system_prompt,
-        completion_func=completion_func,
         max_prompt_size=max_prompt_size,
         deepthought=deepthought,
         tracer=tracer,
-    )
+    ):
+        if chunk.response:
+            full_response += chunk.response
+        yield chunk
+
+    # Call completion_func once finish streaming and we have the full response
+    if completion_func:
+        asyncio.create_task(completion_func(chat_response=full_response))

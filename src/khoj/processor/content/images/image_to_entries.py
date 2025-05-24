@@ -1,7 +1,7 @@
 import base64
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Tuple
 
 from khoj.database.models import Entry as DbEntry
@@ -58,7 +58,7 @@ class ImageToEntries(TextToEntries):
             try:
                 bytes = image_files[image_file]
                 # write the image to a temporary file
-                timestamp_now = datetime.utcnow().timestamp()
+                timestamp_now = datetime.now(timezone.utc).timestamp()
                 # use either png or jpg
                 if image_file.endswith(".png"):
                     tmp_file = f"tmp_image_file_{timestamp_now}.png"

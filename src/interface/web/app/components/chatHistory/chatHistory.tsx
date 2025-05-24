@@ -28,10 +28,6 @@ interface ChatResponse {
     response: ChatHistoryData;
 }
 
-interface ChatHistory {
-    [key: string]: string;
-}
-
 interface ChatHistoryProps {
     conversationId: string;
     setTitle: (title: string) => void;
@@ -368,7 +364,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                     {data &&
                         data.chat &&
                         data.chat.map((chatMessage, index) => (
-                            <>
+                            <React.Fragment key={`chatMessage-${index}`}>
                                 {chatMessage.trainOfThought && chatMessage.by === "khoj" && (
                                     <TrainOfThoughtComponent
                                         trainOfThought={chatMessage.trainOfThought?.map(
@@ -403,7 +399,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                     onDeleteMessage={handleDeleteMessage}
                                     conversationId={props.conversationId}
                                 />
-                            </>
+                            </React.Fragment>
                         ))}
                     {props.incomingMessages &&
                         props.incomingMessages.map((message, index) => {

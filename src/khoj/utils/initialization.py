@@ -43,7 +43,7 @@ def initialization(interactive: bool = True):
             "🗣️ Configure chat models available to your server. You can always update these at /server/admin using your admin account"
         )
 
-        openai_base_url = os.getenv("OPENAI_BASE_URL")
+        openai_base_url = os.getenv("OPENAI_BASE_URL") or None
         provider = "Ollama" if openai_base_url and openai_base_url.endswith(":11434/v1/") else "OpenAI"
         openai_api_key = os.getenv("OPENAI_API_KEY", "placeholder" if openai_base_url else None)
         default_chat_models = default_openai_chat_models
@@ -51,11 +51,15 @@ def initialization(interactive: bool = True):
             # Get available chat models from OpenAI compatible API
             try:
                 openai_client = openai.OpenAI(api_key=openai_api_key, base_url=openai_base_url)
-                default_chat_models = [model.id for model in openai_client.models.list()]
+                available_chat_models = [model.id for model in openai_client.models.list()]
                 # Put the available default OpenAI models at the top
-                valid_default_models = [model for model in default_openai_chat_models if model in default_chat_models]
-                other_available_models = [model for model in default_chat_models if model not in valid_default_models]
-                default_chat_models = valid_default_models + other_available_models
+                known_available_models = [
+                    model for model in default_openai_chat_models if model in available_chat_models
+                ]
+                other_available_models = [
+                    model for model in available_chat_models if model not in known_available_models
+                ]
+                default_chat_models = known_available_models + other_available_models
             except Exception as e:
                 logger.warning(
                     f"⚠️ Failed to fetch {provider} chat models. Fallback to default models. Error: {str(e)}"
@@ -75,7 +79,7 @@ def initialization(interactive: bool = True):
 
         # Setup OpenAI speech to text model
         if openai_configured:
-            default_speech2text_model = "whisper-1"
+            default_speech2text_model = "whisper-1" if openai_base_url is None else None
             if interactive:
                 openai_speech2text_model = input(
                     f"Enter the OpenAI speech to text model you want to use (default: {default_speech2text_model}): "
@@ -83,13 +87,16 @@ def initialization(interactive: bool = True):
                 openai_speech2text_model = openai_speech2text_model or default_speech2text_model
             else:
                 openai_speech2text_model = default_speech2text_model
-            SpeechToTextModelOptions.objects.create(
-                model_name=openai_speech2text_model, model_type=SpeechToTextModelOptions.ModelType.OPENAI
-            )
+
+            if openai_speech2text_model:
+                SpeechToTextModelOptions.objects.create(
+                    model_name=openai_speech2text_model,
+                    model_type=SpeechToTextModelOptions.ModelType.OPENAI,
+                )
 
         # Setup OpenAI text to image model
         if openai_configured:
-            default_text_to_image_model = "dall-e-3"
+            default_text_to_image_model = "dall-e-3" if openai_base_url is None else None
             if interactive:
                 openai_text_to_image_model = input(
                     f"Enter the OpenAI text to image model you want to use (default: {default_text_to_image_model}): "
@@ -97,14 +104,16 @@ def initialization(interactive: bool = True):
                 openai_text_to_image_model = openai_text_to_image_model or default_text_to_image_model
             else:
                 openai_text_to_image_model = default_text_to_image_model
-            TextToImageModelConfig.objects.create(
-                model_name=openai_text_to_image_model,
-                model_type=TextToImageModelConfig.ModelType.OPENAI,
-                ai_model_api=openai_provider,
-            )
+
+            if openai_text_to_image_model:
+                TextToImageModelConfig.objects.create(
+                    model_name=openai_text_to_image_model,
+                    model_type=TextToImageModelConfig.ModelType.OPENAI,
+                    ai_model_api=openai_provider,
+                )
 
         # Set up Google's Gemini online chat models
-        _setup_chat_model_provider(
+        google_ai_configured, google_ai_provider = _setup_chat_model_provider(
             ChatModel.ModelType.GOOGLE,
             default_gemini_chat_models,
             default_api_key=os.getenv("GEMINI_API_KEY"),
@@ -113,6 +122,22 @@ def initialization(interactive: bool = True):
             interactive=interactive,
             provider_name="Google Gemini",
         )
+
+        # Setup Google text to image model
+        if google_ai_configured:
+            default_text_to_image_model = "imagen-3.0-generate-002"
+            if interactive:
+                gemini_text_to_image_model = input(
+                    f"Enter the Google text to image model you want to use (default: {default_text_to_image_model}): "
+                )
+                gemini_text_to_image_model = gemini_text_to_image_model or default_text_to_image_model
+            else:
+                gemini_text_to_image_model = default_text_to_image_model
+            TextToImageModelConfig.objects.create(
+                model_name=gemini_text_to_image_model,
+                model_type=TextToImageModelConfig.ModelType.GOOGLE,
+                ai_model_api=google_ai_provider,
+            )
 
         # Set up Anthropic's online chat models
         _setup_chat_model_provider(
@@ -134,23 +159,7 @@ def initialization(interactive: bool = True):
             interactive=interactive,
         )
 
-        # Explicitly set default chat model
-        chat_models_configured = ChatModel.objects.count()
-        if chat_models_configured > 0:
-            default_chat_model_name = ChatModel.objects.first().name
-            # If there are multiple chat models, ask the user to choose the default chat model
-            if chat_models_configured > 1 and interactive:
-                user_chat_model_name = input(
-                    f"Enter the default chat model to use (default: {default_chat_model_name}): "
-                )
-            else:
-                user_chat_model_name = None
-
-            # If the user's choice is valid, set it as the default chat model
-            if user_chat_model_name and ChatModel.objects.filter(name=user_chat_model_name).exists():
-                default_chat_model_name = user_chat_model_name
-
-            logger.info("🗣️ Chat model configuration complete")
+        logger.info("🗣️ Chat model configuration complete")
 
         # Set up offline speech to text model
         use_offline_speech2text_model = "n" if not interactive else input("Use offline speech to text model? (y/n): ")
@@ -320,4 +329,4 @@ def initialization(interactive: bool = True):
             )
             return
         ConversationAdapters.set_default_chat_model(chat_model)
-        logger.info(f"🗣️ Default chat model set to {chat_model.name}")
+        logger.info(f"🗣️ Default chat model set to {chat_model.name} served by {chat_model.ai_model_api}")

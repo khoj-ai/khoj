@@ -34,6 +34,7 @@ interface ChatSideBarProps {
     isOpen: boolean;
     isMobileWidth?: boolean;
     onOpenChange: (open: boolean) => void;
+    isActive?: boolean;
 }
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -311,12 +312,14 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
         isLoading: authenticationLoading,
     } = useAuthenticatedData();
 
-    const [customPrompt, setCustomPrompt] = useState<string | undefined>("");
+    const [customPrompt, setCustomPrompt] = useState<string | undefined>();
     const [selectedModel, setSelectedModel] = useState<string | undefined>();
     const [inputTools, setInputTools] = useState<string[] | undefined>();
     const [outputModes, setOutputModes] = useState<string[] | undefined>();
     const [hasModified, setHasModified] = useState<boolean>(false);
-    const [isDefaultAgent, setIsDefaultAgent] = useState<boolean>(agentData?.slug.toLowerCase() === "khoj" ? true : false);
+    const [isDefaultAgent, setIsDefaultAgent] = useState<boolean>(!agentData || agentData?.slug.toLowerCase() === "khoj");
+    const [displayInputTools, setDisplayInputTools] = useState<string[] | undefined>();
+    const [displayOutputModes, setDisplayOutputModes] = useState<string[] | undefined>();
 
     const [isSaving, setIsSaving] = useState<boolean>(false);
 
@@ -325,12 +328,14 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
     function setupAgentData() {
         if (agentData) {
             setInputTools(agentData.input_tools);
+            setDisplayInputTools(agentData.input_tools);
             if (agentData.input_tools === undefined || agentData.input_tools.length === 0) {
-                setInputTools(agentConfigurationOptions?.input_tools ? Object.keys(agentConfigurationOptions.input_tools) : []);
+                setDisplayInputTools(agentConfigurationOptions?.input_tools ? Object.keys(agentConfigurationOptions.input_tools) : []);
             }
             setOutputModes(agentData.output_modes);
+            setDisplayOutputModes(agentData.output_modes);
             if (agentData.output_modes === undefined || agentData.output_modes.length === 0) {
-                setOutputModes(agentConfigurationOptions?.output_modes ? Object.keys(agentConfigurationOptions.output_modes) : []);
+                setDisplayOutputModes(agentConfigurationOptions?.output_modes ? Object.keys(agentConfigurationOptions.output_modes) : []);
             }
 
             if (agentData.name.toLowerCase() === "khoj" || agentData.is_hidden === true) {
@@ -351,16 +356,30 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
 
     useEffect(() => {
         setupAgentData();
+        setHasModified(false);
     }, [agentData]);
 
+    // Track changes to the model, prompt, input tools and output modes fields
+    useEffect(() => {
+        if (!agentData || agentDataLoading) return; // Don't compare until data is loaded
+
+        const modelChanged = !!selectedModel && selectedModel !== agentData.chat_model;
+        const promptChanged = !!customPrompt && customPrompt !== agentData.persona;
+
+        // Order independent check to ensure input tools or output modes haven't been changed.
+        const toolsChanged = JSON.stringify(inputTools?.sort() || []) !== JSON.stringify(agentData.input_tools?.sort());
+        const modesChanged = JSON.stringify(outputModes?.sort() || []) !== JSON.stringify(agentData.output_modes?.sort());
+
+        setHasModified(modelChanged || promptChanged || toolsChanged || modesChanged);
+
+        // Add agentDataLoading to dependencies to ensure it runs after loading finishes
+    }, [selectedModel, customPrompt, inputTools, outputModes, agentData, agentDataLoading]);
 
     function isValueChecked(value: string, existingSelections: string[]): boolean {
         return existingSelections.includes(value);
     }
 
     function handleCheckToggle(value: string, existingSelections: string[]): string[] {
-        setHasModified(true);
-
         if (existingSelections.includes(value)) {
             return existingSelections.filter((v) => v !== value);
         }
@@ -370,7 +389,6 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
 
     function handleCustomPromptChange(value: string) {
         setCustomPrompt(value);
-        setHasModified(true);
     }
 
     function handleSave() {
@@ -430,11 +448,8 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
         setHasModified(false);
     }
 
-    function handleModelSelect(model: string, userModification: boolean = true) {
+    function handleModelSelect(model: string) {
         setSelectedModel(model);
-        if (userModification) {
-            setHasModified(true);
-        }
     }
 
     return (
@@ -488,7 +503,7 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                             <SidebarMenuItem className="list-none">
                                 <Textarea
                                     className="w-full h-32 resize-none hover:resize-y"
-                                    value={customPrompt}
+                                    value={customPrompt || ""}
                                     onChange={(e) => handleCustomPromptChange(e.target.value)}
                                     readOnly={!isEditable}
                                     disabled={!isEditable} />
@@ -513,10 +528,10 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                                 <SidebarMenu className="p-0 m-0">
                                     <SidebarMenuItem key={"model"} className="list-none">
                                         <ModelSelector
-                                            disabled={!isEditable || !isSubscribed}
-                                            onSelect={(model, userModification) => handleModelSelect(model.name, userModification)}
+                                            disabled={!isEditable}
+                                            onSelect={(model) => handleModelSelect(model.name)}
                                             initialModel={isDefaultAgent ? undefined : agentData?.chat_model}
-                                            selectedModel={selectedModel}
+                                            isActive={props.isActive}
                                         />
                                     </SidebarMenuItem>
                                 </SidebarMenu>
@@ -551,8 +566,12 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                                                                 <Checkbox
                                                                     id={key}
                                                                     className={`${isEditable ? "cursor-pointer" : ""}`}
-                                                                    checked={isValueChecked(key, inputTools ?? [])}
-                                                                    onCheckedChange={() => setInputTools(handleCheckToggle(key, inputTools ?? []))}
+                                                                    checked={isValueChecked(key, displayInputTools ?? [])}
+                                                                    onCheckedChange={() => {
+                                                                        let updatedInputTools = handleCheckToggle(key, displayInputTools ?? [])
+                                                                        setInputTools(updatedInputTools);
+                                                                        setDisplayInputTools(updatedInputTools);
+                                                                    }}
                                                                     disabled={!isEditable}
                                                                 >
                                                                     {key}
@@ -584,8 +603,12 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                                                                 <Checkbox
                                                                     id={key}
                                                                     className={`${isEditable ? "cursor-pointer" : ""}`}
-                                                                    checked={isValueChecked(key, outputModes ?? [])}
-                                                                    onCheckedChange={() => setOutputModes(handleCheckToggle(key, outputModes ?? []))}
+                                                                    checked={isValueChecked(key, displayOutputModes ?? [])}
+                                                                    onCheckedChange={() => {
+                                                                        let updatedOutputModes = handleCheckToggle(key, displayOutputModes ?? [])
+                                                                        setOutputModes(updatedOutputModes);
+                                                                        setDisplayOutputModes(updatedOutputModes);
+                                                                    }}
                                                                     disabled={!isEditable}
                                                                 >
                                                                     {key}
@@ -649,8 +672,8 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                                                         <AgentCreationForm
                                                             customPrompt={customPrompt}
                                                             selectedModel={selectedModel}
-                                                            inputTools={inputTools ?? []}
-                                                            outputModes={outputModes ?? []}
+                                                            inputTools={displayInputTools ?? []}
+                                                            outputModes={displayOutputModes ?? []}
                                                         />
                                                     </SidebarMenuButton>
                                                 </SidebarMenuItem>

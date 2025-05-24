@@ -28,9 +28,9 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface ModelSelectorProps extends PopoverProps {
-    onSelect: (model: ModelOptions, userModification: boolean) => void;
-    selectedModel?: string;
+    onSelect: (model: ModelOptions) => void;
     disabled?: boolean;
+    isActive?: boolean;
     initialModel?: string;
 }
 
@@ -49,9 +49,8 @@ export function ModelSelector({ ...props }: ModelSelectorProps) {
             setModels(userConfig.chat_model_options);
             if (!props.initialModel) {
                 const selectedChatModelOption = userConfig.chat_model_options.find(model => model.id === userConfig.selected_chat_model_config);
-                if (!selectedChatModelOption) {
+                if (!selectedChatModelOption && userConfig.chat_model_options.length > 0) {
                     setSelectedModel(userConfig.chat_model_options[0]);
-                    return;
                 } else {
                     setSelectedModel(selectedChatModelOption);
                 }
@@ -63,29 +62,10 @@ export function ModelSelector({ ...props }: ModelSelectorProps) {
     }, [userConfig, props.initialModel, isLoadingUserConfig]);
 
     useEffect(() => {
-        if (props.selectedModel && selectedModel && props.selectedModel !== selectedModel.name) {
-            const model = models.find(model => model.name === props.selectedModel);
-            setSelectedModel(model);
+        if (selectedModel && userConfig) {
+            props.onSelect(selectedModel);
         }
-        else if (props.selectedModel === null && userConfig) {
-            const selectedChatModelOption = userConfig.chat_model_options.find(model => model.id === userConfig.selected_chat_model_config);
-            if (!selectedChatModelOption) {
-                props.onSelect(userConfig.chat_model_options[0], false);
-                return;
-            } else {
-                props.onSelect(selectedChatModelOption, false);
-            }
-        }
-    }, [props.selectedModel, models]);
-
-    useEffect(() => {
-        if (selectedModel) {
-            const userModification = selectedModel.id !== userConfig?.selected_chat_model_config;
-            if (props.selectedModel !== selectedModel.name) {
-                props.onSelect(selectedModel, userModification);
-            }
-        }
-    }, [selectedModel]);
+    }, [selectedModel, userConfig, props.onSelect]);
 
     if (isLoadingUserConfig) {
         return (
@@ -137,6 +117,7 @@ export function ModelSelector({ ...props }: ModelSelectorProps) {
                                                             setSelectedModel(model)
                                                             setOpen(false)
                                                         }}
+                                                        isActive={props.isActive}
                                                     />
                                                 ))}
                                         </CommandGroup>
@@ -186,6 +167,7 @@ export function ModelSelector({ ...props }: ModelSelectorProps) {
                                                                 setSelectedModel(model)
                                                                 setOpen(false)
                                                             }}
+                                                            isActive={props.isActive}
                                                         />
                                                     ))}
                                             </CommandGroup>
@@ -205,9 +187,10 @@ interface ModelItemProps {
     isSelected: boolean,
     onSelect: () => void,
     onPeek: (model: ModelOptions) => void
+    isActive?: boolean
 }
 
-function ModelItem({ model, isSelected, onSelect, onPeek }: ModelItemProps) {
+function ModelItem({ model, isSelected, onSelect, onPeek, isActive }: ModelItemProps) {
     const ref = React.useRef<HTMLDivElement>(null)
 
     useMutationObserver(ref, (mutations) => {
@@ -228,8 +211,9 @@ function ModelItem({ model, isSelected, onSelect, onPeek }: ModelItemProps) {
             onSelect={onSelect}
             ref={ref}
             className="data-[selected=true]:bg-muted data-[selected=true]:text-secondary-foreground"
+            disabled={!isActive && model.tier !== "free"}
         >
-            {model.name}
+            {model.name} {model.tier === "standard" && <span className="text-green-500 ml-2">(Futurist)</span>}
             <Check
                 className={cn("ml-auto", isSelected ? "opacity-100" : "opacity-0")}
             />

@@ -1,14 +1,15 @@
+import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import AsyncGenerator, Dict, List, Optional
 
 import pyjson5
-from langchain.schema import ChatMessage
+from langchain_core.messages.chat import ChatMessage
+from pydantic import BaseModel, Field
 
 from khoj.database.models import Agent, ChatModel, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.google.utils import (
-    format_messages_for_gemini,
     gemini_chat_completion_with_backoff,
     gemini_completion_with_backoff,
 )
@@ -96,12 +97,16 @@ def extract_questions_gemini(
     messages.append(ChatMessage(content=prompt, role="user"))
     messages.append(ChatMessage(content=system_prompt, role="system"))
 
+    class DocumentQueries(BaseModel):
+        queries: List[str] = Field(..., min_items=1)
+
     response = gemini_send_message_to_model(
         messages,
         api_key,
         model,
         api_base_url=api_base_url,
         response_type="json_object",
+        response_schema=DocumentQueries,
         tracer=tracer,
     )
 
@@ -129,6 +134,7 @@ def gemini_send_message_to_model(
     response_type="text",
     response_schema=None,
     model_kwargs=None,
+    deepthought=False,
     tracer={},
 ):
     """
@@ -136,10 +142,11 @@ def gemini_send_message_to_model(
     """
     model_kwargs = {}
 
-    # This caused unwanted behavior and terminates response early for gemini 1.5 series. Monitor for flakiness with 2.0 series.
-    if response_type == "json_object" and model in ["gemini-2.0-flash"]:
+    # Monitor for flakiness in 1.5+ models. This would cause unwanted behavior and terminate response early in 1.5 models.
+    if response_type == "json_object" and not model.startswith("gemini-1.5"):
         model_kwargs["response_mime_type"] = "application/json"
-        model_kwargs["response_schema"] = response_schema
+        if response_schema:
+            model_kwargs["response_schema"] = response_schema
 
     # Get Response from Gemini
     return gemini_completion_with_backoff(
@@ -149,20 +156,22 @@ def gemini_send_message_to_model(
         api_key=api_key,
         api_base_url=api_base_url,
         model_kwargs=model_kwargs,
+        deepthought=deepthought,
         tracer=tracer,
     )
 
 
-def converse_gemini(
+async def converse_gemini(
     references,
     user_query,
     online_results: Optional[Dict[str, Dict]] = None,
     code_results: Optional[Dict[str, Dict]] = None,
+    operator_results: Optional[Dict[str, str]] = None,
     conversation_log={},
     model: Optional[str] = "gemini-2.0-flash",
     api_key: Optional[str] = None,
     api_base_url: Optional[str] = None,
-    temperature: float = 0.4,
+    temperature: float = 1.0,
     completion_func=None,
     conversation_commands=[ConversationCommand.Default],
     max_prompt_size=None,
@@ -176,8 +185,9 @@ def converse_gemini(
     generated_files: List[FileAttachment] = None,
     generated_asset_results: Dict[str, Dict] = {},
     program_execution_context: List[str] = None,
+    deepthought: Optional[bool] = False,
     tracer={},
-):
+) -> AsyncGenerator[str, None]:
     """
     Converse with user using Google's Gemini
     """
@@ -208,11 +218,17 @@ def converse_gemini(
 
     # Get Conversation Primer appropriate to Conversation Type
     if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(references):
-        completion_func(chat_response=prompts.no_notes_found.format())
-        return iter([prompts.no_notes_found.format()])
+        response = prompts.no_notes_found.format()
+        if completion_func:
+            asyncio.create_task(completion_func(chat_response=response))
+        yield response
+        return
     elif conversation_commands == [ConversationCommand.Online] and is_none_or_empty(online_results):
-        completion_func(chat_response=prompts.no_online_results_found.format())
-        return iter([prompts.no_online_results_found.format()])
+        response = prompts.no_online_results_found.format()
+        if completion_func:
+            asyncio.create_task(completion_func(chat_response=response))
+        yield response
+        return
 
     context_message = ""
     if not is_none_or_empty(references):
@@ -222,6 +238,10 @@ def converse_gemini(
     if ConversationCommand.Code in conversation_commands and not is_none_or_empty(code_results):
         context_message += (
             f"{prompts.code_executed_context.format(code_results=truncate_code_context(code_results))}\n\n"
+        )
+    if ConversationCommand.Operator in conversation_commands and not is_none_or_empty(operator_results):
+        context_message += (
+            f"{prompts.operator_execution_context.format(operator_results=yaml_dump(operator_results))}\n\n"
         )
     context_message = context_message.strip()
 
@@ -245,15 +265,20 @@ def converse_gemini(
     logger.debug(f"Conversation Context for Gemini: {messages_to_print(messages)}")
 
     # Get Response from Google AI
-    return gemini_chat_completion_with_backoff(
+    full_response = ""
+    async for chunk in gemini_chat_completion_with_backoff(
         messages=messages,
-        compiled_references=references,
-        online_results=online_results,
         model_name=model,
         temperature=temperature,
         api_key=api_key,
         api_base_url=api_base_url,
         system_prompt=system_prompt,
-        completion_func=completion_func,
+        deepthought=deepthought,
         tracer=tracer,
-    )
+    ):
+        full_response += chunk
+        yield chunk
+
+    # Call completion_func once finish streaming and we have the full response
+    if completion_func:
+        asyncio.create_task(completion_func(chat_response=full_response))

@@ -1,7 +1,7 @@
 # Admin Panel
 > Describes the Khoj settings configurable via the admin panel
 
-By default, you admin panel is available at `http://localhost:42110/server/admin/`. You can access the admin panel by logging in with your admin credentials (this would be your `KHOJ_ADMIN_EMAIL` and `KHOJ_ADMIN_PASSWORD`). The admin panel allows you to configure various settings for your Khoj server.
+By default, your admin panel is available at `http://localhost:42110/server/admin/`. You can access the admin panel by logging in with your admin credentials (this would be your `KHOJ_ADMIN_EMAIL` and `KHOJ_ADMIN_PASSWORD`). The admin panel allows you to configure various settings for your Khoj server.
 
 ## App Settings
 ### Agents
@@ -9,7 +9,7 @@ Add all the agents you want to use for your different use-cases like Writer, Res
 - `Personality`: This is a prompt to tell the chat model how to tune the personality of the agent.
 - `Chat model`: The chat model to use for the agent.
 - `Name`: The name of the agent. This field helps give the agent a unique identity across the app.
-- `Avatar`: Url to the agents profile picture. It help give the agent a unique visual identity across the app.
+- `Avatar`: Url to the agents profile picture. It helps give the agent a unique visual identity across the app.
 - `Style color`, `Style icon`: These fields help give the agent a unique, visually identifiable identity across the app.
 - `Slug`: This is the agent name to use in urls.
 - `Public`: Check this if the agent is expected to be visible to all users on this Khoj server.
@@ -65,7 +65,7 @@ Add speech to text models with these settings. Khoj currently only supports whis
 Add text to speech models with these settings. Khoj currently supports models from [ElevenLabs](https://elevenlabs.io/).
 
 ### Reflective Questions
-This is a static list of starter question suggestions for each user. It is not current used in any client app. It used to be shown on the web app home page. We may turn it into a dynamic list of starter questions personalized to each users, say based on their recent conversations or synced knowledge base.
+This is a static list of starter question suggestions for each user. It is not currently used in any client app. It used to be shown on the web app home page. We may turn it into a dynamic list of starter questions personalized to each users, say based on their recent conversations or synced knowledge base.
 
 ## User Data
 - Users, Entrys, Conversations, Subscriptions, Github configs, Notion configs, User search configs, User conversation configs, User voice configs

@@ -195,6 +195,11 @@ class AiModelApi(DbBaseModel):
         return self.name
 
 
+class PriceTier(models.TextChoices):
+    FREE = "free"
+    STANDARD = "standard"
+
+
 class ChatModel(DbBaseModel):
     class ModelType(models.TextChoices):
         OPENAI = "openai"
@@ -207,6 +212,7 @@ class ChatModel(DbBaseModel):
     tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
     name = models.CharField(max_length=200, default="bartowski/Meta-Llama-3.1-8B-Instruct-GGUF")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
+    price_tier = models.CharField(max_length=20, choices=PriceTier.choices, default=PriceTier.FREE)
     vision_enabled = models.BooleanField(default=False)
     ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)
     description = models.TextField(default=None, null=True, blank=True)
@@ -219,6 +225,7 @@ class ChatModel(DbBaseModel):
 class VoiceModelOption(DbBaseModel):
     model_id = models.CharField(max_length=200)
     name = models.CharField(max_length=200)
+    price_tier = models.CharField(max_length=20, choices=PriceTier.choices, default=PriceTier.STANDARD)
 
 
 class Agent(DbBaseModel):
@@ -313,7 +320,7 @@ class Agent(DbBaseModel):
         if self.creator is None:
             self.managed_by_admin = True
 
-        if is_new:
+        if is_new and not self.slug:
             random_sequence = "".join(choice("0123456789") for i in range(6))
             slug = f"{self.name.lower().replace(' ', '-')}-{random_sequence}"
             self.slug = slug
@@ -452,6 +459,17 @@ class ServerChatSettings(DbBaseModel):
         WebScraper, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="web_scraper"
     )
 
+    def clean(self):
+        error = {}
+        if self.chat_default and self.chat_default.price_tier != PriceTier.FREE:
+            error["chat_default"] = "Set the price tier of this chat model to free or use a free tier chat model."
+        if error:
+            raise ValidationError(error)
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
 
 class LocalOrgConfig(DbBaseModel):
     input_files = models.JSONField(default=list, null=True)
@@ -534,6 +552,7 @@ class TextToImageModelConfig(DbBaseModel):
 
     model_name = models.CharField(max_length=200, default="dall-e-3")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OPENAI)
+    price_tier = models.CharField(max_length=20, choices=PriceTier.choices, default=PriceTier.FREE)
     api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
     ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
@@ -571,6 +590,7 @@ class SpeechToTextModelOptions(DbBaseModel):
 
     model_name = models.CharField(max_length=200, default="base")
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
+    price_tier = models.CharField(max_length=20, choices=PriceTier.choices, default=PriceTier.FREE)
     ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)
 
     def __str__(self):
@@ -730,8 +750,26 @@ class EntryDates(DbBaseModel):
 
 
 class UserRequests(DbBaseModel):
+    """Stores user requests to the server for rate limiting."""
+
     user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
     slug = models.CharField(max_length=200)
+
+
+class RateLimitRecord(DbBaseModel):
+    """Stores individual request timestamps for rate limiting."""
+
+    identifier = models.CharField(max_length=255, db_index=True)  # IP address or email
+    slug = models.CharField(max_length=255, db_index=True)  # Differentiates limit types
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["identifier", "slug", "created_at"]),
+        ]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.slug} - {self.identifier} at {self.created_at}"
 
 
 class DataStore(DbBaseModel):

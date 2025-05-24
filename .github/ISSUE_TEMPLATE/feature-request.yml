@@ -1,0 +1,54 @@
+name: "🙋 Feature Request"
+description: "Use this template to request new feature or suggest an idea for Khoj"
+labels: ["upgrade"]
+body:
+    - type: "markdown"
+      attributes:
+          value: |
+              > [!IMPORTANT]
+              > To save time for both you and us, try follow these guidelines before submitting a feature request:
+              > 1. Check if there is an existing feature request that is similar to your on our Github.
+              > 2. We encourage you to first discuss your idea on a [Github discussion](https://github.com/khoj-ai/khoj/discussions/categories/ideas) or the **#ideas** channel of our [Discord server](https://discord.gg/b6gUdpKr).
+              > This step helps in understanding the new feature and determining if it's can be implemented at all.
+              Only proceed with this report if your idea was approved after the GitHub/Discord discussion.
+
+    - type: "textarea"
+      id: "description"
+      attributes:
+          label: "Describe the feature"
+          description: "A clear and concise description of the feature you are proposing."
+      validations:
+          required: true
+
+    - type: "textarea"
+      id: "use-case"
+      attributes:
+          label: "Use Case"
+          description: "Why do you need this feature? Provide real world use cases, the more the better."
+      validations:
+          required: true
+
+    - type: "textarea"
+      id: "solution"
+      attributes:
+          label: "Proposed Solution"
+          description: "Suggest how to implement the new feature. Please include prototype/sketch/reference implementation."
+      validations:
+          required: false
+
+    - type: "textarea"
+      id: "additional_info"
+      attributes:
+          label: "Additional Information"
+          description: "Any additional information you would like to provide - links, screenshots, etc."
+      validations:
+          required: false
+
+    - type: "input"
+      id: "discussion_link"
+      attributes:
+          label: "Link to Discord or Github discussion"
+          description: "Provide a link to the first message of feature request's discussion on Discord or Github.\n
+                        This will help to keep history of why this feature request exists."
+      validations:
+          required: false

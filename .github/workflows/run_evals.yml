@@ -50,6 +50,32 @@ on:
         required: false
         default: 5
         type: number
+      openai_api_key:
+        description: 'OpenAI API key'
+        required: false
+        default: ''
+        type: string
+      openai_base_url:
+        description: 'Base URL of OpenAI compatible API'
+        required: false
+        default: 'https://api.openai.com/v1'
+        type: string
+      auto_read_webpage:
+        description: 'Auto read webpage on online search'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+      randomize:
+        description: 'Randomize the sample of questions'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 jobs:
   eval:
@@ -87,15 +113,21 @@ jobs:
 
       - name: Get App Version
         id: hatch
-        run: echo "version=$(pipx run hatch version)" >> $GITHUB_OUTPUT
+        run: |
+          # Mask relevant workflow inputs as secret early
+          OPENAI_API_KEY=$(jq -r '.inputs.openai_api_key' $GITHUB_EVENT_PATH)
+          echo ::add-mask::$OPENAI_API_KEY
+          echo OPENAI_API_KEY="$OPENAI_API_KEY" >> $GITHUB_ENV
+
+          # Get app version from hatch
+          echo "version=$(pipx run hatch version)" >> $GITHUB_OUTPUT
 
       - name: ⏬️ Install Dependencies
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          # install postgres and other dependencies
+          # install dependencies
           sudo apt update && sudo apt install -y git python3-pip libegl1 sqlite3 libsqlite3-dev libsqlite3-0 ffmpeg libsm6 libxext6
-          sudo apt install -y postgresql postgresql-client && sudo apt install -y postgresql-server-dev-16
           # upgrade pip
           python -m ensurepip --upgrade && python -m pip install --upgrade pip
           # install terrarium for code sandbox
@@ -111,14 +143,17 @@ jobs:
           KHOJ_MODE: ${{ matrix.khoj_mode }}
           SAMPLE_SIZE: ${{ github.event_name == 'workflow_dispatch' && inputs.sample_size || 200 }}
           BATCH_SIZE: "20"
-          RANDOMIZE: "True"
+          RANDOMIZE: ${{ github.event_name == 'workflow_dispatch' && inputs.randomize || 'true' }}
           KHOJ_URL: "http://localhost:42110"
-          KHOJ_DEFAULT_CHAT_MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.chat_model || 'gemini-2.0-flash' }}
           KHOJ_LLM_SEED: "42"
-          KHOJ_RESEARCH_ITERATIONS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_research_iterations || 5 }}
+          KHOJ_DEFAULT_CHAT_MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.chat_model || 'gemini-2.0-flash' }}
+          KHOJ_RESEARCH_ITERATIONS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_research_iterations || 10 }}
+          KHOJ_AUTO_READ_WEBPAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.auto_read_webpage || 'false' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_BASE_URL: ${{ github.event_name == 'workflow_dispatch' && inputs.openai_base_url || 'https://api.openai.com/v1' }}
           SERPER_DEV_API_KEY: ${{ matrix.dataset != 'math500' && secrets.SERPER_DEV_API_KEY || '' }}
           OLOSTEP_API_KEY: ${{ matrix.dataset != 'math500' && secrets.OLOSTEP_API_KEY || ''}}
+          FIRECRAWL_API_KEY: ${{ matrix.dataset != 'math500' && secrets.FIRECRAWL_API_KEY || '' }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           E2B_API_KEY: ${{ inputs.sandbox == 'e2b' && secrets.E2B_API_KEY || '' }}
           E2B_TEMPLATE: ${{ vars.E2B_TEMPLATE }}
@@ -129,6 +164,7 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: postgres
+          USE_EMBEDDED_DB: "true"
           KHOJ_TELEMETRY_DISABLE: "True"  # To disable telemetry for tests
         run: |
           # Start Khoj server in background

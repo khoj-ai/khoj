@@ -66,7 +66,7 @@ else:
 django_app = get_asgi_application()
 
 # Add CORS middleware
-KHOJ_DOMAIN = os.getenv("KHOJ_DOMAIN", "app.khoj.dev")
+KHOJ_DOMAIN = os.getenv("KHOJ_DOMAIN") or "app.khoj.dev"
 scheme = "https" if not is_env_var_true("KHOJ_NO_HTTPS") else "http"
 custom_origins = [f"{scheme}://{KHOJ_DOMAIN.strip()}", f"{scheme}://{KHOJ_DOMAIN.strip()}:*"]
 default_origins = [
@@ -217,7 +217,7 @@ def set_state(args):
 
 
 def start_server(app, host=None, port=None, socket=None):
-    logger.info("🌖 Khoj is ready to use")
+    logger.info("🌖 Khoj is ready to engage")
     if socket:
         uvicorn.run(app, proxy_headers=True, uds=socket, log_level="debug", use_colors=True, log_config=None)
     else:

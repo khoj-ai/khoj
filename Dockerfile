@@ -34,7 +34,7 @@ RUN sed -i "s/dynamic = \\[\"version\"\\]/version = \"$VERSION\"/" pyproject.tom
     pip install --no-cache-dir .
 
 # Build Web App
-FROM node:20-alpine AS web-app
+FROM node:23-alpine AS web-app
 # Set build optimization env vars
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
