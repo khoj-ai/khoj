@@ -604,14 +604,29 @@ For context, the user is currently working on the following files:
         return restoreFormatting(diffPreview);
     }
 
+    private textNormalize(text: string): string {
+        // Normalize whitespace and special characters
+        return text
+            .replace(/\u00A0/g, " ")         // Replace non-breaking spaces with regular spaces
+            .replace(/[\u2002\u2003\u2007\u2008\u2009\u200A\u205F\u3000]/g, " ") // Replace various other Unicode spaces with regular spaces
+            .replace(/[\u2013\u2014]/g, '-') // Replace en-dash and em-dash with hyphen
+            .replace(/[\u2018\u2019]/g, "'") // Replace smart quotes with regular quotes
+            .replace(/[\u201C\u201D]/g, '"') // Replace smart double quotes with regular quotes
+            .replace(/\u2026/g, '...')       // Replace ellipsis with three dots
+            .normalize('NFC')                // Normalize to NFC form
+    }
+
     private processSingleEdit(
-        findText: string,
+        rawFindText: string,
         replaceText: string,
-        currentFileContent: string,
+        rawCurrentFileContent: string,
         frontmatterEndIndex: number
     ): ProcessedEditResult {
         let startIndex = -1;
         let endIndex = -1;
+        // Normalize special characters before searching
+        const findText = this.textNormalize(rawFindText);
+        const currentFileContent = this.textNormalize(rawCurrentFileContent);
 
         if (findText === "") {
             // Empty search means replace entire content after frontmatter
