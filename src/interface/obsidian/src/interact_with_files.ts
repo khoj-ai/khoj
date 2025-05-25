@@ -1,18 +1,16 @@
 import { App, TFile } from 'obsidian';
-import * as JSON5 from 'json5';
 
 /**
  * Interface representing a block of edit instructions for modifying files
  */
 export interface EditBlock {
-    note: string;      // Required: Brief one-line explanation
-    before: string;    // location.start
-    after: string;     // location.end
-    replacement: string; // content
-    file: string;      // Required: Target file name (without extension)
-    hasError?: boolean; // Optional: Flag to indicate parsing error
+    file: string;       // Target file name [Required]
+    find: string;       // Content to find in file [Required]
+    replace: string;    // Content to replace with in file [Required]
+    note?: string;      // Brief explanation of edit [Optional]
+    hasError?: boolean; // Flag to indicate parsing error [Optional]
     error?: {
-        type: 'missing_field' | 'invalid_json' | 'preprocessing' | 'unknown';
+        type: 'missing_field' | 'invalid_format' | 'preprocessing' | 'unknown';
         message: string;
         details?: string;
     };
@@ -21,12 +19,12 @@ export interface EditBlock {
 /**
  * Interface representing the result of parsing a Khoj edit block
  */
-export interface ParseKhojEditResult {
-    editData: any;
+export interface ParsedEditBlock {
+    editData: EditBlock | null;
     cleanContent: string;
     inProgress?: boolean;
     error?: {
-        type: 'missing_field' | 'invalid_json' | 'preprocessing' | 'unknown';
+        type: 'missing_field' | 'invalid_format' | 'preprocessing' | 'unknown';
         message: string;
         details?: string;
     };
@@ -45,6 +43,8 @@ interface PartialEditBlockResult {
  */
 export class FileInteractions {
     private app: App;
+    private readonly EDIT_BLOCK_START = '<khoj_edit>';
+    private readonly EDIT_BLOCK_END = '</khoj_edit>';
 
     /**
      * Constructor for FileInteractions
@@ -69,29 +69,85 @@ export class FileInteractions {
         const leaves = this.app.workspace.getLeavesOfType('markdown');
         if (leaves.length === 0) return '';
 
-        let openFilesContent = "\n\n[SYSTEM]The user is currently working on the following files (content provided for context):\n\n";
-
-        // Simplification des instructions d'édition
+        // Instructions in write access mode
+        let editInstructions: string = '';
         if (fileAccessMode === 'write') {
-            openFilesContent += `[EDIT INSTRUCTIONS] I can help you edit your notes using targeted modifications. I'll use multiple edit blocks to make precise changes rather than rewriting entire sections.
+            editInstructions = `
+If the user requests, you can suggest edits to files provided in the WORKING_FILE_SET provided below.
+Once you understand the user request you MUST:
 
-<khoj-edit>
-{
-    "note": "Brief one-line explanation of what this edit does",
-    "location": {
-        "start": "<start words>",
-        "end": "<end words>"
-    },
-    "content": "<complete new content, including end marker if you want to keep it>",
-    "file": "target-filename"  // Required: specify which open file to edit (without .md extension)
-}
-</khoj-edit>
+1. Decide if you need to propose *SEARCH/REPLACE* edits to any files that haven't been added to the chat.
+
+If you need to propose edits to existing files not already added to the chat, you *MUST* tell the user their full path names and ask them to *add the files to the chat*.
+End your reply and wait for their approval.
+You can keep asking if you then decide you need to edit more files.
+
+2. Think step-by-step and explain the needed changes in a few short sentences before each EDIT block.
+
+3. Describe each change with a *SEARCH/REPLACE block* like the examples below.
+
+All changes to files must use this *SEARCH/REPLACE block* format.
+ONLY EVER RETURN EDIT TEXT IN A *SEARCH/REPLACE BLOCK*!
+
+# *SEARCH/REPLACE block* Rules:
+
+Every *SEARCH/REPLACE block* must use this format:
+1. The opening fence: \`${this.EDIT_BLOCK_START}\`
+2. The *FULL* file path alone on a line, verbatim. No bold asterisks, no quotes around it, no escaping of characters, etc.
+3. The start of search block: <<<<<<< SEARCH
+4. A contiguous chunk of lines to search for in the source file
+5. The dividing line: =======
+6. The lines to replace into the source file
+7. The end of the replace block: >>>>>>> REPLACE
+8. The closing fence: \`${this.EDIT_BLOCK_END}\`
+
+Use the *FULL* file path, as shown to you by the user.
+
+Every *SEARCH* section must *EXACTLY MATCH* the existing file content, character for character, including all comments, docstrings, etc.
+If the file contains code or other data wrapped/escaped in json/xml/quotes or other containers, you need to propose edits to the literal contents of the file, including the container markup.
+
+*SEARCH/REPLACE* blocks will *only* replace the first match occurrence.
+Including multiple unique *SEARCH/REPLACE* blocks if needed.
+Include enough lines in each SEARCH section to uniquely match each set of lines that need to change.
+
+Keep *SEARCH/REPLACE* blocks concise.
+Break large *SEARCH/REPLACE* blocks into a series of smaller blocks that each change a small portion of the file.
+Include just the changing lines, and a few surrounding lines if needed for uniqueness.
+Do not include long runs of unchanging lines in *SEARCH/REPLACE* blocks.
+
+Only create *SEARCH/REPLACE* blocks for files that the user has added to the chat!
+
+To move text within a file, use 2 *SEARCH/REPLACE* blocks: 1 to delete it from its current location, 1 to insert it in the new location.
+
+Pay attention to which filenames the user wants you to edit, especially if they are asking you to create a new file.
+
+If you want to put text in a new file, use a *SEARCH/REPLACE block* with:
+- A new file path, including dir name if needed
+- An empty \`SEARCH\` section
+- The new file's contents in the \`REPLACE\` section
+
+ONLY EVER RETURN EDIT TEXT IN A *SEARCH/REPLACE BLOCK*!
+
+<EDIT_INSTRUCTIONS>
+Suggest edits using targeted modifications. Use multiple edit blocks to make precise changes rather than rewriting entire sections.
+
+Here's how to use the *SEARCH/REPLACE block* format:
+
+${this.EDIT_BLOCK_START}
+target-filename
+<<<<<<< SEARCH
+from flask import Flask
+=======
+import math
+from flask import Flask
+>>>>>>> REPLACE
+${this.EDIT_BLOCK_END}
 
 ⚠️ Important:
-- The end marker text is included in the edited section and will be deleted. If you want to keep it, make sure to include it in your "content"
-- The "file" parameter is required and must match an open file name (without .md extension)
-- Use \" for quotes in your content to ensure proper parsing
-- The XML format <khoj-edit>...</khoj-edit> ensures more reliable parsing compared to code blocks
+- The target-filename parameter is required and must match an open file name.
+- The XML format ${this.EDIT_BLOCK_START}...${this.EDIT_BLOCK_END} ensures reliable parsing.
+- The SEARCH block content must completely and uniquely identify the section to edit.
+- The REPLACE block content will replace the first SEARCH block match in the specified \`target-filename\`.
 
 📝 Example note:
 
@@ -101,7 +157,7 @@ date: 2024-01-20
 tags: meeting, planning
 status: active
 ---
-# Meeting Notes
+# file: Meeting Notes.md
 
 Action items from today:
 - Review Q4 metrics
@@ -116,109 +172,126 @@ Next steps:
 Examples of targeted edits:
 
 1. Using just a few words to identify long text (notice how "campaign launch" is kept in content):
-<khoj-edit>
-{
-    "note": "Add deadline and specificity to the marketing team follow-up",
-    "location": {
-        "start": "- Schedule follow-up",
-        "end": "campaign launch"
-    },
-    "content": "- Schedule follow-up with marketing team by Wednesday to discuss Q1 campaign launch",
-    "file": "Meeting Notes"
-}
-</khoj-edit>
+
+Add deadline and specificity to the marketing team follow-up.
+${this.EDIT_BLOCK_START}
+Meeting Notes.md
+<<<<<<< SEARCH
+- Schedule follow-up with marketing team about new campaign launch
+=======
+- Schedule follow-up with marketing team by Wednesday to discuss Q1 campaign launch
+>>>>>>> REPLACE
+${this.EDIT_BLOCK_END}
 
 2. Multiple targeted changes with escaped characters:
-<khoj-edit>
-{
-    "note": "Add HIGH priority flag with code reference to Q4 metrics review",
-    "location": {
-        "start": "- Review Q4",
-        "end": "metrics"
-    },
-    "content": "- [HIGH] Review Q4 metrics (see \"metrics.ts\" and \`calculateQ4Metrics()\`)",
-    "file": "Meeting Notes"
-}
-</khoj-edit>
-<khoj-edit>
-{
-    "note": "Add resource allocation to project timeline task",
-    "location": {
-        "start": "- Update project",
-        "end": "Q1 2024"
-    },
-    "content": "- Update project timeline and add resource allocation for Q1 2024",
-    "file": "Meeting Notes"
-}
-</khoj-edit>
+
+Add HIGH priority flag with code reference to Q4 metrics review"
+${this.EDIT_BLOCK_START}
+Meeting Notes.md
+<<<<<<< SEARCH
+- Review Q4 metrics
+=======
+- [HIGH] Review Q4 metrics (see "metrics.ts" and \`calculateQ4Metrics()\`)
+>>>>>>> REPLACE
+</${this.EDIT_BLOCK_END}>
+
+Add resource allocation to project timeline task
+<${this.EDIT_BLOCK_START}>
+Meeting Notes.md
+<<<<<<< SEARCH
+- Update project timeline and milestones for Q1 2024
+=======
+- Update project timeline and add resource allocation for Q1 2024
+>>>>>>> REPLACE
+</${this.EDIT_BLOCK_END}>
 
 3. Adding new content between sections:
-<khoj-edit>
-{
-    "note": "Insert Discussion Points section between Action Items and Next Steps",
-    "location": {
-        "start": "Action items from today:",
-        "end": "Next steps:"
-    },
-    "content": "Action items from today:\\n- Review Q4 metrics\\n- Schedule follow-up\\n- Update timeline\\n\\nDiscussion Points:\\n- Budget review\\n- Team feedback\\n\\nNext steps:",
-    "file": "Meeting Notes"
-}
-</khoj-edit>
+Insert a new section for discussion points after the action items section:
+${this.EDIT_BLOCK_START}
+Meeting Notes.md
+<<<<<<< SEARCH
+Action items from today:
+- Review Q4 metrics
+- Schedule follow-up with marketing team about new campaign launch
+- Update project timeline and milestones for Q1 2024
+=======
+Action items from today:
+- Review Q4 metrics
+- Schedule follow-up
+- Update timeline
+
+Discussion Points:
+- Budget review
+- Team feedback
+>>>>>>> REPLACE
+</${this.EDIT_BLOCK_END}>
 
 4. Completely replacing a file content (preserving frontmatter):
-<khoj-edit>
-{
-    "note": "Replace entire file content while keeping frontmatter metadata",
-    "location": {
-        "start": "<file-start>",
-        "end": "<file-end>"
-    },
-    "content": "# Project Overview\\n\\n## Goals\\n- Increase user engagement by 25%\\n- Launch mobile app by Q3\\n- Expand to 3 new markets\\n\\n## Timeline\\n1. Q1: Research & Planning\\n2. Q2: Development\\n3. Q3: Testing & Launch\\n4. Q4: Market Expansion",
-    "file": "Meeting Notes"
-}
-</khoj-edit>
+Replace entire file content while keeping frontmatter metadata
+${this.EDIT_BLOCK_START}
+Meeting Notes.md
+<<<<<<< SEARCH
+=======
+# Project Overview
 
-💡 Key points:
-- note: Brief one-line explanation of what the edit does
-- location.start: few words from start of target text (no ambiguity). Use <file-start> to target beginning of content after frontmatter
-- location.end: few words from end of target text (no ambiguity). Use <file-end> to target file end
-- content: complete new content, including end marker text if you want to keep it
-- file: (required) name of the file to edit (without .md extension)
-- Words must uniquely identify the location (no ambiguity)
-- Changes apply to first matching location in the specified file
-- Use <file-start> and <file-end> markers to replace entire file content while preserving frontmatter
+## Goals
+- Increase user engagement by 25%
+- Launch mobile app by Q3
+- Expand to 3 new markets
+
+## Timeline
+1. Q1: Research & Planning
+2. Q2: Development
+3. Q3: Testing & Launch
+4. Q4: Market Expansion
+>>>>>>> REPLACE
+${this.EDIT_BLOCK_END}
+
+- The SEARCH block must uniquely identify the section to edit
+- The REPLACE block content replaces the first SEARCH block match in the specified file
 - Frontmatter metadata (between --- markers at top of file) cannot be modified
+- Use an empty SEARCH block to replace entire file content with content in REPLACE block (while preserving frontmatter).
 - Remember to escape special characters: use \" for quotes in content
-- Always use the XML format <khoj-edit>...</khoj-edit> instead of code blocks
+- Each edit block must be fenced in ${this.EDIT_BLOCK_START}...${this.EDIT_BLOCK_END} XML tags
 
-[END OF EDIT INSTRUCTIONS]\n\n`;
+</EDIT_INSTRUCTIONS>
+`;
         }
 
-        openFilesContent += `[OPEN FILES CONTEXT]\n\n`;
+        let openFilesContent = `
+For context, the user is currently working on the following files:
+<WORKING_FILE_SET>
+
+`;
 
         for (const leaf of leaves) {
             const view = leaf.view as any;
             const file = view?.file;
             if (!file || file.extension !== 'md') continue;
 
-            // Add file title without brackets
-            openFilesContent += `# ${file.basename}\n\`\`\`markdown\n`;
-
             // Read file content
+            let fileContent: string;
             try {
-                const content = await this.app.vault.read(file);
-                openFilesContent += content;
+                fileContent = await this.app.vault.read(file);
             } catch (error) {
                 console.error(`Error reading file ${file.path}:`, error);
+                continue;
             }
 
-            openFilesContent += "\n```\n\n";
+            openFilesContent += `<OPEN_FILE>\n# file: ${file.basename}.md\n\n${fileContent}\n</OPEN_FILE>\n\n`;
         }
 
-        openFilesContent += "[END OF CURRENT FILES CONTEXT]\n\n";
-        openFilesContent += "[END OF SYSTEM INSTRUCTIONS]\n\n";
+        openFilesContent += "</WORKING_FILE_SET>\n";
 
-        return openFilesContent;
+        // Collate open files content with instructions
+        let context: string;
+        if (fileAccessMode === 'write') {
+             context = `\n\n<SYSTEM>${editInstructions + openFilesContent}</SYSTEM>`;
+        } else {
+             context = `\n\n<SYSTEM>${openFilesContent}</SYSTEM>`;
+        }
+
+        return context;
     }
 
     /**
@@ -279,14 +352,14 @@ Examples of targeted edits:
     }
 
     /**
-     * Parses a khoj-edit block from the content string
+     * Parses a text edit block from the content string
      * Enhanced to handle incomplete blocks and extract partial information
      *
-     * @param content - The content to parse containing the edit block
-     * @param isComplete - Whether the block is complete (has closing tag)
+     * @param content - The content from which to parse edit blocks
+     * @param isComplete - Whether the edit block is complete (has closing tag)
      * @returns Object with the parsed edit data and cleaned content
      */
-    public parseKhojEditBlock(content: string, isComplete: boolean = true): ParseKhojEditResult {
+    public parseEditBlock(content: string, isComplete: boolean = true): ParsedEditBlock {
         let cleanContent = '';
         try {
             // Normalize line breaks and clean control characters, but preserve empty lines
@@ -299,20 +372,29 @@ Examples of targeted edits:
             // For incomplete blocks, try to extract partial information
             if (!isComplete) {
                 // Initialize with basic structure
-                const partialData: any = {
-                    inProgress: true
+                const partialData: EditBlock = {
+                    file: "",
+                    find: "",
+                    replace: ""
                 };
 
-                // Try to extract note field
-                const noteMatch = cleanContent.match(/"note"\s*:\s*"([^"]+)"/);
-                if (noteMatch) {
-                    partialData.note = noteMatch[1];
+                // Try to extract file name from the first line
+                const firstLineMatch = cleanContent.match(/^([^\n]+)/);
+                if (firstLineMatch) {
+                    partialData.file = firstLineMatch[1].trim();
                 }
 
-                // Try to extract file field
-                const fileMatch = cleanContent.match(/"file"\s*:\s*"([^"]+)"/);
-                if (fileMatch) {
-                    partialData.file = fileMatch[1];
+                // Try to extract search content field
+                const searchStartMatch = cleanContent.match(/<<<<<<< SEARCH\n([\s\S]*)/);
+                if (searchStartMatch) {
+                    partialData.find = searchStartMatch[1];
+                    if (!partialData.file) { // If file not on first line, try line before SEARCH
+                        const lines = cleanContent.split('\n');
+                        const searchIndex = lines.findIndex(line => line.startsWith("<<<<<<< SEARCH"));
+                        if (searchIndex > 0) {
+                            partialData.file = lines[searchIndex - 1].trim();
+                        }
+                    }
                 }
 
                 return {
@@ -322,94 +404,61 @@ Examples of targeted edits:
                 };
             }
 
-            // Parse the JSON first to identify the content field
-            let jsonContent = cleanContent;
-            try {
-                // Use a regex to find the content field and temporarily replace newlines
-                jsonContent = cleanContent.replace(
-                    /("content"\s*:\s*")((?:\\.|[^"\\])*?)(")/g,
-                    (match, prefix, contentValue, suffix) => {
-                        // Preserve actual newlines in content by escaping them differently
-                        const preservedContent = contentValue.replace(/\n/g, '§§NEWLINE§§');
-                        return prefix + preservedContent + suffix;
-                    }
-                );
+            // Try parse SEARCH/REPLACE format for complete edit blocks
+            // Regex: file_path\n<<<<<<< SEARCH\nsearch_content\n=======\nreplacement_content\n>>>>>>> REPLACE
+            const newFormatRegex = /^([^\n]+)\n<<<<<<< SEARCH\n([\s\S]*?)\n=======\n([\s\S]*?)\n>>>>>>> REPLACE\s*$/;
+            const newFormatMatch = newFormatRegex.exec(cleanContent);
 
-                // Escape newlines in other fields
-                jsonContent = jsonContent.replace(/"(?:\\.|[^"\\])*"/g, (match) => {
-                    if (!match.includes('"content":')) {
-                        return match.replace(/\n\s*\n/g, '\\n').replace(/\n/g, '\\n');
-                    }
-                    return match;
-                });
-
-                // Restore actual newlines in content field
-                jsonContent = jsonContent.replace(/§§NEWLINE§§/g, '\\n');
-            } catch (err) {
-                console.error("Error preprocessing JSON:", err);
-                jsonContent = cleanContent;
+            let editData: EditBlock | null = null;
+            if (newFormatMatch) {
+                editData = {
+                    file: newFormatMatch[1].trim(),
+                    find: newFormatMatch[2],
+                    replace: newFormatMatch[3],
+                };
             }
-
-            // Use JSON5 for tolerant parsing
-            const editData = JSON5.parse(jsonContent);
 
             // Validate required fields
-            if (!editData.note) {
-                return {
-                    editData,
-                    cleanContent,
-                    error: {
-                        type: 'missing_field',
-                        message: 'Missing "note" field in edit block',
-                        details: 'The "note" field is required and must contain a brief explanation of the edit'
-                    }
+            let error: { type: 'missing_field' | 'invalid_format' | 'preprocessing' | 'unknown', message: string, details?: string } | null = null;
+            if (!editData) {
+                error = {
+                    type: 'invalid_format',
+                    message: 'Invalid edit block format',
+                    details: 'The edit block does not match the expected format'
+                };
+            }
+            else if (!editData.file) {
+                error = {
+                    type: 'missing_field',
+                    message: 'Missing "file" field in edit block',
+                    details: 'The "file" field is required and should contain the target file name'
+                };
+            }
+            else if (editData.find === undefined || editData.find === null) {
+                error = {
+                    type: 'missing_field',
+                    message: 'Missing "find" field markers',
+                    details: 'The "find" field is required and should contain the content to find in the file'
+                };
+            }
+            else if (!editData.replace) {
+                error = {
+                    type: 'missing_field',
+                    message: 'Missing "replace" field in edit block',
+                    details: 'The "replace" field is required and should contain the replacement text'
                 };
             }
 
-            if (!editData.file) {
-                return {
-                    editData,
-                    cleanContent,
-                    error: {
-                        type: 'missing_field',
-                        message: 'Missing "file" field in edit block',
-                        details: 'The "file" field is required and should contain the target file name'
-                    }
-                };
-            }
-
-            if (!editData.location || (!editData.location.start && !editData.location.end)) {
-                return {
-                    editData,
-                    cleanContent,
-                    error: {
-                        type: 'missing_field',
-                        message: 'Missing location field or both start/end markers',
-                        details: 'The "location" field must contain at least one of "start" or "end" to mark the section to edit'
-                    }
-                };
-            }
-
-            if (editData.content === undefined) {
-                return {
-                    editData,
-                    cleanContent,
-                    error: {
-                        type: 'missing_field',
-                        message: 'Missing "content" field in edit block',
-                        details: 'The "content" field is required and contains the replacement text'
-                    }
-                };
-            }
-
-            return { editData, cleanContent };
+            return error
+            ? { editData, cleanContent, error }
+            : { editData, cleanContent };
         } catch (error) {
             console.error("Error parsing edit block:", error);
             return {
                 editData: null,
                 cleanContent,
                 error: {
-                    type: 'invalid_json',
+                    type: 'invalid_format',
                     message: 'Invalid JSON format in edit block',
                     details: error.message
                 }
@@ -420,31 +469,28 @@ Examples of targeted edits:
     /**
      * Parses all edit blocks from a message
      *
-     * @param message - The message containing khoj-edit blocks in XML format
+     * @param message - The message containing text edit blocks in XML format
      * @returns Array of EditBlock objects
      */
     public parseEditBlocks(message: string): EditBlock[] {
         const editBlocks: EditBlock[] = [];
-        // Updated regex to match XML format <khoj-edit>...</khoj-edit>
-        const editBlockRegex = /<khoj-edit>([\s\S]*?)<\/khoj-edit>/g;
-        let hasError = false;
+        // Set regex to match edit blocks based on Edit Start, End XML tags in the message
+        const editBlockRegex = new RegExp(`${this.EDIT_BLOCK_START}([\\s\\S]*?)${this.EDIT_BLOCK_END}`, 'g');
 
         let match;
         while ((match = editBlockRegex.exec(message)) !== null) {
-            const { editData, cleanContent, error } = this.parseKhojEditBlock(match[1]);
+            const { editData, cleanContent, error } = this.parseEditBlock(match[1]);
 
             if (error) {
                 console.error("Failed to parse edit block:", error);
                 console.debug("Content causing error:", match[1]);
-                hasError = true;
                 editBlocks.push({
+                    file: "unknown", // Fallback value when editData is null
+                    find: "",
+                    replace: `Error: ${error.message}\nOriginal content:\n${match[1]}`,
                     note: "Error parsing edit block",
-                    before: "",
-                    after: "",
-                    replacement: `Error: ${error.message}\nOriginal content:\n${match[1]}`,
-                    file: "unknown", // Fallback value quand editData est null
                     hasError: true,
-                    error: error // On passe aussi l'erreur pour le retry
+                    error: error
                 });
                 continue;
             }
@@ -455,16 +501,13 @@ Examples of targeted edits:
             }
 
             editBlocks.push({
-                note: editData.note,
-                before: editData.location.start,
-                after: editData.location.end,
-                replacement: editData.content,
-                file: editData.file
+                note: "Suggested edit",
+                file: editData.file,
+                find: editData.find,
+                replace: editData.replace,
+                hasError: !!error,
+                error: error || undefined
             });
-        }
-
-        if (editBlocks.length > 0) {
-            editBlocks[0] = { ...editBlocks[0], hasError };
         }
 
         return editBlocks;
@@ -563,11 +606,10 @@ Examples of targeted edits:
     ): Promise<{
         editResults: { block: EditBlock, success: boolean, error?: string }[],
         fileBackups: Map<string, string>,
-        blocksNeedingRetry: EditBlock[]
     }> {
         // Check for parsing errors first
         if (editBlocks.length === 0) {
-            return { editResults: [], fileBackups: new Map(), blocksNeedingRetry: [] };
+            return { editResults: [], fileBackups: new Map() };
         }
 
         // Store original content for each file in case we need to cancel
@@ -625,45 +667,22 @@ Examples of targeted edits:
                 const frontmatterEndIndex = frontmatterMatch ? frontmatterMatch[0].length : 0;
 
                 // Clean up the replacement content
-                let replacement = block.replacement
-                    .replace(/^[\s\n]*<file-start>[\s\n]*/, '')
-                    .replace(/[\s\n]*<file-end>[\s\n]*$/, '')
-                    .trim();
+                let replacement = block.replace.trim();
 
-                // Remove frontmatter if block starts at beginning and has frontmatter
-                if ((block.before === '' || block.before.includes('<file-start>')) &&
-                    replacement.startsWith('---\n')) {
-                    const frontmatterEnd = replacement.indexOf('\n---\n');
-                    if (frontmatterEnd !== -1) {
-                        replacement = replacement.substring(frontmatterEnd + 5).trim();
-                    }
-                }
-
-                // Handle special markers for file start and end
-                const before = block.before.replace('<file-start>', '');
-                const after = block.after.replace('<file-end>', '');
-
-                // Find the text to replace in original content
                 let startIndex = -1;
                 let endIndex = -1;
-
-                if (block.before.includes('<file-start>')) {
+                if (block.find === "") {
+                    // Empty search means replace entire content after frontmatter
                     startIndex = frontmatterEndIndex;
-                } else {
-                    startIndex = content.indexOf(before, frontmatterEndIndex);
-                }
-
-                if (block.after.includes('<file-end>')) {
                     endIndex = content.length;
                 } else {
+                    startIndex = content.indexOf(block.find, frontmatterEndIndex);
                     if (startIndex !== -1) {
-                        endIndex = content.indexOf(after, startIndex);
-                        if (endIndex !== -1) {
-                            endIndex = endIndex + after.length;
-                        }
+                        endIndex = startIndex + block.find.length;
                     }
                 }
 
+                // If no find start or end text, add validation error
                 if (startIndex === -1 || endIndex === -1) {
                     validationResults.push({
                         block,
@@ -717,7 +736,7 @@ Examples of targeted edits:
                         ...result.block,
                         hasError: true,
                         error: {
-                            type: 'invalid_json',
+                            type: 'invalid_format',
                             message: result.error || 'Validation failed',
                             details: result.error || 'Could not validate edit'
                         }
@@ -743,7 +762,7 @@ Examples of targeted edits:
                 onRetryNeeded(blocksNeedingRetry[0]);
             }
 
-            return { editResults, fileBackups, blocksNeedingRetry };
+            return { editResults, fileBackups };
         }
 
         // PHASE 2: Application - Apply all changes since all blocks are valid
@@ -765,45 +784,24 @@ Examples of targeted edits:
                 // Find frontmatter boundaries
                 const frontmatterMatch = content.match(/^---\n[\s\S]*?\n---\n/);
                 const frontmatterEndIndex = frontmatterMatch ? frontmatterMatch[0].length : 0;
-
-                // Clean up the replacement content
-                let replacement = block.replacement
-                    .replace(/^[\s\n]*<file-start>[\s\n]*/, '')
-                    .replace(/[\s\n]*<file-end>[\s\n]*$/, '')
-                    .trim();
-
-                // Remove frontmatter if block starts at beginning and has frontmatter
-                if ((block.before === '' || block.before.includes('<file-start>')) &&
-                    replacement.startsWith('---\n')) {
-                    const frontmatterEnd = replacement.indexOf('\n---\n');
-                    if (frontmatterEnd !== -1) {
-                        replacement = replacement.substring(frontmatterEnd + 5).trim();
-                    }
-                }
-
-                // Handle special markers for file start and end
-                const before = block.before.replace('<file-start>', '');
-                const after = block.after.replace('<file-end>', '');
+                let replacement = block.replace.trim();
 
                 // Find the text to replace in original content
                 let startIndex = -1;
                 let endIndex = -1;
 
-                if (block.before.includes('<file-start>')) {
+                if (block.find === "") {
                     startIndex = frontmatterEndIndex;
-                } else {
-                    startIndex = content.indexOf(before, frontmatterEndIndex);
-                }
-
-                if (block.after.includes('<file-end>')) {
                     endIndex = content.length;
                 } else {
+                    startIndex = content.indexOf(block.find, frontmatterEndIndex);
                     if (startIndex !== -1) {
-                        endIndex = content.indexOf(after, startIndex);
-                        if (endIndex !== -1) {
-                            endIndex = endIndex + after.length;
-                        }
+                        endIndex = startIndex + block.find.length;
                     }
+                }
+
+                if (startIndex === -1 || endIndex === -1 || startIndex > endIndex) {
+                     throw new Error(`Failed to re-locate edit markers for file "${targetFile.basename}" during application. Content may have shifted.`);
                 }
 
                 // Get the text to replace from original content
@@ -826,9 +824,8 @@ Examples of targeted edits:
                 // Update the current content for this file for subsequent edits
                 currentFileContents.set(targetFile.path, newContent);
 
-                editResults.push({ block, success: true });
+                editResults.push({ block: {...block, replace: preview}, success: true });
             }
-
         } catch (error) {
             console.error(`Error applying edits:`, error);
 
@@ -856,13 +853,13 @@ Examples of targeted edits:
             }
         }
 
-        return { editResults, fileBackups, blocksNeedingRetry };
+        return { editResults, fileBackups };
     }
 
     /**
-     * Transforms khoj-edit blocks in a message to HTML for display
+     * Transforms khoj edit blocks in a message to HTML for display
      *
-     * @param message - The message containing khoj-edit blocks in XML format
+     * @param message - The message containing khoj edit blocks in XML format
      * @returns The transformed message with HTML for edit blocks
      */
     public transformKhojEditBlocks(message: string): string {
@@ -881,7 +878,7 @@ Examples of targeted edits:
             const content = block.content;
 
             // Parse the block content
-            const { editData, cleanContent, error, inProgress } = this.parseKhojEditBlock(content, isComplete);
+            const { editData, cleanContent, error, inProgress } = this.parseEditBlock(content, isComplete);
 
             // Escape content for HTML display
             const escapedContent = cleanContent
@@ -935,9 +932,9 @@ Examples of targeted edits:
 
             // Replace the block in the message
             if (isComplete) {
-                transformedMessage = transformedMessage.replace(`<khoj-edit>${content}</khoj-edit>`, htmlReplacement);
+                transformedMessage = transformedMessage.replace(`${this.EDIT_BLOCK_START}${content}${this.EDIT_BLOCK_END}`, htmlReplacement);
             } else {
-                transformedMessage = transformedMessage.replace(`<khoj-edit>${content}`, htmlReplacement);
+                transformedMessage = transformedMessage.replace(`${this.EDIT_BLOCK_START}${content}`, htmlReplacement);
             }
         }
 
@@ -954,14 +951,14 @@ Examples of targeted edits:
     public detectPartialEditBlocks(message: string): PartialEditBlockResult[] {
         const results: PartialEditBlockResult[] = [];
 
-        // This regex captures both complete and incomplete khoj-edit blocks
-        // It looks for <khoj-edit> followed by any content, and then either </khoj-edit> or the end of the string
-        const regex = /<khoj-edit>([\s\S]*?)(?:<\/khoj-edit>|$)/g;
+        // This regex captures both complete and incomplete edit blocks
+        // It looks for EDIT_BLOCK_START tag followed by any content, and then either EDIT_BLOCK_END or the end of the string
+        const regex = new RegExp(`${this.EDIT_BLOCK_START}([\\s\\S]*?)(?:${this.EDIT_BLOCK_END}|$)`, 'g');
 
         let match;
         while ((match = regex.exec(message)) !== null) {
             const content = match[1];
-            const isComplete = match[0].endsWith('</khoj-edit>');
+            const isComplete = match[0].endsWith(this.EDIT_BLOCK_END);
 
             results.push({
                 content,

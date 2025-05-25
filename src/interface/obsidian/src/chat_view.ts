@@ -2,7 +2,7 @@ import { ItemView, MarkdownRenderer, Scope, WorkspaceLeaf, request, requestUrl, 
 import * as DOMPurify from 'isomorphic-dompurify';
 import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
-import { KhojView, createCopyParentText, getLinkToEntry, pasteTextAtCursor, populateHeaderPane } from 'src/utils';
+import { KhojView, createCopyParentText, getLinkToEntry, pasteTextAtCursor } from 'src/utils';
 import { KhojSearchModal } from 'src/search_modal';
 import { FileInteractions, EditBlock } from 'src/interact_with_files';
 
@@ -92,6 +92,7 @@ export class KhojChatView extends KhojPaneView {
     private modeDropdown: HTMLElement | null = null;
     private selectedOptionIndex: number = -1;
     private isStreaming: boolean = false; // Flag to track streaming state
+    private maxEditRetries: number = 2; // Maximum retries for edit blocks
 
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
         super(leaf, setting);
@@ -721,6 +722,11 @@ export class KhojChatView extends KhojPaneView {
         chatMessageBodyEl.addClasses(["khoj-chat-message-text", sender]);
         let chatMessageBodyTextEl = chatMessageBodyEl.createDiv();
 
+        // Remove Obsidian specific instructions sent alongside user query in between <SYSTEM></SYSTEM> tags
+        if (sender === "you") {
+            message = message.replace(/<SYSTEM>.*?<\/SYSTEM>/s, '');
+        }
+
         // Sanitize the markdown to render
         message = DOMPurify.sanitize(message);
 
@@ -1309,7 +1315,7 @@ export class KhojChatView extends KhojPaneView {
                 const editBlocks = this.parseEditBlocks(this.chatMessageState.rawResponse);
 
                 // Check for errors and retry if needed
-                if (editBlocks.length > 0 && editBlocks[0].hasError && this.editRetryCount < 3) {
+                if (editBlocks.length > 0 && editBlocks[0].hasError && this.editRetryCount < this.maxEditRetries) {
                     await this.handleEditRetry(editBlocks[0]);
                     return;
                 }
@@ -2136,27 +2142,8 @@ export class KhojChatView extends KhojPaneView {
         return this.fileInteractions.getOpenFilesContent(this.fileAccessMode);
     }
 
-    // Common method to parse a khoj-edit block
-    private parseKhojEditBlock(content: string): import('./interact_with_files').ParseKhojEditResult {
-        return this.fileInteractions.parseKhojEditBlock(content);
-    }
-
     private parseEditBlocks(message: string): EditBlock[] {
         return this.fileInteractions.parseEditBlocks(message);
-    }
-
-    // Add this helper function to calculate Levenshtein distance
-    private levenshteinDistance(a: string, b: string): number {
-        return this.fileInteractions.levenshteinDistance(a, b);
-    }
-
-    private findBestMatchingFile(targetName: string, files: TFile[]): TFile | null {
-        return this.fileInteractions.findBestMatchingFile(targetName, files);
-    }
-
-    // Helper method to create preview with diff markers
-    private createPreviewWithDiff(originalText: string, newText: string): string {
-        return this.fileInteractions.createPreviewWithDiff(originalText, newText);
     }
 
     private async applyEditBlocks(editBlocks: EditBlock[]) {
@@ -2164,10 +2151,10 @@ export class KhojChatView extends KhojPaneView {
         if (editBlocks.length === 0) return;
 
         // Apply edits using the FileInteractions class
-        const { editResults, fileBackups, blocksNeedingRetry } = await this.fileInteractions.applyEditBlocks(
+        const { editResults, fileBackups } = await this.fileInteractions.applyEditBlocks(
             editBlocks,
             (blockToRetry) => {
-                if (this.editRetryCount < 2) {
+                if (this.editRetryCount < this.maxEditRetries) {
                     this.handleEditRetry(blockToRetry);
                 }
             }
@@ -2349,7 +2336,7 @@ export class KhojChatView extends KhojPaneView {
         if (errorBlock.error?.type === 'missing_field') {
             errorDetails = `Missing required fields: ${errorBlock.error.message}\n`;
             errorDetails += `Please include all required fields:\n${errorBlock.error.details}\n`;
-        } else if (errorBlock.error?.type === 'invalid_json') {
+        } else if (errorBlock.error?.type === 'invalid_format') {
             errorDetails = `The JSON format is invalid: ${errorBlock.error.message}\n`;
             errorDetails += "Please check the syntax and provide a valid JSON edit block.\n";
         } else {

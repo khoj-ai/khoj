@@ -29,7 +29,6 @@
         "typescript": "4.7.4"
     },
     "dependencies": {
-        "isomorphic-dompurify": "^2.25.0",
-        "json5": "^2.2.3"
+        "isomorphic-dompurify": "^2.25.0"
     }
 }
