@@ -1005,7 +1005,7 @@ export class KhojChatView extends KhojPaneView {
                     if (incomingConversationId == conversationId) {
                         conversationSessionEl.classList.add("selected-conversation");
                     }
-                    const conversationTitle = conversation["slug"] || `New conversation`;
+                    const conversationTitle = conversation["slug"] || `New conversation 🌱`;
                     const conversationSessionTitleEl = conversationSessionEl.createDiv("conversation-session-title");
                     conversationSessionTitleEl.textContent = conversationTitle;
                     conversationSessionTitleEl.addEventListener('click', () => {
@@ -1185,7 +1185,7 @@ export class KhojChatView extends KhojPaneView {
             } else if (responseJson.response) {
                 // Render conversation history, if any
                 chatBodyEl.dataset.conversationId = responseJson.response.conversation_id;
-                chatBodyEl.dataset.conversationTitle = responseJson.response.slug || `New conversation`;
+                chatBodyEl.dataset.conversationTitle = responseJson.response.slug || `New conversation 🌱`;
 
                 // Update current agent from conversation history
                 if (responseJson.response.agent?.slug) {
@@ -1242,7 +1242,7 @@ export class KhojChatView extends KhojPaneView {
                 }
             }
         } catch (err) {
-            let errorMsg = "Unable to get response from Khoj server. Ensure server is running or contact developers for help at [team@khoj.dev](mailto:team@khoj.dev) or in [Discord](https://discord.gg/BDgyabRM6e)";
+            let errorMsg = "Unable to get response from Khoj server ❤️‍🩹. Ensure server is running or contact developers for help at [team@khoj.dev](mailto:team@khoj.dev) or in [Discord](https://discord.gg/BDgyabRM6e)";
             this.renderMessage({
                 chatBodyEl,
                 message: errorMsg,
@@ -1544,7 +1544,7 @@ export class KhojChatView extends KhojPaneView {
             await this.readChatStream(response);
         } catch (err) {
             console.error(`Khoj chat response failed with\n${err}`);
-            let errorMsg = "Sorry, unable to get response from Khoj backend. Retry or contact developers for help at <a href=mailto:'team@khoj.dev'>team@khoj.dev</a> or <a href='https://discord.gg/BDgyabRM6e'>on Discord</a>";
+            let errorMsg = "Sorry, unable to get response from Khoj backend ❤️‍🩹. Retry or contact developers for help at <a href=mailto:'team@khoj.dev'>team@khoj.dev</a> or <a href='https://discord.gg/BDgyabRM6e'>on Discord</a>";
             newResponseTextEl.textContent = errorMsg;
         }
     }
@@ -1636,11 +1636,11 @@ export class KhojChatView extends KhojPaneView {
                 if (!noSpeech) chatInput.value += response.json.text.trimStart();
                 this.autoResize();
             } else if (response.status === 501) {
-                throw new Error("Configure speech-to-text model on server.");
+                throw new Error("⛔️ Configure speech-to-text model on server.");
             } else if (response.status === 422) {
-                throw new Error("Audio file to large to process.");
+                throw new Error("⛔️ Audio file to large to process.");
             } else {
-                throw new Error("Failed to transcribe audio.");
+                throw new Error("⛔️ Failed to transcribe audio.");
             }
 
             // Don't auto-send empty messages or when no speech is detected
@@ -1692,7 +1692,7 @@ export class KhojChatView extends KhojPaneView {
                 .getUserMedia({ audio: true })
                 ?.then(handleRecording)
                 .catch((e) => {
-                    this.flashStatusInChatInput("Failed to access microphone");
+                    this.flashStatusInChatInput("⛔️ Failed to access microphone");
                 });
         } else if (this.mediaRecorder?.state === 'recording' || event.type === 'touchend' || event.type === 'touchcancel' || event.type === 'mouseup' || event.type === 'keyup') {
             this.mediaRecorder.stop();
