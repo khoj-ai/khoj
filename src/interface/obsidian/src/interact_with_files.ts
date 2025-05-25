@@ -35,9 +35,8 @@ export interface ParsedEditBlock {
  * Interface representing the result of processing an edit block
  */
 interface ProcessedEditResult {
-    startIndex: number;
-    endIndex: number;
     preview: string; // The content with diff markers to be inserted
+    newContent: string; // The new content after replacement
     error?: string;  // Error message if processing failed (e.g., 'find' text not found)
 }
 
@@ -605,6 +604,46 @@ For context, the user is currently working on the following files:
         return restoreFormatting(diffPreview);
     }
 
+    private processSingleEdit(
+        findText: string,
+        replaceText: string,
+        currentFileContent: string,
+        frontmatterEndIndex: number
+    ): ProcessedEditResult {
+        let startIndex = -1;
+        let endIndex = -1;
+
+        if (findText === "") {
+            // Empty search means replace entire content after frontmatter
+            startIndex = frontmatterEndIndex;
+            endIndex = currentFileContent.length;
+        } else {
+            startIndex = currentFileContent.indexOf(findText, frontmatterEndIndex);
+            if (startIndex !== -1) {
+                endIndex = startIndex + findText.length;
+            }
+        }
+
+        if (startIndex === -1 || endIndex === -1 || startIndex > endIndex) {
+            return {
+                preview: "",
+                newContent: currentFileContent,
+                error: `No matching text found in file.`
+
+            };
+        }
+
+        const textToReplace = currentFileContent.substring(startIndex, endIndex);
+        const newText = replaceText.trim();
+        const preview = this.createPreviewWithDiff(textToReplace, newText);
+        const newContent =
+            currentFileContent.substring(0, startIndex) +
+            preview +
+            currentFileContent.substring(endIndex);
+
+        return { preview, newContent };
+    }
+
     /**
      * Applies edit blocks to modify files
      *
@@ -672,64 +711,27 @@ For context, the user is currently working on the following files:
                 }
 
                 // Use current content (which may have been modified by previous validations)
-                const content = currentFileContents.get(targetFile.path)!;
+                const currentContent = currentFileContents.get(targetFile.path)!;
 
                 // Find frontmatter boundaries
-                const frontmatterMatch = content.match(/^---\n[\s\S]*?\n---\n/);
+                const frontmatterMatch = currentContent.match(/^---\n[\s\S]*?\n---\n/);
                 const frontmatterEndIndex = frontmatterMatch ? frontmatterMatch[0].length : 0;
 
-                // Clean up the replacement content
-                let replacement = block.replace.trim();
+                const processedEdit = this.processSingleEdit(block.find, block.replace, currentContent, frontmatterEndIndex);
 
-                let startIndex = -1;
-                let endIndex = -1;
-                if (block.find === "") {
-                    // Empty search means replace entire content after frontmatter
-                    startIndex = frontmatterEndIndex;
-                    endIndex = content.length;
-                } else {
-                    startIndex = content.indexOf(block.find, frontmatterEndIndex);
-                    if (startIndex !== -1) {
-                        endIndex = startIndex + block.find.length;
-                    }
-                }
-
-                // If no find start or end text, add validation error
-                if (startIndex === -1 || endIndex === -1) {
-                    validationResults.push({
-                        block,
-                        valid: false,
-                        error: `Could not find the specified text in file "${targetFile.basename}"`
-                    });
+                if (processedEdit.error) {
+                    validationResults.push({ block, valid: false, error: processedEdit.error });
                     continue;
                 }
 
                 // Validation passed
-                validationResults.push({
-                    block,
-                    valid: true,
-                    targetFile
-                });
-
-                // Simulate the edit for subsequent validations
-                const textToReplace = content.substring(startIndex, endIndex);
-                const originalText = textToReplace;
-                const newText = replacement;
-                const preview = this.createPreviewWithDiff(originalText, newText);
-                const newContent =
-                    content.substring(0, startIndex) +
-                    preview +
-                    content.substring(endIndex);
+                validationResults.push({ block, valid: true, targetFile });
 
                 // Update the current content for this file for subsequent validations
-                currentFileContents.set(targetFile.path, newContent);
+                currentFileContents.set(targetFile.path, processedEdit.newContent);
 
             } catch (error) {
-                validationResults.push({
-                    block,
-                    valid: false,
-                    error: error.message
-                });
+                validationResults.push({ block, valid: false, error: error.message });
             }
         }
 
@@ -796,47 +798,22 @@ For context, the user is currently working on the following files:
                 // Find frontmatter boundaries
                 const frontmatterMatch = content.match(/^---\n[\s\S]*?\n---\n/);
                 const frontmatterEndIndex = frontmatterMatch ? frontmatterMatch[0].length : 0;
-                let replacement = block.replace.trim();
 
                 // Find the text to replace in original content
-                let startIndex = -1;
-                let endIndex = -1;
+                // Recalculate based on the current state of the file content for this phase
+                const processedEdit = this.processSingleEdit(block.find, block.replace, content, frontmatterEndIndex);
 
-                if (block.find === "") {
-                    startIndex = frontmatterEndIndex;
-                    endIndex = content.length;
-                } else {
-                    startIndex = content.indexOf(block.find, frontmatterEndIndex);
-                    if (startIndex !== -1) {
-                        endIndex = startIndex + block.find.length;
-                    }
-                }
-
-                if (startIndex === -1 || endIndex === -1 || startIndex > endIndex) {
+                if (processedEdit.error) {
                      throw new Error(`Failed to re-locate edit markers for file "${targetFile.basename}" during application. Content may have shifted.`);
                 }
 
-                // Get the text to replace from original content
-                const textToReplace = content.substring(startIndex, endIndex);
-                const originalText = textToReplace;
-                const newText = replacement;
-
-                // Create preview with diff markers
-                const preview = this.createPreviewWithDiff(originalText, newText);
-
-                // Apply the edit
-                const newContent =
-                    content.substring(0, startIndex) +
-                    preview +
-                    content.substring(endIndex);
-
-                // Save the changes
-                await this.app.vault.modify(targetFile, newContent);
+                // Apply the changes to the file
+                await this.app.vault.modify(targetFile, processedEdit.newContent);
 
                 // Update the current content for this file for subsequent edits
-                currentFileContents.set(targetFile.path, newContent);
+                currentFileContents.set(targetFile.path, processedEdit.newContent);
 
-                editResults.push({ block: {...block, replace: preview}, success: true });
+                editResults.push({ block: {...block, replace: processedEdit.preview}, success: true });
             }
         } catch (error) {
             console.error(`Error applying edits:`, error);
