@@ -719,7 +719,7 @@ export class KhojChatView extends KhojPaneView {
             attr: {
                 "data-meta": message_time,
                 class: `khoj-chat-message ${sender}`,
-                ...(turnId && { "data-turnId": turnId })
+                ...(turnId && { "data-turnid": turnId })
             },
         })
         let chatMessageBodyEl = chatMessageEl.createDiv();
@@ -1916,8 +1916,8 @@ export class KhojChatView extends KhojPaneView {
         }
         if (!!newResponseElement && turnId) {
             // Set the turnId for the new response and the previous user message
-            newResponseElement.parentElement?.setAttribute("data-turnId", turnId);
-            newResponseElement.parentElement?.previousElementSibling?.setAttribute("data-turnId", turnId);
+            newResponseElement.parentElement?.setAttribute("data-turnid", turnId);
+            newResponseElement.parentElement?.previousElementSibling?.setAttribute("data-turnid", turnId);
         }
         this.scrollChatToBottom();
         let chatInput = this.contentEl.getElementsByClassName("khoj-chat-input")[0];
@@ -2084,7 +2084,7 @@ export class KhojChatView extends KhojPaneView {
         // Wait for animation to complete
         setTimeout(async () => {
             // Get turn ID for message
-            const turnId = messageContainer.getAttribute('data-turn-id');
+            const turnId = messageContainer.getAttribute('data-turnid');
 
             // Remove message(s) from DOM
             messageContainer.remove();
