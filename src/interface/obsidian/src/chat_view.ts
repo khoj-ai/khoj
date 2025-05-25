@@ -79,13 +79,16 @@ export class KhojChatView extends KhojPaneView {
     private agents: Agent[] = [];
     private currentAgent: string | null = null;
     private fileAccessMode: 'none' | 'read' | 'write' = 'none'; // Track the current file access mode
+    // TODO: Only show modes available on server and to current agent
     private chatModes: ChatMode[] = [
         { value: "default", label: "Default", iconName: "target", command: "/default" },
         { value: "general", label: "General", iconName: "message-circle", command: "/general" },
         { value: "notes", label: "Notes", iconName: "file-text", command: "/notes" },
         { value: "online", label: "Online", iconName: "globe", command: "/online" },
+        { value: "code", label: "Code", iconName: "code", command: "/code" },
         { value: "image", label: "Image", iconName: "image", command: "/image" },
-        { value: "research", label: "Research", iconName: "microscope", command: "/research" }
+        { value: "research", label: "Research", iconName: "microscope", command: "/research" },
+        { value: "operator", label: "Operator", iconName: "laptop", command: "/operator" }
     ];
     private editRetryCount: number = 0;  // Track number of retries for edit blocks
     private fileInteractions: FileInteractions;
@@ -589,8 +592,12 @@ export class KhojChatView extends KhojPaneView {
         // Remove any text between <s>[INST] and </s> tags. These are spurious instructions for some AI chat model.
         message = message.replace(/<s>\[INST\].+(<\/s>)?/g, '');
 
-        // Transform khoj-edit blocks into accordions if not raw
+        // Render train of thought messages
+        const { content, header } = this.processTrainOfThought(message);
+        message = content;
+
         if (!raw) {
+            // Render text edit blocks
             message = this.transformEditBlocks(message);
         }
 
@@ -625,6 +632,34 @@ export class KhojChatView extends KhojPaneView {
         // Sanitize the markdown text rendered as HTML
         return DOMPurify.sanitize(virtualChatMessageBodyTextEl.innerHTML);
     }
+
+    private processTrainOfThought(message: string): { content: string, header: string } {
+        // The train of thought comes in as a markdown-formatted string. It starts with a heading delimited by two asterisks at the start and end and a colon, followed by the message. Example: **header**: status. This function will parse the message and render it as a div.
+        let extractedHeader = message.match(/\*\*(.*)\*\*/);
+        let header = extractedHeader ? extractedHeader[1] : "";
+        let content = message;
+
+        // Render screenshot image in screenshot action message
+        let jsonMessage = null;
+        try {
+            const jsonMatch = message.match(
+                /\{.*("action": "screenshot"|"type": "screenshot"|"image": "data:image\/.*").*\}/,
+            );
+            if (jsonMatch) {
+                jsonMessage = JSON.parse(jsonMatch[0]);
+                const screenshotHtmlString = `<img src="${jsonMessage.image}" alt="State of environment" class="max-w-full" />`;
+                content = content.replace(
+                    `:\n**Action**: ${jsonMatch[0]}`,
+                    `\n\n- ${jsonMessage.text}\n${screenshotHtmlString}`,
+                );
+            }
+        } catch (e) {
+            console.error("Failed to parse screenshot data", e);
+        }
+
+        return { content, header };
+    }
+
 
     renderMessageWithReferences(
         chatEl: Element,
