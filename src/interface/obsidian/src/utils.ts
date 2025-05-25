@@ -318,9 +318,9 @@ export function getBackendStatusMessage(
         return `✅ Connected to Khoj. ❗️Get a valid API key from ${khojUrl}/settings#clients to log in`;
     else if (userEmail === 'default@example.com')
         // Logged in as default user in anonymous mode
-        return `✅ Signed in to Khoj`;
+        return `✅ Welcome back to Khoj`;
     else
-        return `✅ Signed in to Khoj as ${userEmail}`;
+        return `✅ Welcome back to Khoj, ${userEmail}`;
 }
 
 export async function populateHeaderPane(headerEl: Element, setting: KhojSetting): Promise<void> {

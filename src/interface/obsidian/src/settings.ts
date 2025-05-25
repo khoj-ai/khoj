@@ -75,18 +75,66 @@ export class KhojSettingTab extends PluginSettingTab {
         containerEl.empty();
 
         // Add notice whether able to connect to khoj backend or not
-        let backendStatusEl = containerEl.createEl('small', {
-            text: getBackendStatusMessage(
-                this.plugin.settings.connectedToBackend,
-                this.plugin.settings.userInfo?.email,
-                this.plugin.settings.khojUrl,
-                this.plugin.settings.khojApiKey
-            )
-        }
+        let backendStatusMessage = getBackendStatusMessage(
+            this.plugin.settings.connectedToBackend,
+            this.plugin.settings.userInfo?.email,
+            this.plugin.settings.khojUrl,
+            this.plugin.settings.khojApiKey
         );
-        let backendStatusMessage: string = '';
+
+        const connectHeaderEl = containerEl.createEl('h3', { title: backendStatusMessage });
+        const connectHeaderContentEl = connectHeaderEl.createSpan({ cls: 'khoj-connect-settings-header' });
+        const connectTitleEl = connectHeaderContentEl.createSpan({ text: 'Connect'});
+        const backendStatusEl = connectTitleEl.createSpan({text: this.connectStatusIcon(), cls: 'khoj-connect-settings-header-status' });
+        if (this.plugin.settings.userInfo && this.plugin.settings.connectedToBackend) {
+            if (this.plugin.settings.userInfo.photo) {
+                const profilePicEl = connectHeaderContentEl.createEl('img', {
+                    attr: { src: this.plugin.settings.userInfo.photo },
+                    cls: 'khoj-profile'
+                });
+                profilePicEl.addEventListener('click', () => { new Notice(backendStatusMessage); });
+            } else if (this.plugin.settings.userInfo.email) {
+                const initial = this.plugin.settings.userInfo.email[0].toUpperCase();
+                const profilePicEl = connectHeaderContentEl.createDiv({
+                    text: initial,
+                    cls: 'khoj-profile khoj-profile-initial'
+                });
+                profilePicEl.addEventListener('click', () => { new Notice(backendStatusMessage); });
+            }
+        }
+        if (this.plugin.settings.userInfo && this.plugin.settings.userInfo.email) {
+            connectHeaderEl.title = this.plugin.settings.userInfo?.email === 'default@example.com'
+                ? "Signed in"
+                : `Signed in as ${this.plugin.settings.userInfo.email}`;
+        }
 
         // Add khoj settings configurable from the plugin settings tab
+       const apiKeySetting = new Setting(containerEl)
+            .setName('Khoj API Key')
+            .addText(text => text
+                .setValue(`${this.plugin.settings.khojApiKey}`)
+                .onChange(async (value) => {
+                    this.plugin.settings.khojApiKey = value.trim();
+                    ({
+                        connectedToBackend: this.plugin.settings.connectedToBackend,
+                        userInfo: this.plugin.settings.userInfo,
+                        statusMessage: backendStatusMessage,
+                    } = await canConnectToBackend(this.plugin.settings.khojUrl, this.plugin.settings.khojApiKey));
+                    await this.plugin.saveSettings();
+                    backendStatusEl.setText(this.connectStatusIcon())
+                    connectHeaderEl.title = backendStatusMessage;
+                }));
+
+        // Add API key setting description with link to get API key
+        apiKeySetting.descEl.createEl('span', {
+            text: 'Connect your Khoj Cloud account. ',
+        });
+        apiKeySetting.descEl.createEl('a', {
+            text: 'Get your API Key',
+            href: `${this.plugin.settings.khojUrl}/settings#clients`,
+            attr: { target: '_blank' }
+        });
+
         new Setting(containerEl)
             .setName('Khoj URL')
             .setDesc('The URL of the Khoj backend.')
@@ -101,23 +149,35 @@ export class KhojSettingTab extends PluginSettingTab {
                     } = await canConnectToBackend(this.plugin.settings.khojUrl, this.plugin.settings.khojApiKey));
 
                     await this.plugin.saveSettings();
-                    backendStatusEl.setText(backendStatusMessage);
+                    backendStatusEl.setText(this.connectStatusIcon())
+                    connectHeaderEl.title = backendStatusMessage;
                 }));
+
+        // Interact section
+        containerEl.createEl('h3', { text: 'Interact' });
+
+        // Chat Model Dropdown
+        this.renderChatModelDropdown();
+
+        // Initial fetch of models and server preference if connected
+        if (this.plugin.settings.connectedToBackend) {
+            // Defer slightly to ensure UI is ready and avoid race conditions
+            setTimeout(async () => {
+                await this.refreshModelsAndServerPreference();
+            }, 1000);
+        }
+
+        // Add new setting for auto voice response after voice input
         new Setting(containerEl)
-            .setName('Khoj API Key')
-            .setDesc('Use Khoj Cloud with your Khoj API Key')
-            .addText(text => text
-                .setValue(`${this.plugin.settings.khojApiKey}`)
+            .setName('Auto Voice Response')
+            .setDesc('Automatically read responses after voice messages')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.autoVoiceResponse)
                 .onChange(async (value) => {
-                    this.plugin.settings.khojApiKey = value.trim();
-                    ({
-                        connectedToBackend: this.plugin.settings.connectedToBackend,
-                        userInfo: this.plugin.settings.userInfo,
-                        statusMessage: backendStatusMessage,
-                    } = await canConnectToBackend(this.plugin.settings.khojUrl, this.plugin.settings.khojApiKey));
+                    this.plugin.settings.autoVoiceResponse = value;
                     await this.plugin.saveSettings();
-                    backendStatusEl.setText(backendStatusMessage);
                 }));
+
         new Setting(containerEl)
             .setName('Results Count')
             .setDesc('The number of results to show in search and use for chat.')
@@ -130,19 +190,18 @@ export class KhojSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        // Chat Model Dropdown directly after Results Count
-        this.renderChatModelDropdown();
-
-        // Initial fetch of models and server preference if connected
-        if (this.plugin.settings.connectedToBackend) {
-            // Defer slightly to ensure UI is ready and avoid race conditions
-            setTimeout(async () => {
-                await this.refreshModelsAndServerPreference();
-            }, 1000);
-        }
-
         // Add new "Sync" heading
         containerEl.createEl('h3', { text: 'Sync' });
+
+        new Setting(containerEl)
+            .setName('Auto Sync')
+            .setDesc('Automatically index your vault with Khoj.')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.autoConfigure)
+                .onChange(async (value) => {
+                    this.plugin.settings.autoConfigure = value;
+                    await this.plugin.saveSettings();
+                }));
 
         // Add setting to sync markdown notes
         new Setting(containerEl)
@@ -177,16 +236,6 @@ export class KhojSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(containerEl)
-            .setName('Auto Sync')
-            .setDesc('Automatically index your vault with Khoj.')
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.autoConfigure)
-                .onChange(async (value) => {
-                    this.plugin.settings.autoConfigure = value;
-                    await this.plugin.saveSettings();
-                }));
-
         // Add setting for sync interval
         const syncIntervalValues = [1, 5, 10, 20, 30, 45, 60, 120, 1440];
         new Setting(containerEl)
@@ -211,7 +260,7 @@ export class KhojSettingTab extends PluginSettingTab {
 
         // Add setting to manage sync folders
         const syncFoldersContainer = containerEl.createDiv('sync-folders-container');
-        const foldersSetting = new Setting(syncFoldersContainer)
+        new Setting(syncFoldersContainer)
             .setName('Sync Folders')
             .setDesc('Specify folders to sync (leave empty to sync entire vault)')
             .addButton(button => button
@@ -277,17 +326,15 @@ export class KhojSettingTab extends PluginSettingTab {
                     indexVaultSetting = indexVaultSetting.setDisabled(false);
                 })
             );
+    }
 
-        // Add new setting for auto voice response after voice input
-        new Setting(containerEl)
-            .setName('Auto Voice Response')
-            .setDesc('Automatically read responses after voice messages')
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.autoVoiceResponse)
-                .onChange(async (value) => {
-                    this.plugin.settings.autoVoiceResponse = value;
-                    await this.plugin.saveSettings();
-                }));
+    private connectStatusIcon() {
+        if (this.plugin.settings.connectedToBackend && this.plugin.settings.userInfo?.email)
+            return '🟢';
+        else if (this.plugin.settings.connectedToBackend)
+            return '🟡'
+        else
+            return '🔴';
     }
 
     private async refreshModelsAndServerPreference() {
