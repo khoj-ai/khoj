@@ -1474,14 +1474,6 @@ img.copy-icon {
     gap: 8px;
 }
 
-.khoj-edit-accordion summary::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-edit"><path d="M4 13.5V4a2 2 0 0 1 2-2h8.5L20 7.5V20a2 2 0 0 1-2 2h-5.5"/><polyline points="14 2 14 8 20 8"/><path d="M10.42 12.61a2.1 2.1 0 1 1 2.97 2.97L7.95 21 4 22l.99-3.95 5.43-5.44Z"/></svg>');
-    content: "";
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-}
-
 /* Success state */
 .khoj-edit-accordion.success {
     border-color: rgba(52, 199, 89, 0.5);
@@ -1491,14 +1483,6 @@ img.copy-icon {
 .khoj-edit-accordion.success summary {
     background-color: rgba(52, 199, 89, 0.1);
     color: rgb(39, 149, 67);
-}
-
-.khoj-edit-accordion.success summary::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check"><polyline points="20 6 9 17 4 12"/></svg>');
-    content: "";
-    display: inline-block;
-    width: 16px;
-    height: 16px;
 }
 
 .khoj-edit-file {
@@ -1517,14 +1501,6 @@ img.copy-icon {
 .khoj-edit-accordion.error summary {
     background-color: rgba(239, 68, 68, 0.15);
     color: rgb(185, 28, 28);
-}
-
-.khoj-edit-accordion.error summary::before {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>');
-    content: "";
-    display: inline-block;
-    width: 16px;
-    height: 16px;
 }
 
 /* Hover effects */

@@ -1,4 +1,5 @@
 import { App, TFile } from 'obsidian';
+import { diffWords } from 'diff';
 
 /**
  * Interface representing a block of edit instructions for modifying files
@@ -28,6 +29,16 @@ export interface ParsedEditBlock {
         message: string;
         details?: string;
     };
+}
+
+/**
+ * Interface representing the result of processing an edit block
+ */
+interface ProcessedEditResult {
+    startIndex: number;
+    endIndex: number;
+    preview: string; // The content with diff markers to be inserted
+    error?: string;  // Error message if processing failed (e.g., 'find' text not found)
 }
 
 /**
@@ -454,6 +465,7 @@ For context, the user is currently working on the following files:
             : { editData, cleanContent };
         } catch (error) {
             console.error("Error parsing edit block:", error);
+            console.error("Content causing error:", content);
             return {
                 editData: null,
                 cleanContent,
@@ -857,12 +869,12 @@ For context, the user is currently working on the following files:
     }
 
     /**
-     * Transforms khoj edit blocks in a message to HTML for display
+     * Transforms content edit blocks in a message to HTML for display
      *
-     * @param message - The message containing khoj edit blocks in XML format
+     * @param message - The message containing content edit blocks in XML format
      * @returns The transformed message with HTML for edit blocks
      */
-    public transformKhojEditBlocks(message: string): string {
+    public transformEditBlocks(message: string): string {
         // Get all open markdown files
         const files = this.app.workspace.getLeavesOfType('markdown')
             .map(leaf => (leaf.view as any)?.file)
@@ -881,60 +893,61 @@ For context, the user is currently working on the following files:
             const { editData, cleanContent, error, inProgress } = this.parseEditBlock(content, isComplete);
 
             // Escape content for HTML display
-            const escapedContent = cleanContent
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
+            const diff = diffWords(editData?.find || '', editData?.replace || '');
+            let diffContent = diff.map(part => {
+                if (part.added) {
+                    return `<span class="cm-positive">${part.value}</span>`;
+                } else if (part.removed) {
+                    return `<span class="cm-negative"><s>${part.value}</s></span>`;
+                } else {
+                    return `<span>${part.value}</span>`;
+                }
+            }
+            ).join('').trim();
 
-            let htmlReplacement = '';
-
-            if (inProgress) {
-                // In-progress block
-                const noteText = editData.note ? editData.note : 'Edit in progress...';
-                const fileText = editData.file ? `(📄 ${editData.file})` : '';
-
-                htmlReplacement = `<details class="khoj-edit-accordion in-progress">
-                    <summary>${noteText} <span class="khoj-edit-file">${fileText}</span> <span class="khoj-edit-status">In Progress</span></summary>
-                    <div class="khoj-edit-content">
-                        <pre><code class="language-khoj-edit">${escapedContent}</code></pre>
-                    </div>
-                </details>`;
-            } else if (error) {
+            let htmlRender = '';
+            if (error || !editData) {
                 // Error block
                 console.error("Error parsing khoj-edit block:", error);
-                console.debug("Content causing error:", content);
+                console.error("Content causing error:", content);
 
-                const errorTitle = `Error: ${error.message}`;
+                const errorTitle = `Error: ${error?.message || 'Parse error'}`;
                 const errorDetails = `Failed to parse edit block. Please check the JSON format and ensure all required fields are present.`;
 
-                htmlReplacement = `<details class="khoj-edit-accordion error">
+                htmlRender = `<details class="khoj-edit-accordion error">
                     <summary>${errorTitle}</summary>
                     <div class="khoj-edit-content">
                         <p class="khoj-edit-error-message">${errorDetails}</p>
-                        <pre><code class="language-khoj-edit error">${escapedContent}</code></pre>
+                        <pre><code class="language-md error">${diffContent}</code></pre>
+                    </div>
+                </details>`;
+            } else if (inProgress) {
+                // In-progress block
+                htmlRender = `<details class="khoj-edit-accordion in-progress">
+                    <summary>📄 ${editData.file} <span class="khoj-edit-status">In Progress</span></summary>
+                    <div class="khoj-edit-content">
+                        <pre><code class="language-md">${diffContent}</code></pre>
                     </div>
                 </details>`;
             } else {
                 // Success block
                 // Find the actual file that will be modified
                 const targetFile = this.findBestMatchingFile(editData.file, files);
-                const displayFileName = targetFile ? targetFile.basename : editData.file;
+                const displayFileName = targetFile ? `${targetFile.basename}.${targetFile.extension}` : editData.file;
 
-                htmlReplacement = `<details class="khoj-edit-accordion success">
-                    <summary>${editData.note} <span class="khoj-edit-file">(📄 ${displayFileName})</span></summary>
+                htmlRender = `<details class="khoj-edit-accordion success">
+                    <summary>📄 ${displayFileName}</summary>
                     <div class="khoj-edit-content">
-                        <pre><code class="language-khoj-edit">${escapedContent}</code></pre>
+                        <div>${diffContent}</div>
                     </div>
                 </details>`;
             }
 
             // Replace the block in the message
             if (isComplete) {
-                transformedMessage = transformedMessage.replace(`${this.EDIT_BLOCK_START}${content}${this.EDIT_BLOCK_END}`, htmlReplacement);
+                transformedMessage = transformedMessage.replace(`${this.EDIT_BLOCK_START}${content}${this.EDIT_BLOCK_END}`, htmlRender);
             } else {
-                transformedMessage = transformedMessage.replace(`${this.EDIT_BLOCK_START}${content}`, htmlReplacement);
+                transformedMessage = transformedMessage.replace(`${this.EDIT_BLOCK_START}${content}`, htmlRender);
             }
         }
 

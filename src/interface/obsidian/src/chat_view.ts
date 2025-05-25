@@ -591,7 +591,7 @@ export class KhojChatView extends KhojPaneView {
 
         // Transform khoj-edit blocks into accordions if not raw
         if (!raw) {
-            message = this.transformKhojEditBlocks(message);
+            message = this.transformEditBlocks(message);
         }
 
         // Sanitize the markdown message
@@ -781,7 +781,7 @@ export class KhojChatView extends KhojPaneView {
         let sanitizedResponse = DOMPurify.sanitize(this.chatMessageState.rawResponse);
 
         // Apply transformations including partial edit block detection
-        const transformedResponse = this.transformKhojEditBlocks(sanitizedResponse);
+        const transformedResponse = this.transformEditBlocks(sanitizedResponse);
 
         // Create a temporary element to get the rendered HTML
         const tempElement = document.createElement('div');
@@ -1207,7 +1207,9 @@ export class KhojChatView extends KhojPaneView {
                     }
 
                     // Transform khoj-edit blocks into accordions
-                    chatLog.message = this.transformKhojEditBlocks(chatLog.message);
+                    if (chatLog.by === "khoj") {
+                        chatLog.message = this.transformEditBlocks(chatLog.message);
+                    }
 
                     this.renderMessageWithReferences(
                         chatBodyEl,
@@ -2328,8 +2330,8 @@ export class KhojChatView extends KhojPaneView {
     }
 
     // Add this new method to handle khoj-edit block transformation
-    private transformKhojEditBlocks(message: string): string {
-        return this.fileInteractions.transformKhojEditBlocks(message);
+    private transformEditBlocks(message: string): string {
+        return this.fileInteractions.transformEditBlocks(message);
     }
 
     private async handleEditRetry(errorBlock: EditBlock) {
