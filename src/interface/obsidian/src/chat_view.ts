@@ -601,7 +601,7 @@ export class KhojChatView extends KhojPaneView {
         let chatMessageBodyTextEl = this.contentEl.createDiv();
         chatMessageBodyTextEl.innerHTML = this.markdownTextToSanitizedHtml(message, this);
 
-        // Add a copy button to each chat message, if it doesn't already exist
+        // Add action buttons to each chat message, if they don't already exist
         if (willReplace === true) {
             this.renderActionButtons(message, chatMessageBodyTextEl);
         }
@@ -2426,12 +2426,12 @@ export class KhojChatView extends KhojPaneView {
                 });
                 setIcon(emojiSpan, mode.iconName);
 
-                const labelSpan = option.createSpan({
+                option.createSpan({
                     cls: "khoj-mode-dropdown-label",
                     text: ` ${mode.label} `
                 });
 
-                const commandSpan = option.createSpan({
+                option.createSpan({
                     cls: "khoj-mode-dropdown-command",
                     text: `(${mode.command})`
                 });

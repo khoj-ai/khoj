@@ -1,7 +1,7 @@
-import { ItemView, WorkspaceLeaf, TFile, MarkdownRenderer, Notice, setIcon } from 'obsidian';
+import { WorkspaceLeaf, TFile, MarkdownRenderer, Notice, setIcon } from 'obsidian';
 import { KhojSetting } from 'src/settings';
-import { KhojPaneView } from './pane_view';
-import { KhojView, getFileFromPath, getLinkToEntry, supportedBinaryFileTypes } from './utils';
+import { KhojPaneView } from 'src/pane_view';
+import { KhojView, getLinkToEntry, supportedBinaryFileTypes } from 'src/utils';
 
 export interface SimilarResult {
     entry: string;
