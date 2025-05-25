@@ -92,7 +92,11 @@ export class KhojChatView extends KhojPaneView {
     private modeDropdown: HTMLElement | null = null;
     private selectedOptionIndex: number = -1;
     private isStreaming: boolean = false; // Flag to track streaming state
-    private maxEditRetries: number = 2; // Maximum retries for edit blocks
+
+    // Disabled retry logic for now. Can re-enable once:
+    // 1. Handle chat history clutter
+    // 2. Higher invalid edit blocks than tolerable
+    private maxEditRetries: number = 0; // Maximum retries for edit blocks
 
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
         super(leaf, setting);
