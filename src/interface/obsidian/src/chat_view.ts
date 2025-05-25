@@ -2479,14 +2479,14 @@ export class KhojChatView extends KhojPaneView {
             if (inputValue.startsWith("/") && inputValue.length > 1) {
                 // Check if command starts with the input value
                 if (command.toLowerCase().startsWith(inputValue.toLowerCase())) {
-                    option.style.display = "block";
+                    option.style.display = "flex";
                     visibleOptionsCount++;
                 } else {
                     option.style.display = "none";
                 }
             } else {
                 // Show all options if just "/" is typed
-                option.style.display = "block";
+                option.style.display = "flex";
                 visibleOptionsCount++;
             }
         });
