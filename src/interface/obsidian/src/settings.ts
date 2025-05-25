@@ -1,6 +1,6 @@
 import { App, Notice, PluginSettingTab, Setting, TFile, SuggestModal } from 'obsidian';
 import Khoj from 'src/main';
-import { canConnectToBackend, getBackendStatusMessage, updateContentIndex } from './utils';
+import { canConnectToBackend, fetchChatModels, fetchUserServerSettings, getBackendStatusMessage, updateContentIndex, updateServerChatModel } from './utils';
 
 export interface UserInfo {
     username?: string;
@@ -16,6 +16,16 @@ interface SyncFileTypes {
     pdf: boolean;
 }
 
+export interface ModelOption {
+    id: string;
+    name: string;
+}
+
+export interface ServerUserConfig {
+    selected_chat_model_config?: number; // This is the ID from the server
+    // Add other fields from UserConfig if needed by the plugin elsewhere
+}
+
 export interface KhojSetting {
     resultsCount: number;
     khojUrl: string;
@@ -28,6 +38,8 @@ export interface KhojSetting {
     syncFolders: string[];
     syncInterval: number;
     autoVoiceResponse: boolean;
+    selectedChatModelId: string | null; // Mirrors server's selected_chat_model_config
+    availableChatModels: ModelOption[];
 }
 
 export const DEFAULT_SETTINGS: KhojSetting = {
@@ -46,6 +58,8 @@ export const DEFAULT_SETTINGS: KhojSetting = {
     syncFolders: [],
     syncInterval: 60,
     autoVoiceResponse: true,
+    selectedChatModelId: null, // Will be populated from server
+    availableChatModels: [],
 }
 
 export class KhojSettingTab extends PluginSettingTab {
@@ -115,6 +129,17 @@ export class KhojSettingTab extends PluginSettingTab {
                     this.plugin.settings.resultsCount = value;
                     await this.plugin.saveSettings();
                 }));
+
+        // Chat Model Dropdown directly after Results Count
+        this.renderChatModelDropdown();
+
+        // Initial fetch of models and server preference if connected
+        if (this.plugin.settings.connectedToBackend) {
+            // Defer slightly to ensure UI is ready and avoid race conditions
+            setTimeout(async () => {
+                await this.refreshModelsAndServerPreference();
+            }, 1000);
+        }
 
         // Add new "Sync" heading
         containerEl.createEl('h3', { text: 'Sync' });
@@ -263,6 +288,86 @@ export class KhojSettingTab extends PluginSettingTab {
                     this.plugin.settings.autoVoiceResponse = value;
                     await this.plugin.saveSettings();
                 }));
+    }
+
+    private async refreshModelsAndServerPreference() {
+        let serverSelectedModelId: string | null = null;
+        if (this.plugin.settings.connectedToBackend) {
+            const [availableModels, serverConfig] = await Promise.all([
+                fetchChatModels(this.plugin.settings),
+                fetchUserServerSettings(this.plugin.settings)
+            ]);
+
+            this.plugin.settings.availableChatModels = availableModels;
+
+            if (serverConfig && serverConfig.selected_chat_model_config !== undefined && serverConfig.selected_chat_model_config !== null) {
+                const serverModelIdStr = serverConfig.selected_chat_model_config.toString();
+                // Ensure the server's selected model is actually in the available list
+                if (this.plugin.settings.availableChatModels.some(m => m.id === serverModelIdStr)) {
+                    serverSelectedModelId = serverModelIdStr;
+                } else {
+                    // Server has a selection, but it's not in the options list (e.g. model removed, or different set of models)
+                    // In this case, we might fall back to null (Khoj Default)
+                    console.warn(`Khoj: Server's selected model ID ${serverModelIdStr} not in available models. Falling back to default.`);
+                    serverSelectedModelId = null;
+                }
+            } else {
+                // No specific model configured on the server, or it's explicitly null
+                serverSelectedModelId = null;
+            }
+            this.plugin.settings.selectedChatModelId = serverSelectedModelId;
+
+        } else {
+            this.plugin.settings.availableChatModels = [];
+            this.plugin.settings.selectedChatModelId = null; // Clear selection if disconnected
+        }
+        await this.plugin.saveSettings(); // Save the potentially updated selectedChatModelId
+    }
+
+    private renderChatModelDropdown() {
+        const modelSetting = new Setting(this.containerEl)
+            .setName('Chat Model')
+            .setDesc('The default AI model used for chat.');
+
+        if (!this.plugin.settings.connectedToBackend) {
+            modelSetting.setDesc('Connect to Khoj to load and set chat model options.');
+            modelSetting.addText(text => text.setValue("Not connected").setDisabled(true));
+            return;
+        }
+
+        if (this.plugin.settings.availableChatModels.length === 0 && this.plugin.settings.connectedToBackend) {
+            modelSetting.setDesc('Fetching models or no models available. Check Khoj connection or try refreshing.');
+            modelSetting.addButton(button => button
+                .setButtonText('Refresh Models')
+                .onClick(async () => {
+                    button.setButtonText('Refreshing...').setDisabled(true);
+                    await this.refreshModelsAndServerPreference();
+                    // Re-rendering happens inside refreshModelsAndServerPreference
+                }));
+            return;
+        }
+
+        modelSetting.addDropdown(dropdown => {
+            dropdown.addOption('', 'Default'); // Placeholder when cannot retrieve chat model options from server.
+            this.plugin.settings.availableChatModels.forEach(model => {
+                dropdown.addOption(model.id, model.name);
+            });
+            dropdown
+                .setValue(this.plugin.settings.selectedChatModelId || '')
+                .onChange(async (value) => {
+                    // Attempt to update the server
+                    const success = await updateServerChatModel(value, this.plugin.settings);
+                    if (success) {
+                        await this.plugin.saveSettings();
+                    } else {
+                        // Server update failed, revert dropdown to the current setting value
+                        // to avoid UI mismatch.
+                        dropdown.setValue(this.plugin.settings.selectedChatModelId || '');
+                    }
+                    // Potentially re-render or refresh if needed, though setValue should update UI.
+                    // this.refreshModelsAndServerPreference(); // Could be called to ensure full sync, but might be too much
+                });
+        });
     }
 
     // Helper method to update the folder list display

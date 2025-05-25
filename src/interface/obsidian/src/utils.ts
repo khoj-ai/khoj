@@ -1,5 +1,5 @@
 import { FileSystemAdapter, Notice, Vault, Modal, TFile, request, setIcon, Editor, App } from 'obsidian';
-import { KhojSetting, UserInfo } from 'src/settings'
+import { KhojSetting, ModelOption, ServerUserConfig, UserInfo } from 'src/settings'
 
 export function getVaultAbsolutePath(vault: Vault): string {
     let adaptor = vault.adapter;
@@ -592,5 +592,78 @@ export function getLinkToEntry(sourceFiles: TFile[], chosenFile: string, chosenE
         let linkToEntry = resultHeading.startsWith('#') ? `${fileMatch.path}${resultHeading}` : fileMatch.path;
         console.log(`Link: ${linkToEntry}, File: ${fileMatch.path}, Heading: ${resultHeading}`);
         return linkToEntry;
+    }
+}
+
+export async function fetchChatModels(settings: KhojSetting): Promise<ModelOption[]> {
+    if (!settings.connectedToBackend || !settings.khojUrl) {
+        return [];
+    }
+    try {
+        const response = await fetch(`${settings.khojUrl}/api/model/chat/options`, {
+            method: 'GET',
+            headers: settings.khojApiKey ? { 'Authorization': `Bearer ${settings.khojApiKey}` } : {},
+        });
+        if (response.ok) {
+            const modelsData = await response.json();
+            if (Array.isArray(modelsData)) {
+                return modelsData.map((model: any) => ({
+                    id: model.id.toString(),
+                    name: model.name,
+                }));
+            }
+        } else {
+            console.warn("Khoj: Failed to fetch chat models:", response.statusText);
+        }
+    } catch (error) {
+        console.error("Khoj: Error fetching chat models:", error);
+    }
+    return [];
+}
+
+export async function fetchUserServerSettings(settings: KhojSetting): Promise<ServerUserConfig | null> {
+    if (!settings.connectedToBackend || !settings.khojUrl) {
+        return null;
+    }
+    try {
+        const response = await fetch(`${settings.khojUrl}/api/settings?detailed=true`, {
+            method: 'GET',
+            headers: settings.khojApiKey ? { 'Authorization': `Bearer ${settings.khojApiKey}` } : {},
+        });
+        if (response.ok) {
+            return await response.json() as ServerUserConfig;
+        } else {
+            console.warn("Khoj: Failed to fetch user server settings:", response.statusText);
+        }
+    } catch (error) {
+        console.error("Khoj: Error fetching user server settings:", error);
+    }
+    return null;
+}
+
+export async function updateServerChatModel(modelId: string, settings: KhojSetting): Promise<boolean> {
+    if (!settings.connectedToBackend || !settings.khojUrl) {
+        new Notice("️⛔️ Connect to Khoj to update chat model.");
+        return false;
+    }
+
+    try {
+        const response = await fetch(`${settings.khojUrl}/api/model/chat?id=${modelId}`, {
+            method: 'POST', // As per web app's updateModel function
+            headers: settings.khojApiKey ? { 'Authorization': `Bearer ${settings.khojApiKey}` } : {},
+        });
+        if (response.ok) {
+            settings.selectedChatModelId = modelId; // Update local mirror
+            return true;
+        } else {
+            const errorData = await response.text();
+            new Notice(`️⛔️ Failed to update chat model on server: ${response.status} ${errorData}`);
+            console.error("Khoj: Failed to update chat model:", response.status, errorData);
+            return false;
+        }
+    } catch (error) {
+        new Notice("️⛔️ Error updating chat model on server. See console.");
+        console.error("Khoj: Error updating chat model:", error);
+        return false;
     }
 }
