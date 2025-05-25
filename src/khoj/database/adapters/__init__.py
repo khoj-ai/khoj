@@ -383,7 +383,14 @@ async def set_user_subscription(
 def subscription_to_state(subscription: Subscription) -> str:
     if not subscription:
         return SubscriptionState.INVALID.value
-    elif subscription.type == Subscription.Type.TRIAL:
+    else:
+        # Ensure created_at is timezone-aware (UTC) if it's naive
+        if django_timezone.is_naive(subscription.created_at):
+            subscription.created_at = django_timezone.make_aware(subscription.created_at, timezone.utc)
+        if subscription.renewal_date and django_timezone.is_naive(subscription.renewal_date):
+            subscription.renewal_date = django_timezone.make_aware(subscription.renewal_date, timezone.utc)
+
+    if subscription.type == Subscription.Type.TRIAL:
         # Check if the trial has expired
         if not subscription.renewal_date:
             # If the renewal date is not set, set it to the current date + trial length and evaluate
@@ -601,9 +608,13 @@ class ProcessLockAdapters:
 
     @staticmethod
     def is_process_locked(process_lock: ProcessLock):
-        if process_lock.started_at + timedelta(seconds=process_lock.max_duration_in_seconds) < datetime.now(
-            tz=timezone.utc
-        ):
+        started_at_ts = process_lock.started_at
+        # Ensure started_at_ts is timezone-aware (UTC) if it's naive
+        if django_timezone.is_naive(started_at_ts):
+            started_at_ts = django_timezone.make_aware(started_at_ts, timezone.utc)
+
+        max_duration_in_seconds = process_lock.max_duration_in_seconds
+        if started_at_ts + timedelta(seconds=max_duration_in_seconds) < datetime.now(tz=timezone.utc):
             process_lock.delete()
             logger.info(f"🔓 Deleted stale {process_lock.name} process lock on timeout")
             return False
@@ -1404,7 +1415,7 @@ class ConversationAdapters:
         if conversation:
             conversation.conversation_log = conversation_log
             conversation.slug = slug
-            conversation.updated_at = datetime.now(tz=timezone.utc)
+            conversation.updated_at = django_timezone.now()
             await conversation.asave()
         else:
             await Conversation.objects.acreate(
