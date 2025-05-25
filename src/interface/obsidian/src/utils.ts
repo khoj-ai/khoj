@@ -540,7 +540,13 @@ function copyParentText(event: MouseEvent, message: string, originalButton: stri
 
 export function createCopyParentText(message: string, originalButton: string = 'copy-plus') {
     return function (event: MouseEvent) {
-        return copyParentText(event, message, originalButton);
+        let markdownMessage = copyParentText(event, message, originalButton);
+        // Convert edit blocks back to markdown format before pasting
+        const editRegex = /<details class="khoj-edit-accordion">[\s\S]*?<pre><code class="language-khoj-edit">([\s\S]*?)<\/code><\/pre>[\s\S]*?<\/details>/g;
+        markdownMessage = markdownMessage?.replace(editRegex, (_, content) => {
+            return `<khoj-edit>\n${content}\n</khoj-edit>`;
+        });
+        return markdownMessage;
     }
 }
 

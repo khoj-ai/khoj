@@ -792,35 +792,14 @@ export class KhojChatView extends KhojPaneView {
         copyButton.classList.add("chat-action-button");
         copyButton.title = "Copy Message to Clipboard";
         setIcon(copyButton, "copy-plus");
-        copyButton.addEventListener('click', () => {
-            // Convert khoj-edit blocks back to markdown format
-            let markdownMessage = message;
-            const khojEditRegex = /<details class="khoj-edit-accordion">[\s\S]*?<pre><code class="language-khoj-edit">([\s\S]*?)<\/code><\/pre>[\s\S]*?<\/details>/g;
-            markdownMessage = markdownMessage.replace(khojEditRegex, (_, content) => {
-                return `<khoj-edit>\n${content}\n</khoj-edit>`;
-            });
-            navigator.clipboard.writeText(markdownMessage).then(() => {
-                setIcon(copyButton, "check");
-                setTimeout(() => {
-                    setIcon(copyButton, "copy-plus");
-                }, 1000);
-            });
-        });
+        copyButton.addEventListener('click', () => createCopyParentText(message));
 
         // Add button to paste into current buffer
         let pasteToFile = this.contentEl.createEl('button');
         pasteToFile.classList.add("chat-action-button");
         pasteToFile.title = "Paste Message to File";
         setIcon(pasteToFile, "clipboard-paste");
-        pasteToFile.addEventListener('click', () => {
-            // Convert khoj-edit blocks back to markdown format before pasting
-            let markdownMessage = message;
-            const khojEditRegex = /<details class="khoj-edit-accordion">[\s\S]*?<pre><code class="language-khoj-edit">([\s\S]*?)<\/code><\/pre>[\s\S]*?<\/details>/g;
-            markdownMessage = markdownMessage.replace(khojEditRegex, (_, content) => {
-                return `<khoj-edit>\n${content}\n</khoj-edit>`;
-            });
-            pasteTextAtCursor(markdownMessage);
-        });
+        pasteToFile.addEventListener('click', (event) => { pasteTextAtCursor(createCopyParentText(message, 'clipboard-paste')(event)); });
 
         // Add edit button only for user messages
         let editButton = null;
