@@ -784,16 +784,16 @@ div.khoj-logo:hover {
         padding: 8px;
         min-height: 32px;
         max-height: 300px;
-        /* Taille maximale réduite pour mobile */
+        /* Reduced maximum size for mobile */
     }
 
     .khoj-input-row-button {
         width: 28px;
         height: 28px;
         align-self: center;
-        /* Assure que les boutons restent centrés verticalement sur mobile */
+        /* Ensures buttons remain vertically centered on mobile */
         flex-shrink: 0;
-        /* Empêche les boutons de rétrécir sur mobile */
+        /* Prevents buttons from shrinking on mobile */
     }
 
     #khoj-chat-send {
@@ -1741,7 +1741,7 @@ button.reference-button:hover {
     margin-left: 0;
 }
 
-/* Modification des éléments de pré pour éviter le débordement */
+/* Modification of pre elements to avoid overflow */
 .khoj-chat-message-text pre {
     max-width: 100%;
     overflow-x: auto;
@@ -1753,7 +1753,7 @@ button.reference-button:hover {
     font-size: 0.95em;
 }
 
-/* Sélecteurs pour les éléments visuels dans les messages */
+/* Selectors for visual elements in messages */
 .khoj-chat-message-text ul,
 .khoj-chat-message-text ol {
     font-size: 0.95em;
@@ -1769,14 +1769,13 @@ button.reference-button:hover {
     margin: 0.5em 0;
 }
 
-/* S'assure que les images restent dans le conteneur */
+/* Ensures that images stay within the container */
 .khoj-chat-message-text img {
     max-width: 100%;
     height: auto;
 }
 
 /* Styles for the mode dropdown */
-/* TODO : Tu peux obscurcir davantage le mode actuellement selectionné ? Actuellement, c'est à peine plus foncé que le fond principal. */
 .khoj-mode-dropdown {
     display: block;
     background-color: var(--background-primary);
@@ -1787,7 +1786,7 @@ button.reference-button:hover {
     overflow-y: auto;
     z-index: 1000;
     font-size: 0.85em;
-    /* Texte réduit */
+    /* Reduced text */
     padding: 2px 0;
     transform-origin: bottom;
 }
@@ -1804,7 +1803,6 @@ button.reference-button:hover {
     background-color: var(--background-secondary);
 }
 
-/* TODO : Tu peux obscurcir davantage le mode actuellement selectionné ? Actuellement, c'est à peine plus foncé que le fond principal. */
 .khoj-mode-dropdown-option-selected {
     background-color: var(--background-modifier-hover);
     border-left: 3px solid var(--interactive-accent);
@@ -1881,15 +1879,6 @@ button.reference-button:hover {
 
 .khoj-more-context-button:hover svg {
     transform: rotate(180deg);
-}
-
-.khoj-simplified-header {
-    font-size: 1.4em;
-    font-weight: 300;
-    color: var(--text-normal);
-    letter-spacing: 0.2px;
-    text-align: center;
-    margin-bottom: 24px;
 }
 
 .khoj-similar-container {
@@ -1983,18 +1972,6 @@ button.reference-button:hover {
 
 .khoj-similar-refresh-button:hover svg {
     transform: rotate(180deg);
-}
-
-.khoj-simplified-icon {
-    margin-right: 8px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.khoj-simplified-icon svg {
-    width: 18px;
-    height: 18px;
 }
 
 .khoj-profile {
