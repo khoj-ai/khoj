@@ -226,13 +226,14 @@ export class KhojChatView extends KhojPaneView {
             headerAgentSelect.innerHTML = '';
 
             // Add default option
-            const defaultOption = headerAgentSelect.createEl("option", {
+            headerAgentSelect.createEl("option", {
                 text: "Default Agent",
-                value: ""
+                value: "khoj"
             });
 
-            // Add options for each agent
+            // Add options for all other agents
             this.agents.forEach(agent => {
+                if (agent.slug === 'khoj') return; // Skip the default agent
                 const option = headerAgentSelect.createEl("option", {
                     text: agent.name,
                     value: agent.slug
