@@ -64,6 +64,7 @@ export const DEFAULT_SETTINGS: KhojSetting = {
 
 export class KhojSettingTab extends PluginSettingTab {
     plugin: Khoj;
+    private chatModelSetting: Setting | null = null;
 
     constructor(app: App, plugin: Khoj) {
         super(app, plugin);
@@ -73,6 +74,7 @@ export class KhojSettingTab extends PluginSettingTab {
     display(): void {
         const { containerEl } = this;
         containerEl.empty();
+        this.chatModelSetting = null; // Reset when display is called
 
         // Add notice whether able to connect to khoj backend or not
         let backendStatusMessage = getBackendStatusMessage(
@@ -84,8 +86,8 @@ export class KhojSettingTab extends PluginSettingTab {
 
         const connectHeaderEl = containerEl.createEl('h3', { title: backendStatusMessage });
         const connectHeaderContentEl = connectHeaderEl.createSpan({ cls: 'khoj-connect-settings-header' });
-        const connectTitleEl = connectHeaderContentEl.createSpan({ text: 'Connect'});
-        const backendStatusEl = connectTitleEl.createSpan({text: this.connectStatusIcon(), cls: 'khoj-connect-settings-header-status' });
+        const connectTitleEl = connectHeaderContentEl.createSpan({ text: 'Connect' });
+        const backendStatusEl = connectTitleEl.createSpan({ text: this.connectStatusIcon(), cls: 'khoj-connect-settings-header-status' });
         if (this.plugin.settings.userInfo && this.plugin.settings.connectedToBackend) {
             if (this.plugin.settings.userInfo.photo) {
                 const profilePicEl = connectHeaderContentEl.createEl('img', {
@@ -109,7 +111,7 @@ export class KhojSettingTab extends PluginSettingTab {
         }
 
         // Add khoj settings configurable from the plugin settings tab
-       const apiKeySetting = new Setting(containerEl)
+        const apiKeySetting = new Setting(containerEl)
             .setName('Khoj API Key')
             .addText(text => text
                 .setValue(`${this.plugin.settings.khojApiKey}`)
@@ -120,9 +122,15 @@ export class KhojSettingTab extends PluginSettingTab {
                         userInfo: this.plugin.settings.userInfo,
                         statusMessage: backendStatusMessage,
                     } = await canConnectToBackend(this.plugin.settings.khojUrl, this.plugin.settings.khojApiKey));
+
+                    if (!this.plugin.settings.connectedToBackend) {
+                        this.plugin.settings.availableChatModels = [];
+                        this.plugin.settings.selectedChatModelId = null;
+                    }
                     await this.plugin.saveSettings();
                     backendStatusEl.setText(this.connectStatusIcon())
                     connectHeaderEl.title = backendStatusMessage;
+                    await this.refreshModelsAndServerPreference();
                 }));
 
         // Add API key setting description with link to get API key
@@ -148,9 +156,14 @@ export class KhojSettingTab extends PluginSettingTab {
                         statusMessage: backendStatusMessage,
                     } = await canConnectToBackend(this.plugin.settings.khojUrl, this.plugin.settings.khojApiKey));
 
+                    if (!this.plugin.settings.connectedToBackend) {
+                        this.plugin.settings.availableChatModels = [];
+                        this.plugin.settings.selectedChatModelId = null;
+                    }
                     await this.plugin.saveSettings();
                     backendStatusEl.setText(this.connectStatusIcon())
                     connectHeaderEl.title = backendStatusMessage;
+                    await this.refreshModelsAndServerPreference();
                 }));
 
         // Interact section
@@ -369,12 +382,20 @@ export class KhojSettingTab extends PluginSettingTab {
             this.plugin.settings.selectedChatModelId = null; // Clear selection if disconnected
         }
         await this.plugin.saveSettings(); // Save the potentially updated selectedChatModelId
+        this.renderChatModelDropdown(); // Re-render the dropdown with new data
     }
 
     private renderChatModelDropdown() {
-        const modelSetting = new Setting(this.containerEl)
-            .setName('Chat Model')
-            .setDesc('The default AI model used for chat.');
+        if (!this.chatModelSetting) {
+            this.chatModelSetting = new Setting(this.containerEl)
+                .setName('Chat Model');
+        } else {
+            // Clear previous description and controls to prepare for re-rendering
+            this.chatModelSetting.descEl.empty();
+            this.chatModelSetting.controlEl.empty();
+        }
+        // Use this.chatModelSetting directly for modifications
+        const modelSetting = this.chatModelSetting;
 
         if (!this.plugin.settings.connectedToBackend) {
             modelSetting.setDesc('Connect to Khoj to load and set chat model options.');
@@ -394,6 +415,7 @@ export class KhojSettingTab extends PluginSettingTab {
             return;
         }
 
+        modelSetting.setDesc('The default AI model used for chat.');
         modelSetting.addDropdown(dropdown => {
             dropdown.addOption('', 'Default'); // Placeholder when cannot retrieve chat model options from server.
             this.plugin.settings.availableChatModels.forEach(model => {
