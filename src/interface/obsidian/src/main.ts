@@ -240,14 +240,6 @@ export default class Khoj extends Plugin {
                     chatInput?.focus();
                 }
             }
-            // The jumpToPreviousView logic might need re-evaluation.
-            // It was intended to toggle visibility if the same view was activated again.
-            // With tab switching, this might not be the desired behavior.
-            // For now, let's remove it to simplify, and it can be added back if needed.
-            // const activeKhojLeaf = workspace.getActiveViewOfType(KhojPaneView)?.leaf;
-            // if (activeKhojLeaf === leafToUse && existingLeaf === leafToUse) { // Only jump if it was already active and clicked again
-            //    jumpToPreviousView.call(this.app); // Ensure 'this' context for jumpToPreviousView if it uses it
-            // }
         }
     }
 }

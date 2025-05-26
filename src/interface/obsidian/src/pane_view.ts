@@ -4,7 +4,6 @@ import { KhojView, populateHeaderPane } from './utils';
 
 export abstract class KhojPaneView extends ItemView {
     setting: KhojSetting;
-    isSimplifiedView: boolean;
 
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
         super(leaf);
