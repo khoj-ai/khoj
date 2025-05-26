@@ -99,7 +99,7 @@ export class KhojChatView extends KhojPaneView {
     // Disabled retry logic for now. Can re-enable once:
     // 1. Handle chat history clutter
     // 2. Higher invalid edit blocks than tolerable
-    private maxEditRetries: number = 0; // Maximum retries for edit blocks
+    private maxEditRetries: number = 1; // Maximum retries for edit blocks
 
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
         super(leaf, setting);
