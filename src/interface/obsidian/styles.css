@@ -570,9 +570,8 @@ div.selected-conversation {
 
 /* Improved header styles for a more modern look */
 div.khoj-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    display: grid;
+    grid-auto-flow: row;
     padding: 12px 12px;
     background-color: var(--background-secondary, var(--background-secondary));
     border-bottom: 1px solid var(--border-color);
@@ -582,8 +581,13 @@ div.khoj-header {
     position: sticky;
     top: 0;
     z-index: 10;
-    flex-wrap: wrap;
     /* Allow elements to wrap on smaller screens */
+}
+div.khoj-header-title-pane {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
 /* Keeps the navigation menu clickable */
@@ -621,6 +625,7 @@ a.khoj-nav {
 
 div.khoj-logo {
     justify-self: left;
+    font-size: large;
     transition: transform 0.2s ease;
 }
 

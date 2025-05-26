@@ -1,5 +1,6 @@
-import { FileSystemAdapter, Notice, Vault, Modal, TFile, request, setIcon, Editor, App } from 'obsidian';
+import { FileSystemAdapter, Notice, Vault, Modal, TFile, request, setIcon, Editor, App, WorkspaceLeaf } from 'obsidian';
 import { KhojSetting, ModelOption, ServerUserConfig, UserInfo } from 'src/settings'
+import { KhojSearchModal } from './search_modal';
 
 export function getVaultAbsolutePath(vault: Vault): string {
     let adaptor = vault.adapter;
@@ -323,7 +324,7 @@ export function getBackendStatusMessage(
         return `✅ Welcome back to Khoj, ${userEmail}`;
 }
 
-export async function populateHeaderPane(headerEl: Element, setting: KhojSetting): Promise<void> {
+export async function populateHeaderPane(headerEl: Element, setting: KhojSetting, viewType: string): Promise<void> {
     let userInfo: UserInfo | null = null;
     try {
         const { userInfo: extractedUserInfo } = await canConnectToBackend(setting.khojUrl, setting.khojApiKey, false);
@@ -333,14 +334,20 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     }
 
     // Add Khoj title to header element
-    const titleEl = headerEl.createDiv();
+    const titlePaneEl = headerEl.createDiv();
+    titlePaneEl.className = 'khoj-header-title-pane';
+    const titleEl = titlePaneEl.createDiv();
     titleEl.className = 'khoj-logo';
     titleEl.textContent = "Khoj";
 
     // Populate the header element with the navigation pane
     // Create the nav element
-    const nav = headerEl.createEl('nav');
+    const nav = titlePaneEl.createEl('nav');
     nav.className = 'khoj-nav';
+
+    // Create the title pane element
+    titlePaneEl.appendChild(titleEl);
+    titlePaneEl.appendChild(nav);
 
     // Create the chat link
     const chatLink = nav.createEl('a');
@@ -402,34 +409,35 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     similarLink.appendChild(similarIcon);
     similarLink.appendChild(similarText);
 
-    // Add event listeners to the navigation links
-    const app = (window as any).app;
+    // Helper to get the current Khoj leaf if active
+    const getCurrentKhojLeaf = (): WorkspaceLeaf | undefined => {
+        const activeLeaf = this.app.workspace.activeLeaf;
+        if (activeLeaf && activeLeaf.view &&
+            (activeLeaf.view.getViewType() === KhojView.CHAT || activeLeaf.view.getViewType() === KhojView.SIMILAR)) {
+            return activeLeaf;
+        }
+        return undefined;
+    };
 
+    // Add event listeners to the navigation links
     // Chat link event listener
     chatLink.addEventListener('click', () => {
         // Get the activateView method from the plugin instance
-        const khojPlugin = app.plugins.plugins.khoj;
-        if (khojPlugin && khojPlugin.activateView) {
-            khojPlugin.activateView(KhojView.CHAT);
-        }
+        const khojPlugin = this.app.plugins.plugins.khoj;
+        khojPlugin?.activateView(KhojView.CHAT, getCurrentKhojLeaf());
     });
 
     // Search link event listener
     searchLink.addEventListener('click', () => {
         // Open the search modal
-        const khojPlugin = app.plugins.plugins.khoj;
-        if (khojPlugin) {
-            new (window as any).khoj.KhojSearchModal(app, khojPlugin.settings).open();
-        }
+        new KhojSearchModal(this.app, setting).open();
     });
 
     // Similar link event listener
     similarLink.addEventListener('click', () => {
         // Get the activateView method from the plugin instance
-        const khojPlugin = app.plugins.plugins.khoj;
-        if (khojPlugin && khojPlugin.activateView) {
-            khojPlugin.activateView(KhojView.SIMILAR);
-        }
+        const khojPlugin = this.app.plugins.plugins.khoj;
+        khojPlugin?.activateView(KhojView.SIMILAR, getCurrentKhojLeaf());
     });
 
     // Append the nav items to the nav element
@@ -437,56 +445,59 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     nav.appendChild(searchLink);
     nav.appendChild(similarLink);
 
-    // Create right side container for New Chat button and agent selector
-    const rightSideContainer = headerEl.createDiv("khoj-header-right-container");
+    // Append the title and new chat container to the header element
+    headerEl.appendChild(titlePaneEl);
 
-    // Add agent selector container
-    const agentContainer = rightSideContainer.createDiv("khoj-header-agent-container");
+    if (viewType === KhojView.CHAT) {
+        // Create subtitle pane for New Chat button and agent selector
+        const newChatEl = headerEl.createDiv("khoj-header-right-container");
 
-    // Add agent selector
-    const agentSelect = agentContainer.createEl("select", {
-        attr: {
-            class: "khoj-header-agent-select",
-            id: "khoj-header-agent-select"
-        }
-    });
+        // Add agent selector container
+        const agentContainer = newChatEl.createDiv("khoj-header-agent-container");
 
-    // Add New Chat button
-    const newChatButton = rightSideContainer.createEl('button');
-    newChatButton.className = 'khoj-header-new-chat-button';
-    newChatButton.title = 'Start New Chat (Ctrl+Alt+N)';
-    setIcon(newChatButton, 'plus-circle');
-    newChatButton.textContent = 'New Chat';
+        // Add agent selector
+        agentContainer.createEl("select", {
+            attr: {
+                class: "khoj-header-agent-select",
+                id: "khoj-header-agent-select"
+            }
+        });
 
-    // Add event listener to the New Chat button
-    newChatButton.addEventListener('click', () => {
-        const khojPlugin = app.plugins.plugins.khoj;
-        if (khojPlugin) {
-            // First activate the chat view
-            khojPlugin.activateView(KhojView.CHAT).then(() => {
-                // Then create a new conversation
-                setTimeout(() => {
-                    // Access the chat view directly from the leaf after activation
-                    const leaves = app.workspace.getLeavesOfType(KhojView.CHAT);
-                    if (leaves.length > 0) {
-                        const chatView = leaves[0].view;
-                        if (chatView && typeof chatView.createNewConversation === 'function') {
-                            chatView.createNewConversation();
+        // Add New Chat button
+        const newChatButton = newChatEl.createEl('button');
+        newChatButton.className = 'khoj-header-new-chat-button';
+        newChatButton.title = 'Start New Chat (Ctrl+Alt+N)';
+        setIcon(newChatButton, 'plus-circle');
+        newChatButton.textContent = 'New Chat';
+
+        // Add event listener to the New Chat button
+        newChatButton.addEventListener('click', () => {
+            const khojPlugin = this.app.plugins.plugins.khoj;
+            if (khojPlugin) {
+                // First activate the chat view
+                khojPlugin.activateView(KhojView.CHAT).then(() => {
+                    // Then create a new conversation
+                    setTimeout(() => {
+                        // Access the chat view directly from the leaf after activation
+                        const leaves = this.app.workspace.getLeavesOfType(KhojView.CHAT);
+                        if (leaves.length > 0) {
+                            const chatView = leaves[0].view;
+                            if (chatView && typeof chatView.createNewConversation === 'function') {
+                                chatView.createNewConversation();
+                            }
                         }
-                    }
-                }, 100);
-            });
-        }
-    });
+                    }, 100);
+                });
+            }
+        });
 
-    // Append the title, nav items and right container to the header element
-    headerEl.appendChild(titleEl);
-    headerEl.appendChild(nav);
-    headerEl.appendChild(rightSideContainer);
+        // Append the new chat container to the header element
+        headerEl.appendChild(newChatEl);
+    }
 
     // Update active state based on current view
     const updateActiveState = () => {
-        const activeLeaf = app.workspace.activeLeaf;
+        const activeLeaf = this.app.workspace.activeLeaf;
         if (!activeLeaf) return;
 
         const viewType = activeLeaf.view?.getViewType();
@@ -507,7 +518,7 @@ export async function populateHeaderPane(headerEl: Element, setting: KhojSetting
     updateActiveState();
 
     // Register event for workspace changes
-    app.workspace.on('active-leaf-change', updateActiveState);
+    this.app.workspace.on('active-leaf-change', updateActiveState);
 }
 
 export enum KhojView {

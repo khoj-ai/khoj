@@ -196,37 +196,58 @@ export default class Khoj extends Plugin {
         this.unload();
     }
 
-    async activateView(viewType: KhojView) {
+    async activateView(viewType: KhojView, existingLeaf?: WorkspaceLeaf) {
         const { workspace } = this.app;
+        let leafToUse: WorkspaceLeaf | null = null;
 
-        let leaf: WorkspaceLeaf | null = null;
-        const leaves = workspace.getLeavesOfType(viewType);
-
-        if (leaves.length > 0) {
-            // A leaf with our view already exists, use that
-            leaf = leaves[0];
+        // Check if an existingLeaf is provided and is suitable for a view type switch
+        if (existingLeaf && existingLeaf.view &&
+            (existingLeaf.view.getViewType() === KhojView.CHAT || existingLeaf.view.getViewType() === KhojView.SIMILAR) &&
+            existingLeaf.view.getViewType() !== viewType) {
+            // The existing leaf is a Khoj pane and we want to switch its type
+            leafToUse = existingLeaf;
+            await leafToUse.setViewState({ type: viewType, active: true });
         } else {
-            // Our view could not be found in the workspace, create a new leaf
-            // in the right sidebar for it
-            leaf = workspace.getRightLeaf(false);
-            await leaf?.setViewState({ type: viewType, active: true });
-        }
-
-        if (leaf) {
-            const activeKhojLeaf = workspace.getActiveViewOfType(KhojPaneView)?.leaf;
-            // Jump to the previous view if the current view is Khoj Side Pane
-            if (activeKhojLeaf === leaf) jumpToPreviousView();
-            // Else Reveal the leaf in case it is in a collapsed sidebar
-            else {
-                workspace.revealLeaf(leaf);
-
-                if (viewType === KhojView.CHAT) {
-                    // focus on the chat input when the chat view is opened
-                    let chatView = leaf.view as KhojChatView;
-                    let chatInput = <HTMLTextAreaElement>chatView.contentEl.getElementsByClassName("khoj-chat-input")[0];
-                    if (chatInput) chatInput.focus();
+            // Standard logic: find an existing leaf of the target type, or create a new one
+            const leaves = workspace.getLeavesOfType(viewType);
+            if (leaves.length > 0) {
+                leafToUse = leaves[0];
+            } else {
+                // If we are not switching an existing Khoj leaf,
+                // and no leaf of the target type exists, create a new one.
+                // Use the provided existingLeaf if it's not a Khoj pane we're trying to switch,
+                // otherwise, get a new right leaf.
+                leafToUse = (existingLeaf && !(existingLeaf.view instanceof KhojPaneView)) ? existingLeaf : workspace.getRightLeaf(false);
+                if (leafToUse) {
+                    await leafToUse.setViewState({ type: viewType, active: true });
+                } else {
+                    console.error("Khoj: Could not get a leaf to activate view.");
+                    return;
                 }
             }
+        }
+
+        if (leafToUse) {
+            workspace.revealLeaf(leafToUse); // Ensure the leaf is visible
+
+            // Specific actions after revealing/switching
+            if (viewType === KhojView.CHAT) {
+                // Ensure the view instance is correct after potential setViewState
+                const chatView = leafToUse.view as KhojChatView;
+                if (chatView instanceof KhojChatView) { // Double check instance type
+                    // Use a more robust way to get the input, or ensure it's always present after onOpen
+                    const chatInput = chatView.containerEl.querySelector<HTMLTextAreaElement>(".khoj-chat-input");
+                    chatInput?.focus();
+                }
+            }
+            // The jumpToPreviousView logic might need re-evaluation.
+            // It was intended to toggle visibility if the same view was activated again.
+            // With tab switching, this might not be the desired behavior.
+            // For now, let's remove it to simplify, and it can be added back if needed.
+            // const activeKhojLeaf = workspace.getActiveViewOfType(KhojPaneView)?.leaf;
+            // if (activeKhojLeaf === leafToUse && existingLeaf === leafToUse) { // Only jump if it was already active and clicked again
+            //    jumpToPreviousView.call(this.app); // Ensure 'this' context for jumpToPreviousView if it uses it
+            // }
         }
     }
 }

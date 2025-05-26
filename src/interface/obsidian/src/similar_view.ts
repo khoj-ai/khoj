@@ -22,7 +22,7 @@ export class KhojSimilarView extends KhojPaneView {
     component: any;
 
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
-        super(leaf, setting, true);
+        super(leaf, setting);
         this.setting = setting;
         this.component = this;
     }
