@@ -13,7 +13,7 @@ from io import BytesIO
 from typing import Any, List
 
 import numpy as np
-from openai import AzureOpenAI, OpenAI
+from openai import AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import ChatCompletion
 from PIL import Image
 
@@ -72,7 +72,7 @@ class GroundingAgentUitars:
     def __init__(
         self,
         model_name: str,
-        client: OpenAI | AzureOpenAI,
+        client: AsyncOpenAI | AsyncAzureOpenAI,
         max_iterations=50,
         environment_type: Literal["computer", "web"] = "computer",
         runtime_conf: dict = {

@@ -72,7 +72,7 @@ async def update_chat_model(
     if chat_model is None:
         return Response(status_code=404, content=json.dumps({"status": "error", "message": "Chat model not found"}))
     if not subscribed and chat_model.price_tier != PriceTier.FREE:
-        raise Response(
+        return Response(
             status_code=403,
             content=json.dumps({"status": "error", "message": "Subscribe to switch to this chat model"}),
         )
@@ -108,7 +108,7 @@ async def update_voice_model(
     if voice_model is None:
         return Response(status_code=404, content=json.dumps({"status": "error", "message": "Voice model not found"}))
     if not subscribed and voice_model.price_tier != PriceTier.FREE:
-        raise Response(
+        return Response(
             status_code=403,
             content=json.dumps({"status": "error", "message": "Subscribe to switch to this voice model"}),
         )
@@ -143,7 +143,7 @@ async def update_paint_model(
     if image_model is None:
         return Response(status_code=404, content=json.dumps({"status": "error", "message": "Image model not found"}))
     if not subscribed and image_model.price_tier != PriceTier.FREE:
-        raise Response(
+        return Response(
             status_code=403,
             content=json.dumps({"status": "error", "message": "Subscribe to switch to this image model"}),
         )

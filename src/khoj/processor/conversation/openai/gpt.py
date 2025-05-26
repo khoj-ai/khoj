@@ -190,7 +190,7 @@ async def converse_openai(
     program_execution_context: List[str] = None,
     deepthought: Optional[bool] = False,
     tracer: dict = {},
-) -> AsyncGenerator[ResponseWithThought, None]:
+) -> AsyncGenerator[str | ResponseWithThought, None]:
     """
     Converse with user using OpenAI's ChatGPT
     """
