@@ -12,10 +12,12 @@ from khoj.processor.operator.operator_agent_base import OperatorAgent
 from khoj.processor.operator.operator_agent_binary import BinaryOperatorAgent
 from khoj.processor.operator.operator_agent_openai import OpenAIOperatorAgent
 from khoj.processor.operator.operator_environment_base import (
+    Environment,
     EnvironmentType,
     EnvStepResult,
 )
 from khoj.processor.operator.operator_environment_browser import BrowserEnvironment
+from khoj.processor.operator.operator_environment_computer import ComputerEnvironment
 from khoj.routers.helpers import ChatEvent
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import LocationData
@@ -71,7 +73,10 @@ async def operate_environment(
     if send_status_func:
         async for event in send_status_func(f"**Launching {environment_type.value}**"):
             yield {ChatEvent.STATUS: event}
-    environment = BrowserEnvironment()
+    if environment_type == EnvironmentType.BROWSER:
+        environment: Environment = BrowserEnvironment()
+    else:
+        environment = ComputerEnvironment(provider="docker")
     await environment.start(width=1024, height=768)
 
     # Start Operator Loop
