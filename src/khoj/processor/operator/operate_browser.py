@@ -4,8 +4,6 @@ import logging
 import os
 from typing import Callable, List, Optional
 
-import requests
-
 from khoj.database.adapters import AgentAdapters, ConversationAdapters
 from khoj.database.models import Agent, ChatModel, KhojUser
 from khoj.processor.operator.operator_actions import *
@@ -49,9 +47,9 @@ async def operate_browser(
     # Initialize Agent
     max_iterations = int(os.getenv("KHOJ_OPERATOR_ITERATIONS", 40))
     operator_agent: OperatorAgent
-    if reasoning_model.name.startswith("gpt-4o"):
+    if is_operator_model(reasoning_model.name) == ChatModel.ModelType.OPENAI:
         operator_agent = OpenAIOperatorAgent(query, reasoning_model, max_iterations, tracer)
-    elif reasoning_model.name.startswith("claude-3-7-sonnet"):
+    elif is_operator_model(reasoning_model.name) == ChatModel.ModelType.ANTHROPIC:
         operator_agent = AnthropicOperatorAgent(query, reasoning_model, max_iterations, tracer)
     else:
         grounding_model_name = "ui-tars-1.5"
@@ -150,3 +148,18 @@ async def operate_browser(
         "result": user_input_message or response,
         "webpages": [{"link": url, "snippet": ""} for url in environment.visited_urls],
     }
+
+
+def is_operator_model(model: str) -> ChatModel.ModelType | None:
+    """Check if the model is an operator model."""
+    operator_models = {
+        "gpt-4o": ChatModel.ModelType.OPENAI,
+        "claude-3-7-sonnet": ChatModel.ModelType.ANTHROPIC,
+        "claude-sonnet-4": ChatModel.ModelType.ANTHROPIC,
+        "claude-opus-4": ChatModel.ModelType.ANTHROPIC,
+        "ui-tars-1.5": ChatModel.ModelType.OFFLINE,
+    }
+    for operator_model in operator_models:
+        if model.startswith(operator_model):
+            return operator_models[operator_model]  # type: ignore[return-value]
+    return None

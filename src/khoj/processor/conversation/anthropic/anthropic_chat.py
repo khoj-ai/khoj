@@ -140,8 +140,8 @@ def anthropic_send_message_to_model(
 
 
 async def converse_anthropic(
-    references,
-    user_query,
+    user_query: str,
+    references: list[dict],
     online_results: Optional[Dict[str, Dict]] = None,
     code_results: Optional[Dict[str, Dict]] = None,
     operator_results: Optional[Dict[str, str]] = None,

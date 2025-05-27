@@ -162,8 +162,8 @@ def gemini_send_message_to_model(
 
 
 async def converse_gemini(
-    references,
-    user_query,
+    user_query: str,
+    references: list[dict],
     online_results: Optional[Dict[str, Dict]] = None,
     code_results: Optional[Dict[str, Dict]] = None,
     operator_results: Optional[Dict[str, str]] = None,

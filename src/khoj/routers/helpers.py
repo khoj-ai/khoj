@@ -1359,7 +1359,6 @@ async def agenerate_chat_response(
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     user: KhojUser = None,
     client_application: ClientApplication = None,
-    conversation_id: str = None,
     location_data: LocationData = None,
     user_name: Optional[str] = None,
     meta_research: str = "",
@@ -1394,7 +1393,7 @@ async def agenerate_chat_response(
             operator_results=operator_results,
             inferred_queries=inferred_queries,
             client_application=client_application,
-            conversation_id=conversation_id,
+            conversation_id=str(conversation.id),
             query_images=query_images,
             train_of_thought=train_of_thought,
             raw_query_files=raw_query_files,
@@ -1449,8 +1448,8 @@ async def agenerate_chat_response(
             api_key = openai_chat_config.api_key
             chat_model_name = chat_model.name
             chat_response_generator = converse_openai(
-                compiled_references,
                 query_to_run,
+                compiled_references,
                 query_images=query_images,
                 online_results=online_results,
                 code_results=code_results,
@@ -1479,8 +1478,8 @@ async def agenerate_chat_response(
             api_key = chat_model.ai_model_api.api_key
             api_base_url = chat_model.ai_model_api.api_base_url
             chat_response_generator = converse_anthropic(
-                compiled_references,
                 query_to_run,
+                compiled_references,
                 query_images=query_images,
                 online_results=online_results,
                 code_results=code_results,
@@ -1508,8 +1507,8 @@ async def agenerate_chat_response(
             api_key = chat_model.ai_model_api.api_key
             api_base_url = chat_model.ai_model_api.api_base_url
             chat_response_generator = converse_gemini(
-                compiled_references,
                 query_to_run,
+                compiled_references,
                 online_results=online_results,
                 code_results=code_results,
                 operator_results=operator_results,

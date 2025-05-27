@@ -33,6 +33,7 @@ anthropic_async_clients: Dict[str, anthropic.AsyncAnthropic | anthropic.AsyncAnt
 
 DEFAULT_MAX_TOKENS_ANTHROPIC = 8000
 MAX_REASONING_TOKENS_ANTHROPIC = 12000
+REASONING_MODELS = ["claude-3-7", "claude-sonnet-4", "claude-opus-4"]
 
 
 @retry(
@@ -43,16 +44,16 @@ MAX_REASONING_TOKENS_ANTHROPIC = 12000
 )
 def anthropic_completion_with_backoff(
     messages: list[ChatMessage],
-    system_prompt,
+    system_prompt: str,
     model_name: str,
-    temperature=0.4,
-    api_key=None,
-    api_base_url: str = None,
-    model_kwargs=None,
-    max_tokens=None,
-    response_type="text",
-    deepthought=False,
-    tracer={},
+    temperature: float = 0.4,
+    api_key: str | None = None,
+    api_base_url: str | None = None,
+    model_kwargs: dict | None = None,
+    max_tokens: int | None = None,
+    response_type: str = "text",
+    deepthought: bool = False,
+    tracer: dict = {},
 ) -> str:
     client = anthropic_clients.get(api_key)
     if not client:
@@ -73,7 +74,7 @@ def anthropic_completion_with_backoff(
         model_kwargs["system"] = system_prompt
 
     max_tokens = max_tokens or DEFAULT_MAX_TOKENS_ANTHROPIC
-    if deepthought and model_name.startswith("claude-3-7"):
+    if deepthought and is_reasoning_model(model_name):
         model_kwargs["thinking"] = {"type": "enabled", "budget_tokens": MAX_REASONING_TOKENS_ANTHROPIC}
         max_tokens += MAX_REASONING_TOKENS_ANTHROPIC
         # Temperature control not supported when using extended thinking
@@ -122,15 +123,15 @@ def anthropic_completion_with_backoff(
 )
 async def anthropic_chat_completion_with_backoff(
     messages: list[ChatMessage],
-    model_name,
-    temperature,
-    api_key,
-    api_base_url,
+    model_name: str | None,
+    temperature: float,
+    api_key: str | None,
+    api_base_url: str,
     system_prompt: str,
-    max_prompt_size=None,
-    deepthought=False,
-    model_kwargs=None,
-    tracer={},
+    max_prompt_size: int | None = None,
+    deepthought: bool = False,
+    model_kwargs: dict | None = None,
+    tracer: dict = {},
 ) -> AsyncGenerator[ResponseWithThought, None]:
     client = anthropic_async_clients.get(api_key)
     if not client:
@@ -139,7 +140,7 @@ async def anthropic_chat_completion_with_backoff(
 
     model_kwargs = model_kwargs or dict()
     max_tokens = DEFAULT_MAX_TOKENS_ANTHROPIC
-    if deepthought and model_name.startswith("claude-3-7"):
+    if deepthought and is_reasoning_model(model_name):
         model_kwargs["thinking"] = {"type": "enabled", "budget_tokens": MAX_REASONING_TOKENS_ANTHROPIC}
         max_tokens += MAX_REASONING_TOKENS_ANTHROPIC
         # Temperature control not supported when using extended thinking
@@ -165,6 +166,19 @@ async def anthropic_chat_completion_with_backoff(
             if not response_started:
                 response_started = True
                 logger.info(f"First response took: {perf_counter() - start_time:.3f} seconds")
+            if chunk.type == "message_delta":
+                if chunk.delta.stop_reason == "refusal":
+                    yield ResponseWithThought(
+                        response="...I'm sorry, but my safety filters prevent me from assisting with this query."
+                    )
+                elif chunk.delta.stop_reason == "max_tokens":
+                    yield ResponseWithThought(response="...I'm sorry, but I've hit my response length limit.")
+                if chunk.delta.stop_reason in ["refusal", "max_tokens"]:
+                    logger.warning(
+                        f"LLM Response Prevented for {model_name}: {chunk.delta.stop_reason}.\n"
+                        + f"Last Message by {messages[-1].role}: {messages[-1].content}"
+                    )
+                    break
             # Skip empty chunks
             if chunk.type != "content_block_delta":
                 continue
@@ -266,3 +280,7 @@ def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt: st
     ]
 
     return formatted_messages, system_prompt
+
+
+def is_reasoning_model(model_name: str) -> bool:
+    return any(model_name.startswith(model) for model in REASONING_MODELS)

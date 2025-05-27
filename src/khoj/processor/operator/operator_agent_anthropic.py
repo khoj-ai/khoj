@@ -3,10 +3,11 @@ import json
 import logging
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, List, Optional, cast
+from typing import List, Optional, cast
 
 from anthropic.types.beta import BetaContentBlock
 
+from khoj.processor.conversation.anthropic.utils import is_reasoning_model
 from khoj.processor.operator.operator_actions import *
 from khoj.processor.operator.operator_agent_base import (
     AgentActResult,
@@ -25,8 +26,7 @@ class AnthropicOperatorAgent(OperatorAgent):
         client = get_anthropic_async_client(
             self.vision_model.ai_model_api.api_key, self.vision_model.ai_model_api.api_base_url
         )
-        tool_version = "2025-01-24"
-        betas = [f"computer-use-{tool_version}", "token-efficient-tools-2025-02-19"]
+        betas = self.model_default_headers()
         temperature = 1.0
         actions: List[OperatorAction] = []
         action_results: List[dict] = []
@@ -56,7 +56,7 @@ class AnthropicOperatorAgent(OperatorAgent):
 
         tools = [
             {
-                "type": f"computer_20250124",
+                "type": self.model_default_tool("computer"),
                 "name": "computer",
                 "display_width_px": 1024,
                 "display_height_px": 768,
@@ -78,7 +78,7 @@ class AnthropicOperatorAgent(OperatorAgent):
         ]
 
         thinking: dict[str, str | int] = {"type": "disabled"}
-        if self.vision_model.name.startswith("claude-3-7"):
+        if is_reasoning_model(self.vision_model.name):
             thinking = {"type": "enabled", "budget_tokens": 1024}
 
         messages_for_api = self._format_message_for_api(self.messages)
@@ -381,3 +381,22 @@ class AnthropicOperatorAgent(OperatorAgent):
             return None
 
         return coord
+
+    def model_default_tool(self, tool_type: Literal["computer", "editor", "terminal"]) -> str:
+        """Get the default tool of specified type for the given model."""
+        if self.vision_model.name.startswith("claude-3-7-sonnet"):
+            if tool_type == "computer":
+                return "computer_20250124"
+        elif self.vision_model.name.startswith("claude-sonnet-4") or self.vision_model.name.startswith("claude-opus-4"):
+            if tool_type == "computer":
+                return "computer_20250124"
+        raise ValueError(f"Unsupported tool type for model '{self.vision_model.name}': {tool_type}")
+
+    def model_default_headers(self) -> list[str]:
+        """Get the default computer use headers for the given model."""
+        if self.vision_model.name.startswith("claude-3-7-sonnet"):
+            return [f"computer-use-2025-01-24", "token-efficient-tools-2025-02-19"]
+        elif self.vision_model.name.startswith("claude-sonnet-4") or self.vision_model.name.startswith("claude-opus-4"):
+            return ["computer-use-2025-01-24"]
+        else:
+            return []

@@ -73,6 +73,10 @@ model_to_prompt_size = {
     "claude-3-7-sonnet-20250219": 60000,
     "claude-3-7-sonnet-latest": 60000,
     "claude-3-5-haiku-20241022": 60000,
+    "claude-sonnet-4": 60000,
+    "claude-sonnet-4-20250514": 60000,
+    "claude-opus-4": 60000,
+    "claude-opus-4-20250514": 60000,
     # Offline Models
     "bartowski/Qwen2.5-14B-Instruct-GGUF": 20000,
     "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF": 20000,
@@ -387,7 +391,7 @@ def gather_raw_query_files(
 
 
 def generate_chatml_messages_with_context(
-    user_message,
+    user_message: str,
     system_message: str = None,
     conversation_log={},
     model_name="gpt-4o-mini",
@@ -697,8 +701,9 @@ def clean_code_python(code: str):
 
 def load_complex_json(json_str):
     """
-    Preprocess a raw JSON string to escape unescaped double quotes within value strings,
-    while preserving the JSON structure and already escaped quotes.
+    Preprocess a raw JSON string to
+    - escape unescaped double quotes within value strings while preserving the JSON structure and already escaped quotes.
+    - remove suffix after the first valid JSON object,
     """
 
     def replace_unescaped_quotes(match):
@@ -726,9 +731,20 @@ def load_complex_json(json_str):
     for loads in json_loaders_to_try:
         try:
             return loads(processed)
-        except (json.JSONDecodeError, pyjson5.Json5Exception) as e:
-            errors.append(f"{type(e).__name__}: {str(e)}")
+        except (json.JSONDecodeError, pyjson5.Json5Exception) as e_load:
+            loader_name = loads.__name__
+            errors.append(f"{loader_name} (initial parse): {type(e_load).__name__}: {str(e_load)}")
 
+            # Handle plain text suffixes by slicing at error position
+            if hasattr(e_load, "pos") and 0 < e_load.pos < len(processed):
+                try:
+                    sliced = processed[: e_load.pos].strip()
+                    if sliced:
+                        return loads(sliced)
+                except Exception as e_slice:
+                    errors.append(
+                        f"{loader_name} after slice at {e_load.pos}: {type(e_slice).__name__}: {str(e_slice)}"
+                    )
     # If all loaders fail, raise the aggregated error
     raise ValueError(
         f"Failed to load JSON with errors: {'; '.join(errors)}\n\n"
