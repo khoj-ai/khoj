@@ -7,7 +7,11 @@ from pydantic import BaseModel
 from khoj.database.models import ChatModel
 from khoj.processor.conversation.utils import commit_conversation_trace
 from khoj.processor.operator.operator_actions import OperatorAction
-from khoj.processor.operator.operator_environment_base import EnvState, EnvStepResult
+from khoj.processor.operator.operator_environment_base import (
+    EnvironmentType,
+    EnvState,
+    EnvStepResult,
+)
 from khoj.utils.helpers import get_chat_usage_metrics, is_promptrace_enabled
 
 logger = logging.getLogger(__name__)
@@ -25,9 +29,12 @@ class AgentMessage(BaseModel):
 
 
 class OperatorAgent(ABC):
-    def __init__(self, query: str, vision_model: ChatModel, max_iterations: int, tracer: dict):
+    def __init__(
+        self, query: str, vision_model: ChatModel, environment_type: EnvironmentType, max_iterations: int, tracer: dict
+    ):
         self.query = query
         self.vision_model = vision_model
+        self.environment_type = environment_type
         self.max_iterations = max_iterations
         self.tracer = tracer
         self.messages: List[AgentMessage] = []

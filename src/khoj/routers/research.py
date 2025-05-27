@@ -18,7 +18,7 @@ from khoj.processor.conversation.utils import (
     construct_tool_chat_history,
     load_complex_json,
 )
-from khoj.processor.operator.operate_browser import operate_browser
+from khoj.processor.operator import operate_environment
 from khoj.processor.tools.online_search import read_webpages, search_online
 from khoj.processor.tools.run_code import run_code
 from khoj.routers.api import extract_references_and_questions
@@ -417,12 +417,12 @@ async def execute_information_collection(
 
         elif this_iteration.tool == ConversationCommand.Operator:
             try:
-                async for result in operate_browser(
+                async for result in operate_environment(
                     this_iteration.query,
                     user,
                     construct_tool_chat_history(previous_iterations, ConversationCommand.Operator),
                     location,
-                    send_status_func,
+                    send_status_func=send_status_func,
                     query_images=query_images,
                     agent=agent,
                     query_files=query_files,

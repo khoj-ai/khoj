@@ -1,9 +1,8 @@
 import json
 import logging
 from datetime import datetime
-from typing import List, Optional
-
-from openai.types.chat import ChatCompletion
+from textwrap import dedent
+from typing import List
 
 from khoj.database.models import ChatModel
 from khoj.processor.conversation.utils import construct_structured_message
@@ -15,7 +14,11 @@ from khoj.processor.operator.operator_agent_base import (
     AgentMessage,
     OperatorAgent,
 )
-from khoj.processor.operator.operator_environment_base import EnvState, EnvStepResult
+from khoj.processor.operator.operator_environment_base import (
+    EnvironmentType,
+    EnvState,
+    EnvStepResult,
+)
 from khoj.routers.helpers import send_message_to_model_wrapper
 from khoj.utils.helpers import get_openai_async_client, is_none_or_empty
 
@@ -27,7 +30,7 @@ class BinaryOperatorAgent(OperatorAgent):
     """
     An OperatorAgent that uses two LLMs:
     1. Reasoning LLM: Determines the next high-level action based on the objective and current visual reasoning trajectory.
-    2. Grounding LLM: Converts the high-level action into specific, executable browser actions.
+    2. Grounding LLM: Converts the high-level action into specific, actions executable on the environment.
     """
 
     def __init__(
@@ -35,10 +38,13 @@ class BinaryOperatorAgent(OperatorAgent):
         query: str,
         reasoning_model: ChatModel,
         grounding_model: ChatModel,
+        environment_type: EnvironmentType,
         max_iterations: int,
         tracer: dict,
     ):
-        super().__init__(query, reasoning_model, max_iterations, tracer)  # Use reasoning model for primary tracking
+        super().__init__(
+            query, reasoning_model, environment_type, max_iterations, tracer
+        )  # Use reasoning model for primary tracking
         self.reasoning_model = reasoning_model
         self.grounding_model = grounding_model
         # Initialize openai api compatible client for grounding model
@@ -49,10 +55,12 @@ class BinaryOperatorAgent(OperatorAgent):
         self.grounding_agent: GroundingAgent | GroundingAgentUitars = None
         if "ui-tars-1.5" in grounding_model.name:
             self.grounding_agent = GroundingAgentUitars(
-                grounding_model.name, grounding_client, max_iterations, environment_type="web", tracer=tracer
+                grounding_model.name, self.environment_type, grounding_client, max_iterations, tracer=tracer
             )
         else:
-            self.grounding_agent = GroundingAgent(grounding_model.name, grounding_client, max_iterations, tracer=tracer)
+            self.grounding_agent = GroundingAgent(
+                grounding_model.name, self.environment_type, grounding_client, max_iterations, tracer=tracer
+            )
 
     async def act(self, current_state: EnvState) -> AgentActResult:
         """
@@ -84,48 +92,7 @@ class BinaryOperatorAgent(OperatorAgent):
         """
         Uses the reasoning LLM to determine the next high-level action based on the operation trajectory.
         """
-        reasoning_system_prompt = f"""
-# Introduction
-* You are Khoj, a smart and resourceful web browsing assistant. You help the user accomplish their task using a web browser.
-* You are given the user's query and screenshots of the browser's state transitions.
-* The current date is {datetime.today().strftime('%A, %B %-d, %Y')}.
-* The current URL is {current_state.url}.
-
-# Your Task
-* First look at the screenshots carefully to notice all pertinent information.
-* Then instruct a tool AI to perform the next action that will help you progress towards the user's goal.
-* Make sure you scroll down to see everything before deciding something isn't available.
-* Perform web searches using DuckDuckGo. Don't use Google even if requested as the query will fail.
-* Use your creativity to find alternate ways to make progress if you get stuck at any point.
-
-# Tool AI Capabilities
-* The tool AI only has access to the current screenshot and your instructions. It uses your instructions to perform the next action on the page.
-* It can interact with the web browser with these actions: click, right click, double click, type, scroll, drag, wait, goto url and go back to previous page.
-* It cannot access the OS, filesystem or application window. It just controls a single Chromium browser tab via Playwright.
-
-# IMPORTANT
-* You are allowed upto {self.max_iterations} iterations to complete the task.
-* To navigate to a specific URL, put "GOTO <URL>" (without quotes) on the last line of your response.
-* To navigate back to the previous page, end your response with "BACK" (without quotes).
-* Once you've verified that the main objective has been achieved, end your response with "DONE" (without quotes).
-
-# Examples
-## Example 1
-GOTO https://example.com
-## Example 2
-click the blue login button located at the top right corner
-## Example 3
-scroll down the page
-## Example 4
-type the username example@email.com into the input field labeled Username
-## Example 5
-DONE
-
-# Instructions
-Now describe a single high-level action to take next to progress towards the user's goal in detail.
-Focus on the visual action and provide all necessary context.
-""".strip()
-
+        reasoning_system_prompt = self.get_instruction(self.environment_type, current_state)
         if is_none_or_empty(self.messages):
             query_text = f"**Main Objective**: {self.query}"
             query_screenshot = [f"data:image/webp;base64,{current_state.screenshot}"]
@@ -329,6 +296,96 @@ Focus on the visual action and provide all necessary context.
             for message in messages
         ]
         return formatted_messages
+
+    def get_instruction(self, environment_type: EnvironmentType, env_state: EnvState) -> str:
+        """Get the system instruction for the reasoning agent."""
+        if environment_type == EnvironmentType.BROWSER:
+            return dedent(
+                f"""
+                # Introduction
+                * You are Khoj, a smart and resourceful web browsing assistant. You help the user accomplish their task using a web browser.
+                * You are given the user's query and screenshots of the browser's state transitions.
+                * The current date is {datetime.today().strftime('%A, %B %-d, %Y')}.
+                * The current URL is {env_state.url}.
+
+                # Your Task
+                * First look at the screenshots carefully to notice all pertinent information.
+                * Then instruct a tool AI to perform the next action that will help you progress towards the user's goal.
+                * Make sure you scroll down to see everything before deciding something isn't available.
+                * Perform web searches using DuckDuckGo. Don't use Google even if requested as the query will fail.
+                * Use your creativity to find alternate ways to make progress if you get stuck at any point.
+
+                # Tool AI Capabilities
+                * The tool AI only has access to the current screenshot and your instructions. It uses your instructions to perform the next action on the page.
+                * It can interact with the web browser with these actions: click, right click, double click, type, scroll, drag, wait, goto url and go back to previous page.
+                * It cannot access the OS, filesystem or application window. It just controls a single Chromium browser tab via Playwright.
+
+                # IMPORTANT
+                * You are allowed upto {self.max_iterations} iterations to complete the task.
+                * To navigate to a specific URL, put "GOTO <URL>" (without quotes) on the last line of your response.
+                * To navigate back to the previous page, end your response with "BACK" (without quotes).
+                * Once you've verified that the main objective has been achieved, end your response with "DONE" (without quotes).
+
+                # Examples
+                ## Example 1
+                GOTO https://example.com
+                ## Example 2
+                click the blue login button located at the top right corner
+                ## Example 3
+                scroll down the page
+                ## Example 4
+                type the username example@email.com into the input field labeled Username
+                ## Example 5
+                DONE
+
+                # Instructions
+                Now describe a single high-level action to take next to progress towards the user's goal in detail.
+                Focus on the visual action and provide all necessary context.
+                """
+            ).strip()
+
+        elif environment_type == EnvironmentType.COMPUTER:
+            return dedent(
+                f"""
+                # Introduction
+                * You are Khoj, a smart and resourceful computer assistant. You help the user accomplish their task using a computer.
+                * You are given the user's query and screenshots of the computer's state transitions.
+                * The current date is {datetime.today().strftime('%A, %B %-d, %Y')}.
+
+                # Your Task
+                * First look at the screenshots carefully to notice all pertinent information.
+                * Then instruct a tool AI to perform the next action that will help you progress towards the user's goal.
+                * Make sure you scroll down to see everything before deciding something isn't available.
+                * Perform web searches using DuckDuckGo. Don't use Google even if requested as the query will fail.
+                * Use your creativity to find alternate ways to make progress if you get stuck at any point.
+
+                # Tool AI Capabilities
+                * The tool AI only has access to the current screenshot and your instructions. It uses your instructions to perform the next action on the page.
+                * It can interact with the computer with these actions: click, right click, double click, type, scroll, drag, wait to previous page.
+
+                # IMPORTANT
+                * You are allowed upto {self.max_iterations} iterations to complete the task.
+                * Once you've verified that the main objective has been achieved, end your response with "DONE" (without quotes).
+
+                # Examples
+                ## Example 1
+                type https://example.com into the address bar and press Enter
+                ## Example 2
+                click the blue login button located at the top right corner
+                ## Example 3
+                scroll down the page
+                ## Example 4
+                type the username example@email.com into the input field labeled Username
+                ## Example 5
+                DONE
+
+                # Instructions
+                Now describe a single high-level action to take next to progress towards the user's goal in detail.
+                Focus on the visual action and provide all necessary context.
+                """
+            ).strip()
+        else:
+            raise ValueError(f"Expected environment type: Computer or Browser. Got {environment_type}.")
 
     def reset(self):
         """Reset the agent state."""

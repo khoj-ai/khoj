@@ -31,7 +31,7 @@ from khoj.processor.conversation.utils import (
     save_to_conversation_log,
 )
 from khoj.processor.image.generate import text_to_image
-from khoj.processor.operator.operate_browser import operate_browser
+from khoj.processor.operator import operate_environment
 from khoj.processor.speech.text_to_speech import generate_text_to_speech
 from khoj.processor.tools.online_search import (
     deduplicate_organic_results,
@@ -1292,7 +1292,7 @@ async def chat(
                 )
         if ConversationCommand.Operator in conversation_commands:
             try:
-                async for result in operate_browser(
+                async for result in operate_environment(
                     defiltered_query,
                     user,
                     meta_log,

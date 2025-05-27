@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Literal, Optional
 
 from pydantic import BaseModel
@@ -6,9 +7,18 @@ from pydantic import BaseModel
 from khoj.processor.operator.operator_actions import OperatorAction
 
 
+class EnvironmentType(Enum):
+    """Type of environment to operate."""
+
+    COMPUTER = "computer"
+    BROWSER = "browser"
+
+
 class EnvState(BaseModel):
-    url: str
+    height: int
+    width: int
     screenshot: Optional[str] = None
+    url: Optional[str] = None
 
 
 class EnvStepResult(BaseModel):

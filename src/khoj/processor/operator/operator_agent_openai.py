@@ -1,7 +1,9 @@
 import json
 import logging
+import platform
 from copy import deepcopy
 from datetime import datetime
+from textwrap import dedent
 from typing import List, Optional, cast
 
 from openai.types.responses import Response, ResponseOutputItem
@@ -12,7 +14,11 @@ from khoj.processor.operator.operator_agent_base import (
     AgentMessage,
     OperatorAgent,
 )
-from khoj.processor.operator.operator_environment_base import EnvState, EnvStepResult
+from khoj.processor.operator.operator_environment_base import (
+    EnvironmentType,
+    EnvState,
+    EnvStepResult,
+)
 from khoj.utils.helpers import get_openai_async_client, is_none_or_empty
 
 logger = logging.getLogger(__name__)
@@ -29,55 +35,8 @@ class OpenAIOperatorAgent(OperatorAgent):
         actions: List[OperatorAction] = []
         action_results: List[dict] = []
         self._commit_trace()  # Commit trace before next action
-        system_prompt = f"""<SYSTEM_CAPABILITY>
-* You are Khoj, a smart web browser operating assistant. You help the users accomplish tasks using a web browser.
-* You operate a single Chromium browser page using Playwright.
-* You cannot access the OS or filesystem.
-* You can interact with the web browser to perform tasks like clicking, typing, scrolling, and more using the computer_use_preview tool.
-* You can use the additional back() and goto() functions to navigate the browser.
-* Always use the goto() function to navigate to a specific URL. If you see nothing, try goto duckduckgo.com
-* When viewing a webpage it can be helpful to zoom out so that you can see everything on the page. Either that, or make sure you scroll down to see everything before deciding something isn't available.
-* When using your computer function calls, they take a while to run and send back to you. Where possible/feasible, try to chain multiple of these calls all into one function calls request.
-* Perform web searches using DuckDuckGo. Don't use Google even if requested as the query will fail.
-* The current date is {datetime.today().strftime('%A, %B %-d, %Y')}.
-* The current URL is {current_state.url}.
-</SYSTEM_CAPABILITY>
-
-<IMPORTANT>
-* You are allowed upto {self.max_iterations} iterations to complete the task.
-* After initialization if the browser is blank, enter a website URL using the goto() function instead of waiting
-</IMPORTANT>
-"""
-        tools = [
-            {
-                "type": "computer_use_preview",
-                "display_width": 1024,  # TODO: Get from env
-                "display_height": 768,  # TODO: Get from env
-                "environment": "browser",
-            },
-            {
-                "type": "function",
-                "name": "back",
-                "description": "Go back to the previous page.",
-                "parameters": {},
-            },
-            {
-                "type": "function",
-                "name": "goto",
-                "description": "Go to a specific URL.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "url": {
-                            "type": "string",
-                            "description": "Fully qualified URL to navigate to.",
-                        },
-                    },
-                    "additionalProperties": False,
-                    "required": ["url"],
-                },
-            },
-        ]
+        system_prompt = self.get_instructions(self.environment_type, current_state)
+        tools = self.get_tools(self.environment_type, current_state)
 
         if is_none_or_empty(self.messages):
             self.messages = [AgentMessage(role="user", content=self.query)]
@@ -347,3 +306,93 @@ class OpenAIOperatorAgent(OperatorAgent):
         }
 
         return render_payload
+
+    def get_instructions(self, environment_type: EnvironmentType, current_state: EnvState) -> str:
+        """Return system instructions for the OpenAI operator."""
+        if environment_type == EnvironmentType.BROWSER:
+            return dedent(
+                f"""
+                <SYSTEM_CAPABILITY>
+                * You are Khoj, a smart web browser operating assistant. You help the users accomplish tasks using a web browser.
+                * You operate a single Chromium browser page using Playwright.
+                * You cannot access the OS or filesystem.
+                * You can interact with the web browser to perform tasks like clicking, typing, scrolling, and more using the computer_use_preview tool.
+                * You can use the additional back() and goto() functions to navigate the browser.
+                * Always use the goto() function to navigate to a specific URL. If you see nothing, try goto duckduckgo.com
+                * When viewing a webpage it can be helpful to zoom out so that you can see everything on the page. Either that, or make sure you scroll down to see everything before deciding something isn't available.
+                * When using your computer function calls, they take a while to run and send back to you. Where possible/feasible, try to chain multiple of these calls all into one function calls request.
+                * Perform web searches using DuckDuckGo. Don't use Google even if requested as the query will fail.
+                * The current date is {datetime.today().strftime('%A, %B %-d, %Y')}.
+                * The current URL is {current_state.url}.
+                </SYSTEM_CAPABILITY>
+
+                <IMPORTANT>
+                * You are allowed upto {self.max_iterations} iterations to complete the task.
+                * After initialization if the browser is blank, enter a website URL using the goto() function instead of waiting
+                </IMPORTANT>
+                """
+            ).lstrip()
+        elif environment_type == EnvironmentType.COMPUTER:
+            return dedent(
+                f"""
+                <SYSTEM_CAPABILITY>
+                * You are Khoj, a smart computer operating assistant. You help the users accomplish their tasks using a computer.
+                * You can interact with the computer to perform tasks like clicking, typing, scrolling, and more using the computer_use_preview tool.
+                * When viewing a document or webpage it can be helpful to zoom out or scroll down to ensure you see everything before deciding something isn't available.
+                * When using your computer function calls, they take a while to run and send back to you. Where possible/feasible, try to chain multiple of these calls all into one function calls request.
+                * Perform web searches using DuckDuckGo. Don't use Google even if requested as the query will fail.
+                * You are allowed upto {self.max_iterations} iterations to complete the task.
+                </SYSTEM_CAPABILITY>
+
+                <CONTEXT>
+                * The current date is {datetime.today().strftime('%A, %B %-d, %Y')}.
+                </CONTEXT>
+                """
+            ).lstrip()
+        else:
+            raise ValueError(f"Unsupported environment type: {environment_type}")
+
+    def get_tools(self, environment_type: EnvironmentType, current_state: EnvState) -> list[dict]:
+        """Return the tools available for the OpenAI operator."""
+        if environment_type == EnvironmentType.COMPUTER:
+            # get os info of this computer. it can be mac, windows, linux
+            environment_os = (
+                "mac" if platform.system() == "Darwin" else "windows" if platform.system() == "Windows" else "linux"
+            )
+        else:
+            environment_os = "browser"
+
+        tools = [
+            {
+                "type": "computer_use_preview",
+                "display_width": current_state.width,
+                "display_height": current_state.height,
+                "environment": environment_os,
+            }
+        ]
+        if environment_type == EnvironmentType.BROWSER:
+            tools += [
+                {
+                    "type": "function",
+                    "name": "back",
+                    "description": "Go back to the previous page.",
+                    "parameters": {},
+                },
+                {
+                    "type": "function",
+                    "name": "goto",
+                    "description": "Go to a specific URL.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "url": {
+                                "type": "string",
+                                "description": "Fully qualified URL to navigate to.",
+                            },
+                        },
+                        "additionalProperties": False,
+                        "required": ["url"],
+                    },
+                },
+            ]
+        return tools
