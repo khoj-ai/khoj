@@ -206,17 +206,18 @@ class AnthropicOperatorAgent(OperatorAgent):
             if env_step.error:
                 action_result["is_error"] = True
 
-        # Append tool results to the message history
-        self.messages += [AgentMessage(role="environment", content=agent_action.action_results)]
-
-        # Mark the final tool result as a cache break point
-        agent_action.action_results[-1]["cache_control"] = {"type": "ephemeral"}
         # Remove previous cache controls
         for msg in self.messages:
             if msg.role == "environment" and isinstance(msg.content, list):
                 for block in msg.content:
                     if isinstance(block, dict) and "cache_control" in block:
                         del block["cache_control"]
+
+        # Mark the final tool result as a cache break point
+        agent_action.action_results[-1]["cache_control"] = {"type": "ephemeral"}
+
+        # Append tool results to the message history
+        self.messages += [AgentMessage(role="environment", content=agent_action.action_results)]
 
     def _format_message_for_api(self, messages: list[AgentMessage]) -> list[dict]:
         """Format Anthropic response into a single string."""
