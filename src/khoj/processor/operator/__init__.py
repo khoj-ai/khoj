@@ -39,7 +39,7 @@ async def operate_environment(
     cancellation_event: Optional[asyncio.Event] = None,
     tracer: dict = {},
 ):
-    response, summary_message, user_input_message = None, None, None
+    response, user_input_message = None, None
 
     # Get the agent chat model
     agent_chat_model = await AgentAdapters.aget_agent_chat_model(agent, user) if agent else None
@@ -81,7 +81,6 @@ async def operate_environment(
 
     # Start Operator Loop
     try:
-        summarize_prompt = f"Use the results of our research to provide a comprehensive, self-contained answer for the target query:\n{query}."
         task_completed = False
         iterations = 0
 
@@ -137,7 +136,7 @@ async def operate_environment(
                 if task_completed or trigger_iteration_limit:
                     # Summarize results of operator run on last iteration
                     operator_agent.add_action_results(env_steps, agent_result)
-                    summary_message = await operator_agent.summarize(summarize_prompt, env_state)
+                    summary_message = await operator_agent.summarize(env_state)
                     logger.info(f"Task completed: {task_completed}, Iteration limit: {trigger_iteration_limit}")
                     break
 

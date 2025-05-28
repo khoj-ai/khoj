@@ -38,6 +38,7 @@ class OperatorAgent(ABC):
         self.max_iterations = max_iterations
         self.tracer = tracer
         self.messages: List[AgentMessage] = []
+        self.summarize_prompt = f"Use the results of our research to provide a comprehensive, self-contained answer for the target query:\n{query}."
 
     @abstractmethod
     async def act(self, current_state: EnvState) -> AgentActResult:
@@ -48,8 +49,9 @@ class OperatorAgent(ABC):
         """Track results of agent actions on the environment."""
         pass
 
-    async def summarize(self, summarize_prompt: str, current_state: EnvState) -> str:
+    async def summarize(self, current_state: EnvState, summarize_prompt: str = None) -> str:
         """Summarize the agent's actions and results."""
+        summarize_prompt = summarize_prompt or self.summarize_prompt
         self.messages.append(AgentMessage(role="user", content=summarize_prompt))
         await self.act(current_state)
         if not self.messages:
