@@ -125,6 +125,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
     const [currentTurnId, setCurrentTurnId] = useState<string | null>(null);
     const sentinelRef = useRef<HTMLDivElement | null>(null);
     const scrollAreaRef = useRef<HTMLDivElement | null>(null);
+    const scrollableContentWrapperRef = useRef<HTMLDivElement | null>(null);
     const latestUserMessageRef = useRef<HTMLDivElement | null>(null);
     const latestFetchedMessageRef = useRef<HTMLDivElement | null>(null);
 
@@ -151,15 +152,45 @@ export default function ChatHistory(props: ChatHistoryProps) {
         };
 
         scrollAreaEl.addEventListener("scroll", detectIsNearBottom);
+        detectIsNearBottom(); // Initial check
         return () => scrollAreaEl.removeEventListener("scroll", detectIsNearBottom);
-    }, []);
+    }, [scrollAreaRef]);
 
     // Auto scroll while incoming message is streamed
     useEffect(() => {
         if (props.incomingMessages && props.incomingMessages.length > 0 && isNearBottom) {
-            scrollToBottom();
+            scrollToBottom(true);
         }
     }, [props.incomingMessages, isNearBottom]);
+
+    // ResizeObserver to handle content height changes (e.g., images loading)
+    useEffect(() => {
+        const contentWrapper = scrollableContentWrapperRef.current;
+        const scrollViewport = scrollAreaRef.current?.querySelector<HTMLElement>(scrollAreaSelector);
+
+        if (!contentWrapper || !scrollViewport) return;
+
+        const observer = new ResizeObserver(() => {
+            // Check current scroll position to decide if auto-scroll is warranted
+            const { scrollTop, scrollHeight, clientHeight } = scrollViewport;
+            const bottomThreshold = 50;
+            const currentlyNearBottom = (scrollHeight - (scrollTop + clientHeight)) <= bottomThreshold;
+
+            if (currentlyNearBottom) {
+                // Only auto-scroll if there are incoming messages being processed
+                if (props.incomingMessages && props.incomingMessages.length > 0) {
+                    const lastMessage = props.incomingMessages[props.incomingMessages.length - 1];
+                    // If the last message is not completed, or it just completed (indicated by incompleteIncomingMessageIndex still being set)
+                    if (!lastMessage.completed || (lastMessage.completed && incompleteIncomingMessageIndex !== null)) {
+                        scrollToBottom(true); // Use instant scroll
+                    }
+                }
+            }
+        });
+
+        observer.observe(contentWrapper);
+        return () => observer.disconnect();
+    }, [props.incomingMessages, incompleteIncomingMessageIndex, scrollAreaRef]); // Dependencies
 
     // Scroll to most recent user message after the first page of chat messages is loaded.
     useEffect(() => {
@@ -297,7 +328,10 @@ export default function ChatHistory(props: ChatHistoryProps) {
                 behavior: instant ? "auto" : "smooth",
             });
         });
-        setIsNearBottom(true);
+        // Optimistically set, the scroll listener will verify
+        if (instant || scrollAreaEl && (scrollAreaEl.scrollHeight - (scrollAreaEl.scrollTop + scrollAreaEl.clientHeight)) < 5) {
+            setIsNearBottom(true);
+        }
     };
 
     function constructAgentLink() {
@@ -356,7 +390,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
         `}
             ref={scrollAreaRef}
         >
-            <div>
+            <div ref={scrollableContentWrapperRef}>
                 <div className={`${styles.chatHistory} ${props.customClassName}`}>
                     <div ref={sentinelRef} style={{ height: "1px" }}>
                         {fetchingData && <InlineLoading className="opacity-50" />}
@@ -519,7 +553,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
                             className="absolute bottom-0 right-0 bg-white dark:bg-[hsl(var(--background))] text-neutral-500 dark:text-white p-2 rounded-full shadow-xl"
                             onClick={() => {
                                 scrollToBottom();
-                                setIsNearBottom(true);
                             }}
                         >
                             <ArrowDown size={24} />
