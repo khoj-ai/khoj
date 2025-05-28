@@ -226,7 +226,8 @@ class BinaryOperatorAgent(OperatorAgent):
             action_results_content.extend(action_result["content"])
         self.messages.append(AgentMessage(role="environment", content=action_results_content))
 
-    async def summarize(self, summarize_prompt: str, env_state: EnvState) -> str:
+    async def summarize(self, env_state: EnvState, summarize_prompt: str = None) -> str:
+        summarize_prompt = summarize_prompt or self.summarize_prompt
         conversation_history = {"chat": self._format_message_for_api(self.messages)}
         try:
             summary = await send_message_to_model_wrapper(
