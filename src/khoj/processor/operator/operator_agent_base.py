@@ -40,6 +40,17 @@ class OperatorAgent(ABC):
         self.messages: List[AgentMessage] = []
         self.summarize_prompt = f"Use the results of our research to provide a comprehensive, self-contained answer for the target query:\n{query}."
 
+        # Context compression parameters
+        self.context_compress_trigger = 2e3  # heuristic to determine compression trigger
+        # turns after which compression triggered. scales with model max context size. Minimum 5 turns.
+        self.message_limit = 2 * max(
+            5, int(self.vision_model.subscribed_max_prompt_size / self.context_compress_trigger)
+        )
+        # compression ratio determines how many messages to compress down to one
+        # e.g. if 5 messages, a compress ratio of 4/5 means compress 5 messages into 1 + keep 1 uncompressed
+        self.message_compress_ratio = 4 / 5
+        self.compress_length = int(self.message_limit * self.message_compress_ratio)
+
     @abstractmethod
     async def act(self, current_state: EnvState) -> AgentActResult:
         pass
