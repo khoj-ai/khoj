@@ -6,7 +6,7 @@ from datetime import datetime
 from textwrap import dedent
 from typing import List, Literal, Optional, cast
 
-from anthropic.types.beta import BetaContentBlock
+from anthropic.types.beta import BetaContentBlock, BetaTextBlock, BetaToolUseBlock
 
 from khoj.processor.conversation.anthropic.utils import is_reasoning_model
 from khoj.processor.operator.operator_actions import *
@@ -46,6 +46,24 @@ class AnthropicOperatorAgent(OperatorAgent):
         thinking: dict[str, str | int] = {"type": "disabled"}
         if is_reasoning_model(self.vision_model.name):
             thinking = {"type": "enabled", "budget_tokens": 1024}
+
+        # Trigger trajectory compression if exceed size limit
+        if len(self.messages) > self.message_limit:
+            # 1. Prepare messages for compression
+            original_messages = self.messages
+            self.messages = self.messages[: self.compress_length]
+            # ensure last message isn't a tool call request
+            if self.messages[-1].role == "assistant" and any(
+                isinstance(block, BetaToolUseBlock) for block in self.messages[-1].content
+            ):
+                self.messages.pop()
+            # 2. Get summary of operation trajectory
+            await self.summarize(current_state)
+            # 3. Rebuild condensed trajectory
+            primary_task = [original_messages.pop(0)]
+            condensed_trajectory = self.messages[-2:]  # extract summary request, response
+            recent_trajectory = original_messages[self.compress_length :]
+            self.messages = primary_task + condensed_trajectory + recent_trajectory
 
         messages_for_api = self._format_message_for_api(self.messages)
         response = await client.beta.messages.create(

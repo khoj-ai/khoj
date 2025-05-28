@@ -50,7 +50,7 @@ async def operate_environment(
         raise ValueError(f"No vision enabled chat model found. Configure a vision chat model to operate environment.")
 
     # Initialize Agent
-    max_iterations = int(os.getenv("KHOJ_OPERATOR_ITERATIONS", 40))
+    max_iterations = int(os.getenv("KHOJ_OPERATOR_ITERATIONS", 100))
     operator_agent: OperatorAgent
     if is_operator_model(reasoning_model.name) == ChatModel.ModelType.OPENAI:
         operator_agent = OpenAIOperatorAgent(query, reasoning_model, environment_type, max_iterations, tracer)
