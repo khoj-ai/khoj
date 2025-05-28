@@ -66,22 +66,31 @@ class AnthropicOperatorAgent(OperatorAgent):
             self.messages = primary_task + condensed_trajectory + recent_trajectory
 
         messages_for_api = self._format_message_for_api(self.messages)
-        response = await client.beta.messages.create(
-            messages=messages_for_api,
-            model=self.vision_model.name,
-            system=system_prompt,
-            tools=tools,
-            betas=betas,
-            thinking=thinking,
-            max_tokens=4096,  # TODO: Make configurable?
-            temperature=temperature,
-        )
+        try:
+            response = await client.beta.messages.create(
+                messages=messages_for_api,
+                model=self.vision_model.name,
+                system=system_prompt,
+                tools=tools,
+                betas=betas,
+                thinking=thinking,
+                max_tokens=4096,  # TODO: Make configurable?
+                temperature=temperature,
+            )
+            response_content = response.content
+        except Exception as e:
+            # create a response block with error message
+            logger.error(f"Error during Anthropic API call: {e}")
+            error_str = e.message if hasattr(e, "message") else str(e)
+            response = None
+            response_content = [BetaTextBlock(text=f"Communication Error: {error_str}", type="text")]
+        else:
+            logger.debug(f"Anthropic response: {response.model_dump_json()}")
 
-        logger.debug(f"Anthropic response: {response.model_dump_json()}")
-        self.messages.append(AgentMessage(role="assistant", content=response.content))
-        rendered_response = self._render_response(response.content, current_state.screenshot)
+        self.messages.append(AgentMessage(role="assistant", content=response_content))
+        rendered_response = self._render_response(response_content, current_state.screenshot)
 
-        for block in response.content:
+        for block in response_content:
             if block.type == "tool_use":
                 content = None
                 is_error = False
@@ -184,12 +193,13 @@ class AnthropicOperatorAgent(OperatorAgent):
                         }
                     )
 
-        self._update_usage(
-            response.usage.input_tokens,
-            response.usage.output_tokens,
-            response.usage.cache_read_input_tokens,
-            response.usage.cache_creation_input_tokens,
-        )
+        if response:
+            self._update_usage(
+                response.usage.input_tokens,
+                response.usage.output_tokens,
+                response.usage.cache_read_input_tokens,
+                response.usage.cache_creation_input_tokens,
+            )
         self.tracer["temperature"] = temperature
 
         return AgentActResult(
