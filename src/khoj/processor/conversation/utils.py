@@ -193,11 +193,8 @@ def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="A
     chat_history = ""
     for chat in conversation_history.get("chat", [])[-n:]:
         if chat["by"] == "khoj" and chat["intent"].get("type") in ["remember", "reminder", "summarize"]:
-            chat_history += f"User: {chat['intent']['query']}\n"
-
             if chat["intent"].get("inferred-queries"):
                 chat_history += f'{agent_name}: {{"queries": {chat["intent"].get("inferred-queries")}}}\n'
-
             chat_history += f"{agent_name}: {chat['message']}\n\n"
         elif chat["by"] == "khoj" and chat.get("images"):
             chat_history += f"User: {chat['intent']['query']}\n"
@@ -206,6 +203,7 @@ def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="A
             chat_history += f"User: {chat['intent']['query']}\n"
             chat_history += f"{agent_name}: {chat['intent']['inferred-queries'][0]}\n"
         elif chat["by"] == "you":
+            chat_history += f"User: {chat['message']}\n"
             raw_query_files = chat.get("queryFiles")
             if raw_query_files:
                 query_files: Dict[str, str] = {}
@@ -229,9 +227,12 @@ def construct_question_history(
     Constructs a chat history string formatted for query extraction purposes.
     """
     history_parts = ""
+    original_query = None
     for chat in conversation_log.get("chat", [])[-lookback:]:
+        if chat["by"] == "you":
+            original_query = chat.get("message")
+            history_parts += f"{query_prefix}: {original_query}\n"
         if chat["by"] == "khoj":
-            original_query = chat.get("intent", {}).get("query")
             if original_query is None:
                 continue
 
@@ -253,6 +254,9 @@ def construct_question_history(
                     history_parts += f"A: {message}\n\n"
             else:
                 history_parts += f"{agent_name}: {message}\n\n"
+
+            # Reset original_query for the next turn
+            original_query = None
 
     return history_parts
 
