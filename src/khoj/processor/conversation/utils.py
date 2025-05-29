@@ -130,7 +130,7 @@ class OperatorRun:
         }
 
 
-class InformationCollectionIteration:
+class ResearchIteration:
     def __init__(
         self,
         tool: str,
@@ -160,7 +160,7 @@ class InformationCollectionIteration:
 
 
 def construct_iteration_history(
-    previous_iterations: List[InformationCollectionIteration],
+    previous_iterations: List[ResearchIteration],
     previous_iteration_prompt: str,
     query: str = None,
 ) -> list[dict]:
@@ -262,7 +262,7 @@ def construct_question_history(
 
 
 def construct_tool_chat_history(
-    previous_iterations: List[InformationCollectionIteration], tool: ConversationCommand = None
+    previous_iterations: List[ResearchIteration], tool: ConversationCommand = None
 ) -> Dict[str, list]:
     """
     Construct chat history from previous iterations for a specific tool
@@ -271,8 +271,8 @@ def construct_tool_chat_history(
     If no tool is provided inferred query for all tools used are added.
     """
     chat_history: list = []
-    base_extractor: Callable[[InformationCollectionIteration], List[str]] = lambda x: []
-    extract_inferred_query_map: Dict[ConversationCommand, Callable[[InformationCollectionIteration], List[str]]] = {
+    base_extractor: Callable[[ResearchIteration], List[str]] = lambda iteration: []
+    extract_inferred_query_map: Dict[ConversationCommand, Callable[[ResearchIteration], List[str]]] = {
         ConversationCommand.Notes: (
             lambda iteration: [c["query"] for c in iteration.context] if iteration.context else []
         ),
@@ -377,7 +377,7 @@ async def save_to_conversation_log(
     generated_images: List[str] = [],
     raw_generated_files: List[FileAttachment] = [],
     generated_mermaidjs_diagram: str = None,
-    research_results: Optional[List[InformationCollectionIteration]] = None,
+    research_results: Optional[List[ResearchIteration]] = None,
     train_of_thought: List[Any] = [],
     tracer: Dict[str, Any] = {},
 ):

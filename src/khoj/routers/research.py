@@ -13,8 +13,8 @@ from khoj.database.adapters import AgentAdapters, EntryAdapters
 from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
-    InformationCollectionIteration,
     OperatorRun,
+    ResearchIteration,
     construct_iteration_history,
     construct_tool_chat_history,
     load_complex_json,
@@ -84,7 +84,7 @@ async def apick_next_tool(
     location: LocationData = None,
     user_name: str = None,
     agent: Agent = None,
-    previous_iterations: List[InformationCollectionIteration] = [],
+    previous_iterations: List[ResearchIteration] = [],
     max_iterations: int = 5,
     query_images: List[str] = [],
     query_files: str = None,
@@ -166,7 +166,7 @@ async def apick_next_tool(
             )
     except Exception as e:
         logger.error(f"Failed to infer information sources to refer: {e}", exc_info=True)
-        yield InformationCollectionIteration(
+        yield ResearchIteration(
             tool=None,
             query=None,
             warning="Failed to infer information sources to refer. Skipping iteration. Try again.",
@@ -195,26 +195,26 @@ async def apick_next_tool(
             async for event in send_status_func(f"{scratchpad}"):
                 yield {ChatEvent.STATUS: event}
 
-        yield InformationCollectionIteration(
+        yield ResearchIteration(
             tool=selected_tool,
             query=generated_query,
             warning=warning,
         )
     except Exception as e:
         logger.error(f"Invalid response for determining relevant tools: {response}. {e}", exc_info=True)
-        yield InformationCollectionIteration(
+        yield ResearchIteration(
             tool=None,
             query=None,
             warning=f"Invalid response for determining relevant tools: {response}. Skipping iteration. Fix error: {e}",
         )
 
 
-async def execute_information_collection(
+async def research(
     user: KhojUser,
     query: str,
     conversation_id: str,
     conversation_history: dict,
-    previous_iterations: List[InformationCollectionIteration],
+    previous_iterations: List[ResearchIteration],
     query_images: List[str],
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
@@ -251,7 +251,7 @@ async def execute_information_collection(
         document_results: List[Dict[str, str]] = []
         operator_results: OperatorRun = None
         summarize_files: str = ""
-        this_iteration = InformationCollectionIteration(tool=None, query=query)
+        this_iteration = ResearchIteration(tool=None, query=query)
 
         async for result in apick_next_tool(
             query,
@@ -272,7 +272,7 @@ async def execute_information_collection(
         ):
             if isinstance(result, dict) and ChatEvent.STATUS in result:
                 yield result[ChatEvent.STATUS]
-            elif isinstance(result, InformationCollectionIteration):
+            elif isinstance(result, ResearchIteration):
                 this_iteration = result
 
         # Skip running iteration if warning present in iteration

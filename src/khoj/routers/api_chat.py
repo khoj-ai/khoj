@@ -66,10 +66,7 @@ from khoj.routers.helpers import (
     update_telemetry_state,
     validate_chat_model,
 )
-from khoj.routers.research import (
-    InformationCollectionIteration,
-    execute_information_collection,
-)
+from khoj.routers.research import ResearchIteration, research
 from khoj.routers.storage import upload_user_image_to_bucket
 from khoj.utils import state
 from khoj.utils.helpers import (
@@ -723,7 +720,7 @@ async def chat(
             for file in raw_query_files:
                 query_files[file.name] = file.content
 
-        research_results: List[InformationCollectionIteration] = []
+        research_results: List[ResearchIteration] = []
         online_results: Dict = dict()
         code_results: Dict = dict()
         operator_results: List[OperatorRun] = []
@@ -962,9 +959,7 @@ async def chat(
             online_results = {key: val.model_dump() for key, val in last_message.onlineContext.items() or []}
             code_results = {key: val.model_dump() for key, val in last_message.codeContext.items() or []}
             compiled_references = [ref.model_dump() for ref in last_message.context or []]
-            research_results = [
-                InformationCollectionIteration(**iter_dict) for iter_dict in last_message.researchContext or []
-            ]
+            research_results = [ResearchIteration(**iter_dict) for iter_dict in last_message.researchContext or []]
             operator_results = [OperatorRun(**iter_dict) for iter_dict in last_message.operatorContext or []]
             train_of_thought = [thought.model_dump() for thought in last_message.trainOfThought or []]
             # Drop the interrupted message from conversation history
@@ -1011,7 +1006,7 @@ async def chat(
         file_filters = conversation.file_filters if conversation and conversation.file_filters else []
 
         if conversation_commands == [ConversationCommand.Research]:
-            async for research_result in execute_information_collection(
+            async for research_result in research(
                 user=user,
                 query=defiltered_query,
                 conversation_id=conversation_id,
@@ -1027,7 +1022,7 @@ async def chat(
                 tracer=tracer,
                 cancellation_event=cancellation_event,
             ):
-                if isinstance(research_result, InformationCollectionIteration):
+                if isinstance(research_result, ResearchIteration):
                     if research_result.summarizedResult:
                         if research_result.onlineContext:
                             online_results.update(research_result.onlineContext)

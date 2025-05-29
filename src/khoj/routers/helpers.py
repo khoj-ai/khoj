@@ -94,8 +94,8 @@ from khoj.processor.conversation.openai.gpt import (
 )
 from khoj.processor.conversation.utils import (
     ChatEvent,
-    InformationCollectionIteration,
     OperatorRun,
+    ResearchIteration,
     ResponseWithThought,
     clean_json,
     clean_mermaidjs,
@@ -1357,7 +1357,7 @@ async def agenerate_chat_response(
     online_results: Dict[str, Dict] = {},
     code_results: Dict[str, Dict] = {},
     operator_results: List[OperatorRun] = [],
-    research_results: List[InformationCollectionIteration] = [],
+    research_results: List[ResearchIteration] = [],
     inferred_queries: List[str] = [],
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     user: KhojUser = None,
