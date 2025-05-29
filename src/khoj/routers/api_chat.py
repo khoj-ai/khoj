@@ -26,6 +26,7 @@ from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.prompts import help_message, no_entries_found
 from khoj.processor.conversation.utils import (
+    OperatorRun,
     ResponseWithThought,
     defilter_query,
     save_to_conversation_log,
@@ -725,7 +726,7 @@ async def chat(
         research_results: List[InformationCollectionIteration] = []
         online_results: Dict = dict()
         code_results: Dict = dict()
-        operator_results: Dict[str, str] = {}
+        operator_results: List[OperatorRun] = []
         compiled_references: List[Any] = []
         inferred_queries: List[Any] = []
         attached_file_context = gather_raw_query_files(query_files)
@@ -960,11 +961,12 @@ async def chat(
             last_message = conversation.messages[-1]
             online_results = {key: val.model_dump() for key, val in last_message.onlineContext.items() or []}
             code_results = {key: val.model_dump() for key, val in last_message.codeContext.items() or []}
-            operator_results = last_message.operatorContext or {}
             compiled_references = [ref.model_dump() for ref in last_message.context or []]
             research_results = [
                 InformationCollectionIteration(**iter_dict) for iter_dict in last_message.researchContext or []
             ]
+            operator_results = [OperatorRun(**iter_dict) for iter_dict in last_message.operatorContext or []]
+            train_of_thought = [thought.model_dump() for thought in last_message.trainOfThought or []]
             # Drop the interrupted message from conversation history
             meta_log["chat"].pop()
             logger.info(f"Loaded interrupted partial context from conversation {conversation_id}.")
@@ -1034,7 +1036,7 @@ async def chat(
                         if research_result.context:
                             compiled_references.extend(research_result.context)
                         if research_result.operatorContext:
-                            operator_results.update(research_result.operatorContext)
+                            operator_results.append(research_result.operatorContext)
                         research_results.append(research_result)
 
                 else:
@@ -1306,16 +1308,16 @@ async def chat(
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
-                    else:
-                        operator_results = {result["query"]: result["result"]}
+                    elif isinstance(result, OperatorRun):
+                        operator_results.append(result)
                         # Add webpages visited while operating browser to references
-                        if result.get("webpages"):
+                        if result.webpages:
                             if not online_results.get(defiltered_query):
-                                online_results[defiltered_query] = {"webpages": result["webpages"]}
+                                online_results[defiltered_query] = {"webpages": result.webpages}
                             elif not online_results[defiltered_query].get("webpages"):
-                                online_results[defiltered_query]["webpages"] = result["webpages"]
+                                online_results[defiltered_query]["webpages"] = result.webpages
                             else:
-                                online_results[defiltered_query]["webpages"] += result["webpages"]
+                                online_results[defiltered_query]["webpages"] += result.webpages
             except ValueError as e:
                 program_execution_context.append(f"Browser operation error: {e}")
                 logger.warning(f"Failed to operate browser with {e}", exc_info=True)
@@ -1333,7 +1335,6 @@ async def chat(
                 "context": compiled_references,
                 "onlineContext": unique_online_results,
                 "codeContext": code_results,
-                "operatorContext": operator_results,
             },
         ):
             yield result

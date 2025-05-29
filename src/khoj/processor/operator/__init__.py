@@ -6,6 +6,7 @@ from typing import Callable, List, Optional
 
 from khoj.database.adapters import AgentAdapters, ConversationAdapters
 from khoj.database.models import Agent, ChatModel, KhojUser
+from khoj.processor.conversation.utils import OperatorRun
 from khoj.processor.operator.operator_actions import *
 from khoj.processor.operator.operator_agent_anthropic import AnthropicOperatorAgent
 from khoj.processor.operator.operator_agent_base import OperatorAgent
@@ -160,11 +161,12 @@ async def operate_environment(
     if environment_type == EnvironmentType.BROWSER and hasattr(environment, "visited_urls"):
         webpages = [{"link": url, "snippet": ""} for url in environment.visited_urls]
 
-    yield {
-        "query": query,
-        "result": user_input_message or response,
-        "webpages": webpages,
-    }
+    yield OperatorRun(
+        query=query,
+        trajectory=operator_agent.messages,
+        response=response,
+        webpages=webpages,
+    )
 
 
 def is_operator_model(model: str) -> ChatModel.ModelType | None:

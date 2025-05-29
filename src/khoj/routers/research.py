@@ -14,6 +14,7 @@ from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
     InformationCollectionIteration,
+    OperatorRun,
     construct_iteration_history,
     construct_tool_chat_history,
     load_complex_json,
@@ -248,7 +249,7 @@ async def execute_information_collection(
         online_results: Dict = dict()
         code_results: Dict = dict()
         document_results: List[Dict[str, str]] = []
-        operator_results: Dict[str, str] = {}
+        operator_results: OperatorRun = None
         summarize_files: str = ""
         this_iteration = InformationCollectionIteration(tool=None, query=query)
 
@@ -431,17 +432,17 @@ async def execute_information_collection(
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
-                    else:
-                        operator_results = {result["query"]: result["result"]}
+                    elif isinstance(result, OperatorRun):
+                        operator_results = result
                         this_iteration.operatorContext = operator_results
                         # Add webpages visited while operating browser to references
-                        if result.get("webpages"):
+                        if result.webpages:
                             if not online_results.get(this_iteration.query):
-                                online_results[this_iteration.query] = {"webpages": result["webpages"]}
+                                online_results[this_iteration.query] = {"webpages": result.webpages}
                             elif not online_results[this_iteration.query].get("webpages"):
-                                online_results[this_iteration.query]["webpages"] = result["webpages"]
+                                online_results[this_iteration.query]["webpages"] = result.webpages
                             else:
-                                online_results[this_iteration.query]["webpages"] += result["webpages"]
+                                online_results[this_iteration.query]["webpages"] += result.webpages
                             this_iteration.onlineContext = online_results
             except Exception as e:
                 this_iteration.warning = f"Error operating browser: {e}"
@@ -489,7 +490,9 @@ async def execute_information_collection(
             if code_results:
                 results_data += f"\n<code_results>\n{yaml.dump(truncate_code_context(code_results), allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</code_results>"
             if operator_results:
-                results_data += f"\n<browser_operator_results>\n{next(iter(operator_results.values()))}\n</browser_operator_results>"
+                results_data += (
+                    f"\n<browser_operator_results>\n{operator_results.response}\n</browser_operator_results>"
+                )
             if summarize_files:
                 results_data += f"\n<summarized_files>\n{yaml.dump(summarize_files, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</summarized_files>"
             if this_iteration.warning:
