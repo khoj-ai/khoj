@@ -189,7 +189,7 @@ def construct_iteration_history(
     return iteration_history
 
 
-def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:
+def construct_chat_history(conversation_history: dict, n: int = 6, agent_name="AI") -> str:
     chat_history = ""
     for chat in conversation_history.get("chat", [])[-n:]:
         if chat["by"] == "khoj" and chat["intent"].get("type") in ["remember", "reminder", "summarize"]:
@@ -221,7 +221,7 @@ def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="A
 def construct_question_history(
     conversation_log: dict,
     include_query: bool = True,
-    lookback: int = 4,
+    lookback: int = 6,
     query_prefix: str = "Q",
     agent_name: str = "Khoj",
 ) -> str:
