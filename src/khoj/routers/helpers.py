@@ -95,6 +95,7 @@ from khoj.processor.conversation.openai.gpt import (
 from khoj.processor.conversation.utils import (
     ChatEvent,
     InformationCollectionIteration,
+    OperatorRun,
     ResponseWithThought,
     clean_json,
     clean_mermaidjs,
@@ -1355,7 +1356,7 @@ async def agenerate_chat_response(
     compiled_references: List[Dict] = [],
     online_results: Dict[str, Dict] = {},
     code_results: Dict[str, Dict] = {},
-    operator_results: Dict[str, str] = {},
+    operator_results: List[OperatorRun] = [],
     research_results: List[InformationCollectionIteration] = [],
     inferred_queries: List[str] = [],
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
@@ -1414,7 +1415,7 @@ async def agenerate_chat_response(
             compiled_references = []
             online_results = {}
             code_results = {}
-            operator_results = {}
+            operator_results = []
             deepthought = True
 
         chat_model = await ConversationAdapters.aget_valid_chat_model(user, conversation, is_subscribed)

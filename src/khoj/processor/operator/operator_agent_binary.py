@@ -5,15 +5,11 @@ from textwrap import dedent
 from typing import List
 
 from khoj.database.models import ChatModel
-from khoj.processor.conversation.utils import construct_structured_message
+from khoj.processor.conversation.utils import AgentMessage, construct_structured_message
 from khoj.processor.operator.grounding_agent import GroundingAgent
 from khoj.processor.operator.grounding_agent_uitars import GroundingAgentUitars
 from khoj.processor.operator.operator_actions import *
-from khoj.processor.operator.operator_agent_base import (
-    AgentActResult,
-    AgentMessage,
-    OperatorAgent,
-)
+from khoj.processor.operator.operator_agent_base import AgentActResult, OperatorAgent
 from khoj.processor.operator.operator_environment_base import (
     EnvironmentType,
     EnvState,

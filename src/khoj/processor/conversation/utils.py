@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from io import BytesIO
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Literal, Optional, Union
 
 import PIL.Image
 import pyjson5
@@ -20,6 +20,7 @@ import yaml
 from langchain_core.messages.chat import ChatMessage
 from llama_cpp import LlamaTokenizer
 from llama_cpp.llama import Llama
+from pydantic import BaseModel
 from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast
 
 from khoj.database.adapters import ConversationAdapters
@@ -87,6 +88,48 @@ model_to_prompt_size = {
 model_to_tokenizer: Dict[str, str] = {}
 
 
+class AgentMessage(BaseModel):
+    role: Literal["user", "assistant", "system", "environment"]
+    content: Union[str, List]
+
+
+class OperatorRun:
+    def __init__(
+        self,
+        query: str,
+        trajectory: list[AgentMessage | dict] = None,
+        response: str = None,
+        webpages: list[dict] = None,
+    ):
+        self.query = query
+        self.response = response
+        self.webpages = webpages or []
+        self.trajectory: list[AgentMessage] = []
+        if trajectory:
+            for item in trajectory:
+                if isinstance(item, dict):
+                    self.trajectory.append(AgentMessage(**item))
+                elif hasattr(item, "role") and hasattr(item, "content"):  # Heuristic for AgentMessage like object
+                    self.trajectory.append(item)
+                else:
+                    logger.warning(f"Unexpected item type in trajectory: {type(item)}")
+
+    def to_dict(self) -> dict:
+        # Ensure AgentMessage instances in trajectory are also dicts
+        serialized_trajectory = []
+        for msg in self.trajectory:
+            if hasattr(msg, "model_dump"):  # Check if it's a Pydantic model
+                serialized_trajectory.append(msg.model_dump())
+            elif isinstance(msg, dict):
+                serialized_trajectory.append(msg)  # Already a dict
+        return {
+            "query": self.query,
+            "response": self.response,
+            "trajectory": serialized_trajectory,
+            "webpages": self.webpages,
+        }
+
+
 class InformationCollectionIteration:
     def __init__(
         self,
@@ -95,7 +138,7 @@ class InformationCollectionIteration:
         context: list = None,
         onlineContext: dict = None,
         codeContext: dict = None,
-        operatorContext: dict[str, str] = None,
+        operatorContext: dict = None,
         summarizedResult: str = None,
         warning: str = None,
     ):
@@ -104,9 +147,16 @@ class InformationCollectionIteration:
         self.context = context
         self.onlineContext = onlineContext
         self.codeContext = codeContext
-        self.operatorContext = operatorContext
+        self.operatorContext = OperatorRun(**operatorContext) if isinstance(operatorContext, dict) else None
         self.summarizedResult = summarizedResult
         self.warning = warning
+
+    def to_dict(self) -> dict:
+        data = vars(self).copy()
+        data["operatorContext"] = (
+            self.operatorContext.to_dict() if isinstance(self.operatorContext, OperatorRun) else None
+        )
+        return data
 
 
 def construct_iteration_history(
@@ -193,7 +243,7 @@ def construct_tool_chat_history(
             lambda iteration: list(iteration.codeContext.keys()) if iteration.codeContext else []
         ),
         ConversationCommand.Operator: (
-            lambda iteration: list(iteration.operatorContext.keys()) if iteration.operatorContext else []
+            lambda iteration: list(iteration.operatorContext.query) if iteration.operatorContext else []
         ),
     }
     for iteration in previous_iterations:
@@ -273,7 +323,7 @@ async def save_to_conversation_log(
     compiled_references: List[Dict[str, Any]] = [],
     online_results: Dict[str, Any] = {},
     code_results: Dict[str, Any] = {},
-    operator_results: Dict[str, str] = {},
+    operator_results: List[OperatorRun] = None,
     inferred_queries: List[str] = [],
     intent_type: str = "remember",
     client_application: ClientApplication = None,
@@ -301,8 +351,8 @@ async def save_to_conversation_log(
         "intent": {"inferred-queries": inferred_queries, "type": intent_type},
         "onlineContext": online_results,
         "codeContext": code_results,
-        "operatorContext": operator_results,
-        "researchContext": [vars(r) for r in research_results] if research_results and not chat_response else None,
+        "operatorContext": [o.to_dict() for o in operator_results] if operator_results and not chat_response else None,
+        "researchContext": [r.to_dict() for r in research_results] if research_results and not chat_response else None,
         "automationId": automation_id,
         "trainOfThought": train_of_thought,
         "turnId": turn_id,
@@ -459,10 +509,12 @@ def generate_chatml_messages_with_context(
             ]
 
         if not is_none_or_empty(chat.get("operatorContext")):
+            operator_context = chat.get("operatorContext")
+            operator_content = "\n\n".join([f'## Task: {oc["query"]}\n{oc["response"]}\n' for oc in operator_context])
             message_context += [
                 {
                     "type": "text",
-                    "text": f"{prompts.operator_execution_context.format(operator_results=chat.get('operatorContext'))}",
+                    "text": f"{prompts.operator_execution_context.format(operator_results=operator_content)}",
                 }
             ]
 

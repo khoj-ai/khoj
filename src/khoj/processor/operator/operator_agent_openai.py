@@ -8,12 +8,9 @@ from typing import List, Optional, cast
 
 from openai.types.responses import Response, ResponseOutputItem
 
+from khoj.processor.conversation.utils import AgentMessage
 from khoj.processor.operator.operator_actions import *
-from khoj.processor.operator.operator_agent_base import (
-    AgentActResult,
-    AgentMessage,
-    OperatorAgent,
-)
+from khoj.processor.operator.operator_agent_base import AgentActResult, OperatorAgent
 from khoj.processor.operator.operator_environment_base import (
     EnvironmentType,
     EnvState,

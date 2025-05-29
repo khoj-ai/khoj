@@ -5,7 +5,7 @@ from typing import List, Literal, Optional, Union
 from pydantic import BaseModel
 
 from khoj.database.models import ChatModel
-from khoj.processor.conversation.utils import commit_conversation_trace
+from khoj.processor.conversation.utils import AgentMessage, commit_conversation_trace
 from khoj.processor.operator.operator_actions import OperatorAction
 from khoj.processor.operator.operator_environment_base import (
     EnvironmentType,
@@ -21,11 +21,6 @@ class AgentActResult(BaseModel):
     actions: List[OperatorAction] = []
     action_results: List[dict] = []  # Model-specific format
     rendered_response: Optional[dict] = None
-
-
-class AgentMessage(BaseModel):
-    role: Literal["user", "assistant", "system", "environment"]
-    content: Union[str, List]
 
 
 class OperatorAgent(ABC):

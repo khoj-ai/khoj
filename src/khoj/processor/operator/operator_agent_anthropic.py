@@ -10,12 +10,9 @@ from anthropic.types.beta import BetaContentBlock, BetaTextBlock, BetaToolUseBlo
 
 from khoj.database.models import ChatModel
 from khoj.processor.conversation.anthropic.utils import is_reasoning_model
+from khoj.processor.conversation.utils import AgentMessage
 from khoj.processor.operator.operator_actions import *
-from khoj.processor.operator.operator_agent_base import (
-    AgentActResult,
-    AgentMessage,
-    OperatorAgent,
-)
+from khoj.processor.operator.operator_agent_base import AgentActResult, OperatorAgent
 from khoj.processor.operator.operator_environment_base import (
     EnvironmentType,
     EnvState,
