@@ -16,6 +16,7 @@ from khoj.processor.conversation.google.utils import (
 from khoj.processor.conversation.utils import (
     OperatorRun,
     clean_json,
+    construct_question_history,
     construct_structured_message,
     generate_chatml_messages_with_context,
     messages_to_print,
@@ -54,13 +55,7 @@ def extract_questions_gemini(
     username = prompts.user_name.format(name=user.get_full_name()) if user and user.get_full_name() else ""
 
     # Extract Past User Message and Inferred Questions from Conversation Log
-    chat_history = "".join(
-        [
-            f'User: {chat["intent"]["query"]}\nAssistant: {{"queries": {chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}}}\nA: {chat["message"]}\n\n'
-            for chat in conversation_log.get("chat", [])[-4:]
-            if chat["by"] == "khoj"
-        ]
-    )
+    chat_history = construct_question_history(conversation_log, query_prefix="User", agent_name="Assistant")
 
     # Get dates relative to today for prompt creation
     today = datetime.today()

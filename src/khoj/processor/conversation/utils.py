@@ -218,6 +218,45 @@ def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="A
     return chat_history
 
 
+def construct_question_history(
+    conversation_log: dict,
+    include_query: bool = True,
+    lookback: int = 4,
+    query_prefix: str = "Q",
+    agent_name: str = "Khoj",
+) -> str:
+    """
+    Constructs a chat history string formatted for query extraction purposes.
+    """
+    history_parts = ""
+    for chat in conversation_log.get("chat", [])[-lookback:]:
+        if chat["by"] == "khoj":
+            original_query = chat.get("intent", {}).get("query")
+            if original_query is None:
+                continue
+
+            message = chat.get("message", "")
+            inferred_queries_list = chat.get("intent", {}).get("inferred-queries")
+
+            # Ensure inferred_queries_list is a list, defaulting to the original query in a list
+            if not inferred_queries_list:
+                inferred_queries_list = [original_query]
+            # If it's a string (though unlikely based on usage), wrap it in a list
+            elif isinstance(inferred_queries_list, str):
+                inferred_queries_list = [inferred_queries_list]
+
+            if include_query:
+                # Ensure 'type' exists and is a string before checking 'to-image'
+                intent_type = chat.get("intent", {}).get("type", "")
+                if "to-image" not in intent_type:
+                    history_parts += f'{agent_name}: {{"queries": {inferred_queries_list}}}\n'
+                    history_parts += f"A: {message}\n\n"
+            else:
+                history_parts += f"{agent_name}: {message}\n\n"
+
+    return history_parts
+
+
 def construct_tool_chat_history(
     previous_iterations: List[InformationCollectionIteration], tool: ConversationCommand = None
 ) -> Dict[str, list]:
