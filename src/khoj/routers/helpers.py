@@ -386,7 +386,7 @@ async def aget_data_sources_and_output_format(
         if len(agent_outputs) == 0 or output.value in agent_outputs:
             output_options_str += f'- "{output.value}": "{description}"\n'
 
-    chat_history = construct_chat_history(conversation_history)
+    chat_history = construct_chat_history(conversation_history, n=6)
 
     if query_images:
         query = f"[placeholder for {len(query_images)} user attached images]\n{query}"

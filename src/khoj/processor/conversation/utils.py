@@ -221,7 +221,7 @@ def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="A
 def construct_question_history(
     conversation_log: dict,
     include_query: bool = True,
-    lookback: int = 4,
+    lookback: int = 6,
     query_prefix: str = "Q",
     agent_name: str = "Khoj",
 ) -> str:
