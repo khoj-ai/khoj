@@ -98,7 +98,6 @@ class OperatorAgent(ABC):
         self.tracer["usage"] = get_chat_usage_metrics(
             self.vision_model.name, input_tokens, output_tokens, cache_read, cache_write, usage=self.tracer.get("usage")
         )
-        logger.debug(f"Operator usage by {self.vision_model.model_type}: {self.tracer['usage']}")
 
     def _commit_trace(self):
         self.tracer["chat_model"] = self.vision_model.name
