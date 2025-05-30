@@ -63,15 +63,30 @@ async def operate_environment(
     chat_history = construct_chat_history_for_operator(conversation_log)
 
     # Initialize Agent
+    max_context = await ConversationAdapters.aget_max_context_size(reasoning_model, user) or 20000
     max_iterations = int(os.getenv("KHOJ_OPERATOR_ITERATIONS", 100))
     operator_agent: OperatorAgent
     if is_operator_model(reasoning_model.name) == ChatModel.ModelType.OPENAI:
         operator_agent = OpenAIOperatorAgent(
-            query, reasoning_model, environment_type, max_iterations, chat_history, previous_trajectory, tracer
+            query,
+            reasoning_model,
+            environment_type,
+            max_iterations,
+            max_context,
+            chat_history,
+            previous_trajectory,
+            tracer,
         )
     elif is_operator_model(reasoning_model.name) == ChatModel.ModelType.ANTHROPIC:
         operator_agent = AnthropicOperatorAgent(
-            query, reasoning_model, environment_type, max_iterations, chat_history, previous_trajectory, tracer
+            query,
+            reasoning_model,
+            environment_type,
+            max_iterations,
+            max_context,
+            chat_history,
+            previous_trajectory,
+            tracer,
         )
     else:
         grounding_model_name = "ui-tars-1.5"
@@ -88,6 +103,7 @@ async def operate_environment(
             grounding_model,
             environment_type,
             max_iterations,
+            max_context,
             chat_history,
             previous_trajectory,
             tracer,
