@@ -34,6 +34,7 @@ class OperatorAgent(ABC):
         vision_model: ChatModel,
         environment_type: EnvironmentType,
         max_iterations: int,
+        max_context: int,
         chat_history: List[AgentMessage] = [],
         previous_trajectory: Optional[OperatorRun] = None,
         tracer: dict = {},
@@ -56,9 +57,7 @@ class OperatorAgent(ABC):
         # Context compression parameters
         self.context_compress_trigger = 2e3  # heuristic to determine compression trigger
         # turns after which compression triggered. scales with model max context size. Minimum 5 turns.
-        self.message_limit = 2 * max(
-            5, int(self.vision_model.subscribed_max_prompt_size / self.context_compress_trigger)
-        )
+        self.message_limit = 2 * max(5, int(max_context / self.context_compress_trigger))
         # compression ratio determines how many messages to compress down to one
         # e.g. if 5 messages, a compress ratio of 4/5 means compress 5 messages into 1 + keep 1 uncompressed
         self.message_compress_ratio = 4 / 5
