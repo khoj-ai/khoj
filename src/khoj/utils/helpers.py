@@ -46,6 +46,7 @@ if TYPE_CHECKING:
     from khoj.utils.models import BaseEncoder
     from khoj.utils.rawconfig import AppConfig
 
+logger = logging.getLogger(__name__)
 
 # Initialize Magika for file type identification
 magika = Magika()
@@ -680,7 +681,7 @@ def get_chat_usage_metrics(
         "cache_write_tokens": 0,
         "cost": 0.0,
     }
-    return {
+    current_usage = {
         "input_tokens": prev_usage["input_tokens"] + input_tokens,
         "output_tokens": prev_usage["output_tokens"] + output_tokens,
         "thought_tokens": prev_usage.get("thought_tokens", 0) + thought_tokens,
@@ -697,6 +698,8 @@ def get_chat_usage_metrics(
             prev_cost=prev_usage["cost"],
         ),
     }
+    logger.debug(f"AI API usage by {model_name}: {current_usage}")
+    return current_usage
 
 
 class AiApiInfo(NamedTuple):
