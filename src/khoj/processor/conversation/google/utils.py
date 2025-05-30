@@ -102,7 +102,7 @@ def gemini_completion_with_backoff(
         client = get_gemini_client(api_key, api_base_url)
         gemini_clients[api_key] = client
 
-    formatted_messages, system_prompt = format_messages_for_gemini(messages, system_prompt)
+    formatted_messages, system_instruction = format_messages_for_gemini(messages, system_prompt)
 
     # format model response schema
     response_schema = None
@@ -115,7 +115,7 @@ def gemini_completion_with_backoff(
 
     seed = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
     config = gtypes.GenerateContentConfig(
-        system_instruction=system_prompt,
+        system_instruction=system_instruction,
         temperature=temperature,
         thinking_config=thinking_config,
         max_output_tokens=MAX_OUTPUT_TOKENS_GEMINI,
@@ -184,7 +184,7 @@ async def gemini_chat_completion_with_backoff(
         client = get_gemini_client(api_key, api_base_url)
         gemini_clients[api_key] = client
 
-    formatted_messages, system_prompt = format_messages_for_gemini(messages, system_prompt)
+    formatted_messages, system_instruction = format_messages_for_gemini(messages, system_prompt)
 
     thinking_config = None
     if deepthought and model_name.startswith("gemini-2-5"):
@@ -192,7 +192,7 @@ async def gemini_chat_completion_with_backoff(
 
     seed = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
     config = gtypes.GenerateContentConfig(
-        system_instruction=system_prompt,
+        system_instruction=system_instruction,
         temperature=temperature,
         thinking_config=thinking_config,
         max_output_tokens=MAX_OUTPUT_TOKENS_GEMINI,
