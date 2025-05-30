@@ -40,6 +40,7 @@ class BinaryOperatorAgent(OperatorAgent):
         grounding_model: ChatModel,
         environment_type: EnvironmentType,
         max_iterations: int,
+        chat_history: List[AgentMessage] = [],
         previous_trajectory: Optional[OperatorRun] = None,
         tracer: dict = {},
     ):
@@ -48,6 +49,7 @@ class BinaryOperatorAgent(OperatorAgent):
             reasoning_model,
             environment_type,
             max_iterations,
+            chat_history,
             previous_trajectory,
             tracer,
         )  # Use reasoning model for primary tracking

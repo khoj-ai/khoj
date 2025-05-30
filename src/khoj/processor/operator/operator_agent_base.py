@@ -34,6 +34,7 @@ class OperatorAgent(ABC):
         vision_model: ChatModel,
         environment_type: EnvironmentType,
         max_iterations: int,
+        chat_history: List[AgentMessage] = [],
         previous_trajectory: Optional[OperatorRun] = None,
         tracer: dict = {},
     ):
@@ -42,11 +43,15 @@ class OperatorAgent(ABC):
         self.environment_type = environment_type
         self.max_iterations = max_iterations
         self.tracer = tracer
-        self.messages: List[AgentMessage] = []
         self.summarize_prompt = f"Use the results of our research to provide a comprehensive, self-contained answer for the target query:\n{query}."
 
+        self.messages: List[AgentMessage] = chat_history
         if previous_trajectory:
-            self.messages = previous_trajectory.trajectory
+            # Remove tool call from previous trajectory as tool call w/o result not supported
+            if previous_trajectory.trajectory and previous_trajectory.trajectory[-1].role == "assistant":
+                previous_trajectory.trajectory.pop()
+            self.messages += previous_trajectory.trajectory
+        self.messages += [AgentMessage(role="user", content=query)]
 
         # Context compression parameters
         self.context_compress_trigger = 2e3  # heuristic to determine compression trigger
