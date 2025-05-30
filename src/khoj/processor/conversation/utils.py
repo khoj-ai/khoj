@@ -261,6 +261,27 @@ def construct_question_history(
     return history_parts
 
 
+def construct_chat_history_for_operator(conversation_history: dict, n: int = 6) -> list[AgentMessage]:
+    """
+    Construct chat history for operator agent in conversation log.
+    Only include last n completed turns (i.e with user and khoj message).
+    """
+    chat_history: list[AgentMessage] = []
+    user_message: Optional[AgentMessage] = None
+
+    for chat in conversation_history.get("chat", []):
+        if len(chat_history) >= n:
+            break
+        if chat["by"] == "you" and chat.get("message"):
+            content = [{"type": "text", "text": chat["message"]}]
+            for file in chat.get("queryFiles", []):
+                content += [{"type": "text", "text": f'## File: {file["name"]}\n\n{file["content"]}'}]
+            user_message = AgentMessage(role="user", content=content)
+        elif chat["by"] == "khoj" and chat.get("message"):
+            chat_history += [user_message, AgentMessage(role="assistant", content=chat["message"])]
+    return chat_history
+
+
 def construct_tool_chat_history(
     previous_iterations: List[ResearchIteration], tool: ConversationCommand = None
 ) -> Dict[str, list]:
@@ -284,9 +305,6 @@ def construct_tool_chat_history(
         ),
         ConversationCommand.Code: (
             lambda iteration: list(iteration.codeContext.keys()) if iteration.codeContext else []
-        ),
-        ConversationCommand.Operator: (
-            lambda iteration: list(iteration.operatorContext.query) if iteration.operatorContext else []
         ),
     }
     for iteration in previous_iterations:

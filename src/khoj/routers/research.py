@@ -96,6 +96,24 @@ async def apick_next_tool(
 ):
     """Given a query, determine which of the available tools the agent should use in order to answer appropriately."""
 
+    # Continue with previous iteration if a multi-step tool use is in progress
+    if (
+        previous_iterations
+        and previous_iterations[-1].tool == ConversationCommand.Operator
+        and not previous_iterations[-1].summarizedResult
+    ):
+        previous_iteration = previous_iterations[-1]
+        yield ResearchIteration(
+            tool=previous_iteration.tool,
+            query=query,
+            context=previous_iteration.context,
+            onlineContext=previous_iteration.onlineContext,
+            codeContext=previous_iteration.codeContext,
+            operatorContext=previous_iteration.operatorContext,
+            warning=previous_iteration.warning,
+        )
+        return
+
     # Construct tool options for the agent to choose from
     tool_options = dict()
     tool_options_str = ""
@@ -274,6 +292,7 @@ async def research(
                 yield result[ChatEvent.STATUS]
             elif isinstance(result, ResearchIteration):
                 this_iteration = result
+                yield this_iteration
 
         # Skip running iteration if warning present in iteration
         if this_iteration.warning:

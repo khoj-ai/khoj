@@ -1011,7 +1011,7 @@ async def chat(
                 query=defiltered_query,
                 conversation_id=conversation_id,
                 conversation_history=meta_log,
-                previous_iterations=research_results,
+                previous_iterations=list(research_results),
                 query_images=uploaded_images,
                 agent=agent,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
@@ -1030,12 +1030,25 @@ async def chat(
                             code_results.update(research_result.codeContext)
                         if research_result.context:
                             compiled_references.extend(research_result.context)
-                        if research_result.operatorContext:
-                            operator_results.append(research_result.operatorContext)
+                    if not research_results or research_results[-1] is not research_result:
                         research_results.append(research_result)
-
                 else:
                     yield research_result
+
+                # Track operator results across research and operator iterations
+                # This relies on two conditions:
+                # 1. Check to append new (partial) operator results
+                #    Relies on triggering this check on every status updates.
+                #    Status updates cascade up from operator to research to chat api on every step.
+                # 2. Keep operator results in sync with each research operator step
+                #    Relies on python object references to ensure operator results
+                #    are implicitly kept in sync after the initial append
+                if (
+                    research_results
+                    and research_results[-1].operatorContext
+                    and (not operator_results or operator_results[-1] is not research_results[-1].operatorContext)
+                ):
+                    operator_results.append(research_results[-1].operatorContext)
 
             # researched_results = await extract_relevant_info(q, researched_results, agent)
             if state.verbose > 1:
@@ -1294,7 +1307,7 @@ async def chat(
                     user,
                     meta_log,
                     location,
-                    operator_results[-1] if operator_results else None,
+                    list(operator_results)[-1] if operator_results else None,
                     query_images=uploaded_images,
                     query_files=attached_file_context,
                     send_status_func=partial(send_event, ChatEvent.STATUS),
@@ -1305,7 +1318,8 @@ async def chat(
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
                     elif isinstance(result, OperatorRun):
-                        operator_results.append(result)
+                        if not operator_results or operator_results[-1] is not result:
+                            operator_results.append(result)
                         # Add webpages visited while operating browser to references
                         if result.webpages:
                             if not online_results.get(defiltered_query):
