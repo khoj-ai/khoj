@@ -423,6 +423,7 @@ async def research(
                     user,
                     construct_tool_chat_history(previous_iterations, ConversationCommand.Operator),
                     location,
+                    previous_iterations[-1].operatorContext if previous_iterations else None,
                     send_status_func=send_status_func,
                     query_images=query_images,
                     agent=agent,

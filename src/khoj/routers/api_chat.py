@@ -1294,6 +1294,7 @@ async def chat(
                     user,
                     meta_log,
                     location,
+                    operator_results[-1] if operator_results else None,
                     query_images=uploaded_images,
                     query_files=attached_file_context,
                     send_status_func=partial(send_event, ChatEvent.STATUS),

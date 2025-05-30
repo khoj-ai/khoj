@@ -6,7 +6,7 @@ from typing import Callable, List, Optional
 
 from khoj.database.adapters import AgentAdapters, ConversationAdapters
 from khoj.database.models import Agent, ChatModel, KhojUser
-from khoj.processor.conversation.utils import OperatorRun
+from khoj.processor.conversation.utils import OperatorRun, construct_chat_history
 from khoj.processor.operator.operator_actions import *
 from khoj.processor.operator.operator_agent_anthropic import AnthropicOperatorAgent
 from khoj.processor.operator.operator_agent_base import OperatorAgent
@@ -32,6 +32,7 @@ async def operate_environment(
     user: KhojUser,
     conversation_log: dict,
     location_data: LocationData,
+    previous_trajectory: Optional[OperatorRun] = None,
     environment_type: EnvironmentType = EnvironmentType.COMPUTER,
     send_status_func: Optional[Callable] = None,
     query_images: Optional[List[str]] = None,  # TODO: Handle query images
@@ -50,13 +51,22 @@ async def operate_environment(
     if not reasoning_model:
         raise ValueError(f"No vision enabled chat model found. Configure a vision chat model to operate environment.")
 
+    chat_history = construct_chat_history(conversation_log)
+    query_with_history = (
+        f"## Chat History\n{chat_history}\n\n## User Query\n{query}" if chat_history else query
+    )  # Append chat history to query if available
+
     # Initialize Agent
     max_iterations = int(os.getenv("KHOJ_OPERATOR_ITERATIONS", 100))
     operator_agent: OperatorAgent
     if is_operator_model(reasoning_model.name) == ChatModel.ModelType.OPENAI:
-        operator_agent = OpenAIOperatorAgent(query, reasoning_model, environment_type, max_iterations, tracer)
+        operator_agent = OpenAIOperatorAgent(
+            query_with_history, reasoning_model, environment_type, max_iterations, previous_trajectory, tracer
+        )
     elif is_operator_model(reasoning_model.name) == ChatModel.ModelType.ANTHROPIC:
-        operator_agent = AnthropicOperatorAgent(query, reasoning_model, environment_type, max_iterations, tracer)
+        operator_agent = AnthropicOperatorAgent(
+            query_with_history, reasoning_model, environment_type, max_iterations, previous_trajectory, tracer
+        )
     else:
         grounding_model_name = "ui-tars-1.5"
         grounding_model = await ConversationAdapters.aget_chat_model_by_name(grounding_model_name)
@@ -67,7 +77,13 @@ async def operate_environment(
         ):
             raise ValueError("No supported visual grounding model for binary operator agent found.")
         operator_agent = BinaryOperatorAgent(
-            query, reasoning_model, grounding_model, environment_type, max_iterations, tracer
+            query_with_history,
+            reasoning_model,
+            grounding_model,
+            environment_type,
+            max_iterations,
+            previous_trajectory,
+            tracer,
         )
 
     # Initialize Environment

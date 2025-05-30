@@ -2,10 +2,14 @@ import json
 import logging
 from datetime import datetime
 from textwrap import dedent
-from typing import List
+from typing import List, Optional
 
 from khoj.database.models import ChatModel
-from khoj.processor.conversation.utils import AgentMessage, construct_structured_message
+from khoj.processor.conversation.utils import (
+    AgentMessage,
+    OperatorRun,
+    construct_structured_message,
+)
 from khoj.processor.operator.grounding_agent import GroundingAgent
 from khoj.processor.operator.grounding_agent_uitars import GroundingAgentUitars
 from khoj.processor.operator.operator_actions import *
@@ -36,10 +40,16 @@ class BinaryOperatorAgent(OperatorAgent):
         grounding_model: ChatModel,
         environment_type: EnvironmentType,
         max_iterations: int,
-        tracer: dict,
+        previous_trajectory: Optional[OperatorRun] = None,
+        tracer: dict = {},
     ):
         super().__init__(
-            query, reasoning_model, environment_type, max_iterations, tracer
+            query,
+            reasoning_model,
+            environment_type,
+            max_iterations,
+            previous_trajectory,
+            tracer,
         )  # Use reasoning model for primary tracking
         self.reasoning_model = reasoning_model
         self.grounding_model = grounding_model

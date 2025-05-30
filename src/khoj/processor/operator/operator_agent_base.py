@@ -5,7 +5,11 @@ from typing import List, Literal, Optional, Union
 from pydantic import BaseModel
 
 from khoj.database.models import ChatModel
-from khoj.processor.conversation.utils import AgentMessage, commit_conversation_trace
+from khoj.processor.conversation.utils import (
+    AgentMessage,
+    OperatorRun,
+    commit_conversation_trace,
+)
 from khoj.processor.operator.operator_actions import OperatorAction
 from khoj.processor.operator.operator_environment_base import (
     EnvironmentType,
@@ -25,7 +29,13 @@ class AgentActResult(BaseModel):
 
 class OperatorAgent(ABC):
     def __init__(
-        self, query: str, vision_model: ChatModel, environment_type: EnvironmentType, max_iterations: int, tracer: dict
+        self,
+        query: str,
+        vision_model: ChatModel,
+        environment_type: EnvironmentType,
+        max_iterations: int,
+        previous_trajectory: Optional[OperatorRun] = None,
+        tracer: dict = {},
     ):
         self.query = query
         self.vision_model = vision_model
@@ -34,6 +44,9 @@ class OperatorAgent(ABC):
         self.tracer = tracer
         self.messages: List[AgentMessage] = []
         self.summarize_prompt = f"Use the results of our research to provide a comprehensive, self-contained answer for the target query:\n{query}."
+
+        if previous_trajectory:
+            self.messages = previous_trajectory.trajectory
 
         # Context compression parameters
         self.context_compress_trigger = 2e3  # heuristic to determine compression trigger
