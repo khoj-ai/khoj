@@ -5,6 +5,7 @@ import io
 import logging
 import platform
 import subprocess
+from pathlib import Path
 from typing import Literal, Optional, Union
 
 from PIL import Image, ImageDraw
@@ -340,6 +341,116 @@ class ComputerEnvironment(Environment):
                     output = "Back action is not applicable for ComputerEnvironment."
                     logger.warning(f"Unsupported action: {action.type} for ComputerEnvironment.")
 
+                case "terminal":
+                    # Execute terminal command
+                    result = await self._execute_shell_command(action.command)
+                    if result["success"]:
+                        output = f"Command executed successfully:\n{result['output']}"
+                    else:
+                        error = f"Command execution failed: {result['error']}"
+                    logger.debug(f"Action: {action.type} with command '{action.command}'")
+
+                case "text_editor_view":
+                    # View file contents
+                    path = action.path
+                    view_range = action.view_range
+                    escaped_path = path.replace("'", "'\"'\"'")
+                    is_dir = await self._execute("os.path.isdir", escaped_path)
+                    if is_dir:
+                        cmd = rf"find {escaped_path} -maxdepth 2 -not -path '*/\.*'"
+                    elif view_range:
+                        # Use head/tail to view specific line range
+                        start_line, end_line = view_range
+                        lines_to_show = end_line - start_line + 1
+                        cmd = f"head -n {end_line} '{escaped_path}' | tail -n {lines_to_show}"
+                    else:
+                        # View entire file
+                        cmd = f"cat '{escaped_path}'"
+
+                    result = await self._execute_shell_command(cmd)
+                    MAX_OUTPUT_LENGTH = 15000  # Limit output length to avoid excessive data
+                    if len(result["output"]) > MAX_OUTPUT_LENGTH:
+                        result["output"] = f"{result['output'][:MAX_OUTPUT_LENGTH]}..."
+                    if result["success"]:
+                        if is_dir:
+                            output = f"Here's the files and directories up to 2 levels deep in {path}, excluding hidden items:\n{result['output']}"
+                        else:
+                            output = f"File contents of {path}:\n{result['output']}"
+                    else:
+                        error = f"Failed to view file {path}: {result['error']}"
+                    logger.debug(f"Action: {action.type} for file {path}")
+
+                case "text_editor_create":
+                    # Create new file with contents
+                    path = action.path
+                    file_text = action.file_text
+                    escaped_path = path.replace("'", "'\"'\"'")
+                    escaped_content = file_text.replace("\t", "    ").replace(
+                        "'", "'\"'\"'"
+                    )  # Escape single quotes for shell
+                    cmd = f"echo '{escaped_content}' > '{escaped_path}'"
+
+                    result = await self._execute_shell_command(cmd)
+                    if result["success"]:
+                        output = f"Created file {path} with {len(file_text)} characters"
+                    else:
+                        error = f"Failed to create file {path}: {result['error']}"
+                    logger.debug(f"Action: {action.type} created file {path}")
+
+                case "text_editor_str_replace":
+                    # Execute string replacement
+                    path = action.path
+                    old_str = action.old_str
+                    new_str = action.new_str
+
+                    # Use sed for string replacement, escaping special characters
+                    escaped_path = path.replace("'", "'\"'\"'")
+                    escaped_old = (
+                        old_str.replace("\t", "    ")
+                        .replace("\\", "\\\\")
+                        .replace("\n", "\\n")
+                        .replace("/", "\\/")
+                        .replace("'", "'\"'\"'")
+                    )
+                    escaped_new = (
+                        new_str.replace("\t", "    ")
+                        .replace("\\", "\\\\")
+                        .replace("\n", "\\n")
+                        .replace("&", "\\&")
+                        .replace("/", "\\/")
+                        .replace("'", "'\"'\"'")
+                    )
+                    cmd = f"sed -i.bak 's/{escaped_old}/{escaped_new}/g' '{escaped_path}'"
+
+                    result = await self._execute_shell_command(cmd)
+                    if result["success"]:
+                        output = f"Replaced '{old_str[:50]}...' with '{new_str[:50]}...' in {path}"
+                    else:
+                        error = f"Failed to replace text in {path}: {result['error']}"
+                    logger.debug(f"Action: {action.type} in file {path}")
+
+                case "text_editor_insert":
+                    # Insert text after specified line
+                    path = action.path
+                    insert_line = action.insert_line
+                    new_str = action.new_str
+
+                    escaped_path = path.replace("'", "'\"'\"'")
+                    escaped_content = (
+                        new_str.replace("\t", "    ")
+                        .replace("\\", "\\\\")
+                        .replace("'", "'\"'\"'")
+                        .replace("\n", "\\\n")
+                    )
+                    cmd = f"sed -i.bak '{insert_line}a\\{escaped_content}' '{escaped_path}'"
+
+                    result = await self._execute_shell_command(cmd)
+                    if result["success"]:
+                        output = f"Inserted text after line {insert_line} in {path}"
+                    else:
+                        error = f"Failed to insert text in {path}: {result['error']}"
+                    logger.debug(f"Action: {action.type} at line {insert_line} in file {path}")
+
                 case _:
                     error = f"Unrecognized action type: {action.type}"
                     logger.warning(error)
@@ -364,6 +475,49 @@ class ComputerEnvironment(Environment):
             current_url=after_state.url,
             screenshot_base64=after_state.screenshot,
         )
+
+    async def _execute_shell_command(self, command: str, new: bool = True) -> dict:
+        """Execute a shell command and return the result."""
+        try:
+            if self.provider == "docker":
+                # Execute command in Docker container
+                docker_args = [
+                    "docker",
+                    "exec",
+                    self.docker_container_name,
+                    "bash",
+                    "-c",
+                    command,  # The command string is passed as a single argument to bash -c
+                ]
+                process = await asyncio.to_thread(
+                    subprocess.run,
+                    docker_args,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    timeout=120,
+                )
+            else:
+                # Execute command locally
+                process = await asyncio.to_thread(
+                    subprocess.run,
+                    command,
+                    shell=True,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    start_new_session=new,
+                    timeout=120,
+                )
+
+            if process.returncode == 0:
+                return {"success": True, "output": process.stdout, "error": None}
+            else:
+                return {"success": False, "output": process.stdout, "error": process.stderr}
+        except asyncio.TimeoutError:
+            return {"success": False, "output": "", "error": f"Command timed out after 120 seconds."}
+        except Exception as e:
+            return {"success": False, "output": "", "error": str(e)}
 
     async def close(self) -> None:
         logger.debug("Computer environment closed. No specific resources to release for PyAutoGUI.")

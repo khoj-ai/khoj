@@ -135,6 +135,40 @@ class AnthropicOperatorAgent(OperatorAgent):
                             logger.warning("Goto tool called without URL.")
                     elif tool_name == "back":
                         action_to_run = BackAction()
+                    elif tool_name == self.model_default_tool("terminal")["name"]:
+                        command = tool_input.get("command")
+                        restart = tool_input.get("restart", False)
+                        if command:
+                            action_to_run = TerminalAction(command=command, restart=restart)
+                    elif tool_name == "str_replace_based_edit_tool":
+                        # Handle text editor tool calls
+                        command = tool_input.get("command")
+                        if command == "view":
+                            path = tool_input.get("path")
+                            view_range = tool_input.get("view_range")
+                            if path:
+                                action_to_run = TextEditorViewAction(path=path, view_range=view_range)
+                        elif command == "create":
+                            path = tool_input.get("path")
+                            file_text = tool_input.get("file_text", "")
+                            if path:
+                                action_to_run = TextEditorCreateAction(path=path, file_text=file_text)
+                        elif command == "str_replace":
+                            path = tool_input.get("path")
+                            old_str = tool_input.get("old_str")
+                            new_str = tool_input.get("new_str")
+                            if path and old_str is not None and new_str is not None:
+                                action_to_run = TextEditorStrReplaceAction(path=path, old_str=old_str, new_str=new_str)
+                        elif command == "insert":
+                            path = tool_input.get("path")
+                            insert_line = tool_input.get("insert_line")
+                            new_str = tool_input.get("new_str")
+                            if path and insert_line is not None and new_str is not None:
+                                action_to_run = TextEditorInsertAction(
+                                    path=path, insert_line=insert_line, new_str=new_str
+                                )
+                        else:
+                            logger.warning(f"Unsupported text editor command: {command}")
                     else:
                         logger.warning(f"Unsupported Anthropic computer action type: {tool_name}")
 
@@ -237,7 +271,11 @@ class AnthropicOperatorAgent(OperatorAgent):
                 compiled_response.append(block.text)
             elif block.type == "tool_use":
                 block_input = {"action": block.name}
-                if block.name == "computer":
+                if block.name in (
+                    self.model_default_tool("computer")["name"],
+                    self.model_default_tool("editor")["name"],
+                    self.model_default_tool("terminal")["name"],
+                ):
                     block_input = block.input  # Computer action details are in input dict
                 elif block.name == "goto":
                     block_input["url"] = block.input.get("url", "[Missing URL]")
@@ -294,7 +332,34 @@ class AnthropicOperatorAgent(OperatorAgent):
                         else:
                             # Handle other actions
                             render_texts += [f"{action.capitalize()}"]
-
+                elif block.name == self.model_default_tool("editor")["name"]:
+                    # Handle text editor actions
+                    command = block.input.get("command")
+                    if command == "view":
+                        path = block.input.get("path")
+                        view_range = block.input.get("view_range")
+                        if path:
+                            render_texts += [f"View file: {path} (lines {view_range})"]
+                    elif command == "create":
+                        path = block.input.get("path")
+                        file_text = block.input.get("file_text", "")
+                        if path:
+                            render_texts += [f"Create file: {path} with content:\n{file_text}"]
+                    elif command == "str_replace":
+                        path = block.input.get("path")
+                        old_str = block.input.get("old_str")
+                        new_str = block.input.get("new_str")
+                        if path and old_str is not None and new_str is not None:
+                            render_texts += [f"File: {path}\n**Find**\n{old_str}\n**Replace**\n{new_str}'"]
+                    elif command == "insert":
+                        path = block.input.get("path")
+                        insert_line = block.input.get("insert_line")
+                        new_str = block.input.get("new_str")
+                        if path and insert_line is not None and new_str is not None:
+                            render_texts += [f"In file: {path} at line {insert_line} insert\n{new_str}"]
+                    render_texts += [f"Edit file: {block.input['path']}"]
+                elif block.name == self.model_default_tool("terminal")["name"]:
+                    render_texts += [f"Run command:\n{block.input['command']}"]
                 # If screenshot is not available when screenshot action was requested
                 if isinstance(block.input, dict) and block.input.get("action") == "screenshot" and not screenshot:
                     render_texts += ["Failed to get screenshot"]
@@ -369,8 +434,9 @@ class AnthropicOperatorAgent(OperatorAgent):
         original_messages = list(self.messages)
         messages_to_summarize = self.messages[: self.compress_length]
         # ensure last message isn't a tool call request
-        if messages_to_summarize[-1].role == "assistant" and any(
-            isinstance(block, BetaToolUseBlock) for block in messages_to_summarize[-1].content
+        if messages_to_summarize[-1].role == "assistant" and (
+            any(isinstance(block, BetaToolUseBlock) for block in messages_to_summarize[-1].content)
+            or any(block["type"] == "tool_use" for block in messages_to_summarize[-1].content)
         ):
             messages_to_summarize.pop()
 
@@ -429,14 +495,22 @@ class AnthropicOperatorAgent(OperatorAgent):
 
         return coord
 
-    def model_default_tool(self, tool_type: Literal["computer", "editor", "terminal"]) -> str:
+    def model_default_tool(self, tool_type: Literal["computer", "editor", "terminal"]) -> dict[str, str]:
         """Get the default tool of specified type for the given model."""
         if self.vision_model.name.startswith("claude-3-7-sonnet"):
             if tool_type == "computer":
-                return "computer_20250124"
+                return {"name": "computer", "type": "computer_20250124"}
+            elif tool_type == "editor":
+                return {"name": "str_replace_editor", "type": "text_editor_20250124"}
+            elif tool_type == "terminal":
+                return {"name": "bash_20250124", "type": "bash"}
         elif self.vision_model.name.startswith("claude-sonnet-4") or self.vision_model.name.startswith("claude-opus-4"):
             if tool_type == "computer":
-                return "computer_20250124"
+                return {"name": "computer", "type": "computer_20250124"}
+            elif tool_type == "editor":
+                return {"name": "str_replace_based_edit_tool", "type": "text_editor_20250429"}
+            elif tool_type == "terminal":
+                return {"name": "bash", "type": "bash_20250124"}
         raise ValueError(f"Unsupported tool type for model '{self.vision_model.name}': {tool_type}")
 
     def model_default_headers(self) -> list[str]:
@@ -498,11 +572,19 @@ class AnthropicOperatorAgent(OperatorAgent):
         """Return the tools available for the Anthropic operator."""
         tools = [
             {
-                "type": self.model_default_tool("computer"),
+                "type": self.model_default_tool("computer")["type"],
                 "name": "computer",
                 "display_width_px": current_state.width,
                 "display_height_px": current_state.height,
-            }
+            },
+            {
+                "type": self.model_default_tool("editor")["type"],
+                "name": self.model_default_tool("editor")["name"],
+            },
+            {
+                "type": self.model_default_tool("terminal")["type"],
+                "name": self.model_default_tool("terminal")["name"],
+            },
         ]
 
         if environment == "browser":
