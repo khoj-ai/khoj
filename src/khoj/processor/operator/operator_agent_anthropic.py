@@ -224,7 +224,7 @@ class AnthropicOperatorAgent(OperatorAgent):
 
         # Remove previous cache controls
         for msg in self.messages:
-            if msg.role == "environment" and isinstance(msg.content, list):
+            if isinstance(msg.content, list):
                 for block in msg.content:
                     if isinstance(block, dict) and "cache_control" in block:
                         del block["cache_control"]
@@ -390,13 +390,15 @@ class AnthropicOperatorAgent(OperatorAgent):
         max_tokens: int = 4096,
     ) -> list[BetaContentBlock]:
         client = get_anthropic_async_client(model.ai_model_api.api_key, model.ai_model_api.api_base_url)
-        kwargs = {}
         thinking: dict[str, str | int] = {"type": "disabled"}
+        system = [{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}]
+        kwargs = {}
         if is_reasoning_model(model.name):
             thinking = {"type": "enabled", "budget_tokens": 1024}
         if headers:
             kwargs["betas"] = headers
         if tools:
+            tools[-1]["cache_control"] = {"type": "ephemeral"}  # Mark last tool as cache break point
             kwargs["tools"] = tools
 
         messages_for_api = self._format_message_for_api(messages)
@@ -404,7 +406,7 @@ class AnthropicOperatorAgent(OperatorAgent):
             response = await client.beta.messages.create(
                 messages=messages_for_api,
                 model=model.name,
-                system=system_prompt,
+                system=system,
                 thinking=thinking,
                 max_tokens=max_tokens,
                 temperature=temperature,
