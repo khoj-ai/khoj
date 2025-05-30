@@ -60,7 +60,7 @@ def anthropic_completion_with_backoff(
         client = get_anthropic_client(api_key, api_base_url)
         anthropic_clients[api_key] = client
 
-    formatted_messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)
+    formatted_messages, system = format_messages_for_anthropic(messages, system_prompt)
 
     aggregated_response = ""
     if response_type == "json_object" and not deepthought:
@@ -70,8 +70,8 @@ def anthropic_completion_with_backoff(
 
     final_message = None
     model_kwargs = model_kwargs or dict()
-    if system_prompt:
-        model_kwargs["system"] = system_prompt
+    if system:
+        model_kwargs["system"] = system
 
     max_tokens = max_tokens or DEFAULT_MAX_TOKENS_ANTHROPIC
     if deepthought and is_reasoning_model(model_name):
@@ -146,7 +146,7 @@ async def anthropic_chat_completion_with_backoff(
         # Temperature control not supported when using extended thinking
         temperature = 1.0
 
-    formatted_messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)
+    formatted_messages, system = format_messages_for_anthropic(messages, system_prompt)
 
     aggregated_response = ""
     response_started = False
@@ -156,7 +156,7 @@ async def anthropic_chat_completion_with_backoff(
         messages=formatted_messages,
         model=model_name,  # type: ignore
         temperature=temperature,
-        system=system_prompt,
+        system=system,
         timeout=20,
         max_tokens=max_tokens,
         **model_kwargs,
