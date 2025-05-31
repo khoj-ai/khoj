@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Assistant Control Panel</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            color: #333;
+        }
+        header {
+            background-color: #0078d4;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden; /* Prevent scrollbars on container itself */
+        }
+        .sidebar {
+            width: 280px;
+            background-color: #fff;
+            padding: 1rem;
+            border-right: 1px solid #ddd;
+            overflow-y: auto; /* Scroll for sidebar content */
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+        }
+        .main-content {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto; /* Scroll for main content */
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-area {
+            flex: 1;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            overflow-y: auto; /* Scroll for chat messages */
+            background-color: #fff;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .chat-message {
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            border-radius: 6px;
+            line-height: 1.6;
+        }
+        .user-message {
+            background-color: #e1f0ff;
+            text-align: right;
+            margin-left: auto;
+            max-width: 80%;
+        }
+        .assistant-message {
+            background-color: #f8f8f8;
+            border: 1px solid #eee;
+            max-width: 80%;
+        }
+        .assistant-message pre { /* Style for code blocks */
+            background-color: #2d2d2d;
+            color: #f0f0f0;
+            padding: 0.8rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', 'Andale Mono', 'Ubuntu Mono', monospace;
+            font-size: 0.9em;
+        }
+        .input-area {
+            display: flex;
+            margin-top: auto; /* Pushes input to bottom of main-content */
+        }
+        input[type="text"], select {
+            padding: 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        input[type="text"] {
+            flex: 1;
+            margin-right: 0.5rem;
+        }
+        button {
+            padding: 0.75rem 1.5rem;
+            background-color: #0078d4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s ease;
+        }
+        button:hover {
+            background-color: #005a9e;
+        }
+        button:disabled {
+            background-color: #b0b0b0;
+            cursor: not-allowed;
+        }
+        .settings-group {
+            margin-bottom: 1.5rem;
+        }
+        .settings-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #555;
+        }
+        .loading-indicator {
+            display: none; /* Hidden by default */
+            text-align: center;
+            padding: 0.5rem;
+            font-style: italic;
+            color: #777;
+        }
+        .tool-info {
+            font-size: 0.85em;
+            color: #666;
+            background-color: #f9f9f9;
+            padding: 0.5em;
+            border-radius: 3px;
+            margin-top: 0.3em;
+        }
+
+    </style>
+</head>
+<body>
+    <header>
+        <h1>AI Assistant Control Panel</h1>
+    </header>
+    <div class="container">
+        <aside class="sidebar">
+            <h2>Settings</h2>
+            <div class="settings-group">
+                <label for="model-select">Choose Model:</label>
+                <select id="model-select">
+                    <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+                    <option value="claude-3-sonnet-20240229">Claude 3 Sonnet</option>
+                    <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+                    <option value="gpt-4o">GPT-4o</option>
+                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                    <option value="gemini-1.5-pro-latest">Gemini 1.5 Pro</option>
+                    <option value="gemini-1.0-pro">Gemini 1.0 Pro</option>
+                </select>
+            </div>
+
+            <div class="settings-group">
+                <label for="api-key">API Key:</label>
+                <input type="password" id="api-key" placeholder="Enter your API key">
+                <small>Note: Key is stored in browser session only.</small>
+            </div>
+             <div class="settings-group" id="openai-assistant-id-group" style="display: none;">
+                <label for="assistant-id">OpenAI Assistant ID (Optional):</label>
+                <input type="text" id="assistant-id" placeholder="asst_...">
+            </div>
+            <div class="settings-group" id="obsidian-vault-path-group" style="display: none;"> <!-- Initially hidden -->
+                <label for="obsidian-vault-path">Obsidian Vault Path (Optional):</label>
+                <input type="text" id="obsidian-vault-path" placeholder="/path/to/your/vault">
+            </div>
+             <div class="settings-group" id="tavily-api-key-group" style="display: none;"> <!-- Initially hidden -->
+                <label for="tavily-api-key">Tavily API Key (Optional for Search):</label>
+                <input type="password" id="tavily-api-key" placeholder="tvly-... ">
+            </div>
+
+
+            <button id="connect-button">Connect to Assistant</button>
+
+            <h2>Available Tools</h2>
+            <ul id="tools-list">
+                <li>
+                    <strong>get_current_weather</strong>
+                    <div class="tool-info">Location (str), Unit (str, optional)</div>
+                </li>
+                 <li>
+                    <strong>search_web</strong>
+                    <div class="tool-info">Query (str), Num Results (int, optional)</div>
+                </li>
+                <li>
+                    <strong>save_note_to_obsidian</strong>
+                    <div class="tool-info">Content (str), Vault Path (str), Title (str, optional)</div>
+                </li>
+                <!-- Tools will be dynamically listed here if needed -->
+            </ul>
+        </aside>
+        <main class="main-content">
+            <div class="chat-area" id="chat-area">
+                <!-- Chat messages will appear here -->
+                 <div class="chat-message assistant-message">Welcome! Configure your settings and connect to an assistant.</div>
+            </div>
+            <div class="loading-indicator" id="loading-indicator">Assistant is thinking...</div>
+            <div class="input-area">
+                <input type="text" id="user-input" placeholder="Type your message..." disabled>
+                <button id="send-button" disabled>Send</button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // DOM Elements
+        const modelSelect = document.getElementById('model-select');
+        const apiKeyInput = document.getElementById('api-key');
+        const assistantIdInput = document.getElementById('assistant-id');
+        const openaiAssistantIdGroup = document.getElementById('openai-assistant-id-group');
+        const obsidianVaultPathInput = document.getElementById('obsidian-vault-path');
+        const obsidianVaultPathGroup = document.getElementById('obsidian-vault-path-group');
+        const tavilyApiKeyInput = document.getElementById('tavily-api-key');
+        const tavilyApiKeyGroup = document.getElementById('tavily-api-key-group');
+        const connectButton = document.getElementById('connect-button');
+        const chatArea = document.getElementById('chat-area');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const loadingIndicator = document.getElementById('loading-indicator');
+
+        let currentOpenAIThreadId = null; // To store OpenAI thread ID
+
+        // Show/hide OpenAI Assistant ID and Obsidian Path fields based on model selection
+        modelSelect.addEventListener('change', () => {
+            const selectedModel = modelSelect.value;
+            if (selectedModel.startsWith('gpt')) {
+                openaiAssistantIdGroup.style.display = 'block';
+            } else {
+                openaiAssistantIdGroup.style.display = 'none';
+            }
+            // For simplicity, show Obsidian/Tavily for all for now, or add specific logic
+            obsidianVaultPathGroup.style.display = 'block';
+            tavilyApiKeyGroup.style.display = 'block';
+        });
+        // Trigger change on load to set initial visibility
+        modelSelect.dispatchEvent(new Event('change'));
+
+
+        // Function to add a message to the chat area
+        function addMessage(message, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('chat-message', sender === 'user' ? 'user-message' : 'assistant-message');
+
+            // Sanitize HTML before injecting (basic sanitization)
+            const escapedMessage = message.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+            // Check for code blocks (```text ... ```) and render them
+            const codeBlockRegex = /```(\w+)?\s*([\s\S]*?)```/g;
+            let lastIndex = 0;
+            let htmlContent = "";
+
+            let match;
+            while ((match = codeBlockRegex.exec(escapedMessage)) !== null) {
+                // Add text before the code block
+                htmlContent += escapedMessage.substring(lastIndex, match.index);
+                // Add the code block, wrapped in <pre><code>
+                const language = match[1] || "plaintext"; // Default to plaintext if no language specified
+                const code = match[2];
+                htmlContent += `<pre><code class="language-${language}">${code.trim()}</code></pre>`;
+                lastIndex = match.index + match[0].length;
+            }
+            // Add any remaining text after the last code block
+            htmlContent += escapedMessage.substring(lastIndex);
+
+            messageDiv.innerHTML = htmlContent; // Use innerHTML to render <pre> and <code>
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight; // Auto-scroll
+        }
+
+        // Handle Connect button click
+        connectButton.addEventListener('click', () => {
+            const apiKey = apiKeyInput.value.trim();
+            const selectedModel = modelSelect.value;
+
+            if (!apiKey) {
+                addMessage('API Key is required.', 'assistant-error');
+                return;
+            }
+
+            // Store API key in session storage (for simplicity, consider more secure storage for real apps)
+            sessionStorage.setItem('api_key', apiKey);
+            sessionStorage.setItem('selected_model', selectedModel);
+            if (selectedModel.startsWith('gpt')) {
+                sessionStorage.setItem('assistant_id', assistantIdInput.value.trim());
+            }
+            if (obsidianVaultPathInput.value.trim()){
+                 sessionStorage.setItem('obsidian_vault_path', obsidianVaultPathInput.value.trim());
+            }
+            if (tavilyApiKeyInput.value.trim()){
+                 sessionStorage.setItem('tavily_api_key', tavilyApiKeyInput.value.trim());
+            }
+
+
+            addMessage(`Attempting to connect to ${selectedModel}...`, 'assistant');
+            // Here you would typically make a call to a backend to initialize the assistant
+            // For this example, we'll just enable the input
+            userInput.disabled = false;
+            sendButton.disabled = false;
+            connectButton.disabled = true;
+            connectButton.textContent = "Connected";
+            addMessage('Connection successful! You can now send messages.', 'assistant');
+            currentOpenAIThreadId = null; // Reset thread ID on new connection
+        });
+
+        // Handle Send button click
+        sendButton.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const messageText = userInput.value.trim();
+            if (!messageText) return;
+
+            addMessage(messageText, 'user');
+            userInput.value = ''; // Clear input
+            loadingIndicator.style.display = 'block';
+            sendButton.disabled = true;
+            userInput.disabled = true;
+
+            const apiKey = sessionStorage.getItem('api_key');
+            const model = sessionStorage.getItem('selected_model');
+            const assistantId = model.startsWith('gpt') ? sessionStorage.getItem('assistant_id') : null;
+            const obsidianPath = sessionStorage.getItem('obsidian_vault_path');
+            const tavilyKey = sessionStorage.getItem('tavily_api_key');
+
+
+            // This is where you would send the message to your Python backend
+            // For now, we'll simulate a response.
+            // Replace with an actual fetch call to your Python backend (e.g., running Flask/FastAPI)
+            try {
+                // Construct the payload for the backend
+                const payload = {
+                    prompt: messageText,
+                    model: model,
+                    api_key_env_var: "", // Backend will resolve based on model
+                    assistant_id_env_var: "", // Backend will resolve
+                    obsidian_vault_path: obsidianPath || "",
+                    tavily_api_key: tavilyKey || "",
+                    temperature: 0.7, // Or get from UI
+                    max_tokens: 1000, // Or get from UI
+                    thread_id: model.startsWith('gpt') && assistantId ? currentOpenAIThreadId : null
+                };
+
+                // Replace '/api/chat' with your actual backend endpoint
+                // const response = await fetch('/api/chat', {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify(payload)
+                // });
+
+                // if (!response.ok) {
+                //     const errorData = await response.json();
+                //     throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                // }
+                // const data = await response.json();
+                // addMessage(data.response, 'assistant');
+                // if (data.thread_id) {
+                //    currentOpenAIThreadId = data.thread_id;
+                // }
+
+                // **Simulated response (REMOVE THIS IN PRODUCTION):**
+                setTimeout(() => {
+                    let aiResponse = "This is a simulated response from the AI.";
+                    if (messageText.toLowerCase().includes("weather in tokyo")) {
+                        aiResponse = "```json\n{\n  \"location\": \"Tokyo\",\n  \"temperature\": \"10\",\n  \"unit\": \"celsius\",\n  \"forecast\": \"snowy\"\n}\n```";
+                    } else if (messageText.toLowerCase().includes("hello")) {
+                        aiResponse = "Hello there! How can I help you today?";
+                    }
+                    addMessage(aiResponse, 'assistant');
+                    loadingIndicator.style.display = 'none';
+                    sendButton.disabled = false;
+                    userInput.disabled = false;
+                    userInput.focus();
+                }, 1500);
+
+
+            } catch (error) {
+                addMessage(`Error: ${error.message}`, 'assistant-error');
+                loadingIndicator.style.display = 'none';
+                sendButton.disabled = false;
+                userInput.disabled = false;
+            }
+        }
+
+        // Initial message
+        // addMessage("Please configure your API key and select a model to start.", "assistant");
+
+    </script>
+</body>
+</html>
