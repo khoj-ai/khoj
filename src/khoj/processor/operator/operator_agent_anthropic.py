@@ -253,7 +253,7 @@ class AnthropicOperatorAgent(OperatorAgent):
             )
         return formatted_messages
 
-    def compile_response(self, response_content: list[BetaContentBlock | dict] | str) -> str:
+    def _compile_response(self, response_content: list[BetaContentBlock | dict] | str) -> str:
         """Compile Anthropic response into a single string."""
         if isinstance(response_content, str):
             return response_content
