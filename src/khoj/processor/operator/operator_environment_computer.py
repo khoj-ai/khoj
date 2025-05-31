@@ -232,7 +232,7 @@ class ComputerEnvironment(Environment):
                     logger.debug(f"Action: {action.type} details: {output or error}")
 
                 case "keypress":
-                    mapped_keys = [self.CUA_KEY_TO_PYAUTOGUI_KEY.get(k.lower(), k) for k in action.keys]
+                    mapped_keys = [self.CUA_KEY_TO_PYAUTOGUI_KEY.get(k.lower(), k.lower()) for k in action.keys]
                     key_string = "N/A"
                     if not mapped_keys:
                         error = "Keypress action requires at least one key"
