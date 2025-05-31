@@ -5,12 +5,11 @@ import io
 import logging
 import platform
 import subprocess
-from pathlib import Path
 from typing import Literal, Optional, Union
 
 from PIL import Image, ImageDraw
 
-from khoj.processor.operator.operator_actions import OperatorAction, Point
+from khoj.processor.operator.operator_actions import DragAction, OperatorAction, Point
 from khoj.processor.operator.operator_environment_base import (
     Environment,
     EnvState,
@@ -272,19 +271,21 @@ class ComputerEnvironment(Environment):
                     logger.debug(f"Action: {action.type} to ({x},{y})")
 
                 case "drag":
-                    path = action.path
-                    if not path:
+                    if not isinstance(action, DragAction):
+                        raise TypeError("Invalid action type for drag")
+                    drag_path = action.path
+                    if not drag_path:
                         error = "Missing path for drag action"
                     else:
-                        start_x, start_y = path[0].x, path[0].y
+                        start_x, start_y = drag_path[0].x, drag_path[0].y
                         await self._execute("moveTo", start_x, start_y, duration=0.1)
                         await self._execute("mouseDown")
-                        for point in path[1:]:
+                        for point in drag_path[1:]:
                             await self._execute("moveTo", point.x, point.y, duration=0.05)
                         await self._execute("mouseUp")
-                        self.mouse_pos = Point(x=path[-1].x, y=path[-1].y)
+                        self.mouse_pos = Point(x=drag_path[-1].x, y=drag_path[-1].y)
                         output = f"Drag along path starting at ({start_x},{start_y})"
-                        logger.debug(f"Action: {action.type} with {len(path)} points")
+                        logger.debug(f"Action: {action.type} with {len(drag_path)} points")
 
                 case "mouse_down":
                     pyautogui_button = action.button.lower() if action.button else "left"
@@ -352,9 +353,12 @@ class ComputerEnvironment(Environment):
 
                 case "text_editor_view":
                     # View file contents
-                    path = action.path
+                    file_path = action.path
                     view_range = action.view_range
-                    escaped_path = path.replace("'", "'\"'\"'")
+                    # Type guard: path should be str for text editor actions
+                    if not isinstance(file_path, str):
+                        raise TypeError("Invalid path type for text editor view action")
+                    escaped_path = file_path.replace("'", "'\"'\"'")
                     is_dir = await self._execute("os.path.isdir", escaped_path)
                     if is_dir:
                         cmd = rf"find {escaped_path} -maxdepth 2 -not -path '*/\.*'"
@@ -373,18 +377,21 @@ class ComputerEnvironment(Environment):
                         result["output"] = f"{result['output'][:MAX_OUTPUT_LENGTH]}..."
                     if result["success"]:
                         if is_dir:
-                            output = f"Here's the files and directories up to 2 levels deep in {path}, excluding hidden items:\n{result['output']}"
+                            output = f"Here's the files and directories up to 2 levels deep in {file_path}, excluding hidden items:\n{result['output']}"
                         else:
-                            output = f"File contents of {path}:\n{result['output']}"
+                            output = f"File contents of {file_path}:\n{result['output']}"
                     else:
-                        error = f"Failed to view file {path}: {result['error']}"
-                    logger.debug(f"Action: {action.type} for file {path}")
+                        error = f"Failed to view file {file_path}: {result['error']}"
+                    logger.debug(f"Action: {action.type} for file {file_path}")
 
                 case "text_editor_create":
                     # Create new file with contents
-                    path = action.path
+                    file_path = action.path
                     file_text = action.file_text
-                    escaped_path = path.replace("'", "'\"'\"'")
+                    # Type guard: path should be str for text editor actions
+                    if not isinstance(file_path, str):
+                        raise TypeError("Invalid path type for text editor create action")
+                    escaped_path = file_path.replace("'", "'\"'\"'")
                     escaped_content = file_text.replace("\t", "    ").replace(
                         "'", "'\"'\"'"
                     )  # Escape single quotes for shell
@@ -392,19 +399,22 @@ class ComputerEnvironment(Environment):
 
                     result = await self._execute_shell_command(cmd)
                     if result["success"]:
-                        output = f"Created file {path} with {len(file_text)} characters"
+                        output = f"Created file {file_path} with {len(file_text)} characters"
                     else:
-                        error = f"Failed to create file {path}: {result['error']}"
-                    logger.debug(f"Action: {action.type} created file {path}")
+                        error = f"Failed to create file {file_path}: {result['error']}"
+                    logger.debug(f"Action: {action.type} created file {file_path}")
 
                 case "text_editor_str_replace":
                     # Execute string replacement
-                    path = action.path
+                    file_path = action.path
                     old_str = action.old_str
                     new_str = action.new_str
 
+                    # Type guard: path should be str for text editor actions
+                    if not isinstance(file_path, str):
+                        raise TypeError("Invalid path type for text editor str_replace action")
                     # Use sed for string replacement, escaping special characters
-                    escaped_path = path.replace("'", "'\"'\"'")
+                    escaped_path = file_path.replace("'", "'\"'\"'")
                     escaped_old = (
                         old_str.replace("\t", "    ")
                         .replace("\\", "\\\\")
@@ -424,18 +434,23 @@ class ComputerEnvironment(Environment):
 
                     result = await self._execute_shell_command(cmd)
                     if result["success"]:
-                        output = f"Replaced '{old_str[:50]}...' with '{new_str[:50]}...' in {path}"
+                        output = f"Replaced '{old_str[:50]}...' with '{new_str[:50]}...' in {file_path}"
                     else:
-                        error = f"Failed to replace text in {path}: {result['error']}"
-                    logger.debug(f"Action: {action.type} in file {path}")
+                        error = f"Failed to replace text in {file_path}: {result['error']}"
+                    logger.debug(f"Action: {action.type} in file {file_path}")
 
                 case "text_editor_insert":
                     # Insert text after specified line
-                    path = action.path
+                    file_path = action.path
                     insert_line = action.insert_line
                     new_str = action.new_str
 
-                    escaped_path = path.replace("'", "'\"'\"'")
+                    # Type guard: path should be str for text editor actions
+                    if not isinstance(file_path, str):
+                        error = "Invalid path type for text editor insert action.\n"
+                        error += f"Failed to insert text in {file_path}: {result['error']}"
+                        raise TypeError(error)
+                    escaped_path = file_path.replace("'", "'\"'\"'")
                     escaped_content = (
                         new_str.replace("\t", "    ")
                         .replace("\\", "\\\\")
@@ -446,10 +461,10 @@ class ComputerEnvironment(Environment):
 
                     result = await self._execute_shell_command(cmd)
                     if result["success"]:
-                        output = f"Inserted text after line {insert_line} in {path}"
+                        output = f"Inserted text after line {insert_line} in {file_path}"
                     else:
-                        error = f"Failed to insert text in {path}: {result['error']}"
-                    logger.debug(f"Action: {action.type} at line {insert_line} in file {path}")
+                        error = f"Failed to insert text in {file_path}: {result['error']}"
+                    logger.debug(f"Action: {action.type} at line {insert_line} in file {file_path}")
 
                 case _:
                     error = f"Unrecognized action type: {action.type}"
@@ -457,6 +472,8 @@ class ComputerEnvironment(Environment):
         except KeyboardInterrupt:
             error = "User interrupt. Operation aborted."
             logger.error(error)
+        except TypeError as e:
+            logger.error(f"Error executing action {action.type}: {e}")
         except Exception as e:
             error = f"Unexpected error executing action {action.type}: {str(e)}"
             logger.exception(

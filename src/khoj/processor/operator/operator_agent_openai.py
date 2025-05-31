@@ -166,7 +166,8 @@ class OpenAIOperatorAgent(OperatorAgent):
                 items_to_pop.append(idx)  # Mark placeholder reasoning action result for removal
                 continue
             elif action_result["type"] == "computer_call" and action_result["status"] == "in_progress":
-                result_content["status"] = "completed"  # Mark in-progress actions as completed
+                if isinstance(result_content, dict):
+                    result_content["status"] = "completed"  # Mark in-progress actions as completed
                 action_result["output"] = result_content
             else:
                 # Add text data
