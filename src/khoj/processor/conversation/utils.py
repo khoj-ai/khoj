@@ -110,9 +110,12 @@ class InformationCollectionIteration:
 
 
 def construct_iteration_history(
-    query: str, previous_iterations: List[InformationCollectionIteration], previous_iteration_prompt: str
+    previous_iterations: List[InformationCollectionIteration],
+    previous_iteration_prompt: str,
+    query: str = None,
 ) -> list[dict]:
-    previous_iterations_history = []
+    iteration_history: list[dict] = []
+    previous_iteration_messages: list[dict] = []
     for idx, iteration in enumerate(previous_iterations):
         iteration_data = previous_iteration_prompt.format(
             tool=iteration.tool,
@@ -121,23 +124,19 @@ def construct_iteration_history(
             index=idx + 1,
         )
 
-        previous_iterations_history.append(iteration_data)
+        previous_iteration_messages.append({"type": "text", "text": iteration_data})
 
-    return (
-        [
-            {
-                "by": "you",
-                "message": query,
-            },
+    if previous_iteration_messages:
+        if query:
+            iteration_history.append({"by": "you", "message": query})
+        iteration_history.append(
             {
                 "by": "khoj",
                 "intent": {"type": "remember", "query": query},
-                "message": previous_iterations_history,
-            },
-        ]
-        if previous_iterations_history
-        else []
-    )
+                "message": previous_iteration_messages,
+            }
+        )
+    return iteration_history
 
 
 def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="AI") -> str:
@@ -285,6 +284,7 @@ async def save_to_conversation_log(
     generated_images: List[str] = [],
     raw_generated_files: List[FileAttachment] = [],
     generated_mermaidjs_diagram: str = None,
+    research_results: Optional[List[InformationCollectionIteration]] = None,
     train_of_thought: List[Any] = [],
     tracer: Dict[str, Any] = {},
 ):
@@ -302,6 +302,7 @@ async def save_to_conversation_log(
         "onlineContext": online_results,
         "codeContext": code_results,
         "operatorContext": operator_results,
+        "researchContext": [vars(r) for r in research_results] if research_results and not chat_response else None,
         "automationId": automation_id,
         "trainOfThought": train_of_thought,
         "turnId": turn_id,
@@ -341,7 +342,7 @@ Khoj: "{chat_response}"
 
 
 def construct_structured_message(
-    message: list[str] | str,
+    message: list[dict] | str,
     images: list[str],
     model_type: str,
     vision_enabled: bool,
@@ -355,11 +356,9 @@ def construct_structured_message(
         ChatModel.ModelType.GOOGLE,
         ChatModel.ModelType.ANTHROPIC,
     ]:
-        message = [message] if isinstance(message, str) else message
-
-        constructed_messages: List[dict[str, Any]] = [
-            {"type": "text", "text": message_part} for message_part in message
-        ]
+        constructed_messages: List[dict[str, Any]] = (
+            [{"type": "text", "text": message}] if isinstance(message, str) else message
+        )
 
         if not is_none_or_empty(attached_file_context):
             constructed_messages.append({"type": "text", "text": attached_file_context})
@@ -368,6 +367,7 @@ def construct_structured_message(
                 constructed_messages.append({"type": "image_url", "image_url": {"url": image}})
         return constructed_messages
 
+    message = message if isinstance(message, str) else "\n\n".join(m["text"] for m in message)
     if not is_none_or_empty(attached_file_context):
         return f"{attached_file_context}\n\n{message}"
 
@@ -421,7 +421,7 @@ def generate_chatml_messages_with_context(
     # Extract Chat History for Context
     chatml_messages: List[ChatMessage] = []
     for chat in conversation_log.get("chat", []):
-        message_context = ""
+        message_context = []
         message_attached_files = ""
 
         generated_assets = {}
@@ -433,16 +433,6 @@ def generate_chatml_messages_with_context(
         if chat["by"] == "khoj" and "excalidraw" in chat["intent"].get("type", ""):
             chat_message = chat["intent"].get("inferred-queries")[0]
 
-        if not is_none_or_empty(chat.get("context")):
-            references = "\n\n".join(
-                {
-                    f"# File: {item['file']}\n## {item['compiled']}\n"
-                    for item in chat.get("context") or []
-                    if isinstance(item, dict)
-                }
-            )
-            message_context += f"{prompts.notes_conversation.format(references=references)}\n\n"
-
         if chat.get("queryFiles"):
             raw_query_files = chat.get("queryFiles")
             query_files_dict = dict()
@@ -453,15 +443,38 @@ def generate_chatml_messages_with_context(
             chatml_messages.append(ChatMessage(content=message_attached_files, role=role))
 
         if not is_none_or_empty(chat.get("onlineContext")):
-            message_context += f"{prompts.online_search_conversation.format(online_results=chat.get('onlineContext'))}"
+            message_context += [
+                {
+                    "type": "text",
+                    "text": f"{prompts.online_search_conversation.format(online_results=chat.get('onlineContext'))}",
+                }
+            ]
 
         if not is_none_or_empty(chat.get("codeContext")):
-            message_context += f"{prompts.code_executed_context.format(code_results=chat.get('codeContext'))}"
+            message_context += [
+                {
+                    "type": "text",
+                    "text": f"{prompts.code_executed_context.format(code_results=chat.get('codeContext'))}",
+                }
+            ]
 
         if not is_none_or_empty(chat.get("operatorContext")):
-            message_context += (
-                f"{prompts.operator_execution_context.format(operator_results=chat.get('operatorContext'))}"
+            message_context += [
+                {
+                    "type": "text",
+                    "text": f"{prompts.operator_execution_context.format(operator_results=chat.get('operatorContext'))}",
+                }
+            ]
+
+        if not is_none_or_empty(chat.get("context")):
+            references = "\n\n".join(
+                {
+                    f"# File: {item['file']}\n## {item['compiled']}\n"
+                    for item in chat.get("context") or []
+                    if isinstance(item, dict)
+                }
             )
+            message_context += [{"type": "text", "text": f"{prompts.notes_conversation.format(references=references)}"}]
 
         if not is_none_or_empty(message_context):
             reconstructed_context_message = ChatMessage(content=message_context, role="user")

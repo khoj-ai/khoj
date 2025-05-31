@@ -164,7 +164,7 @@ async def converse_anthropic(
     generated_asset_results: Dict[str, Dict] = {},
     deepthought: Optional[bool] = False,
     tracer: dict = {},
-) -> AsyncGenerator[ResponseWithThought, None]:
+) -> AsyncGenerator[str | ResponseWithThought, None]:
     """
     Converse with user using Anthropic's Claude
     """

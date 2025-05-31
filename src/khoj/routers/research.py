@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+from copy import deepcopy
 from datetime import datetime
 from enum import Enum
 from typing import Callable, Dict, List, Optional, Type
@@ -141,7 +142,7 @@ async def apick_next_tool(
         query = f"[placeholder for user attached images]\n{query}"
 
     # Construct chat history with user and iteration history with researcher agent for context
-    previous_iterations_history = construct_iteration_history(query, previous_iterations, prompts.previous_iteration)
+    previous_iterations_history = construct_iteration_history(previous_iterations, prompts.previous_iteration, query)
     iteration_chat_log = {"chat": conversation_history.get("chat", []) + previous_iterations_history}
 
     # Plan function execution for the next tool
@@ -212,6 +213,7 @@ async def execute_information_collection(
     query: str,
     conversation_id: str,
     conversation_history: dict,
+    previous_iterations: List[InformationCollectionIteration],
     query_images: List[str],
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
@@ -227,11 +229,20 @@ async def execute_information_collection(
     max_webpages_to_read = 1
     current_iteration = 0
     MAX_ITERATIONS = int(os.getenv("KHOJ_RESEARCH_ITERATIONS", 5))
-    previous_iterations: List[InformationCollectionIteration] = []
+
+    # Incorporate previous partial research into current research chat history
+    research_conversation_history = deepcopy(conversation_history)
+    if current_iteration := len(previous_iterations) > 0:
+        logger.info(f"Continuing research with the previous {len(previous_iterations)} iteration results.")
+        previous_iterations_history = construct_iteration_history(previous_iterations, prompts.previous_iteration)
+        research_conversation_history["chat"] = (
+            research_conversation_history.get("chat", []) + previous_iterations_history
+        )
+
     while current_iteration < MAX_ITERATIONS:
         # Check for cancellation at the start of each iteration
         if cancellation_event and cancellation_event.is_set():
-            logger.debug(f"User {user} disconnected client. Research cancelled.")
+            logger.debug(f"Research cancelled. User {user} disconnected client.")
             break
 
         online_results: Dict = dict()
@@ -243,7 +254,7 @@ async def execute_information_collection(
 
         async for result in apick_next_tool(
             query,
-            conversation_history,
+            research_conversation_history,
             user,
             location,
             user_name,

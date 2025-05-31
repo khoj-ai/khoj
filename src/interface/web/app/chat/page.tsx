@@ -49,6 +49,7 @@ interface ChatBodyDataProps {
     isChatSideBarOpen: boolean;
     setIsChatSideBarOpen: (open: boolean) => void;
     isActive?: boolean;
+    isParentProcessing?: boolean;
 }
 
 function ChatBodyData(props: ChatBodyDataProps) {
@@ -166,7 +167,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         isLoggedIn={props.isLoggedIn}
                         sendMessage={(message) => setMessage(message)}
                         sendImage={(image) => setImages((prevImages) => [...prevImages, image])}
-                        sendDisabled={processingMessage}
+                        sendDisabled={props.isParentProcessing || false}
                         chatOptionsData={props.chatOptionsData}
                         conversationId={conversationId}
                         isMobileWidth={props.isMobileWidth}
@@ -203,6 +204,7 @@ export default function Chat() {
     const [abortMessageStreamController, setAbortMessageStreamController] =
         useState<AbortController | null>(null);
     const [triggeredAbort, setTriggeredAbort] = useState(false);
+    const [shouldSendWithInterrupt, setShouldSendWithInterrupt] = useState(false);
 
     const { locationData, locationDataError, locationDataLoading } = useIPLocationData() || {
         locationData: {
@@ -239,6 +241,7 @@ export default function Chat() {
         if (triggeredAbort) {
             abortMessageStreamController?.abort();
             handleAbortedMessage();
+            setShouldSendWithInterrupt(true);
             setTriggeredAbort(false);
         }
     }, [triggeredAbort]);
@@ -335,18 +338,21 @@ export default function Chat() {
 
         currentMessage.completed = true;
         setMessages([...messages]);
-        setQueryToProcess("");
         setProcessQuerySignal(false);
     }
 
     async function chat() {
         localStorage.removeItem("message");
-        if (!queryToProcess || !conversationId) return;
+        if (!queryToProcess || !conversationId) {
+            setProcessQuerySignal(false);
+            return;
+        }
         const chatAPI = "/api/chat?client=web";
         const chatAPIBody = {
             q: queryToProcess,
             conversation_id: conversationId,
             stream: true,
+            interrupt: shouldSendWithInterrupt,
             ...(locationData && {
                 city: locationData.city,
                 region: locationData.region,
@@ -357,6 +363,9 @@ export default function Chat() {
             ...(images.length > 0 && { images: images }),
             ...(uploadedFiles && { files: uploadedFiles }),
         };
+
+        // Reset the flag after using it
+        setShouldSendWithInterrupt(false);
 
         const response = await fetch(chatAPI, {
             method: "POST",
@@ -481,6 +490,7 @@ export default function Chat() {
                                     isChatSideBarOpen={isChatSideBarOpen}
                                     setIsChatSideBarOpen={setIsChatSideBarOpen}
                                     isActive={authenticatedData?.is_active}
+                                    isParentProcessing={processQuerySignal}
                                 />
                             </Suspense>
                         </div>
