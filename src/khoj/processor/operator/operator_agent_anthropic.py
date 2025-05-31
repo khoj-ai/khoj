@@ -392,7 +392,7 @@ class AnthropicOperatorAgent(OperatorAgent):
         client = get_anthropic_async_client(model.ai_model_api.api_key, model.ai_model_api.api_base_url)
         thinking: dict[str, str | int] = {"type": "disabled"}
         system = [{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}]
-        kwargs = {}
+        kwargs: dict = {}
         if is_reasoning_model(model.name):
             thinking = {"type": "enabled", "budget_tokens": 1024}
         if headers:
@@ -572,7 +572,7 @@ class AnthropicOperatorAgent(OperatorAgent):
 
     def get_tools(self, environment: EnvironmentType, current_state: EnvState) -> list[dict]:
         """Return the tools available for the Anthropic operator."""
-        tools = [
+        tools: list[dict] = [
             {
                 "type": self.model_default_tool("computer")["type"],
                 "name": "computer",
