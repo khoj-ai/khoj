@@ -218,8 +218,8 @@ class OpenAIOperatorAgent(OperatorAgent):
                 )
         return formatted_messages
 
-    def compile_response(self, response_content: str | list[dict | ResponseOutputItem]) -> str:
-        """Compile the response from model into a single string."""
+    def _compile_response(self, response_content: str | list[dict | ResponseOutputItem]) -> str:
+        """Compile the response from model into a single string for prompt tracing."""
         # Handle case where response content is a string.
         # This is the case when response content is a user query
         if isinstance(response_content, str):

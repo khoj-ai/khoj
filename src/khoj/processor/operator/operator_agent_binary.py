@@ -260,7 +260,7 @@ class BinaryOperatorAgent(OperatorAgent):
 
         return summary
 
-    def compile_response(self, response_content: str | List) -> str:
+    def _compile_response(self, response_content: str | List) -> str:
         """Compile response content into a string, handling OpenAI message structures."""
         if isinstance(response_content, str):
             return response_content

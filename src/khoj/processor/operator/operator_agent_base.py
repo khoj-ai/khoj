@@ -79,10 +79,10 @@ class OperatorAgent(ABC):
         await self.act(current_state)
         if not self.messages:
             return "No actions to summarize."
-        return self.compile_response(self.messages[-1].content)
+        return self._compile_response(self.messages[-1].content)
 
     @abstractmethod
-    def compile_response(self, response: List | str) -> str:
+    def _compile_response(self, response: List | str) -> str:
         pass
 
     @abstractmethod
@@ -102,7 +102,7 @@ class OperatorAgent(ABC):
         self.tracer["chat_model"] = self.vision_model.name
         if is_promptrace_enabled() and len(self.messages) > 1:
             compiled_messages = [
-                AgentMessage(role=msg.role, content=self.compile_response(msg.content)) for msg in self.messages
+                AgentMessage(role=msg.role, content=self._compile_response(msg.content)) for msg in self.messages
             ]
             commit_conversation_trace(compiled_messages[:-1], compiled_messages[-1].content, self.tracer)
 
