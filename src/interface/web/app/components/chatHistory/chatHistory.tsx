@@ -8,7 +8,9 @@ import ChatMessage, {
     ChatHistoryData,
     StreamMessage,
     TrainOfThought,
+    TrainOfThoughtObject,
 } from "../chatMessage/chatMessage";
+import TrainOfThoughtVideoPlayer from "../../../components/trainOfThoughtVideoPlayer/trainOfThoughtVideoPlayer";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -41,17 +43,108 @@ interface ChatHistoryProps {
     setIsOwner?: (isOwner: boolean) => void;
 }
 
+interface TrainOfThoughtFrame {
+    text: string;
+    image?: string;
+    timestamp: number;
+}
+
+interface TrainOfThoughtGroup {
+    type: 'video' | 'text';
+    frames?: TrainOfThoughtFrame[];
+    textEntries?: TrainOfThoughtObject[];
+}
+
 interface TrainOfThoughtComponentProps {
-    trainOfThought: string[];
+    trainOfThought: string[] | TrainOfThoughtObject[];
     lastMessage: boolean;
     agentColor: string;
     keyId: string;
     completed?: boolean;
 }
 
+function extractTrainOfThoughtGroups(trainOfThought?: TrainOfThoughtObject[]): TrainOfThoughtGroup[] {
+    if (!trainOfThought) return [];
+
+    const groups: TrainOfThoughtGroup[] = [];
+    let currentVideoFrames: TrainOfThoughtFrame[] = [];
+    let currentTextEntries: TrainOfThoughtObject[] = [];
+
+    trainOfThought.forEach((thought, index) => {
+        let text = thought.data;
+        let hasImage = false;
+
+        // Extract screenshot image from the thought data
+        try {
+            const jsonMatch = text.match(
+                /\{.*(\"action\": \"screenshot\"|\"type\": \"screenshot\"|\"image\": \"data:image\/.*\").*\}/,
+            );
+            if (jsonMatch) {
+                const jsonMessage = JSON.parse(jsonMatch[0]);
+                if (jsonMessage.image) {
+                    hasImage = true;
+                    // Clean up the text to remove the JSON action
+                    text = text.replace(`:\n**Action**: ${jsonMatch[0]}`, "");
+                    if (jsonMessage.text) {
+                        text += `\n\n${jsonMessage.text}`;
+                    }
+
+                    // If we have accumulated text entries, add them as a text group
+                    if (currentTextEntries.length > 0) {
+                        groups.push({
+                            type: 'text',
+                            textEntries: [...currentTextEntries]
+                        });
+                        currentTextEntries = [];
+                    }
+
+                    // Add to current video frames
+                    currentVideoFrames.push({
+                        text: text,
+                        image: jsonMessage.image,
+                        timestamp: index,
+                    });
+                }
+            }
+        } catch (e) {
+            console.error("Failed to parse screenshot data", e);
+        }
+
+        if (!hasImage) {
+            // If we have accumulated video frames, add them as a video group
+            if (currentVideoFrames.length > 0) {
+                groups.push({
+                    type: 'video',
+                    frames: [...currentVideoFrames]
+                });
+                currentVideoFrames = [];
+            }
+
+            // Add to current text entries
+            currentTextEntries.push(thought);
+        }
+    });
+
+    // Add any remaining frames/entries
+    if (currentVideoFrames.length > 0) {
+        groups.push({
+            type: 'video',
+            frames: currentVideoFrames
+        });
+    }
+    if (currentTextEntries.length > 0) {
+        groups.push({
+            type: 'text',
+            textEntries: currentTextEntries
+        });
+    }
+
+    return groups;
+}
+
 function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
-    const lastIndex = props.trainOfThought.length - 1;
     const [collapsed, setCollapsed] = useState(props.completed);
+    const [trainOfThoughtGroups, setTrainOfThoughtGroups] = useState<TrainOfThoughtGroup[]>([]);
 
     const variants = {
         open: {
@@ -71,6 +164,29 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
             setCollapsed(true);
         }
     }, [props.completed]);
+
+    useEffect(() => {
+        // Handle empty array case
+        if (!props.trainOfThought || props.trainOfThought.length === 0) {
+            setTrainOfThoughtGroups([]);
+            return;
+        }
+
+        // Convert string array to TrainOfThoughtObject array if needed
+        let trainOfThoughtObjects: TrainOfThoughtObject[];
+
+        if (typeof props.trainOfThought[0] === 'string') {
+            trainOfThoughtObjects = (props.trainOfThought as string[]).map((data, index) => ({
+                type: 'text',
+                data: data
+            }));
+        } else {
+            trainOfThoughtObjects = props.trainOfThought as TrainOfThoughtObject[];
+        }
+
+        const groups = extractTrainOfThoughtGroups(trainOfThoughtObjects);
+        setTrainOfThoughtGroups(groups);
+    }, [props.trainOfThought]);
 
     return (
         <div
@@ -101,15 +217,31 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
             <AnimatePresence initial={false}>
                 {!collapsed && (
                     <motion.div initial="closed" animate="open" exit="closed" variants={variants}>
-                        {props.trainOfThought.map((train, index) => (
-                            <TrainOfThought
-                                key={`train-${index}`}
-                                message={train}
-                                primary={
-                                    index === lastIndex && props.lastMessage && !props.completed
-                                }
-                                agentColor={props.agentColor}
-                            />
+                        {trainOfThoughtGroups.map((group, groupIndex) => (
+                            <div key={`train-group-${groupIndex}`}>
+                                {group.type === 'video' && group.frames && group.frames.length > 0 && (
+                                    <TrainOfThoughtVideoPlayer
+                                        frames={group.frames}
+                                        autoPlay={false}
+                                        playbackSpeed={1500}
+                                    />
+                                )}
+                                {group.type === 'text' && group.textEntries && group.textEntries.map((entry, entryIndex) => {
+                                    const lastIndex = trainOfThoughtGroups.length - 1;
+                                    const isLastGroup = groupIndex === lastIndex;
+                                    const isLastEntry = entryIndex === group.textEntries!.length - 1;
+                                    const isPrimaryEntry = isLastGroup && isLastEntry && props.lastMessage && !props.completed;
+
+                                    return (
+                                        <TrainOfThought
+                                            key={`train-text-${groupIndex}-${entryIndex}-${entry.data.length}`}
+                                            message={entry.data}
+                                            primary={isPrimaryEntry}
+                                            agentColor={props.agentColor}
+                                        />
+                                    );
+                                })}
+                            </div>
                         ))}
                     </motion.div>
                 )}
@@ -401,9 +533,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                             <React.Fragment key={`chatMessage-${index}`}>
                                 {chatMessage.trainOfThought && chatMessage.by === "khoj" && (
                                     <TrainOfThoughtComponent
-                                        trainOfThought={chatMessage.trainOfThought?.map(
-                                            (train) => train.data,
-                                        )}
+                                        trainOfThought={chatMessage.trainOfThought}
                                         lastMessage={false}
                                         agentColor={data?.agent?.color || "orange"}
                                         key={`${index}trainOfThought`}
@@ -462,12 +592,12 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         conversationId={props.conversationId}
                                         turnId={messageTurnId}
                                     />
-                                    {message.trainOfThought && (
+                                    {message.trainOfThought && message.trainOfThought.length > 0 && (
                                         <TrainOfThoughtComponent
                                             trainOfThought={message.trainOfThought}
                                             lastMessage={index === incompleteIncomingMessageIndex}
                                             agentColor={data?.agent?.color || "orange"}
-                                            key={`${index}trainOfThought`}
+                                            key={`${index}trainOfThought-${message.trainOfThought.length}-${message.trainOfThought.map(t => t.length).join('-')}`}
                                             keyId={`${index}trainOfThought`}
                                             completed={message.completed}
                                         />
