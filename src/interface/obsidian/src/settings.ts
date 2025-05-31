@@ -1,6 +1,6 @@
 import { App, Notice, PluginSettingTab, Setting, TFile, SuggestModal } from 'obsidian';
 import Khoj from 'src/main';
-import { canConnectToBackend, getBackendStatusMessage, updateContentIndex } from './utils';
+import { canConnectToBackend, fetchChatModels, fetchUserServerSettings, getBackendStatusMessage, updateContentIndex, updateServerChatModel } from './utils';
 
 export interface UserInfo {
     username?: string;
@@ -16,6 +16,16 @@ interface SyncFileTypes {
     pdf: boolean;
 }
 
+export interface ModelOption {
+    id: string;
+    name: string;
+}
+
+export interface ServerUserConfig {
+    selected_chat_model_config?: number; // This is the ID from the server
+    // Add other fields from UserConfig if needed by the plugin elsewhere
+}
+
 export interface KhojSetting {
     resultsCount: number;
     khojUrl: string;
@@ -27,10 +37,13 @@ export interface KhojSetting {
     userInfo: UserInfo | null;
     syncFolders: string[];
     syncInterval: number;
+    autoVoiceResponse: boolean;
+    selectedChatModelId: string | null; // Mirrors server's selected_chat_model_config
+    availableChatModels: ModelOption[];
 }
 
 export const DEFAULT_SETTINGS: KhojSetting = {
-    resultsCount: 6,
+    resultsCount: 15,
     khojUrl: 'https://app.khoj.dev',
     khojApiKey: '',
     connectedToBackend: false,
@@ -44,10 +57,14 @@ export const DEFAULT_SETTINGS: KhojSetting = {
     userInfo: null,
     syncFolders: [],
     syncInterval: 60,
+    autoVoiceResponse: true,
+    selectedChatModelId: null, // Will be populated from server
+    availableChatModels: [],
 }
 
 export class KhojSettingTab extends PluginSettingTab {
     plugin: Khoj;
+    private chatModelSetting: Setting | null = null;
 
     constructor(app: App, plugin: Khoj) {
         super(app, plugin);
@@ -57,20 +74,75 @@ export class KhojSettingTab extends PluginSettingTab {
     display(): void {
         const { containerEl } = this;
         containerEl.empty();
+        this.chatModelSetting = null; // Reset when display is called
 
         // Add notice whether able to connect to khoj backend or not
-        let backendStatusEl = containerEl.createEl('small', {
-            text: getBackendStatusMessage(
-                this.plugin.settings.connectedToBackend,
-                this.plugin.settings.userInfo?.email,
-                this.plugin.settings.khojUrl,
-                this.plugin.settings.khojApiKey
-            )
-        }
+        let backendStatusMessage = getBackendStatusMessage(
+            this.plugin.settings.connectedToBackend,
+            this.plugin.settings.userInfo?.email,
+            this.plugin.settings.khojUrl,
+            this.plugin.settings.khojApiKey
         );
-        let backendStatusMessage: string = '';
+
+        const connectHeaderEl = containerEl.createEl('h3', { title: backendStatusMessage });
+        const connectHeaderContentEl = connectHeaderEl.createSpan({ cls: 'khoj-connect-settings-header' });
+        const connectTitleEl = connectHeaderContentEl.createSpan({ text: 'Connect' });
+        const backendStatusEl = connectTitleEl.createSpan({ text: this.connectStatusIcon(), cls: 'khoj-connect-settings-header-status' });
+        if (this.plugin.settings.userInfo && this.plugin.settings.connectedToBackend) {
+            if (this.plugin.settings.userInfo.photo) {
+                const profilePicEl = connectHeaderContentEl.createEl('img', {
+                    attr: { src: this.plugin.settings.userInfo.photo },
+                    cls: 'khoj-profile'
+                });
+                profilePicEl.addEventListener('click', () => { new Notice(backendStatusMessage); });
+            } else if (this.plugin.settings.userInfo.email) {
+                const initial = this.plugin.settings.userInfo.email[0].toUpperCase();
+                const profilePicEl = connectHeaderContentEl.createDiv({
+                    text: initial,
+                    cls: 'khoj-profile khoj-profile-initial'
+                });
+                profilePicEl.addEventListener('click', () => { new Notice(backendStatusMessage); });
+            }
+        }
+        if (this.plugin.settings.userInfo && this.plugin.settings.userInfo.email) {
+            connectHeaderEl.title = this.plugin.settings.userInfo?.email === 'default@example.com'
+                ? "Signed in"
+                : `Signed in as ${this.plugin.settings.userInfo.email}`;
+        }
 
         // Add khoj settings configurable from the plugin settings tab
+        const apiKeySetting = new Setting(containerEl)
+            .setName('Khoj API Key')
+            .addText(text => text
+                .setValue(`${this.plugin.settings.khojApiKey}`)
+                .onChange(async (value) => {
+                    this.plugin.settings.khojApiKey = value.trim();
+                    ({
+                        connectedToBackend: this.plugin.settings.connectedToBackend,
+                        userInfo: this.plugin.settings.userInfo,
+                        statusMessage: backendStatusMessage,
+                    } = await canConnectToBackend(this.plugin.settings.khojUrl, this.plugin.settings.khojApiKey));
+
+                    if (!this.plugin.settings.connectedToBackend) {
+                        this.plugin.settings.availableChatModels = [];
+                        this.plugin.settings.selectedChatModelId = null;
+                    }
+                    await this.plugin.saveSettings();
+                    backendStatusEl.setText(this.connectStatusIcon())
+                    connectHeaderEl.title = backendStatusMessage;
+                    await this.refreshModelsAndServerPreference();
+                }));
+
+        // Add API key setting description with link to get API key
+        apiKeySetting.descEl.createEl('span', {
+            text: 'Connect your Khoj Cloud account. ',
+        });
+        apiKeySetting.descEl.createEl('a', {
+            text: 'Get your API Key',
+            href: `${this.plugin.settings.khojUrl}/settings#clients`,
+            attr: { target: '_blank' }
+        });
+
         new Setting(containerEl)
             .setName('Khoj URL')
             .setDesc('The URL of the Khoj backend.')
@@ -84,29 +156,46 @@ export class KhojSettingTab extends PluginSettingTab {
                         statusMessage: backendStatusMessage,
                     } = await canConnectToBackend(this.plugin.settings.khojUrl, this.plugin.settings.khojApiKey));
 
+                    if (!this.plugin.settings.connectedToBackend) {
+                        this.plugin.settings.availableChatModels = [];
+                        this.plugin.settings.selectedChatModelId = null;
+                    }
                     await this.plugin.saveSettings();
-                    backendStatusEl.setText(backendStatusMessage);
+                    backendStatusEl.setText(this.connectStatusIcon())
+                    connectHeaderEl.title = backendStatusMessage;
+                    await this.refreshModelsAndServerPreference();
                 }));
+
+        // Interact section
+        containerEl.createEl('h3', { text: 'Interact' });
+
+        // Chat Model Dropdown
+        this.renderChatModelDropdown();
+
+        // Initial fetch of models and server preference if connected
+        if (this.plugin.settings.connectedToBackend) {
+            // Defer slightly to ensure UI is ready and avoid race conditions
+            setTimeout(async () => {
+                await this.refreshModelsAndServerPreference();
+            }, 1000);
+        }
+
+        // Add new setting for auto voice response after voice input
         new Setting(containerEl)
-            .setName('Khoj API Key')
-            .setDesc('Use Khoj Cloud with your Khoj API Key')
-            .addText(text => text
-                .setValue(`${this.plugin.settings.khojApiKey}`)
+            .setName('Auto Voice Response')
+            .setDesc('Automatically read responses after voice messages')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.autoVoiceResponse)
                 .onChange(async (value) => {
-                    this.plugin.settings.khojApiKey = value.trim();
-                    ({
-                        connectedToBackend: this.plugin.settings.connectedToBackend,
-                        userInfo: this.plugin.settings.userInfo,
-                        statusMessage: backendStatusMessage,
-                    } = await canConnectToBackend(this.plugin.settings.khojUrl, this.plugin.settings.khojApiKey));
+                    this.plugin.settings.autoVoiceResponse = value;
                     await this.plugin.saveSettings();
-                    backendStatusEl.setText(backendStatusMessage);
                 }));
+
         new Setting(containerEl)
             .setName('Results Count')
             .setDesc('The number of results to show in search and use for chat.')
             .addSlider(slider => slider
-                .setLimits(1, 10, 1)
+                .setLimits(1, 30, 1)
                 .setValue(this.plugin.settings.resultsCount)
                 .setDynamicTooltip()
                 .onChange(async (value) => {
@@ -116,6 +205,16 @@ export class KhojSettingTab extends PluginSettingTab {
 
         // Add new "Sync" heading
         containerEl.createEl('h3', { text: 'Sync' });
+
+        new Setting(containerEl)
+            .setName('Auto Sync')
+            .setDesc('Automatically index your vault with Khoj.')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.autoConfigure)
+                .onChange(async (value) => {
+                    this.plugin.settings.autoConfigure = value;
+                    await this.plugin.saveSettings();
+                }));
 
         // Add setting to sync markdown notes
         new Setting(containerEl)
@@ -150,16 +249,6 @@ export class KhojSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
-        new Setting(containerEl)
-            .setName('Auto Sync')
-            .setDesc('Automatically index your vault with Khoj.')
-            .addToggle(toggle => toggle
-                .setValue(this.plugin.settings.autoConfigure)
-                .onChange(async (value) => {
-                    this.plugin.settings.autoConfigure = value;
-                    await this.plugin.saveSettings();
-                }));
-
         // Add setting for sync interval
         const syncIntervalValues = [1, 5, 10, 20, 30, 45, 60, 120, 1440];
         new Setting(containerEl)
@@ -184,7 +273,7 @@ export class KhojSettingTab extends PluginSettingTab {
 
         // Add setting to manage sync folders
         const syncFoldersContainer = containerEl.createDiv('sync-folders-container');
-        const foldersSetting = new Setting(syncFoldersContainer)
+        new Setting(syncFoldersContainer)
             .setName('Sync Folders')
             .setDesc('Specify folders to sync (leave empty to sync entire vault)')
             .addButton(button => button
@@ -250,6 +339,104 @@ export class KhojSettingTab extends PluginSettingTab {
                     indexVaultSetting = indexVaultSetting.setDisabled(false);
                 })
             );
+    }
+
+    private connectStatusIcon() {
+        if (this.plugin.settings.connectedToBackend && this.plugin.settings.userInfo?.email)
+            return '🟢';
+        else if (this.plugin.settings.connectedToBackend)
+            return '🟡'
+        else
+            return '🔴';
+    }
+
+    private async refreshModelsAndServerPreference() {
+        let serverSelectedModelId: string | null = null;
+        if (this.plugin.settings.connectedToBackend) {
+            const [availableModels, serverConfig] = await Promise.all([
+                fetchChatModels(this.plugin.settings),
+                fetchUserServerSettings(this.plugin.settings)
+            ]);
+
+            this.plugin.settings.availableChatModels = availableModels;
+
+            if (serverConfig && serverConfig.selected_chat_model_config !== undefined && serverConfig.selected_chat_model_config !== null) {
+                const serverModelIdStr = serverConfig.selected_chat_model_config.toString();
+                // Ensure the server's selected model is actually in the available list
+                if (this.plugin.settings.availableChatModels.some(m => m.id === serverModelIdStr)) {
+                    serverSelectedModelId = serverModelIdStr;
+                } else {
+                    // Server has a selection, but it's not in the options list (e.g. model removed, or different set of models)
+                    // In this case, we might fall back to null (Khoj Default)
+                    console.warn(`Khoj: Server's selected model ID ${serverModelIdStr} not in available models. Falling back to default.`);
+                    serverSelectedModelId = null;
+                }
+            } else {
+                // No specific model configured on the server, or it's explicitly null
+                serverSelectedModelId = null;
+            }
+            this.plugin.settings.selectedChatModelId = serverSelectedModelId;
+
+        } else {
+            this.plugin.settings.availableChatModels = [];
+            this.plugin.settings.selectedChatModelId = null; // Clear selection if disconnected
+        }
+        await this.plugin.saveSettings(); // Save the potentially updated selectedChatModelId
+        this.renderChatModelDropdown(); // Re-render the dropdown with new data
+    }
+
+    private renderChatModelDropdown() {
+        if (!this.chatModelSetting) {
+            this.chatModelSetting = new Setting(this.containerEl)
+                .setName('Chat Model');
+        } else {
+            // Clear previous description and controls to prepare for re-rendering
+            this.chatModelSetting.descEl.empty();
+            this.chatModelSetting.controlEl.empty();
+        }
+        // Use this.chatModelSetting directly for modifications
+        const modelSetting = this.chatModelSetting;
+
+        if (!this.plugin.settings.connectedToBackend) {
+            modelSetting.setDesc('Connect to Khoj to load and set chat model options.');
+            modelSetting.addText(text => text.setValue("Not connected").setDisabled(true));
+            return;
+        }
+
+        if (this.plugin.settings.availableChatModels.length === 0 && this.plugin.settings.connectedToBackend) {
+            modelSetting.setDesc('Fetching models or no models available. Check Khoj connection or try refreshing.');
+            modelSetting.addButton(button => button
+                .setButtonText('Refresh Models')
+                .onClick(async () => {
+                    button.setButtonText('Refreshing...').setDisabled(true);
+                    await this.refreshModelsAndServerPreference();
+                    // Re-rendering happens inside refreshModelsAndServerPreference
+                }));
+            return;
+        }
+
+        modelSetting.setDesc('The default AI model used for chat.');
+        modelSetting.addDropdown(dropdown => {
+            dropdown.addOption('', 'Default'); // Placeholder when cannot retrieve chat model options from server.
+            this.plugin.settings.availableChatModels.forEach(model => {
+                dropdown.addOption(model.id, model.name);
+            });
+            dropdown
+                .setValue(this.plugin.settings.selectedChatModelId || '')
+                .onChange(async (value) => {
+                    // Attempt to update the server
+                    const success = await updateServerChatModel(value, this.plugin.settings);
+                    if (success) {
+                        await this.plugin.saveSettings();
+                    } else {
+                        // Server update failed, revert dropdown to the current setting value
+                        // to avoid UI mismatch.
+                        dropdown.setValue(this.plugin.settings.selectedChatModelId || '');
+                    }
+                    // Potentially re-render or refresh if needed, though setValue should update UI.
+                    // this.refreshModelsAndServerPreference(); // Could be called to ensure full sync, but might be too much
+                });
+        });
     }
 
     // Helper method to update the folder list display

@@ -5,6 +5,12 @@
 *.iml
 .idea
 
+# Cursor
+.cursor
+
+# Copilot
+.github
+
 # npm
 node_modules
 
