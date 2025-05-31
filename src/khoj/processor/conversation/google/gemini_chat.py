@@ -275,7 +275,8 @@ async def converse_gemini(
         deepthought=deepthought,
         tracer=tracer,
     ):
-        full_response += chunk
+        if chunk.response:
+            full_response += chunk.response
         yield chunk
 
     # Call completion_func once finish streaming and we have the full response
