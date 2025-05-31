@@ -97,7 +97,7 @@ class OperatorRun:
     def __init__(
         self,
         query: str,
-        trajectory: list[AgentMessage | dict] = None,
+        trajectory: list[AgentMessage] | list[dict] = None,
         response: str = None,
         webpages: list[dict] = None,
     ):
@@ -138,7 +138,7 @@ class ResearchIteration:
         context: list = None,
         onlineContext: dict = None,
         codeContext: dict = None,
-        operatorContext: dict = None,
+        operatorContext: dict | OperatorRun = None,
         summarizedResult: str = None,
         warning: str = None,
     ):
@@ -147,15 +147,13 @@ class ResearchIteration:
         self.context = context
         self.onlineContext = onlineContext
         self.codeContext = codeContext
-        self.operatorContext = OperatorRun(**operatorContext) if isinstance(operatorContext, dict) else None
+        self.operatorContext = OperatorRun(**operatorContext) if isinstance(operatorContext, dict) else operatorContext
         self.summarizedResult = summarizedResult
         self.warning = warning
 
     def to_dict(self) -> dict:
         data = vars(self).copy()
-        data["operatorContext"] = (
-            self.operatorContext.to_dict() if isinstance(self.operatorContext, OperatorRun) else None
-        )
+        data["operatorContext"] = self.operatorContext.to_dict() if self.operatorContext else None
         return data
 
 
