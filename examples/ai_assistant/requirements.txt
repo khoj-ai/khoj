@@ -1,0 +1,5 @@
+openai
+anthropic
+google-generativeai
+tavily-python
+termcolor
