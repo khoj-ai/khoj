@@ -117,8 +117,14 @@ ENV DISPLAY=":$DISPLAY_NUM"
 # Expose VNC on port 5900
 # run Xvfb, x11vnc, Xfce (no login manager)
 EXPOSE 5900
-CMD ["/bin/sh", "-c", "    export XDG_RUNTIME_DIR=/run/user/$(id -u); \
-    mkdir -p $XDG_RUNTIME_DIR && chown $USERNAME:$USERNAME $XDG_RUNTIME_DIR && chmod 0700 $XDG_RUNTIME_DIR; \
+CMD ["/bin/sh", "-c", "    USER_ID=$(id -u); \
+    RUNTIME_DIR_PATH=/run/user/$USER_ID; \
+    sudo mkdir -p $RUNTIME_DIR_PATH; \
+    sudo chown $USERNAME:$USERNAME $RUNTIME_DIR_PATH; \
+    sudo chmod 0700 $RUNTIME_DIR_PATH; \
+    export XDG_RUNTIME_DIR=$RUNTIME_DIR_PATH; \
+    mkdir -p $XDG_RUNTIME_DIR/dconf; \
+    chmod 0700 $XDG_RUNTIME_DIR/dconf; \
     Xvfb $DISPLAY -screen 0 ${WIDTH}x${HEIGHT}x24 -dpi 96 -auth /home/$USERNAME/.Xauthority >/dev/null 2>&1 & \
     sleep 1; \
     xauth add $DISPLAY . $(mcookie); \
