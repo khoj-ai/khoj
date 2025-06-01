@@ -17,8 +17,10 @@ from khoj.processor.conversation.openai.utils import (
 )
 from khoj.processor.conversation.utils import (
     JsonSupport,
+    OperatorRun,
     ResponseWithThought,
     clean_json,
+    construct_question_history,
     construct_structured_message,
     generate_chatml_messages_with_context,
     messages_to_print,
@@ -55,13 +57,7 @@ def extract_questions(
     username = prompts.user_name.format(name=user.get_full_name()) if user and user.get_full_name() else ""
 
     # Extract Past User Message and Inferred Questions from Conversation Log
-    chat_history = "".join(
-        [
-            f'Q: {chat["intent"]["query"]}\nKhoj: {{"queries": {chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}}}\nA: {chat["message"]}\n\n'
-            for chat in conversation_log.get("chat", [])[-4:]
-            if chat["by"] == "khoj" and "to-image" not in chat["intent"].get("type")
-        ]
-    )
+    chat_history = construct_question_history(conversation_log)
 
     # Get dates relative to today for prompt creation
     today = datetime.today()
@@ -169,7 +165,7 @@ async def converse_openai(
     references: list[dict],
     online_results: Optional[Dict[str, Dict]] = None,
     code_results: Optional[Dict[str, Dict]] = None,
-    operator_results: Optional[Dict[str, str]] = None,
+    operator_results: Optional[List[OperatorRun]] = None,
     conversation_log={},
     model: str = "gpt-4o-mini",
     api_key: Optional[str] = None,
@@ -242,8 +238,11 @@ async def converse_openai(
             f"{prompts.code_executed_context.format(code_results=truncate_code_context(code_results))}\n\n"
         )
     if not is_none_or_empty(operator_results):
+        operator_content = [
+            {"query": oc.query, "response": oc.response, "webpages": oc.webpages} for oc in operator_results
+        ]
         context_message += (
-            f"{prompts.operator_execution_context.format(operator_results=yaml_dump(operator_results))}\n\n"
+            f"{prompts.operator_execution_context.format(operator_results=yaml_dump(operator_content))}\n\n"
         )
 
     context_message = context_message.strip()

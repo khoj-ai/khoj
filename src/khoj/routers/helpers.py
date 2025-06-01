@@ -94,7 +94,8 @@ from khoj.processor.conversation.openai.gpt import (
 )
 from khoj.processor.conversation.utils import (
     ChatEvent,
-    InformationCollectionIteration,
+    OperatorRun,
+    ResearchIteration,
     ResponseWithThought,
     clean_json,
     clean_mermaidjs,
@@ -385,7 +386,7 @@ async def aget_data_sources_and_output_format(
         if len(agent_outputs) == 0 or output.value in agent_outputs:
             output_options_str += f'- "{output.value}": "{description}"\n'
 
-    chat_history = construct_chat_history(conversation_history)
+    chat_history = construct_chat_history(conversation_history, n=6)
 
     if query_images:
         query = f"[placeholder for {len(query_images)} user attached images]\n{query}"
@@ -1174,12 +1175,7 @@ async def send_message_to_model_wrapper(
     if vision_available and query_images:
         logger.info(f"Using {chat_model.name} model to understand {len(query_images)} images.")
 
-    subscribed = await ais_user_subscribed(user) if user else False
-    max_tokens = (
-        chat_model.subscribed_max_prompt_size
-        if subscribed and chat_model.subscribed_max_prompt_size
-        else chat_model.max_prompt_size
-    )
+    max_tokens = await ConversationAdapters.aget_max_context_size(chat_model, user)
     chat_model_name = chat_model.name
     tokenizer = chat_model.tokenizer
     model_type = chat_model.model_type
@@ -1271,12 +1267,7 @@ def send_message_to_model_wrapper_sync(
     if chat_model is None:
         raise HTTPException(status_code=500, detail="Contact the server administrator to set a default chat model.")
 
-    subscribed = is_user_subscribed(user) if user else False
-    max_tokens = (
-        chat_model.subscribed_max_prompt_size
-        if subscribed and chat_model.subscribed_max_prompt_size
-        else chat_model.max_prompt_size
-    )
+    max_tokens = ConversationAdapters.get_max_context_size(chat_model, user)
     chat_model_name = chat_model.name
     model_type = chat_model.model_type
     vision_available = chat_model.vision_enabled
@@ -1355,8 +1346,8 @@ async def agenerate_chat_response(
     compiled_references: List[Dict] = [],
     online_results: Dict[str, Dict] = {},
     code_results: Dict[str, Dict] = {},
-    operator_results: Dict[str, str] = {},
-    research_results: List[InformationCollectionIteration] = [],
+    operator_results: List[OperatorRun] = [],
+    research_results: List[ResearchIteration] = [],
     inferred_queries: List[str] = [],
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     user: KhojUser = None,
@@ -1414,7 +1405,7 @@ async def agenerate_chat_response(
             compiled_references = []
             online_results = {}
             code_results = {}
-            operator_results = {}
+            operator_results = []
             deepthought = True
 
         chat_model = await ConversationAdapters.aget_valid_chat_model(user, conversation, is_subscribed)

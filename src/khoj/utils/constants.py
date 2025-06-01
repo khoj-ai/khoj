@@ -18,8 +18,8 @@ default_offline_chat_models = [
     "bartowski/Qwen2.5-14B-Instruct-GGUF",
 ]
 default_openai_chat_models = ["gpt-4o-mini", "gpt-4.1"]
-default_gemini_chat_models = ["gemini-2.0-flash", "gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25"]
-default_anthropic_chat_models = ["claude-3-7-sonnet-latest", "claude-3-5-haiku-latest"]
+default_gemini_chat_models = ["gemini-2.0-flash", "gemini-2.5-flash-preview-05-20", "gemini-2.5-pro-preview-05-06"]
+default_anthropic_chat_models = ["claude-sonnet-4-0", "claude-3-5-haiku-latest"]
 
 empty_config = {
     "search-type": {
@@ -63,10 +63,10 @@ model_to_cost: Dict[str, Dict[str, float]] = {
     "claude-3-7-sonnet-20250219": {"input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write": 3.75},
     "claude-3-7-sonnet@20250219": {"input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write": 3.75},
     "claude-3-7-sonnet-latest": {"input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write": 3.75},
-    "claude-sonnet-4": {"input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write": 3.75},
+    "claude-sonnet-4-0": {"input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write": 3.75},
     "claude-sonnet-4-20250514": {"input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write": 3.75},
     "claude-sonnet-4@20250514": {"input": 3.0, "output": 15.0, "cache_read": 0.3, "cache_write": 3.75},
-    "claude-opus-4": {"input": 15.0, "output": 75.0, "cache_read": 1.50, "cache_write": 18.75},
+    "claude-opus-4-0": {"input": 15.0, "output": 75.0, "cache_read": 1.50, "cache_write": 18.75},
     "claude-opus-4-20250514": {"input": 15.0, "output": 75.0, "cache_read": 1.50, "cache_write": 18.75},
     "claude-opus-4@20250514": {"input": 15.0, "output": 75.0, "cache_read": 1.50, "cache_write": 18.75},
     # Grok pricing: https://docs.x.ai/docs/models

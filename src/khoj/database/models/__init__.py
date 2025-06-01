@@ -107,7 +107,7 @@ class ChatMessage(PydanticBaseModel):
     onlineContext: Dict[str, OnlineContext] = {}
     codeContext: Dict[str, CodeContextData] = {}
     researchContext: Optional[List] = None
-    operatorContext: Optional[Dict[str, str]] = None
+    operatorContext: Optional[List] = None
     created: str
     images: Optional[List[str]] = None
     queryFiles: Optional[List[Dict]] = None

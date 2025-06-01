@@ -1313,6 +1313,26 @@ class ConversationAdapters:
             ServerChatSettings.objects.create(chat_default=chat_model, chat_advanced=chat_model)
 
     @staticmethod
+    def get_max_context_size(chat_model: ChatModel, user: KhojUser) -> int | None:
+        """Get the max context size for the user based on the chat model."""
+        subscribed = is_user_subscribed(user) if user else False
+        if subscribed and chat_model.subscribed_max_prompt_size:
+            max_tokens = chat_model.subscribed_max_prompt_size
+        else:
+            max_tokens = chat_model.max_prompt_size
+        return max_tokens
+
+    @staticmethod
+    async def aget_max_context_size(chat_model: ChatModel, user: KhojUser) -> int | None:
+        """Get the max context size for the user based on the chat model."""
+        subscribed = await ais_user_subscribed(user) if user else False
+        if subscribed and chat_model.subscribed_max_prompt_size:
+            max_tokens = chat_model.subscribed_max_prompt_size
+        else:
+            max_tokens = chat_model.max_prompt_size
+        return max_tokens
+
+    @staticmethod
     async def aget_server_webscraper():
         server_chat_settings = await ServerChatSettings.objects.filter().prefetch_related("web_scraper").afirst()
         if server_chat_settings is not None and server_chat_settings.web_scraper is not None:

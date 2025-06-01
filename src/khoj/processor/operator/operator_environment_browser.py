@@ -5,7 +5,7 @@ import logging
 import os
 from typing import Optional, Set, Union
 
-from khoj.processor.operator.operator_actions import OperatorAction, Point
+from khoj.processor.operator.operator_actions import DragAction, OperatorAction, Point
 from khoj.processor.operator.operator_environment_base import (
     Environment,
     EnvState,
@@ -124,10 +124,10 @@ class BrowserEnvironment(Environment):
 
     async def get_state(self) -> EnvState:
         if not self.page or self.page.is_closed():
-            return EnvState(url="about:blank", screenshot=None)
+            return EnvState(url="about:blank", screenshot=None, height=self.height, width=self.width)
         url = self.page.url
         screenshot = await self._get_screenshot()
-        return EnvState(url=url, screenshot=screenshot)
+        return EnvState(url=url, screenshot=screenshot, height=self.height, width=self.width)
 
     async def step(self, action: OperatorAction) -> EnvStepResult:
         if not self.page or self.page.is_closed():
@@ -246,6 +246,8 @@ class BrowserEnvironment(Environment):
                     logger.debug(f"Action: {action.type} to ({x},{y})")
 
                 case "drag":
+                    if not isinstance(action, DragAction):
+                        raise TypeError(f"Invalid action type for drag")
                     path = action.path
                     if not path:
                         error = "Missing path for drag action"

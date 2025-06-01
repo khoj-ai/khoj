@@ -60,7 +60,7 @@ def anthropic_completion_with_backoff(
         client = get_anthropic_client(api_key, api_base_url)
         anthropic_clients[api_key] = client
 
-    formatted_messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)
+    formatted_messages, system = format_messages_for_anthropic(messages, system_prompt)
 
     aggregated_response = ""
     if response_type == "json_object" and not deepthought:
@@ -70,8 +70,8 @@ def anthropic_completion_with_backoff(
 
     final_message = None
     model_kwargs = model_kwargs or dict()
-    if system_prompt:
-        model_kwargs["system"] = system_prompt
+    if system:
+        model_kwargs["system"] = system
 
     max_tokens = max_tokens or DEFAULT_MAX_TOKENS_ANTHROPIC
     if deepthought and is_reasoning_model(model_name):
@@ -146,7 +146,7 @@ async def anthropic_chat_completion_with_backoff(
         # Temperature control not supported when using extended thinking
         temperature = 1.0
 
-    formatted_messages, system_prompt = format_messages_for_anthropic(messages, system_prompt)
+    formatted_messages, system = format_messages_for_anthropic(messages, system_prompt)
 
     aggregated_response = ""
     response_started = False
@@ -156,7 +156,7 @@ async def anthropic_chat_completion_with_backoff(
         messages=formatted_messages,
         model=model_name,  # type: ignore
         temperature=temperature,
-        system=system_prompt,
+        system=system,
         timeout=20,
         max_tokens=max_tokens,
         **model_kwargs,
@@ -231,7 +231,10 @@ def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt: st
             else:
                 system_prompt += message.content
             messages.remove(message)
-    system_prompt = None if is_none_or_empty(system_prompt) else system_prompt
+    if not is_none_or_empty(system_prompt):
+        system = [{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}]
+    else:
+        system = None
 
     # Anthropic requires the first message to be a 'user' message
     if len(messages) == 1:
@@ -274,12 +277,32 @@ def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt: st
             logger.error(f"Drop message with empty content as not supported:\n{message}")
             messages.remove(message)
             continue
+        if isinstance(message.content, str):
+            message.content = [{"type": "text", "text": message.content}]
+
+    # Add cache control to enable prompt caching for conversations with sufficient context
+    # Only add caching if we have multiple messages to make it worthwhile
+    if len(messages) > 2:
+        # Remove any existing cache controls from previous messages
+        for message in messages:  # All except the last message
+            if isinstance(message.content, list):
+                for block in message.content:
+                    if isinstance(block, dict) and "cache_control" in block:
+                        del block["cache_control"]
+
+        # Add cache control to the last content block of second to last message.
+        # In research mode, this message content is list of iterations, updated after each research iteration.
+        # Caching it should improve research efficiency.
+        cache_message = messages[-2]
+        if isinstance(cache_message.content, list) and cache_message.content:
+            # Add cache control to the last content block
+            cache_message.content[-1]["cache_control"] = {"type": "ephemeral"}
 
     formatted_messages: List[anthropic.types.MessageParam] = [
         anthropic.types.MessageParam(role=message.role, content=message.content) for message in messages
     ]
 
-    return formatted_messages, system_prompt
+    return formatted_messages, system
 
 
 def is_reasoning_model(model_name: str) -> bool:

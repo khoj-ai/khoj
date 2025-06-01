@@ -144,7 +144,7 @@ interface Intent {
     "inferred-queries": string[];
 }
 
-interface TrainOfThoughtObject {
+export interface TrainOfThoughtObject {
     type: string;
     data: string;
 }

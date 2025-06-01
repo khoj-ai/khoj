@@ -26,12 +26,13 @@ from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.prompts import help_message, no_entries_found
 from khoj.processor.conversation.utils import (
+    OperatorRun,
     ResponseWithThought,
     defilter_query,
     save_to_conversation_log,
 )
 from khoj.processor.image.generate import text_to_image
-from khoj.processor.operator.operate_browser import operate_browser
+from khoj.processor.operator import operate_environment
 from khoj.processor.speech.text_to_speech import generate_text_to_speech
 from khoj.processor.tools.online_search import (
     deduplicate_organic_results,
@@ -65,10 +66,7 @@ from khoj.routers.helpers import (
     update_telemetry_state,
     validate_chat_model,
 )
-from khoj.routers.research import (
-    InformationCollectionIteration,
-    execute_information_collection,
-)
+from khoj.routers.research import ResearchIteration, research
 from khoj.routers.storage import upload_user_image_to_bucket
 from khoj.utils import state
 from khoj.utils.helpers import (
@@ -722,10 +720,10 @@ async def chat(
             for file in raw_query_files:
                 query_files[file.name] = file.content
 
-        research_results: List[InformationCollectionIteration] = []
+        research_results: List[ResearchIteration] = []
         online_results: Dict = dict()
         code_results: Dict = dict()
-        operator_results: Dict[str, str] = {}
+        operator_results: List[OperatorRun] = []
         compiled_references: List[Any] = []
         inferred_queries: List[Any] = []
         attached_file_context = gather_raw_query_files(query_files)
@@ -960,11 +958,10 @@ async def chat(
             last_message = conversation.messages[-1]
             online_results = {key: val.model_dump() for key, val in last_message.onlineContext.items() or []}
             code_results = {key: val.model_dump() for key, val in last_message.codeContext.items() or []}
-            operator_results = last_message.operatorContext or {}
             compiled_references = [ref.model_dump() for ref in last_message.context or []]
-            research_results = [
-                InformationCollectionIteration(**iter_dict) for iter_dict in last_message.researchContext or []
-            ]
+            research_results = [ResearchIteration(**iter_dict) for iter_dict in last_message.researchContext or []]
+            operator_results = [OperatorRun(**iter_dict) for iter_dict in last_message.operatorContext or []]
+            train_of_thought = [thought.model_dump() for thought in last_message.trainOfThought or []]
             # Drop the interrupted message from conversation history
             meta_log["chat"].pop()
             logger.info(f"Loaded interrupted partial context from conversation {conversation_id}.")
@@ -1009,12 +1006,12 @@ async def chat(
         file_filters = conversation.file_filters if conversation and conversation.file_filters else []
 
         if conversation_commands == [ConversationCommand.Research]:
-            async for research_result in execute_information_collection(
+            async for research_result in research(
                 user=user,
                 query=defiltered_query,
                 conversation_id=conversation_id,
                 conversation_history=meta_log,
-                previous_iterations=research_results,
+                previous_iterations=list(research_results),
                 query_images=uploaded_images,
                 agent=agent,
                 send_status_func=partial(send_event, ChatEvent.STATUS),
@@ -1025,7 +1022,7 @@ async def chat(
                 tracer=tracer,
                 cancellation_event=cancellation_event,
             ):
-                if isinstance(research_result, InformationCollectionIteration):
+                if isinstance(research_result, ResearchIteration):
                     if research_result.summarizedResult:
                         if research_result.onlineContext:
                             online_results.update(research_result.onlineContext)
@@ -1033,12 +1030,25 @@ async def chat(
                             code_results.update(research_result.codeContext)
                         if research_result.context:
                             compiled_references.extend(research_result.context)
-                        if research_result.operatorContext:
-                            operator_results.update(research_result.operatorContext)
+                    if not research_results or research_results[-1] is not research_result:
                         research_results.append(research_result)
-
                 else:
                     yield research_result
+
+                # Track operator results across research and operator iterations
+                # This relies on two conditions:
+                # 1. Check to append new (partial) operator results
+                #    Relies on triggering this check on every status updates.
+                #    Status updates cascade up from operator to research to chat api on every step.
+                # 2. Keep operator results in sync with each research operator step
+                #    Relies on python object references to ensure operator results
+                #    are implicitly kept in sync after the initial append
+                if (
+                    research_results
+                    and research_results[-1].operatorContext
+                    and (not operator_results or operator_results[-1] is not research_results[-1].operatorContext)
+                ):
+                    operator_results.append(research_results[-1].operatorContext)
 
             # researched_results = await extract_relevant_info(q, researched_results, agent)
             if state.verbose > 1:
@@ -1292,11 +1302,12 @@ async def chat(
                 )
         if ConversationCommand.Operator in conversation_commands:
             try:
-                async for result in operate_browser(
+                async for result in operate_environment(
                     defiltered_query,
                     user,
                     meta_log,
                     location,
+                    list(operator_results)[-1] if operator_results else None,
                     query_images=uploaded_images,
                     query_files=attached_file_context,
                     send_status_func=partial(send_event, ChatEvent.STATUS),
@@ -1306,16 +1317,17 @@ async def chat(
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
-                    else:
-                        operator_results = {result["query"]: result["result"]}
+                    elif isinstance(result, OperatorRun):
+                        if not operator_results or operator_results[-1] is not result:
+                            operator_results.append(result)
                         # Add webpages visited while operating browser to references
-                        if result.get("webpages"):
+                        if result.webpages:
                             if not online_results.get(defiltered_query):
-                                online_results[defiltered_query] = {"webpages": result["webpages"]}
+                                online_results[defiltered_query] = {"webpages": result.webpages}
                             elif not online_results[defiltered_query].get("webpages"):
-                                online_results[defiltered_query]["webpages"] = result["webpages"]
+                                online_results[defiltered_query]["webpages"] = result.webpages
                             else:
-                                online_results[defiltered_query]["webpages"] += result["webpages"]
+                                online_results[defiltered_query]["webpages"] += result.webpages
             except ValueError as e:
                 program_execution_context.append(f"Browser operation error: {e}")
                 logger.warning(f"Failed to operate browser with {e}", exc_info=True)
@@ -1333,7 +1345,6 @@ async def chat(
                 "context": compiled_references,
                 "onlineContext": unique_online_results,
                 "codeContext": code_results,
-                "operatorContext": operator_results,
             },
         ):
             yield result

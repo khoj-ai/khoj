@@ -14,7 +14,9 @@ from khoj.processor.conversation.google.utils import (
     gemini_completion_with_backoff,
 )
 from khoj.processor.conversation.utils import (
+    OperatorRun,
     clean_json,
+    construct_question_history,
     construct_structured_message,
     generate_chatml_messages_with_context,
     messages_to_print,
@@ -53,13 +55,7 @@ def extract_questions_gemini(
     username = prompts.user_name.format(name=user.get_full_name()) if user and user.get_full_name() else ""
 
     # Extract Past User Message and Inferred Questions from Conversation Log
-    chat_history = "".join(
-        [
-            f'User: {chat["intent"]["query"]}\nAssistant: {{"queries": {chat["intent"].get("inferred-queries") or list([chat["intent"]["query"]])}}}\nA: {chat["message"]}\n\n'
-            for chat in conversation_log.get("chat", [])[-4:]
-            if chat["by"] == "khoj"
-        ]
-    )
+    chat_history = construct_question_history(conversation_log, query_prefix="User", agent_name="Assistant")
 
     # Get dates relative to today for prompt creation
     today = datetime.today()
@@ -166,7 +162,7 @@ async def converse_gemini(
     references: list[dict],
     online_results: Optional[Dict[str, Dict]] = None,
     code_results: Optional[Dict[str, Dict]] = None,
-    operator_results: Optional[Dict[str, str]] = None,
+    operator_results: Optional[List[OperatorRun]] = None,
     conversation_log={},
     model: Optional[str] = "gemini-2.0-flash",
     api_key: Optional[str] = None,
@@ -240,8 +236,11 @@ async def converse_gemini(
             f"{prompts.code_executed_context.format(code_results=truncate_code_context(code_results))}\n\n"
         )
     if ConversationCommand.Operator in conversation_commands and not is_none_or_empty(operator_results):
+        operator_content = [
+            {"query": oc.query, "response": oc.response, "webpages": oc.webpages} for oc in operator_results
+        ]
         context_message += (
-            f"{prompts.operator_execution_context.format(operator_results=yaml_dump(operator_results))}\n\n"
+            f"{prompts.operator_execution_context.format(operator_results=yaml_dump(operator_content))}\n\n"
         )
     context_message = context_message.strip()
 
@@ -276,7 +275,8 @@ async def converse_gemini(
         deepthought=deepthought,
         tracer=tracer,
     ):
-        full_response += chunk
+        if chunk.response:
+            full_response += chunk.response
         yield chunk
 
     # Call completion_func once finish streaming and we have the full response

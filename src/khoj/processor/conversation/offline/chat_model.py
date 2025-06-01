@@ -16,6 +16,7 @@ from khoj.processor.conversation.offline.utils import download_model
 from khoj.processor.conversation.utils import (
     clean_json,
     commit_conversation_trace,
+    construct_question_history,
     generate_chatml_messages_with_context,
     messages_to_print,
 )
@@ -64,13 +65,7 @@ def extract_questions_offline(
     username = prompts.user_name.format(name=user.get_full_name()) if user and user.get_full_name() else ""
 
     # Extract Past User Message and Inferred Questions from Conversation Log
-    chat_history = ""
-
-    if use_history:
-        for chat in conversation_log.get("chat", [])[-4:]:
-            if chat["by"] == "khoj":
-                chat_history += f"Q: {chat['intent']['query']}\n"
-                chat_history += f"Khoj: {chat['message']}\n\n"
+    chat_history = construct_question_history(conversation_log, include_query=False) if use_history else ""
 
     # Get dates relative to today for prompt creation
     today = datetime.today()

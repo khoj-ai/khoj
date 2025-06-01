@@ -46,6 +46,7 @@ if TYPE_CHECKING:
     from khoj.utils.models import BaseEncoder
     from khoj.utils.rawconfig import AppConfig
 
+logger = logging.getLogger(__name__)
 
 # Initialize Magika for file type identification
 magika = Magika()
@@ -364,7 +365,7 @@ command_descriptions = {
     ConversationCommand.Summarize: "Get help with a question pertaining to an entire document.",
     ConversationCommand.Diagram: "Draw a flowchart, diagram, or any other visual representation best expressed with primitives like lines, rectangles, and text.",
     ConversationCommand.Research: "Do deep research on a topic. This will take longer than usual, but give a more detailed, comprehensive answer.",
-    ConversationCommand.Operator: "Operate and perform tasks using a GUI web browser.",
+    ConversationCommand.Operator: "Operate and perform tasks using a computer.",
 }
 
 command_descriptions_for_agent = {
@@ -373,12 +374,12 @@ command_descriptions_for_agent = {
     ConversationCommand.Online: "Agent can search the internet for information.",
     ConversationCommand.Webpage: "Agent can read suggested web pages for information.",
     ConversationCommand.Research: "Agent can do deep research on a topic.",
-    ConversationCommand.Code: "Agent can run Python code to parse information, run complex calculations, create documents and charts.",
-    ConversationCommand.Operator: "Agent can operate and perform actions using a GUI web browser to complete a task.",
+    ConversationCommand.Code: "Agent can run a Python script to parse information, run complex calculations, create documents and charts.",
+    ConversationCommand.Operator: "Agent can operate a computer to complete tasks.",
 }
 
-e2b_tool_description = "To run Python code in a E2B sandbox with no network access. Helpful to parse complex information, run calculations, create text documents and create charts with quantitative data. Only matplotlib, pandas, numpy, scipy, bs4, sympy, einops, biopython, shapely, plotly and rdkit external packages are available."
-terrarium_tool_description = "To run Python code in a Terrarium, Pyodide sandbox with no network access. Helpful to parse complex information, run complex calculations, create plaintext documents and create charts with quantitative data. Only matplotlib, panda, numpy, scipy, bs4 and sympy external packages are available."
+e2b_tool_description = "To run a Python script in a E2B sandbox with no network access. Helpful to parse complex information, run calculations, create text documents and create charts with quantitative data. Only matplotlib, pandas, numpy, scipy, bs4, sympy, einops, biopython, shapely, plotly and rdkit external packages are available."
+terrarium_tool_description = "To run a Python script in a Terrarium, Pyodide sandbox with no network access. Helpful to parse complex information, run complex calculations, create plaintext documents and create charts with quantitative data. Only matplotlib, panda, numpy, scipy, bs4 and sympy external packages are available."
 
 tool_descriptions_for_llm = {
     ConversationCommand.Default: "To use a mix of your internal knowledge and the user's personal knowledge, or if you don't entirely understand the query.",
@@ -387,7 +388,7 @@ tool_descriptions_for_llm = {
     ConversationCommand.Online: "To search for the latest, up-to-date information from the internet. Note: **Questions about Khoj should always use this data source**",
     ConversationCommand.Webpage: "To use if the user has directly provided the webpage urls or you are certain of the webpage urls to read.",
     ConversationCommand.Code: e2b_tool_description if is_e2b_code_sandbox_enabled() else terrarium_tool_description,
-    ConversationCommand.Operator: "To use when you need to operate and take actions using a GUI web browser.",
+    ConversationCommand.Operator: "To use when you need to operate a computer to complete the task.",
 }
 
 tool_description_for_research_llm = {
@@ -396,7 +397,7 @@ tool_description_for_research_llm = {
     ConversationCommand.Webpage: "To extract information from webpages. Useful for more detailed research from the internet. Usually used when you know the webpage links to refer to. Share upto {max_webpages_to_read} webpage links and what information to extract from them in your query.",
     ConversationCommand.Code: e2b_tool_description if is_e2b_code_sandbox_enabled() else terrarium_tool_description,
     ConversationCommand.Text: "To respond to the user once you've completed your research and have the required information.",
-    ConversationCommand.Operator: "To operate and take actions using a GUI web browser.",
+    ConversationCommand.Operator: "To operate a computer to complete the task.",
 }
 
 mode_descriptions_for_llm = {
@@ -493,13 +494,7 @@ def is_promptrace_enabled():
 def is_operator_enabled():
     """Check if Khoj can operate GUI applications.
     Set KHOJ_OPERATOR_ENABLED env var to true and install playwright to enable it."""
-    try:
-        import playwright
-
-        is_playwright_installed = True
-    except ImportError:
-        is_playwright_installed = False
-    return is_env_var_true("KHOJ_OPERATOR_ENABLED") and is_playwright_installed
+    return is_env_var_true("KHOJ_OPERATOR_ENABLED")
 
 
 def is_valid_url(url: str) -> bool:
@@ -686,7 +681,7 @@ def get_chat_usage_metrics(
         "cache_write_tokens": 0,
         "cost": 0.0,
     }
-    return {
+    current_usage = {
         "input_tokens": prev_usage["input_tokens"] + input_tokens,
         "output_tokens": prev_usage["output_tokens"] + output_tokens,
         "thought_tokens": prev_usage.get("thought_tokens", 0) + thought_tokens,
@@ -703,6 +698,8 @@ def get_chat_usage_metrics(
             prev_cost=prev_usage["cost"],
         ),
     }
+    logger.debug(f"AI API usage by {model_name}: {current_usage}")
+    return current_usage
 
 
 class AiApiInfo(NamedTuple):

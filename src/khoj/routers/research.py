@@ -13,12 +13,13 @@ from khoj.database.adapters import AgentAdapters, EntryAdapters
 from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
-    InformationCollectionIteration,
+    OperatorRun,
+    ResearchIteration,
     construct_iteration_history,
     construct_tool_chat_history,
     load_complex_json,
 )
-from khoj.processor.operator.operate_browser import operate_browser
+from khoj.processor.operator import operate_environment
 from khoj.processor.tools.online_search import read_webpages, search_online
 from khoj.processor.tools.run_code import run_code
 from khoj.routers.api import extract_references_and_questions
@@ -83,7 +84,7 @@ async def apick_next_tool(
     location: LocationData = None,
     user_name: str = None,
     agent: Agent = None,
-    previous_iterations: List[InformationCollectionIteration] = [],
+    previous_iterations: List[ResearchIteration] = [],
     max_iterations: int = 5,
     query_images: List[str] = [],
     query_files: str = None,
@@ -94,6 +95,24 @@ async def apick_next_tool(
     tracer: dict = {},
 ):
     """Given a query, determine which of the available tools the agent should use in order to answer appropriately."""
+
+    # Continue with previous iteration if a multi-step tool use is in progress
+    if (
+        previous_iterations
+        and previous_iterations[-1].tool == ConversationCommand.Operator
+        and not previous_iterations[-1].summarizedResult
+    ):
+        previous_iteration = previous_iterations[-1]
+        yield ResearchIteration(
+            tool=previous_iteration.tool,
+            query=query,
+            context=previous_iteration.context,
+            onlineContext=previous_iteration.onlineContext,
+            codeContext=previous_iteration.codeContext,
+            operatorContext=previous_iteration.operatorContext,
+            warning=previous_iteration.warning,
+        )
+        return
 
     # Construct tool options for the agent to choose from
     tool_options = dict()
@@ -165,7 +184,7 @@ async def apick_next_tool(
             )
     except Exception as e:
         logger.error(f"Failed to infer information sources to refer: {e}", exc_info=True)
-        yield InformationCollectionIteration(
+        yield ResearchIteration(
             tool=None,
             query=None,
             warning="Failed to infer information sources to refer. Skipping iteration. Try again.",
@@ -194,26 +213,26 @@ async def apick_next_tool(
             async for event in send_status_func(f"{scratchpad}"):
                 yield {ChatEvent.STATUS: event}
 
-        yield InformationCollectionIteration(
+        yield ResearchIteration(
             tool=selected_tool,
             query=generated_query,
             warning=warning,
         )
     except Exception as e:
         logger.error(f"Invalid response for determining relevant tools: {response}. {e}", exc_info=True)
-        yield InformationCollectionIteration(
+        yield ResearchIteration(
             tool=None,
             query=None,
             warning=f"Invalid response for determining relevant tools: {response}. Skipping iteration. Fix error: {e}",
         )
 
 
-async def execute_information_collection(
+async def research(
     user: KhojUser,
     query: str,
     conversation_id: str,
     conversation_history: dict,
-    previous_iterations: List[InformationCollectionIteration],
+    previous_iterations: List[ResearchIteration],
     query_images: List[str],
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
@@ -248,9 +267,9 @@ async def execute_information_collection(
         online_results: Dict = dict()
         code_results: Dict = dict()
         document_results: List[Dict[str, str]] = []
-        operator_results: Dict[str, str] = {}
+        operator_results: OperatorRun = None
         summarize_files: str = ""
-        this_iteration = InformationCollectionIteration(tool=None, query=query)
+        this_iteration = ResearchIteration(tool=None, query=query)
 
         async for result in apick_next_tool(
             query,
@@ -271,8 +290,9 @@ async def execute_information_collection(
         ):
             if isinstance(result, dict) and ChatEvent.STATUS in result:
                 yield result[ChatEvent.STATUS]
-            elif isinstance(result, InformationCollectionIteration):
+            elif isinstance(result, ResearchIteration):
                 this_iteration = result
+                yield this_iteration
 
         # Skip running iteration if warning present in iteration
         if this_iteration.warning:
@@ -417,12 +437,13 @@ async def execute_information_collection(
 
         elif this_iteration.tool == ConversationCommand.Operator:
             try:
-                async for result in operate_browser(
+                async for result in operate_environment(
                     this_iteration.query,
                     user,
                     construct_tool_chat_history(previous_iterations, ConversationCommand.Operator),
                     location,
-                    send_status_func,
+                    previous_iterations[-1].operatorContext if previous_iterations else None,
+                    send_status_func=send_status_func,
                     query_images=query_images,
                     agent=agent,
                     query_files=query_files,
@@ -431,17 +452,17 @@ async def execute_information_collection(
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
-                    else:
-                        operator_results = {result["query"]: result["result"]}
+                    elif isinstance(result, OperatorRun):
+                        operator_results = result
                         this_iteration.operatorContext = operator_results
                         # Add webpages visited while operating browser to references
-                        if result.get("webpages"):
+                        if result.webpages:
                             if not online_results.get(this_iteration.query):
-                                online_results[this_iteration.query] = {"webpages": result["webpages"]}
+                                online_results[this_iteration.query] = {"webpages": result.webpages}
                             elif not online_results[this_iteration.query].get("webpages"):
-                                online_results[this_iteration.query]["webpages"] = result["webpages"]
+                                online_results[this_iteration.query]["webpages"] = result.webpages
                             else:
-                                online_results[this_iteration.query]["webpages"] += result["webpages"]
+                                online_results[this_iteration.query]["webpages"] += result.webpages
                             this_iteration.onlineContext = online_results
             except Exception as e:
                 this_iteration.warning = f"Error operating browser: {e}"
@@ -489,7 +510,9 @@ async def execute_information_collection(
             if code_results:
                 results_data += f"\n<code_results>\n{yaml.dump(truncate_code_context(code_results), allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</code_results>"
             if operator_results:
-                results_data += f"\n<browser_operator_results>\n{next(iter(operator_results.values()))}\n</browser_operator_results>"
+                results_data += (
+                    f"\n<browser_operator_results>\n{operator_results.response}\n</browser_operator_results>"
+                )
             if summarize_files:
                 results_data += f"\n<summarized_files>\n{yaml.dump(summarize_files, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</summarized_files>"
             if this_iteration.warning:

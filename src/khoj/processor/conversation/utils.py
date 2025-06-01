@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from io import BytesIO
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Literal, Optional, Union
 
 import PIL.Image
 import pyjson5
@@ -20,6 +20,7 @@ import yaml
 from langchain_core.messages.chat import ChatMessage
 from llama_cpp import LlamaTokenizer
 from llama_cpp.llama import Llama
+from pydantic import BaseModel
 from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast
 
 from khoj.database.adapters import ConversationAdapters
@@ -73,9 +74,9 @@ model_to_prompt_size = {
     "claude-3-7-sonnet-20250219": 60000,
     "claude-3-7-sonnet-latest": 60000,
     "claude-3-5-haiku-20241022": 60000,
-    "claude-sonnet-4": 60000,
+    "claude-sonnet-4-0": 60000,
     "claude-sonnet-4-20250514": 60000,
-    "claude-opus-4": 60000,
+    "claude-opus-4-0": 60000,
     "claude-opus-4-20250514": 60000,
     # Offline Models
     "bartowski/Qwen2.5-14B-Instruct-GGUF": 20000,
@@ -87,7 +88,49 @@ model_to_prompt_size = {
 model_to_tokenizer: Dict[str, str] = {}
 
 
-class InformationCollectionIteration:
+class AgentMessage(BaseModel):
+    role: Literal["user", "assistant", "system", "environment"]
+    content: Union[str, List]
+
+
+class OperatorRun:
+    def __init__(
+        self,
+        query: str,
+        trajectory: list[AgentMessage] | list[dict] = None,
+        response: str = None,
+        webpages: list[dict] = None,
+    ):
+        self.query = query
+        self.response = response
+        self.webpages = webpages or []
+        self.trajectory: list[AgentMessage] = []
+        if trajectory:
+            for item in trajectory:
+                if isinstance(item, dict):
+                    self.trajectory.append(AgentMessage(**item))
+                elif hasattr(item, "role") and hasattr(item, "content"):  # Heuristic for AgentMessage like object
+                    self.trajectory.append(item)
+                else:
+                    logger.warning(f"Unexpected item type in trajectory: {type(item)}")
+
+    def to_dict(self) -> dict:
+        # Ensure AgentMessage instances in trajectory are also dicts
+        serialized_trajectory = []
+        for msg in self.trajectory:
+            if hasattr(msg, "model_dump"):  # Check if it's a Pydantic model
+                serialized_trajectory.append(msg.model_dump())
+            elif isinstance(msg, dict):
+                serialized_trajectory.append(msg)  # Already a dict
+        return {
+            "query": self.query,
+            "response": self.response,
+            "trajectory": serialized_trajectory,
+            "webpages": self.webpages,
+        }
+
+
+class ResearchIteration:
     def __init__(
         self,
         tool: str,
@@ -95,7 +138,7 @@ class InformationCollectionIteration:
         context: list = None,
         onlineContext: dict = None,
         codeContext: dict = None,
-        operatorContext: dict[str, str] = None,
+        operatorContext: dict | OperatorRun = None,
         summarizedResult: str = None,
         warning: str = None,
     ):
@@ -104,13 +147,18 @@ class InformationCollectionIteration:
         self.context = context
         self.onlineContext = onlineContext
         self.codeContext = codeContext
-        self.operatorContext = operatorContext
+        self.operatorContext = OperatorRun(**operatorContext) if isinstance(operatorContext, dict) else operatorContext
         self.summarizedResult = summarizedResult
         self.warning = warning
 
+    def to_dict(self) -> dict:
+        data = vars(self).copy()
+        data["operatorContext"] = self.operatorContext.to_dict() if self.operatorContext else None
+        return data
+
 
 def construct_iteration_history(
-    previous_iterations: List[InformationCollectionIteration],
+    previous_iterations: List[ResearchIteration],
     previous_iteration_prompt: str,
     query: str = None,
 ) -> list[dict]:
@@ -143,11 +191,8 @@ def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="A
     chat_history = ""
     for chat in conversation_history.get("chat", [])[-n:]:
         if chat["by"] == "khoj" and chat["intent"].get("type") in ["remember", "reminder", "summarize"]:
-            chat_history += f"User: {chat['intent']['query']}\n"
-
             if chat["intent"].get("inferred-queries"):
                 chat_history += f'{agent_name}: {{"queries": {chat["intent"].get("inferred-queries")}}}\n'
-
             chat_history += f"{agent_name}: {chat['message']}\n\n"
         elif chat["by"] == "khoj" and chat.get("images"):
             chat_history += f"User: {chat['intent']['query']}\n"
@@ -156,6 +201,7 @@ def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="A
             chat_history += f"User: {chat['intent']['query']}\n"
             chat_history += f"{agent_name}: {chat['intent']['inferred-queries'][0]}\n"
         elif chat["by"] == "you":
+            chat_history += f"User: {chat['message']}\n"
             raw_query_files = chat.get("queryFiles")
             if raw_query_files:
                 query_files: Dict[str, str] = {}
@@ -168,8 +214,74 @@ def construct_chat_history(conversation_history: dict, n: int = 4, agent_name="A
     return chat_history
 
 
+def construct_question_history(
+    conversation_log: dict,
+    include_query: bool = True,
+    lookback: int = 6,
+    query_prefix: str = "Q",
+    agent_name: str = "Khoj",
+) -> str:
+    """
+    Constructs a chat history string formatted for query extraction purposes.
+    """
+    history_parts = ""
+    original_query = None
+    for chat in conversation_log.get("chat", [])[-lookback:]:
+        if chat["by"] == "you":
+            original_query = chat.get("message")
+            history_parts += f"{query_prefix}: {original_query}\n"
+        if chat["by"] == "khoj":
+            if original_query is None:
+                continue
+
+            message = chat.get("message", "")
+            inferred_queries_list = chat.get("intent", {}).get("inferred-queries")
+
+            # Ensure inferred_queries_list is a list, defaulting to the original query in a list
+            if not inferred_queries_list:
+                inferred_queries_list = [original_query]
+            # If it's a string (though unlikely based on usage), wrap it in a list
+            elif isinstance(inferred_queries_list, str):
+                inferred_queries_list = [inferred_queries_list]
+
+            if include_query:
+                # Ensure 'type' exists and is a string before checking 'to-image'
+                intent_type = chat.get("intent", {}).get("type", "")
+                if "to-image" not in intent_type:
+                    history_parts += f'{agent_name}: {{"queries": {inferred_queries_list}}}\n'
+                    history_parts += f"A: {message}\n\n"
+            else:
+                history_parts += f"{agent_name}: {message}\n\n"
+
+            # Reset original_query for the next turn
+            original_query = None
+
+    return history_parts
+
+
+def construct_chat_history_for_operator(conversation_history: dict, n: int = 6) -> list[AgentMessage]:
+    """
+    Construct chat history for operator agent in conversation log.
+    Only include last n completed turns (i.e with user and khoj message).
+    """
+    chat_history: list[AgentMessage] = []
+    user_message: Optional[AgentMessage] = None
+
+    for chat in conversation_history.get("chat", []):
+        if len(chat_history) >= n:
+            break
+        if chat["by"] == "you" and chat.get("message"):
+            content = [{"type": "text", "text": chat["message"]}]
+            for file in chat.get("queryFiles", []):
+                content += [{"type": "text", "text": f'## File: {file["name"]}\n\n{file["content"]}'}]
+            user_message = AgentMessage(role="user", content=content)
+        elif chat["by"] == "khoj" and chat.get("message"):
+            chat_history += [user_message, AgentMessage(role="assistant", content=chat["message"])]
+    return chat_history
+
+
 def construct_tool_chat_history(
-    previous_iterations: List[InformationCollectionIteration], tool: ConversationCommand = None
+    previous_iterations: List[ResearchIteration], tool: ConversationCommand = None
 ) -> Dict[str, list]:
     """
     Construct chat history from previous iterations for a specific tool
@@ -178,8 +290,8 @@ def construct_tool_chat_history(
     If no tool is provided inferred query for all tools used are added.
     """
     chat_history: list = []
-    base_extractor: Callable[[InformationCollectionIteration], List[str]] = lambda x: []
-    extract_inferred_query_map: Dict[ConversationCommand, Callable[[InformationCollectionIteration], List[str]]] = {
+    base_extractor: Callable[[ResearchIteration], List[str]] = lambda iteration: []
+    extract_inferred_query_map: Dict[ConversationCommand, Callable[[ResearchIteration], List[str]]] = {
         ConversationCommand.Notes: (
             lambda iteration: [c["query"] for c in iteration.context] if iteration.context else []
         ),
@@ -191,9 +303,6 @@ def construct_tool_chat_history(
         ),
         ConversationCommand.Code: (
             lambda iteration: list(iteration.codeContext.keys()) if iteration.codeContext else []
-        ),
-        ConversationCommand.Operator: (
-            lambda iteration: list(iteration.operatorContext.keys()) if iteration.operatorContext else []
         ),
     }
     for iteration in previous_iterations:
@@ -273,7 +382,7 @@ async def save_to_conversation_log(
     compiled_references: List[Dict[str, Any]] = [],
     online_results: Dict[str, Any] = {},
     code_results: Dict[str, Any] = {},
-    operator_results: Dict[str, str] = {},
+    operator_results: List[OperatorRun] = None,
     inferred_queries: List[str] = [],
     intent_type: str = "remember",
     client_application: ClientApplication = None,
@@ -284,7 +393,7 @@ async def save_to_conversation_log(
     generated_images: List[str] = [],
     raw_generated_files: List[FileAttachment] = [],
     generated_mermaidjs_diagram: str = None,
-    research_results: Optional[List[InformationCollectionIteration]] = None,
+    research_results: Optional[List[ResearchIteration]] = None,
     train_of_thought: List[Any] = [],
     tracer: Dict[str, Any] = {},
 ):
@@ -301,8 +410,8 @@ async def save_to_conversation_log(
         "intent": {"inferred-queries": inferred_queries, "type": intent_type},
         "onlineContext": online_results,
         "codeContext": code_results,
-        "operatorContext": operator_results,
-        "researchContext": [vars(r) for r in research_results] if research_results and not chat_response else None,
+        "operatorContext": [o.to_dict() for o in operator_results] if operator_results and not chat_response else None,
+        "researchContext": [r.to_dict() for r in research_results] if research_results and not chat_response else None,
         "automationId": automation_id,
         "trainOfThought": train_of_thought,
         "turnId": turn_id,
@@ -459,10 +568,12 @@ def generate_chatml_messages_with_context(
             ]
 
         if not is_none_or_empty(chat.get("operatorContext")):
+            operator_context = chat.get("operatorContext")
+            operator_content = "\n\n".join([f'## Task: {oc["query"]}\n{oc["response"]}\n' for oc in operator_context])
             message_context += [
                 {
                     "type": "text",
-                    "text": f"{prompts.operator_execution_context.format(operator_results=chat.get('operatorContext'))}",
+                    "text": f"{prompts.operator_execution_context.format(operator_results=operator_content)}",
                 }
             ]
 

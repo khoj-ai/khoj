@@ -125,6 +125,49 @@ class NoopAction(BaseAction):
     type: Literal["noop"] = "noop"
 
 
+# --- Text Editor Actions ---
+class TextEditorViewAction(BaseAction):
+    """View contents of a file."""
+
+    type: Literal["text_editor_view"] = "text_editor_view"
+    path: str
+    view_range: Optional[List[int]] = None  # [start_line, end_line]
+
+
+class TextEditorCreateAction(BaseAction):
+    """Create a new file with specified contents."""
+
+    type: Literal["text_editor_create"] = "text_editor_create"
+    path: str
+    file_text: str
+
+
+class TextEditorStrReplaceAction(BaseAction):
+    """Execute an exact string match replacement on a file."""
+
+    type: Literal["text_editor_str_replace"] = "text_editor_str_replace"
+    path: str
+    old_str: str
+    new_str: str
+
+
+class TextEditorInsertAction(BaseAction):
+    """Insert new text after a specified line number."""
+
+    type: Literal["text_editor_insert"] = "text_editor_insert"
+    path: str
+    insert_line: int
+    new_str: str
+
+
+class TerminalAction(BaseAction):
+    """Insert new text after a specified line number."""
+
+    type: Literal["terminal"] = "terminal"
+    command: str
+    restart: bool = False
+
+
 OperatorAction = Union[
     ClickAction,
     DoubleClickAction,
@@ -146,4 +189,9 @@ OperatorAction = Union[
     BackAction,
     RequestUserAction,
     NoopAction,
+    TextEditorViewAction,
+    TextEditorCreateAction,
+    TextEditorStrReplaceAction,
+    TextEditorInsertAction,
+    TerminalAction,
 ]

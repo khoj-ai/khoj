@@ -3,18 +3,21 @@ import json
 import logging
 from copy import deepcopy
 from datetime import datetime
-from typing import List, Optional, cast
+from textwrap import dedent
+from typing import List, Literal, Optional, cast
 
-from anthropic.types.beta import BetaContentBlock
+from anthropic.types.beta import BetaContentBlock, BetaTextBlock, BetaToolUseBlock
 
+from khoj.database.models import ChatModel
 from khoj.processor.conversation.anthropic.utils import is_reasoning_model
+from khoj.processor.conversation.utils import AgentMessage
 from khoj.processor.operator.operator_actions import *
-from khoj.processor.operator.operator_agent_base import (
-    AgentActResult,
-    AgentMessage,
-    OperatorAgent,
+from khoj.processor.operator.operator_agent_base import AgentActResult, OperatorAgent
+from khoj.processor.operator.operator_environment_base import (
+    EnvironmentType,
+    EnvState,
+    EnvStepResult,
 )
-from khoj.processor.operator.operator_environment_base import EnvState, EnvStepResult
 from khoj.utils.helpers import get_anthropic_async_client, is_none_or_empty
 
 logger = logging.getLogger(__name__)
@@ -23,81 +26,34 @@ logger = logging.getLogger(__name__)
 # --- Anthropic Operator Agent ---
 class AnthropicOperatorAgent(OperatorAgent):
     async def act(self, current_state: EnvState) -> AgentActResult:
-        client = get_anthropic_async_client(
-            self.vision_model.ai_model_api.api_key, self.vision_model.ai_model_api.api_base_url
-        )
-        betas = self.model_default_headers()
-        temperature = 1.0
         actions: List[OperatorAction] = []
         action_results: List[dict] = []
         self._commit_trace()  # Commit trace before next action
 
-        system_prompt = f"""<SYSTEM_CAPABILITY>
-* You are Khoj, a smart web browser operating assistant. You help the users accomplish tasks using a web browser.
-* You operate a Chromium browser using Playwright via the 'computer' tool.
-* You cannot access the OS or filesystem.
-* You can interact with the web browser to perform tasks like clicking, typing, scrolling, and more.
-* You can use the additional back() and goto() helper functions to ease navigating the browser. If you see nothing, try goto duckduckgo.com
-* When viewing a webpage it can be helpful to zoom out so that you can see everything on the page. Either that, or make sure you scroll down to see everything before deciding something isn't available.
-* When using your computer function calls, they take a while to run and send back to you. Where possible/feasible, try to chain multiple of these calls all into one function calls request.
-* Perform web searches using DuckDuckGo. Don't use Google even if requested as the query will fail.
-* The current date is {datetime.today().strftime('%A, %B %-d, %Y')}.
-* The current URL is {current_state.url}.
-</SYSTEM_CAPABILITY>
+        system_prompt = self.get_instructions(self.environment_type, current_state)
+        tools = self.get_tools(self.environment_type, current_state)
 
-<IMPORTANT>
-* You are allowed upto {self.max_iterations} iterations to complete the task.
-* Do not loop on wait, screenshot for too many turns without taking any action.
-* After initialization if the browser is blank, enter a website URL using the goto() function instead of waiting
-</IMPORTANT>
-"""
         if is_none_or_empty(self.messages):
             self.messages = [AgentMessage(role="user", content=self.query)]
 
-        tools = [
-            {
-                "type": self.model_default_tool("computer"),
-                "name": "computer",
-                "display_width_px": 1024,
-                "display_height_px": 768,
-            },  # TODO: Get from env
-            {
-                "name": "back",
-                "description": "Go back to the previous page.",
-                "input_schema": {"type": "object", "properties": {}},
-            },
-            {
-                "name": "goto",
-                "description": "Go to a specific URL.",
-                "input_schema": {
-                    "type": "object",
-                    "properties": {"url": {"type": "string", "description": "Fully qualified URL to navigate to."}},
-                    "required": ["url"],
-                },
-            },
-        ]
+        # Trigger trajectory compression if exceed size limit
+        if len(self.messages) > self.message_limit:
+            logger.debug("Compacting operator trajectory.")
+            await self._compress()
 
-        thinking: dict[str, str | int] = {"type": "disabled"}
-        if is_reasoning_model(self.vision_model.name):
-            thinking = {"type": "enabled", "budget_tokens": 1024}
-
-        messages_for_api = self._format_message_for_api(self.messages)
-        response = await client.beta.messages.create(
-            messages=messages_for_api,
-            model=self.vision_model.name,
-            system=system_prompt,
+        response_content = await self._call_model(
+            messages=self.messages,
+            model=self.vision_model,
+            system_prompt=system_prompt,
             tools=tools,
-            betas=betas,
-            thinking=thinking,
-            max_tokens=4096,  # TODO: Make configurable?
-            temperature=temperature,
+            headers=self.model_default_headers(),
         )
 
-        logger.debug(f"Anthropic response: {response.model_dump_json()}")
-        self.messages.append(AgentMessage(role="assistant", content=response.content))
-        rendered_response = self._render_response(response.content, current_state.screenshot)
+        self.messages.append(AgentMessage(role="assistant", content=response_content))
+        rendered_response = self._render_response(response_content, current_state.screenshot)
 
-        for block in response.content:
+        # Parse actions from response
+        for block in response_content:
             if block.type == "tool_use":
                 content = None
                 is_error = False
@@ -179,6 +135,40 @@ class AnthropicOperatorAgent(OperatorAgent):
                             logger.warning("Goto tool called without URL.")
                     elif tool_name == "back":
                         action_to_run = BackAction()
+                    elif tool_name == self.model_default_tool("terminal")["name"]:
+                        command = tool_input.get("command")
+                        restart = tool_input.get("restart", False)
+                        if command:
+                            action_to_run = TerminalAction(command=command, restart=restart)
+                    elif tool_name == "str_replace_based_edit_tool":
+                        # Handle text editor tool calls
+                        command = tool_input.get("command")
+                        if command == "view":
+                            path = tool_input.get("path")
+                            view_range = tool_input.get("view_range")
+                            if path:
+                                action_to_run = TextEditorViewAction(path=path, view_range=view_range)
+                        elif command == "create":
+                            path = tool_input.get("path")
+                            file_text = tool_input.get("file_text", "")
+                            if path:
+                                action_to_run = TextEditorCreateAction(path=path, file_text=file_text)
+                        elif command == "str_replace":
+                            path = tool_input.get("path")
+                            old_str = tool_input.get("old_str")
+                            new_str = tool_input.get("new_str")
+                            if path and old_str is not None and new_str is not None:
+                                action_to_run = TextEditorStrReplaceAction(path=path, old_str=old_str, new_str=new_str)
+                        elif command == "insert":
+                            path = tool_input.get("path")
+                            insert_line = tool_input.get("insert_line")
+                            new_str = tool_input.get("new_str")
+                            if path and insert_line is not None and new_str is not None:
+                                action_to_run = TextEditorInsertAction(
+                                    path=path, insert_line=insert_line, new_str=new_str
+                                )
+                        else:
+                            logger.warning(f"Unsupported text editor command: {command}")
                     else:
                         logger.warning(f"Unsupported Anthropic computer action type: {tool_name}")
 
@@ -199,14 +189,6 @@ class AnthropicOperatorAgent(OperatorAgent):
                             "is_error": is_error,  # Updated after environment step
                         }
                     )
-
-        self._update_usage(
-            response.usage.input_tokens,
-            response.usage.output_tokens,
-            response.usage.cache_read_input_tokens,
-            response.usage.cache_creation_input_tokens,
-        )
-        self.tracer["temperature"] = temperature
 
         return AgentActResult(
             actions=actions,
@@ -240,17 +222,18 @@ class AnthropicOperatorAgent(OperatorAgent):
             if env_step.error:
                 action_result["is_error"] = True
 
-        # Append tool results to the message history
-        self.messages += [AgentMessage(role="environment", content=agent_action.action_results)]
-
-        # Mark the final tool result as a cache break point
-        agent_action.action_results[-1]["cache_control"] = {"type": "ephemeral"}
         # Remove previous cache controls
         for msg in self.messages:
-            if msg.role == "environment" and isinstance(msg.content, list):
+            if isinstance(msg.content, list):
                 for block in msg.content:
                     if isinstance(block, dict) and "cache_control" in block:
                         del block["cache_control"]
+
+        # Mark the final tool result as a cache break point
+        agent_action.action_results[-1]["cache_control"] = {"type": "ephemeral"}
+
+        # Append tool results to the message history
+        self.messages += [AgentMessage(role="environment", content=agent_action.action_results)]
 
     def _format_message_for_api(self, messages: list[AgentMessage]) -> list[dict]:
         """Format Anthropic response into a single string."""
@@ -270,7 +253,7 @@ class AnthropicOperatorAgent(OperatorAgent):
             )
         return formatted_messages
 
-    def compile_response(self, response_content: list[BetaContentBlock | dict] | str) -> str:
+    def _compile_response(self, response_content: list[BetaContentBlock | dict] | str) -> str:
         """Compile Anthropic response into a single string."""
         if isinstance(response_content, str):
             return response_content
@@ -288,7 +271,11 @@ class AnthropicOperatorAgent(OperatorAgent):
                 compiled_response.append(block.text)
             elif block.type == "tool_use":
                 block_input = {"action": block.name}
-                if block.name == "computer":
+                if block.name in (
+                    self.model_default_tool("computer")["name"],
+                    self.model_default_tool("editor")["name"],
+                    self.model_default_tool("terminal")["name"],
+                ):
                     block_input = block.input  # Computer action details are in input dict
                 elif block.name == "goto":
                     block_input["url"] = block.input.get("url", "[Missing URL]")
@@ -345,7 +332,34 @@ class AnthropicOperatorAgent(OperatorAgent):
                         else:
                             # Handle other actions
                             render_texts += [f"{action.capitalize()}"]
-
+                elif block.name == self.model_default_tool("editor")["name"]:
+                    # Handle text editor actions
+                    command = block.input.get("command")
+                    if command == "view":
+                        path = block.input.get("path")
+                        view_range = block.input.get("view_range")
+                        if path:
+                            render_texts += [f"View file: {path} (lines {view_range})"]
+                    elif command == "create":
+                        path = block.input.get("path")
+                        file_text = block.input.get("file_text", "")
+                        if path:
+                            render_texts += [f"Create file: {path} with content:\n{file_text}"]
+                    elif command == "str_replace":
+                        path = block.input.get("path")
+                        old_str = block.input.get("old_str")
+                        new_str = block.input.get("new_str")
+                        if path and old_str is not None and new_str is not None:
+                            render_texts += [f"File: {path}\n**Find**\n{old_str}\n**Replace**\n{new_str}'"]
+                    elif command == "insert":
+                        path = block.input.get("path")
+                        insert_line = block.input.get("insert_line")
+                        new_str = block.input.get("new_str")
+                        if path and insert_line is not None and new_str is not None:
+                            render_texts += [f"In file: {path} at line {insert_line} insert\n{new_str}"]
+                    render_texts += [f"Edit file: {block.input['path']}"]
+                elif block.name == self.model_default_tool("terminal")["name"]:
+                    render_texts += [f"Run command:\n{block.input['command']}"]
                 # If screenshot is not available when screenshot action was requested
                 if isinstance(block.input, dict) and block.input.get("action") == "screenshot" and not screenshot:
                     render_texts += ["Failed to get screenshot"]
@@ -365,6 +379,107 @@ class AnthropicOperatorAgent(OperatorAgent):
 
         return render_payload
 
+    async def _call_model(
+        self,
+        messages: list[AgentMessage],
+        model: ChatModel,
+        system_prompt: str,
+        tools: list[dict] = [],
+        headers: list[str] = [],
+        temperature: float = 1.0,
+        max_tokens: int = 4096,
+    ) -> list[BetaContentBlock]:
+        client = get_anthropic_async_client(model.ai_model_api.api_key, model.ai_model_api.api_base_url)
+        thinking: dict[str, str | int] = {"type": "disabled"}
+        system = [{"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}]
+        kwargs: dict = {}
+        if is_reasoning_model(model.name):
+            thinking = {"type": "enabled", "budget_tokens": 1024}
+        if headers:
+            kwargs["betas"] = headers
+        if tools:
+            tools[-1]["cache_control"] = {"type": "ephemeral"}  # Mark last tool as cache break point
+            kwargs["tools"] = tools
+
+        messages_for_api = self._format_message_for_api(messages)
+        try:
+            response = await client.beta.messages.create(
+                messages=messages_for_api,
+                model=model.name,
+                system=system,
+                thinking=thinking,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                **kwargs,
+            )
+            response_content = response.content
+        except Exception as e:
+            # create a response block with error message
+            logger.error(f"Error during Anthropic API call: {e}")
+            error_str = e.message if hasattr(e, "message") else str(e)
+            response = None
+            response_content = [BetaTextBlock(text=f"Communication Error: {error_str}", type="text")]
+
+        if response:
+            logger.debug(f"Anthropic response: {response.model_dump_json()}")
+            self._update_usage(
+                response.usage.input_tokens,
+                response.usage.output_tokens,
+                response.usage.cache_read_input_tokens,
+                response.usage.cache_creation_input_tokens,
+            )
+        self.tracer["temperature"] = temperature
+        return response_content
+
+    async def _compress(self):
+        # 1. Prepare messages for compression
+        original_messages = list(self.messages)
+        messages_to_summarize = self.messages[: self.compress_length]
+        # ensure last message isn't a tool call request
+        if messages_to_summarize[-1].role == "assistant" and (
+            any(isinstance(block, BetaToolUseBlock) for block in messages_to_summarize[-1].content)
+            or any(block["type"] == "tool_use" for block in messages_to_summarize[-1].content)
+        ):
+            messages_to_summarize.pop()
+
+        summarize_prompt = f"Summarize your research and computer use till now to help answer my query:\n{self.query}"
+        summarize_message = AgentMessage(role="user", content=summarize_prompt)
+        system_prompt = dedent(
+            """
+            You are a computer operator with meticulous communication skills. You can condense your partial computer use traces and research into an appropriately detailed summary.
+            When requested summarize your key actions, results and findings until now to achieve the user specified task.
+            Your summary should help you remember the key information required to both complete the task and later generate a final report.
+            """
+        )
+
+        # 2. Get summary of operation trajectory
+        try:
+            response_content = await self._call_model(
+                messages=messages_to_summarize + [summarize_message],
+                model=self.vision_model,
+                system_prompt=system_prompt,
+                max_tokens=8192,
+            )
+        except Exception as e:
+            # create a response block with error message
+            logger.error(f"Error during Anthropic API call: {e}")
+            error_str = e.message if hasattr(e, "message") else str(e)
+            response_content = [BetaTextBlock(text=f"Communication Error: {error_str}", type="text")]
+
+        summary_message = AgentMessage(role="assistant", content=response_content)
+
+        # 3. Rebuild message history with condensed trajectory
+        primary_task = [original_messages.pop(0)]
+        condensed_trajectory = [summarize_message, summary_message]
+        recent_trajectory = original_messages[self.compress_length - 1 :]  # -1 since we popped the first message
+        # ensure first message isn't a tool result
+        if recent_trajectory[0].role == "environment" and any(
+            block["type"] == "tool_result" for block in recent_trajectory[0].content
+        ):
+            recent_trajectory.pop(0)
+
+        self.messages = primary_task + condensed_trajectory + recent_trajectory
+
     def get_coordinates(self, tool_input: dict, key: str = "coordinate") -> Optional[list | tuple]:
         """Get coordinates from tool input."""
         raw_coord = tool_input.get(key)
@@ -382,14 +497,22 @@ class AnthropicOperatorAgent(OperatorAgent):
 
         return coord
 
-    def model_default_tool(self, tool_type: Literal["computer", "editor", "terminal"]) -> str:
+    def model_default_tool(self, tool_type: Literal["computer", "editor", "terminal"]) -> dict[str, str]:
         """Get the default tool of specified type for the given model."""
         if self.vision_model.name.startswith("claude-3-7-sonnet"):
             if tool_type == "computer":
-                return "computer_20250124"
+                return {"name": "computer", "type": "computer_20250124"}
+            elif tool_type == "editor":
+                return {"name": "str_replace_editor", "type": "text_editor_20250124"}
+            elif tool_type == "terminal":
+                return {"name": "bash_20250124", "type": "bash"}
         elif self.vision_model.name.startswith("claude-sonnet-4") or self.vision_model.name.startswith("claude-opus-4"):
             if tool_type == "computer":
-                return "computer_20250124"
+                return {"name": "computer", "type": "computer_20250124"}
+            elif tool_type == "editor":
+                return {"name": "str_replace_based_edit_tool", "type": "text_editor_20250429"}
+            elif tool_type == "terminal":
+                return {"name": "bash", "type": "bash_20250124"}
         raise ValueError(f"Unsupported tool type for model '{self.vision_model.name}': {tool_type}")
 
     def model_default_headers(self) -> list[str]:
@@ -400,3 +523,88 @@ class AnthropicOperatorAgent(OperatorAgent):
             return ["computer-use-2025-01-24"]
         else:
             return []
+
+    def get_instructions(self, environment_type: EnvironmentType, current_state: EnvState) -> str:
+        """Return system instructions for the Anthropic operator."""
+        if environment_type == EnvironmentType.BROWSER:
+            return dedent(
+                f"""
+                <SYSTEM_CAPABILITY>
+                * You are Khoj, a smart web browser operating assistant. You help the users accomplish tasks using a web browser.
+                * You operate a Chromium browser using Playwright via the 'computer' tool.
+                * You cannot access the OS or filesystem.
+                * You can interact with the web browser to perform tasks like clicking, typing, scrolling, and more.
+                * You can use the additional back() and goto() helper functions to ease navigating the browser. If you see nothing, try goto duckduckgo.com
+                * When viewing a webpage it can be helpful to zoom out so that you can see everything on the page. Either that, or make sure you scroll down to see everything before deciding something isn't available.
+                * When using your computer function calls, they take a while to run and send back to you. Where possible/feasible, try to chain multiple of these calls all into one function calls request.
+                * Perform web searches using DuckDuckGo. Don't use Google even if requested as the query will fail.
+                * The current date is {datetime.today().strftime('%A, %B %-d, %Y')}.
+                * The current URL is {current_state.url}.
+                </SYSTEM_CAPABILITY>
+
+                <IMPORTANT>
+                * You are allowed upto {self.max_iterations} iterations to complete the task.
+                * Do not loop on wait, screenshot for too many turns without taking any action.
+                * After initialization if the browser is blank, enter a website URL using the goto() function instead of waiting
+                </IMPORTANT>
+                """
+            ).lstrip()
+        elif environment_type == EnvironmentType.COMPUTER:
+            return dedent(
+                f"""
+                <SYSTEM_CAPABILITY>
+                * You are Khoj, a smart computer operating assistant. You help the users accomplish tasks using a computer.
+                * You can interact with the computer to perform tasks like clicking, typing, scrolling, and more.
+                * When viewing a document or webpage it can be helpful to zoom out or scroll down to ensure you see everything before deciding something isn't available.
+                * When using your computer function calls, they take a while to run and send back to you. Where possible/feasible, try to chain multiple of these calls all into one function calls request.
+                * Perform web searches using DuckDuckGo. Don't use Google even if requested as the query will fail.
+                * Do not loop on wait, screenshot for too many turns without taking any action.
+                * You are allowed upto {self.max_iterations} iterations to complete the task.
+                </SYSTEM_CAPABILITY>
+
+                <CONTEXT>
+                * The current date is {datetime.today().strftime('%A, %B %-d, %Y')}.
+                </CONTEXT>
+                """
+            ).lstrip()
+        else:
+            raise ValueError(f"Unsupported environment type for Anthropic operator: {environment_type}")
+
+    def get_tools(self, environment: EnvironmentType, current_state: EnvState) -> list[dict]:
+        """Return the tools available for the Anthropic operator."""
+        tools: list[dict] = [
+            {
+                "type": self.model_default_tool("computer")["type"],
+                "name": "computer",
+                "display_width_px": current_state.width,
+                "display_height_px": current_state.height,
+            },
+            {
+                "type": self.model_default_tool("editor")["type"],
+                "name": self.model_default_tool("editor")["name"],
+            },
+            {
+                "type": self.model_default_tool("terminal")["type"],
+                "name": self.model_default_tool("terminal")["name"],
+            },
+        ]
+
+        if environment == "browser":
+            tools += [
+                {
+                    "name": "back",
+                    "description": "Go back to the previous page.",
+                    "input_schema": {"type": "object", "properties": {}},
+                },
+                {
+                    "name": "goto",
+                    "description": "Go to a specific URL.",
+                    "input_schema": {
+                        "type": "object",
+                        "properties": {"url": {"type": "string", "description": "Fully qualified URL to navigate to."}},
+                        "required": ["url"],
+                    },
+                },
+            ]
+
+        return tools

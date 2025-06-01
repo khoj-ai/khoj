@@ -10,6 +10,7 @@ import logging
 import math
 import re
 from io import BytesIO
+from textwrap import dedent
 from typing import Any, List
 
 import numpy as np
@@ -18,7 +19,7 @@ from openai.types.chat import ChatCompletion
 from PIL import Image
 
 from khoj.processor.operator.operator_actions import *
-from khoj.processor.operator.operator_environment_base import EnvState
+from khoj.processor.operator.operator_environment_base import EnvironmentType, EnvState
 from khoj.utils.helpers import get_chat_usage_metrics
 
 logger = logging.getLogger(__name__)
@@ -35,29 +36,8 @@ class GroundingAgentUitars:
     MAX_PIXELS = 16384 * 28 * 28
     MAX_RATIO = 200
 
-    UITARS_USR_PROMPT_THOUGHT = """
-    You are a GUI agent. You are given a task and a screenshot of the web browser tab you operate. You need to perform the next action to complete the task.
-    You control a single tab in a Chromium browser. You cannot access the OS, filesystem, the application window or the addressbar.
-    Try fulfill the user instruction to the best of your ability, especially when the instruction is given multiple times. Do not ignore the instruction.
-
-    ## Output Format
-    ```
-    Thought: ...
-    Action: ...
-    ```
-
-    ## Action Space
-    {action_space}
-
-    ## Note
-    - Use {language} in `Thought` part.
-    - Write a small plan and finally summarize your next action (with its target element) in one sentence in `Thought` part.
-
-    ## User Instruction
-    {instruction}
-    """
-
-    UITARS_NORMAL_ACTION_SPACE = """
+    UITARS_NORMAL_ACTION_SPACE = dedent(
+        """
     click(start_box='<|box_start|>(x1,y1)<|box_end|>')
     left_double(start_box='<|box_start|>(x1,y1)<|box_end|>')
     right_single(start_box='<|box_start|>(x1,y1)<|box_end|>')
@@ -67,14 +47,15 @@ class GroundingAgentUitars:
     scroll(start_box='<|box_start|>(x1,y1)<|box_end|>', direction='down or up or right or left')
     wait() #Sleep for 5s and take a screenshot to check for any changes.
     finished(content='xxx') # Use escape characters \\', \\", and \\n in content part to ensure we can parse the content in normal python string format.
-    """.lstrip()
+    """
+    ).lstrip()
 
     def __init__(
         self,
         model_name: str,
+        environment_type: EnvironmentType,
         client: AsyncOpenAI | AsyncAzureOpenAI,
         max_iterations=50,
-        environment_type: Literal["computer", "web"] = "computer",
         runtime_conf: dict = {
             "infer_mode": "qwen25vl_normal",
             "prompt_style": "qwen25vl_normal",
@@ -94,7 +75,7 @@ class GroundingAgentUitars:
         self.model_name = model_name
         self.client = client
         self.tracer = tracer
-        self.environment_type = environment_type
+        self.environment = environment_type
 
         self.max_iterations = max_iterations
         self.runtime_conf = runtime_conf
@@ -116,7 +97,7 @@ class GroundingAgentUitars:
         self.history_images: list[bytes] = []
         self.history_responses: list[str] = []
 
-        self.prompt_template = self.UITARS_USR_PROMPT_THOUGHT
+        self.prompt_template = self.get_instruction(self.environment)
         self.prompt_action_space = self.UITARS_NORMAL_ACTION_SPACE
 
         if "history_n" in self.runtime_conf:
@@ -126,11 +107,11 @@ class GroundingAgentUitars:
 
         self.cur_callusr_count = 0
 
-    async def act(self, instruction: str, env_state: EnvState) -> tuple[str, list[OperatorAction]]:
+    async def act(self, instruction: str, current_state: EnvState) -> tuple[str, list[OperatorAction]]:
         """
         Suggest the next action(s) based on the instruction and current environment.
         """
-        messages = self._format_messages_for_api(instruction, env_state)
+        messages = self._format_messages_for_api(instruction, current_state)
 
         recent_screenshot = Image.open(BytesIO(self.history_images[-1]))
         origin_resized_height = recent_screenshot.height
@@ -145,9 +126,11 @@ class GroundingAgentUitars:
         try_times = 3
         while not parsed_responses:
             if try_times <= 0:
-                print(f"Reach max retry times to fetch response from client, as error flag.")
+                logger.warning(f"Reach max retry times to fetch response from client, as error flag.")
                 return "client error\nFAIL", []
             try:
+                message_content = "\n".join([msg["content"][0].get("text") or "[image]" for msg in messages])
+                logger.debug(f"User message content: {message_content}")
                 response: ChatCompletion = await self.client.chat.completions.create(
                     model="ui-tars",
                     messages=messages,
@@ -228,20 +211,9 @@ class GroundingAgentUitars:
                     self.actions.append(actions)
                     return f"{prediction}\nFAIL", []
 
-            if self.environment_type == "web":
-                actions.extend(
-                    self.parsing_response_to_action(parsed_response, obs_image_height, obs_image_width, self.input_swap)
-                )
-            else:
-                pass
-                # TODO: Add PyautoguiAction when enable computer environment
-                # actions.append(
-                #     PyautoguiAction(code=
-                #         self.parsing_response_to_pyautogui_code(
-                #             parsed_response, obs_image_height, obs_image_width, self.input_swap
-                #         )
-                #     )
-                # )
+            actions.extend(
+                self.parsing_response_to_action(parsed_response, obs_image_height, obs_image_width, self.input_swap)
+            )
 
         self.actions.append(actions)
 
@@ -252,13 +224,52 @@ class GroundingAgentUitars:
 
         return prediction or "", actions
 
-    def _format_messages_for_api(self, instruction: str, env_state: EnvState):
+    def get_instruction(self, environment_type: EnvironmentType) -> str:
+        """
+        Get the instruction for the agent based on the environment type.
+        """
+        UITARS_COMPUTER_PREFIX_PROMPT = """
+        You are a GUI agent. You are given a task and your action history, with screenshots. You need to perform the next action to complete the task.
+        """
+        UITARS_BROWSER_PREFIX_PROMPT = """
+        You are a GUI agent. You are given a task and a screenshot of the web browser tab you operate. You need to perform the next action to complete the task.
+        You control a single tab in a Chromium browser. You cannot access the OS, filesystem, the application window or the addressbar.
+        """
+
+        UITARS_USR_PROMPT_THOUGHT = """
+        Try fulfill the user instruction to the best of your ability, especially when the instruction is given multiple times. Do not ignore the instruction.
+
+        ## Output Format
+        ```
+        Thought: ...
+        Action: ...
+        ```
+
+        ## Action Space
+        {action_space}
+
+        ## Note
+        - Use {language} in `Thought` part.
+        - Write a small plan and finally summarize your next action (with its target element) in one sentence in `Thought` part.
+
+        ## User Instruction
+        {instruction}
+        """
+
+        if environment_type == EnvironmentType.BROWSER:
+            return dedent(UITARS_BROWSER_PREFIX_PROMPT + UITARS_USR_PROMPT_THOUGHT).lstrip()
+        elif environment_type == EnvironmentType.COMPUTER:
+            return dedent(UITARS_COMPUTER_PREFIX_PROMPT + UITARS_USR_PROMPT_THOUGHT).lstrip()
+        else:
+            raise ValueError(f"Unsupported environment type: {environment_type}")
+
+    def _format_messages_for_api(self, instruction: str, current_state: EnvState):
         assert len(self.observations) == len(self.actions) and len(self.actions) == len(
             self.thoughts
         ), "The number of observations and actions should be the same."
 
-        self.history_images.append(base64.b64decode(env_state.screenshot))
-        self.observations.append({"screenshot": env_state.screenshot, "accessibility_tree": None})
+        self.history_images.append(base64.b64decode(current_state.screenshot))
+        self.observations.append({"screenshot": current_state.screenshot, "accessibility_tree": None})
 
         user_prompt = self.prompt_template.format(
             instruction=instruction, action_space=self.prompt_action_space, language=self.language
