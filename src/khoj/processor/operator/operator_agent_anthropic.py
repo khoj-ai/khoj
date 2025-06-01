@@ -505,7 +505,7 @@ class AnthropicOperatorAgent(OperatorAgent):
             elif tool_type == "editor":
                 return {"name": "str_replace_editor", "type": "text_editor_20250124"}
             elif tool_type == "terminal":
-                return {"name": "bash_20250124", "type": "bash"}
+                return {"name": "bash", "type": "bash_20250124"}
         elif self.vision_model.name.startswith("claude-sonnet-4") or self.vision_model.name.startswith("claude-opus-4"):
             if tool_type == "computer":
                 return {"name": "computer", "type": "computer_20250124"}
