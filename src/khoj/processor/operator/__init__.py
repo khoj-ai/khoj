@@ -66,18 +66,7 @@ async def operate_environment(
     max_context = await ConversationAdapters.aget_max_context_size(reasoning_model, user) or 20000
     max_iterations = int(os.getenv("KHOJ_OPERATOR_ITERATIONS", 100))
     operator_agent: OperatorAgent
-    if is_operator_model(reasoning_model.name) == ChatModel.ModelType.OPENAI:
-        operator_agent = OpenAIOperatorAgent(
-            query,
-            reasoning_model,
-            environment_type,
-            max_iterations,
-            max_context,
-            chat_history,
-            previous_trajectory,
-            tracer,
-        )
-    elif is_operator_model(reasoning_model.name) == ChatModel.ModelType.ANTHROPIC:
+    if is_operator_model(reasoning_model.name) == ChatModel.ModelType.ANTHROPIC:
         operator_agent = AnthropicOperatorAgent(
             query,
             reasoning_model,
@@ -88,7 +77,20 @@ async def operate_environment(
             previous_trajectory,
             tracer,
         )
-    else:
+    # TODO: Remove once OpenAI Operator Agent is useful
+    elif is_operator_model(reasoning_model.name) == ChatModel.ModelType.OPENAI and False:
+        operator_agent = OpenAIOperatorAgent(
+            query,
+            reasoning_model,
+            environment_type,
+            max_iterations,
+            max_context,
+            chat_history,
+            previous_trajectory,
+            tracer,
+        )
+    # TODO: Remove once Binary Operator Agent is useful
+    elif False:
         grounding_model_name = "ui-tars-1.5"
         grounding_model = await ConversationAdapters.aget_chat_model_by_name(grounding_model_name)
         if (
@@ -96,7 +98,7 @@ async def operate_environment(
             or not grounding_model.vision_enabled
             or not grounding_model.model_type == ChatModel.ModelType.OPENAI
         ):
-            raise ValueError("No supported visual grounding model for binary operator agent found.")
+            raise ValueError("Binary operator agent needs ui-tars-1.5 served over an OpenAI compatible API.")
         operator_agent = BinaryOperatorAgent(
             query,
             reasoning_model,
@@ -107,6 +109,11 @@ async def operate_environment(
             chat_history,
             previous_trajectory,
             tracer,
+        )
+    else:
+        raise ValueError(
+            f"Unsupported operator model: {reasoning_model.name}. "
+            "Please use a supported operator model. Only Anthropic models are currently supported."
         )
 
     # Initialize Environment
