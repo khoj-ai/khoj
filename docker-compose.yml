@@ -25,6 +25,14 @@ services:
       - khoj_search:/etc/searxng
     environment:
       - SEARXNG_BASE_URL=http://localhost:8080/
+  # Creates Computer for Khoj to use.
+  # Set KHOJ_OPERATOR_ENABLED=True in the server service environment variable to enable.
+  computer:
+    image: ghcr.io/khoj-ai/computer:latest
+    ports:
+      - "5900:5900"
+    volumes:
+      - khoj_computer:/home/operator
   server:
     depends_on:
       database:
@@ -75,6 +83,8 @@ services:
       # - GEMINI_API_KEY=your_gemini_api_key
       # - ANTHROPIC_API_KEY=your_anthropic_api_key
       #
+      # Uncomment line below to enable Khoj to use its computer.
+      # - KHOJ_OPERATOR_ENABLED=True
       # Uncomment appropriate lines below to enable web results with Khoj
       # Ensure you set your provider specific API keys.
       # ---
@@ -112,3 +122,4 @@ volumes:
   khoj_db:
   khoj_models:
   khoj_search:
+  khoj_computer:
