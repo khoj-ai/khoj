@@ -128,7 +128,7 @@ jobs:
           file: computer.Dockerfile
           push: true
           tags: |
-            ghcr.io/computer:${{ env.DOCKER_IMAGE_TAG }}-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
+            ghcr.io/${{ github.repository }}-computer:${{ env.DOCKER_IMAGE_TAG }}-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
           cache-from: type=gha,scope=computer-${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=computer-${{ matrix.platform }}
           labels: |

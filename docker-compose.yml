@@ -28,7 +28,7 @@ services:
   # Creates Computer for Khoj to use.
   # Set KHOJ_OPERATOR_ENABLED=True in the server service environment variable to enable.
   computer:
-    image: ghcr.io/khoj-ai/computer:latest
+    image: ghcr.io/khoj-ai/khoj-computer:latest
     ports:
       - "5900:5900"
     volumes:
