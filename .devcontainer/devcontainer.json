@@ -35,11 +35,16 @@
                     "--profile",
                     "black",
                     "--filter-files"
-                ]
+                ],
+                "python.testing.pytestArgs": [
+                    "tests"
+                ],
+                "python.testing.unittestEnabled": false,
+                "python.testing.pytestEnabled": true
             }
         }
     },
-    "postCreateCommand": "scripts/dev_setup.sh",
+    "postCreateCommand": "scripts/dev_setup.sh --devcontainer",
     "features": {
         "ghcr.io/devcontainers-contrib/features/black:2": {},
         "ghcr.io/devcontainers-contrib/features/mypy:2": {},
