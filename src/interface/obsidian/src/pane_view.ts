@@ -1,6 +1,5 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
 import { KhojSetting } from 'src/settings';
-import { KhojSearchModal } from 'src/search_modal';
 import { KhojView, populateHeaderPane } from './utils';
 
 export abstract class KhojPaneView extends ItemView {
@@ -20,13 +19,18 @@ export abstract class KhojPaneView extends ItemView {
 
         // Add title to the Khoj Chat modal
         let headerEl = contentEl.createDiv(({ attr: { id: "khoj-header", class: "khoj-header" } }));
+
         // Setup the header pane
-        await populateHeaderPane(headerEl, this.setting);
-        // Set the active nav pane
-        headerEl.getElementsByClassName("chat-nav")[0]?.classList.add("khoj-nav-selected");
-        headerEl.getElementsByClassName("chat-nav")[0]?.addEventListener("click", (_) => { this.activateView(KhojView.CHAT); });
-        headerEl.getElementsByClassName("search-nav")[0]?.addEventListener("click", (_) => { new KhojSearchModal(this.app, this.setting).open(); });
-        headerEl.getElementsByClassName("similar-nav")[0]?.addEventListener("click", (_) => { new KhojSearchModal(this.app, this.setting, true).open(); });
+        const viewType = this.getViewType();
+        await populateHeaderPane(headerEl, this.setting, viewType);
+
+        // Set the active nav pane based on the current view's type
+        if (viewType === KhojView.CHAT) {
+            headerEl.querySelector(".chat-nav")?.classList.add("khoj-nav-selected");
+        } else if (viewType === KhojView.SIMILAR) {
+            headerEl.querySelector(".similar-nav")?.classList.add("khoj-nav-selected");
+        }
+        // The similar-nav event listener is already set in utils.ts
         let similarNavSvgEl = headerEl.getElementsByClassName("khoj-nav-icon-similar")[0]?.firstElementChild;
         if (!!similarNavSvgEl) similarNavSvgEl.id = "similar-nav-icon-svg";
     }
