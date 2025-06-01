@@ -122,13 +122,13 @@ jobs:
 
       - name: 📦️️💻 Build and Push Computer for Khoj
         uses: docker/build-push-action@v4
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.khoj-computer == 'true'
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.khoj-computer == 'true' && matrix.image == 'local'
         with:
           context: .
           file: computer.Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}-computer:${{ env.DOCKER_IMAGE_TAG }}-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
+            ghcr.io/computer:${{ env.DOCKER_IMAGE_TAG }}-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
           cache-from: type=gha,scope=computer-${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=computer-${{ matrix.platform }}
           labels: |
