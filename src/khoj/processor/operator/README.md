@@ -42,7 +42,7 @@ Currently enables **only Anthropic models**:
 - Claude 3.7 Sonnet
 - Claude Opus 4
 
-*Note: OpenAI and other operator models are disabled while in developemnt.*
+*Note: OpenAI and other operator models are disabled while in development.*
 
 ## Capabilities
 
