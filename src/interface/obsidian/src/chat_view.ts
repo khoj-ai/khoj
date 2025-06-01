@@ -78,7 +78,7 @@ export class KhojChatView extends KhojPaneView {
     chatMessageState: ChatMessageState;
     private agents: Agent[] = [];
     private currentAgent: string | null = null;
-    private fileAccessMode: 'none' | 'read' | 'write' = 'none'; // Track the current file access mode
+    private fileAccessMode: 'none' | 'read' | 'write' = 'read'; // Track the current file access mode
     // TODO: Only show modes available on server and to current agent
     private chatModes: ChatMode[] = [
         { value: "default", label: "Default", iconName: "target", command: "/default" },
@@ -272,10 +272,10 @@ export class KhojChatView extends KhojPaneView {
             text: "File Access",
             attr: {
                 class: "khoj-input-row-button clickable-icon",
-                title: "Toggle file access mode (No Access)",
+                title: "Toggle file access mode (Read Only)",
             },
         });
-        setIcon(fileAccessButton, "file-x");
+        setIcon(fileAccessButton, "file-search");
         fileAccessButton.addEventListener('click', () => {
             // Cycle through modes: none -> read -> write -> none
             switch (this.fileAccessMode) {
