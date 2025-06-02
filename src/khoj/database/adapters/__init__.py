@@ -1485,16 +1485,14 @@ class ConversationAdapters:
         return random.sample(all_questions, max_results)
 
     @staticmethod
-    async def aget_valid_chat_model(user: KhojUser, conversation: Conversation, is_subscribed: bool):
+    async def aget_valid_chat_model(user: KhojUser, agent: Agent = None) -> ChatModel:
         """
-        For paid users: Prefer any custom agent chat model > user default chat model > server default chat model.
-        For free users: Prefer conversation specific agent's chat model > user default chat model > server default chat model.
+        - For paid users: Prefer any custom agent chat model > user default chat model > server default chat model.
+        - For free users: Prefer conversation specific agent's chat model > user default chat model > server default chat model.
         """
-        agent: Agent = conversation.agent if await AgentAdapters.aget_default_agent() != conversation.agent else None
-        if agent and agent.chat_model and (agent.is_hidden or is_subscribed):
-            chat_model = await ChatModel.objects.select_related("ai_model_api").aget(
-                pk=conversation.agent.chat_model.pk
-            )
+        agent = agent if agent and await AgentAdapters.aget_default_agent() != agent else None
+        if agent and agent.chat_model and (agent.is_hidden or is_user_subscribed(user)):
+            chat_model = await ChatModel.objects.select_related("ai_model_api").aget(pk=agent.chat_model.pk)
         else:
             chat_model = await ConversationAdapters.aget_chat_model(user)
 

@@ -126,7 +126,7 @@ class BinaryOperatorAgent(OperatorAgent):
                 query_images=query_screenshot,
                 system_message=reasoning_system_prompt,
                 conversation_log=visual_reasoner_history,
-                agent_chat_model=self.reasoning_model,
+                chat_model=self.reasoning_model,
                 tracer=self.tracer,
             )
 
@@ -243,7 +243,7 @@ class BinaryOperatorAgent(OperatorAgent):
             summary = await send_message_to_model_wrapper(
                 query=summarize_prompt,
                 conversation_log=conversation_history,
-                agent_chat_model=self.reasoning_model,
+                chat_model=self.reasoning_model,
                 tracer=self.tracer,
             )
             # Set summary to last action message
