@@ -113,8 +113,6 @@ prod = [
 ]
 local = [
     "pgserver == 0.1.4",
-    "playwright >= 1.49.0",
-    "pyautogui == 0.9.54",
 ]
 dev = [
     "khoj[prod,local]",

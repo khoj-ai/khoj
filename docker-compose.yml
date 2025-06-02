@@ -28,6 +28,7 @@ services:
   # Creates Computer for Khoj to use.
   # Set KHOJ_OPERATOR_ENABLED=True in the server service environment variable to enable.
   computer:
+    container_name: khoj-computer
     image: ghcr.io/khoj-ai/khoj-computer:latest
     ports:
       - "5900:5900"
@@ -55,6 +56,8 @@ services:
       - khoj_config:/root/.khoj/
       - khoj_models:/root/.cache/torch/sentence_transformers
       - khoj_models:/root/.cache/huggingface
+      # uncomment line below to mount docker socket to allow khoj to use its computer.
+      # - /var/run/docker.sock:/var/run/docker.sock
     # Use 0.0.0.0 to explicitly set the host ip for the service on the container. https://pythonspeed.com/articles/docker-connection-refused/
     environment:
       - POSTGRES_DB=postgres

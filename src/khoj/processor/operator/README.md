@@ -16,9 +16,10 @@ Give Khoj its own computer to operate in a transparent, controlled manner. Accom
     wget https://raw.githubusercontent.com/khoj-ai/khoj/master/docker-compose.yml
     ```
 
-2. Configure environment variables in `docker-compose.yml`
+2. Update the `docker-compose.yml` to enable computer operator
     - Set `ANTHROPIC_API_KEY` to your [Anthropic API key](https://console.anthropic.com/settings/keys)
     - Uncomment `KHOJ_OPERATOR_ENABLED=True` to enable the operator tool
+    - Uncomment `- /var/run/docker.sock:/var/run/docker.sock` to mount docker socket to allow khoj to operate its computer container.
 
 3. Start Khoj services
     ```shell
