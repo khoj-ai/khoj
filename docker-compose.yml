@@ -30,6 +30,9 @@ services:
   computer:
     container_name: khoj-computer
     image: ghcr.io/khoj-ai/khoj-computer:latest
+    # build:
+    #   context: .
+    #   dockerfile: computer.Dockerfile
     ports:
       - "5900:5900"
     volumes:
