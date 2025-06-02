@@ -1998,6 +1998,7 @@ button.reference-button:hover {
   align-items: center;
   /* Spread items to take available space */
   justify-content: space-between;
+  width: 100%;
 }
 
 .khoj-connect-settings-header-status {
