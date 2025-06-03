@@ -20,9 +20,11 @@
             ],
             "envFile": "${workspaceFolder}/.env",
             "env": {
+                "KHOJ_ADMIN_EMAIL": "admin",
+                "KHOJ_ADMIN_PASSWORD": "admin",
+                "USE_EMBEDDED_DB": "true",
                 "KHOJ_DEBUG": "true",
                 "KHOJ_TELEMETRY_DISABLED": "true",
-                "USE_EMBEDDED_DB": "true",
                 // Configure Code Sandbox
                 // "KHOJ_TERRARIUM_URL": "http://localhost:8080",
                 // Enable Promptracer to debug prompt flows

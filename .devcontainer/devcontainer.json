@@ -1,6 +1,12 @@
 {
     "name": "Khoj Development Environment",
-    "image": "mcr.microsoft.com/devcontainers/python:3.10",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "..", // Build context is the project root
+        "args": {
+            "PYTHON_VERSION": "3.10"
+        }
+    },
     "forwardPorts": [
         42110
     ],
@@ -40,11 +46,39 @@
                     "tests"
                 ],
                 "python.testing.unittestEnabled": false,
-                "python.testing.pytestEnabled": true
+                "python.testing.pytestEnabled": true,
+                "launch": {
+                    "configurations": [
+                        {
+                            "name": "Launch Khoj",
+                            "type": "debugpy",
+                            "request": "launch",
+                            "module": "src.khoj.main",
+                            "console": "integratedTerminal",
+                            "justMyCode": false,
+                            "sudo": true,
+                            "args": [
+                                "-v",
+                                "--anonymous-mode",
+                                "--non-interactive",
+                                "--port=42110"
+                            ],
+                            "envFile": "${workspaceFolder}/.env",
+                            "env": {
+                                "KHOJ_ADMIN_EMAIL": "admin",
+                                "KHOJ_ADMIN_PASSWORD": "admin",
+                                "USE_EMBEDDED_DB": "true",
+                                "KHOJ_DEBUG": "true",
+                                "KHOJ_TELEMETRY_DISABLED": "true",
+                                "PROMPTRACE_DIR": "${workspaceFolder}/promptrace"
+                            }
+                        }
+                    ]
+                }
             }
         }
     },
-    "postCreateCommand": "scripts/dev_setup.sh --devcontainer",
+    "postCreateCommand": "scripts/dev_setup.sh",
     "features": {
         "ghcr.io/devcontainers-contrib/features/black:2": {},
         "ghcr.io/devcontainers-contrib/features/mypy:2": {},
