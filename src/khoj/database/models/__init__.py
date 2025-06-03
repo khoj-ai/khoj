@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 class Context(PydanticBaseModel):
     compiled: str
     file: str
-    query: str
+    query: Optional[str] = None
 
 
 class CodeContextFile(PydanticBaseModel):
