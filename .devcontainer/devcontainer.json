@@ -80,10 +80,6 @@
     },
     "postCreateCommand": "scripts/dev_setup.sh",
     "features": {
-        "ghcr.io/devcontainers-contrib/features/black:2": {},
-        "ghcr.io/devcontainers-contrib/features/mypy:2": {},
-        "ghcr.io/devcontainers-contrib/features/isort:2": {},
-        "ghcr.io/devcontainers-contrib/features/pre-commit:2": {},
         "ghcr.io/devcontainers/features/github-cli:1": {},
         "ghcr.io/devcontainers/features/node:1": {
             "version": "lts",

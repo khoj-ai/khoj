@@ -1,6 +1,11 @@
 ARG PYTHON_VERSION=3.10
 FROM mcr.microsoft.com/devcontainers/python:${PYTHON_VERSION}
 
+# Install Node.js and Yarn
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && \
+    apt-get install -y nodejs
+
+# Setup working directory
 WORKDIR /workspace
 
 # --- Python Server App Dependencies ---
@@ -28,8 +33,8 @@ RUN sed -i "s/dynamic = \\[\"version\"\\]/version = \"$VERSION\"/" pyproject.tom
 COPY src/interface/web/package.json src/interface/web/yarn.lock ./src/interface/web/
 
 # Install web app dependencies
-# note: node and yarn will be available from the "features" in devcontainer.json
-RUN yarn install --cwd ./src/interface/web && yarn export --cwd ./src/interface/web
+# note: yarn will be available from the "features" in devcontainer.json
+RUN yarn install --cwd ./src/interface/web
 
 # The .venv and node_modules are now populated in the image.
 # The rest of the source code will be mounted by VS Code from your local checkout,
