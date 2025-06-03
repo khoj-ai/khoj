@@ -708,6 +708,6 @@ def populate_chat_history(message_list):
                 "context": context,
                 "intent": {"query": user_message, "inferred-queries": f'["{user_message}"]'},
             },
-            conversation_log=[],
+            chat_history=[],
         )
     return conversation_log

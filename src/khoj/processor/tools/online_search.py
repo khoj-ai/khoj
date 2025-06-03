@@ -10,7 +10,13 @@ from bs4 import BeautifulSoup
 from markdownify import markdownify
 
 from khoj.database.adapters import ConversationAdapters
-from khoj.database.models import Agent, KhojUser, ServerChatSettings, WebScraper
+from khoj.database.models import (
+    Agent,
+    ChatMessageModel,
+    KhojUser,
+    ServerChatSettings,
+    WebScraper,
+)
 from khoj.processor.conversation import prompts
 from khoj.routers.helpers import (
     ChatEvent,
@@ -59,7 +65,7 @@ OLOSTEP_QUERY_PARAMS = {
 
 async def search_online(
     query: str,
-    conversation_history: dict,
+    conversation_history: List[ChatMessageModel],
     location: LocationData,
     user: KhojUser,
     send_status_func: Optional[Callable] = None,
@@ -361,7 +367,7 @@ async def search_with_serper(query: str, location: LocationData) -> Tuple[str, D
 
 async def read_webpages(
     query: str,
-    conversation_history: dict,
+    conversation_history: List[ChatMessageModel],
     location: LocationData,
     user: KhojUser,
     send_status_func: Optional[Callable] = None,

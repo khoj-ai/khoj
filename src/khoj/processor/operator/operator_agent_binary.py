@@ -4,7 +4,7 @@ from datetime import datetime
 from textwrap import dedent
 from typing import List, Optional
 
-from khoj.database.models import ChatModel
+from khoj.database.models import ChatMessageModel, ChatModel
 from khoj.processor.conversation.utils import (
     AgentMessage,
     OperatorRun,
@@ -119,13 +119,13 @@ class BinaryOperatorAgent(OperatorAgent):
             query_screenshot = self._get_message_images(current_message)
 
         # Construct input for visual reasoner history
-        visual_reasoner_history = {"chat": self._format_message_for_api(self.messages)}
+        visual_reasoner_history = self._format_message_for_api(self.messages)
         try:
             natural_language_action = await send_message_to_model_wrapper(
                 query=query_text,
                 query_images=query_screenshot,
                 system_message=reasoning_system_prompt,
-                conversation_log=visual_reasoner_history,
+                chat_history=visual_reasoner_history,
                 agent_chat_model=self.reasoning_model,
                 tracer=self.tracer,
             )
@@ -238,11 +238,11 @@ class BinaryOperatorAgent(OperatorAgent):
 
     async def summarize(self, env_state: EnvState, summarize_prompt: str = None) -> str:
         summarize_prompt = summarize_prompt or self.summarize_prompt
-        conversation_history = {"chat": self._format_message_for_api(self.messages)}
+        conversation_history = self._format_message_for_api(self.messages)
         try:
             summary = await send_message_to_model_wrapper(
                 query=summarize_prompt,
-                conversation_log=conversation_history,
+                chat_history=conversation_history,
                 agent_chat_model=self.reasoning_model,
                 tracer=self.tracer,
             )
@@ -296,14 +296,14 @@ class BinaryOperatorAgent(OperatorAgent):
             images = [item["image_url"]["url"] for item in message.content if item["type"] == "image_url"]
         return images
 
-    def _format_message_for_api(self, messages: list[AgentMessage]) -> List[dict]:
+    def _format_message_for_api(self, messages: list[AgentMessage]) -> List[ChatMessageModel]:
         """Format operator agent messages into the Khoj conversation history format."""
         formatted_messages = [
-            {
-                "message": self._get_message_text(message),
-                "images": self._get_message_images(message),
-                "by": "you" if message.role in ["user", "environment"] else message.role,
-            }
+            ChatMessageModel(
+                message=self._get_message_text(message),
+                images=self._get_message_images(message),
+                by="you" if message.role in ["user", "environment"] else message.role,
+            )
             for message in messages
         ]
         return formatted_messages

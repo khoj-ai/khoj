@@ -6,7 +6,7 @@ from typing import AsyncGenerator, Dict, List, Optional
 import pyjson5
 from langchain_core.messages.chat import ChatMessage
 
-from khoj.database.models import Agent, ChatModel, KhojUser
+from khoj.database.models import Agent, ChatMessageModel, ChatModel, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.anthropic.utils import (
     anthropic_chat_completion_with_backoff,
@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 def extract_questions_anthropic(
     text,
     model: Optional[str] = "claude-3-7-sonnet-latest",
-    conversation_log={},
+    chat_history: List[ChatMessageModel] = [],
     api_key=None,
     api_base_url=None,
     location_data: LocationData = None,
@@ -54,8 +54,8 @@ def extract_questions_anthropic(
     location = f"{location_data}" if location_data else "Unknown"
     username = prompts.user_name.format(name=user.get_full_name()) if user and user.get_full_name() else ""
 
-    # Extract Past User Message and Inferred Questions from Conversation Log
-    chat_history = construct_question_history(conversation_log, query_prefix="User", agent_name="Assistant")
+    # Extract Past User Message and Inferred Questions from Chat History
+    chat_history_str = construct_question_history(chat_history, query_prefix="User", agent_name="Assistant")
 
     # Get dates relative to today for prompt creation
     today = datetime.today()
@@ -76,7 +76,7 @@ def extract_questions_anthropic(
     )
 
     prompt = prompts.extract_questions_anthropic_user_message.format(
-        chat_history=chat_history,
+        chat_history=chat_history_str,
         text=text,
     )
 
@@ -142,7 +142,7 @@ async def converse_anthropic(
     online_results: Optional[Dict[str, Dict]] = None,
     code_results: Optional[Dict[str, Dict]] = None,
     operator_results: Optional[List[OperatorRun]] = None,
-    conversation_log={},
+    chat_history: List[ChatMessageModel] = [],
     model: Optional[str] = "claude-3-7-sonnet-latest",
     api_key: Optional[str] = None,
     api_base_url: Optional[str] = None,
@@ -225,7 +225,7 @@ async def converse_anthropic(
     messages = generate_chatml_messages_with_context(
         user_query,
         context_message=context_message,
-        conversation_log=conversation_log,
+        chat_history=chat_history,
         model_name=model,
         max_prompt_size=max_prompt_size,
         tokenizer_name=tokenizer_name,

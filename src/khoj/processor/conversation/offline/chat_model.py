@@ -10,7 +10,7 @@ import pyjson5
 from langchain_core.messages.chat import ChatMessage
 from llama_cpp import Llama
 
-from khoj.database.models import Agent, ChatModel, KhojUser
+from khoj.database.models import Agent, ChatMessageModel, ChatModel, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.utils import download_model
 from khoj.processor.conversation.utils import (
@@ -38,7 +38,7 @@ def extract_questions_offline(
     text: str,
     model: str = "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
     loaded_model: Union[Any, None] = None,
-    conversation_log={},
+    chat_history: List[ChatMessageModel] = [],
     use_history: bool = True,
     should_extract_questions: bool = True,
     location_data: LocationData = None,
@@ -65,7 +65,7 @@ def extract_questions_offline(
     username = prompts.user_name.format(name=user.get_full_name()) if user and user.get_full_name() else ""
 
     # Extract Past User Message and Inferred Questions from Conversation Log
-    chat_history = construct_question_history(conversation_log, include_query=False) if use_history else ""
+    chat_history_str = construct_question_history(chat_history, include_query=False) if use_history else ""
 
     # Get dates relative to today for prompt creation
     today = datetime.today()
@@ -73,7 +73,7 @@ def extract_questions_offline(
     last_year = today.year - 1
     example_questions = prompts.extract_questions_offline.format(
         query=text,
-        chat_history=chat_history,
+        chat_history=chat_history_str,
         current_date=today.strftime("%Y-%m-%d"),
         day_of_week=today.strftime("%A"),
         current_month=today.strftime("%Y-%m"),
@@ -147,7 +147,7 @@ async def converse_offline(
     references: list[dict] = [],
     online_results={},
     code_results={},
-    conversation_log={},
+    chat_history: list[ChatMessageModel] = [],
     model_name: str = "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
     loaded_model: Union[Any, None] = None,
     completion_func=None,
@@ -227,7 +227,7 @@ async def converse_offline(
     messages = generate_chatml_messages_with_context(
         user_query,
         system_prompt,
-        conversation_log,
+        chat_history,
         context_message=context_message,
         model_name=model_name,
         loaded_model=offline_chat_model,

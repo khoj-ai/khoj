@@ -55,6 +55,7 @@ from khoj.database.adapters import (
 )
 from khoj.database.models import (
     Agent,
+    ChatMessageModel,
     ChatModel,
     ClientApplication,
     Conversation,
@@ -285,7 +286,7 @@ async def acreate_title_from_history(
     """
     Create a title from the given conversation history
     """
-    chat_history = construct_chat_history(conversation.conversation_log)
+    chat_history = construct_chat_history(conversation.messages)
 
     title_generation_prompt = prompts.conversation_title_generation.format(chat_history=chat_history)
 
@@ -345,7 +346,7 @@ async def acheck_if_safe_prompt(system_prompt: str, user: KhojUser = None, lax: 
 
 async def aget_data_sources_and_output_format(
     query: str,
-    conversation_history: dict,
+    chat_history: list[ChatMessageModel],
     is_task: bool,
     user: KhojUser,
     query_images: List[str] = None,
@@ -386,7 +387,7 @@ async def aget_data_sources_and_output_format(
         if len(agent_outputs) == 0 or output.value in agent_outputs:
             output_options_str += f'- "{output.value}": "{description}"\n'
 
-    chat_history = construct_chat_history(conversation_history, n=6)
+    chat_history_str = construct_chat_history(chat_history, n=6)
 
     if query_images:
         query = f"[placeholder for {len(query_images)} user attached images]\n{query}"
@@ -399,7 +400,7 @@ async def aget_data_sources_and_output_format(
         query=query,
         sources=source_options_str,
         outputs=output_options_str,
-        chat_history=chat_history,
+        chat_history=chat_history_str,
         personality_context=personality_context,
     )
 
@@ -462,7 +463,7 @@ async def aget_data_sources_and_output_format(
 async def infer_webpage_urls(
     q: str,
     max_webpages: int,
-    conversation_history: dict,
+    chat_history: List[ChatMessageModel],
     location_data: LocationData,
     user: KhojUser,
     query_images: List[str] = None,
@@ -475,7 +476,7 @@ async def infer_webpage_urls(
     """
     location = f"{location_data}" if location_data else "Unknown"
     username = prompts.user_name.format(name=user.get_full_name()) if user.get_full_name() else ""
-    chat_history = construct_chat_history(conversation_history)
+    chat_history_str = construct_chat_history(chat_history)
 
     utc_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     personality_context = (
@@ -485,7 +486,7 @@ async def infer_webpage_urls(
     online_queries_prompt = prompts.infer_webpages_to_read.format(
         query=q,
         max_webpages=max_webpages,
-        chat_history=chat_history,
+        chat_history=chat_history_str,
         current_date=utc_date,
         location=location,
         username=username,
@@ -526,7 +527,7 @@ async def infer_webpage_urls(
 
 async def generate_online_subqueries(
     q: str,
-    conversation_history: dict,
+    chat_history: List[ChatMessageModel],
     location_data: LocationData,
     user: KhojUser,
     query_images: List[str] = None,
@@ -540,7 +541,7 @@ async def generate_online_subqueries(
     """
     location = f"{location_data}" if location_data else "Unknown"
     username = prompts.user_name.format(name=user.get_full_name()) if user.get_full_name() else ""
-    chat_history = construct_chat_history(conversation_history)
+    chat_history_str = construct_chat_history(chat_history)
 
     utc_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     personality_context = (
@@ -549,7 +550,7 @@ async def generate_online_subqueries(
 
     online_queries_prompt = prompts.online_search_conversation_subqueries.format(
         query=q,
-        chat_history=chat_history,
+        chat_history=chat_history_str,
         max_queries=max_queries,
         current_date=utc_date,
         location=location,
@@ -591,16 +592,16 @@ async def generate_online_subqueries(
 
 
 def schedule_query(
-    q: str, conversation_history: dict, user: KhojUser, query_images: List[str] = None, tracer: dict = {}
+    q: str, chat_history: List[ChatMessageModel], user: KhojUser, query_images: List[str] = None, tracer: dict = {}
 ) -> Tuple[str, str, str]:
     """
     Schedule the date, time to run the query. Assume the server timezone is UTC.
     """
-    chat_history = construct_chat_history(conversation_history)
+    chat_history_str = construct_chat_history(chat_history)
 
     crontime_prompt = prompts.crontime_prompt.format(
         query=q,
-        chat_history=chat_history,
+        chat_history=chat_history_str,
     )
 
     raw_response = send_message_to_model_wrapper_sync(
@@ -619,16 +620,16 @@ def schedule_query(
 
 
 async def aschedule_query(
-    q: str, conversation_history: dict, user: KhojUser, query_images: List[str] = None, tracer: dict = {}
+    q: str, chat_history: List[ChatMessageModel], user: KhojUser, query_images: List[str] = None, tracer: dict = {}
 ) -> Tuple[str, str, str]:
     """
     Schedule the date, time to run the query. Assume the server timezone is UTC.
     """
-    chat_history = construct_chat_history(conversation_history)
+    chat_history_str = construct_chat_history(chat_history)
 
     crontime_prompt = prompts.crontime_prompt.format(
         query=q,
-        chat_history=chat_history,
+        chat_history=chat_history_str,
     )
 
     raw_response = await send_message_to_model_wrapper(
@@ -681,7 +682,7 @@ async def extract_relevant_info(
 async def extract_relevant_summary(
     q: str,
     corpus: str,
-    conversation_history: dict,
+    chat_history: List[ChatMessageModel] = [],
     query_images: List[str] = None,
     user: KhojUser = None,
     agent: Agent = None,
@@ -698,11 +699,11 @@ async def extract_relevant_summary(
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
     )
 
-    chat_history = construct_chat_history(conversation_history)
+    chat_history_str = construct_chat_history(chat_history)
 
     extract_relevant_information = prompts.extract_relevant_summary.format(
         query=q,
-        chat_history=chat_history,
+        chat_history=chat_history_str,
         corpus=corpus.strip(),
         personality_context=personality_context,
     )
@@ -725,7 +726,7 @@ async def generate_summary_from_files(
     q: str,
     user: KhojUser,
     file_filters: List[str],
-    meta_log: dict,
+    chat_history: List[ChatMessageModel] = [],
     query_images: List[str] = None,
     agent: Agent = None,
     send_status_func: Optional[Callable] = None,
@@ -766,7 +767,7 @@ async def generate_summary_from_files(
         response = await extract_relevant_summary(
             q,
             contextual_data,
-            conversation_history=meta_log,
+            chat_history=chat_history,
             query_images=query_images,
             user=user,
             agent=agent,
@@ -782,7 +783,7 @@ async def generate_summary_from_files(
 
 async def generate_excalidraw_diagram(
     q: str,
-    conversation_history: Dict[str, Any],
+    chat_history: List[ChatMessageModel],
     location_data: LocationData,
     note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
@@ -799,7 +800,7 @@ async def generate_excalidraw_diagram(
 
     better_diagram_description_prompt = await generate_better_diagram_description(
         q=q,
-        conversation_history=conversation_history,
+        chat_history=chat_history,
         location_data=location_data,
         note_references=note_references,
         online_results=online_results,
@@ -834,7 +835,7 @@ async def generate_excalidraw_diagram(
 
 async def generate_better_diagram_description(
     q: str,
-    conversation_history: Dict[str, Any],
+    chat_history: List[ChatMessageModel],
     location_data: LocationData,
     note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
@@ -857,7 +858,7 @@ async def generate_better_diagram_description(
 
     user_references = "\n\n".join([f"# {item['compiled']}" for item in note_references])
 
-    chat_history = construct_chat_history(conversation_history)
+    chat_history_str = construct_chat_history(chat_history)
 
     simplified_online_results = {}
 
@@ -870,7 +871,7 @@ async def generate_better_diagram_description(
 
     improve_diagram_description_prompt = prompts.improve_excalidraw_diagram_description_prompt.format(
         query=q,
-        chat_history=chat_history,
+        chat_history=chat_history_str,
         location=location,
         current_date=today_date,
         references=user_references,
@@ -939,7 +940,7 @@ async def generate_excalidraw_diagram_from_description(
 
 async def generate_mermaidjs_diagram(
     q: str,
-    conversation_history: Dict[str, Any],
+    chat_history: List[ChatMessageModel],
     location_data: LocationData,
     note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
@@ -956,7 +957,7 @@ async def generate_mermaidjs_diagram(
 
     better_diagram_description_prompt = await generate_better_mermaidjs_diagram_description(
         q=q,
-        conversation_history=conversation_history,
+        chat_history=chat_history,
         location_data=location_data,
         note_references=note_references,
         online_results=online_results,
@@ -985,7 +986,7 @@ async def generate_mermaidjs_diagram(
 
 async def generate_better_mermaidjs_diagram_description(
     q: str,
-    conversation_history: Dict[str, Any],
+    chat_history: List[ChatMessageModel],
     location_data: LocationData,
     note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
@@ -1008,7 +1009,7 @@ async def generate_better_mermaidjs_diagram_description(
 
     user_references = "\n\n".join([f"# {item['compiled']}" for item in note_references])
 
-    chat_history = construct_chat_history(conversation_history)
+    chat_history_str = construct_chat_history(chat_history)
 
     simplified_online_results = {}
 
@@ -1021,7 +1022,7 @@ async def generate_better_mermaidjs_diagram_description(
 
     improve_diagram_description_prompt = prompts.improve_mermaid_js_diagram_description_prompt.format(
         query=q,
-        chat_history=chat_history,
+        chat_history=chat_history_str,
         location=location,
         current_date=today_date,
         references=user_references,
@@ -1160,7 +1161,7 @@ async def send_message_to_model_wrapper(
     query_images: List[str] = None,
     context: str = "",
     query_files: str = None,
-    conversation_log: dict = {},
+    chat_history: list[ChatMessageModel] = [],
     agent_chat_model: ChatModel = None,
     tracer: dict = {},
 ):
@@ -1193,7 +1194,7 @@ async def send_message_to_model_wrapper(
         user_message=query,
         context_message=context,
         system_message=system_message,
-        conversation_log=conversation_log,
+        chat_history=chat_history,
         model_name=chat_model_name,
         loaded_model=loaded_model,
         tokenizer_name=tokenizer,
@@ -1260,7 +1261,7 @@ def send_message_to_model_wrapper_sync(
     user: KhojUser = None,
     query_images: List[str] = None,
     query_files: str = "",
-    conversation_log: dict = {},
+    chat_history: List[ChatMessageModel] = [],
     tracer: dict = {},
 ):
     chat_model: ChatModel = ConversationAdapters.get_default_chat_model(user)
@@ -1284,7 +1285,7 @@ def send_message_to_model_wrapper_sync(
     truncated_messages = generate_chatml_messages_with_context(
         user_message=message,
         system_message=system_message,
-        conversation_log=conversation_log,
+        chat_history=chat_history,
         model_name=chat_model_name,
         loaded_model=loaded_model,
         max_prompt_size=max_tokens,
@@ -1342,7 +1343,7 @@ def send_message_to_model_wrapper_sync(
 
 async def agenerate_chat_response(
     q: str,
-    meta_log: dict,
+    chat_history: List[ChatMessageModel],
     conversation: Conversation,
     compiled_references: List[Dict] = [],
     online_results: Dict[str, Dict] = {},
@@ -1379,7 +1380,7 @@ async def agenerate_chat_response(
             save_to_conversation_log,
             q,
             user=user,
-            meta_log=meta_log,
+            chat_history=chat_history,
             compiled_references=compiled_references,
             online_results=online_results,
             code_results=code_results,
@@ -1424,7 +1425,7 @@ async def agenerate_chat_response(
                 references=compiled_references,
                 online_results=online_results,
                 loaded_model=loaded_model,
-                conversation_log=meta_log,
+                chat_history=chat_history,
                 completion_func=partial_completion,
                 conversation_commands=conversation_commands,
                 model_name=chat_model.name,
@@ -1450,7 +1451,7 @@ async def agenerate_chat_response(
                 online_results=online_results,
                 code_results=code_results,
                 operator_results=operator_results,
-                conversation_log=meta_log,
+                chat_history=chat_history,
                 model=chat_model_name,
                 api_key=api_key,
                 api_base_url=openai_chat_config.api_base_url,
@@ -1480,7 +1481,7 @@ async def agenerate_chat_response(
                 online_results=online_results,
                 code_results=code_results,
                 operator_results=operator_results,
-                conversation_log=meta_log,
+                chat_history=chat_history,
                 model=chat_model.name,
                 api_key=api_key,
                 api_base_url=api_base_url,
@@ -1508,7 +1509,7 @@ async def agenerate_chat_response(
                 online_results=online_results,
                 code_results=code_results,
                 operator_results=operator_results,
-                conversation_log=meta_log,
+                chat_history=chat_history,
                 model=chat_model.name,
                 api_key=api_key,
                 api_base_url=api_base_url,
@@ -2005,11 +2006,11 @@ async def create_automation(
     timezone: str,
     user: KhojUser,
     calling_url: URL,
-    meta_log: dict = {},
+    chat_history: List[ChatMessageModel] = [],
     conversation_id: str = None,
     tracer: dict = {},
 ):
-    crontime, query_to_run, subject = await aschedule_query(q, meta_log, user, tracer=tracer)
+    crontime, query_to_run, subject = await aschedule_query(q, chat_history, user, tracer=tracer)
     job = await aschedule_automation(query_to_run, subject, crontime, timezone, q, user, calling_url, conversation_id)
     return job, crontime, query_to_run, subject
 

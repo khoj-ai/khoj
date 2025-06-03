@@ -6,6 +6,7 @@ from django.utils.timezone import make_aware
 
 from khoj.database.models import (
     AiModelApi,
+    ChatMessageModel,
     ChatModel,
     Conversation,
     KhojApiUser,
@@ -46,15 +47,15 @@ def get_chat_api_key(provider: ChatModel.ModelType = None):
 
 def generate_chat_history(message_list):
     # Generate conversation logs
-    conversation_log = {"chat": []}
+    chat_history: list[ChatMessageModel] = []
     for user_message, chat_response, context in message_list:
         message_to_log(
             user_message,
             chat_response,
             {"context": context, "intent": {"query": user_message, "inferred-queries": f'["{user_message}"]'}},
-            conversation_log=conversation_log.get("chat", []),
+            chat_history=chat_history,
         )
-    return conversation_log
+    return chat_history
 
 
 class UserFactory(factory.django.DjangoModelFactory):

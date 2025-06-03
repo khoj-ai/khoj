@@ -752,7 +752,7 @@ async def chat(
                                 q,
                                 chat_response="",
                                 user=user,
-                                meta_log=meta_log,
+                                chat_history=chat_history,
                                 compiled_references=compiled_references,
                                 online_results=online_results,
                                 code_results=code_results,
@@ -918,7 +918,7 @@ async def chat(
         if city or region or country or country_code:
             location = LocationData(city=city, region=region, country=country, country_code=country_code)
         user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        meta_log = conversation.conversation_log
+        chat_history = conversation.messages
 
         # If interrupt flag is set, wait for the previous turn to be saved before proceeding
         if interrupt_flag:
@@ -964,14 +964,14 @@ async def chat(
             operator_results = [OperatorRun(**iter_dict) for iter_dict in last_message.operatorContext or []]
             train_of_thought = [thought.model_dump() for thought in last_message.trainOfThought or []]
             # Drop the interrupted message from conversation history
-            meta_log["chat"].pop()
+            chat_history.pop()
             logger.info(f"Loaded interrupted partial context from conversation {conversation_id}.")
 
         if conversation_commands == [ConversationCommand.Default]:
             try:
                 chosen_io = await aget_data_sources_and_output_format(
                     q,
-                    meta_log,
+                    chat_history,
                     is_automated_task,
                     user=user,
                     query_images=uploaded_images,
@@ -1011,7 +1011,7 @@ async def chat(
                 user=user,
                 query=defiltered_query,
                 conversation_id=conversation_id,
-                conversation_history=meta_log,
+                conversation_history=conversation.messages,
                 previous_iterations=list(research_results),
                 query_images=uploaded_images,
                 agent=agent,
@@ -1078,7 +1078,7 @@ async def chat(
                     q=q,
                     user=user,
                     file_filters=file_filters,
-                    meta_log=meta_log,
+                    chat_history=conversation.messages,
                     query_images=uploaded_images,
                     agent=agent,
                     send_status_func=partial(send_event, ChatEvent.STATUS),
@@ -1123,7 +1123,7 @@ async def chat(
         if ConversationCommand.Automation in conversation_commands:
             try:
                 automation, crontime, query_to_run, subject = await create_automation(
-                    q, timezone, user, request.url, meta_log, tracer=tracer
+                    q, timezone, user, request.url, chat_history, tracer=tracer
                 )
             except Exception as e:
                 logger.error(f"Error scheduling task {q} for {user.email}: {e}")
@@ -1139,7 +1139,7 @@ async def chat(
                     q,
                     llm_response,
                     user,
-                    meta_log,
+                    chat_history,
                     user_message_time,
                     intent_type="automation",
                     client_application=request.user.client_app,
@@ -1163,7 +1163,7 @@ async def chat(
             try:
                 async for result in extract_references_and_questions(
                     user,
-                    meta_log,
+                    chat_history,
                     q,
                     (n or 7),
                     d,
@@ -1212,7 +1212,7 @@ async def chat(
             try:
                 async for result in search_online(
                     defiltered_query,
-                    meta_log,
+                    chat_history,
                     location,
                     user,
                     partial(send_event, ChatEvent.STATUS),
@@ -1240,7 +1240,7 @@ async def chat(
             try:
                 async for result in read_webpages(
                     defiltered_query,
-                    meta_log,
+                    chat_history,
                     location,
                     user,
                     partial(send_event, ChatEvent.STATUS),
@@ -1281,7 +1281,7 @@ async def chat(
                 context = f"# Iteration 1:\n#---\nNotes:\n{compiled_references}\n\nOnline Results:{online_results}"
                 async for result in run_code(
                     defiltered_query,
-                    meta_log,
+                    chat_history,
                     context,
                     location,
                     user,
@@ -1306,7 +1306,7 @@ async def chat(
                 async for result in operate_environment(
                     defiltered_query,
                     user,
-                    meta_log,
+                    chat_history,
                     location,
                     list(operator_results)[-1] if operator_results else None,
                     query_images=uploaded_images,
@@ -1356,7 +1356,7 @@ async def chat(
             async for result in text_to_image(
                 defiltered_query,
                 user,
-                meta_log,
+                chat_history,
                 location_data=location,
                 references=compiled_references,
                 online_results=online_results,
@@ -1400,7 +1400,7 @@ async def chat(
 
             async for result in generate_mermaidjs_diagram(
                 q=defiltered_query,
-                conversation_history=meta_log,
+                chat_history=chat_history,
                 location_data=location,
                 note_references=compiled_references,
                 online_results=online_results,
@@ -1456,7 +1456,7 @@ async def chat(
 
         llm_response, chat_metadata = await agenerate_chat_response(
             defiltered_query,
-            meta_log,
+            chat_history,
             conversation,
             compiled_references,
             online_results,

@@ -8,7 +8,7 @@ from langchain_core.messages.chat import ChatMessage
 from openai.lib._pydantic import _ensure_strict_json_schema
 from pydantic import BaseModel
 
-from khoj.database.models import Agent, ChatModel, KhojUser
+from khoj.database.models import Agent, ChatMessageModel, ChatModel, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.openai.utils import (
     chat_completion_with_backoff,
@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 def extract_questions(
     text,
     model: Optional[str] = "gpt-4o-mini",
-    conversation_log={},
+    chat_history: list[ChatMessageModel] = [],
     api_key=None,
     api_base_url=None,
     location_data: LocationData = None,
@@ -56,8 +56,8 @@ def extract_questions(
     location = f"{location_data}" if location_data else "Unknown"
     username = prompts.user_name.format(name=user.get_full_name()) if user and user.get_full_name() else ""
 
-    # Extract Past User Message and Inferred Questions from Conversation Log
-    chat_history = construct_question_history(conversation_log)
+    # Extract Past User Message and Inferred Questions from Chat History
+    chat_history_str = construct_question_history(chat_history)
 
     # Get dates relative to today for prompt creation
     today = datetime.today()
@@ -73,7 +73,7 @@ def extract_questions(
         current_new_year_date=current_new_year.strftime("%Y-%m-%d"),
         bob_tom_age_difference={current_new_year.year - 1984 - 30},
         bob_age={current_new_year.year - 1984},
-        chat_history=chat_history,
+        chat_history=chat_history_str,
         text=text,
         yesterday_date=(today - timedelta(days=1)).strftime("%Y-%m-%d"),
         location=location,
@@ -166,7 +166,7 @@ async def converse_openai(
     online_results: Optional[Dict[str, Dict]] = None,
     code_results: Optional[Dict[str, Dict]] = None,
     operator_results: Optional[List[OperatorRun]] = None,
-    conversation_log={},
+    chat_history: list[ChatMessageModel] = [],
     model: str = "gpt-4o-mini",
     api_key: Optional[str] = None,
     api_base_url: Optional[str] = None,
@@ -251,7 +251,7 @@ async def converse_openai(
     messages = generate_chatml_messages_with_context(
         user_query,
         system_prompt,
-        conversation_log,
+        chat_history,
         context_message=context_message,
         model_name=model,
         max_prompt_size=max_prompt_size,

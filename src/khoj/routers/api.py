@@ -29,7 +29,13 @@ from khoj.database.adapters import (
     get_default_search_model,
     get_user_photo,
 )
-from khoj.database.models import Agent, ChatModel, KhojUser, SpeechToTextModelOptions
+from khoj.database.models import (
+    Agent,
+    ChatMessageModel,
+    ChatModel,
+    KhojUser,
+    SpeechToTextModelOptions,
+)
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.anthropic.anthropic_chat import (
     extract_questions_anthropic,
@@ -353,7 +359,7 @@ def set_user_name(
 
 async def extract_references_and_questions(
     user: KhojUser,
-    meta_log: dict,
+    chat_history: list[ChatMessageModel],
     q: str,
     n: int,
     d: float,
@@ -432,7 +438,7 @@ async def extract_references_and_questions(
                 defiltered_query,
                 model=chat_model,
                 loaded_model=loaded_model,
-                conversation_log=meta_log,
+                chat_history=chat_history,
                 should_extract_questions=True,
                 location_data=location_data,
                 user=user,
@@ -450,7 +456,7 @@ async def extract_references_and_questions(
                 model=chat_model_name,
                 api_key=api_key,
                 api_base_url=base_url,
-                conversation_log=meta_log,
+                chat_history=chat_history,
                 location_data=location_data,
                 user=user,
                 query_images=query_images,
@@ -469,7 +475,7 @@ async def extract_references_and_questions(
                 model=chat_model_name,
                 api_key=api_key,
                 api_base_url=api_base_url,
-                conversation_log=meta_log,
+                chat_history=chat_history,
                 location_data=location_data,
                 user=user,
                 vision_enabled=vision_enabled,
@@ -487,7 +493,7 @@ async def extract_references_and_questions(
                 model=chat_model_name,
                 api_key=api_key,
                 api_base_url=api_base_url,
-                conversation_log=meta_log,
+                chat_history=chat_history,
                 location_data=location_data,
                 max_tokens=chat_model.max_prompt_size,
                 user=user,
@@ -606,7 +612,7 @@ def post_automation(
         return Response(content="Invalid crontime", status_code=400)
 
     # Infer subject, query to run
-    _, query_to_run, generated_subject = schedule_query(q, conversation_history={}, user=user)
+    _, query_to_run, generated_subject = schedule_query(q, chat_history=[], user=user)
     subject = subject or generated_subject
 
     # Normalize query parameters
@@ -712,7 +718,7 @@ def edit_job(
         return Response(content="Invalid automation", status_code=403)
 
     # Infer subject, query to run
-    _, query_to_run, _ = schedule_query(q, conversation_history={}, user=user)
+    _, query_to_run, _ = schedule_query(q, chat_history=[], user=user)
     subject = subject
 
     # Normalize query parameters

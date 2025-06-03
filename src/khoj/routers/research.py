@@ -10,7 +10,7 @@ import yaml
 from pydantic import BaseModel, Field
 
 from khoj.database.adapters import AgentAdapters, EntryAdapters
-from khoj.database.models import Agent, KhojUser
+from khoj.database.models import Agent, ChatMessageModel, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
     OperatorRun,
@@ -84,7 +84,7 @@ class PlanningResponse(BaseModel):
 
 async def apick_next_tool(
     query: str,
-    conversation_history: dict,
+    conversation_history: List[ChatMessageModel],
     user: KhojUser = None,
     location: LocationData = None,
     user_name: str = None,
@@ -166,18 +166,18 @@ async def apick_next_tool(
         query = f"[placeholder for user attached images]\n{query}"
 
     # Construct chat history with user and iteration history with researcher agent for context
-    previous_iterations_history = construct_iteration_history(previous_iterations, prompts.previous_iteration, query)
-    iteration_chat_log = {"chat": conversation_history.get("chat", []) + previous_iterations_history}
+    iteration_chat_history = construct_iteration_history(previous_iterations, prompts.previous_iteration, query)
+    chat_and_research_history = conversation_history + iteration_chat_history
 
     # Plan function execution for the next tool
-    query = prompts.plan_function_execution_next_tool.format(query=query) if previous_iterations_history else query
+    query = prompts.plan_function_execution_next_tool.format(query=query) if iteration_chat_history else query
 
     try:
         with timer("Chat actor: Infer information sources to refer", logger):
             response = await send_message_to_model_wrapper(
                 query=query,
                 system_message=function_planning_prompt,
-                conversation_log=iteration_chat_log,
+                chat_history=chat_and_research_history,
                 response_type="json_object",
                 response_schema=planning_response_model,
                 deepthought=True,
@@ -238,7 +238,7 @@ async def research(
     user: KhojUser,
     query: str,
     conversation_id: str,
-    conversation_history: dict,
+    conversation_history: List[ChatMessageModel],
     previous_iterations: List[ResearchIteration],
     query_images: List[str],
     agent: Agent = None,
@@ -261,9 +261,7 @@ async def research(
     if current_iteration := len(previous_iterations) > 0:
         logger.info(f"Continuing research with the previous {len(previous_iterations)} iteration results.")
         previous_iterations_history = construct_iteration_history(previous_iterations, prompts.previous_iteration)
-        research_conversation_history["chat"] = (
-            research_conversation_history.get("chat", []) + previous_iterations_history
-        )
+        research_conversation_history += previous_iterations_history
 
     while current_iteration < MAX_ITERATIONS:
         # Check for cancellation at the start of each iteration

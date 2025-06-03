@@ -28,7 +28,7 @@ def generate_history(message_list):
             user_message,
             gpt_message,
             {"context": context, "intent": {"query": user_message, "inferred-queries": f'["{user_message}"]'}},
-            conversation_log=conversation_log.get("chat", []),
+            chat_history=conversation_log.get("chat", []),
         )
     return conversation_log
 

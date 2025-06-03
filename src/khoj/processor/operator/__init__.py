@@ -5,10 +5,9 @@ import os
 from typing import Callable, List, Optional
 
 from khoj.database.adapters import AgentAdapters, ConversationAdapters
-from khoj.database.models import Agent, ChatModel, KhojUser
+from khoj.database.models import Agent, ChatMessageModel, ChatModel, KhojUser
 from khoj.processor.conversation.utils import (
     OperatorRun,
-    construct_chat_history,
     construct_chat_history_for_operator,
 )
 from khoj.processor.operator.operator_actions import *
@@ -34,7 +33,7 @@ logger = logging.getLogger(__name__)
 async def operate_environment(
     query: str,
     user: KhojUser,
-    conversation_log: dict,
+    conversation_log: List[ChatMessageModel],
     location_data: LocationData,
     previous_trajectory: Optional[OperatorRun] = None,
     environment_type: EnvironmentType = EnvironmentType.COMPUTER,

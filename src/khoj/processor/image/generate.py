@@ -10,7 +10,12 @@ from google import genai
 from google.genai import types as gtypes
 
 from khoj.database.adapters import ConversationAdapters
-from khoj.database.models import Agent, KhojUser, TextToImageModelConfig
+from khoj.database.models import (
+    Agent,
+    ChatMessageModel,
+    KhojUser,
+    TextToImageModelConfig,
+)
 from khoj.routers.helpers import ChatEvent, generate_better_image_prompt
 from khoj.routers.storage import upload_generated_image_to_bucket
 from khoj.utils import state
@@ -23,7 +28,7 @@ logger = logging.getLogger(__name__)
 async def text_to_image(
     message: str,
     user: KhojUser,
-    conversation_log: dict,
+    chat_history: List[ChatMessageModel],
     location_data: LocationData,
     references: List[Dict[str, Any]],
     online_results: Dict[str, Any],
@@ -46,14 +51,14 @@ async def text_to_image(
         return
 
     text2image_model = text_to_image_config.model_name
-    chat_history = ""
-    for chat in conversation_log.get("chat", [])[-4:]:
-        if chat["by"] == "khoj" and chat["intent"].get("type") in ["remember", "reminder"]:
-            chat_history += f"Q: {chat['intent']['query']}\n"
-            chat_history += f"A: {chat['message']}\n"
-        elif chat["by"] == "khoj" and chat.get("images"):
-            chat_history += f"Q: {chat['intent']['query']}\n"
-            chat_history += f"A: Improved Prompt: {chat['intent']['inferred-queries'][0]}\n"
+    chat_history_str = ""
+    for chat in chat_history[-4:]:
+        if chat.by == "khoj" and chat.intent and chat.intent.type in ["remember", "reminder"]:
+            chat_history_str += f"Q: {chat.intent.query or ''}\n"
+            chat_history_str += f"A: {chat.message}\n"
+        elif chat.by == "khoj" and chat.images:
+            chat_history_str += f"Q: {chat.intent.query}\n"
+            chat_history_str += f"A: Improved Prompt: {chat.intent.inferred_queries[0]}\n"
 
     if send_status_func:
         async for event in send_status_func("**Enhancing the Painting Prompt**"):
@@ -63,7 +68,7 @@ async def text_to_image(
     # Use the user's message, chat history, and other context
     image_prompt = await generate_better_image_prompt(
         message,
-        chat_history,
+        chat_history_str,
         location_data=location_data,
         note_references=references,
         online_results=online_results,

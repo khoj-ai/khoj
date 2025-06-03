@@ -20,7 +20,7 @@ from tenacity import (
 )
 
 from khoj.database.adapters import FileObjectAdapters
-from khoj.database.models import Agent, FileObject, KhojUser
+from khoj.database.models import Agent, ChatMessageModel, FileObject, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
     ChatEvent,
@@ -50,7 +50,7 @@ class GeneratedCode(NamedTuple):
 
 async def run_code(
     query: str,
-    conversation_history: dict,
+    conversation_history: List[ChatMessageModel],
     context: str,
     location_data: LocationData,
     user: KhojUser,
@@ -116,7 +116,7 @@ async def run_code(
 
 async def generate_python_code(
     q: str,
-    conversation_history: dict,
+    chat_history: List[ChatMessageModel],
     context: str,
     location_data: LocationData,
     user: KhojUser,
@@ -127,7 +127,7 @@ async def generate_python_code(
 ) -> GeneratedCode:
     location = f"{location_data}" if location_data else "Unknown"
     username = prompts.user_name.format(name=user.get_full_name()) if user.get_full_name() else ""
-    chat_history = construct_chat_history(conversation_history)
+    chat_history_str = construct_chat_history(chat_history)
 
     utc_date = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
     personality_context = (
@@ -143,7 +143,7 @@ async def generate_python_code(
 
     code_generation_prompt = prompts.python_code_generation_prompt.format(
         query=q,
-        chat_history=chat_history,
+        chat_history=chat_history_str,
         context=context,
         has_network_access=network_access_context,
         current_date=utc_date,

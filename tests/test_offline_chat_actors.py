@@ -135,7 +135,7 @@ def test_generate_search_query_using_question_from_chat_history(loaded_model):
     # Act
     response = extract_questions_offline(
         query,
-        conversation_log=generate_chat_history(message_list),
+        chat_history=generate_chat_history(message_list),
         loaded_model=loaded_model,
         use_history=True,
     )
@@ -181,7 +181,7 @@ def test_generate_search_query_using_answer_from_chat_history(loaded_model):
     # Act
     response = extract_questions_offline(
         "Is she a Doctor?",
-        conversation_log=generate_chat_history(message_list),
+        chat_history=generate_chat_history(message_list),
         loaded_model=loaded_model,
         use_history=True,
     )
@@ -210,7 +210,7 @@ def test_generate_search_query_with_date_and_context_from_chat_history(loaded_mo
     # Act
     response = extract_questions_offline(
         "What was the Pizza place we ate at over there?",
-        conversation_log=generate_chat_history(message_list),
+        chat_history=generate_chat_history(message_list),
         loaded_model=loaded_model,
     )
 
@@ -336,7 +336,7 @@ def test_answer_from_chat_history_and_previously_retrieved_content(loaded_model)
     response_gen = converse_offline(
         references=[],  # Assume no context retrieved from notes for the user_query
         user_query="Where was I born?",
-        conversation_log=generate_chat_history(message_list),
+        chat_history=generate_chat_history(message_list),
         loaded_model=loaded_model,
     )
     response = "".join([response_chunk for response_chunk in response_gen])
@@ -363,7 +363,7 @@ def test_answer_from_chat_history_and_currently_retrieved_content(loaded_model):
             {"compiled": "Testatron was born on 1st April 1984 in Testville."}
         ],  # Assume context retrieved from notes for the user_query
         user_query="Where was I born?",
-        conversation_log=generate_chat_history(message_list),
+        chat_history=generate_chat_history(message_list),
         loaded_model=loaded_model,
     )
     response = "".join([response_chunk for response_chunk in response_gen])
@@ -388,7 +388,7 @@ def test_refuse_answering_unanswerable_question(loaded_model):
     response_gen = converse_offline(
         references=[],  # Assume no context retrieved from notes for the user_query
         user_query="Where was I born?",
-        conversation_log=generate_chat_history(message_list),
+        chat_history=generate_chat_history(message_list),
         loaded_model=loaded_model,
     )
     response = "".join([response_chunk for response_chunk in response_gen])
@@ -501,7 +501,7 @@ def test_answer_general_question_not_in_chat_history_or_retrieved_content(loaded
     response_gen = converse_offline(
         references=[],  # Assume no context retrieved from notes for the user_query
         user_query="Write a haiku about unit testing in 3 lines",
-        conversation_log=generate_chat_history(message_list),
+        chat_history=generate_chat_history(message_list),
         loaded_model=loaded_model,
     )
     response = "".join([response_chunk for response_chunk in response_gen])

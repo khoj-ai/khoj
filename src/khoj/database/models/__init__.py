@@ -91,7 +91,7 @@ class OnlineContext(PydanticBaseModel):
 class Intent(PydanticBaseModel):
     type: str
     query: str
-    memory_type: str = Field(alias="memory-type")
+    memory_type: Optional[str] = Field(alias="memory-type", default=None)
     inferred_queries: Optional[List[str]] = Field(default=None, alias="inferred-queries")
 
 
@@ -100,20 +100,20 @@ class TrainOfThought(PydanticBaseModel):
     data: str
 
 
-class ChatMessage(PydanticBaseModel):
-    message: str
+class ChatMessageModel(PydanticBaseModel):
+    by: str
+    message: str | list[dict]
     trainOfThought: List[TrainOfThought] = []
     context: List[Context] = []
     onlineContext: Dict[str, OnlineContext] = {}
     codeContext: Dict[str, CodeContextData] = {}
     researchContext: Optional[List] = None
     operatorContext: Optional[List] = None
-    created: str
+    created: Optional[str] = None
     images: Optional[List[str]] = None
     queryFiles: Optional[List[Dict]] = None
     excalidrawDiagram: Optional[List[Dict]] = None
-    mermaidjsDiagram: str = None
-    by: str
+    mermaidjsDiagram: Optional[str] = None
     turnId: Optional[str] = None
     intent: Optional[Intent] = None
     automationId: Optional[str] = None
@@ -634,7 +634,7 @@ class Conversation(DbBaseModel):
         try:
             messages = self.conversation_log.get("chat", [])
             for msg in messages:
-                ChatMessage.model_validate(msg)
+                ChatMessageModel.model_validate(msg)
         except Exception as e:
             raise ValidationError(f"Invalid conversation_log format: {str(e)}")
 
@@ -643,7 +643,7 @@ class Conversation(DbBaseModel):
         super().save(*args, **kwargs)
 
     @property
-    def messages(self) -> List[ChatMessage]:
+    def messages(self) -> List[ChatMessageModel]:
         """Type-hinted accessor for conversation messages"""
         validated_messages = []
         for msg in self.conversation_log.get("chat", []):
@@ -654,7 +654,7 @@ class Conversation(DbBaseModel):
                         q for q in msg["intent"]["inferred-queries"] if q is not None and isinstance(q, str)
                     ]
                 msg["message"] = str(msg.get("message", ""))
-                validated_messages.append(ChatMessage.model_validate(msg))
+                validated_messages.append(ChatMessageModel.model_validate(msg))
             except ValidationError as e:
                 logger.warning(f"Skipping invalid message in conversation: {e}")
                 continue

@@ -37,6 +37,7 @@ from torch import Tensor
 from khoj.database.models import (
     Agent,
     AiModelApi,
+    ChatMessageModel,
     ChatModel,
     ClientApplication,
     Conversation,
@@ -1419,7 +1420,7 @@ class ConversationAdapters:
     @require_valid_user
     async def save_conversation(
         user: KhojUser,
-        conversation_log: dict,
+        chat_history: List[ChatMessageModel],
         client_application: ClientApplication = None,
         conversation_id: str = None,
         user_message: str = None,
@@ -1434,6 +1435,7 @@ class ConversationAdapters:
                 await Conversation.objects.filter(user=user, client=client_application).order_by("-updated_at").afirst()
             )
 
+        conversation_log = {"chat": [msg.model_dump() for msg in chat_history]}
         cleaned_conversation_log = clean_object_for_db(conversation_log)
         if conversation:
             conversation.conversation_log = cleaned_conversation_log
