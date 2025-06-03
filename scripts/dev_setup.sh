@@ -4,26 +4,47 @@ PROJECT_ROOT=$(git rev-parse --show-toplevel)
 
 # Default to minimal installation unless --full flag passed
 INSTALL_FULL=false
+DEVCONTAINER=false
 for arg in "$@"
 do
     if [ "$arg" == "--full" ]
     then
         INSTALL_FULL=true
     fi
+    if [ "$arg" == "--devcontainer" ]
+    then
+        DEVCONTAINER=true
+    fi
 done
 
-# Install Server App
-# ---
-echo "Installing Server App..."
-cd $PROJECT_ROOT
-# pip install --user pipenv && pipenv install -e '.[dev]' --skip-lock && pipenv shell
-python3 -m venv .venv && . .venv/bin/activate && python3 -m pip install -e '.[dev]'
+if [ "$DEVCONTAINER" = true ]; then
+    echo "Dev container setup - using pre-installed dependencies..."
+    cd "$PROJECT_ROOT"
 
-# Install Web App
-# ---
-echo "Installing Web App..."
-cd $PROJECT_ROOT/src/interface/web
-yarn install && yarn export
+    # Use devcontainer launch.json
+    mkdir -p .vscode && cp .devcontainer/launch.json .vscode/launch.json
+
+    # Activate the pre-installed venv (no need to create new one)
+    echo "Using Python environment at /opt/venv"
+    # PATH should already include /opt/venv/bin from Dockerfile
+
+    # Install khoj in editable mode (dependencies already installed)
+    python3 -m pip install -e '.[dev]'
+
+    # Install Web App using cached dependencies
+    echo "Installing Web App using cached dependencies..."
+    cd "$PROJECT_ROOT/src/interface/web"
+    yarn install --cache-folder /opt/yarn-cache && yarn export
+else
+    # Standard setup
+    echo "Installing Server App..."
+    cd "$PROJECT_ROOT"
+    python3 -m venv .venv && . .venv/bin/activate && python3 -m pip install -e '.[dev]'
+
+    echo "Installing Web App..."
+    cd "$PROJECT_ROOT/src/interface/web"
+    yarn install && yarn export
+fi
 
 # Install Obsidian App
 # ---

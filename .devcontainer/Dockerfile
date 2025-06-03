@@ -10,9 +10,9 @@ WORKDIR /workspace
 
 # --- Python Server App Dependencies ---
 # Create Python virtual environment
-RUN python3 -m venv .venv
+RUN python3 -m venv /opt/venv
 # Add venv to PATH for subsequent RUN commands and for the container environment
-ENV PATH="/workspace/.venv/bin:${PATH}"
+ENV PATH="/opt/venv/bin:${PATH}"
 
 # Copy files required for Python dependency installation.
 COPY pyproject.toml README.md ./
@@ -30,11 +30,11 @@ RUN sed -i "s/dynamic = \\[\"version\"\\]/version = \"$VERSION\"/" pyproject.tom
 
 # --- Web App Dependencies ---
 # Copy web app manifest files
-COPY src/interface/web/package.json src/interface/web/yarn.lock ./src/interface/web/
+COPY src/interface/web/package.json src/interface/web/yarn.lock /tmp/web/
 
 # Install web app dependencies
 # note: yarn will be available from the "features" in devcontainer.json
-RUN yarn install --cwd ./src/interface/web
+RUN yarn install --cwd /tmp/web --cache-folder /opt/yarn-cache
 
 # The .venv and node_modules are now populated in the image.
 # The rest of the source code will be mounted by VS Code from your local checkout,
