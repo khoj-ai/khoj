@@ -198,6 +198,8 @@ async def apick_next_tool(
 
     try:
         response = load_complex_json(response)
+        if not isinstance(response, dict):
+            raise ValueError(f"Expected dict response, got {type(response).__name__}: {response}")
         selected_tool = response.get("tool", None)
         generated_query = response.get("query", None)
         scratchpad = response.get("scratchpad", None)
