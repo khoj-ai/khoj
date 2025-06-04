@@ -117,7 +117,7 @@ def extract_questions_anthropic(
 
 
 def anthropic_send_message_to_model(
-    messages, api_key, api_base_url, model, response_type="text", deepthought=False, tracer={}
+    messages, api_key, api_base_url, model, response_type="text", response_schema=None, deepthought=False, tracer={}
 ):
     """
     Send message to model
@@ -130,6 +130,7 @@ def anthropic_send_message_to_model(
         api_key=api_key,
         api_base_url=api_base_url,
         response_type=response_type,
+        response_schema=response_schema,
         deepthought=deepthought,
         tracer=tracer,
     )
