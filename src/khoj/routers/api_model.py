@@ -104,7 +104,7 @@ async def update_voice_model(
     subscribed = has_required_scope(request, ["premium"])
 
     # Validate if model can be switched
-    voice_model = await VoiceModelOption.objects.filter(id=int(id)).afirst()
+    voice_model = await VoiceModelOption.objects.filter(model_id=id).afirst()
     if voice_model is None:
         return Response(status_code=404, content=json.dumps({"status": "error", "message": "Voice model not found"}))
     if not subscribed and voice_model.price_tier != PriceTier.FREE:
