@@ -833,3 +833,26 @@ def normalize_email(email: str, check_deliverability=False) -> tuple[str, bool]:
         return valid_email.normalized, True
     except (EmailNotValidError, EmailUndeliverableError):
         return lower_email, False
+
+
+def clean_text_for_db(text):
+    """Remove characters that PostgreSQL DB cannot store in text fields.
+
+    PostgreSQL text fields cannot contain NUL (0x00) characters.
+    This is a database-level constraint.
+    """
+    if not isinstance(text, str):
+        return text
+    return text.replace("\x00", "")
+
+
+def clean_object_for_db(data):
+    """Recursively clean PostgreSQL-incompatible characters from nested data structures."""
+    if isinstance(data, str):
+        return clean_text_for_db(data)
+    elif isinstance(data, dict):
+        return {k: clean_object_for_db(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [clean_object_for_db(item) for item in data]
+    else:
+        return data

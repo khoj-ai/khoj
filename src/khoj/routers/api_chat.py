@@ -71,6 +71,7 @@ from khoj.routers.storage import upload_user_image_to_bucket
 from khoj.utils import state
 from khoj.utils.helpers import (
     ConversationCommand,
+    clean_text_for_db,
     command_descriptions,
     convert_image_to_webp,
     get_country_code_from_timezone,
@@ -631,7 +632,7 @@ async def generate_chat_title(
         raise HTTPException(status_code=404, detail="Conversation not found")
 
     new_title = await acreate_title_from_history(request.user.object, conversation=conversation)
-    conversation.slug = new_title[:200]
+    conversation.slug = clean_text_for_db(new_title[:200])
 
     await conversation.asave()
 
