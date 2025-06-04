@@ -158,7 +158,8 @@ button.codeCopyButton:hover {
 
 div.feedbackButtons img,
 button.codeCopyButton img,
-button.copyButton img {
+button.copyButton img,
+button.retryButton img {
     width: 24px;
 }
 

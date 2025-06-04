@@ -32,6 +32,7 @@ import {
     Trash,
     Toolbox,
     Browser,
+    ArrowClockwise,
 } from "@phosphor-icons/react";
 
 import DOMPurify from "dompurify";
@@ -273,6 +274,7 @@ interface ChatMessageProps {
     isLastMessage?: boolean;
     agent?: AgentData;
     onDeleteMessage: (turnId?: string) => void;
+    onRetryMessage?: (query: string, turnId?: string) => void;
     conversationId: string;
     turnId?: string;
     generatedImage?: string;
@@ -811,6 +813,38 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                                     <Trash
                                         alt="Delete Message"
                                         className="hsl(var(--muted-foreground)) hover:text-red-500"
+                                    />
+                                </button>
+                            )}
+                            {props.chatMessage.by === "khoj" && props.onRetryMessage && props.isLastMessage && (
+                                <button
+                                    title="Retry"
+                                    className={`${styles.retryButton}`}
+                                    onClick={() => {
+                                        const turnId = props.chatMessage.turnId || props.turnId;
+                                        const query = props.chatMessage.rawQuery || props.chatMessage.intent?.query;
+                                        console.log("Retry button clicked for turnId:", turnId);
+                                        console.log("ChatMessage data:", {
+                                            rawQuery: props.chatMessage.rawQuery,
+                                            intent: props.chatMessage.intent,
+                                            message: props.chatMessage.message
+                                        });
+                                        console.log("Extracted query:", query);
+                                        if (query) {
+                                            props.onRetryMessage?.(query, turnId);
+                                        } else {
+                                            console.error("No original query found for retry");
+                                            // Fallback: try to get from a previous user message or show an input dialog
+                                            const fallbackQuery = prompt("Enter the original query to retry:");
+                                            if (fallbackQuery) {
+                                                props.onRetryMessage?.(fallbackQuery, turnId);
+                                            }
+                                        }
+                                    }}
+                                >
+                                    <ArrowClockwise
+                                        alt="Retry Message"
+                                        className="hsl(var(--muted-foreground)) hover:text-blue-500"
                                     />
                                 </button>
                             )}

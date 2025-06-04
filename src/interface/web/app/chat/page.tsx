@@ -50,6 +50,7 @@ interface ChatBodyDataProps {
     setIsChatSideBarOpen: (open: boolean) => void;
     isActive?: boolean;
     isParentProcessing?: boolean;
+    onRetryMessage?: (query: string, turnId?: string) => void;
 }
 
 function ChatBodyData(props: ChatBodyDataProps) {
@@ -157,6 +158,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         setIncomingMessages={props.setStreamedMessages}
                         customClassName={chatHistoryCustomClassName}
                         setIsChatSideBarOpen={props.setIsChatSideBarOpen}
+                        onRetryMessage={props.onRetryMessage}
                     />
                 </div>
                 <div
@@ -422,6 +424,36 @@ export default function Chat() {
         setConversationID(newConversationId);
     };
 
+    const handleRetryMessage = (query: string, turnId?: string) => {
+        if (!query) {
+            console.warn("No query provided for retry");
+            return;
+        }
+
+        // If we have a turnId, delete the old turn first
+        if (turnId) {
+            // Delete from streaming messages if present
+            setMessages((prevMessages) => prevMessages.filter((msg) => msg.turnId !== turnId));
+
+            // Also call the delete API to remove from conversation history
+            fetch("/api/chat/conversation/message", {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    conversation_id: conversationId,
+                    turn_id: turnId,
+                }),
+            }).catch((error) => {
+                console.error("Failed to delete message for retry:", error);
+            });
+        }
+
+        // Re-send the original query
+        setQueryToProcess(query);
+    };
+
     if (isLoading) return <Loading />;
 
     return (
@@ -491,6 +523,7 @@ export default function Chat() {
                                     setIsChatSideBarOpen={setIsChatSideBarOpen}
                                     isActive={authenticatedData?.is_active}
                                     isParentProcessing={processQuerySignal}
+                                    onRetryMessage={handleRetryMessage}
                                 />
                             </Suspense>
                         </div>

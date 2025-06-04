@@ -41,6 +41,7 @@ interface ChatHistoryProps {
     customClassName?: string;
     setIsChatSideBarOpen?: (isOpen: boolean) => void;
     setIsOwner?: (isOwner: boolean) => void;
+    onRetryMessage?: (query: string, turnId?: string) => void;
 }
 
 interface TrainOfThoughtFrame {
@@ -508,6 +509,18 @@ export default function ChatHistory(props: ChatHistoryProps) {
         }
     };
 
+    const handleRetryMessage = (query: string, turnId?: string) => {
+        if (!query) return;
+
+        // Delete the message from local state first
+        if (turnId) {
+            handleDeleteMessage(turnId);
+        }
+
+        // Then trigger the retry
+        props.onRetryMessage?.(query, turnId);
+    };
+
     if (!props.conversationId && !props.publicConversationSlug) {
         return null;
     }
@@ -561,6 +574,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                     borderLeftColor={`${data?.agent?.color}-500`}
                                     isLastMessage={index === data.chat.length - 1}
                                     onDeleteMessage={handleDeleteMessage}
+                                    onRetryMessage={handleRetryMessage}
                                     conversationId={props.conversationId}
                                 />
                             </React.Fragment>
@@ -589,6 +603,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         customClassName="fullHistory"
                                         borderLeftColor={`${data?.agent?.color}-500`}
                                         onDeleteMessage={handleDeleteMessage}
+                                        onRetryMessage={handleRetryMessage}
                                         conversationId={props.conversationId}
                                         turnId={messageTurnId}
                                     />
@@ -629,6 +644,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         conversationId={props.conversationId}
                                         turnId={messageTurnId}
                                         onDeleteMessage={handleDeleteMessage}
+                                        onRetryMessage={handleRetryMessage}
                                         customClassName="fullHistory"
                                         borderLeftColor={`${data?.agent?.color}-500`}
                                         isLastMessage={index === props.incomingMessages!.length - 1}
@@ -653,6 +669,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                             }}
                             conversationId={props.conversationId}
                             onDeleteMessage={handleDeleteMessage}
+                            onRetryMessage={handleRetryMessage}
                             customClassName="fullHistory"
                             borderLeftColor={`${data?.agent?.color}-500`}
                             isLastMessage={true}
