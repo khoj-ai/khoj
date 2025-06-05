@@ -275,7 +275,6 @@ async def converse_openai(
         openai_api_key=api_key,
         api_base_url=api_base_url,
         deepthought=deepthought,
-        model_kwargs={"stop": ["Notes:\n["]},
         tracer=tracer,
     ):
         if chunk.response:
