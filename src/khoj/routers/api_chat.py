@@ -40,7 +40,6 @@ from khoj.processor.tools.online_search import (
     search_online,
 )
 from khoj.processor.tools.run_code import run_code
-from khoj.routers.api import search_documents
 from khoj.routers.email import send_query_feedback
 from khoj.routers.helpers import (
     ApiImageRateLimiter,
@@ -63,6 +62,7 @@ from khoj.routers.helpers import (
     is_query_empty,
     is_ready_to_chat,
     read_chat_stream,
+    search_documents,
     update_telemetry_state,
     validate_chat_model,
 )

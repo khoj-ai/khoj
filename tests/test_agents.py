@@ -6,7 +6,7 @@ from asgiref.sync import sync_to_async
 
 from khoj.database.adapters import AgentAdapters
 from khoj.database.models import Agent, ChatModel, Entry, KhojUser
-from khoj.routers.api import execute_search
+from khoj.routers.helpers import execute_search
 from khoj.utils.helpers import get_absolute_path
 from tests.helpers import ChatModelFactory
 

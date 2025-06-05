@@ -22,10 +22,10 @@ from khoj.processor.conversation.utils import (
 from khoj.processor.operator import operate_environment
 from khoj.processor.tools.online_search import read_webpages, search_online
 from khoj.processor.tools.run_code import run_code
-from khoj.routers.api import search_documents
 from khoj.routers.helpers import (
     ChatEvent,
     generate_summary_from_files,
+    search_documents,
     send_message_to_model_wrapper,
 )
 from khoj.utils.helpers import (
