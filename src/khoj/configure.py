@@ -312,6 +312,7 @@ def configure_routes(app):
     # Import APIs here to setup search types before while configuring server
     from khoj.routers.api import api
     from khoj.routers.api_agents import api_agents
+    from khoj.routers.api_automation import api_automation
     from khoj.routers.api_chat import api_chat
     from khoj.routers.api_content import api_content
     from khoj.routers.api_model import api_model
@@ -321,6 +322,7 @@ def configure_routes(app):
     app.include_router(api, prefix="/api")
     app.include_router(api_chat, prefix="/api/chat")
     app.include_router(api_agents, prefix="/api/agents")
+    app.include_router(api_automation, prefix="/api/automation")
     app.include_router(api_model, prefix="/api/model")
     app.include_router(api_content, prefix="/api/content")
     app.include_router(notion_router, prefix="/api/notion")
