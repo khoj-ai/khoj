@@ -24,7 +24,6 @@ from khoj.processor.conversation.utils import (
 from khoj.utils import state
 from khoj.utils.constants import empty_escape_sequences
 from khoj.utils.helpers import (
-    ConversationCommand,
     is_none_or_empty,
     is_promptrace_enabled,
     truncate_code_context,
@@ -144,23 +143,25 @@ def filter_questions(questions: List[str]):
 
 
 async def converse_offline(
+    # Query
     user_query: str,
+    # Context
     references: list[dict] = [],
     online_results={},
     code_results={},
-    chat_history: list[ChatMessageModel] = [],
-    model_name: str = "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
-    loaded_model: Union[Any, None] = None,
-    conversation_commands=[ConversationCommand.Default],
-    max_prompt_size=None,
-    tokenizer_name=None,
-    location_data: LocationData = None,
-    user_name: str = None,
-    agent: Agent = None,
     query_files: str = None,
     generated_files: List[FileAttachment] = None,
     additional_context: List[str] = None,
     generated_asset_results: Dict[str, Dict] = {},
+    location_data: LocationData = None,
+    user_name: str = None,
+    chat_history: list[ChatMessageModel] = [],
+    # Model
+    model_name: str = "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
+    loaded_model: Union[Any, None] = None,
+    max_prompt_size=None,
+    tokenizer_name=None,
+    agent: Agent = None,
     tracer: dict = {},
 ) -> AsyncGenerator[ResponseWithThought, None]:
     """
@@ -194,26 +195,17 @@ async def converse_offline(
         system_prompt = f"{system_prompt}\n{user_name_prompt}"
 
     # Get Conversation Primer appropriate to Conversation Type
-    if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(references):
-        response = prompts.no_notes_found.format()
-        yield ResponseWithThought(response=response)
-        return
-    elif conversation_commands == [ConversationCommand.Online] and is_none_or_empty(online_results):
-        response = prompts.no_online_results_found.format()
-        yield ResponseWithThought(response=response)
-        return
-
     context_message = ""
     if not is_none_or_empty(references):
         context_message = f"{prompts.notes_conversation_offline.format(references=yaml_dump(references))}\n\n"
-    if ConversationCommand.Online in conversation_commands or ConversationCommand.Webpage in conversation_commands:
+    if not is_none_or_empty(online_results):
         simplified_online_results = online_results.copy()
         for result in online_results:
             if online_results[result].get("webpages"):
                 simplified_online_results[result] = online_results[result]["webpages"]
 
         context_message += f"{prompts.online_search_conversation_offline.format(online_results=yaml_dump(simplified_online_results))}\n\n"
-    if ConversationCommand.Code in conversation_commands and not is_none_or_empty(code_results):
+    if not is_none_or_empty(code_results):
         context_message += (
             f"{prompts.code_executed_context.format(code_results=truncate_code_context(code_results))}\n\n"
         )

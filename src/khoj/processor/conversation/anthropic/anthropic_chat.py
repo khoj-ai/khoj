@@ -21,11 +21,7 @@ from khoj.processor.conversation.utils import (
     generate_chatml_messages_with_context,
     messages_to_print,
 )
-from khoj.utils.helpers import (
-    ConversationCommand,
-    is_none_or_empty,
-    truncate_code_context,
-)
+from khoj.utils.helpers import is_none_or_empty, truncate_code_context
 from khoj.utils.rawconfig import FileAttachment, LocationData
 from khoj.utils.yaml import yaml_dump
 
@@ -136,27 +132,29 @@ def anthropic_send_message_to_model(
 
 
 async def converse_anthropic(
+    # Query
     user_query: str,
+    # Context
     references: list[dict],
     online_results: Optional[Dict[str, Dict]] = None,
     code_results: Optional[Dict[str, Dict]] = None,
     operator_results: Optional[List[OperatorRun]] = None,
-    chat_history: List[ChatMessageModel] = [],
-    model: Optional[str] = "claude-3-7-sonnet-latest",
-    api_key: Optional[str] = None,
-    api_base_url: Optional[str] = None,
-    conversation_commands=[ConversationCommand.Default],
-    max_prompt_size=None,
-    tokenizer_name=None,
-    location_data: LocationData = None,
-    user_name: str = None,
-    agent: Agent = None,
     query_images: Optional[list[str]] = None,
-    vision_available: bool = False,
     query_files: str = None,
     generated_files: List[FileAttachment] = None,
     program_execution_context: Optional[List[str]] = None,
     generated_asset_results: Dict[str, Dict] = {},
+    location_data: LocationData = None,
+    user_name: str = None,
+    chat_history: List[ChatMessageModel] = [],
+    # Model
+    model: Optional[str] = "claude-3-7-sonnet-latest",
+    api_key: Optional[str] = None,
+    api_base_url: Optional[str] = None,
+    max_prompt_size=None,
+    tokenizer_name=None,
+    agent: Agent = None,
+    vision_available: bool = False,
     deepthought: Optional[bool] = False,
     tracer: dict = {},
 ) -> AsyncGenerator[ResponseWithThought, None]:
@@ -187,26 +185,16 @@ async def converse_anthropic(
         user_name_prompt = prompts.user_name.format(name=user_name)
         system_prompt = f"{system_prompt}\n{user_name_prompt}"
 
-    # Get Conversation Primer appropriate to Conversation Type
-    if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(references):
-        response = prompts.no_notes_found.format()
-        yield ResponseWithThought(response=response)
-        return
-    elif conversation_commands == [ConversationCommand.Online] and is_none_or_empty(online_results):
-        response = prompts.no_online_results_found.format()
-        yield ResponseWithThought(response=response)
-        return
-
     context_message = ""
     if not is_none_or_empty(references):
         context_message = f"{prompts.notes_conversation.format(query=user_query, references=yaml_dump(references))}\n\n"
-    if ConversationCommand.Online in conversation_commands or ConversationCommand.Webpage in conversation_commands:
+    if not is_none_or_empty(online_results):
         context_message += f"{prompts.online_search_conversation.format(online_results=yaml_dump(online_results))}\n\n"
-    if ConversationCommand.Code in conversation_commands and not is_none_or_empty(code_results):
+    if not is_none_or_empty(code_results):
         context_message += (
             f"{prompts.code_executed_context.format(code_results=truncate_code_context(code_results))}\n\n"
         )
-    if ConversationCommand.Operator in conversation_commands and not is_none_or_empty(operator_results):
+    if not is_none_or_empty(operator_results):
         operator_content = [
             {"query": oc.query, "response": oc.response, "webpages": oc.webpages} for oc in operator_results
         ]

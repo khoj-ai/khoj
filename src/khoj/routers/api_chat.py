@@ -1463,7 +1463,6 @@ async def chat(
             code_results,
             operator_results,
             research_results,
-            conversation_commands,
             user,
             location,
             user_name,

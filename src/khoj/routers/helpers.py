@@ -1348,7 +1348,6 @@ async def agenerate_chat_response(
     code_results: Dict[str, Dict] = {},
     operator_results: List[OperatorRun] = [],
     research_results: List[ResearchIteration] = [],
-    conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     user: KhojUser = None,
     location_data: LocationData = None,
     user_name: Optional[str] = None,
@@ -1362,7 +1361,6 @@ async def agenerate_chat_response(
 ) -> Tuple[AsyncGenerator[ResponseWithThought, None], Dict[str, str]]:
     # Initialize Variables
     chat_response_generator: AsyncGenerator[ResponseWithThought, None] = None
-    logger.debug(f"Conversation Types: {conversation_commands}")
 
     metadata = {}
     agent = await AgentAdapters.aget_conversation_agent_by_id(conversation.agent.id) if conversation.agent else None
@@ -1391,21 +1389,23 @@ async def agenerate_chat_response(
         if chat_model.model_type == "offline":
             loaded_model = state.offline_chat_processor_config.loaded_model
             chat_response_generator = converse_offline(
+                # Query
                 user_query=query_to_run,
+                # Context
                 references=compiled_references,
                 online_results=online_results,
-                loaded_model=loaded_model,
+                generated_files=raw_generated_files,
+                generated_asset_results=generated_asset_results,
+                location_data=location_data,
+                user_name=user_name,
+                query_files=query_files,
                 chat_history=chat_history,
-                conversation_commands=conversation_commands,
+                # Model
+                loaded_model=loaded_model,
                 model_name=chat_model.name,
                 max_prompt_size=chat_model.max_prompt_size,
                 tokenizer_name=chat_model.tokenizer,
-                location_data=location_data,
-                user_name=user_name,
                 agent=agent,
-                query_files=query_files,
-                generated_files=raw_generated_files,
-                generated_asset_results=generated_asset_results,
                 tracer=tracer,
             )
 
@@ -1414,27 +1414,29 @@ async def agenerate_chat_response(
             api_key = openai_chat_config.api_key
             chat_model_name = chat_model.name
             chat_response_generator = converse_openai(
+                # Query
                 query_to_run,
-                compiled_references,
-                query_images=query_images,
+                # Context
+                references=compiled_references,
                 online_results=online_results,
                 code_results=code_results,
                 operator_results=operator_results,
-                chat_history=chat_history,
-                model=chat_model_name,
-                api_key=api_key,
-                api_base_url=openai_chat_config.api_base_url,
-                conversation_commands=conversation_commands,
-                max_prompt_size=chat_model.max_prompt_size,
-                tokenizer_name=chat_model.tokenizer,
-                location_data=location_data,
-                user_name=user_name,
-                agent=agent,
-                vision_available=vision_available,
+                query_images=query_images,
                 query_files=query_files,
                 generated_files=raw_generated_files,
                 generated_asset_results=generated_asset_results,
                 program_execution_context=program_execution_context,
+                location_data=location_data,
+                user_name=user_name,
+                chat_history=chat_history,
+                # Model
+                model=chat_model_name,
+                api_key=api_key,
+                api_base_url=openai_chat_config.api_base_url,
+                max_prompt_size=chat_model.max_prompt_size,
+                tokenizer_name=chat_model.tokenizer,
+                agent=agent,
+                vision_available=vision_available,
                 deepthought=deepthought,
                 tracer=tracer,
             )
@@ -1443,27 +1445,29 @@ async def agenerate_chat_response(
             api_key = chat_model.ai_model_api.api_key
             api_base_url = chat_model.ai_model_api.api_base_url
             chat_response_generator = converse_anthropic(
+                # Query
                 query_to_run,
-                compiled_references,
-                query_images=query_images,
+                # Context
+                references=compiled_references,
                 online_results=online_results,
                 code_results=code_results,
                 operator_results=operator_results,
-                chat_history=chat_history,
-                model=chat_model.name,
-                api_key=api_key,
-                api_base_url=api_base_url,
-                conversation_commands=conversation_commands,
-                max_prompt_size=chat_model.max_prompt_size,
-                tokenizer_name=chat_model.tokenizer,
-                location_data=location_data,
-                user_name=user_name,
-                agent=agent,
-                vision_available=vision_available,
+                query_images=query_images,
                 query_files=query_files,
                 generated_files=raw_generated_files,
                 generated_asset_results=generated_asset_results,
                 program_execution_context=program_execution_context,
+                location_data=location_data,
+                user_name=user_name,
+                chat_history=chat_history,
+                # Model
+                model=chat_model.name,
+                api_key=api_key,
+                api_base_url=api_base_url,
+                max_prompt_size=chat_model.max_prompt_size,
+                tokenizer_name=chat_model.tokenizer,
+                agent=agent,
+                vision_available=vision_available,
                 deepthought=deepthought,
                 tracer=tracer,
             )
@@ -1471,27 +1475,29 @@ async def agenerate_chat_response(
             api_key = chat_model.ai_model_api.api_key
             api_base_url = chat_model.ai_model_api.api_base_url
             chat_response_generator = converse_gemini(
+                # Query
                 query_to_run,
-                compiled_references,
+                # Context
+                references=compiled_references,
                 online_results=online_results,
                 code_results=code_results,
                 operator_results=operator_results,
-                chat_history=chat_history,
-                model=chat_model.name,
-                api_key=api_key,
-                api_base_url=api_base_url,
-                conversation_commands=conversation_commands,
-                max_prompt_size=chat_model.max_prompt_size,
-                tokenizer_name=chat_model.tokenizer,
-                location_data=location_data,
-                user_name=user_name,
-                agent=agent,
                 query_images=query_images,
-                vision_available=vision_available,
                 query_files=query_files,
                 generated_files=raw_generated_files,
                 generated_asset_results=generated_asset_results,
                 program_execution_context=program_execution_context,
+                location_data=location_data,
+                user_name=user_name,
+                chat_history=chat_history,
+                # Model
+                model=chat_model.name,
+                api_key=api_key,
+                api_base_url=api_base_url,
+                max_prompt_size=chat_model.max_prompt_size,
+                tokenizer_name=chat_model.tokenizer,
+                agent=agent,
+                vision_available=vision_available,
                 deepthought=deepthought,
                 tracer=tracer,
             )
