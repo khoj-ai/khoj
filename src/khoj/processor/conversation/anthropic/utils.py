@@ -73,7 +73,7 @@ def anthropic_completion_with_backoff(
     if response_schema:
         tool = create_anthropic_tool_definition(response_schema=response_schema)
         model_kwargs["tools"] = [tool]
-    elif response_type == "json_object" and not deepthought:
+    elif response_type == "json_object" and not (is_reasoning_model(model_name) and deepthought):
         # Prefill model response with '{' to make it output a valid JSON object. Not supported with extended thinking.
         formatted_messages.append(anthropic.types.MessageParam(role="assistant", content="{"))
         aggregated_response += "{"
