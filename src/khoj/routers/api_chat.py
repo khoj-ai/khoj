@@ -1055,108 +1055,6 @@ async def chat(
             if state.verbose > 1:
                 logger.debug(f'Researched Results: {"".join(r.summarizedResult for r in research_results)}')
 
-        used_slash_summarize = conversation_commands == [ConversationCommand.Summarize]
-        # Skip trying to summarize if
-        if (
-            # summarization intent was inferred
-            ConversationCommand.Summarize in conversation_commands
-            # and not triggered via slash command
-            and not used_slash_summarize
-            # but we can't actually summarize
-            and len(file_filters) == 0
-        ):
-            conversation_commands.remove(ConversationCommand.Summarize)
-        elif ConversationCommand.Summarize in conversation_commands:
-            response_log = ""
-            agent_has_entries = await EntryAdapters.aagent_has_entries(agent)
-            if len(file_filters) == 0 and not agent_has_entries:
-                response_log = "No files selected for summarization. Please add files using the section on the left."
-                async for result in send_llm_response(response_log, tracer.get("usage")):
-                    yield result
-            else:
-                async for response in generate_summary_from_files(
-                    q=q,
-                    user=user,
-                    file_filters=file_filters,
-                    chat_history=conversation.messages,
-                    query_images=uploaded_images,
-                    agent=agent,
-                    send_status_func=partial(send_event, ChatEvent.STATUS),
-                    query_files=attached_file_context,
-                    tracer=tracer,
-                ):
-                    if isinstance(response, dict) and ChatEvent.STATUS in response:
-                        yield response[ChatEvent.STATUS]
-                    else:
-                        if isinstance(response, str):
-                            response_log = response
-                            async for result in send_llm_response(response, tracer.get("usage")):
-                                yield result
-
-            summarized_document = FileAttachment(
-                name="Summarized Document",
-                content=response_log,
-                type="text/plain",
-                size=len(response_log.encode("utf-8")),
-            )
-
-            async for result in send_event(ChatEvent.GENERATED_ASSETS, {"files": [summarized_document.model_dump()]}):
-                yield result
-
-            generated_files.append(summarized_document)
-
-        custom_filters = []
-        if conversation_commands == [ConversationCommand.Help]:
-            if not q:
-                chat_model = await ConversationAdapters.aget_user_chat_model(user)
-                if chat_model == None:
-                    chat_model = await ConversationAdapters.aget_default_chat_model(user)
-                model_type = chat_model.model_type
-                formatted_help = help_message.format(model=model_type, version=state.khoj_version, device=get_device())
-                async for result in send_llm_response(formatted_help, tracer.get("usage")):
-                    yield result
-                return
-            # Adding specification to search online specifically on khoj.dev pages.
-            custom_filters.append("site:khoj.dev")
-            conversation_commands.append(ConversationCommand.Online)
-
-        if ConversationCommand.Automation in conversation_commands:
-            try:
-                automation, crontime, query_to_run, subject = await create_automation(
-                    q, timezone, user, request.url, chat_history, tracer=tracer
-                )
-            except Exception as e:
-                logger.error(f"Error scheduling task {q} for {user.email}: {e}")
-                error_message = f"Unable to create automation. Ensure the automation doesn't already exist."
-                async for result in send_llm_response(error_message, tracer.get("usage")):
-                    yield result
-                return
-
-            llm_response = construct_automation_created_message(automation, crontime, query_to_run, subject)
-            # Trigger task to save conversation to DB
-            asyncio.create_task(
-                save_to_conversation_log(
-                    q,
-                    llm_response,
-                    user,
-                    chat_history,
-                    user_message_time,
-                    intent_type="automation",
-                    client_application=request.user.client_app,
-                    conversation_id=conversation_id,
-                    inferred_queries=[query_to_run],
-                    automation_id=automation.id,
-                    query_images=uploaded_images,
-                    train_of_thought=train_of_thought,
-                    raw_query_files=raw_query_files,
-                    tracer=tracer,
-                )
-            )
-            # Send LLM Response
-            async for result in send_llm_response(llm_response, tracer.get("usage")):
-                yield result
-            return
-
         # Gather Context
         ## Extract Document References
         if not ConversationCommand.Research in conversation_commands:
@@ -1216,7 +1114,7 @@ async def chat(
                     location,
                     user,
                     partial(send_event, ChatEvent.STATUS),
-                    custom_filters,
+                    custom_filters=[],
                     max_online_searches=3,
                     query_images=uploaded_images,
                     query_files=attached_file_context,

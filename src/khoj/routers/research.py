@@ -273,7 +273,6 @@ async def research(
         code_results: Dict = dict()
         document_results: List[Dict[str, str]] = []
         operator_results: OperatorRun = None
-        summarize_files: str = ""
         this_iteration = ResearchIteration(tool=None, query=query)
 
         async for result in apick_next_tool(
@@ -473,40 +472,13 @@ async def research(
                 this_iteration.warning = f"Error operating browser: {e}"
                 logger.error(this_iteration.warning, exc_info=True)
 
-        elif this_iteration.tool == ConversationCommand.Summarize:
-            try:
-                async for result in generate_summary_from_files(
-                    this_iteration.query,
-                    user,
-                    file_filters,
-                    construct_tool_chat_history(previous_iterations, ConversationCommand.Summarize),
-                    query_images=query_images,
-                    agent=agent,
-                    send_status_func=send_status_func,
-                    query_files=query_files,
-                ):
-                    if isinstance(result, dict) and ChatEvent.STATUS in result:
-                        yield result[ChatEvent.STATUS]
-                    else:
-                        summarize_files = result  # type: ignore
-            except Exception as e:
-                this_iteration.warning = f"Error summarizing files: {e}"
-                logger.error(this_iteration.warning, exc_info=True)
-
         else:
             # No valid tools. This is our exit condition.
             current_iteration = MAX_ITERATIONS
 
         current_iteration += 1
 
-        if (
-            document_results
-            or online_results
-            or code_results
-            or operator_results
-            or summarize_files
-            or this_iteration.warning
-        ):
+        if document_results or online_results or code_results or operator_results or this_iteration.warning:
             results_data = f"\n<iteration>{current_iteration}\n<tool>{this_iteration.tool}</tool>\n<query>{this_iteration.query}</query>\n<results>"
             if document_results:
                 results_data += f"\n<document_references>\n{yaml.dump(document_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</document_references>"
@@ -518,8 +490,6 @@ async def research(
                 results_data += (
                     f"\n<browser_operator_results>\n{operator_results.response}\n</browser_operator_results>"
                 )
-            if summarize_files:
-                results_data += f"\n<summarized_files>\n{yaml.dump(summarize_files, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</summarized_files>"
             if this_iteration.warning:
                 results_data += f"\n<warning>\n{this_iteration.warning}\n</warning>"
             results_data += "\n</results>\n</iteration>"

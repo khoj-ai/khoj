@@ -249,8 +249,6 @@ def get_next_url(request: Request) -> str:
 def get_conversation_command(query: str) -> ConversationCommand:
     if query.startswith("/notes"):
         return ConversationCommand.Notes
-    elif query.startswith("/help"):
-        return ConversationCommand.Help
     elif query.startswith("/general"):
         return ConversationCommand.General
     elif query.startswith("/online"):
@@ -261,8 +259,6 @@ def get_conversation_command(query: str) -> ConversationCommand:
         return ConversationCommand.Image
     elif query.startswith("/automated_task"):
         return ConversationCommand.AutomatedTask
-    elif query.startswith("/summarize"):
-        return ConversationCommand.Summarize
     elif query.startswith("/diagram"):
         return ConversationCommand.Diagram
     elif query.startswith("/code"):
@@ -392,9 +388,6 @@ async def aget_data_sources_and_output_format(
     agent_outputs = agent.output_modes if agent else []
 
     for output, description in mode_descriptions_for_llm.items():
-        # Do not allow tasks to schedule another task
-        if is_task and output == ConversationCommand.Automation:
-            continue
         output_options[output.value] = description
         if len(agent_outputs) == 0 or output.value in agent_outputs:
             output_options_str += f'- "{output.value}": "{description}"\n'

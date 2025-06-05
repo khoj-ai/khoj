@@ -338,15 +338,12 @@ class ConversationCommand(str, Enum):
     Default = "default"
     General = "general"
     Notes = "notes"
-    Help = "help"
     Online = "online"
     Webpage = "webpage"
     Code = "code"
     Image = "image"
     Text = "text"
-    Automation = "automation"
     AutomatedTask = "automated_task"
-    Summarize = "summarize"
     Diagram = "diagram"
     Research = "research"
     Operator = "operator"
@@ -360,9 +357,6 @@ command_descriptions = {
     ConversationCommand.Webpage: "Get information from webpage suggested by you.",
     ConversationCommand.Code: "Run Python code to parse information, run complex calculations, create documents and charts.",
     ConversationCommand.Image: "Generate illustrative, creative images by describing your imagination in words.",
-    ConversationCommand.Automation: "Automatically run your query at a specified time or interval.",
-    ConversationCommand.Help: "Get help with how to use or setup Khoj from the documentation",
-    ConversationCommand.Summarize: "Get help with a question pertaining to an entire document.",
     ConversationCommand.Diagram: "Draw a flowchart, diagram, or any other visual representation best expressed with primitives like lines, rectangles, and text.",
     ConversationCommand.Research: "Do deep research on a topic. This will take longer than usual, but give a more detailed, comprehensive answer.",
     ConversationCommand.Operator: "Operate and perform tasks using a computer.",
