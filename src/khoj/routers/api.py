@@ -357,7 +357,7 @@ def set_user_name(
     return {"status": "ok"}
 
 
-async def extract_references_and_questions(
+async def search_documents(
     user: KhojUser,
     chat_history: list[ChatMessageModel],
     q: str,

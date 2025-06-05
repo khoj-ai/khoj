@@ -22,7 +22,7 @@ from khoj.processor.conversation.utils import (
 from khoj.processor.operator import operate_environment
 from khoj.processor.tools.online_search import read_webpages, search_online
 from khoj.processor.tools.run_code import run_code
-from khoj.routers.api import extract_references_and_questions
+from khoj.routers.api import search_documents
 from khoj.routers.helpers import (
     ChatEvent,
     generate_summary_from_files,
@@ -313,7 +313,7 @@ async def research(
             previous_inferred_queries = {
                 c["query"] for iteration in previous_iterations if iteration.context for c in iteration.context
             }
-            async for result in extract_references_and_questions(
+            async for result in search_documents(
                 user,
                 construct_tool_chat_history(previous_iterations, ConversationCommand.Notes),
                 this_iteration.query,

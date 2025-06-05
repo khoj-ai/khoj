@@ -40,7 +40,7 @@ from khoj.processor.tools.online_search import (
     search_online,
 )
 from khoj.processor.tools.run_code import run_code
-from khoj.routers.api import extract_references_and_questions
+from khoj.routers.api import search_documents
 from khoj.routers.email import send_query_feedback
 from khoj.routers.helpers import (
     ApiImageRateLimiter,
@@ -1161,7 +1161,7 @@ async def chat(
         ## Extract Document References
         if not ConversationCommand.Research in conversation_commands:
             try:
-                async for result in extract_references_and_questions(
+                async for result in search_documents(
                     user,
                     chat_history,
                     q,
