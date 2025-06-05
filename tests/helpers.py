@@ -52,7 +52,10 @@ def generate_chat_history(message_list):
         message_to_log(
             user_message,
             chat_response,
-            {"context": context, "intent": {"query": user_message, "inferred-queries": f'["{user_message}"]'}},
+            {
+                "context": context,
+                "intent": {"type": "memory", "query": user_message, "inferred-queries": [user_message]},
+            },
             chat_history=chat_history,
         )
     return chat_history

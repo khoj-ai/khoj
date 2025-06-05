@@ -33,9 +33,9 @@ freezegun.configure(extend_ignore_list=["transformers"])
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
 @freeze_time("1984-04-02", ignore=["transformers"])
-def test_extract_question_with_date_filter_from_relative_day(loaded_model):
+def test_extract_question_with_date_filter_from_relative_day(loaded_model, default_user2):
     # Act
-    response = extract_questions("Where did I go for dinner yesterday?", loaded_model=loaded_model)
+    response = extract_questions("Where did I go for dinner yesterday?", default_user2, loaded_model=loaded_model)
 
     assert len(response) >= 1
 
@@ -53,9 +53,9 @@ def test_extract_question_with_date_filter_from_relative_day(loaded_model):
 @pytest.mark.xfail(reason="Search actor still isn't very date aware nor capable of formatting")
 @pytest.mark.chatquality
 @freeze_time("1984-04-02", ignore=["transformers"])
-def test_extract_question_with_date_filter_from_relative_month(loaded_model):
+def test_extract_question_with_date_filter_from_relative_month(loaded_model, default_user2):
     # Act
-    response = extract_questions("Which countries did I visit last month?", loaded_model=loaded_model)
+    response = extract_questions("Which countries did I visit last month?", default_user2, loaded_model=loaded_model)
 
     # Assert
     assert len(response) >= 1
@@ -75,9 +75,9 @@ def test_extract_question_with_date_filter_from_relative_month(loaded_model):
 @pytest.mark.xfail(reason="Chat actor still isn't very date aware nor capable of formatting")
 @pytest.mark.chatquality
 @freeze_time("1984-04-02", ignore=["transformers"])
-def test_extract_question_with_date_filter_from_relative_year():
+def test_extract_question_with_date_filter_from_relative_year(loaded_model, default_user2):
     # Act
-    response = extract_questions("Which countries have I visited this year?")
+    response = extract_questions("Which countries have I visited this year?", default_user2, loaded_model=loaded_model)
 
     # Assert
     expected_responses = [
@@ -93,9 +93,9 @@ def test_extract_question_with_date_filter_from_relative_year():
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-def test_extract_multiple_explicit_questions_from_message(loaded_model):
+def test_extract_multiple_explicit_questions_from_message(loaded_model, default_user2):
     # Act
-    responses = extract_questions("What is the Sun? What is the Moon?", loaded_model=loaded_model)
+    responses = extract_questions("What is the Sun? What is the Moon?", default_user2, loaded_model=loaded_model)
 
     # Assert
     assert len(responses) >= 2
@@ -105,9 +105,9 @@ def test_extract_multiple_explicit_questions_from_message(loaded_model):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-def test_extract_multiple_implicit_questions_from_message(loaded_model):
+def test_extract_multiple_implicit_questions_from_message(loaded_model, default_user2):
     # Act
-    response = extract_questions("Is Carl taller than Ross?", loaded_model=loaded_model)
+    response = extract_questions("Is Carl taller than Ross?", default_user2, loaded_model=loaded_model)
 
     # Assert
     expected_responses = ["height", "taller", "shorter", "heights", "who"]
@@ -121,7 +121,7 @@ def test_extract_multiple_implicit_questions_from_message(loaded_model):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-def test_generate_search_query_using_question_from_chat_history(loaded_model):
+def test_generate_search_query_using_question_from_chat_history(loaded_model, default_user2):
     # Arrange
     message_list = [
         ("What is the name of Mr. Anderson's daughter?", "Miss Barbara", []),
@@ -131,6 +131,7 @@ def test_generate_search_query_using_question_from_chat_history(loaded_model):
     # Act
     response = extract_questions(
         query,
+        default_user2,
         chat_history=generate_chat_history(message_list),
         loaded_model=loaded_model,
         use_history=True,
@@ -168,7 +169,7 @@ def test_generate_search_query_using_question_from_chat_history(loaded_model):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.chatquality
-def test_generate_search_query_using_answer_from_chat_history(loaded_model):
+def test_generate_search_query_using_answer_from_chat_history(loaded_model, default_user2):
     # Arrange
     message_list = [
         ("What is the name of Mr. Anderson's daughter?", "Miss Barbara", []),
@@ -177,6 +178,7 @@ def test_generate_search_query_using_answer_from_chat_history(loaded_model):
     # Act
     response = extract_questions(
         "Is she a Doctor?",
+        default_user2,
         chat_history=generate_chat_history(message_list),
         loaded_model=loaded_model,
         use_history=True,
@@ -197,7 +199,7 @@ def test_generate_search_query_using_answer_from_chat_history(loaded_model):
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.xfail(reason="Search actor unable to create date filter using chat history and notes as context")
 @pytest.mark.chatquality
-def test_generate_search_query_with_date_and_context_from_chat_history(loaded_model):
+def test_generate_search_query_with_date_and_context_from_chat_history(loaded_model, default_user2):
     # Arrange
     message_list = [
         ("When did I visit Masai Mara?", "You visited Masai Mara in April 2000", []),
@@ -206,6 +208,7 @@ def test_generate_search_query_with_date_and_context_from_chat_history(loaded_mo
     # Act
     response = extract_questions(
         "What was the Pizza place we ate at over there?",
+        default_user2,
         chat_history=generate_chat_history(message_list),
         loaded_model=loaded_model,
     )
