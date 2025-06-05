@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from datetime import datetime, timedelta
 from typing import AsyncGenerator, Dict, List, Optional
@@ -15,6 +14,7 @@ from khoj.processor.conversation.google.utils import (
 )
 from khoj.processor.conversation.utils import (
     OperatorRun,
+    ResponseWithThought,
     clean_json,
     construct_question_history,
     construct_structured_message,
@@ -168,7 +168,6 @@ async def converse_gemini(
     api_key: Optional[str] = None,
     api_base_url: Optional[str] = None,
     temperature: float = 1.0,
-    completion_func=None,
     conversation_commands=[ConversationCommand.Default],
     max_prompt_size=None,
     tokenizer_name=None,
@@ -183,7 +182,7 @@ async def converse_gemini(
     program_execution_context: List[str] = None,
     deepthought: Optional[bool] = False,
     tracer={},
-) -> AsyncGenerator[str, None]:
+) -> AsyncGenerator[ResponseWithThought, None]:
     """
     Converse with user using Google's Gemini
     """
@@ -215,15 +214,11 @@ async def converse_gemini(
     # Get Conversation Primer appropriate to Conversation Type
     if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(references):
         response = prompts.no_notes_found.format()
-        if completion_func:
-            asyncio.create_task(completion_func(chat_response=response))
-        yield response
+        yield ResponseWithThought(response=response)
         return
     elif conversation_commands == [ConversationCommand.Online] and is_none_or_empty(online_results):
         response = prompts.no_online_results_found.format()
-        if completion_func:
-            asyncio.create_task(completion_func(chat_response=response))
-        yield response
+        yield ResponseWithThought(response=response)
         return
 
     context_message = ""
@@ -264,7 +259,6 @@ async def converse_gemini(
     logger.debug(f"Conversation Context for Gemini: {messages_to_print(messages)}")
 
     # Get Response from Google AI
-    full_response = ""
     async for chunk in gemini_chat_completion_with_backoff(
         messages=messages,
         model_name=model,
@@ -275,10 +269,4 @@ async def converse_gemini(
         deepthought=deepthought,
         tracer=tracer,
     ):
-        if chunk.response:
-            full_response += chunk.response
         yield chunk
-
-    # Call completion_func once finish streaming and we have the full response
-    if completion_func:
-        asyncio.create_task(completion_func(chat_response=full_response))

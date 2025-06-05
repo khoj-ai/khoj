@@ -14,6 +14,7 @@ from khoj.database.models import Agent, ChatMessageModel, ChatModel, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.utils import download_model
 from khoj.processor.conversation.utils import (
+    ResponseWithThought,
     clean_json,
     commit_conversation_trace,
     construct_question_history,
@@ -150,7 +151,6 @@ async def converse_offline(
     chat_history: list[ChatMessageModel] = [],
     model_name: str = "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
     loaded_model: Union[Any, None] = None,
-    completion_func=None,
     conversation_commands=[ConversationCommand.Default],
     max_prompt_size=None,
     tokenizer_name=None,
@@ -162,7 +162,7 @@ async def converse_offline(
     additional_context: List[str] = None,
     generated_asset_results: Dict[str, Dict] = {},
     tracer: dict = {},
-) -> AsyncGenerator[str, None]:
+) -> AsyncGenerator[ResponseWithThought, None]:
     """
     Converse with user using Llama (Async Version)
     """
@@ -196,15 +196,11 @@ async def converse_offline(
     # Get Conversation Primer appropriate to Conversation Type
     if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(references):
         response = prompts.no_notes_found.format()
-        if completion_func:
-            asyncio.create_task(completion_func(chat_response=response))
-        yield response
+        yield ResponseWithThought(response=response)
         return
     elif conversation_commands == [ConversationCommand.Online] and is_none_or_empty(online_results):
         response = prompts.no_online_results_found.format()
-        if completion_func:
-            asyncio.create_task(completion_func(chat_response=response))
-        yield response
+        yield ResponseWithThought(response=response)
         return
 
     context_message = ""
@@ -243,9 +239,8 @@ async def converse_offline(
     logger.debug(f"Conversation Context for {model_name}: {messages_to_print(messages)}")
 
     # Use asyncio.Queue and a thread to bridge sync iterator
-    queue: asyncio.Queue = asyncio.Queue()
+    queue: asyncio.Queue[ResponseWithThought] = asyncio.Queue()
     stop_phrases = ["<s>", "INST]", "Notes:"]
-    aggregated_response_container = {"response": ""}
 
     def _sync_llm_thread():
         """Synchronous function to run in a separate thread."""
@@ -262,7 +257,7 @@ async def converse_offline(
                 tracer=tracer,
             )
             for response in response_iterator:
-                response_delta = response["choices"][0]["delta"].get("content", "")
+                response_delta: str = response["choices"][0]["delta"].get("content", "")
                 # Log the time taken to start response
                 if aggregated_response == "" and response_delta != "":
                     logger.info(f"First response took: {perf_counter() - start_time:.3f} seconds")
@@ -270,12 +265,12 @@ async def converse_offline(
                 aggregated_response += response_delta
                 # Put chunk into the asyncio queue (non-blocking)
                 try:
-                    queue.put_nowait(response_delta)
+                    queue.put_nowait(ResponseWithThought(response=response_delta))
                 except asyncio.QueueFull:
                     # Should not happen with default queue size unless consumer is very slow
                     logger.warning("Asyncio queue full during offline LLM streaming.")
                     # Potentially block here or handle differently if needed
-                    asyncio.run(queue.put(response_delta))
+                    asyncio.run(queue.put(ResponseWithThought(response=response_delta)))
 
             # Log the time taken to stream the entire response
             logger.info(f"Chat streaming took: {perf_counter() - start_time:.3f} seconds")
@@ -291,7 +286,6 @@ async def converse_offline(
             state.chat_lock.release()
             # Signal end of stream
             queue.put_nowait(None)
-            aggregated_response_container["response"] = aggregated_response
 
     # Start the synchronous thread
     thread = Thread(target=_sync_llm_thread)
@@ -309,10 +303,6 @@ async def converse_offline(
     # Wait for the thread to finish (optional, ensures cleanup)
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, thread.join)
-
-    # Call the completion function after streaming is done
-    if completion_func:
-        asyncio.create_task(completion_func(chat_response=aggregated_response_container["response"]))
 
 
 def send_message_to_model_offline(

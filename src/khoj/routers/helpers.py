@@ -6,7 +6,6 @@ import math
 import os
 import re
 from datetime import datetime, timedelta, timezone
-from functools import partial
 from random import random
 from typing import (
     Annotated,
@@ -102,7 +101,6 @@ from khoj.processor.conversation.utils import (
     clean_mermaidjs,
     construct_chat_history,
     generate_chatml_messages_with_context,
-    save_to_conversation_log,
 )
 from khoj.processor.speech.text_to_speech import is_eleven_labs_enabled
 from khoj.routers.email import is_resend_enabled, send_task_email
@@ -1350,54 +1348,26 @@ async def agenerate_chat_response(
     code_results: Dict[str, Dict] = {},
     operator_results: List[OperatorRun] = [],
     research_results: List[ResearchIteration] = [],
-    inferred_queries: List[str] = [],
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     user: KhojUser = None,
-    client_application: ClientApplication = None,
     location_data: LocationData = None,
     user_name: Optional[str] = None,
     query_images: Optional[List[str]] = None,
-    train_of_thought: List[Any] = [],
     query_files: str = None,
-    raw_query_files: List[FileAttachment] = None,
-    generated_images: List[str] = None,
     raw_generated_files: List[FileAttachment] = [],
-    generated_mermaidjs_diagram: str = None,
     program_execution_context: List[str] = [],
     generated_asset_results: Dict[str, Dict] = {},
     is_subscribed: bool = False,
     tracer: dict = {},
-) -> Tuple[AsyncGenerator[str | ResponseWithThought, None], Dict[str, str]]:
+) -> Tuple[AsyncGenerator[ResponseWithThought, None], Dict[str, str]]:
     # Initialize Variables
-    chat_response_generator: AsyncGenerator[str | ResponseWithThought, None] = None
+    chat_response_generator: AsyncGenerator[ResponseWithThought, None] = None
     logger.debug(f"Conversation Types: {conversation_commands}")
 
     metadata = {}
     agent = await AgentAdapters.aget_conversation_agent_by_id(conversation.agent.id) if conversation.agent else None
 
     try:
-        partial_completion = partial(
-            save_to_conversation_log,
-            q,
-            user=user,
-            chat_history=chat_history,
-            compiled_references=compiled_references,
-            online_results=online_results,
-            code_results=code_results,
-            operator_results=operator_results,
-            research_results=research_results,
-            inferred_queries=inferred_queries,
-            client_application=client_application,
-            conversation_id=str(conversation.id),
-            query_images=query_images,
-            train_of_thought=train_of_thought,
-            raw_query_files=raw_query_files,
-            generated_images=generated_images,
-            raw_generated_files=raw_generated_files,
-            generated_mermaidjs_diagram=generated_mermaidjs_diagram,
-            tracer=tracer,
-        )
-
         query_to_run = q
         deepthought = False
         if research_results:
@@ -1426,7 +1396,6 @@ async def agenerate_chat_response(
                 online_results=online_results,
                 loaded_model=loaded_model,
                 chat_history=chat_history,
-                completion_func=partial_completion,
                 conversation_commands=conversation_commands,
                 model_name=chat_model.name,
                 max_prompt_size=chat_model.max_prompt_size,
@@ -1455,7 +1424,6 @@ async def agenerate_chat_response(
                 model=chat_model_name,
                 api_key=api_key,
                 api_base_url=openai_chat_config.api_base_url,
-                completion_func=partial_completion,
                 conversation_commands=conversation_commands,
                 max_prompt_size=chat_model.max_prompt_size,
                 tokenizer_name=chat_model.tokenizer,
@@ -1485,7 +1453,6 @@ async def agenerate_chat_response(
                 model=chat_model.name,
                 api_key=api_key,
                 api_base_url=api_base_url,
-                completion_func=partial_completion,
                 conversation_commands=conversation_commands,
                 max_prompt_size=chat_model.max_prompt_size,
                 tokenizer_name=chat_model.tokenizer,
@@ -1513,7 +1480,6 @@ async def agenerate_chat_response(
                 model=chat_model.name,
                 api_key=api_key,
                 api_base_url=api_base_url,
-                completion_func=partial_completion,
                 conversation_commands=conversation_commands,
                 max_prompt_size=chat_model.max_prompt_size,
                 tokenizer_name=chat_model.tokenizer,

@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from datetime import datetime, timedelta
 from typing import AsyncGenerator, Dict, List, Optional
@@ -171,7 +170,6 @@ async def converse_openai(
     api_key: Optional[str] = None,
     api_base_url: Optional[str] = None,
     temperature: float = 0.4,
-    completion_func=None,
     conversation_commands=[ConversationCommand.Default],
     max_prompt_size=None,
     tokenizer_name=None,
@@ -186,7 +184,7 @@ async def converse_openai(
     program_execution_context: List[str] = None,
     deepthought: Optional[bool] = False,
     tracer: dict = {},
-) -> AsyncGenerator[str | ResponseWithThought, None]:
+) -> AsyncGenerator[ResponseWithThought, None]:
     """
     Converse with user using OpenAI's ChatGPT
     """
@@ -217,15 +215,11 @@ async def converse_openai(
     # Get Conversation Primer appropriate to Conversation Type
     if conversation_commands == [ConversationCommand.Notes] and is_none_or_empty(references):
         response = prompts.no_notes_found.format()
-        if completion_func:
-            asyncio.create_task(completion_func(chat_response=response))
-        yield response
+        yield ResponseWithThought(response=response)
         return
     elif conversation_commands == [ConversationCommand.Online] and is_none_or_empty(online_results):
         response = prompts.no_online_results_found.format()
-        if completion_func:
-            asyncio.create_task(completion_func(chat_response=response))
-        yield response
+        yield ResponseWithThought(response=response)
         return
 
     context_message = ""
@@ -267,7 +261,6 @@ async def converse_openai(
     logger.debug(f"Conversation Context for GPT: {messages_to_print(messages)}")
 
     # Get Response from GPT
-    full_response = ""
     async for chunk in chat_completion_with_backoff(
         messages=messages,
         model_name=model,
@@ -277,13 +270,7 @@ async def converse_openai(
         deepthought=deepthought,
         tracer=tracer,
     ):
-        if chunk.response:
-            full_response += chunk.response
         yield chunk
-
-    # Call completion_func once finish streaming and we have the full response
-    if completion_func:
-        asyncio.create_task(completion_func(chat_response=full_response))
 
 
 def clean_response_schema(schema: BaseModel | dict) -> dict:

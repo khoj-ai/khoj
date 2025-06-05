@@ -1463,33 +1463,30 @@ async def chat(
             code_results,
             operator_results,
             research_results,
-            inferred_queries,
             conversation_commands,
             user,
-            request.user.client_app,
             location,
             user_name,
             uploaded_images,
-            train_of_thought,
             attached_file_context,
-            raw_query_files,
-            generated_images,
             generated_files,
-            generated_mermaidjs_diagram,
             program_execution_context,
             generated_asset_results,
             is_subscribed,
             tracer,
         )
 
+        full_response = ""
         async for item in llm_response:
-            # Should not happen with async generator, end is signaled by loop exit. Skip.
-            if item is None:
+            # Should not happen with async generator. Skip.
+            if item is None or not isinstance(item, ResponseWithThought):
+                logger.warning(f"Unexpected item type in LLM response: {type(item)}. Skipping.")
                 continue
             if cancellation_event.is_set():
                 break
-            message = item.response if isinstance(item, ResponseWithThought) else item
-            if isinstance(item, ResponseWithThought) and item.thought:
+            message = item.response
+            full_response += message if message else ""
+            if item.thought:
                 async for result in send_event(ChatEvent.THOUGHT, item.thought):
                     yield result
                 continue
@@ -1505,6 +1502,31 @@ async def chat(
                 if not cancellation_event.is_set():
                     logger.warning(f"Error during streaming. Stopping send: {e}")
                 break
+
+        # Save conversation once finish streaming
+        asyncio.create_task(
+            save_to_conversation_log(
+                q,
+                chat_response=full_response,
+                user=user,
+                chat_history=chat_history,
+                compiled_references=compiled_references,
+                online_results=online_results,
+                code_results=code_results,
+                operator_results=operator_results,
+                research_results=research_results,
+                inferred_queries=inferred_queries,
+                client_application=request.user.client_app,
+                conversation_id=str(conversation.id),
+                query_images=uploaded_images,
+                train_of_thought=train_of_thought,
+                raw_query_files=raw_query_files,
+                generated_images=generated_images,
+                raw_generated_files=generated_files,
+                generated_mermaidjs_diagram=generated_mermaidjs_diagram,
+                tracer=tracer,
+            )
+        )
 
         # Signal end of LLM response after the loop finishes
         if not cancellation_event.is_set():
