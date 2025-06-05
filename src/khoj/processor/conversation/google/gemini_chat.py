@@ -1,12 +1,8 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import AsyncGenerator, Dict, List, Optional
 
-import pyjson5
-from langchain_core.messages.chat import ChatMessage
-from pydantic import BaseModel, Field
-
-from khoj.database.models import Agent, ChatMessageModel, ChatModel, KhojUser
+from khoj.database.models import Agent, ChatMessageModel, ChatModel
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.google.utils import (
     gemini_chat_completion_with_backoff,
@@ -15,9 +11,6 @@ from khoj.processor.conversation.google.utils import (
 from khoj.processor.conversation.utils import (
     OperatorRun,
     ResponseWithThought,
-    clean_json,
-    construct_question_history,
-    construct_structured_message,
     generate_chatml_messages_with_context,
     messages_to_print,
 )
@@ -26,96 +19,6 @@ from khoj.utils.rawconfig import FileAttachment, LocationData
 from khoj.utils.yaml import yaml_dump
 
 logger = logging.getLogger(__name__)
-
-
-def extract_questions_gemini(
-    text,
-    model: Optional[str] = "gemini-2.0-flash",
-    chat_history: List[ChatMessageModel] = [],
-    api_key=None,
-    api_base_url=None,
-    max_tokens=None,
-    location_data: LocationData = None,
-    user: KhojUser = None,
-    query_images: Optional[list[str]] = None,
-    vision_enabled: bool = False,
-    personality_context: Optional[str] = None,
-    query_files: str = None,
-    tracer: dict = {},
-):
-    """
-    Infer search queries to retrieve relevant notes to answer user query
-    """
-    # Extract Past User Message and Inferred Questions from Conversation Log
-    location = f"{location_data}" if location_data else "Unknown"
-    username = prompts.user_name.format(name=user.get_full_name()) if user and user.get_full_name() else ""
-
-    # Extract Past User Message and Inferred Questions from Chat History
-    chat_history_str = construct_question_history(chat_history, query_prefix="User", agent_name="Assistant")
-
-    # Get dates relative to today for prompt creation
-    today = datetime.today()
-    current_new_year = today.replace(month=1, day=1)
-    last_new_year = current_new_year.replace(year=today.year - 1)
-
-    system_prompt = prompts.extract_questions_anthropic_system_prompt.format(
-        current_date=today.strftime("%Y-%m-%d"),
-        day_of_week=today.strftime("%A"),
-        current_month=today.strftime("%Y-%m"),
-        last_new_year=last_new_year.strftime("%Y"),
-        last_new_year_date=last_new_year.strftime("%Y-%m-%d"),
-        current_new_year_date=current_new_year.strftime("%Y-%m-%d"),
-        yesterday_date=(today - timedelta(days=1)).strftime("%Y-%m-%d"),
-        location=location,
-        username=username,
-        personality_context=personality_context,
-    )
-
-    prompt = prompts.extract_questions_anthropic_user_message.format(
-        chat_history=chat_history_str,
-        text=text,
-    )
-
-    prompt = construct_structured_message(
-        message=prompt,
-        images=query_images,
-        model_type=ChatModel.ModelType.GOOGLE,
-        vision_enabled=vision_enabled,
-        attached_file_context=query_files,
-    )
-
-    messages = []
-
-    messages.append(ChatMessage(content=prompt, role="user"))
-    messages.append(ChatMessage(content=system_prompt, role="system"))
-
-    class DocumentQueries(BaseModel):
-        queries: List[str] = Field(..., min_items=1)
-
-    response = gemini_send_message_to_model(
-        messages,
-        api_key,
-        model,
-        api_base_url=api_base_url,
-        response_type="json_object",
-        response_schema=DocumentQueries,
-        tracer=tracer,
-    )
-
-    # Extract, Clean Message from Gemini's Response
-    try:
-        response = clean_json(response)
-        response = pyjson5.loads(response)
-        response = [q.strip() for q in response["queries"] if q.strip()]
-        if not isinstance(response, list) or not response:
-            logger.error(f"Invalid response for constructing subqueries: {response}")
-            return [text]
-        return response
-    except:
-        logger.warning(f"Gemini returned invalid JSON. Falling back to using user message as search query.\n{response}")
-        questions = [text]
-    logger.debug(f"Extracted Questions by Gemini: {questions}")
-    return questions
 
 
 def gemini_send_message_to_model(

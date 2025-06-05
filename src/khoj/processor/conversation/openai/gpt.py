@@ -1,13 +1,11 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import AsyncGenerator, Dict, List, Optional
 
-import pyjson5
-from langchain_core.messages.chat import ChatMessage
 from openai.lib._pydantic import _ensure_strict_json_schema
 from pydantic import BaseModel
 
-from khoj.database.models import Agent, ChatMessageModel, ChatModel, KhojUser
+from khoj.database.models import Agent, ChatMessageModel, ChatModel
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.openai.utils import (
     chat_completion_with_backoff,
@@ -18,9 +16,6 @@ from khoj.processor.conversation.utils import (
     JsonSupport,
     OperatorRun,
     ResponseWithThought,
-    clean_json,
-    construct_question_history,
-    construct_structured_message,
     generate_chatml_messages_with_context,
     messages_to_print,
 )
@@ -29,88 +24,6 @@ from khoj.utils.rawconfig import FileAttachment, LocationData
 from khoj.utils.yaml import yaml_dump
 
 logger = logging.getLogger(__name__)
-
-
-def extract_questions(
-    text,
-    model: Optional[str] = "gpt-4o-mini",
-    chat_history: list[ChatMessageModel] = [],
-    api_key=None,
-    api_base_url=None,
-    location_data: LocationData = None,
-    user: KhojUser = None,
-    query_images: Optional[list[str]] = None,
-    vision_enabled: bool = False,
-    personality_context: Optional[str] = None,
-    query_files: str = None,
-    tracer: dict = {},
-):
-    """
-    Infer search queries to retrieve relevant notes to answer user query
-    """
-    location = f"{location_data}" if location_data else "Unknown"
-    username = prompts.user_name.format(name=user.get_full_name()) if user and user.get_full_name() else ""
-
-    # Extract Past User Message and Inferred Questions from Chat History
-    chat_history_str = construct_question_history(chat_history)
-
-    # Get dates relative to today for prompt creation
-    today = datetime.today()
-    current_new_year = today.replace(month=1, day=1)
-    last_new_year = current_new_year.replace(year=today.year - 1)
-
-    prompt = prompts.extract_questions.format(
-        current_date=today.strftime("%Y-%m-%d"),
-        day_of_week=today.strftime("%A"),
-        current_month=today.strftime("%Y-%m"),
-        last_new_year=last_new_year.strftime("%Y"),
-        last_new_year_date=last_new_year.strftime("%Y-%m-%d"),
-        current_new_year_date=current_new_year.strftime("%Y-%m-%d"),
-        bob_tom_age_difference={current_new_year.year - 1984 - 30},
-        bob_age={current_new_year.year - 1984},
-        chat_history=chat_history_str,
-        text=text,
-        yesterday_date=(today - timedelta(days=1)).strftime("%Y-%m-%d"),
-        location=location,
-        username=username,
-        personality_context=personality_context,
-    )
-
-    prompt = construct_structured_message(
-        message=prompt,
-        images=query_images,
-        model_type=ChatModel.ModelType.OPENAI,
-        vision_enabled=vision_enabled,
-        attached_file_context=query_files,
-    )
-
-    messages = []
-    messages.append(ChatMessage(content=prompt, role="user"))
-
-    response = send_message_to_model(
-        messages,
-        api_key,
-        model,
-        response_type="json_object",
-        api_base_url=api_base_url,
-        tracer=tracer,
-    )
-
-    # Extract, Clean Message from GPT's Response
-    try:
-        response = clean_json(response)
-        response = pyjson5.loads(response)
-        response = [q.strip() for q in response["queries"] if q.strip()]
-        if not isinstance(response, list) or not response:
-            logger.error(f"Invalid response for constructing subqueries: {response}")
-            return [text]
-        return response
-    except:
-        logger.warning(f"GPT returned invalid JSON. Falling back to using user message as search query.\n{response}")
-        questions = [text]
-
-    logger.debug(f"Extracted Questions by GPT: {questions}")
-    return questions
 
 
 def send_message_to_model(

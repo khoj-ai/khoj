@@ -1,28 +1,24 @@
 import asyncio
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from threading import Thread
 from time import perf_counter
-from typing import Any, AsyncGenerator, Dict, List, Optional, Union
+from typing import Any, AsyncGenerator, Dict, List, Union
 
-import pyjson5
 from langchain_core.messages.chat import ChatMessage
 from llama_cpp import Llama
 
-from khoj.database.models import Agent, ChatMessageModel, ChatModel, KhojUser
+from khoj.database.models import Agent, ChatMessageModel, ChatModel
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.utils import download_model
 from khoj.processor.conversation.utils import (
     ResponseWithThought,
-    clean_json,
     commit_conversation_trace,
-    construct_question_history,
     generate_chatml_messages_with_context,
     messages_to_print,
 )
 from khoj.utils import state
-from khoj.utils.constants import empty_escape_sequences
 from khoj.utils.helpers import (
     is_none_or_empty,
     is_promptrace_enabled,
@@ -32,114 +28,6 @@ from khoj.utils.rawconfig import FileAttachment, LocationData
 from khoj.utils.yaml import yaml_dump
 
 logger = logging.getLogger(__name__)
-
-
-def extract_questions_offline(
-    text: str,
-    model: str = "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
-    loaded_model: Union[Any, None] = None,
-    chat_history: List[ChatMessageModel] = [],
-    use_history: bool = True,
-    should_extract_questions: bool = True,
-    location_data: LocationData = None,
-    user: KhojUser = None,
-    max_prompt_size: int = None,
-    temperature: float = 0.7,
-    personality_context: Optional[str] = None,
-    query_files: str = None,
-    tracer: dict = {},
-) -> List[str]:
-    """
-    Infer search queries to retrieve relevant notes to answer user query
-    """
-    all_questions = text.split("? ")
-    all_questions = [q + "?" for q in all_questions[:-1]] + [all_questions[-1]]
-
-    if not should_extract_questions:
-        return all_questions
-
-    assert loaded_model is None or isinstance(loaded_model, Llama), "loaded_model must be of type Llama, if configured"
-    offline_chat_model = loaded_model or download_model(model, max_tokens=max_prompt_size)
-
-    location = f"{location_data}" if location_data else "Unknown"
-    username = prompts.user_name.format(name=user.get_full_name()) if user and user.get_full_name() else ""
-
-    # Extract Past User Message and Inferred Questions from Conversation Log
-    chat_history_str = construct_question_history(chat_history, include_query=False) if use_history else ""
-
-    # Get dates relative to today for prompt creation
-    today = datetime.today()
-    yesterday = (today - timedelta(days=1)).strftime("%Y-%m-%d")
-    last_year = today.year - 1
-    example_questions = prompts.extract_questions_offline.format(
-        query=text,
-        chat_history=chat_history_str,
-        current_date=today.strftime("%Y-%m-%d"),
-        day_of_week=today.strftime("%A"),
-        current_month=today.strftime("%Y-%m"),
-        yesterday_date=yesterday,
-        last_year=last_year,
-        this_year=today.year,
-        location=location,
-        username=username,
-        personality_context=personality_context,
-    )
-
-    messages = generate_chatml_messages_with_context(
-        example_questions,
-        model_name=model,
-        loaded_model=offline_chat_model,
-        max_prompt_size=max_prompt_size,
-        model_type=ChatModel.ModelType.OFFLINE,
-        query_files=query_files,
-    )
-
-    state.chat_lock.acquire()
-    try:
-        response = send_message_to_model_offline(
-            messages,
-            loaded_model=offline_chat_model,
-            model_name=model,
-            max_prompt_size=max_prompt_size,
-            temperature=temperature,
-            response_type="json_object",
-            tracer=tracer,
-        )
-    finally:
-        state.chat_lock.release()
-
-    # Extract and clean the chat model's response
-    try:
-        response = clean_json(empty_escape_sequences)
-        response = pyjson5.loads(response)
-        questions = [q.strip() for q in response["queries"] if q.strip()]
-        questions = filter_questions(questions)
-    except:
-        logger.warning(f"Llama returned invalid JSON. Falling back to using user message as search query.\n{response}")
-        return all_questions
-    logger.debug(f"Questions extracted by {model}: {questions}")
-    return questions
-
-
-def filter_questions(questions: List[str]):
-    # Skip questions that seem to be apologizing for not being able to answer the question
-    hint_words = [
-        "sorry",
-        "apologize",
-        "unable",
-        "can't",
-        "cannot",
-        "don't know",
-        "don't understand",
-        "do not know",
-        "do not understand",
-    ]
-    filtered_questions = set()
-    for q in questions:
-        if not any([word in q.lower() for word in hint_words]) and not is_none_or_empty(q):
-            filtered_questions.add(q)
-
-    return list(filtered_questions)
 
 
 async def converse_offline(
@@ -324,7 +212,7 @@ def send_message_to_model_offline(
     if streaming:
         return response
 
-    response_text = response["choices"][0]["message"].get("content", "")
+    response_text: str = response["choices"][0]["message"].get("content", "")
 
     # Save conversation trace for non-streaming responses
     # Streamed responses need to be saved by the calling function

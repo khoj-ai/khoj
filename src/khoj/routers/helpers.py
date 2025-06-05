@@ -82,21 +82,17 @@ from khoj.processor.conversation import prompts
 from khoj.processor.conversation.anthropic.anthropic_chat import (
     anthropic_send_message_to_model,
     converse_anthropic,
-    extract_questions_anthropic,
 )
 from khoj.processor.conversation.google.gemini_chat import (
     converse_gemini,
-    extract_questions_gemini,
     gemini_send_message_to_model,
 )
 from khoj.processor.conversation.offline.chat_model import (
     converse_offline,
-    extract_questions_offline,
     send_message_to_model_offline,
 )
 from khoj.processor.conversation.openai.gpt import (
     converse_openai,
-    extract_questions,
     send_message_to_model,
 )
 from khoj.processor.conversation.utils import (
@@ -107,6 +103,7 @@ from khoj.processor.conversation.utils import (
     clean_json,
     clean_mermaidjs,
     construct_chat_history,
+    construct_question_history,
     defilter_query,
     generate_chatml_messages_with_context,
 )
@@ -1222,7 +1219,6 @@ async def search_documents(
         return
 
     filters_in_query += " ".join([f'file:"{filter}"' for filter in conversation.file_filters])
-    using_offline_chat = False
     if is_none_or_empty(filters_in_query):
         logger.debug(f"Filters in query: {filters_in_query}")
 
@@ -1230,89 +1226,18 @@ async def search_documents(
 
     # Infer search queries from user message
     with timer("Extracting search queries took", logger):
-        # If we've reached here, either the user has enabled offline chat or the openai model is enabled.
-        chat_model = await ConversationAdapters.aget_default_chat_model(user)
-        vision_enabled = chat_model.vision_enabled
+        inferred_queries = await extract_questions(
+            query=defiltered_query,
+            user=user,
+            personality_context=personality_context,
+            chat_history=chat_history,
+            location_data=location_data,
+            query_images=query_images,
+            query_files=query_files,
+            tracer=tracer,
+        )
 
-        if chat_model.model_type == ChatModel.ModelType.OFFLINE:
-            using_offline_chat = True
-            chat_model_name = chat_model.name
-            max_tokens = chat_model.max_prompt_size
-            if state.offline_chat_processor_config is None:
-                state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model_name, max_tokens)
-
-            loaded_model = state.offline_chat_processor_config.loaded_model
-
-            inferred_queries = extract_questions_offline(
-                defiltered_query,
-                model=chat_model,
-                loaded_model=loaded_model,
-                chat_history=chat_history,
-                should_extract_questions=True,
-                location_data=location_data,
-                user=user,
-                max_prompt_size=chat_model.max_prompt_size,
-                personality_context=personality_context,
-                query_files=query_files,
-                tracer=tracer,
-            )
-        elif chat_model.model_type == ChatModel.ModelType.OPENAI:
-            api_key = chat_model.ai_model_api.api_key
-            base_url = chat_model.ai_model_api.api_base_url
-            chat_model_name = chat_model.name
-            inferred_queries = extract_questions(
-                defiltered_query,
-                model=chat_model_name,
-                api_key=api_key,
-                api_base_url=base_url,
-                chat_history=chat_history,
-                location_data=location_data,
-                user=user,
-                query_images=query_images,
-                vision_enabled=vision_enabled,
-                personality_context=personality_context,
-                query_files=query_files,
-                tracer=tracer,
-            )
-        elif chat_model.model_type == ChatModel.ModelType.ANTHROPIC:
-            api_key = chat_model.ai_model_api.api_key
-            api_base_url = chat_model.ai_model_api.api_base_url
-            chat_model_name = chat_model.name
-            inferred_queries = extract_questions_anthropic(
-                defiltered_query,
-                query_images=query_images,
-                model=chat_model_name,
-                api_key=api_key,
-                api_base_url=api_base_url,
-                chat_history=chat_history,
-                location_data=location_data,
-                user=user,
-                vision_enabled=vision_enabled,
-                personality_context=personality_context,
-                query_files=query_files,
-                tracer=tracer,
-            )
-        elif chat_model.model_type == ChatModel.ModelType.GOOGLE:
-            api_key = chat_model.ai_model_api.api_key
-            api_base_url = chat_model.ai_model_api.api_base_url
-            chat_model_name = chat_model.name
-            inferred_queries = extract_questions_gemini(
-                defiltered_query,
-                query_images=query_images,
-                model=chat_model_name,
-                api_key=api_key,
-                api_base_url=api_base_url,
-                chat_history=chat_history,
-                location_data=location_data,
-                max_tokens=chat_model.max_prompt_size,
-                user=user,
-                vision_enabled=vision_enabled,
-                personality_context=personality_context,
-                query_files=query_files,
-                tracer=tracer,
-            )
-
-    # Collate search results as context for GPT
+    # Collate search results as context for the LLM
     inferred_queries = list(set(inferred_queries) - previous_inferred_queries)
     with timer("Searching knowledge base took", logger):
         search_results = []
@@ -1322,12 +1247,11 @@ async def search_documents(
             async for event in send_status_func(f"**Searching Documents for:** {inferred_queries_str}"):
                 yield {ChatEvent.STATUS: event}
         for query in inferred_queries:
-            n_items = min(n, 3) if using_offline_chat else n
             search_results.extend(
                 await execute_search(
                     user if not should_limit_to_agent_knowledge else None,
                     f"{query} {filters_in_query}",
-                    n=n_items,
+                    n=n,
                     t=state.SearchType.All,
                     r=True,
                     max_distance=d,
@@ -1342,6 +1266,78 @@ async def search_documents(
         ]
 
     yield compiled_references, inferred_queries, defiltered_query
+
+
+async def extract_questions(
+    query: str,
+    user: KhojUser,
+    personality_context: str = "",
+    chat_history: List[ChatMessageModel] = [],
+    location_data: LocationData = None,
+    query_images: Optional[List[str]] = None,
+    query_files: str = None,
+    tracer: dict = {},
+):
+    """
+    Infer document search queries from user message and provided context
+    """
+    # Shared context setup
+    location = f"{location_data}" if location_data else "N/A"
+    username = prompts.user_name.format(name=user.get_full_name()) if user and user.get_full_name() else ""
+
+    # Date variables for prompt formatting
+    today = datetime.today()
+    current_new_year = today.replace(month=1, day=1)
+    last_new_year = current_new_year.replace(year=today.year - 1)
+    yesterday = (today - timedelta(days=1)).strftime("%Y-%m-%d")
+
+    # Common prompt setup for API-based models (using Anthropic prompts for consistency)
+    chat_history_str = construct_question_history(chat_history, query_prefix="User", agent_name="Assistant")
+
+    system_prompt = prompts.extract_questions_system_prompt.format(
+        current_date=today.strftime("%Y-%m-%d"),
+        day_of_week=today.strftime("%A"),
+        current_month=today.strftime("%Y-%m"),
+        last_new_year=last_new_year.strftime("%Y"),
+        last_new_year_date=last_new_year.strftime("%Y-%m-%d"),
+        current_new_year_date=current_new_year.strftime("%Y-%m-%d"),
+        yesterday_date=yesterday,
+        location=location,
+        username=username,
+        personality_context=personality_context,
+    )
+
+    prompt = prompts.extract_questions_user_message.format(text=query, chat_history=chat_history_str)
+
+    class DocumentQueries(BaseModel):
+        """Choose searches to run on user documents."""
+
+        queries: List[str] = Field(..., min_items=1, description="List of search queries to run on user documents.")
+
+    raw_response = await send_message_to_model_wrapper(
+        system_message=system_prompt,
+        query=prompt,
+        query_images=query_images,
+        query_files=query_files,
+        chat_history=chat_history,
+        response_type="json_object",
+        response_schema=DocumentQueries,
+        user=user,
+        tracer=tracer,
+    )
+
+    # Extract questions from the response
+    try:
+        response = clean_json(raw_response)
+        response = pyjson5.loads(response)
+        queries = [q.strip() for q in response["queries"] if q.strip()]
+        if not isinstance(queries, list) or not queries:
+            logger.error(f"Invalid response for constructing subqueries: {response}")
+            return [query]
+        return queries
+    except:
+        logger.warning(f"LLM returned invalid JSON. Falling back to using user message as search query.")
+        return [query]
 
 
 async def execute_search(

@@ -4,10 +4,11 @@ import freezegun
 import pytest
 from freezegun import freeze_time
 
-from khoj.processor.conversation.openai.gpt import converse_openai, extract_questions
+from khoj.processor.conversation.openai.gpt import converse_openai
 from khoj.processor.conversation.utils import message_to_log
 from khoj.routers.helpers import (
     aget_data_sources_and_output_format,
+    extract_questions,
     generate_online_subqueries,
     infer_webpage_urls,
     schedule_query,
