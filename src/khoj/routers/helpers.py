@@ -1337,7 +1337,7 @@ async def execute_search(
     user: KhojUser,
     q: str,
     n: Optional[int] = 5,
-    t: Optional[state.SearchType] = state.SearchType.All,
+    t: Optional[state.SearchType] = None,
     r: Optional[bool] = False,
     max_distance: Optional[Union[float, None]] = None,
     dedupe: Optional[bool] = True,
@@ -1360,6 +1360,7 @@ async def execute_search(
     # initialize variables
     user_query = q.strip()
     results_count = n or 5
+    t = t or state.SearchType.All
     search_futures: List[concurrent.futures.Future] = []
 
     # return cached results, if available
