@@ -50,6 +50,13 @@ def enable_db_access_for_all_tests(db):
     pass
 
 
+@pytest.fixture(scope="session", autouse=True)
+def django_db_setup(django_db_setup, django_db_blocker):
+    """Ensure proper database setup and teardown for all tests."""
+    with django_db_blocker.unblock():
+        yield
+
+
 @pytest.fixture(scope="session")
 def search_config() -> SearchConfig:
     state.embeddings_model = dict()
