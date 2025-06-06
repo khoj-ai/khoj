@@ -1,9 +1,7 @@
 import json
 import logging
-from copy import deepcopy
-from textwrap import dedent
 from time import perf_counter
-from typing import AsyncGenerator, Dict, List, Optional, Type
+from typing import AsyncGenerator, Dict, List
 
 import anthropic
 from langchain_core.messages.chat import ChatMessage
@@ -18,7 +16,9 @@ from tenacity import (
 
 from khoj.processor.conversation.utils import (
     ResponseWithThought,
+    ToolDefinition,
     commit_conversation_trace,
+    create_tool_definition,
     get_image_from_base64,
     get_image_from_url,
 )
@@ -57,6 +57,7 @@ def anthropic_completion_with_backoff(
     max_tokens: int | None = None,
     response_type: str = "text",
     response_schema: BaseModel | None = None,
+    tools: List[ToolDefinition] = None,
     deepthought: bool = False,
     tracer: dict = {},
 ) -> str:
@@ -70,9 +71,19 @@ def anthropic_completion_with_backoff(
     aggregated_response = ""
     final_message = None
     model_kwargs = model_kwargs or dict()
-    if response_schema:
-        tool = create_anthropic_tool_definition(response_schema=response_schema)
-        model_kwargs["tools"] = [tool]
+
+    # Configure structured output
+    if tools:
+        # Convert tools to Anthropic format
+        model_kwargs["tools"] = [
+            anthropic.types.ToolParam(name=tool.name, description=tool.description, input_schema=tool.schema)
+            for tool in tools
+        ]
+    elif response_schema:
+        tool = create_tool_definition(response_schema)
+        model_kwargs["tools"] = [
+            anthropic.types.ToolParam(name=tool.name, description=tool.description, input_schema=tool.schema)
+        ]
     elif response_type == "json_object" and not (is_reasoning_model(model_name) and deepthought):
         # Prefill model response with '{' to make it output a valid JSON object. Not supported with extended thinking.
         formatted_messages.append(anthropic.types.MessageParam(role="assistant", content="{"))
@@ -103,7 +114,7 @@ def anthropic_completion_with_backoff(
     # Extract first tool call from final message
     for item in final_message.content:
         if item.type == "tool_use":
-            aggregated_response = json.dumps(item.input)
+            aggregated_response = json.dumps([{"name": item.name, "args": item.input}])
             break
 
     # Calculate cost of chat
@@ -324,75 +335,6 @@ def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt: st
     ]
 
     return formatted_messages, system
-
-
-def create_anthropic_tool_definition(
-    response_schema: Type[BaseModel],
-    tool_name: str = None,
-    tool_description: Optional[str] = None,
-) -> anthropic.types.ToolParam:
-    """
-    Converts a response schema BaseModel class into an Anthropic tool definition dictionary.
-
-    This format is expected by Anthropic's API when defining tools the model can use.
-
-    Args:
-        response_schema: The Pydantic BaseModel class to convert.
-                         This class defines the response schema for the tool.
-        tool_name: The name for the Anthropic tool (e.g., "get_weather", "plan_next_step").
-        tool_description: Optional description for the Anthropic tool.
-                           If None, it attempts to use the Pydantic model's docstring.
-                           If that's also missing, a fallback description is generated.
-
-    Returns:
-        An tool definition for Anthropic's API.
-    """
-    model_schema = response_schema.model_json_schema()
-
-    name = tool_name or response_schema.__name__.lower()
-    description = tool_description
-    if description is None:
-        docstring = response_schema.__doc__
-        if docstring:
-            description = dedent(docstring).strip()
-        else:
-            # Fallback description if no explicit one or docstring is provided
-            description = f"Tool named '{name}' accepts specified parameters."
-
-    # Process properties to inline enums and remove $defs dependency
-    processed_properties = {}
-    original_properties = model_schema.get("properties", {})
-    defs = model_schema.get("$defs", {})
-
-    for prop_name, prop_schema in original_properties.items():
-        current_prop_schema = deepcopy(prop_schema)  # Work on a copy
-        # Check for enums defined directly in the property for simpler direct enum definitions.
-        if "$ref" in current_prop_schema:
-            ref_path = current_prop_schema["$ref"]
-            if ref_path.startswith("#/$defs/"):
-                def_name = ref_path.split("/")[-1]
-                if def_name in defs and "enum" in defs[def_name]:
-                    enum_def = defs[def_name]
-                    current_prop_schema["enum"] = enum_def["enum"]
-                    current_prop_schema["type"] = enum_def.get("type", "string")
-                    if "description" not in current_prop_schema and "description" in enum_def:
-                        current_prop_schema["description"] = enum_def["description"]
-                    del current_prop_schema["$ref"]  # Remove the $ref as it's been inlined
-
-        processed_properties[prop_name] = current_prop_schema
-
-    # The input_schema for Anthropic tools is a JSON Schema object.
-    # Pydantic's model_json_schema() provides most of what's needed.
-    input_schema = {
-        "type": "object",
-        "properties": processed_properties,
-    }
-
-    # Include 'required' fields if specified in the Pydantic model
-    if "required" in model_schema and model_schema["required"]:
-        input_schema["required"] = model_schema["required"]
-
-    return anthropic.types.ToolParam(name=name, description=description, input_schema=input_schema)
 
 
 def is_reasoning_model(model_name: str) -> bool:

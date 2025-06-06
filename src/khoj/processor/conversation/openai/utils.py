@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from copy import deepcopy
@@ -9,6 +10,7 @@ from urllib.parse import urlparse
 import httpx
 import openai
 from langchain_core.messages.chat import ChatMessage
+from openai.lib._pydantic import _ensure_strict_json_schema
 from openai.lib.streaming.chat import (
     ChatCompletionStream,
     ChatCompletionStreamEvent,
@@ -20,6 +22,7 @@ from openai.types.chat.chat_completion_chunk import (
     Choice,
     ChoiceDelta,
 )
+from pydantic import BaseModel
 from tenacity import (
     before_sleep_log,
     retry,
@@ -30,8 +33,9 @@ from tenacity import (
 )
 
 from khoj.processor.conversation.utils import (
-    JsonSupport,
     ResponseWithThought,
+    StructuredOutputSupport,
+    ToolDefinition,
     commit_conversation_trace,
 )
 from khoj.utils.helpers import (
@@ -131,6 +135,8 @@ def completion_with_backoff(
                     aggregated_response += chunk.delta
                 elif chunk.type == "thought.delta":
                     pass
+                elif chunk.type == "tool_calls.function.arguments.done":
+                    aggregated_response = json.dumps([{"name": chunk.name, "args": chunk.arguments}])
     else:
         # Non-streaming chat completion
         chunk = client.beta.chat.completions.parse(
@@ -190,6 +196,7 @@ async def chat_completion_with_backoff(
     deepthought=False,
     model_kwargs: dict = {},
     tracer: dict = {},
+    tools=None,
 ) -> AsyncGenerator[ResponseWithThought, None]:
     client_key = f"{openai_api_key}--{api_base_url}"
     client = openai_async_clients.get(client_key)
@@ -258,6 +265,8 @@ async def chat_completion_with_backoff(
     read_timeout = 300 if is_local_api(api_base_url) else 60
     if os.getenv("KHOJ_LLM_SEED"):
         model_kwargs["seed"] = int(os.getenv("KHOJ_LLM_SEED"))
+    if tools:
+        model_kwargs["tools"] = tools
 
     aggregated_response = ""
     final_chunk = None
@@ -327,16 +336,16 @@ async def chat_completion_with_backoff(
         commit_conversation_trace(messages, aggregated_response, tracer)
 
 
-def get_openai_api_json_support(model_name: str, api_base_url: str = None) -> JsonSupport:
+def get_structured_output_support(model_name: str, api_base_url: str = None) -> StructuredOutputSupport:
     if model_name.startswith("deepseek-reasoner"):
-        return JsonSupport.NONE
+        return StructuredOutputSupport.NONE
     if api_base_url:
         host = urlparse(api_base_url).hostname
         if host and host.endswith(".ai.azure.com"):
-            return JsonSupport.OBJECT
+            return StructuredOutputSupport.OBJECT
         if host == "api.deepinfra.com":
-            return JsonSupport.OBJECT
-    return JsonSupport.SCHEMA
+            return StructuredOutputSupport.OBJECT
+    return StructuredOutputSupport.TOOL
 
 
 def format_message_for_api(messages: List[ChatMessage], api_base_url: str) -> List[dict]:
@@ -708,3 +717,47 @@ def add_qwen_no_think_tag(formatted_messages: List[dict]) -> None:
                     if isinstance(content_part, dict) and content_part.get("type") == "text":
                         content_part["text"] += " /no_think"
                         break
+
+
+def to_openai_tools(tools: List[ToolDefinition]) -> List[Dict] | None:
+    "Transform tool definitions from standard format to OpenAI format."
+    openai_tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": tool.name,
+                "description": tool.description,
+                "parameters": clean_response_schema(tool.schema),
+            },
+        }
+        for tool in tools
+    ]
+
+    return openai_tools or None
+
+
+def clean_response_schema(schema: BaseModel | dict) -> dict:
+    """
+    Format response schema to be compatible with OpenAI API.
+
+    Clean the response schema by removing unsupported fields.
+    """
+    # Normalize schema to OpenAI compatible JSON schema format
+    schema_json = schema if isinstance(schema, dict) else schema.model_json_schema()
+    schema_json = _ensure_strict_json_schema(schema_json, path=(), root=schema_json)
+
+    # Recursively drop unsupported fields from schema passed to OpenAI API
+    # See https://platform.openai.com/docs/guides/structured-outputs#supported-schemas
+    fields_to_exclude = ["minItems", "maxItems"]
+    if isinstance(schema_json, dict) and isinstance(schema_json.get("properties"), dict):
+        for _, prop_value in schema_json["properties"].items():
+            if isinstance(prop_value, dict):
+                # Remove specified fields from direct properties
+                for field in fields_to_exclude:
+                    prop_value.pop(field, None)
+            # Recursively remove specified fields from child properties
+            if "items" in prop_value and isinstance(prop_value["items"], dict):
+                clean_response_schema(prop_value["items"])
+
+    # Return cleaned schema
+    return schema_json

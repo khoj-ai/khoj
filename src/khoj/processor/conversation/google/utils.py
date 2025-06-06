@@ -1,9 +1,10 @@
+import json
 import logging
 import os
 import random
 from copy import deepcopy
 from time import perf_counter
-from typing import AsyncGenerator, AsyncIterator, Dict
+from typing import AsyncGenerator, AsyncIterator, Dict, List
 
 import httpx
 from google import genai
@@ -22,6 +23,7 @@ from tenacity import (
 
 from khoj.processor.conversation.utils import (
     ResponseWithThought,
+    ToolDefinition,
     commit_conversation_trace,
     get_image_from_base64,
     get_image_from_url,
@@ -95,7 +97,7 @@ def gemini_completion_with_backoff(
     temperature=1.2,
     api_key=None,
     api_base_url: str = None,
-    model_kwargs=None,
+    model_kwargs={},
     deepthought=False,
     tracer={},
 ) -> str:
@@ -107,9 +109,12 @@ def gemini_completion_with_backoff(
     formatted_messages, system_instruction = format_messages_for_gemini(messages, system_prompt)
     response_thoughts: str | None = None
 
-    # format model response schema
+    # Configure structured output
+    tools = None
     response_schema = None
-    if model_kwargs and model_kwargs.get("response_schema"):
+    if model_kwargs.get("tools"):
+        tools = to_gemini_tools(model_kwargs["tools"])
+    elif model_kwargs.get("response_schema"):
         response_schema = clean_response_schema(model_kwargs["response_schema"])
 
     thinking_config = None
@@ -127,8 +132,9 @@ def gemini_completion_with_backoff(
         thinking_config=thinking_config,
         max_output_tokens=max_output_tokens,
         safety_settings=SAFETY_SETTINGS,
-        response_mime_type=model_kwargs.get("response_mime_type", "text/plain") if model_kwargs else "text/plain",
+        response_mime_type=model_kwargs.get("response_mime_type", "text/plain"),
         response_schema=response_schema,
+        tools=tools,
         seed=seed,
         top_p=0.95,
         http_options=gtypes.HttpOptions(client_args={"timeout": httpx.Timeout(30.0, read=60.0)}),
@@ -137,7 +143,14 @@ def gemini_completion_with_backoff(
     try:
         # Generate the response
         response = client.models.generate_content(model=model_name, config=config, contents=formatted_messages)
-        response_text = response.text
+        if response.function_calls:
+            function_calls = [
+                {"name": function_call.name, "args": function_call.args} for function_call in response.function_calls
+            ]
+            response_text = json.dumps(function_calls)
+        else:
+            # If no function calls, use the text response
+            response_text = response.text
     except gerrors.ClientError as e:
         response = None
         response_text, _ = handle_gemini_response(e.args)
@@ -404,3 +417,21 @@ def is_reasoning_model(model_name: str) -> bool:
     Check if the model is a reasoning model.
     """
     return model_name.startswith("gemini-2.5")
+
+
+def to_gemini_tools(tools: List[ToolDefinition]) -> List[gtypes.ToolDict] | None:
+    "Transform tool definitions from standard format to Gemini format."
+    gemini_tools = [
+        gtypes.ToolDict(
+            function_declarations=[
+                gtypes.FunctionDeclarationDict(
+                    name=tool.name,
+                    description=tool.description,
+                    parameters=tool.schema,
+                )
+                for tool in tools
+            ]
+        )
+    ]
+
+    return gemini_tools or None

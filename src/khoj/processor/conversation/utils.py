@@ -6,11 +6,13 @@ import mimetypes
 import os
 import re
 import uuid
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from io import BytesIO
-from typing import Any, Callable, Dict, List, Literal, Optional, Union
+from textwrap import dedent
+from typing import Any, Callable, Dict, List, Literal, Optional, Type, Union
 
 import PIL.Image
 import pyjson5
@@ -1149,13 +1151,93 @@ def messages_to_print(messages: list[ChatMessage], max_length: int = 70) -> str:
     return "\n".join([f"{json.dumps(safe_serialize(message.content))[:max_length]}..." for message in messages])
 
 
-class JsonSupport(int, Enum):
+class StructuredOutputSupport(int, Enum):
     NONE = 0
     OBJECT = 1
     SCHEMA = 2
+    TOOL = 3
 
 
 class ResponseWithThought:
     def __init__(self, response: str = None, thought: str = None):
         self.response = response
         self.thought = thought
+
+
+class ToolDefinition:
+    def __init__(self, name: str, description: str, schema: dict):
+        self.name = name
+        self.description = description
+        self.schema = schema
+
+
+def create_tool_definition(
+    schema: Type[BaseModel],
+    name: str = None,
+    description: Optional[str] = None,
+) -> ToolDefinition:
+    """
+    Converts a response schema BaseModel class into a normalized tool definition.
+
+    A standard AI provider agnostic tool format to specify tools the model can use.
+    Common logic used across models is kept here. AI provider specific adaptations
+    should be handled in provider code.
+
+    Args:
+        response_schema: The Pydantic BaseModel class to convert.
+                         This class defines the response schema for the tool.
+        tool_name: The name for the AI model tool (e.g., "get_weather", "plan_next_step").
+        tool_description: Optional description for the AI model tool.
+                           If None, it attempts to use the Pydantic model's docstring.
+                           If that's also missing, a fallback description is generated.
+
+    Returns:
+        A normalized tool definition for AI model APIs.
+    """
+    raw_schema_dict = schema.model_json_schema()
+
+    name = name or schema.__name__.lower()
+    description = description
+    if description is None:
+        docstring = schema.__doc__
+        if docstring:
+            description = dedent(docstring).strip()
+        else:
+            # Fallback description if no explicit one or docstring is provided
+            description = f"Tool named '{name}' accepts specified parameters."
+
+    # Process properties to inline enums and remove $defs dependency
+    processed_properties = {}
+    original_properties = raw_schema_dict.get("properties", {})
+    defs = raw_schema_dict.get("$defs", {})
+
+    for prop_name, prop_schema in original_properties.items():
+        current_prop_schema = deepcopy(prop_schema)  # Work on a copy
+        # Check for enums defined directly in the property for simpler direct enum definitions.
+        if "$ref" in current_prop_schema:
+            ref_path = current_prop_schema["$ref"]
+            if ref_path.startswith("#/$defs/"):
+                def_name = ref_path.split("/")[-1]
+                if def_name in defs and "enum" in defs[def_name]:
+                    enum_def = defs[def_name]
+                    current_prop_schema["enum"] = enum_def["enum"]
+                    current_prop_schema["type"] = enum_def.get("type", "string")
+                    if "description" not in current_prop_schema and "description" in enum_def:
+                        current_prop_schema["description"] = enum_def["description"]
+                    del current_prop_schema["$ref"]  # Remove the $ref as it's been inlined
+
+        processed_properties[prop_name] = current_prop_schema
+
+    # Generate the compiled schema dictionary for the tool definition.
+    compiled_schema = {
+        "type": "object",
+        "properties": processed_properties,
+        # Generate content in the order in which the schema properties were defined
+        "property_ordering": list(schema.model_fields.keys()),
+    }
+
+    # Include 'required' fields if specified in the Pydantic model
+    if "required" in raw_schema_dict and raw_schema_dict["required"]:
+        compiled_schema["required"] = raw_schema_dict["required"]
+
+    return ToolDefinition(name=name, description=description, schema=compiled_schema)
