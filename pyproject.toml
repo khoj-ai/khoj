@@ -7,7 +7,7 @@ name = "khoj"
 description = "Your Second Brain"
 readme = "README.md"
 license = "AGPL-3.0-or-later"
-requires-python = ">=3.10"
+requires-python = ">=3.10, <3.13"
 authors = [
     { name = "Debanjum Singh Solanky, Saba Imran" },
 ]
