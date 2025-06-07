@@ -222,9 +222,9 @@ class ComputerEnvironment(Environment):
                         elif action.scroll_direction == "down":
                             await self._execute("scroll", -total_scroll_clicks)
                         elif action.scroll_direction == "left":
-                            await self._execute("hscroll", -total_scroll_clicks)
+                            await self._execute("hscroll", -total_scroll_clicks * 3)
                         elif action.scroll_direction == "right":
-                            await self._execute("hscroll", total_scroll_clicks)
+                            await self._execute("hscroll", total_scroll_clicks * 3)
                         output = f"Scrolled {action.scroll_direction} by {amount} units at ({target_x}, {target_y})"
                     else:
                         error = "Scroll action requires either scroll_x/y or scroll_direction"
