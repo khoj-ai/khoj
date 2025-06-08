@@ -309,8 +309,15 @@ def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt: st
         # Caching it should improve research efficiency.
         cache_message = messages[-2]
         if isinstance(cache_message.content, list) and cache_message.content:
-            # Add cache control to the last content block
-            cache_message.content[-1]["cache_control"] = {"type": "ephemeral"}
+            # Add cache control to the last content block only if it's a text block with non-empty content
+            last_block = cache_message.content[-1]
+            if (
+                isinstance(last_block, dict)
+                and last_block.get("type") == "text"
+                and last_block.get("text")
+                and last_block.get("text").strip()
+            ):
+                last_block["cache_control"] = {"type": "ephemeral"}
 
     formatted_messages: List[anthropic.types.MessageParam] = [
         anthropic.types.MessageParam(role=message.role, content=message.content) for message in messages
