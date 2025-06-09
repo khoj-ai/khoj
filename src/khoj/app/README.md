@@ -65,7 +65,7 @@ sudo -u postgres createdb khoj
 ### Install Khoj
 
 ```bash
-pip install -e '.[dev]'
+uv sync --all-extras
 ```
 
 ### Make Khoj DB migrations
