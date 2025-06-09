@@ -106,10 +106,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
         with:
-          python-version: '3.10'
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.10
 
       - name: Get App Version
         id: hatch
@@ -127,16 +130,14 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           # install dependencies
-          sudo apt update && sudo apt install -y git python3-pip libegl1 sqlite3 libsqlite3-dev libsqlite3-0 ffmpeg libsm6 libxext6
-          # upgrade pip
-          python -m ensurepip --upgrade && python -m pip install --upgrade pip
+          sudo apt update && sudo apt install -y git libegl1 sqlite3 libsqlite3-dev libsqlite3-0 ffmpeg libsm6 libxext6
           # install terrarium for code sandbox
           git clone https://github.com/khoj-ai/terrarium.git && cd terrarium && npm install --legacy-peer-deps && mkdir pyodide_cache
 
       - name: ⬇️ Install Application
         run: |
           sed -i 's/dynamic = \["version"\]/version = "${{ steps.hatch.outputs.version }}"/' pyproject.toml
-          pip install --upgrade .[dev]
+          uv sync --all-extras
 
       - name: 📝 Run Eval
         env:

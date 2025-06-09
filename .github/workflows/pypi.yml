@@ -34,13 +34,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
         with:
-          python-version: '3.11.12'
+          version: "latest"
+
+      - name: Set up Python 3.11
+        run: uv python install 3.11
 
       - name: ⬇️ Install Server
-        run: python -m pip install --upgrade pip && pip install --upgrade .
+        run: uv sync --all-extras
 
       - name: ⬇️ Install Web Client
         run: |
@@ -51,7 +54,7 @@ jobs:
       - name: 📂 Copy Generated Files
         run: |
           mkdir -p src/khoj/interface/compiled
-          cp -r /opt/hostedtoolcache/Python/3.11.12/x64/lib/python3.11/site-packages/khoj/interface/compiled/* src/khoj/interface/compiled/
+          cp -r $(uv python find-python 3.11)/lib/python3.11/site-packages/khoj/interface/compiled/* src/khoj/interface/compiled/
 
       - name: ⚙️ Build Python Package
         run: |
@@ -61,13 +64,13 @@ jobs:
           rm -rf dist
 
           # Build PyPI Package
-          pipx run build
+          uv build
 
       - name: 🌡️ Validate Python Package
         run: |
           # Validate PyPi Package
-          pipx run check-wheel-contents dist/*.whl --ignore W004
-          pipx run twine check dist/*
+          uv tool run check-wheel-contents dist/*.whl --ignore W004
+          uv tool run twine check dist/*
 
       - name: ⏫ Upload Python Package Artifacts
         uses: actions/upload-artifact@v4
