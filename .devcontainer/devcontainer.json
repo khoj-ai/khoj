@@ -4,7 +4,7 @@
         "dockerfile": "Dockerfile",
         "context": "..", // Build context is the project root
         "args": {
-            "PYTHON_VERSION": "3.10"
+            "PYTHON_VERSION": "3.12"
         }
     },
     "forwardPorts": [
@@ -53,11 +53,6 @@
     "postCreateCommand": "scripts/dev_setup.sh --devcontainer",
     "features": {
         "ghcr.io/devcontainers/features/github-cli:1": {},
-        "ghcr.io/devcontainers/features/node:1": {
-            "version": "lts",
-            "installYarnUsingApt": false,
-            "nodeGypDependencies": true
-        }
     },
     "remoteUser": "vscode"
 }
