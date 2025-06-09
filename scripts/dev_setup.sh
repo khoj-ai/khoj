@@ -40,7 +40,14 @@ if [ "$DEVCONTAINER" = true ]; then
     # Install Web App using cached dependencies
     echo "Installing Web App using cached dependencies..."
     cd "$PROJECT_ROOT/src/interface/web"
-    yarn install --cache-folder /opt/yarn-cache && yarn export
+    if command -v deno &> /dev/null
+    then
+        echo "using Deno."
+        deno install && deno run ciexport
+    else
+        echo "using Yarn."
+        yarn install && yarn ciexport
+    fi
 else
     # Standard setup
     echo "Installing Server App..."
@@ -56,7 +63,14 @@ else
 
     echo "Installing Web App..."
     cd "$PROJECT_ROOT/src/interface/web"
-    yarn install && yarn export
+    if command -v deno &> /dev/null
+    then
+        echo "using Deno."
+        deno install && deno run export
+    else
+        echo "using Yarn."
+        yarn install && yarn export
+    fi
 fi
 
 # Install Obsidian App
