@@ -62,7 +62,7 @@ async def all_agents(
     for agent in agents:
         files = agent.fileobject_set.all()
         file_names = [file.file_name for file in files]
-        agent_chat_model = await AgentAdapters.aget_agent_chat_model(default_agent, user)
+        agent_chat_model = await AgentAdapters.aget_agent_chat_model(agent, user)
         agent_packet = {
             "slug": agent.slug,
             "name": agent.name,
