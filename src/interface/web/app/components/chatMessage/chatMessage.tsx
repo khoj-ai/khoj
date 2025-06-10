@@ -129,7 +129,7 @@ export interface CodeContextData {
         output_files: CodeContextFile[];
         std_out: string;
         std_err: string;
-        code_runtime: number;
+        code_runtime?: number;
     };
 }
 
@@ -454,7 +454,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
         // Add code context files to the message
         if (props.chatMessage.codeContext) {
             Object.entries(props.chatMessage.codeContext).forEach(([key, value]) => {
-                value.results.output_files?.forEach((file) => {
+                value.results?.output_files?.forEach((file) => {
                     if (file.filename.endsWith(".png") || file.filename.endsWith(".jpg")) {
                         // Don't add the image again if it's already in the message!
                         if (!message.includes(`![${file.filename}](`)) {

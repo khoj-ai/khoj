@@ -36,12 +36,12 @@ class CodeContextResult(PydanticBaseModel):
     output_files: List[CodeContextFile]
     std_out: str
     std_err: str
-    code_runtime: int
+    code_runtime: Optional[int] = None
 
 
 class CodeContextData(PydanticBaseModel):
     code: str
-    result: Optional[CodeContextResult] = None
+    results: Optional[CodeContextResult] = None
 
 
 class WebPage(PydanticBaseModel):
