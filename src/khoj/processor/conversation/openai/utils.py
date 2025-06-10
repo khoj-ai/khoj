@@ -105,8 +105,8 @@ def completion_with_backoff(
         stream_processor = partial(in_stream_thought_processor, thought_tag="think")
         # Reasoning is enabled by default. Disable when deepthought is False.
         # See https://qwenlm.github.io/blog/qwen3/#advanced-usages
-        if not deepthought and len(formatted_messages) > 0:
-            formatted_messages[-1]["content"] = formatted_messages[-1]["content"] + " /no_think"
+        if not deepthought:
+            add_qwen_no_think_tag(formatted_messages)
 
     read_timeout = 300 if is_local_api(api_base_url) else 60
     model_kwargs["stream_options"] = {"include_usage": True}
@@ -225,8 +225,8 @@ async def chat_completion_with_backoff(
         stream_processor = partial(ain_stream_thought_processor, thought_tag="think")
         # Reasoning is enabled by default. Disable when deepthought is False.
         # See https://qwenlm.github.io/blog/qwen3/#advanced-usages
-        if not deepthought and len(formatted_messages) > 0:
-            formatted_messages[-1]["content"] = formatted_messages[-1]["content"] + " /no_think"
+        if not deepthought:
+            add_qwen_no_think_tag(formatted_messages)
 
     stream = True
     read_timeout = 300 if is_local_api(api_base_url) else 60
@@ -627,3 +627,25 @@ async def ain_stream_thought_processor(
         elif mode == "message":
             chunk.choices[0].delta.content = buf
             yield chunk
+
+
+def add_qwen_no_think_tag(formatted_messages: List[dict]) -> None:
+    """
+    Add /no_think tag to the last message content if it is a user message.
+    This is used to disable reasoning in Qwen models when deepthought is False.
+    """
+    if len(formatted_messages) > 0 and formatted_messages[-1]["role"] == "user":
+        last_message = formatted_messages[-1]
+        if isinstance(last_message["content"], str):
+            # Append /no_think to the last message content
+            formatted_messages[-1]["content"] = last_message["content"] + " /no_think"
+        elif isinstance(last_message["content"], list) and len(last_message["content"]) > 0:
+            # Append /no_think to the last content part
+            if isinstance(last_message["content"][-1], str):
+                last_message["content"][-1] = last_message["content"][-1] + " /no_think"
+            else:
+                # Find last content part of type text and append /no_think to "text" part
+                for content_part in reversed(last_message["content"]):
+                    if isinstance(content_part, dict) and content_part.get("type") == "text":
+                        content_part["text"] += " /no_think"
+                        break
