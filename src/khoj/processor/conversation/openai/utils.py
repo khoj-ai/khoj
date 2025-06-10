@@ -312,11 +312,29 @@ def format_message_for_api(messages: List[ChatMessage], api_base_url: str) -> Li
     """
     formatted_messages = []
     for message in deepcopy(messages):
-        # Convert images to PNG format if message to be sent to non OpenAI API
         if isinstance(message.content, list) and not is_openai_api(api_base_url):
-            for part in message.content:
+            assistant_texts = []
+            has_images = False
+            for idx, part in enumerate(message.content):
+                # Convert images to PNG format if message to be sent to non OpenAI API
                 if part.get("type") == "image_url":
+                    has_images = True
                     part["image_url"]["url"] = convert_image_data_uri(part["image_url"]["url"], target_format="png")
+                # Deepinfra API does not support text content list in assistant messages
+                # So we merge text content list into a single text string
+                if (
+                    part.get("type") == "text"
+                    and message.role == "assistant"
+                    and api_base_url.startswith("https://api.deepinfra.com/v1")
+                ):
+                    assistant_texts += [part["text"]]
+                    message.content.pop(idx)
+            if assistant_texts:
+                assistant_texts_str = "\n\n".join(assistant_texts)
+                if has_images:
+                    message.content += [{"type": "text", "text": assistant_texts_str}]
+                else:
+                    message.content = assistant_texts_str
         formatted_messages.append({"role": message.role, "content": message.content})
 
     return formatted_messages
