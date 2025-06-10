@@ -317,7 +317,7 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
     const [inputTools, setInputTools] = useState<string[] | undefined>();
     const [outputModes, setOutputModes] = useState<string[] | undefined>();
     const [hasModified, setHasModified] = useState<boolean>(false);
-    const [isDefaultAgent, setIsDefaultAgent] = useState<boolean>(!agentData || agentData?.slug.toLowerCase() === "khoj");
+    const [isDefaultAgent, setIsDefaultAgent] = useState<boolean>(!agentData || agentData?.slug?.toLowerCase() === "khoj");
     const [displayInputTools, setDisplayInputTools] = useState<string[] | undefined>();
     const [displayOutputModes, setDisplayOutputModes] = useState<string[] | undefined>();
 
@@ -338,11 +338,11 @@ function ChatSidebarInternal({ ...props }: ChatSideBarProps) {
                 setDisplayOutputModes(agentConfigurationOptions?.output_modes ? Object.keys(agentConfigurationOptions.output_modes) : []);
             }
 
-            if (agentData.name.toLowerCase() === "khoj" || agentData.is_hidden === true) {
+            if (agentData.name?.toLowerCase() === "khoj" || agentData.is_hidden === true) {
                 setIsEditable(true);
             }
 
-            if (agentData.slug.toLowerCase() === "khoj") {
+            if (agentData.slug?.toLowerCase() === "khoj") {
                 setSelectedModel(undefined);
                 setCustomPrompt(undefined);
                 setIsDefaultAgent(true);
