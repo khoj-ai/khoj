@@ -960,7 +960,11 @@ async def chat(
             online_results = {key: val.model_dump() for key, val in last_message.onlineContext.items() or []}
             code_results = {key: val.model_dump() for key, val in last_message.codeContext.items() or []}
             compiled_references = [ref.model_dump() for ref in last_message.context or []]
-            research_results = [ResearchIteration(**iter_dict) for iter_dict in last_message.researchContext or []]
+            research_results = [
+                ResearchIteration(**iter_dict)
+                for iter_dict in last_message.researchContext or []
+                if iter_dict.get("summarizedResult")
+            ]
             operator_results = [OperatorRun(**iter_dict) for iter_dict in last_message.operatorContext or []]
             train_of_thought = [thought.model_dump() for thought in last_message.trainOfThought or []]
             # Drop the interrupted message from conversation history
@@ -1011,7 +1015,7 @@ async def chat(
                 user=user,
                 query=defiltered_query,
                 conversation_id=conversation_id,
-                conversation_history=conversation.messages,
+                conversation_history=chat_history,
                 previous_iterations=list(research_results),
                 query_images=uploaded_images,
                 agent=agent,

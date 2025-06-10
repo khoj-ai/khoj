@@ -90,7 +90,7 @@ class OnlineContext(PydanticBaseModel):
 
 class Intent(PydanticBaseModel):
     type: str
-    query: str
+    query: Optional[str] = None
     memory_type: Optional[str] = Field(alias="memory-type", default=None)
     inferred_queries: Optional[List[str]] = Field(default=None, alias="inferred-queries")
 

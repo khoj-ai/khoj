@@ -186,7 +186,7 @@ def construct_iteration_history(
         iteration_history.append(
             ChatMessageModel(
                 by="khoj",
-                intent={"type": "remember", "query": query},
+                intent=Intent(type="remember", query=query),
                 message=previous_iteration_messages,
             )
         )
@@ -196,16 +196,16 @@ def construct_iteration_history(
 def construct_chat_history(chat_history: list[ChatMessageModel], n: int = 4, agent_name="AI") -> str:
     chat_history_str = ""
     for chat in chat_history[-n:]:
-        if chat.by == "khoj" and chat.intent.type in ["remember", "reminder", "summarize"]:
-            if chat.intent.inferred_queries:
-                chat_history_str += f'{agent_name}: {{"queries": {chat.intent.inferred_queries}}}\n'
+        intent_type = chat.intent.type if chat.intent and chat.intent.type else ""
+        inferred_queries = chat.intent.inferred_queries if chat.intent else None
+        if chat.by == "khoj" and intent_type in ["remember", "reminder", "summarize"]:
+            if inferred_queries:
+                chat_history_str += f'{agent_name}: {{"queries": {inferred_queries}}}\n'
             chat_history_str += f"{agent_name}: {chat.message}\n\n"
         elif chat.by == "khoj" and chat.images:
-            chat_history_str += f"User: {chat.intent.query}\n"
             chat_history_str += f"{agent_name}: [generated image redacted for space]\n"
-        elif chat.by == "khoj" and ("excalidraw" in chat.intent.type):
-            chat_history_str += f"User: {chat.intent.query}\n"
-            chat_history_str += f"{agent_name}: {chat.intent.inferred_queries[0]}\n"
+        elif chat.by == "khoj" and ("excalidraw" in intent_type):
+            chat_history_str += f"{agent_name}: {inferred_queries[0]}\n"
         elif chat.by == "you":
             chat_history_str += f"User: {chat.message}\n"
             raw_query_files = chat.queryFiles

@@ -53,11 +53,11 @@ async def text_to_image(
     text2image_model = text_to_image_config.model_name
     chat_history_str = ""
     for chat in chat_history[-4:]:
-        if chat.by == "khoj" and chat.intent and chat.intent.type in ["remember", "reminder"]:
-            chat_history_str += f"Q: {chat.intent.query or ''}\n"
+        if chat.by == "you":
+            chat_history_str += f"Q: {chat.message}\n"
+        elif chat.by == "khoj" and chat.intent and chat.intent.type in ["remember", "reminder"]:
             chat_history_str += f"A: {chat.message}\n"
         elif chat.by == "khoj" and chat.images:
-            chat_history_str += f"Q: {chat.intent.query}\n"
             chat_history_str += f"A: Improved Prompt: {chat.intent.inferred_queries[0]}\n"
 
     if send_status_func:
