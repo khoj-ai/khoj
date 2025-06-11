@@ -17,8 +17,8 @@ default_offline_chat_models = [
     "bartowski/gemma-2-2b-it-GGUF",
     "bartowski/Qwen2.5-14B-Instruct-GGUF",
 ]
-default_openai_chat_models = ["gpt-4o-mini", "gpt-4.1"]
-default_gemini_chat_models = ["gemini-2.0-flash", "gemini-2.5-flash-preview-05-20", "gemini-2.5-pro-preview-05-06"]
+default_openai_chat_models = ["gpt-4o-mini", "gpt-4.1", "o3", "o4-mini"]
+default_gemini_chat_models = ["gemini-2.0-flash", "gemini-2.5-flash-preview-05-20", "gemini-2.5-pro-preview-06-05"]
 default_anthropic_chat_models = ["claude-sonnet-4-0", "claude-3-5-haiku-latest"]
 
 empty_config = {
@@ -41,10 +41,11 @@ model_to_cost: Dict[str, Dict[str, float]] = {
     "gpt-4.1": {"input": 2.00, "output": 8.00},
     "gpt-4.1-mini": {"input": 0.40, "output": 1.60},
     "gpt-4.1-nano": {"input": 0.10, "output": 0.40},
-    "o1": {"input": 15.0, "output": 60.00},
-    "o3": {"input": 10.0, "output": 40.00},
     "o1-mini": {"input": 3.0, "output": 12.0},
+    "o1": {"input": 15.0, "output": 60.00},
     "o3-mini": {"input": 1.10, "output": 4.40},
+    "o3": {"input": 2.0, "output": 8.00},
+    "o3-pro": {"input": 20.0, "output": 80.00},
     "o4-mini": {"input": 1.10, "output": 4.40},
     # Gemini Pricing: https://ai.google.dev/pricing
     "gemini-1.5-flash": {"input": 0.075, "output": 0.30},
@@ -53,8 +54,8 @@ model_to_cost: Dict[str, Dict[str, float]] = {
     "gemini-1.5-pro-002": {"input": 1.25, "output": 5.00},
     "gemini-2.0-flash": {"input": 0.10, "output": 0.40},
     "gemini-2.0-flash-lite": {"input": 0.0075, "output": 0.30},
-    "gemini-2.5-flash-preview-04-17": {"input": 0.15, "output": 0.60, "thought": 3.50},
-    "gemini-2.5-pro-preview-03-25": {"input": 1.25, "output": 10.0},
+    "gemini-2.5-flash-preview-05-20": {"input": 0.15, "output": 0.60, "thought": 3.50},
+    "gemini-2.5-pro-preview-06-05": {"input": 1.25, "output": 10.0},
     # Anthropic Pricing: https://www.anthropic.com/pricing#anthropic-api
     "claude-3-5-haiku-20241022": {"input": 1.0, "output": 5.0, "cache_read": 0.08, "cache_write": 1.0},
     "claude-3-5-haiku@20241022": {"input": 1.0, "output": 5.0, "cache_read": 0.08, "cache_write": 1.0},
