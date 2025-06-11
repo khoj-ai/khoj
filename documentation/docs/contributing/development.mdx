@@ -30,7 +30,7 @@ git clone https://github.com/khoj-ai/khoj && cd khoj
 python3 -m venv .venv && source .venv/bin/activate
 
 # For MacOS or zsh users run this
-pip install -e '.[dev]'
+uv sync --all-extras
     ```
     </TabItem>
     <TabItem value="windows" label="Windows">
@@ -42,7 +42,7 @@ git clone https://github.com/khoj-ai/khoj && cd khoj
 python3 -m venv .venv && .venv\Scripts\activate
 
 # Install Khoj for Development
-pip install -e '.[dev]'
+uv sync --all-extras
       ```
     </TabItem>
     <TabItem value="linux" label="Linux">
@@ -54,7 +54,7 @@ git clone https://github.com/khoj-ai/khoj && cd khoj
 python3 -m venv .venv && source .venv/bin/activate
 
 # Install Khoj for Development
-pip install -e '.[dev]'
+uv sync --all-extras
       ```
     </TabItem>
   </Tabs>
@@ -129,7 +129,7 @@ Always run `yarn export` to test your front-end changes on http://localhost:4211
     - Try reactivating the virtual environment and rerunning the `khoj` command.
     - If it still doesn't work repeat the installation process.
 2. Python Package Missing
-    - Use `pip install xxx` and try running the `khoj` command.
+    - Use `uv add xxx` and try running the `khoj` command.
 3. Command `createdb` Not Recognized
     - make sure path to postgres binaries is included in environment variables. It usually looks something like
     ```

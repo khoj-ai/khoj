@@ -7,11 +7,11 @@ INSTALL_FULL=false
 DEVCONTAINER=false
 for arg in "$@"
 do
-    if [ "$arg" == "--full" ]
+    if [ "$arg" = "--full" ]
     then
         INSTALL_FULL=true
     fi
-    if [ "$arg" == "--devcontainer" ]
+    if [ "$arg" = "--devcontainer" ]
     then
         DEVCONTAINER=true
     fi
@@ -29,21 +29,48 @@ if [ "$DEVCONTAINER" = true ]; then
     # PATH should already include /opt/venv/bin from Dockerfile
 
     # Install khoj in editable mode (dependencies already installed)
-    python3 -m pip install -e '.[dev]'
+    # Use uv if available, else fall back to pipx
+    if command -v uv &> /dev/null
+    then
+        uv sync --all-extras
+    else
+        python3 -m pip install -e '.[dev]'
+    fi
 
     # Install Web App using cached dependencies
     echo "Installing Web App using cached dependencies..."
     cd "$PROJECT_ROOT/src/interface/web"
-    yarn install --cache-folder /opt/yarn-cache && yarn export
+    if command -v deno &> /dev/null
+    then
+        echo "using Deno."
+        deno install && deno run ciexport
+    else
+        echo "using Yarn."
+        yarn install && yarn ciexport
+    fi
 else
     # Standard setup
     echo "Installing Server App..."
     cd "$PROJECT_ROOT"
-    python3 -m venv .venv && . .venv/bin/activate && python3 -m pip install -e '.[dev]'
+    if command -v uv &> /dev/null
+    then
+        uv venv
+        uv sync --all-extras
+    else
+        python3 -m venv .venv && . .venv/bin/activate
+        python3 -m pip install -e '.[dev]'
+    fi
 
     echo "Installing Web App..."
     cd "$PROJECT_ROOT/src/interface/web"
-    yarn install && yarn export
+    if command -v deno &> /dev/null
+    then
+        echo "using Deno."
+        deno install && deno run export
+    else
+        echo "using Yarn."
+        yarn install && yarn export
+    fi
 fi
 
 # Install Obsidian App
