@@ -20,7 +20,7 @@ import yaml
 from langchain_core.messages.chat import ChatMessage
 from llama_cpp import LlamaTokenizer
 from llama_cpp.llama import Llama
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, ValidationError, create_model
 from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast
 
 from khoj.database.adapters import ConversationAdapters
@@ -362,7 +362,6 @@ def message_to_log(
     """Create json logs from messages, metadata for conversation log"""
     default_khoj_message_metadata = {
         "intent": {"type": "remember", "memory-type": "notes", "query": user_message},
-        "trigger-emotion": "calm",
     }
     khoj_response_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -376,6 +375,20 @@ def message_to_log(
     # Create json log from GPT's response
     khoj_log = merge_dicts(khoj_message_metadata, default_khoj_message_metadata)
     khoj_log = merge_dicts({"message": chat_response, "by": "khoj", "created": khoj_response_time}, khoj_log)
+
+    # Validate message logs
+    # Only validates top-level fields, not nested fields, defined in ChatMessageModel
+    class StrictChatMessageModel(ChatMessageModel):
+        model_config = ConfigDict(extra="forbid", strict=True)
+
+    try:
+        StrictChatMessageModel(**human_log)
+    except ValidationError as e:
+        logger.error(f"Validation error in user chat message: {e}\nUser Message: {human_log}\n")
+    try:
+        StrictChatMessageModel(**khoj_log)
+    except ValidationError as e:
+        logger.error(f"Validation error in khoj chat message: {e}\nKhoj Message: {khoj_log}\n")
 
     human_message = ChatMessageModel(**human_log)
     khoj_message = ChatMessageModel(**khoj_log)
