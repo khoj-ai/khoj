@@ -42,7 +42,7 @@ dependencies = [
     "fastapi >= 0.110.0",
     "python-multipart >= 0.0.7",
     "jinja2 == 3.1.6",
-    "openai >= 1.0.0",
+    "openai >= 1.86.0",
     "tiktoken >= 0.3.2",
     "tenacity >= 9.0.0",
     "magika ~= 0.5.1",
