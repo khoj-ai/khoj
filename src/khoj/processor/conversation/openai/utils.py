@@ -201,6 +201,8 @@ async def chat_completion_with_backoff(
     stream_processor = adefault_stream_processor
     if stream:
         model_kwargs["stream_options"] = {"include_usage": True}
+    else:
+        model_kwargs.pop("stream_options", None)
 
     formatted_messages = format_message_for_api(messages, api_base_url)
 
