@@ -239,12 +239,11 @@ async def gemini_chat_completion_with_backoff(
 
         # emit thought vs response parts
         for part in chunk.candidates[0].content.parts:
-            if part.text:
-                aggregated_response += part.text
-                yield ResponseWithThought(response=part.text)
             if part.thought:
                 yield ResponseWithThought(thought=part.text)
-
+            elif part.text:
+                aggregated_response += part.text
+                yield ResponseWithThought(response=part.text)
     # Calculate cost of chat
     input_tokens = final_chunk.usage_metadata.prompt_token_count or 0 if final_chunk else 0
     output_tokens = final_chunk.usage_metadata.candidates_token_count or 0 if final_chunk else 0
