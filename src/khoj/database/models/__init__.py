@@ -85,7 +85,7 @@ class OnlineContext(PydanticBaseModel):
     answerBox: Optional[AnswerBox] = None
     peopleAlsoAsk: Optional[List[PeopleAlsoAsk]] = None
     knowledgeGraph: Optional[KnowledgeGraph] = None
-    organicContext: Optional[List[OrganicContext]] = None
+    organic: Optional[List[OrganicContext]] = None
 
 
 class Intent(PydanticBaseModel):
