@@ -1,10 +1,12 @@
 import logging
+import re
 import time
 from typing import Dict, List, Tuple
 
 import requests
 from magika import Magika
 
+from khoj.database.adapters import EntryAdapters
 from khoj.database.models import Entry as DbEntry
 from khoj.database.models import GithubConfig, KhojUser
 from khoj.processor.content.markdown.markdown_to_entries import MarkdownToEntries
@@ -54,11 +56,15 @@ class GithubToEntries(TextToEntries):
             logger.warning(
                 f"Github PAT token is not set. Private repositories cannot be indexed and lower rate limits apply."
             )
+
+        if user:
+            self.resync_github_entries(user)
+
         current_entries = []
         for repo in self.config.repos:
             current_entries += self.process_repo(repo)
 
-        return self.update_entries_with_ids(current_entries, user=user)
+        return self.update_entries_with_ids(current_entries, user=user, regenerate=regenerate)
 
     def process_repo(self, repo: GithubRepoConfig):
         repo_url = f"https://api.github.com/repos/{repo.owner}/{repo.name}"
@@ -99,7 +105,7 @@ class GithubToEntries(TextToEntries):
 
         return current_entries
 
-    def update_entries_with_ids(self, current_entries, user: KhojUser = None):
+    def update_entries_with_ids(self, current_entries, user: KhojUser = None, regenerate: bool = False):
         # Identify, mark and merge any new entries with previous entries
         with timer("Identify new or updated entries", logger):
             num_new_embeddings, num_deleted_embeddings = self.update_embeddings(
@@ -109,9 +115,47 @@ class GithubToEntries(TextToEntries):
                 DbEntry.EntrySource.GITHUB,
                 key="compiled",
                 logger=logger,
+                regenerate=regenerate,
             )
 
         return num_new_embeddings, num_deleted_embeddings
+
+    def resync_github_entries(self, user: KhojUser = None) -> None:
+        """
+        Resync GitHub entries for the user.
+
+        This ensures that if a user deselects a repo, its files are no longer indexed.
+        Does not add or update entries — call `process()` separately for full re-index.
+        """
+
+        config = GithubConfig.objects.filter(user=user).prefetch_related("githubrepoconfig").first()
+        if config:
+            # Fetch all GitHub Entries for the user
+            files = EntryAdapters.get_all_filenames_by_source(user, "github")
+            raw_repos = config.githubrepoconfig.all()
+            repos = []
+            for repo in raw_repos:
+                repos.append(repo.owner + "/" + repo.name)
+
+            if files:
+                # Check if the entries' repository is still selected in the config
+                for file in files:
+                    # We need to extract the repo name and owner from the entry's file path
+                    # https://{url}/{owner}/{name}}/blob/...
+                    match = re.search(r"github\.com/([^/]+)/([^/]+)", file)
+                    if not match:
+                        logger.warning(f"Unable to parse repo from file path: {file}")
+                        continue
+
+                    owner = match.group(1)
+                    name = match.group(2)
+                    # Construct the repo name
+                    repo_name = f"{owner}/{name}"
+
+                    if repo_name and repo_name not in repos:
+                        # If not, delete the entry
+                        logger.debug(f"Deleting entry {file} as the repo {repo_name} is not selected anymore")
+                        EntryAdapters.delete_entry_by_file(user, file)
 
     def get_files(self, repo_url: str, repo: GithubRepoConfig):
         # Get the contents of the repository
@@ -176,22 +220,37 @@ class GithubToEntries(TextToEntries):
     def get_file_contents(self, file_url, decode=True):
         # Get text from each markdown file
         headers = {"Accept": "application/vnd.github.v3.raw"}
-        response = self.session.get(file_url, headers=headers, stream=True)
 
-        # Stop indexing on hitting rate limit
-        if response.status_code != 200 and response.headers.get("X-RateLimit-Remaining") == "0":
-            raise ConnectionAbortedError("Github rate limit reached")
+        for attempt in range(3):
+            try:
+                # Retry on rate limit
+                if attempt > 2:
+                    logger.error(f"Unable to download file {file_url} after 3 attempts")
+                    break
 
-        content = "" if decode else b""
-        for chunk in response.iter_content(chunk_size=2048):
-            if chunk:
-                try:
-                    content += chunk.decode("utf-8") if decode else chunk
-                except Exception as e:
-                    logger.error(f"Unable to decode chunk from {file_url}")
-                    logger.error(e)
+                response = self.session.get(file_url, headers=headers, stream=True)
 
-        return content
+                # Stop indexing on hitting rate limit
+                if response.status_code != 200 and response.headers.get("X-RateLimit-Remaining") == "0":
+                    raise ConnectionAbortedError("Github rate limit reached")
+
+                content = "" if decode else b""
+                for chunk in response.iter_content(chunk_size=2048):
+                    if chunk:
+                        try:
+                            content += chunk.decode("utf-8") if decode else chunk
+                        except Exception as e:
+                            logger.error(f"Unable to decode chunk from {file_url}")
+                            logger.error(e)
+
+                return content
+            except requests.exceptions.ChunkedEncodingError as e:
+                logger.error(f"Chunked encoding error while downloading {file_url}. Retrying...")
+                # Retry on chunked encoding error with exponential backoff approach
+                time.sleep(2**attempt)
+
+        logger.error(f"Failed to download file {file_url} after 3 attempts")
+        return "" if decode else b""
 
     @staticmethod
     def extract_markdown_entries(markdown_files):
