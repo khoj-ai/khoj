@@ -1064,11 +1064,11 @@ async def chat(
         if not ConversationCommand.Research in conversation_commands:
             try:
                 async for result in search_documents(
-                    user,
-                    chat_history,
                     q,
                     (n or 7),
                     d,
+                    user,
+                    chat_history,
                     conversation_id,
                     conversation_commands,
                     location,

@@ -313,11 +313,11 @@ async def research(
                 c["query"] for iteration in previous_iterations if iteration.context for c in iteration.context
             }
             async for result in search_documents(
-                user,
-                construct_tool_chat_history(previous_iterations, ConversationCommand.Notes),
                 this_iteration.query,
                 max_document_searches,
                 None,
+                user,
+                construct_tool_chat_history(previous_iterations, ConversationCommand.Notes),
                 conversation_id,
                 [ConversationCommand.Default],
                 location,

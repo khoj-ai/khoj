@@ -1159,11 +1159,11 @@ async def generate_better_image_prompt(
 
 
 async def search_documents(
-    user: KhojUser,
-    chat_history: list[ChatMessageModel],
     q: str,
     n: int,
     d: float,
+    user: KhojUser,
+    chat_history: list[ChatMessageModel],
     conversation_id: str,
     conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
     location_data: LocationData = None,
