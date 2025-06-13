@@ -19,7 +19,7 @@ Add all the agents you want to use for your different use-cases like Writer, Res
 
 ### Chat Model Options
 Add all the chat models you want to try, use and switch between for your different use-cases. For each chat model you add:
-- `Chat model`: The name of an [OpenAI](https://platform.openai.com/docs/models), [Anthropic](https://docs.anthropic.com/en/docs/about-claude/models#model-names), [Gemini](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models#gemini-models) or [Offline](https://huggingface.co/models?pipeline_tag=text-generation&library=gguf) chat model.
+- `Chat model`: The name of an [AI/ML API](https://aimlapi.com/app/?utm_source=khoj&utm_medium=github&utm_campaign=integration), [OpenAI](https://platform.openai.com/docs/models), [Anthropic](https://docs.anthropic.com/en/docs/about-claude/models#model-names), [Gemini](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models#gemini-models) or [Offline](https://huggingface.co/models?pipeline_tag=text-generation&library=gguf) chat model.
 - `Model type`: The chat model provider like `OpenAI`, `Offline`.
 - `Vision enabled`: Set to `true` if your model supports vision. This is currently only supported for vision capable OpenAI models like `gpt-4o`
 - `Max prompt size`, `Subscribed max prompt size`: These are optional fields. They are used to truncate the context to the maximum context size that can be passed to the model. This can help with accuracy and cost-saving.<br />
@@ -41,7 +41,7 @@ To add a server chat setting:
 ### AI Model API
 These settings configure APIs to interact with AI models.
 For each AI Model API you [add](http://localhost:42110/server/admin/database/aimodelapi/add):
-- `Api key`: Set to your [OpenAI](https://platform.openai.com/api-keys), [Anthropic](https://console.anthropic.com/account/keys) or [Gemini](https://aistudio.google.com/app/apikey) API keys.
+- `Api key`: Set to your [AI/ML API](https://aimlapi.com/app/?utm_source=khoj&utm_medium=github&utm_campaign=integration), [OpenAI](https://platform.openai.com/api-keys), [Anthropic](https://console.anthropic.com/account/keys) or [Gemini](https://aistudio.google.com/app/apikey) API keys.
 - `Name`: Give the configuration any friendly name like `OpenAI`, `Gemini`, `Anthropic`.
 - `Api base url`: Set the API base URL. This is only relevant to set if you're using another OpenAI-compatible proxy server like [Ollama](/advanced/ollama) or [LMStudio](/advanced/lmstudio).
   ![example configuration for ai model api](/img/example_openai_processor_config.png)
@@ -53,7 +53,7 @@ Search models are used to generate vector embeddings of your documents for natur
 
 ### Text to Image Model Options
 Add text to image generation models with these settings. Khoj currently supports text to image models available via OpenAI, Stability or Replicate API
-- `api-key`: Set to your OpenAI, Stability or Replicate API key
+- `api-key`: Set to your AI/ML API, OpenAI, Stability or Replicate API key
 - `model`: Set the model name available over the selected model provider
 - `model-type`: Set to the appropriate model provider
 - `openai-config`: For image generation models available via OpenAI (compatible) API you can set the appropriate OpenAI Processor Conversation Settings instead of specifying the `api-key` field above
