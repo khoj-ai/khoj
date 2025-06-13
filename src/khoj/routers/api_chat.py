@@ -1057,7 +1057,7 @@ async def chat(
 
             # researched_results = await extract_relevant_info(q, researched_results, agent)
             if state.verbose > 1:
-                logger.debug(f'Researched Results: {"".join(r.summarizedResult for r in research_results)}')
+                logger.debug(f'Researched Results: {"".join(r.summarizedResult or "" for r in research_results)}')
 
         # Gather Context
         ## Extract Document References

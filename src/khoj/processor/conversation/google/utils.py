@@ -238,7 +238,7 @@ async def gemini_chat_completion_with_backoff(
             break
 
         # emit thought vs response parts
-        for part in chunk.candidates[0].content.parts:
+        for part in chunk.candidates[0].content.parts or []:
             if part.thought:
                 yield ResponseWithThought(thought=part.text)
             elif part.text:
