@@ -12,6 +12,7 @@ import random
 import urllib.parse
 import uuid
 from collections import OrderedDict
+from copy import deepcopy
 from enum import Enum
 from functools import lru_cache
 from importlib import import_module
@@ -19,8 +20,9 @@ from importlib.metadata import version
 from itertools import islice
 from os import path
 from pathlib import Path
+from textwrap import dedent
 from time import perf_counter
-from typing import TYPE_CHECKING, Any, NamedTuple, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, NamedTuple, Optional, Tuple, Type, Union
 from urllib.parse import ParseResult, urlparse
 
 import anthropic
@@ -36,6 +38,7 @@ from google.auth.credentials import Credentials
 from google.oauth2 import service_account
 from magika import Magika
 from PIL import Image
+from pydantic import BaseModel
 from pytz import country_names, country_timezones
 
 from khoj.utils import constants
@@ -334,6 +337,85 @@ def is_e2b_code_sandbox_enabled():
     return not is_none_or_empty(os.getenv("E2B_API_KEY"))
 
 
+class ToolDefinition:
+    def __init__(self, name: str, description: str, schema: dict):
+        self.name = name
+        self.description = description
+        self.schema = schema
+
+
+def create_tool_definition(
+    schema: Type[BaseModel],
+    name: str = None,
+    description: Optional[str] = None,
+) -> ToolDefinition:
+    """
+    Converts a response schema BaseModel class into a normalized tool definition.
+
+    A standard AI provider agnostic tool format to specify tools the model can use.
+    Common logic used across models is kept here. AI provider specific adaptations
+    should be handled in provider code.
+
+    Args:
+        response_schema: The Pydantic BaseModel class to convert.
+                         This class defines the response schema for the tool.
+        tool_name: The name for the AI model tool (e.g., "get_weather", "plan_next_step").
+        tool_description: Optional description for the AI model tool.
+                           If None, it attempts to use the Pydantic model's docstring.
+                           If that's also missing, a fallback description is generated.
+
+    Returns:
+        A normalized tool definition for AI model APIs.
+    """
+    raw_schema_dict = schema.model_json_schema()
+
+    name = name or schema.__name__.lower()
+    description = description
+    if description is None:
+        docstring = schema.__doc__
+        if docstring:
+            description = dedent(docstring).strip()
+        else:
+            # Fallback description if no explicit one or docstring is provided
+            description = f"Tool named '{name}' accepts specified parameters."
+
+    # Process properties to inline enums and remove $defs dependency
+    processed_properties = {}
+    original_properties = raw_schema_dict.get("properties", {})
+    defs = raw_schema_dict.get("$defs", {})
+
+    for prop_name, prop_schema in original_properties.items():
+        current_prop_schema = deepcopy(prop_schema)  # Work on a copy
+        # Check for enums defined directly in the property for simpler direct enum definitions.
+        if "$ref" in current_prop_schema:
+            ref_path = current_prop_schema["$ref"]
+            if ref_path.startswith("#/$defs/"):
+                def_name = ref_path.split("/")[-1]
+                if def_name in defs and "enum" in defs[def_name]:
+                    enum_def = defs[def_name]
+                    current_prop_schema["enum"] = enum_def["enum"]
+                    current_prop_schema["type"] = enum_def.get("type", "string")
+                    if "description" not in current_prop_schema and "description" in enum_def:
+                        current_prop_schema["description"] = enum_def["description"]
+                    del current_prop_schema["$ref"]  # Remove the $ref as it's been inlined
+
+        processed_properties[prop_name] = current_prop_schema
+
+    # Generate the compiled schema dictionary for the tool definition.
+    compiled_schema = {
+        "type": "object",
+        "properties": processed_properties,
+        # Generate content in the order in which the schema properties were defined
+        "property_ordering": list(schema.model_fields.keys()),
+    }
+
+    # Include 'required' fields if specified in the Pydantic model
+    if "required" in raw_schema_dict and raw_schema_dict["required"]:
+        compiled_schema["required"] = raw_schema_dict["required"]
+
+    return ToolDefinition(name=name, description=description, schema=compiled_schema)
+
+
 class ConversationCommand(str, Enum):
     Default = "default"
     General = "general"
@@ -385,13 +467,84 @@ tool_descriptions_for_llm = {
     ConversationCommand.Operator: "To use when you need to operate a computer to complete the task.",
 }
 
-tool_description_for_research_llm = {
-    ConversationCommand.Notes: "To search the user's personal knowledge base. Especially helpful if the question expects context from the user's notes or documents. Max {max_search_queries} search queries allowed per iteration.",
-    ConversationCommand.Online: "To search the internet for information. Useful to get a quick, broad overview from the internet. Provide all relevant context to ensure new searches, not in previous iterations, are performed. Max {max_search_queries} search queries allowed per iteration.",
-    ConversationCommand.Webpage: "To extract information from webpages. Useful for more detailed research from the internet. Usually used when you know the webpage links to refer to. Share upto {max_webpages_to_read} webpage links and what information to extract from them in your query.",
-    ConversationCommand.Code: e2b_tool_description if is_e2b_code_sandbox_enabled() else terrarium_tool_description,
-    ConversationCommand.Text: "To respond to the user once you've completed your research and have the required information.",
-    ConversationCommand.Operator: "To operate a computer to complete the task.",
+tools_for_research_llm = {
+    ConversationCommand.Notes: ToolDefinition(
+        name="notes",
+        description="To search the user's personal knowledge base. Especially helpful if the question expects context from the user's notes or documents. Max {max_search_queries} search queries allowed per iteration.",
+        schema={
+            "type": "object",
+            "properties": {
+                "q": {
+                    "type": "string",
+                    "description": "The query to search in the user's personal knowledge base.",
+                },
+            },
+            "required": ["q"],
+        },
+    ),
+    ConversationCommand.Online: ToolDefinition(
+        name="online",
+        description="To search the internet for information. Useful to get a quick, broad overview from the internet. Provide all relevant context to ensure new searches, not in previous iterations, are performed. Max {max_search_queries} search queries allowed per iteration.",
+        schema={
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The query to search on the internet.",
+                },
+            },
+            "required": ["query"],
+        },
+    ),
+    ConversationCommand.Webpage: ToolDefinition(
+        name="webpage",
+        description="To extract information from webpages. Useful for more detailed research from the internet. Usually used when you know the webpage links to refer to. Share upto {max_webpages_to_read} webpage links and what information to extract from them in your query.",
+        schema={
+            "type": "object",
+            "properties": {
+                "urls": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                    },
+                    "description": "The webpage URLs to extract information from.",
+                },
+                "query": {
+                    "type": "string",
+                    "description": "The query to extract information from the webpages.",
+                },
+            },
+            "required": ["urls", "query"],
+        },
+    ),
+    ConversationCommand.Code: ToolDefinition(
+        name="code",
+        description=e2b_tool_description if is_e2b_code_sandbox_enabled() else terrarium_tool_description,
+        schema={
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Detailed query and all input data required to generate, execute code in the sandbox.",
+                },
+            },
+            "required": ["query"],
+        },
+    ),
+    ConversationCommand.Operator: ToolDefinition(
+        name="operator",
+        description="To operate a computer to complete the task.",
+        schema={
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The task to perform on the computer.",
+                },
+            },
+            "required": ["query"],
+        },
+    ),
 }
 
 mode_descriptions_for_llm = {
@@ -850,3 +1003,13 @@ def clean_object_for_db(data):
         return [clean_object_for_db(item) for item in data]
     else:
         return data
+
+
+def dict_to_tuple(d):
+    # Recursively convert dicts to sorted tuples for hashability
+    if isinstance(d, dict):
+        return tuple(sorted((k, dict_to_tuple(v)) for k, v in d.items()))
+    elif isinstance(d, list):
+        return tuple(dict_to_tuple(i) for i in d)
+    else:
+        return d

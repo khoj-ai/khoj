@@ -15,11 +15,10 @@ from khoj.processor.conversation.utils import (
     OperatorRun,
     ResponseWithThought,
     StructuredOutputSupport,
-    ToolDefinition,
     generate_chatml_messages_with_context,
     messages_to_print,
 )
-from khoj.utils.helpers import is_none_or_empty, truncate_code_context
+from khoj.utils.helpers import ToolDefinition, is_none_or_empty, truncate_code_context
 from khoj.utils.rawconfig import FileAttachment, LocationData
 from khoj.utils.yaml import yaml_dump
 

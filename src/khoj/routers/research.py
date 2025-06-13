@@ -3,11 +3,9 @@ import logging
 import os
 from copy import deepcopy
 from datetime import datetime
-from enum import Enum
-from typing import Callable, Dict, List, Optional, Type
+from typing import Callable, Dict, List, Optional
 
 import yaml
-from pydantic import BaseModel, Field
 
 from khoj.database.adapters import AgentAdapters, EntryAdapters
 from khoj.database.models import Agent, ChatMessageModel, KhojUser
@@ -15,14 +13,13 @@ from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
     OperatorRun,
     ResearchIteration,
-    ToolDefinition,
+    ToolCall,
     construct_iteration_history,
     construct_tool_chat_history,
-    create_tool_definition,
     load_complex_json,
 )
 from khoj.processor.operator import operate_environment
-from khoj.processor.tools.online_search import read_webpages, search_online
+from khoj.processor.tools.online_search import read_webpages_content, search_online
 from khoj.processor.tools.run_code import run_code
 from khoj.routers.helpers import (
     ChatEvent,
@@ -32,56 +29,17 @@ from khoj.routers.helpers import (
 )
 from khoj.utils.helpers import (
     ConversationCommand,
+    ToolDefinition,
+    dict_to_tuple,
     is_none_or_empty,
     is_operator_enabled,
     timer,
-    tool_description_for_research_llm,
+    tools_for_research_llm,
     truncate_code_context,
 )
 from khoj.utils.rawconfig import LocationData
 
 logger = logging.getLogger(__name__)
-
-
-class PlanningResponse(BaseModel):
-    """
-    Schema for the response from planning agent when deciding the next tool to pick.
-    """
-
-    scratchpad: str = Field(..., description="Scratchpad to reason about which tool to use next")
-
-    class Config:
-        arbitrary_types_allowed = True
-
-    @classmethod
-    def create_model_with_enum(cls: Type["PlanningResponse"], tool_options: dict) -> Type["PlanningResponse"]:
-        """
-        Factory method that creates a customized PlanningResponse model
-        with a properly typed tool field based on available tools.
-
-        The tool field is dynamically generated based on available tools.
-        The query field should be filled by the model after the tool field for a more logical reasoning flow.
-
-        Args:
-            tool_options: Dictionary mapping tool names to values
-
-        Returns:
-            A customized PlanningResponse class
-        """
-        # Create dynamic enum from tool options
-        tool_enum = Enum("ToolEnum", tool_options)  # type: ignore
-
-        # Create and return a customized response model with the enum
-        class PlanningResponseWithTool(PlanningResponse):
-            """
-            Use the scratchpad to reason about which tool to use next and the query to send to the tool.
-            Pick tool from provided options and your query to send to the tool.
-            """
-
-            tool: tool_enum = Field(..., description="Name of the tool to use")
-            query: str = Field(..., description="Detailed query for the selected tool")
-
-        return PlanningResponseWithTool
 
 
 async def apick_next_tool(
@@ -106,12 +64,13 @@ async def apick_next_tool(
     # Continue with previous iteration if a multi-step tool use is in progress
     if (
         previous_iterations
-        and previous_iterations[-1].tool == ConversationCommand.Operator
+        and previous_iterations[-1].query
+        and isinstance(previous_iterations[-1].query, ToolCall)
+        and previous_iterations[-1].query.name == ConversationCommand.Operator
         and not previous_iterations[-1].summarizedResult
     ):
         previous_iteration = previous_iterations[-1]
         yield ResearchIteration(
-            tool=previous_iteration.tool,
             query=query,
             context=previous_iteration.context,
             onlineContext=previous_iteration.onlineContext,
@@ -122,37 +81,35 @@ async def apick_next_tool(
         return
 
     # Construct tool options for the agent to choose from
-    tool_options = dict()
+    tools = []
     tool_options_str = ""
     agent_tools = agent.input_tools if agent else []
     user_has_entries = await EntryAdapters.auser_has_entries(user)
-    for tool, description in tool_description_for_research_llm.items():
+    for tool, tool_data in tools_for_research_llm.items():
         # Skip showing operator tool as an option if not enabled
         if tool == ConversationCommand.Operator and not is_operator_enabled():
             continue
         # Skip showing Notes tool as an option if user has no entries
-        if tool == ConversationCommand.Notes:
+        elif tool == ConversationCommand.Notes:
             if not user_has_entries:
                 continue
-            description = description.format(max_search_queries=max_document_searches)
-        if tool == ConversationCommand.Webpage:
-            description = description.format(max_webpages_to_read=max_webpages_to_read)
-        if tool == ConversationCommand.Online:
-            description = description.format(max_search_queries=max_online_searches)
+            description = tool_data.description.format(max_search_queries=max_document_searches)
+        elif tool == ConversationCommand.Webpage:
+            description = tool_data.description.format(max_webpages_to_read=max_webpages_to_read)
+        elif tool == ConversationCommand.Online:
+            description = tool_data.description.format(max_search_queries=max_online_searches)
+        else:
+            description = tool_data.description
         # Add tool if agent does not have any tools defined or the tool is supported by the agent.
         if len(agent_tools) == 0 or tool.value in agent_tools:
-            tool_options[tool.name] = tool.value
             tool_options_str += f'- "{tool.value}": "{description}"\n'
-
-    # Create planning reponse model with dynamically populated tool enum class
-    planning_response_model = PlanningResponse.create_model_with_enum(tool_options)
-    tools = [
-        create_tool_definition(
-            name="infer_information_sources_to_refer",
-            description="Infer which tool to use next and the query to send to the tool.",
-            schema=planning_response_model,
-        )
-    ]
+            tools.append(
+                ToolDefinition(
+                    name=tool.value,
+                    description=description,
+                    schema=tool_data.schema,
+                )
+            )
 
     today = datetime.today()
     location_data = f"{location}" if location else "Unknown"
@@ -171,24 +128,16 @@ async def apick_next_tool(
         max_iterations=max_iterations,
     )
 
-    if query_images:
-        query = f"[placeholder for user attached images]\n{query}"
-
     # Construct chat history with user and iteration history with researcher agent for context
-    iteration_chat_history = construct_iteration_history(previous_iterations, prompts.previous_iteration, query)
+    iteration_chat_history = construct_iteration_history(previous_iterations, query, query_images, query_files)
     chat_and_research_history = conversation_history + iteration_chat_history
-
-    # Plan function execution for the next tool
-    query = prompts.plan_function_execution_next_tool.format(query=query) if iteration_chat_history else query
 
     try:
         with timer("Chat actor: Infer information sources to refer", logger):
             raw_response = await send_message_to_model_wrapper(
-                query=query,
+                query="",
                 system_message=function_planning_prompt,
                 chat_history=chat_and_research_history,
-                response_type="json_object",
-                response_schema=planning_response_model,
                 tools=tools,
                 deepthought=True,
                 user=user,
@@ -200,7 +149,6 @@ async def apick_next_tool(
     except Exception as e:
         logger.error(f"Failed to infer information sources to refer: {e}", exc_info=True)
         yield ResearchIteration(
-            tool=None,
             query=None,
             warning="Failed to infer information sources to refer. Skipping iteration. Try again.",
         )
@@ -208,40 +156,32 @@ async def apick_next_tool(
 
     try:
         # Try parse the response as function call response to infer next tool to use.
-        response = load_complex_json(load_complex_json(raw_response)[0]["args"])
+        # TODO: Handle multiple tool calls.
+        response_text = raw_response.response
+        parsed_response = [ToolCall(**item) for item in load_complex_json(response_text)][0]
     except Exception as e:
-        try:
-            # Else try parse the text response as JSON to infer next tool to use.
-            response = load_complex_json(raw_response)
-        except Exception as e:
-            # Otherwise assume the model has decided to end the research run and respond to the user.
-            response = {"tool": ConversationCommand.Text, "query": None, "scratchpad": raw_response}
+        # Otherwise assume the model has decided to end the research run and respond to the user.
+        parsed_response = ToolCall(name=ConversationCommand.Text, args={"response": response_text}, id=None)
 
     # If we have a valid response, extract the tool and query.
-    selected_tool = response.get("tool", None)
-    generated_query = response.get("query", None)
-    scratchpad = response.get("scratchpad", None)
-
     warning = None
-    logger.info(f"Response for determining relevant tools: {response}")
+    logger.info(f"Response for determining relevant tools: {parsed_response.name}({parsed_response.args})")
 
     # Detect selection of previously used query, tool combination.
-    previous_tool_query_combinations = {(i.tool, i.query) for i in previous_iterations if i.warning is None}
-    if (selected_tool, generated_query) in previous_tool_query_combinations:
+    previous_tool_query_combinations = {
+        (i.query.name, dict_to_tuple(i.query.args))
+        for i in previous_iterations
+        if i.warning is None and isinstance(i.query, ToolCall)
+    }
+    if (parsed_response.name, dict_to_tuple(parsed_response.args)) in previous_tool_query_combinations:
         warning = f"Repeated tool, query combination detected. Skipping iteration. Try something different."
-    # Only send client status updates if we'll execute this iteration
-    elif send_status_func and scratchpad:
-        determined_tool_message = "**Determined Tool**: "
-        determined_tool_message += (
-            f"{selected_tool}({generated_query})." if selected_tool != ConversationCommand.Text else "respond."
-        )
-        determined_tool_message += f"\nReason: {scratchpad}" if scratchpad else ""
-        async for event in send_status_func(f"{scratchpad}"):
+    # Only send client status updates if we'll execute this iteration and model has thoughts to share.
+    elif send_status_func and not is_none_or_empty(raw_response.thought):
+        async for event in send_status_func(raw_response.thought):
             yield {ChatEvent.STATUS: event}
 
     yield ResearchIteration(
-        tool=selected_tool,
-        query=generated_query,
+        query=parsed_response,
         warning=warning,
     )
 
@@ -269,10 +209,10 @@ async def research(
     MAX_ITERATIONS = int(os.getenv("KHOJ_RESEARCH_ITERATIONS", 5))
 
     # Incorporate previous partial research into current research chat history
-    research_conversation_history = deepcopy(conversation_history)
+    research_conversation_history = [chat for chat in deepcopy(conversation_history) if chat.message]
     if current_iteration := len(previous_iterations) > 0:
         logger.info(f"Continuing research with the previous {len(previous_iterations)} iteration results.")
-        previous_iterations_history = construct_iteration_history(previous_iterations, prompts.previous_iteration)
+        previous_iterations_history = construct_iteration_history(previous_iterations)
         research_conversation_history += previous_iterations_history
 
     while current_iteration < MAX_ITERATIONS:
@@ -285,7 +225,7 @@ async def research(
         code_results: Dict = dict()
         document_results: List[Dict[str, str]] = []
         operator_results: OperatorRun = None
-        this_iteration = ResearchIteration(tool=None, query=query)
+        this_iteration = ResearchIteration(query=query)
 
         async for result in apick_next_tool(
             query,
@@ -315,26 +255,30 @@ async def research(
             logger.warning(f"Research mode: {this_iteration.warning}.")
 
         # Terminate research if selected text tool or query, tool not set for next iteration
-        elif not this_iteration.query or not this_iteration.tool or this_iteration.tool == ConversationCommand.Text:
+        elif (
+            not this_iteration.query
+            or isinstance(this_iteration.query, str)
+            or this_iteration.query.name == ConversationCommand.Text
+        ):
             current_iteration = MAX_ITERATIONS
 
-        elif this_iteration.tool == ConversationCommand.Notes:
+        elif this_iteration.query.name == ConversationCommand.Notes:
             this_iteration.context = []
             document_results = []
             previous_inferred_queries = {
                 c["query"] for iteration in previous_iterations if iteration.context for c in iteration.context
             }
             async for result in search_documents(
-                this_iteration.query,
-                max_document_searches,
-                None,
-                user,
-                construct_tool_chat_history(previous_iterations, ConversationCommand.Notes),
-                conversation_id,
-                [ConversationCommand.Default],
-                location,
-                send_status_func,
-                query_images,
+                **this_iteration.query.args,
+                n=max_document_searches,
+                d=None,
+                user=user,
+                chat_history=construct_tool_chat_history(previous_iterations, ConversationCommand.Notes),
+                conversation_id=conversation_id,
+                conversation_commands=[ConversationCommand.Default],
+                location_data=location,
+                send_status_func=send_status_func,
+                query_images=query_images,
                 previous_inferred_queries=previous_inferred_queries,
                 agent=agent,
                 tracer=tracer,
@@ -362,7 +306,7 @@ async def research(
             else:
                 this_iteration.warning = "No matching document references found"
 
-        elif this_iteration.tool == ConversationCommand.Online:
+        elif this_iteration.query.name == ConversationCommand.Online:
             previous_subqueries = {
                 subquery
                 for iteration in previous_iterations
@@ -371,12 +315,12 @@ async def research(
             }
             try:
                 async for result in search_online(
-                    this_iteration.query,
-                    construct_tool_chat_history(previous_iterations, ConversationCommand.Online),
-                    location,
-                    user,
-                    send_status_func,
-                    [],
+                    **this_iteration.query.args,
+                    conversation_history=construct_tool_chat_history(previous_iterations, ConversationCommand.Online),
+                    location=location,
+                    user=user,
+                    send_status_func=send_status_func,
+                    custom_filters=[],
                     max_online_searches=max_online_searches,
                     max_webpages_to_read=0,
                     query_images=query_images,
@@ -395,19 +339,15 @@ async def research(
                 this_iteration.warning = f"Error searching online: {e}"
                 logger.error(this_iteration.warning, exc_info=True)
 
-        elif this_iteration.tool == ConversationCommand.Webpage:
+        elif this_iteration.query.name == ConversationCommand.Webpage:
             try:
-                async for result in read_webpages(
-                    this_iteration.query,
-                    construct_tool_chat_history(previous_iterations, ConversationCommand.Webpage),
-                    location,
-                    user,
-                    send_status_func,
-                    max_webpages_to_read=max_webpages_to_read,
-                    query_images=query_images,
+                async for result in read_webpages_content(
+                    **this_iteration.query.args,
+                    user=user,
+                    send_status_func=send_status_func,
+                    # max_webpages_to_read=max_webpages_to_read,
                     agent=agent,
                     tracer=tracer,
-                    query_files=query_files,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]
@@ -428,15 +368,15 @@ async def research(
                 this_iteration.warning = f"Error reading webpages: {e}"
                 logger.error(this_iteration.warning, exc_info=True)
 
-        elif this_iteration.tool == ConversationCommand.Code:
+        elif this_iteration.query.name == ConversationCommand.Code:
             try:
                 async for result in run_code(
-                    this_iteration.query,
-                    construct_tool_chat_history(previous_iterations, ConversationCommand.Code),
-                    "",
-                    location,
-                    user,
-                    send_status_func,
+                    **this_iteration.query.args,
+                    conversation_history=construct_tool_chat_history(previous_iterations, ConversationCommand.Code),
+                    context="",
+                    location_data=location,
+                    user=user,
+                    send_status_func=send_status_func,
                     query_images=query_images,
                     agent=agent,
                     query_files=query_files,
@@ -453,14 +393,14 @@ async def research(
                 this_iteration.warning = f"Error running code: {e}"
                 logger.warning(this_iteration.warning, exc_info=True)
 
-        elif this_iteration.tool == ConversationCommand.Operator:
+        elif this_iteration.query.name == ConversationCommand.Operator:
             try:
                 async for result in operate_environment(
-                    this_iteration.query,
-                    user,
-                    construct_tool_chat_history(previous_iterations, ConversationCommand.Operator),
-                    location,
-                    previous_iterations[-1].operatorContext if previous_iterations else None,
+                    **this_iteration.query.args,
+                    user=user,
+                    conversation_log=construct_tool_chat_history(previous_iterations, ConversationCommand.Operator),
+                    location_data=location,
+                    previous_trajectory=previous_iterations[-1].operatorContext if previous_iterations else None,
                     send_status_func=send_status_func,
                     query_images=query_images,
                     agent=agent,
@@ -493,7 +433,7 @@ async def research(
         current_iteration += 1
 
         if document_results or online_results or code_results or operator_results or this_iteration.warning:
-            results_data = f"\n<iteration>{current_iteration}\n<tool>{this_iteration.tool}</tool>\n<query>{this_iteration.query}</query>\n<results>"
+            results_data = f"\n<iteration_{current_iteration}_results>"
             if document_results:
                 results_data += f"\n<document_references>\n{yaml.dump(document_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</document_references>"
             if online_results:
@@ -506,7 +446,7 @@ async def research(
                 )
             if this_iteration.warning:
                 results_data += f"\n<warning>\n{this_iteration.warning}\n</warning>"
-            results_data += "\n</results>\n</iteration>"
+            results_data += f"\n</results>\n</iteration_{current_iteration}_results>"
 
             # intermediate_result = await extract_relevant_info(this_iteration.query, results_data, agent)
             this_iteration.summarizedResult = results_data

@@ -101,7 +101,6 @@ from khoj.processor.conversation.utils import (
     OperatorRun,
     ResearchIteration,
     ResponseWithThought,
-    ToolDefinition,
     clean_json,
     clean_mermaidjs,
     construct_chat_history,
@@ -121,6 +120,7 @@ from khoj.utils.config import OfflineChatProcessorModel
 from khoj.utils.helpers import (
     LRU,
     ConversationCommand,
+    ToolDefinition,
     get_file_type,
     in_debug_mode,
     is_none_or_empty,
@@ -304,7 +304,7 @@ async def acreate_title_from_history(
     with timer("Chat actor: Generate title from conversation history", logger):
         response = await send_message_to_model_wrapper(title_generation_prompt, user=user)
 
-    return response.strip()
+    return response.response.strip()
 
 
 async def acreate_title_from_query(query: str, user: KhojUser = None) -> str:
@@ -316,7 +316,7 @@ async def acreate_title_from_query(query: str, user: KhojUser = None) -> str:
     with timer("Chat actor: Generate title from query", logger):
         response = await send_message_to_model_wrapper(title_generation_prompt, user=user)
 
-    return response.strip()
+    return response.response.strip()
 
 
 async def acheck_if_safe_prompt(system_prompt: str, user: KhojUser = None, lax: bool = False) -> Tuple[bool, str]:
@@ -340,7 +340,7 @@ async def acheck_if_safe_prompt(system_prompt: str, user: KhojUser = None, lax: 
             safe_prompt_check, user=user, response_type="json_object", response_schema=SafetyCheck
         )
 
-        response = response.strip()
+        response = response.response.strip()
         try:
             response = json.loads(clean_json(response))
             is_safe = str(response.get("safe", "true")).lower() == "true"
@@ -419,7 +419,7 @@ async def aget_data_sources_and_output_format(
         output: str
 
     with timer("Chat actor: Infer information sources to refer", logger):
-        response = await send_message_to_model_wrapper(
+        raw_response = await send_message_to_model_wrapper(
             relevant_tools_prompt,
             response_type="json_object",
             response_schema=PickTools,
@@ -430,7 +430,7 @@ async def aget_data_sources_and_output_format(
         )
 
     try:
-        response = clean_json(response)
+        response = clean_json(raw_response.response)
         response = json.loads(response)
 
         chosen_sources = [s.strip() for s in response.get("source", []) if s.strip()]
@@ -507,7 +507,7 @@ async def infer_webpage_urls(
         links: List[str] = Field(..., min_items=1, max_items=max_webpages)
 
     with timer("Chat actor: Infer webpage urls to read", logger):
-        response = await send_message_to_model_wrapper(
+        raw_response = await send_message_to_model_wrapper(
             online_queries_prompt,
             query_images=query_images,
             response_type="json_object",
@@ -520,7 +520,7 @@ async def infer_webpage_urls(
 
     # Validate that the response is a non-empty, JSON-serializable list of URLs
     try:
-        response = clean_json(response)
+        response = clean_json(raw_response.response)
         urls = json.loads(response)
         valid_unique_urls = {str(url).strip() for url in urls["links"] if is_valid_url(url)}
         if is_none_or_empty(valid_unique_urls):
@@ -572,7 +572,7 @@ async def generate_online_subqueries(
         queries: List[str] = Field(..., min_items=1, max_items=max_queries)
 
     with timer("Chat actor: Generate online search subqueries", logger):
-        response = await send_message_to_model_wrapper(
+        raw_response = await send_message_to_model_wrapper(
             online_queries_prompt,
             query_images=query_images,
             response_type="json_object",
@@ -585,7 +585,7 @@ async def generate_online_subqueries(
 
     # Validate that the response is a non-empty, JSON-serializable list
     try:
-        response = clean_json(response)
+        response = clean_json(raw_response.response)
         response = pyjson5.loads(response)
         response = {q.strip() for q in response["queries"] if q.strip()}
         if not isinstance(response, set) or not response or len(response) == 0:
@@ -646,7 +646,7 @@ async def aschedule_query(
 
     # Validate that the response is a non-empty, JSON-serializable list
     try:
-        raw_response = raw_response.strip()
+        raw_response = raw_response.response.strip()
         response: Dict[str, str] = json.loads(clean_json(raw_response))
         if not response or not isinstance(response, Dict) or len(response) != 3:
             raise AssertionError(f"Invalid response for scheduling query : {response}")
@@ -684,7 +684,7 @@ async def extract_relevant_info(
         agent_chat_model=agent_chat_model,
         tracer=tracer,
     )
-    return response.strip()
+    return response.response.strip()
 
 
 async def extract_relevant_summary(
@@ -727,7 +727,7 @@ async def extract_relevant_summary(
             agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
-    return response.strip()
+    return response.response.strip()
 
 
 async def generate_summary_from_files(
@@ -898,7 +898,7 @@ async def generate_better_diagram_description(
             agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
-        response = response.strip()
+        response = response.response.strip()
         if response.startswith(('"', "'")) and response.endswith(('"', "'")):
             response = response[1:-1]
 
@@ -926,10 +926,10 @@ async def generate_excalidraw_diagram_from_description(
         raw_response = await send_message_to_model_wrapper(
             query=excalidraw_diagram_generation, user=user, agent_chat_model=agent_chat_model, tracer=tracer
         )
-        raw_response = clean_json(raw_response)
+        raw_response_text = clean_json(raw_response.response)
         try:
             # Expect response to have `elements` and `scratchpad` keys
-            response: Dict[str, str] = json.loads(raw_response)
+            response: Dict[str, str] = json.loads(raw_response_text)
             if (
                 not response
                 or not isinstance(response, Dict)
@@ -938,7 +938,7 @@ async def generate_excalidraw_diagram_from_description(
             ):
                 raise AssertionError(f"Invalid response for generating Excalidraw diagram: {response}")
         except Exception:
-            raise AssertionError(f"Invalid response for generating Excalidraw diagram: {raw_response}")
+            raise AssertionError(f"Invalid response for generating Excalidraw diagram: {raw_response_text}")
         if not response or not isinstance(response["elements"], List) or not isinstance(response["elements"][0], Dict):
             # TODO Some additional validation here that it's a valid Excalidraw diagram
             raise AssertionError(f"Invalid response for improving diagram description: {response}")
@@ -1049,11 +1049,11 @@ async def generate_better_mermaidjs_diagram_description(
             agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
-        response = response.strip()
-        if response.startswith(('"', "'")) and response.endswith(('"', "'")):
-            response = response[1:-1]
+        response_text = response.response.strip()
+        if response_text.startswith(('"', "'")) and response_text.endswith(('"', "'")):
+            response_text = response_text[1:-1]
 
-    return response
+    return response_text
 
 
 async def generate_mermaidjs_diagram_from_description(
@@ -1077,7 +1077,7 @@ async def generate_mermaidjs_diagram_from_description(
         raw_response = await send_message_to_model_wrapper(
             query=mermaidjs_diagram_generation, user=user, agent_chat_model=agent_chat_model, tracer=tracer
         )
-        return clean_mermaidjs(raw_response.strip())
+        return clean_mermaidjs(raw_response.response.strip())
 
 
 async def generate_better_image_prompt(
@@ -1152,11 +1152,11 @@ async def generate_better_image_prompt(
             agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
-        response = response.strip()
-        if response.startswith(('"', "'")) and response.endswith(('"', "'")):
-            response = response[1:-1]
+        response_text = response.response.strip()
+        if response_text.startswith(('"', "'")) and response_text.endswith(('"', "'")):
+            response_text = response_text[1:-1]
 
-    return response
+    return response_text
 
 
 async def search_documents(
@@ -1330,7 +1330,7 @@ async def extract_questions(
 
     # Extract questions from the response
     try:
-        response = clean_json(raw_response)
+        response = clean_json(raw_response.response)
         response = pyjson5.loads(response)
         queries = [q.strip() for q in response["queries"] if q.strip()]
         if not isinstance(queries, list) or not queries:

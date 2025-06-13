@@ -35,10 +35,11 @@ from tenacity import (
 from khoj.processor.conversation.utils import (
     ResponseWithThought,
     StructuredOutputSupport,
-    ToolDefinition,
+    ToolCall,
     commit_conversation_trace,
 )
 from khoj.utils.helpers import (
+    ToolDefinition,
     convert_image_data_uri,
     get_chat_usage_metrics,
     get_openai_async_client,
@@ -76,7 +77,7 @@ def completion_with_backoff(
     deepthought: bool = False,
     model_kwargs: dict = {},
     tracer: dict = {},
-) -> str:
+) -> ResponseWithThought:
     client_key = f"{openai_api_key}--{api_base_url}"
     client = openai_clients.get(client_key)
     if not client:
@@ -121,6 +122,9 @@ def completion_with_backoff(
     if os.getenv("KHOJ_LLM_SEED"):
         model_kwargs["seed"] = int(os.getenv("KHOJ_LLM_SEED"))
 
+    tool_ids = []
+    tool_calls: list[ToolCall] = []
+    thoughts = ""
     aggregated_response = ""
     if stream:
         with client.beta.chat.completions.stream(
@@ -134,9 +138,16 @@ def completion_with_backoff(
                 if chunk.type == "content.delta":
                     aggregated_response += chunk.delta
                 elif chunk.type == "thought.delta":
-                    pass
+                    thoughts += chunk.delta
+                elif chunk.type == "chunk" and chunk.chunk.choices and chunk.chunk.choices[0].delta.tool_calls:
+                    tool_ids += [tool_call.id for tool_call in chunk.chunk.choices[0].delta.tool_calls]
                 elif chunk.type == "tool_calls.function.arguments.done":
-                    aggregated_response = json.dumps([{"name": chunk.name, "args": chunk.arguments}])
+                    tool_calls += [ToolCall(name=chunk.name, args=json.loads(chunk.arguments), id=None)]
+        if tool_calls:
+            tool_calls = [
+                ToolCall(name=chunk.name, args=chunk.args, id=tool_id) for chunk, tool_id in zip(tool_calls, tool_ids)
+            ]
+            aggregated_response = json.dumps([tool_call.__dict__ for tool_call in tool_calls])
     else:
         # Non-streaming chat completion
         chunk = client.beta.chat.completions.parse(
@@ -170,7 +181,7 @@ def completion_with_backoff(
     if is_promptrace_enabled():
         commit_conversation_trace(messages, aggregated_response, tracer)
 
-    return aggregated_response
+    return ResponseWithThought(response=aggregated_response, thought=thoughts)
 
 
 @retry(
@@ -354,6 +365,43 @@ def format_message_for_api(messages: List[ChatMessage], api_base_url: str) -> Li
     """
     formatted_messages = []
     for message in deepcopy(messages):
+        # Handle tool call and tool result message types
+        message_type = message.additional_kwargs.get("message_type")
+        if message_type == "tool_call":
+            # Convert tool_call to OpenAI function call format
+            content = []
+            for part in message.content:
+                content.append(
+                    {
+                        "type": "function",
+                        "id": part.get("id"),
+                        "function": {
+                            "name": part.get("name"),
+                            "arguments": json.dumps(part.get("input", part.get("args", {}))),
+                        },
+                    }
+                )
+            formatted_messages.append(
+                {
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": content,
+                }
+            )
+            continue
+        if message_type == "tool_result":
+            # Convert tool_result to OpenAI tool result format
+            # Each part is a result for a tool call
+            for part in message.content:
+                formatted_messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": part.get("id") or part.get("tool_use_id"),
+                        "name": part.get("name"),
+                        "content": part.get("content"),
+                    }
+                )
+            continue
         if isinstance(message.content, list) and not is_openai_api(api_base_url):
             assistant_texts = []
             has_images = False
