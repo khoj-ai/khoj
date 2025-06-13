@@ -221,4 +221,4 @@ def send_message_to_model_offline(
     if is_promptrace_enabled():
         commit_conversation_trace(messages, response_text, tracer)
 
-    return response_text
+    return ResponseWithThought(response=response_text)

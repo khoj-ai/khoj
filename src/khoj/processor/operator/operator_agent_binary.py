@@ -121,7 +121,7 @@ class BinaryOperatorAgent(OperatorAgent):
         # Construct input for visual reasoner history
         visual_reasoner_history = self._format_message_for_api(self.messages)
         try:
-            natural_language_action = await send_message_to_model_wrapper(
+            raw_response = await send_message_to_model_wrapper(
                 query=query_text,
                 query_images=query_screenshot,
                 system_message=reasoning_system_prompt,
@@ -129,6 +129,7 @@ class BinaryOperatorAgent(OperatorAgent):
                 agent_chat_model=self.reasoning_model,
                 tracer=self.tracer,
             )
+            natural_language_action = raw_response.response
 
             if not isinstance(natural_language_action, str) or not natural_language_action.strip():
                 raise ValueError(f"Natural language action is empty or not a string. Got {natural_language_action}")
@@ -255,10 +256,10 @@ class BinaryOperatorAgent(OperatorAgent):
 
         # Append summary messages to history
         trigger_summary = AgentMessage(role="user", content=summarize_prompt)
-        summary_message = AgentMessage(role="assistant", content=summary)
+        summary_message = AgentMessage(role="assistant", content=summary.response)
         self.messages.extend([trigger_summary, summary_message])
 
-        return summary
+        return summary.response
 
     def _compile_response(self, response_content: str | List) -> str:
         """Compile response content into a string, handling OpenAI message structures."""
