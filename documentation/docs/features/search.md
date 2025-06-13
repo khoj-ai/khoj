@@ -28,7 +28,7 @@ You are **not required** to configure the search model config when self-hosting.
 
 You may want to configure this if you need better multi-lingual search, want to experiment with different, newer models or the default models do not work for your use-case.
 
-You can use bi-encoder models downloaded locally [from Huggingface](https://huggingface.co/models?library=sentence-transformers), served via the [HuggingFace Inference API](https://endpoints.huggingface.co/), OpenAI API, Azure OpenAI API or any OpenAI Compatible API like Ollama, LiteLLM etc. Follow the steps below to configure your search model:
+You can use bi-encoder models downloaded locally [from Huggingface](https://huggingface.co/models?library=sentence-transformers), served via the [HuggingFace Inference API](https://endpoints.huggingface.co/), OpenAI API, Azure OpenAI API or any OpenAI Compatible API like [AI/ML API](https://aimlapi.com/app/?utm_source=khoj&utm_medium=github&utm_campaign=integration), Ollama, LiteLLM etc. Follow the steps below to configure your search model:
 
 1. Open the [SearchModelConfig](http://localhost:42110/server/admin/database/searchmodelconfig/) page on your Khoj admin panel.
 2. Hit the Plus button to add a new model config or click the id of an existing model config to edit it.
