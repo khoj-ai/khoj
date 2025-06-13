@@ -16,13 +16,14 @@ from tenacity import (
 
 from khoj.processor.conversation.utils import (
     ResponseWithThought,
-    ToolDefinition,
+    ToolCall,
     commit_conversation_trace,
-    create_tool_definition,
     get_image_from_base64,
     get_image_from_url,
 )
 from khoj.utils.helpers import (
+    ToolDefinition,
+    create_tool_definition,
     get_anthropic_async_client,
     get_anthropic_client,
     get_chat_usage_metrics,
@@ -60,7 +61,7 @@ def anthropic_completion_with_backoff(
     tools: List[ToolDefinition] = None,
     deepthought: bool = False,
     tracer: dict = {},
-) -> str:
+) -> ResponseWithThought:
     client = anthropic_clients.get(api_key)
     if not client:
         client = get_anthropic_client(api_key, api_base_url)
@@ -68,6 +69,7 @@ def anthropic_completion_with_backoff(
 
     formatted_messages, system = format_messages_for_anthropic(messages, system_prompt)
 
+    thoughts = ""
     aggregated_response = ""
     final_message = None
     model_kwargs = model_kwargs or dict()
@@ -107,15 +109,30 @@ def anthropic_completion_with_backoff(
         max_tokens=max_tokens,
         **(model_kwargs),
     ) as stream:
-        for text in stream.text_stream:
-            aggregated_response += text
+        for chunk in stream:
+            if chunk.type != "content_block_delta":
+                continue
+            if chunk.delta.type == "thinking_delta":
+                thoughts += chunk.delta.thinking
+            elif chunk.delta.type == "text_delta":
+                aggregated_response += chunk.delta.text
         final_message = stream.get_final_message()
 
-    # Extract first tool call from final message
-    for item in final_message.content:
-        if item.type == "tool_use":
-            aggregated_response = json.dumps([{"name": item.name, "args": item.input}])
-            break
+    # Extract all tool calls if tools are enabled
+    if tools:
+        tool_calls = [
+            ToolCall(name=item.name, args=item.input, id=item.id).__dict__
+            for item in final_message.content
+            if item.type == "tool_use"
+        ]
+        if tool_calls:
+            aggregated_response = json.dumps(tool_calls)
+    # If response schema is used, return the first tool call's input
+    elif response_schema:
+        for item in final_message.content:
+            if item.type == "tool_use":
+                aggregated_response = json.dumps(item.input)
+                break
 
     # Calculate cost of chat
     input_tokens = final_message.usage.input_tokens
@@ -137,7 +154,7 @@ def anthropic_completion_with_backoff(
     if is_promptrace_enabled():
         commit_conversation_trace(messages, aggregated_response, tracer)
 
-    return aggregated_response
+    return ResponseWithThought(response=aggregated_response, thought=thoughts)
 
 
 @retry(
@@ -269,7 +286,34 @@ def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt: st
 
     # Convert image urls to base64 encoded images in Anthropic message format
     for message in messages:
-        if isinstance(message.content, list):
+        # Handle tool call and tool result message types from additional_kwargs
+        message_type = message.additional_kwargs.get("message_type")
+        if message_type == "tool_call":
+            # Convert tool_call to Anthropic tool_use format
+            content = []
+            for part in message.content:
+                content.append(
+                    {
+                        "type": "tool_use",
+                        "id": part.pop("id"),
+                        "name": part.pop("name"),
+                        "input": part,
+                    }
+                )
+            message.content = content
+        elif message_type == "tool_result":
+            # Convert tool_result to Anthropic tool_result format
+            content = []
+            for part in message.content:
+                content.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": part["id"],
+                        "content": part["content"],
+                    }
+                )
+            message.content = content
+        elif isinstance(message.content, list):
             content = []
             # Sort the content. Anthropic models prefer that text comes after images.
             message.content.sort(key=lambda x: 0 if x["type"] == "image_url" else 1)

@@ -715,15 +715,6 @@ Given the results of your previous iterations, which tool AI will you use next t
 """.strip()
 )
 
-previous_iteration = PromptTemplate.from_template(
-    """
-# Iteration {index}:
-- tool: {tool}
-- query: {query}
-- result: {result}
-""".strip()
-)
-
 pick_relevant_tools = PromptTemplate.from_template(
     """
 You are Khoj, an extremely smart and helpful search assistant.

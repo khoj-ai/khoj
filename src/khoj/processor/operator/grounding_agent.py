@@ -73,7 +73,7 @@ class GroundingAgent:
         grounding_user_prompt = self.get_instruction(instruction, self.environment_type)
         screenshots = [f"data:image/webp;base64,{current_state.screenshot}"]
         grounding_messages_content = construct_structured_message(
-            grounding_user_prompt, screenshots, self.model.name, vision_enabled=True
+            grounding_user_prompt, screenshots, self.model.model_type, vision_enabled=True
         )
         return [{"role": "user", "content": grounding_messages_content}]
 
