@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import concurrent.futures
+import fnmatch
 import hashlib
 import json
 import logging
@@ -2878,3 +2879,63 @@ async def view_file_content(
 
         # Return an error result in the expected format
         yield [{"query": query, "file": path, "compiled": error_msg}]
+
+
+async def list_files(
+    path: Optional[str] = None,
+    pattern: Optional[str] = None,
+    user: KhojUser = None,
+):
+    """
+    List files under a given path or glob pattern from the user's document database.
+    """
+
+    # Construct the query string based on provided parameters
+    def _generate_query(doc_count, path, pattern):
+        query = f"**Found {doc_count} files**"
+        if path:
+            query += f" in {path}"
+        if pattern:
+            query += f" filtered by {pattern}"
+        return query
+
+    try:
+        # Get user files by path prefix when specified
+        path = path or ""
+        if path in ["", "/", ".", "./", "~", "~/"]:
+            file_objects = await FileObjectAdapters.aget_all_file_objects(user, limit=10000)
+        else:
+            file_objects = await FileObjectAdapters.aget_file_objects_by_path_prefix(user, path)
+
+        if not file_objects:
+            yield {"query": _generate_query(0, path, pattern), "file": path, "compiled": "No files found."}
+            return
+
+        # Extract file names from file objects
+        files = [f.file_name for f in file_objects]
+        # Convert to relative file path (similar to ls)
+        if path:
+            files = [f[len(path) :] for f in files]
+
+        # Apply glob pattern filtering if specified
+        if pattern:
+            files = [f for f in files if fnmatch.fnmatch(f, pattern)]
+
+        query = _generate_query(len(files), path, pattern)
+        if not files:
+            yield {"query": query, "file": path, "compiled": "No files found."}
+            return
+
+        # Truncate the list if it's too long
+        max_files = 100
+        if len(files) > max_files:
+            files = files[:max_files] + [
+                f"... {len(files) - max_files} more files found. Use glob pattern to narrow down results."
+            ]
+
+        yield {"query": query, "file": path, "compiled": "\n- ".join(files)}
+
+    except Exception as e:
+        error_msg = f"Error listing files in {path}: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        yield {"query": query, "file": path, "compiled": error_msg}
