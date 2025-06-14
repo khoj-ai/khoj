@@ -430,6 +430,7 @@ class ConversationCommand(str, Enum):
     Research = "research"
     Operator = "operator"
     ViewFile = "view_file"
+    ListFiles = "list_files"
 
 
 command_descriptions = {
@@ -444,6 +445,7 @@ command_descriptions = {
     ConversationCommand.Research: "Do deep research on a topic. This will take longer than usual, but give a more detailed, comprehensive answer.",
     ConversationCommand.Operator: "Operate and perform tasks using a computer.",
     ConversationCommand.ViewFile: "View the contents of a file with optional line range specification.",
+    ConversationCommand.ListFiles: "List files under a given path with optional glob pattern.",
 }
 
 command_descriptions_for_agent = {
@@ -574,6 +576,23 @@ tools_for_research_llm = {
                 },
             },
             "required": ["path"],
+        },
+    ),
+    ConversationCommand.ListFiles: ToolDefinition(
+        name="list_files",
+        description="To list files under a given path or glob pattern.",
+        schema={
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "The directory path to list files from.",
+                },
+                "pattern": {
+                    "type": "string",
+                    "description": "Optional glob pattern to filter files (e.g., '*.md').",
+                },
+            },
         },
     ),
 }

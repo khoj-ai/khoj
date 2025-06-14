@@ -24,6 +24,7 @@ from khoj.processor.tools.run_code import run_code
 from khoj.routers.helpers import (
     ChatEvent,
     generate_summary_from_files,
+    list_files,
     search_documents,
     send_message_to_model_wrapper,
     view_file_content,
@@ -91,7 +92,11 @@ async def apick_next_tool(
         if tool == ConversationCommand.Operator and not is_operator_enabled():
             continue
         # Skip showing document related tools if user has no documents
-        if (tool == ConversationCommand.Notes or tool == ConversationCommand.ViewFile) and not user_has_entries:
+        if (
+            tool == ConversationCommand.Notes
+            or tool == ConversationCommand.ViewFile
+            or tool == ConversationCommand.ListFiles
+        ) and not user_has_entries:
             continue
         # Skip showing Notes tool as an option if user has no entries
         if tool == ConversationCommand.Notes:
@@ -445,6 +450,25 @@ async def research(
                     yield result
             except Exception as e:
                 this_iteration.warning = f"Error viewing file: {e}"
+                logger.error(this_iteration.warning, exc_info=True)
+
+        elif this_iteration.query.name == ConversationCommand.ListFiles:
+            try:
+                async for result in list_files(
+                    **this_iteration.query.args,
+                    user=user,
+                ):
+                    if isinstance(result, dict) and ChatEvent.STATUS in result:
+                        yield result[ChatEvent.STATUS]
+                    else:
+                        if this_iteration.context is None:
+                            this_iteration.context = []
+                        document_results: List[Dict[str, str]] = [result]  # type: ignore
+                        this_iteration.context += document_results
+                async for result in send_status_func(result["query"]):
+                    yield result
+            except Exception as e:
+                this_iteration.warning = f"Error listing files: {e}"
                 logger.error(this_iteration.warning, exc_info=True)
 
         else:

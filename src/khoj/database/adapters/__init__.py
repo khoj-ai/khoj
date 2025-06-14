@@ -1718,6 +1718,14 @@ class FileObjectAdapters:
 
     @staticmethod
     @arequire_valid_user
+    async def aget_file_objects_by_path_prefix(user: KhojUser, path_prefix: str, agent: Agent = None):
+        """Get file objects from the database by path prefix."""
+        return await sync_to_async(list)(
+            FileObject.objects.filter(user=user, agent=agent, file_name__startswith=path_prefix)
+        )
+
+    @staticmethod
+    @arequire_valid_user
     async def aget_file_objects_by_names(user: KhojUser, file_names: List[str]):
         return await sync_to_async(list)(FileObject.objects.filter(user=user, file_name__in=file_names))
 
