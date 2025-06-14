@@ -2801,3 +2801,80 @@ def get_notion_auth_url(user: KhojUser):
     if not NOTION_OAUTH_CLIENT_ID or not NOTION_OAUTH_CLIENT_SECRET or not NOTION_REDIRECT_URI:
         return None
     return f"https://api.notion.com/v1/oauth/authorize?client_id={NOTION_OAUTH_CLIENT_ID}&redirect_uri={NOTION_REDIRECT_URI}&response_type=code&state={user.uuid}"
+
+
+async def view_file_content(
+    path: str,
+    start_line: Optional[int] = None,
+    end_line: Optional[int] = None,
+    user: KhojUser = None,
+):
+    """
+    View the contents of a file from the user's document database with optional line range specification.
+    """
+    query = f"View file: {path}"
+    if start_line and end_line:
+        query += f" (lines {start_line}-{end_line})"
+
+    try:
+        # Get the file object from the database by name
+        file_objects = await FileObjectAdapters.aget_file_objects_by_name(user, path)
+
+        if not file_objects:
+            error_msg = f"File '{path}' not found in user documents"
+            logger.warning(error_msg)
+            yield [{"query": query, "file": path, "compiled": error_msg}]
+            return
+
+        # Use the first file object if multiple exist
+        file_object = file_objects[0]
+        raw_text = file_object.raw_text
+
+        # Apply line range filtering if specified
+        if start_line is None and end_line is None:
+            filtered_text = raw_text
+        else:
+            lines = raw_text.split("\n")
+            start_line = start_line or 1
+            end_line = end_line or len(lines)
+
+            # Validate line range
+            if start_line < 1 or end_line < 1 or start_line > end_line:
+                error_msg = f"Invalid line range: {start_line}-{end_line}"
+                logger.warning(error_msg)
+                yield [{"query": query, "file": path, "compiled": error_msg}]
+                return
+            if start_line > len(lines):
+                error_msg = f"Start line {start_line} exceeds total number of lines {len(lines)}"
+                logger.warning(error_msg)
+                yield [{"query": query, "file": path, "compiled": error_msg}]
+                return
+
+            # Convert from 1-based to 0-based indexing and ensure bounds
+            start_idx = max(0, start_line - 1)
+            end_idx = min(len(lines), end_line)
+
+            selected_lines = lines[start_idx:end_idx]
+            filtered_text = "\n".join(selected_lines)
+
+        # Truncate the text if it's too long
+        if len(filtered_text) > 10000:
+            filtered_text = filtered_text[:10000] + "\n\n[Truncated. Use line numbers to view specific sections.]"
+
+        # Format the result as a document reference
+        document_results = [
+            {
+                "query": query,
+                "file": path,
+                "compiled": filtered_text,
+            }
+        ]
+
+        yield document_results
+
+    except Exception as e:
+        error_msg = f"Error viewing file {path}: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+
+        # Return an error result in the expected format
+        yield [{"query": query, "file": path, "compiled": error_msg}]

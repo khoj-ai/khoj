@@ -26,6 +26,7 @@ from khoj.routers.helpers import (
     generate_summary_from_files,
     search_documents,
     send_message_to_model_wrapper,
+    view_file_content,
 )
 from khoj.utils.helpers import (
     ConversationCommand,
@@ -89,10 +90,11 @@ async def apick_next_tool(
         # Skip showing operator tool as an option if not enabled
         if tool == ConversationCommand.Operator and not is_operator_enabled():
             continue
+        # Skip showing document related tools if user has no documents
+        if (tool == ConversationCommand.Notes or tool == ConversationCommand.ViewFile) and not user_has_entries:
+            continue
         # Skip showing Notes tool as an option if user has no entries
-        elif tool == ConversationCommand.Notes:
-            if not user_has_entries:
-                continue
+        if tool == ConversationCommand.Notes:
             description = tool_data.description.format(max_search_queries=max_document_searches)
         elif tool == ConversationCommand.Webpage:
             description = tool_data.description.format(max_webpages_to_read=max_webpages_to_read)
@@ -424,6 +426,25 @@ async def research(
                             this_iteration.onlineContext = online_results
             except Exception as e:
                 this_iteration.warning = f"Error operating browser: {e}"
+                logger.error(this_iteration.warning, exc_info=True)
+
+        elif this_iteration.query.name == ConversationCommand.ViewFile:
+            try:
+                async for result in view_file_content(
+                    **this_iteration.query.args,
+                    user=user,
+                ):
+                    if isinstance(result, dict) and ChatEvent.STATUS in result:
+                        yield result[ChatEvent.STATUS]
+                    else:
+                        if this_iteration.context is None:
+                            this_iteration.context = []
+                        document_results: List[Dict[str, str]] = result  # type: ignore
+                        this_iteration.context += document_results
+                async for result in send_status_func(f"**Viewed file**: {this_iteration.query.args['path']}"):
+                    yield result
+            except Exception as e:
+                this_iteration.warning = f"Error viewing file: {e}"
                 logger.error(this_iteration.warning, exc_info=True)
 
         else:
