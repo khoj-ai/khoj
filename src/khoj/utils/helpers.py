@@ -429,6 +429,7 @@ class ConversationCommand(str, Enum):
     Diagram = "diagram"
     Research = "research"
     Operator = "operator"
+    ViewFile = "view_file"
 
 
 command_descriptions = {
@@ -442,6 +443,7 @@ command_descriptions = {
     ConversationCommand.Diagram: "Draw a flowchart, diagram, or any other visual representation best expressed with primitives like lines, rectangles, and text.",
     ConversationCommand.Research: "Do deep research on a topic. This will take longer than usual, but give a more detailed, comprehensive answer.",
     ConversationCommand.Operator: "Operate and perform tasks using a computer.",
+    ConversationCommand.ViewFile: "View the contents of a file with optional line range specification.",
 }
 
 command_descriptions_for_agent = {
@@ -543,6 +545,35 @@ tools_for_research_llm = {
                 },
             },
             "required": ["query"],
+        },
+    ),
+    ConversationCommand.ViewFile: ToolDefinition(
+        name="view_file",
+        description=dedent(
+            """
+            To view the contents of specific note or document in the user's personal knowledge base.
+            Especially helpful if the question expects context from the user's notes or documents.
+            It can be used after finding the document path with the document search tool.
+            Optionally specify a line range to view only specific sections of large files.
+            """
+        ).strip(),
+        schema={
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "The file path to view (can be absolute or relative).",
+                },
+                "start_line": {
+                    "type": "integer",
+                    "description": "Optional starting line number for viewing a specific range (1-indexed).",
+                },
+                "end_line": {
+                    "type": "integer",
+                    "description": "Optional ending line number for viewing a specific range (1-indexed).",
+                },
+            },
+            "required": ["path"],
         },
     ),
 }
