@@ -189,7 +189,7 @@ async def test_chat_with_no_chat_history_or_retrieved_content():
         user_query="Hello, my name is Testatron. Who are you?",
         api_key=api_key,
     )
-    response = "".join([response_chunk.response async for response_chunk in response_gen])
+    response = "".join([response_chunk.text async for response_chunk in response_gen])
 
     # Assert
     expected_responses = ["Khoj", "khoj"]
@@ -217,7 +217,7 @@ async def test_answer_from_chat_history_and_no_content():
         chat_history=populate_chat_history(message_list),
         api_key=api_key,
     )
-    response = "".join([response_chunk.response async for response_chunk in response_gen])
+    response = "".join([response_chunk.text async for response_chunk in response_gen])
 
     # Assert
     expected_responses = ["Testatron", "testatron"]
@@ -250,7 +250,7 @@ async def test_answer_from_chat_history_and_previously_retrieved_content():
         chat_history=populate_chat_history(message_list),
         api_key=api_key,
     )
-    response = "".join([response_chunk.response async for response_chunk in response_gen])
+    response = "".join([response_chunk.text async for response_chunk in response_gen])
 
     # Assert
     assert len(response) > 0
@@ -279,7 +279,7 @@ async def test_answer_from_chat_history_and_currently_retrieved_content():
         chat_history=populate_chat_history(message_list),
         api_key=api_key,
     )
-    response = "".join([response_chunk.response async for response_chunk in response_gen])
+    response = "".join([response_chunk.text async for response_chunk in response_gen])
 
     # Assert
     assert len(response) > 0
@@ -305,7 +305,7 @@ async def test_refuse_answering_unanswerable_question():
         chat_history=populate_chat_history(message_list),
         api_key=api_key,
     )
-    response = "".join([response_chunk.response async for response_chunk in response_gen])
+    response = "".join([response_chunk.text async for response_chunk in response_gen])
 
     # Assert
     expected_responses = [
@@ -359,7 +359,7 @@ Expenses:Food:Dining  10.00 USD""",
         user_query="What did I have for Dinner today?",
         api_key=api_key,
     )
-    response = "".join([response_chunk.response async for response_chunk in response_gen])
+    response = "".join([response_chunk.text async for response_chunk in response_gen])
 
     # Assert
     expected_responses = ["tacos", "Tacos"]
@@ -405,7 +405,7 @@ Expenses:Food:Dining  10.00 USD""",
         user_query="How much did I spend on dining this year?",
         api_key=api_key,
     )
-    response = "".join([response_chunk.response async for response_chunk in response_gen])
+    response = "".join([response_chunk.text async for response_chunk in response_gen])
 
     # Assert
     assert len(response) > 0
@@ -432,7 +432,7 @@ async def test_answer_general_question_not_in_chat_history_or_retrieved_content(
         chat_history=populate_chat_history(message_list),
         api_key=api_key,
     )
-    response = "".join([response_chunk.response async for response_chunk in response_gen])
+    response = "".join([response_chunk.text async for response_chunk in response_gen])
 
     # Assert
     expected_responses = ["test", "bug", "code"]
@@ -473,7 +473,7 @@ My sister, Aiyla is married to Tolga. They have 3 kids, Yildiz, Ali and Ahmet.""
         user_query="How many kids does my older sister have?",
         api_key=api_key,
     )
-    response = "".join([response_chunk.response async for response_chunk in response_gen])
+    response = "".join([response_chunk.text async for response_chunk in response_gen])
 
     # Assert
     expected_responses = [
@@ -508,14 +508,14 @@ async def test_agent_prompt_should_be_used(openai_agent):
         user_query="What did I buy?",
         api_key=api_key,
     )
-    no_agent_response = "".join([response_chunk.response async for response_chunk in response_gen])
+    no_agent_response = "".join([response_chunk.text async for response_chunk in response_gen])
     response_gen = converse_openai(
         references=context,  # Assume context retrieved from notes for the user_query
         user_query="What did I buy?",
         api_key=api_key,
         agent=openai_agent,
     )
-    agent_response = "".join([response_chunk.response async for response_chunk in response_gen])
+    agent_response = "".join([response_chunk.text async for response_chunk in response_gen])
 
     # Assert that the model without the agent prompt does not include the summary of purchases
     assert all([expected_response not in no_agent_response for expected_response in expected_responses]), (

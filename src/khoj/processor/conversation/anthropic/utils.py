@@ -154,7 +154,7 @@ def anthropic_completion_with_backoff(
     if is_promptrace_enabled():
         commit_conversation_trace(messages, aggregated_response, tracer)
 
-    return ResponseWithThought(response=aggregated_response, thought=thoughts)
+    return ResponseWithThought(text=aggregated_response, thought=thoughts)
 
 
 @retry(
@@ -211,10 +211,10 @@ async def anthropic_chat_completion_with_backoff(
             if chunk.type == "message_delta":
                 if chunk.delta.stop_reason == "refusal":
                     yield ResponseWithThought(
-                        response="...I'm sorry, but my safety filters prevent me from assisting with this query."
+                        text="...I'm sorry, but my safety filters prevent me from assisting with this query."
                     )
                 elif chunk.delta.stop_reason == "max_tokens":
-                    yield ResponseWithThought(response="...I'm sorry, but I've hit my response length limit.")
+                    yield ResponseWithThought(text="...I'm sorry, but I've hit my response length limit.")
                 if chunk.delta.stop_reason in ["refusal", "max_tokens"]:
                     logger.warning(
                         f"LLM Response Prevented for {model_name}: {chunk.delta.stop_reason}.\n"
@@ -227,7 +227,7 @@ async def anthropic_chat_completion_with_backoff(
             # Handle streamed response chunk
             response_chunk: ResponseWithThought = None
             if chunk.delta.type == "text_delta":
-                response_chunk = ResponseWithThought(response=chunk.delta.text)
+                response_chunk = ResponseWithThought(text=chunk.delta.text)
                 aggregated_response += chunk.delta.text
             if chunk.delta.type == "thinking_delta":
                 response_chunk = ResponseWithThought(thought=chunk.delta.thinking)
