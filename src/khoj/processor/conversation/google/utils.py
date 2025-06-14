@@ -190,7 +190,7 @@ def gemini_completion_with_backoff(
     if is_promptrace_enabled():
         commit_conversation_trace(messages, response_text, tracer)
 
-    return ResponseWithThought(response=response_text, thought=response_thoughts)
+    return ResponseWithThought(text=response_text, thought=response_thoughts)
 
 
 @retry(
@@ -258,7 +258,7 @@ async def gemini_chat_completion_with_backoff(
         # handle safety, rate-limit, other finish reasons
         stop_message, stopped = handle_gemini_response(chunk.candidates, chunk.prompt_feedback)
         if stopped:
-            yield ResponseWithThought(response=stop_message)
+            yield ResponseWithThought(text=stop_message)
             logger.warning(
                 f"LLM Response Prevented for {model_name}: {stop_message}.\n"
                 + f"Last Message by {messages[-1].role}: {messages[-1].content}"
@@ -271,7 +271,7 @@ async def gemini_chat_completion_with_backoff(
                 yield ResponseWithThought(thought=part.text)
             elif part.text:
                 aggregated_response += part.text
-                yield ResponseWithThought(response=part.text)
+                yield ResponseWithThought(text=part.text)
     # Calculate cost of chat
     input_tokens = final_chunk.usage_metadata.prompt_token_count or 0 if final_chunk else 0
     output_tokens = final_chunk.usage_metadata.candidates_token_count or 0 if final_chunk else 0

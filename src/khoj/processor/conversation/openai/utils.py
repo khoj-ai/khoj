@@ -181,7 +181,7 @@ def completion_with_backoff(
     if is_promptrace_enabled():
         commit_conversation_trace(messages, aggregated_response, tracer)
 
-    return ResponseWithThought(response=aggregated_response, thought=thoughts)
+    return ResponseWithThought(text=aggregated_response, thought=thoughts)
 
 
 @retry(
@@ -297,7 +297,7 @@ async def chat_completion_with_backoff(
             raise ValueError("No response by model.")
         aggregated_response = response.choices[0].message.content
         final_chunk = response
-        yield ResponseWithThought(response=aggregated_response)
+        yield ResponseWithThought(text=aggregated_response)
     else:
         async for chunk in stream_processor(response):
             # Log the time taken to start response
@@ -313,8 +313,8 @@ async def chat_completion_with_backoff(
             response_chunk: ResponseWithThought = None
             response_delta = chunk.choices[0].delta
             if response_delta.content:
-                response_chunk = ResponseWithThought(response=response_delta.content)
-                aggregated_response += response_chunk.response
+                response_chunk = ResponseWithThought(text=response_delta.content)
+                aggregated_response += response_chunk.text
             elif response_delta.thought:
                 response_chunk = ResponseWithThought(thought=response_delta.thought)
             if response_chunk:

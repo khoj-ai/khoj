@@ -1390,7 +1390,7 @@ async def chat(
                 continue
             if cancellation_event.is_set():
                 break
-            message = item.response
+            message = item.text
             full_response += message if message else ""
             if item.thought:
                 async for result in send_event(ChatEvent.THOUGHT, item.thought):

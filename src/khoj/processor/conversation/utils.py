@@ -1187,6 +1187,6 @@ class StructuredOutputSupport(int, Enum):
 
 
 class ResponseWithThought:
-    def __init__(self, response: str = None, thought: str = None):
-        self.response = response
+    def __init__(self, text: str = None, thought: str = None):
+        self.text = text
         self.thought = thought

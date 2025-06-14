@@ -157,7 +157,7 @@ async def apick_next_tool(
     try:
         # Try parse the response as function call response to infer next tool to use.
         # TODO: Handle multiple tool calls.
-        response_text = raw_response.response
+        response_text = raw_response.text
         parsed_response = [ToolCall(**item) for item in load_complex_json(response_text)][0]
     except Exception as e:
         # Otherwise assume the model has decided to end the research run and respond to the user.
