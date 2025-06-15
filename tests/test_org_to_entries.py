@@ -393,7 +393,7 @@ def test_extract_entries_with_different_level_headings(tmp_path):
 
     # Assert
     assert len(entries[1]) == 2
-    assert entries[1][0].raw == "* Heading 1\n** Sub-Heading 1.1\n", "Ensure entry includes heading ancestory"
+    assert entries[1][0].raw == "* Heading 1\n** Sub-Heading 1.1\n", "Ensure entry includes heading ancestry"
     assert entries[1][1].raw == "* Heading 2\n"
 
 
