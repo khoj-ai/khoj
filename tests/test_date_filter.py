@@ -23,7 +23,7 @@ def test_extract_date_range():
         datetime(1984, 1, 2, 0, 0, 0).timestamp(),
     ]
 
-    # Unparseable date filter specified in query
+    # Unparsable date filter specified in query
     assert DateFilter().extract_date_range('head dt:"Summer of 69" tail') == []
 
     # No date filter specified in query
