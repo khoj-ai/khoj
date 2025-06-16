@@ -15,6 +15,7 @@ __pycache__
 .vscode
 .env
 .venv/*
+.obsidian
 todesktop.json
 
 # Build artifacts
