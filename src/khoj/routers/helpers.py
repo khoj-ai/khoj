@@ -2881,6 +2881,65 @@ async def view_file_content(
         yield [{"query": query, "file": path, "compiled": error_msg}]
 
 
+async def grep_files(
+    regex_pattern: str,
+    path_prefix: Optional[str] = None,
+    user: KhojUser = None,
+):
+    """
+    Search for a regex pattern in files with an optional path prefix.
+    """
+
+    # Construct the query string based on provided parameters
+    def _generate_query(line_count, doc_count, path, pattern):
+        query = f"**Found {line_count} matches for '{pattern}' in {doc_count} documents**"
+        if path:
+            query += f" in {path}"
+        return query
+
+    # Validate regex pattern
+    path_prefix = path_prefix or ""
+    try:
+        regex = re.compile(regex_pattern)
+    except re.error as e:
+        yield {
+            "query": _generate_query(0, 0, path_prefix, regex_pattern),
+            "file": path_prefix,
+            "compiled": f"Invalid regex pattern: {e}",
+        }
+        return
+
+    try:
+        file_matches = await FileObjectAdapters.aget_file_objects_by_regex(user, regex_pattern, path_prefix)
+
+        line_matches = []
+        for file_object in file_matches:
+            lines = file_object.raw_text.split("\n")
+            for i, line in enumerate(lines, 1):
+                if regex.search(line):
+                    line_matches.append(f"{file_object.file_name}:{i}:{line}")
+
+        # Check if no results found
+        query = _generate_query(len(line_matches), len(file_matches), path_prefix, regex_pattern)
+        if not line_matches:
+            yield {"query": query, "file": path_prefix, "compiled": "No matches found."}
+            return
+
+        # Truncate matched lines list if too long
+        max_results = 1000
+        if len(line_matches) > max_results:
+            line_matches = line_matches[:max_results] + [
+                f"... {len(line_matches) - max_results} more results found. Use stricter regex or path to narrow down results."
+            ]
+
+        yield {"query": query, "file": path_prefix or "", "compiled": "\n".join(line_matches)}
+
+    except Exception as e:
+        error_msg = f"Error using grep files tool: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        yield [{"query": query, "file": path_prefix or "", "compiled": error_msg}]
+
+
 async def list_files(
     path: Optional[str] = None,
     pattern: Optional[str] = None,
