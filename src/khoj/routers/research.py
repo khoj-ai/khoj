@@ -24,6 +24,7 @@ from khoj.processor.tools.run_code import run_code
 from khoj.routers.helpers import (
     ChatEvent,
     generate_summary_from_files,
+    grep_files,
     list_files,
     search_documents,
     send_message_to_model_wrapper,
@@ -93,13 +94,13 @@ async def apick_next_tool(
             continue
         # Skip showing document related tools if user has no documents
         if (
-            tool == ConversationCommand.Notes
+            tool == ConversationCommand.SemanticSearchFiles
+            or tool == ConversationCommand.RegexSearchFiles
             or tool == ConversationCommand.ViewFile
             or tool == ConversationCommand.ListFiles
         ) and not user_has_entries:
             continue
-        # Skip showing Notes tool as an option if user has no entries
-        if tool == ConversationCommand.Notes:
+        if tool == ConversationCommand.SemanticSearchFiles:
             description = tool_data.description.format(max_search_queries=max_document_searches)
         elif tool == ConversationCommand.Webpage:
             description = tool_data.description.format(max_webpages_to_read=max_webpages_to_read)
@@ -269,7 +270,7 @@ async def research(
         ):
             current_iteration = MAX_ITERATIONS
 
-        elif this_iteration.query.name == ConversationCommand.Notes:
+        elif this_iteration.query.name == ConversationCommand.SemanticSearchFiles:
             this_iteration.context = []
             document_results = []
             previous_inferred_queries = {
@@ -280,7 +281,7 @@ async def research(
                 n=max_document_searches,
                 d=None,
                 user=user,
-                chat_history=construct_tool_chat_history(previous_iterations, ConversationCommand.Notes),
+                chat_history=construct_tool_chat_history(previous_iterations, ConversationCommand.SemanticSearchFiles),
                 conversation_id=conversation_id,
                 conversation_commands=[ConversationCommand.Default],
                 location_data=location,
@@ -469,6 +470,25 @@ async def research(
                     yield result
             except Exception as e:
                 this_iteration.warning = f"Error listing files: {e}"
+                logger.error(this_iteration.warning, exc_info=True)
+
+        elif this_iteration.query.name == ConversationCommand.RegexSearchFiles:
+            try:
+                async for result in grep_files(
+                    **this_iteration.query.args,
+                    user=user,
+                ):
+                    if isinstance(result, dict) and ChatEvent.STATUS in result:
+                        yield result[ChatEvent.STATUS]
+                    else:
+                        if this_iteration.context is None:
+                            this_iteration.context = []
+                        document_results: List[Dict[str, str]] = [result]  # type: ignore
+                        this_iteration.context += document_results
+                async for result in send_status_func(result["query"]):
+                    yield result
+            except Exception as e:
+                this_iteration.warning = f"Error searching with regex: {e}"
                 logger.error(this_iteration.warning, exc_info=True)
 
         else:

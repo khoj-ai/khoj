@@ -431,6 +431,8 @@ class ConversationCommand(str, Enum):
     Operator = "operator"
     ViewFile = "view_file"
     ListFiles = "list_files"
+    RegexSearchFiles = "regex_search_files"
+    SemanticSearchFiles = "semantic_search_files"
 
 
 command_descriptions = {
@@ -446,6 +448,7 @@ command_descriptions = {
     ConversationCommand.Operator: "Operate and perform tasks using a computer.",
     ConversationCommand.ViewFile: "View the contents of a file with optional line range specification.",
     ConversationCommand.ListFiles: "List files under a given path with optional glob pattern.",
+    ConversationCommand.RegexSearchFiles: "Search for lines in files matching regex pattern with an optional path prefix.",
 }
 
 command_descriptions_for_agent = {
@@ -472,20 +475,6 @@ tool_descriptions_for_llm = {
 }
 
 tools_for_research_llm = {
-    ConversationCommand.Notes: ToolDefinition(
-        name="notes",
-        description="To search the user's personal knowledge base. Especially helpful if the question expects context from the user's notes or documents. Max {max_search_queries} search queries allowed per iteration.",
-        schema={
-            "type": "object",
-            "properties": {
-                "q": {
-                    "type": "string",
-                    "description": "The query to search in the user's personal knowledge base.",
-                },
-            },
-            "required": ["q"],
-        },
-    ),
     ConversationCommand.Online: ToolDefinition(
         name="online",
         description="To search the internet for information. Useful to get a quick, broad overview from the internet. Provide all relevant context to ensure new searches, not in previous iterations, are performed. Max {max_search_queries} search queries allowed per iteration.",
@@ -593,6 +582,53 @@ tools_for_research_llm = {
                     "description": "Optional glob pattern to filter files (e.g., '*.md').",
                 },
             },
+        },
+    ),
+    ConversationCommand.SemanticSearchFiles: ToolDefinition(
+        name="semantic_search_files",
+        description=dedent(
+            """
+            To have the tool AI semantic search through the user's personal knowledge base.
+            Helpful to answer questions for which finding some relevant notes or documents can complete the search. Example: "When was Tom born?"
+            This tool AI cannot find all relevant notes or documents, only a subset of them.
+            It is a good starting point to find keywords, discover similar topics or related concepts and some relevant notes or documents.
+            The tool AI can perform a maximum of {max_search_queries} semantic search queries per iteration.
+            """
+        ).strip(),
+        schema={
+            "type": "object",
+            "properties": {
+                "q": {
+                    "type": "string",
+                    "description": "Your natural language query for the tool to search in the user's personal knowledge base.",
+                },
+            },
+            "required": ["q"],
+        },
+    ),
+    ConversationCommand.RegexSearchFiles: ToolDefinition(
+        name="regex_search_files",
+        description=dedent(
+            """
+            To regex search through the user's personal knowledge base. It returns all lines matching the regex pattern in the user's files.
+            Helpful to answer questions for which all relevant notes or documents are needed to complete the search. Example: "Notes that mention Tom".
+            You need to know all the correct keywords or regex patterns for this tool to be useful.
+            An optional path prefix can restrict file(s) to search in.
+            """
+        ).strip(),
+        schema={
+            "type": "object",
+            "properties": {
+                "regex_pattern": {
+                    "type": "string",
+                    "description": "The regex pattern to search for content in the user's files.",
+                },
+                "path_prefix": {
+                    "type": "string",
+                    "description": "Optional path prefix to limit the search to files under a specified path.",
+                },
+            },
+            "required": ["regex_pattern"],
         },
     ),
 }
