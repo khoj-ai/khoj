@@ -24,6 +24,7 @@ from khoj.database.adapters import (
 )
 from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
+from khoj.processor.conversation.openai.utils import is_local_api
 from khoj.processor.conversation.prompts import help_message, no_entries_found
 from khoj.processor.conversation.utils import (
     OperatorRun,
@@ -77,6 +78,7 @@ from khoj.utils.helpers import (
     get_country_code_from_timezone,
     get_country_name_from_timezone,
     get_device,
+    is_env_var_true,
     is_none_or_empty,
     is_operator_enabled,
 )
@@ -432,6 +434,9 @@ def duplicate_chat_history_public_conversation(
     user = request.user.object
     domain = request.headers.get("host")
     scheme = request.url.scheme
+    # Force https upgrade if not explicitly disabled and not local host
+    if scheme == "http" and not is_env_var_true("KHOJ_NO_HTTPS") and not is_local_api(f"{request.base_url}"):
+        scheme = "https"
 
     # Throw unauthorized exception if domain not in ALLOWED_HOSTS
     host_domain = domain.split(":")[0]
