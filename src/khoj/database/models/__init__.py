@@ -671,23 +671,16 @@ class PublicConversation(DbBaseModel):
 
 @receiver(pre_save, sender=PublicConversation)
 def verify_public_conversation(sender, instance, **kwargs):
-    def generate_random_alphanumeric(length):
-        characters = "0123456789abcdefghijklmnopqrstuvwxyz"
-        return "".join(choice(characters) for _ in range(length))
-
     # check if this is a new instance
     if instance._state.adding:
-        slug = re.sub(r"\W+", "-", instance.slug.lower())[:50] if instance.slug else uuid.uuid4().hex
-        observed_random_id = set()
-        while PublicConversation.objects.filter(slug=slug).exists():
-            try:
-                random_id = generate_random_alphanumeric(7)
-            except IndexError:
-                raise ValidationError(
-                    "Unable to generate a unique slug for the Public Conversation. Please try again later."
-                )
-            observed_random_id.add(random_id)
-            slug = f"{slug}-{random_id}"
+        base_length = 50  # Base slug length before adding random suffix
+        base_slug = re.sub(r"\W+", "-", instance.slug.lower())[:base_length] if instance.slug else uuid.uuid4().hex
+        suffix_length = 8  # Length of the random suffix to ensure uniqueness
+        while True:
+            random_id = uuid.uuid4().hex[:suffix_length]
+            slug = f"{base_slug}-{random_id}"
+            if not PublicConversation.objects.filter(slug=slug).exists():
+                break
         instance.slug = slug
 
 
