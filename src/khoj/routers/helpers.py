@@ -2893,7 +2893,7 @@ async def grep_files(
 
     # Validate regex pattern
     try:
-        regex = re.compile(regex_pattern)
+        regex = re.compile(regex_pattern, re.IGNORECASE)
     except re.error as e:
         yield {
             "query": _generate_query(0, 0, path_prefix, regex_pattern),
