@@ -2600,6 +2600,17 @@ async def read_chat_stream(response_iterator: AsyncGenerator[str, None]) -> Dict
     }
 
 
+def get_message_from_queue(queue: asyncio.Queue) -> Optional[str]:
+    """Get any message in queue if available."""
+    if not queue:
+        return None
+    try:
+        # Non-blocking check for message in the queue
+        return queue.get_nowait()
+    except asyncio.QueueEmpty:
+        return None
+
+
 def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False):
     user_picture = request.session.get("user", {}).get("picture")
     is_active = has_required_scope(request, ["premium"])

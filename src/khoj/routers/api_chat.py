@@ -672,6 +672,7 @@ async def event_generator(
     common: CommonQueryParams,
     headers: Headers,
     request_obj: Request | WebSocket,
+    interrupt_queue: asyncio.Queue = None,
 ):
     # Access the parameters from the body
     q = body.q
@@ -1061,6 +1062,7 @@ async def event_generator(
             query_files=attached_file_context,
             tracer=tracer,
             cancellation_event=cancellation_event,
+            interrupt_queue=interrupt_queue,
         ):
             if isinstance(research_result, ResearchIteration):
                 if research_result.summarizedResult:
@@ -1491,13 +1493,25 @@ async def chat_ws(
     )
     image_rate_limiter = ApiImageRateLimiter(max_images=10, max_combined_size_mb=20)
 
+    # Shared interrupt queue for communicating interrupts to ongoing research
+    interrupt_queue: asyncio.Queue = asyncio.Queue()
     current_task = None
 
     try:
         while True:
             data = await websocket.receive_json()
 
-            # Handle regular chat messages
+            # Check if this is an interrupt message
+            if data.get("type") == "interrupt":
+                if current_task and not current_task.done():
+                    # Send interrupt signal to the ongoing task
+                    await interrupt_queue.put(data.get("query", ""))
+                    logger.info(f"Interrupt signal sent to ongoing task for user {websocket.scope['user'].object.id}")
+                    await websocket.send_text(json.dumps({"type": "interrupt_acknowledged"}))
+                else:
+                    logger.info(f"No ongoing task to interrupt for user {websocket.scope['user'].object.id}")
+                continue
+
             # Handle regular chat messages - ensure data has required fields
             if "q" not in data:
                 await websocket.send_text(json.dumps({"error": "Missing required field 'q' in chat message"}))
@@ -1523,7 +1537,7 @@ async def chat_ws(
                     pass
 
             # Create a new task for processing the chat request
-            current_task = asyncio.create_task(process_chat_request(websocket, body, common))
+            current_task = asyncio.create_task(process_chat_request(websocket, body, common, interrupt_queue))
 
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected for user {websocket.scope['user'].object.id}")
@@ -1540,6 +1554,7 @@ async def process_chat_request(
     websocket: WebSocket,
     body: ChatRequestBody,
     common: CommonQueryParams,
+    interrupt_queue: asyncio.Queue,
 ):
     """Process a single chat request with interrupt support"""
     try:
@@ -1550,6 +1565,7 @@ async def process_chat_request(
             common,
             websocket.headers,
             websocket,
+            interrupt_queue,
         )
         async for event in response_iterator:
             await websocket.send_text(event)

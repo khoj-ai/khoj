@@ -45,7 +45,7 @@ interface ChatBodyDataProps {
     isMobileWidth?: boolean;
     isLoggedIn: boolean;
     setImages: (images: string[]) => void;
-    setTriggeredAbort: (triggeredAbort: boolean) => void;
+    setTriggeredAbort: (triggeredAbort: boolean, newMessage?: string) => void;
     isChatSideBarOpen: boolean;
     setIsChatSideBarOpen: (open: boolean) => void;
     isActive?: boolean;
@@ -208,6 +208,7 @@ export default function Chat() {
     const [abortMessageStreamController, setAbortMessageStreamController] =
         useState<AbortController | null>(null);
     const [triggeredAbort, setTriggeredAbort] = useState(false);
+    const [interruptMessage, setInterruptMessage] = useState<string>("");
     const [shouldSendWithInterrupt, setShouldSendWithInterrupt] = useState(false);
     const socketRef = useRef<WebSocket | null>(null);
     const bufferRef = useRef("");
@@ -243,13 +244,43 @@ export default function Chat() {
         welcomeConsole();
     }, []);
 
+    const handleTriggeredAbort = (value: boolean, newMessage?: string) => {
+        if (value) {
+            setInterruptMessage(newMessage || "");
+        }
+        setTriggeredAbort(value);
+    };
+
     useEffect(() => {
         if (triggeredAbort) {
-            handleAbortedMessage();
-            setShouldSendWithInterrupt(true);
+            // For WebSocket connections, send interrupt message directly
+            if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+                const messageToSend = interruptMessage || queryToProcess;
+                socketRef.current.send(
+                    JSON.stringify({
+                        type: "interrupt",
+                        query: messageToSend,
+                    }),
+                );
+                console.log("Sent interrupt message via WebSocket:", messageToSend);
+
+                // Update the current message with the new query but keep it in processing state
+                setMessages((prevMessages) => {
+                    const newMessages = [...prevMessages];
+                    const currentMessage = newMessages[newMessages.length - 1];
+                    if (currentMessage && !currentMessage.completed) {
+                        currentMessage.rawQuery = messageToSend;
+                    }
+                    return newMessages;
+                });
+
+                // Update the query being processed
+                setQueryToProcess(messageToSend);
+            }
             setTriggeredAbort(false);
+            setInterruptMessage("");
         }
-    }, [triggeredAbort]);
+    }, [triggeredAbort, interruptMessage, queryToProcess]);
 
     useEffect(() => {
         if (queryToProcess) {
@@ -294,6 +325,21 @@ export default function Chat() {
         };
 
         ws.onmessage = (event) => {
+            // Check if this is a control message (JSON) rather than a streaming event
+            try {
+                const controlMessage = JSON.parse(event.data);
+                if (controlMessage.type === "interrupt_acknowledged") {
+                    console.log("Interrupt acknowledged by server");
+                    return;
+                }
+                if (controlMessage.error) {
+                    console.error("WebSocket error:", controlMessage.error);
+                    return;
+                }
+            } catch {
+                // Not a JSON control message, process as streaming event
+            }
+
             const eventDelimiter = "␃🔚␗";
             bufferRef.current += event.data;
 
@@ -533,7 +579,7 @@ export default function Chat() {
                                     isMobileWidth={isMobileWidth}
                                     onConversationIdChange={handleConversationIdChange}
                                     setImages={setImages}
-                                    setTriggeredAbort={setTriggeredAbort}
+                                    setTriggeredAbort={handleTriggeredAbort}
                                     isChatSideBarOpen={isChatSideBarOpen}
                                     setIsChatSideBarOpen={setIsChatSideBarOpen}
                                     isActive={authenticatedData?.is_active}
