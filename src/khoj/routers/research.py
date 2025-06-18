@@ -347,6 +347,8 @@ async def research(
                 except Exception as e:
                     this_iteration.warning = f"Error extracting document references: {e}"
                     logger.error(this_iteration.warning, exc_info=True)
+            else:
+                this_iteration.warning = "No matching document references found"
 
         elif this_iteration.tool == ConversationCommand.Online:
             previous_subqueries = {
