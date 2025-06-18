@@ -207,6 +207,8 @@ export default function Chat() {
         useState<AbortController | null>(null);
     const [triggeredAbort, setTriggeredAbort] = useState(false);
     const [shouldSendWithInterrupt, setShouldSendWithInterrupt] = useState(false);
+    const socketRef = useRef<WebSocket | null>(null);
+    const bufferRef = useRef("");
 
     const { locationData, locationDataError, locationDataLoading } = useIPLocationData() || {
         locationData: {
@@ -241,7 +243,6 @@ export default function Chat() {
 
     useEffect(() => {
         if (triggeredAbort) {
-            abortMessageStreamController?.abort();
             handleAbortedMessage();
             setShouldSendWithInterrupt(true);
             setTriggeredAbort(false);
@@ -264,7 +265,6 @@ export default function Chat() {
             };
             setMessages((prevMessages) => [...prevMessages, newStreamMessage]);
             setProcessQuerySignal(true);
-            setAbortMessageStreamController(new AbortController());
         }
     }, [queryToProcess]);
 
@@ -278,63 +278,93 @@ export default function Chat() {
         }
     }, [processQuerySignal, locationDataLoading]);
 
-    async function readChatStream(response: Response) {
-        if (!response.ok) throw new Error(response.statusText);
-        if (!response.body) throw new Error("Response body is null");
+    useEffect(() => {
+        if (!conversationId) return;
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        const eventDelimiter = "␃🔚␗";
-        let buffer = "";
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${protocol}//${window.location.host}/api/chat/ws?client=web`;
 
-        // Track context used for chat response
-        let context: Context[] = [];
-        let onlineContext: OnlineContext = {};
-        let codeContext: CodeContext = {};
+        const ws = new WebSocket(wsUrl);
+        socketRef.current = ws;
 
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-                setQueryToProcess("");
-                setProcessQuerySignal(false);
-                setImages([]);
+        ws.onopen = () => {
+            console.log("WebSocket connection established");
+        };
 
-                if (conversationId) generateNewTitle(conversationId, setTitle);
-
-                break;
-            }
-
-            const chunk = decoder.decode(value, { stream: true });
-            buffer += chunk;
+        ws.onmessage = (event) => {
+            const eventDelimiter = "␃🔚␗";
+            bufferRef.current += event.data;
 
             let newEventIndex;
-            while ((newEventIndex = buffer.indexOf(eventDelimiter)) !== -1) {
-                const event = buffer.slice(0, newEventIndex);
-                buffer = buffer.slice(newEventIndex + eventDelimiter.length);
-                if (event) {
-                    const currentMessage = messages.find((message) => !message.completed);
+            while ((newEventIndex = bufferRef.current.indexOf(eventDelimiter)) !== -1) {
+                const eventChunk = bufferRef.current.slice(0, newEventIndex);
+                bufferRef.current = bufferRef.current.slice(newEventIndex + eventDelimiter.length);
+                if (eventChunk) {
+                    setMessages((prevMessages) => {
+                        const newMessages = [...prevMessages];
+                        const currentMessage = newMessages[newMessages.length - 1];
+                        if (!currentMessage || currentMessage.completed) {
+                            return prevMessages;
+                        }
 
-                    if (!currentMessage) {
-                        console.error("No current message found");
-                        return;
-                    }
+                        const { context, onlineContext, codeContext } = processMessageChunk(
+                            eventChunk,
+                            currentMessage,
+                            currentMessage.context || [],
+                            currentMessage.onlineContext || {},
+                            currentMessage.codeContext || {},
+                        );
 
-                    // Track context used for chat response. References are rendered at the end of the chat
-                    ({ context, onlineContext, codeContext } = processMessageChunk(
-                        event,
-                        currentMessage,
-                        context,
-                        onlineContext,
-                        codeContext,
-                    ));
+                        // Update the current message with the new reference data
+                        currentMessage.context = context;
+                        currentMessage.onlineContext = onlineContext;
+                        currentMessage.codeContext = codeContext;
 
-                    setMessages([...messages]);
+                        if (currentMessage.completed) {
+                            setQueryToProcess("");
+                            setProcessQuerySignal(false);
+                            setImages([]);
+                            if (conversationId) generateNewTitle(conversationId, setTitle);
+                        }
+
+                        return newMessages;
+                    });
                 }
             }
-        }
-    }
+        };
+
+        ws.onclose = () => {
+            console.log("WebSocket connection closed");
+            socketRef.current = null;
+        };
+
+        ws.onerror = (error) => {
+            console.error("WebSocket error:", error);
+            setMessages((prevMessages) => {
+                const newMessages = [...prevMessages];
+                const currentMessage = newMessages[newMessages.length - 1];
+                if (currentMessage && !currentMessage.completed) {
+                    currentMessage.rawResponse = `A WebSocket error occurred. Please check the connection or try again.`;
+                    currentMessage.completed = true;
+                }
+
+                setQueryToProcess("");
+                setProcessQuerySignal(false);
+
+                return newMessages;
+            });
+            socketRef.current = null;
+        };
+
+        return () => {
+            if (socketRef.current) {
+                socketRef.current.close();
+            }
+        };
+    }, [conversationId]);
 
     function handleAbortedMessage() {
+        // TODO: Implement WebSocket abort logic
         const currentMessage = messages.find((message) => !message.completed);
         if (!currentMessage) return;
 
@@ -349,7 +379,36 @@ export default function Chat() {
             setProcessQuerySignal(false);
             return;
         }
-        const chatAPI = "/api/chat?client=web";
+
+        // Wait for WebSocket connection to be established (with timeout)
+        const maxWaitTime = 5000; // 5 seconds
+        const pollInterval = 100; // 100ms
+        let waitTime = 0;
+
+        while (
+            (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) &&
+            waitTime < maxWaitTime
+        ) {
+            await new Promise((resolve) => setTimeout(resolve, pollInterval));
+            waitTime += pollInterval;
+        }
+
+        if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+            console.error("WebSocket connection timeout.");
+            setMessages((prevMessages) => {
+                const newMessages = [...prevMessages];
+                const currentMessage = newMessages[newMessages.length - 1];
+                if (currentMessage && !currentMessage.completed) {
+                    currentMessage.rawResponse =
+                        "Failed to connect to the server. Please check your connection and try again.";
+                    currentMessage.completed = true;
+                }
+                return newMessages;
+            });
+            setProcessQuerySignal(false);
+            return;
+        }
+
         const chatAPIBody = {
             q: queryToProcess,
             conversation_id: conversationId,
@@ -369,55 +428,7 @@ export default function Chat() {
         // Reset the flag after using it
         setShouldSendWithInterrupt(false);
 
-        const response = await fetch(chatAPI, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(chatAPIBody),
-            signal: abortMessageStreamController?.signal,
-        });
-
-        try {
-            await readChatStream(response);
-        } catch (err) {
-            let apiError;
-            try {
-                apiError = await response.json();
-            } catch (err) {
-                // Error reading API error response
-                apiError = {
-                    streamError: "Error reading API error response stream. Expected JSON response.",
-                };
-            }
-            console.error(apiError);
-            // Retrieve latest message being processed
-            const currentMessage = messages.find((message) => !message.completed);
-            if (!currentMessage) return;
-
-            // Render error message as current message
-            const errorMessage = (err as Error).message;
-            const errorName = (err as Error).name;
-            if (errorMessage.includes("Error in input stream"))
-                currentMessage.rawResponse = `Woops! The connection broke while I was writing my thoughts down. Maybe try again in a bit or dislike this message if the issue persists?`;
-            else if (apiError.streamError) {
-                currentMessage.rawResponse = `Umm, not sure what just happened but I lost my train of thought. Could you try again or ask my developers to look into this if the issue persists? They can be contacted at the Khoj Github, Discord or team@khoj.dev.`;
-            } else if (response.status === 429) {
-                "detail" in apiError
-                    ? (currentMessage.rawResponse = `${apiError.detail}`)
-                    : (currentMessage.rawResponse = `I'm a bit overwhelmed at the moment. Could you try again in a bit or dislike this message if the issue persists?`);
-            } else if (errorName === "AbortError") {
-                currentMessage.rawResponse = `I've stopped processing this message. If you'd like to continue, please send the message again.`;
-            } else {
-                currentMessage.rawResponse = `Umm, not sure what just happened. I see this error message: ${errorMessage}. Could you try again or dislike this message if the issue persists?`;
-            }
-
-            // Complete message streaming teardown properly
-            currentMessage.completed = true;
-            setMessages([...messages]);
-            setQueryToProcess("");
-            setProcessQuerySignal(false);
-        }
+        socketRef.current.send(JSON.stringify(chatAPIBody));
     }
 
     const handleConversationIdChange = (newConversationId: string) => {
