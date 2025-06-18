@@ -220,7 +220,16 @@ def set_state(args):
 def start_server(app, host=None, port=None, socket=None):
     logger.info("🌖 Khoj is ready to engage")
     if socket:
-        uvicorn.run(app, proxy_headers=True, uds=socket, log_level="debug", use_colors=True, log_config=None)
+        uvicorn.run(
+            app,
+            proxy_headers=True,
+            uds=socket,
+            log_level="debug" if state.verbose > 1 else "info",
+            use_colors=True,
+            log_config=None,
+            ws_ping_timeout=300,
+            timeout_keep_alive=60,
+        )
     else:
         uvicorn.run(
             app,
@@ -229,6 +238,7 @@ def start_server(app, host=None, port=None, socket=None):
             log_level="debug" if state.verbose > 1 else "info",
             use_colors=True,
             log_config=None,
+            ws_ping_timeout=300,
             timeout_keep_alive=60,
             **state.ssl_config if state.ssl_config else {},
         )
