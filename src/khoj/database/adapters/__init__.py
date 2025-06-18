@@ -1763,7 +1763,7 @@ class FileObjectAdapters:
         Search for a regex pattern in file objects, with an optional path prefix filter.
         Outputs results in grep format.
         """
-        query = FileObject.objects.filter(user=user, agent=None, raw_text__regex=regex_pattern)
+        query = FileObject.objects.filter(user=user, agent=None, raw_text__iregex=regex_pattern)
         if path_prefix:
             query = query.filter(file_name__startswith=path_prefix)
         return await sync_to_async(list)(query)
