@@ -384,6 +384,7 @@ class ChatEvent(Enum):
     METADATA = "metadata"
     USAGE = "usage"
     END_RESPONSE = "end_response"
+    INTERRUPT = "interrupt"
 
 
 def message_to_log(

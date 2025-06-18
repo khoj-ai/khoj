@@ -82,7 +82,7 @@ interface ChatInputProps {
     isLoggedIn: boolean;
     agentColor?: string;
     isResearchModeEnabled?: boolean;
-    setTriggeredAbort: (value: boolean) => void;
+    setTriggeredAbort: (value: boolean, newMessage?: string) => void;
     prefillMessage?: string;
     focus?: ChatInputFocus;
 }
@@ -189,9 +189,11 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
             return;
         }
 
-        // If currently processing, trigger abort first
+        // If currently processing, handle interrupt first
         if (props.sendDisabled) {
-            props.setTriggeredAbort(true);
+            props.setTriggeredAbort(true, message.trim());
+            setMessage(""); // Clear the input
+            return; // Don't continue with regular message sending
         }
 
         if (imageUploaded) {
