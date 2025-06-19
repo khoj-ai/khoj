@@ -105,6 +105,7 @@ def gemini_completion_with_backoff(
         gemini_clients[api_key] = client
 
     formatted_messages, system_instruction = format_messages_for_gemini(messages, system_prompt)
+    response_thoughts: str | None = None
 
     # format model response schema
     response_schema = None
@@ -328,7 +329,7 @@ def generate_safety_response(safety_ratings: list[gtypes.SafetyRating]):
 
 def format_messages_for_gemini(
     original_messages: list[ChatMessage], system_prompt: str = None
-) -> tuple[list[str], str]:
+) -> tuple[list[gtypes.Content], str]:
     # Extract system message
     system_prompt = system_prompt or ""
     messages = deepcopy(original_messages)
