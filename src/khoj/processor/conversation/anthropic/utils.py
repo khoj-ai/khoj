@@ -129,6 +129,14 @@ def anthropic_completion_with_backoff(
             if item.type == "tool_use"
         ]
         if tool_calls:
+            # If there are tool calls, aggregate thoughts and responses into thoughts
+            if thoughts and aggregated_response:
+                # wrap each line of thought in italics
+                thoughts = "\n".join([f"*{line.strip()}*" for line in thoughts.splitlines() if line.strip()])
+                thoughts = f"{thoughts}\n\n{aggregated_response}"
+            else:
+                thoughts = thoughts or aggregated_response
+            # Json dump tool calls into aggregated response
             aggregated_response = json.dumps(tool_calls)
     # If response schema is used, return the first tool call's input
     elif response_schema:

@@ -35,7 +35,7 @@ def anthropic_send_message_to_model(
     """
     Send message to model
     """
-    # Get Response from GPT. Don't use response_type because Anthropic doesn't support it.
+    # Get response from model. Don't use response_type because Anthropic doesn't support it.
     return anthropic_completion_with_backoff(
         messages=messages,
         system_prompt="",
