@@ -445,20 +445,26 @@ async def save_to_conversation_log(
     if generated_mermaidjs_diagram:
         khoj_message_metadata["mermaidjsDiagram"] = generated_mermaidjs_diagram
 
-    updated_conversation = message_to_log(
-        user_message=q,
-        chat_response=chat_response,
-        user_message_metadata=user_message_metadata,
-        khoj_message_metadata=khoj_message_metadata,
-        chat_history=chat_history,
-    )
-    await ConversationAdapters.save_conversation(
-        user,
-        updated_conversation,
-        client_application=client_application,
-        conversation_id=conversation_id,
-        user_message=q,
-    )
+    try:
+        updated_conversation = message_to_log(
+            user_message=q,
+            chat_response=chat_response,
+            user_message_metadata=user_message_metadata,
+            khoj_message_metadata=khoj_message_metadata,
+            chat_history=chat_history,
+        )
+    except ValidationError as e:
+        updated_conversation = None
+        logger.error(f"Error constructing chat history: {e}")
+
+    if updated_conversation:
+        await ConversationAdapters.save_conversation(
+            user,
+            updated_conversation,
+            client_application=client_application,
+            conversation_id=conversation_id,
+            user_message=q,
+        )
 
     if is_promptrace_enabled():
         merge_message_into_conversation_trace(q, chat_response, tracer)
