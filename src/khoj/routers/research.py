@@ -142,7 +142,7 @@ async def apick_next_tool(
 
     try:
         with timer("Chat actor: Infer information sources to refer", logger):
-            raw_response = await send_message_to_model_wrapper(
+            response = await send_message_to_model_wrapper(
                 query="",
                 system_message=function_planning_prompt,
                 chat_history=chat_and_research_history,
@@ -165,7 +165,7 @@ async def apick_next_tool(
     try:
         # Try parse the response as function call response to infer next tool to use.
         # TODO: Handle multiple tool calls.
-        response_text = raw_response.text
+        response_text = response.text
         parsed_response = [ToolCall(**item) for item in load_complex_json(response_text)][0]
     except Exception as e:
         # Otherwise assume the model has decided to end the research run and respond to the user.
@@ -184,14 +184,11 @@ async def apick_next_tool(
     if (parsed_response.name, dict_to_tuple(parsed_response.args)) in previous_tool_query_combinations:
         warning = f"Repeated tool, query combination detected. Skipping iteration. Try something different."
     # Only send client status updates if we'll execute this iteration and model has thoughts to share.
-    elif send_status_func and not is_none_or_empty(raw_response.thought):
-        async for event in send_status_func(raw_response.thought):
+    elif send_status_func and not is_none_or_empty(response.thought):
+        async for event in send_status_func(response.thought):
             yield {ChatEvent.STATUS: event}
 
-    yield ResearchIteration(
-        query=parsed_response,
-        warning=warning,
-    )
+    yield ResearchIteration(query=parsed_response, warning=warning, raw_response=response.raw_content)
 
 
 async def research(

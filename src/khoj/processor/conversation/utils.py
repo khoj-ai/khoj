@@ -154,6 +154,7 @@ class ResearchIteration:
         operatorContext: dict | OperatorRun = None,
         summarizedResult: str = None,
         warning: str = None,
+        raw_response: list = None,
     ):
         self.query = ToolCall(**query) if isinstance(query, dict) else query
         self.context = context
@@ -162,6 +163,7 @@ class ResearchIteration:
         self.operatorContext = OperatorRun(**operatorContext) if isinstance(operatorContext, dict) else operatorContext
         self.summarizedResult = summarizedResult
         self.warning = warning
+        self.raw_response = raw_response
 
     def to_dict(self) -> dict:
         data = vars(self).copy()
@@ -185,7 +187,7 @@ def construct_iteration_history(
         iteration_history += [
             ChatMessageModel(
                 by="khoj",
-                message=[iteration.query.__dict__],
+                message=iteration.raw_response or [iteration.query.__dict__],
                 intent=Intent(type="tool_call", query=query),
             ),
             ChatMessageModel(
@@ -1187,6 +1189,7 @@ class StructuredOutputSupport(int, Enum):
 
 
 class ResponseWithThought:
-    def __init__(self, text: str = None, thought: str = None):
+    def __init__(self, text: str = None, thought: str = None, raw_content: list = None):
         self.text = text
         self.thought = thought
+        self.raw_content = raw_content

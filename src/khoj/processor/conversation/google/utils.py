@@ -108,7 +108,7 @@ def gemini_completion_with_backoff(
         gemini_clients[api_key] = client
 
     formatted_messages, system_instruction = format_messages_for_gemini(messages, system_prompt)
-    response_thoughts: str | None = None
+    raw_content, response_text, response_thoughts = [], "", None
 
     # Configure structured output
     tools = None
@@ -144,6 +144,7 @@ def gemini_completion_with_backoff(
     try:
         # Generate the response
         response = client.models.generate_content(model=model_name, config=config, contents=formatted_messages)
+        raw_content = [part.model_dump() for part in response.candidates[0].content.parts or []]
         if response.function_calls:
             function_calls = [
                 ToolCall(name=function_call.name, args=function_call.args, id=function_call.id).__dict__
@@ -190,7 +191,7 @@ def gemini_completion_with_backoff(
     if is_promptrace_enabled():
         commit_conversation_trace(messages, response_text, tracer)
 
-    return ResponseWithThought(text=response_text, thought=response_thoughts)
+    return ResponseWithThought(text=response_text, thought=response_thoughts, raw_content=raw_content)
 
 
 @retry(
@@ -376,11 +377,7 @@ def format_messages_for_gemini(
         # Handle tool call and tool result message types from additional_kwargs
         message_type = message.additional_kwargs.get("message_type")
         if message_type == "tool_call":
-            # Convert tool_call to Gemini function call format
-            tool_call_msg_content = []
-            for part in message.content:
-                tool_call_msg_content.append(gtypes.Part.from_function_call(name=part["name"], args=part["args"]))
-            message.content = tool_call_msg_content
+            pass
         elif message_type == "tool_result":
             # Convert tool_result to Gemini function response format
             # Need to find the corresponding function call from previous messages
