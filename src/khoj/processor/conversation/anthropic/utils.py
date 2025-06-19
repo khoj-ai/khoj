@@ -118,6 +118,9 @@ def anthropic_completion_with_backoff(
                 aggregated_response += chunk.delta.text
         final_message = stream.get_final_message()
 
+    # Track raw content of model response to reuse for cache hits in multi-turn chats
+    raw_content = [item.model_dump() for item in final_message.content]
+
     # Extract all tool calls if tools are enabled
     if tools:
         tool_calls = [
@@ -154,7 +157,7 @@ def anthropic_completion_with_backoff(
     if is_promptrace_enabled():
         commit_conversation_trace(messages, aggregated_response, tracer)
 
-    return ResponseWithThought(text=aggregated_response, thought=thoughts)
+    return ResponseWithThought(text=aggregated_response, thought=thoughts, raw_content=raw_content)
 
 
 @retry(
@@ -289,18 +292,7 @@ def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt: st
         # Handle tool call and tool result message types from additional_kwargs
         message_type = message.additional_kwargs.get("message_type")
         if message_type == "tool_call":
-            # Convert tool_call to Anthropic tool_use format
-            content = []
-            for part in message.content:
-                content.append(
-                    {
-                        "type": "tool_use",
-                        "id": part.pop("id"),
-                        "name": part.pop("name"),
-                        "input": part,
-                    }
-                )
-            message.content = content
+            pass
         elif message_type == "tool_result":
             # Convert tool_result to Anthropic tool_result format
             content = []
