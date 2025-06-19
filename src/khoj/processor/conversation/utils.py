@@ -69,8 +69,8 @@ model_to_prompt_size = {
     "o3-pro": 30000,
     "o4-mini": 90000,
     # Google Models
-    "gemini-2.5-flash-preview-05-20": 120000,
-    "gemini-2.5-pro-preview-06-05": 60000,
+    "gemini-2.5-flash": 120000,
+    "gemini-2.5-pro": 60000,
     "gemini-2.0-flash": 120000,
     "gemini-2.0-flash-lite": 120000,
     "gemini-1.5-flash": 120000,
