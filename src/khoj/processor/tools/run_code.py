@@ -232,8 +232,7 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
     try:
         # Upload input files in parallel
         upload_tasks = [
-            sandbox.files.write(path=file["filename"], data=base64.b64decode(file["b64_data"]), request_timeout=30)
-            for file in input_files
+            sandbox.files.write(file["filename"], base64.b64decode(file["b64_data"])) for file in input_files
         ]
         await asyncio.gather(*upload_tasks)
 

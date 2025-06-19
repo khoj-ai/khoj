@@ -34,7 +34,7 @@ class CodeContextFile(PydanticBaseModel):
 class CodeContextResult(PydanticBaseModel):
     success: bool
     output_files: List[CodeContextFile]
-    std_out: str
+    std_out: Optional[str] = None
     std_err: str
     code_runtime: Optional[int] = None
 
