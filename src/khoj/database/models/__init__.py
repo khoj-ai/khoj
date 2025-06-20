@@ -75,7 +75,7 @@ class KnowledgeGraph(PydanticBaseModel):
 
 
 class OrganicContext(PydanticBaseModel):
-    snippet: str
+    snippet: Optional[str] = None
     title: str
     link: str
 
