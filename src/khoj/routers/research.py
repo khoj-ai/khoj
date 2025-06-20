@@ -499,5 +499,6 @@ async def research(
             # intermediate_result = await extract_relevant_info(this_iteration.query, results_data, agent)
             this_iteration.summarizedResult = results_data
 
+        this_iteration.summarizedResult = this_iteration.summarizedResult or "Failed to get results."
         previous_iterations.append(this_iteration)
         yield this_iteration
