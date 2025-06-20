@@ -34,7 +34,7 @@ from apscheduler.triggers.cron import CronTrigger
 from asgiref.sync import sync_to_async
 from django.utils import timezone as django_timezone
 from fastapi import Depends, Header, HTTPException, Request, UploadFile, WebSocket
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, conlist
 from starlette.authentication import has_required_scope
 from starlette.requests import URL
 
@@ -1093,7 +1093,7 @@ async def generate_better_image_prompt(
     agent: Agent = None,
     query_files: str = "",
     tracer: dict = {},
-) -> str:
+) -> List[str]:
     """
     Generate a better image prompt from the given query
     """
@@ -1144,6 +1144,11 @@ async def generate_better_image_prompt(
 
     agent_chat_model = AgentAdapters.get_agent_chat_model(agent, user) if agent else None
 
+    class ImagePrompts(BaseModel):
+        prompts: conlist(str, min_length=1, max_length=5) = Field(
+            ..., description="A list of creative and detailed image prompts."
+        )
+
     with timer("Chat actor: Generate contextual image prompt", logger):
         response = await send_message_to_model_wrapper(
             image_prompt,
@@ -1152,12 +1157,19 @@ async def generate_better_image_prompt(
             query_files=query_files,
             agent_chat_model=agent_chat_model,
             tracer=tracer,
+            response_type="json_object",
+            response_schema=ImagePrompts,
         )
         response_text = response.text.strip()
-        if response_text.startswith(('"', "'")) and response_text.endswith(('"', "'")):
-            response_text = response_text[1:-1]
-
-    return response_text
+        try:
+            prompts_data = json.loads(clean_json(response_text))
+            return prompts_data["prompts"]
+        except (json.JSONDecodeError, KeyError):
+            logger.error(f"Failed to parse image prompts from LLM response: {response_text}")
+            # Fallback to returning the raw text as a single prompt in a list
+            if response_text.startswith(('"', "'")) and response_text.endswith(('"', "'")):
+                response_text = response_text[1:-1]
+            return [response_text]
 
 
 async def search_documents(

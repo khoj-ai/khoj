@@ -1270,22 +1270,11 @@ async def event_generator(
             ):
                 yield result
 
-    ## Send Gathered References
-    unique_online_results = deduplicate_organic_results(online_results)
-    async for result in send_event(
-        ChatEvent.REFERENCES,
-        {
-            "inferredQueries": inferred_queries,
-            "context": compiled_references,
-            "onlineContext": unique_online_results,
-            "codeContext": code_results,
-        },
-    ):
-        yield result
-
     # Generate Output
     ## Generate Image Output
     if ConversationCommand.Image in conversation_commands:
+        # image_prompts = []
+        image_results = []
         async for result in text_to_image(
             defiltered_query,
             user,
@@ -1301,28 +1290,49 @@ async def event_generator(
         ):
             if isinstance(result, dict) and ChatEvent.STATUS in result:
                 yield result[ChatEvent.STATUS]
+                continue
+
+            generated_image, status_code, improved_image_prompt = result
+            # image_prompts.append(improved_image_prompt)
+
+            if generated_image is None or status_code != 200:
+                # program_execution_context.append(f"Failed to generate image with {improved_image_prompt}")
+                async for event in send_event(ChatEvent.STATUS, "Failed to generate image"):
+                    yield event
             else:
-                generated_image, status_code, improved_image_prompt = result
+                image_results.append({
+                    "filename": f"image_{len(image_results) + 1}.webp",
+                    "b64_data": generated_image
+                })
 
-        inferred_queries.append(improved_image_prompt)
-        if generated_image is None or status_code != 200:
-            program_execution_context.append(f"Failed to generate image with {improved_image_prompt}")
-            async for result in send_event(ChatEvent.STATUS, f"Failed to generate image"):
-                yield result
-        else:
-            generated_images.append(generated_image)
-
-            generated_asset_results["images"] = {
-                "query": improved_image_prompt,
+        code_results[defiltered_query] = {
+            "code": "[Snipped Image Generation Code]",
+            "results": {
+                "success": True,
+                "std_out": "Image generation successful",
+                "std_err": "",
+                "output_files": image_results,
             }
+        }
+        # if image_prompts:
+        #     inferred_queries.extend(image_prompts)
+        # if generated_images:
+        #     generated_asset_results["images"] = {
+        #         "query": "\n".join(image_prompts),
+        #     }
 
-            async for result in send_event(
-                ChatEvent.GENERATED_ASSETS,
-                {
-                    "images": [generated_image],
-                },
-            ):
-                yield result
+    ## Send Gathered References
+    unique_online_results = deduplicate_organic_results(online_results)
+    async for result in send_event(
+        ChatEvent.REFERENCES,
+        {
+            "inferredQueries": inferred_queries,
+            "context": compiled_references,
+            "onlineContext": unique_online_results,
+            "codeContext": code_results,
+        },
+    ):
+        yield result
 
     if ConversationCommand.Diagram in conversation_commands:
         async for result in send_event(ChatEvent.STATUS, f"Creating diagram"):
