@@ -242,7 +242,13 @@ def generate_image_with_google(
     client = genai.Client(api_key=api_key)
 
     # Configure image generation settings
-    config = gtypes.GenerateImagesConfig(number_of_images=1)
+    config = gtypes.GenerateImagesConfig(
+        number_of_images=1,
+        safety_filter_level=gtypes.SafetyFilterLevel.BLOCK_LOW_AND_ABOVE,
+        person_generation=gtypes.PersonGeneration.ALLOW_ADULT,
+        include_rai_reason=True,
+        output_mime_type="image/png",
+    )
 
     # Call the Gemini API to generate the image
     response = client.models.generate_images(model=text2image_model, prompt=improved_image_prompt, config=config)
