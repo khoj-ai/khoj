@@ -139,7 +139,7 @@ User's Notes:
 image_generation_improve_prompt_base = """
 You are a talented media artist with the ability to describe images to compose in professional, fine detail.
 {personality_context}
-Generate a vivid description of the image to be rendered using the provided context and user prompt below:
+Generate up to 5 vivid descriptions of the image to be rendered using the provided context and user prompt below:
 
 Today's Date: {current_date}
 User's Location: {location}
@@ -155,10 +155,12 @@ Conversation Log:
 
 User Prompt: "{query}"
 
-Now generate an professional description of the image to generate in vivid, fine detail.
+Now generate up to 5 professional descriptions of the image to generate in vivid, fine detail.
 - Use today's date, user's location, user's notes and online references to weave in any context that will improve the image generation.
 - Retain any important information and follow any instructions in the conversation log or user prompt.
 - Add specific, fine position details. Mention painting style, camera parameters to compose the image.
+- When rendering characters, don't just mention them by name, describe their appearance, clothing, and any distinctive features in detail.
+- Ensure character descriptions are self-contained, detailed and consistent across images.
 - Ensure your improved prompt is in prose format."""
 
 image_generation_improve_prompt_dalle = PromptTemplate.from_template(
@@ -185,8 +187,6 @@ You can provide a summary of your reasoning from the information below or use it
 
 Generated Assets:
 {generated_assets}
-
-Limit your response to 3 sentences max. Be succinct, clear, and informative.
 """.strip()
 )
 

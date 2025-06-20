@@ -47,16 +47,12 @@ async def text_to_image(
     query_files: str = None,
     tracer: dict = {},
 ):
-    status_code = 200
-    image = None
-    image_url = None
-
     text_to_image_config = await ConversationAdapters.aget_user_text_to_image_model(user)
     if not text_to_image_config:
         # If the user has not configured a text to image model, return an unsupported on server error
         status_code = 501
-        message = "Failed to generate image. Setup image generation on the server."
-        yield image_url or image, status_code, message
+        error_message = "Failed to generate image. Setup image generation on the server."
+        yield None, status_code, error_message
         return
 
     text2image_model = text_to_image_config.model_name
@@ -75,7 +71,7 @@ async def text_to_image(
 
     # Generate a better image prompt
     # Use the user's message, chat history, and other context
-    image_prompt = await generate_better_image_prompt(
+    image_prompts = await generate_better_image_prompt(
         message,
         chat_history_str,
         location_data=location_data,
@@ -89,55 +85,63 @@ async def text_to_image(
         tracer=tracer,
     )
 
-    if send_status_func:
-        async for event in send_status_func(f"**Painting to Imagine**:\n{image_prompt}"):
-            yield {ChatEvent.STATUS: event}
+    for image_prompt in image_prompts:
+        status_code = 200
+        image = None
+        image_url = None
+        if send_status_func:
+            async for event in send_status_func(f"**Painting to Imagine**:\n{image_prompt}"):
+                yield {ChatEvent.STATUS: event}
 
-    # Generate image using the configured model and API
-    with timer(f"Generate image with {text_to_image_config.model_type}", logger):
-        try:
-            if text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
-                webp_image_bytes = generate_image_with_openai(image_prompt, text_to_image_config, text2image_model)
-            elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.STABILITYAI:
-                webp_image_bytes = generate_image_with_stability(image_prompt, text_to_image_config, text2image_model)
-            elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.REPLICATE:
-                webp_image_bytes = generate_image_with_replicate(image_prompt, text_to_image_config, text2image_model)
-            elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.GOOGLE:
-                webp_image_bytes = generate_image_with_google(image_prompt, text_to_image_config, text2image_model)
-        except openai.OpenAIError or openai.BadRequestError or openai.APIConnectionError as e:
-            if "content_policy_violation" in e.message:
-                logger.error(f"Image Generation blocked by OpenAI: {e}")
-                status_code = e.status_code  # type: ignore
-                message = f"Image generation blocked by OpenAI due to policy violation"  # type: ignore
-                yield image_url or image, status_code, message
-                return
-            else:
+        # Generate image using the configured model and API
+        with timer(f"Generate image with {text_to_image_config.model_type}", logger):
+            try:
+                if text_to_image_config.model_type == TextToImageModelConfig.ModelType.OPENAI:
+                    webp_image_bytes = generate_image_with_openai(image_prompt, text_to_image_config, text2image_model)
+                elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.STABILITYAI:
+                    webp_image_bytes = generate_image_with_stability(
+                        image_prompt, text_to_image_config, text2image_model
+                    )
+                elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.REPLICATE:
+                    webp_image_bytes = generate_image_with_replicate(
+                        image_prompt, text_to_image_config, text2image_model
+                    )
+                elif text_to_image_config.model_type == TextToImageModelConfig.ModelType.GOOGLE:
+                    webp_image_bytes = generate_image_with_google(image_prompt, text_to_image_config, text2image_model)
+            except (openai.OpenAIError, openai.BadRequestError, openai.APIConnectionError) as e:
+                if "content_policy_violation" in str(e):
+                    logger.error(f"Image Generation blocked by OpenAI: {e}")
+                    status_code = e.status_code
+                    message = "Image generation blocked by OpenAI due to policy violation"
+                    yield None, status_code, message
+                    continue
+                else:
+                    logger.error(f"Image Generation failed with {e}", exc_info=True)
+                    message = "Image generation failed using OpenAI"
+                    status_code = e.status_code
+                    yield None, status_code, message
+                    continue
+            except ValueError as e:
                 logger.error(f"Image Generation failed with {e}", exc_info=True)
-                message = f"Image generation failed using OpenAI"  # type: ignore
-                status_code = e.status_code  # type: ignore
-                yield image_url or image, status_code, message
-                return
-        except ValueError as e:
-            logger.error(f"Image Generation failed with {e}", exc_info=True)
-            message = f"Image generation using {text2image_model} via {text_to_image_config.model_type} failed due to an unknown error"
-            status_code = 500
-            yield image_url or image, status_code, message
-            return
-        except requests.RequestException as e:
-            logger.error(f"Image Generation failed with {e}", exc_info=True)
-            message = f"Image generation using {text2image_model} via {text_to_image_config.model_type} failed due to a network error."
-            status_code = 502
-            yield image_url or image, status_code, message
-            return
+                message = f"Image generation using {text2image_model} via {text_to_image_config.model_type} failed due to an unknown error"
+                status_code = 500
+                yield None, status_code, message
+                continue
+            except requests.RequestException as e:
+                logger.error(f"Image Generation failed with {e}", exc_info=True)
+                message = f"Image generation using {text2image_model} via {text_to_image_config.model_type} failed due to a network error."
+                status_code = 502
+                yield None, status_code, message
+                continue
 
-    # Decide how to store the generated image
-    with timer("Upload image to S3", logger):
-        image_url = upload_generated_image_to_bucket(webp_image_bytes, user.uuid)
+        # Decide how to store the generated image
+        with timer("Upload image to S3", logger):
+            image_url = upload_generated_image_to_bucket(webp_image_bytes, user.uuid)
 
-    if not image_url:
-        image = f"data:image/webp;base64,{base64.b64encode(webp_image_bytes).decode('utf-8')}"
+        if not image_url:
+            image = f"{base64.b64encode(webp_image_bytes).decode('utf-8')}"
 
-    yield image_url or image, status_code, image_prompt
+        yield image_url or image, status_code, image_prompt
 
 
 @retry(
