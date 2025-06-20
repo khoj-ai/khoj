@@ -531,7 +531,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
             h-[calc(100svh-theme(spacing.44))]
             sm:h-[calc(100svh-theme(spacing.44))]
             md:h-[calc(100svh-theme(spacing.44))]
-            lg:h-[calc(100svh-theme(spacing.72))]
+            lg:h-[calc(100svh-theme(spacing.44))]
         `}
             ref={scrollAreaRef}
         >
