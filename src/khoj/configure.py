@@ -315,6 +315,7 @@ def configure_routes(app):
     from khoj.routers.api_automation import api_automation
     from khoj.routers.api_chat import api_chat
     from khoj.routers.api_content import api_content
+    from khoj.routers.api_github import github_router
     from khoj.routers.api_model import api_model
     from khoj.routers.notion import notion_router
     from khoj.routers.web_client import web_client
@@ -325,6 +326,7 @@ def configure_routes(app):
     app.include_router(api_automation, prefix="/api/automation")
     app.include_router(api_model, prefix="/api/model")
     app.include_router(api_content, prefix="/api/content")
+    app.include_router(github_router, prefix="/api/github")
     app.include_router(notion_router, prefix="/api/notion")
     app.include_router(web_client)
 
