@@ -57,6 +57,7 @@ async def converse_anthropic(
     references: list[dict],
     online_results: Optional[Dict[str, Dict]] = None,
     code_results: Optional[Dict[str, Dict]] = None,
+    tool_results: Optional[List[Dict]] = None,
     operator_results: Optional[List[OperatorRun]] = None,
     query_images: Optional[list[str]] = None,
     query_files: str = None,
@@ -113,6 +114,8 @@ async def converse_anthropic(
         context_message += (
             f"{prompts.code_executed_context.format(code_results=truncate_code_context(code_results))}\n\n"
         )
+    if not is_none_or_empty(tool_results):
+        context_message += f"{prompts.tool_executed_context.format(tool_results=yaml_dump(tool_results))}\n\n"
     if not is_none_or_empty(operator_results):
         operator_content = [
             {"query": oc.query, "response": oc.response, "webpages": oc.webpages} for oc in operator_results
