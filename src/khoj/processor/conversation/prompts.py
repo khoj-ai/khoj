@@ -1049,6 +1049,15 @@ Browser Operation Results:
 """.strip()
 )
 
+tool_executed_context = PromptTemplate.from_template(
+    """
+Use these tool execution results to inform your response.
+
+Tool Execution Results:
+{tool_results}
+""".strip()
+)
+
 
 # Automations
 # --

@@ -31,7 +31,7 @@ from khoj.database.adapters import (
     PublicConversationAdapters,
     aget_user_name,
 )
-from khoj.database.models import Agent, KhojUser
+from khoj.database.models import Agent, KhojUser, ToolContext
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.openai.utils import is_local_api
 from khoj.processor.conversation.prompts import help_message, no_entries_found
@@ -731,6 +731,7 @@ async def event_generator(
     code_results: Dict = dict()
     operator_results: List[OperatorRun] = []
     compiled_references: List[Any] = []
+    tool_results: List[Dict] = []
     inferred_queries: List[Any] = []
     attached_file_context = gather_raw_query_files(query_files)
 
@@ -762,6 +763,7 @@ async def event_generator(
                                 compiled_references=compiled_references,
                                 online_results=online_results,
                                 code_results=code_results,
+                                tool_results=tool_results,
                                 operator_results=operator_results,
                                 research_results=research_results,
                                 inferred_queries=inferred_queries,
@@ -794,6 +796,7 @@ async def event_generator(
                         compiled_references=compiled_references,
                         online_results=online_results,
                         code_results=code_results,
+                        tool_results=tool_results,
                         operator_results=operator_results,
                         research_results=research_results,
                         inferred_queries=inferred_queries,
@@ -990,6 +993,7 @@ async def event_generator(
         online_results = {key: val.model_dump() for key, val in last_message.onlineContext.items() or []}
         code_results = {key: val.model_dump() for key, val in last_message.codeContext.items() or []}
         compiled_references = [ref.model_dump() for ref in last_message.context or []]
+        tool_results = [ref.model_dump() for ref in last_message.toolContext or []]
         research_results = [
             ResearchIteration(**iter_dict)
             for iter_dict in last_message.researchContext or []
@@ -1064,6 +1068,8 @@ async def event_generator(
                         code_results.update(research_result.codeContext)
                     if research_result.context:
                         compiled_references.extend(research_result.context)
+                    if research_result.toolContext:
+                        tool_results.extend(research_result.toolContext)
                 if not research_results or research_results[-1] is not research_result:
                     research_results.append(research_result)
             else:
@@ -1402,6 +1408,7 @@ async def event_generator(
         compiled_references,
         online_results,
         code_results,
+        tool_results,
         operator_results,
         research_results,
         user,
@@ -1452,6 +1459,7 @@ async def event_generator(
             compiled_references=compiled_references,
             online_results=online_results,
             code_results=code_results,
+            tool_results=tool_results,
             operator_results=operator_results,
             research_results=research_results,
             inferred_queries=inferred_queries,

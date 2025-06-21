@@ -30,6 +30,7 @@ from khoj.database.models import (
     ClientApplication,
     Intent,
     KhojUser,
+    ToolContext,
 )
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.offline.utils import download_model, infer_max_tokens
@@ -152,6 +153,7 @@ class ResearchIteration:
         onlineContext: dict = None,
         codeContext: dict = None,
         operatorContext: dict | OperatorRun = None,
+        toolContext: list = None,
         summarizedResult: str = None,
         warning: str = None,
         raw_response: list = None,
@@ -161,6 +163,7 @@ class ResearchIteration:
         self.onlineContext = onlineContext
         self.codeContext = codeContext
         self.operatorContext = OperatorRun(**operatorContext) if isinstance(operatorContext, dict) else operatorContext
+        self.toolContext = toolContext
         self.summarizedResult = summarizedResult
         self.warning = warning
         self.raw_response = raw_response
@@ -439,6 +442,7 @@ async def save_to_conversation_log(
     compiled_references: List[Dict[str, Any]] = [],
     online_results: Dict[str, Any] = {},
     code_results: Dict[str, Any] = {},
+    tool_results: List[Dict[str, Any]] = [],
     operator_results: List[OperatorRun] = None,
     inferred_queries: List[str] = [],
     intent_type: str = "remember",
@@ -467,6 +471,7 @@ async def save_to_conversation_log(
         "intent": {"inferred-queries": inferred_queries, "type": intent_type},
         "onlineContext": online_results,
         "codeContext": code_results,
+        "toolContext": tool_results,
         "operatorContext": [o.to_dict() for o in operator_results] if operator_results and not chat_response else None,
         "researchContext": [r.to_dict() for r in research_results] if research_results and not chat_response else None,
         "automationId": automation_id,

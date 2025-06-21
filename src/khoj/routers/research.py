@@ -249,6 +249,7 @@ async def research(
         code_results: Dict = dict()
         document_results: List[Dict[str, str]] = []
         operator_results: OperatorRun = None
+        tool_results: List[str] = []
         this_iteration = ResearchIteration(query=query)
 
         async for result in apick_next_tool(
@@ -514,8 +515,17 @@ async def research(
 
         current_iteration += 1
 
-        if document_results or online_results or code_results or operator_results or this_iteration.warning:
+        if (
+            tool_results
+            or document_results
+            or online_results
+            or code_results
+            or operator_results
+            or this_iteration.warning
+        ):
             results_data = f"\n<iteration_{current_iteration}_results>"
+            if tool_results:
+                results_data += f"\n<tool_results>\n{yaml.dump(tool_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</tool_results>"
             if document_results:
                 results_data += f"\n<document_references>\n{yaml.dump(document_results, allow_unicode=True, sort_keys=False, default_flow_style=False)}\n</document_references>"
             if online_results:

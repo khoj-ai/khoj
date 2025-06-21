@@ -101,6 +101,11 @@ class TrainOfThought(PydanticBaseModel):
     data: str
 
 
+class ToolContext(PydanticBaseModel):
+    uri: str
+    content: str
+
+
 class ChatMessageModel(PydanticBaseModel):
     by: str
     message: str | list[dict]
@@ -110,6 +115,7 @@ class ChatMessageModel(PydanticBaseModel):
     codeContext: Dict[str, CodeContextData] = {}
     researchContext: Optional[List] = None
     operatorContext: Optional[List] = None
+    toolContext: List[ToolContext] = []
     created: Optional[str] = None
     images: Optional[List[str]] = None
     queryFiles: Optional[List[Dict]] = None

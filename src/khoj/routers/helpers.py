@@ -1650,6 +1650,7 @@ async def agenerate_chat_response(
     compiled_references: List[Dict] = [],
     online_results: Dict[str, Dict] = {},
     code_results: Dict[str, Dict] = {},
+    tool_results: List[Dict] = [],
     operator_results: List[OperatorRun] = [],
     research_results: List[ResearchIteration] = [],
     user: KhojUser = None,
@@ -1679,6 +1680,7 @@ async def agenerate_chat_response(
             compiled_references = []
             online_results = {}
             code_results = {}
+            tool_results = []
             operator_results = []
             deepthought = True
 
@@ -1724,6 +1726,7 @@ async def agenerate_chat_response(
                 references=compiled_references,
                 online_results=online_results,
                 code_results=code_results,
+                tool_results=tool_results,
                 operator_results=operator_results,
                 query_images=query_images,
                 query_files=query_files,
@@ -1755,6 +1758,7 @@ async def agenerate_chat_response(
                 references=compiled_references,
                 online_results=online_results,
                 code_results=code_results,
+                tool_results=tool_results,
                 operator_results=operator_results,
                 query_images=query_images,
                 query_files=query_files,
@@ -1785,6 +1789,7 @@ async def agenerate_chat_response(
                 references=compiled_references,
                 online_results=online_results,
                 code_results=code_results,
+                tool_results=tool_results,
                 operator_results=operator_results,
                 query_images=query_images,
                 query_files=query_files,
