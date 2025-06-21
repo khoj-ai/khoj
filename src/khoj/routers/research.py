@@ -15,11 +15,11 @@ from khoj.processor.conversation.utils import (
     ResearchIteration,
     ToolCall,
     construct_iteration_history,
-    construct_structured_message,
     construct_tool_chat_history,
     load_complex_json,
 )
 from khoj.processor.operator import operate_environment
+from khoj.processor.tools.mcp import MCPClient
 from khoj.processor.tools.online_search import read_webpages_content, search_online
 from khoj.processor.tools.run_code import run_code
 from khoj.routers.helpers import (
@@ -63,6 +63,7 @@ async def apick_next_tool(
     max_webpages_to_read: int = 1,
     send_status_func: Optional[Callable] = None,
     tracer: dict = {},
+    mcp_clients: Dict[str, MCPClient] = {},
 ):
     """Given a query, determine which of the available tools the agent should use in order to answer appropriately."""
 
@@ -90,6 +91,26 @@ async def apick_next_tool(
     tool_options_str = ""
     agent_tools = agent.input_tools if agent else []
     user_has_entries = await EntryAdapters.auser_has_entries(user)
+
+    # Add MCP tools
+    for server_name, client in mcp_clients.items():
+        try:
+            if not client.is_connected.is_set():
+                await client.connect()
+            if client.is_connected.is_set():
+                mcp_tools = await client.list_tools()
+                for mcp_tool in mcp_tools:
+                    tool_options_str += f'- "{server_name}/{mcp_tool.name}": "{mcp_tool.description}"\n'
+                    tools.append(
+                        ToolDefinition(
+                            name=f"{server_name}-{mcp_tool.name}",
+                            description=mcp_tool.description,
+                            schema=mcp_tool.inputSchema,
+                        )
+                    )
+        except Exception as e:
+            logger.error(f"Failed to get tools from MCP server {server_name}: {e}", exc_info=True)
+
     for tool, tool_data in tools_for_research_llm.items():
         # Skip showing operator tool as an option if not enabled
         if tool == ConversationCommand.Operator and not is_operator_enabled():
@@ -209,6 +230,7 @@ async def research(
     query_files: str = None,
     cancellation_event: Optional[asyncio.Event] = None,
     interrupt_queue: Optional[asyncio.Queue] = None,
+    mcp_clients: Dict[str, MCPClient] = {},
 ):
     max_document_searches = 7
     max_online_searches = 3
@@ -268,6 +290,7 @@ async def research(
             max_webpages_to_read=max_webpages_to_read,
             send_status_func=send_status_func,
             tracer=tracer,
+            mcp_clients=mcp_clients,
         ):
             if isinstance(result, dict) and ChatEvent.STATUS in result:
                 yield result[ChatEvent.STATUS]
@@ -507,6 +530,35 @@ async def research(
                     yield result
             except Exception as e:
                 this_iteration.warning = f"Error searching with regex: {e}"
+                logger.error(this_iteration.warning, exc_info=True)
+
+        elif "-" in this_iteration.query.name:
+            try:
+                server_name, tool_name = this_iteration.query.name.split("-", 1)
+                if client := mcp_clients.get(server_name):
+                    if not client.is_connected.is_set():
+                        await client.connect()
+
+                    raw_tool_response = await client.call_tool(name=tool_name, arguments=this_iteration.query.args)
+                    tool_response = {
+                        "uri": f"mcp://{server_name}/{tool_name}",
+                        "content": yaml.dump(
+                            raw_tool_response, allow_unicode=True, sort_keys=False, default_flow_style=False
+                        ),
+                    }
+                    this_iteration.toolContext = this_iteration.toolContext or []
+                    this_iteration.toolContext += [tool_response]
+                    tool_results += [
+                        yaml.dump(tool_response, allow_unicode=True, sort_keys=False, default_flow_style=False)
+                    ]
+                    async for result in send_status_func(
+                        f"**Used MCP Tool**: {this_iteration.query.name} on {server_name}"
+                    ):
+                        yield result
+                else:
+                    this_iteration.warning = f"MCP server '{server_name}' not found or client not initialized."
+            except Exception as e:
+                this_iteration.warning = f"Error calling MCP tool: {e}"
                 logger.error(this_iteration.warning, exc_info=True)
 
         else:

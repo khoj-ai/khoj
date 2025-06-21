@@ -28,6 +28,7 @@ from khoj.database.adapters import (
     AgentAdapters,
     ConversationAdapters,
     EntryAdapters,
+    McpServerAdapters,
     PublicConversationAdapters,
     aget_user_name,
 )
@@ -44,6 +45,7 @@ from khoj.processor.conversation.utils import (
 from khoj.processor.image.generate import text_to_image
 from khoj.processor.operator import operate_environment
 from khoj.processor.speech.text_to_speech import generate_text_to_speech
+from khoj.processor.tools.mcp import MCPClient
 from khoj.processor.tools.online_search import (
     deduplicate_organic_results,
     read_webpages,
@@ -673,6 +675,7 @@ async def event_generator(
     headers: Headers,
     request_obj: Request | WebSocket,
     interrupt_queue: asyncio.Queue = None,
+    mcp_clients: Optional[Dict[str, MCPClient]] = None,
 ):
     # Access the parameters from the body
     q = body.q
@@ -1059,6 +1062,7 @@ async def event_generator(
             tracer=tracer,
             cancellation_event=cancellation_event,
             interrupt_queue=interrupt_queue,
+            mcp_clients=mcp_clients,
         ):
             if isinstance(research_result, ResearchIteration):
                 if research_result.summarizedResult:
@@ -1306,10 +1310,7 @@ async def event_generator(
                 async for event in send_event(ChatEvent.STATUS, "Failed to generate image"):
                     yield event
             else:
-                image_results.append({
-                    "filename": f"image_{len(image_results) + 1}.webp",
-                    "b64_data": generated_image
-                })
+                image_results.append({"filename": f"image_{len(image_results) + 1}.webp", "b64_data": generated_image})
 
         code_results[defiltered_query] = {
             "code": "[Snipped Image Generation Code]",
@@ -1318,7 +1319,7 @@ async def event_generator(
                 "std_out": "Image generation successful",
                 "std_err": "",
                 "output_files": image_results,
-            }
+            },
         }
         # if image_prompts:
         #     inferred_queries.extend(image_prompts)
@@ -1570,7 +1571,14 @@ async def process_chat_request(
     interrupt_queue: asyncio.Queue,
 ):
     """Process a single chat request with interrupt support"""
+
     try:
+        # Setup MCP Clients
+        mcp_servers = await McpServerAdapters.aget_all_enabled_mcp_servers()
+        mcp_clients: Dict[str, MCPClient] = {
+            server.name: MCPClient(base_uri=server.uri, api_key=server.api_key) for server in mcp_servers
+        }
+
         # Since we are using websockets, we can ignore the stream parameter and always stream
         response_iterator = event_generator(
             body,
@@ -1579,6 +1587,7 @@ async def process_chat_request(
             websocket.headers,
             websocket,
             interrupt_queue,
+            mcp_clients,
         )
         async for event in response_iterator:
             await websocket.send_text(event)
@@ -1589,6 +1598,10 @@ async def process_chat_request(
         logger.error(f"Error processing chat request: {e}", exc_info=True)
         await websocket.send_text(json.dumps({"error": "Internal server error"}))
         raise
+    finally:
+        # Close all MCP clients
+        for client in mcp_clients.values():
+            await client.cleanup()
 
 
 @api_chat.post("")

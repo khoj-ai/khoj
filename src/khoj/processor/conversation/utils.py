@@ -353,9 +353,12 @@ def construct_tool_chat_history(
         # If a tool is provided use the inferred query extractor for that tool if available
         # If no tool is provided, use inferred query extractor for the tool used in the iteration
         # Fallback to base extractor if the tool does not have an inferred query extractor
-        inferred_query_extractor = extract_inferred_query_map.get(
-            tool or ConversationCommand(iteration.query.name), base_extractor
-        )
+        try:
+            inferred_query_extractor = extract_inferred_query_map.get(
+                tool or ConversationCommand(iteration.query.name), base_extractor
+            )
+        except:
+            inferred_query_extractor = base_extractor
         chat_history += [
             ChatMessageModel(
                 by="you",

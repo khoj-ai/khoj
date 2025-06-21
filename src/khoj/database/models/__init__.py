@@ -459,6 +459,16 @@ class WebScraper(DbBaseModel):
         return self.name
 
 
+class McpServer(DbBaseModel):
+    name = models.CharField(max_length=200, unique=True)
+    uri = models.CharField(max_length=1000, unique=True)
+    api_key = models.CharField(max_length=400, blank=True, null=True)
+    enabled = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+
 class ServerChatSettings(DbBaseModel):
     chat_default = models.ForeignKey(
         ChatModel, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="chat_default"

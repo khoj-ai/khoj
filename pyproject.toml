@@ -93,6 +93,7 @@ dependencies = [
     "resend == 1.0.1",
     "email-validator == 2.2.0",
     "e2b-code-interpreter ~= 1.0.0",
+    "mcp-python ~= 0.1.4",
 ]
 dynamic = ["version"]
 

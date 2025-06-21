@@ -49,6 +49,7 @@ from khoj.database.models import (
     GoogleUser,
     KhojApiUser,
     KhojUser,
+    McpServer,
     NotionConfig,
     PriceTier,
     ProcessLock,
@@ -675,6 +676,12 @@ class ClientApplicationAdapters:
     @staticmethod
     async def aget_client_application_by_id(client_id: str, client_secret: str):
         return await ClientApplication.objects.filter(client_id=client_id, client_secret=client_secret).afirst()
+
+
+class McpServerAdapters:
+    @staticmethod
+    async def aget_all_enabled_mcp_servers() -> List[McpServer]:
+        return await sync_to_async(list)(McpServer.objects.filter(enabled=True))
 
 
 class AgentAdapters:

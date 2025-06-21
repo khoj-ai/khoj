@@ -23,6 +23,7 @@ from khoj.database.models import (
     Entry,
     GithubConfig,
     KhojUser,
+    McpServer,
     NotionConfig,
     ProcessLock,
     RateLimitRecord,
@@ -181,6 +182,13 @@ admin.site.register(UserVoiceModelConfig, unfold_admin.ModelAdmin)
 admin.site.register(VoiceModelOption, unfold_admin.ModelAdmin)
 admin.site.register(UserRequests, unfold_admin.ModelAdmin)
 admin.site.register(RateLimitRecord, unfold_admin.ModelAdmin)
+
+
+@admin.register(McpServer)
+class McpServerAdmin(unfold_admin.ModelAdmin):
+    list_display = ("name", "uri", "enabled")
+    search_fields = ("name", "uri")
+    list_filter = ("enabled",)
 
 
 @admin.register(Agent)
