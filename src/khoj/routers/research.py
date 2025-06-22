@@ -76,7 +76,7 @@ async def apick_next_tool(
     ):
         previous_iteration = previous_iterations[-1]
         yield ResearchIteration(
-            query=query,
+            query=ToolCall(name=previous_iteration.query.name, args={"query": query}, id=previous_iteration.query.id),
             context=previous_iteration.context,
             onlineContext=previous_iteration.onlineContext,
             codeContext=previous_iteration.codeContext,
@@ -451,6 +451,7 @@ async def research(
                     agent=agent,
                     query_files=query_files,
                     cancellation_event=cancellation_event,
+                    interrupt_queue=interrupt_queue,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
