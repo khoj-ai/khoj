@@ -147,12 +147,10 @@ body line 1.1
     # Extract Entries from specified Org files
     extracted_entries = OrgToEntries.extract_org_entries(org_files=data, max_tokens=12)
     assert len(extracted_entries) == 2
-    for entry in extracted_entries[1]:
-        entry.raw = clean(entry.raw)
 
     # Assert
     assert len(extracted_entries[1]) == 1
-    assert entry.raw == expected_entry
+    assert extracted_entries[1][-1].raw == expected_entry
 
 
 def test_parse_org_entry_with_children_as_single_entry_if_small(tmp_path):
@@ -173,22 +171,23 @@ longer body line 2.1
     }
     first_expected_entry = f"""
 * {tmp_path}
-** Heading 1.
+** Heading 1
  body line 1
 
-*** Subheading 1.1.
+
+*** Subheading 1.1
  body line 1.1
 
 """.lstrip()
     second_expected_entry = f"""
 * {tmp_path}
-** Heading 2.
+** Heading 2
  body line 2
 
 """.lstrip()
     third_expected_entry = f"""
 * {tmp_path} / Heading 2
-** Subheading 2.1.
+** Subheading 2.1
  longer body line 2.1
 
 """.lstrip()
@@ -227,28 +226,31 @@ body line 3.1
     }
     first_expected_entry = f"""
 * {tmp_path}
-** Heading 1.
+** Heading 1
  body line 1
 
-*** Subheading 1.1.
+
+*** Subheading 1.1
  body line 1.1
 
 """.lstrip()
     second_expected_entry = f"""
 * {tmp_path}
-** Heading 2.
+** Heading 2
  body line 2
 
-*** Subheading 2.1.
+
+*** Subheading 2.1
  body line 2.1
 
 """.lstrip()
     third_expected_entry = f"""
 * {tmp_path}
-** Heading 3.
+** Heading 3
  body line 3
 
-*** Subheading 3.1.
+
+*** Subheading 3.1
  body line 3.1
 
 """.lstrip()
@@ -388,8 +390,6 @@ def test_extract_entries_with_different_level_headings(tmp_path):
     # Extract Entries from specified Org files
     entries = OrgToEntries.extract_org_entries(org_files=data, index_heading_entries=True, max_tokens=3)
     assert len(entries) == 2
-    for entry in entries[1]:
-        entry.raw = clean(f"{entry.raw}")
 
     # Assert
     assert len(entries[1]) == 2

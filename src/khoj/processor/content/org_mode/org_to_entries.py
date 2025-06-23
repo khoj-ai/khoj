@@ -177,26 +177,32 @@ class OrgToEntries(TextToEntries):
                     continue
 
                 todo_str = f"{parsed_entry.todo} " if parsed_entry.todo else ""
+                priority_str = f"[#{parsed_entry.priority}] " if parsed_entry.priority else ""
 
                 # Set base level to current org-node tree's root heading level
                 if not entry_heading and parsed_entry.level > 0:
                     base_level = parsed_entry.level
                 # Indent entry by 1 heading level as ancestry is prepended as top level heading
-                heading = f"{'*' * (parsed_entry.level-base_level+2)} {todo_str}" if parsed_entry.level > 0 else ""
+                heading = (
+                    f"{'*' * (parsed_entry.level-base_level+2)} {todo_str}{priority_str}"
+                    if parsed_entry.level > 0
+                    else ""
+                )
                 if parsed_entry.heading:
-                    heading += f"{parsed_entry.heading}."
+                    heading += f"{parsed_entry.heading}"
+                if parsed_entry.tags:
+                    tags_str = ":" + ":".join(parsed_entry.tags) + ":"
+                    heading += f"\t {tags_str}"
 
                 # Prepend ancestor headings, filename as top heading to root parent entry for context
                 # Children nodes do not need ancestors trail as root parent node will have it
                 if not entry_heading:
                     ancestors_trail = " / ".join(parsed_entry.ancestors) or Path(entry_to_file_map[parsed_entry])
-                    heading = f"* {ancestors_trail}\n{heading}" if heading else f"* {ancestors_trail}."
+                    heading = f"* {ancestors_trail}\n{heading}" if heading else f"* {ancestors_trail}"
+                else:
+                    heading = f"\n{heading}"
 
                 compiled = heading
-
-                if parsed_entry.tags:
-                    tags_str = " ".join(parsed_entry.tags)
-                    compiled += f"\t {tags_str}."
 
                 if parsed_entry.closed:
                     compiled += f'\n Closed on {parsed_entry.closed.strftime("%Y-%m-%d")}.'
@@ -212,6 +218,8 @@ class OrgToEntries(TextToEntries):
                 entry_raw += f"{parsed_entry}"
                 if not entry_heading:
                     entry_heading = heading
+                else:
+                    entry_heading += heading
 
             if entry_compiled:
                 entries.append(
