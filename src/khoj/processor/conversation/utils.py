@@ -98,7 +98,9 @@ model_to_tokenizer: Dict[str, str] = {}
 
 class AgentMessage(BaseModel):
     role: Literal["user", "assistant", "system", "environment"]
-    content: Union[str, List]
+    content: Union[str, List, None] = None
+    # Raw response should contain tool calls. The role should be "assistant" for tool calls.
+    raw_response: Optional[Any] = None
 
 
 class OperatorRun:
