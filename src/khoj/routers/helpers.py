@@ -1242,22 +1242,29 @@ async def search_documents(
             async for event in send_status_func(f"**Searching Documents for:** {inferred_queries_str}"):
                 yield {ChatEvent.STATUS: event}
         for query in inferred_queries:
-            search_results.extend(
-                await execute_search(
-                    user if not should_limit_to_agent_knowledge else None,
-                    f"{query} {filters_in_query}",
-                    n=n,
-                    t=SearchType.All,
-                    r=True,
-                    max_distance=d,
-                    dedupe=False,
-                    agent=agent,
-                )
+            results = await execute_search(
+                user if not should_limit_to_agent_knowledge else None,
+                f"{query} {filters_in_query}",
+                n=n,
+                t=SearchType.All,
+                r=True,
+                max_distance=d,
+                dedupe=False,
+                agent=agent,
             )
+            # Attach associated query to each search result
+            for item in results:
+                item.additional["query"] = query
+                search_results.append(item)
+
         search_results = text_search.deduplicated_search_responses(search_results)
         compiled_references = [
-            {"query": q, "compiled": item.additional["compiled"], "file": item.additional["file"]}
-            for q, item in zip(inferred_queries, search_results)
+            {
+                "query": item.additional["query"],
+                "compiled": item.additional["compiled"],
+                "file": item.additional["file"],
+            }
+            for item in search_results
         ]
 
     yield compiled_references, inferred_queries, defiltered_query

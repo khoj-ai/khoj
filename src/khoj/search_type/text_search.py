@@ -167,11 +167,11 @@ def collate_results(hits, dedupe=True):
 def deduplicated_search_responses(hits: List[SearchResponse]):
     hit_ids = set()
     for hit in hits:
-        if hit.corpus_id in hit_ids:
+        if hit.additional["compiled"] in hit_ids:
             continue
 
         else:
-            hit_ids.add(hit.corpus_id)
+            hit_ids.add(hit.additional["compiled"])
             yield SearchResponse.model_validate(
                 {
                     "entry": hit.entry,
@@ -180,6 +180,7 @@ def deduplicated_search_responses(hits: List[SearchResponse]):
                     "additional": {
                         "source": hit.additional["source"],
                         "file": hit.additional["file"],
+                        "query": hit.additional["query"],
                         "compiled": hit.additional["compiled"],
                         "heading": hit.additional["heading"],
                     },
