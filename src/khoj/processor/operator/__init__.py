@@ -15,6 +15,7 @@ from khoj.processor.operator.operator_actions import *
 from khoj.processor.operator.operator_agent_anthropic import AnthropicOperatorAgent
 from khoj.processor.operator.operator_agent_base import OperatorAgent
 from khoj.processor.operator.operator_agent_binary import BinaryOperatorAgent
+from khoj.processor.operator.operator_agent_gemini import GeminiOperatorAgent
 from khoj.processor.operator.operator_agent_openai import OpenAIOperatorAgent
 from khoj.processor.operator.operator_environment_base import (
     Environment,
@@ -67,7 +68,8 @@ async def operate_environment(
     max_context = await ConversationAdapters.aget_max_context_size(reasoning_model, user) or 20000
     max_iterations = int(os.getenv("KHOJ_OPERATOR_ITERATIONS", 100))
     operator_agent: OperatorAgent
-    if is_operator_model(reasoning_model.name) == ChatModel.ModelType.ANTHROPIC:
+    model_type = is_operator_model(reasoning_model.name)
+    if model_type == ChatModel.ModelType.ANTHROPIC:
         operator_agent = AnthropicOperatorAgent(
             query,
             reasoning_model,
@@ -78,8 +80,19 @@ async def operate_environment(
             previous_trajectory,
             tracer,
         )
+    elif model_type == ChatModel.ModelType.GOOGLE:
+        operator_agent = GeminiOperatorAgent(
+            query,
+            reasoning_model,
+            environment_type,
+            max_iterations,
+            max_context,
+            chat_history,
+            previous_trajectory,
+            tracer,
+        )
     # TODO: Remove once OpenAI Operator Agent is useful
-    elif is_operator_model(reasoning_model.name) == ChatModel.ModelType.OPENAI and False:
+    elif model_type == ChatModel.ModelType.OPENAI and False:
         operator_agent = OpenAIOperatorAgent(
             query,
             reasoning_model,
@@ -230,6 +243,8 @@ def is_operator_model(model: str) -> ChatModel.ModelType | None:
         "claude-3-7-sonnet": ChatModel.ModelType.ANTHROPIC,
         "claude-sonnet-4": ChatModel.ModelType.ANTHROPIC,
         "claude-opus-4": ChatModel.ModelType.ANTHROPIC,
+        "gemini-2.5-pro": ChatModel.ModelType.GOOGLE,
+        "gemini-2.5-flash": ChatModel.ModelType.GOOGLE,
         "ui-tars-1.5": ChatModel.ModelType.OFFLINE,
     }
     for operator_model in operator_models:
