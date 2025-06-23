@@ -66,7 +66,7 @@ def makelist(file, filename) -> List["Orgnode"]:
     ctr = 0
 
     if type(file) == str:
-        f = file.split("\n")
+        f = file.splitlines()
     else:
         f = file
 
@@ -121,7 +121,7 @@ def makelist(file, filename) -> List["Orgnode"]:
             heading = heading_search.group(2)
             bodytext = ""
             tags = list()  # set of all tags in headline
-            tag_search = re.search(r"(.*?)\s*:([a-zA-Z0-9].*?):$", heading)
+            tag_search = re.search(r"(.*?)\s+:([a-zA-Z0-9@_].*?):\s*$", heading)
             if tag_search:
                 heading = tag_search.group(1)
                 parsedtags = tag_search.group(2)
@@ -259,14 +259,6 @@ def makelist(file, filename) -> List["Orgnode"]:
 
         # Prefix filepath/title to ancestors
         n.ancestors = [file_title] + n.ancestors
-
-        # Set SOURCE property to a file+heading based org-mode link to the entry
-        if n.level == 0:
-            n.properties["LINE"] = f"file:{normalize_filename(filename)}::0"
-            n.properties["SOURCE"] = f"[[file:{normalize_filename(filename)}]]"
-        else:
-            escaped_heading = n.heading.replace("[", "\\[").replace("]", "\\]")
-            n.properties["SOURCE"] = f"[[file:{normalize_filename(filename)}::*{escaped_heading}]]"
 
     return nodelist
 
@@ -520,10 +512,11 @@ class Orgnode(object):
             n = n + "\n"
 
         # Output Property Drawer
-        n = n + indent + ":PROPERTIES:\n"
-        for key, value in self._properties.items():
-            n = n + indent + f":{key}: {value}\n"
-        n = n + indent + ":END:\n"
+        if self._properties:
+            n = n + indent + ":PROPERTIES:\n"
+            for key, value in self._properties.items():
+                n = n + indent + f":{key}: {value}\n"
+            n = n + indent + ":END:\n"
 
         # Output Body
         if self.hasBody:
