@@ -614,6 +614,7 @@ tools_for_research_llm = {
             Helpful to answer questions for which all relevant notes or documents are needed to complete the search. Example: "Notes that mention Tom".
             You need to know all the correct keywords or regex patterns for this tool to be useful.
             An optional path prefix can restrict file(s) to search in.
+            Optionally specify lines_before and lines_after to show context around matches.
             """
         ).strip(),
         schema={
@@ -626,6 +627,18 @@ tools_for_research_llm = {
                 "path_prefix": {
                     "type": "string",
                     "description": "Optional path prefix to limit the search to files under a specified path.",
+                },
+                "lines_before": {
+                    "type": "integer",
+                    "description": "Optional number of lines to show before each line match for context.",
+                    "minimum": 0,
+                    "maximum": 20,
+                },
+                "lines_after": {
+                    "type": "integer",
+                    "description": "Optional number of lines to show after each line match for context.",
+                    "minimum": 0,
+                    "maximum": 20,
                 },
             },
             "required": ["regex_pattern"],

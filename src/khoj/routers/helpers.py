@@ -2884,26 +2884,44 @@ async def view_file_content(
 async def grep_files(
     regex_pattern: str,
     path_prefix: Optional[str] = None,
+    lines_before: Optional[int] = None,
+    lines_after: Optional[int] = None,
     user: KhojUser = None,
 ):
     """
-    Search for a regex pattern in files with an optional path prefix.
+    Search for a regex pattern in files with an optional path prefix and context lines.
     """
 
     # Construct the query string based on provided parameters
-    def _generate_query(line_count, doc_count, path, pattern):
+    def _generate_query(line_count, doc_count, path, pattern, lines_before, lines_after, max_results=1000):
         query = f"**Found {line_count} matches for '{pattern}' in {doc_count} documents**"
         if path:
             query += f" in {path}"
+        if lines_before or lines_after or line_count > max_results:
+            query += " Showing"
+        if lines_before or lines_after:
+            context_info = []
+            if lines_before:
+                context_info.append(f"{lines_before} lines before")
+            if lines_after:
+                context_info.append(f"{lines_after} lines after")
+            query += f" {' and '.join(context_info)}"
+        if line_count > max_results:
+            if lines_before or lines_after:
+                query += f" for"
+            query += f" first {max_results} results"
         return query
 
     # Validate regex pattern
     path_prefix = path_prefix or ""
+    lines_before = lines_before or 0
+    lines_after = lines_after or 0
+
     try:
         regex = re.compile(regex_pattern, re.IGNORECASE)
     except re.error as e:
         yield {
-            "query": _generate_query(0, 0, path_prefix, regex_pattern),
+            "query": _generate_query(0, 0, path_prefix, regex_pattern, lines_before, lines_after),
             "file": path_prefix,
             "compiled": f"Invalid regex pattern: {e}",
         }
@@ -2915,18 +2933,59 @@ async def grep_files(
         line_matches = []
         for file_object in file_matches:
             lines = file_object.raw_text.split("\n")
+            matched_line_numbers = []
+
+            # Find all matching line numbers first
             for i, line in enumerate(lines, 1):
                 if regex.search(line):
-                    line_matches.append(f"{file_object.file_name}:{i}:{line}")
+                    matched_line_numbers.append(i)
+
+            # Build context for each match
+            for line_num in matched_line_numbers:
+                context_lines = []
+
+                # Calculate start and end indices for context (0-based)
+                start_idx = max(0, line_num - 1 - lines_before)
+                end_idx = min(len(lines), line_num + lines_after)
+
+                # Add context lines with line numbers
+                for idx in range(start_idx, end_idx):
+                    current_line_num = idx + 1
+                    line_content = lines[idx]
+
+                    if current_line_num == line_num:
+                        # This is the matching line, mark it
+                        context_lines.append(f"{file_object.file_name}:{current_line_num}:> {line_content}")
+                    else:
+                        # This is a context line
+                        context_lines.append(f"{file_object.file_name}:{current_line_num}:  {line_content}")
+
+                # Add separator between matches if showing context
+                if lines_before > 0 or lines_after > 0:
+                    context_lines.append("--")
+
+                line_matches.extend(context_lines)
+
+        # Remove the last separator if it exists
+        if line_matches and line_matches[-1] == "--":
+            line_matches.pop()
 
         # Check if no results found
-        query = _generate_query(len(line_matches), len(file_matches), path_prefix, regex_pattern)
+        max_results = 1000
+        query = _generate_query(
+            len([m for m in line_matches if ":>" in m]),
+            len(file_matches),
+            path_prefix,
+            regex_pattern,
+            lines_before,
+            lines_after,
+            max_results,
+        )
         if not line_matches:
             yield {"query": query, "file": path_prefix, "compiled": "No matches found."}
             return
 
         # Truncate matched lines list if too long
-        max_results = 1000
         if len(line_matches) > max_results:
             line_matches = line_matches[:max_results] + [
                 f"... {len(line_matches) - max_results} more results found. Use stricter regex or path to narrow down results."
@@ -2937,7 +2996,13 @@ async def grep_files(
     except Exception as e:
         error_msg = f"Error using grep files tool: {str(e)}"
         logger.error(error_msg, exc_info=True)
-        yield [{"query": query, "file": path_prefix or "", "compiled": error_msg}]
+        yield [
+            {
+                "query": _generate_query(0, 0, path_prefix or "", regex_pattern, lines_before, lines_after),
+                "file": path_prefix,
+                "compiled": error_msg,
+            }
+        ]
 
 
 async def list_files(
