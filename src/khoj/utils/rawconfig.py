@@ -176,6 +176,7 @@ class Entry:
     compiled: str
     heading: Optional[str]
     file: Optional[str]
+    uri: Optional[str] = None
     corpus_id: str
 
     def __init__(
@@ -184,6 +185,7 @@ class Entry:
         compiled: str = None,
         heading: Optional[str] = None,
         file: Optional[str] = None,
+        uri: Optional[str] = None,
         corpus_id: uuid.UUID = None,
     ):
         self.raw = raw
@@ -191,6 +193,14 @@ class Entry:
         self.heading = heading
         self.file = file
         self.corpus_id = str(corpus_id)
+        if uri:
+            self.uri = uri
+        elif file and (file.startswith("http") or file.startswith("file://")):
+            self.uri = file
+        elif file:
+            self.uri = f"file://{file}"
+        else:
+            self.uri = None
 
     def to_json(self) -> str:
         return json.dumps(self.__dict__, ensure_ascii=False)
@@ -206,4 +216,5 @@ class Entry:
             file=dictionary.get("file", None),
             heading=dictionary.get("heading", None),
             corpus_id=dictionary.get("corpus_id", None),
+            uri=dictionary.get("uri", None),
         )

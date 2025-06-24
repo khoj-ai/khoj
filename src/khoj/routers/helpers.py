@@ -1277,6 +1277,7 @@ async def search_documents(
                 "query": item.additional["query"],
                 "compiled": item.additional["compiled"],
                 "file": item.additional["file"],
+                "uri": item.additional["uri"],
             }
             for item in search_results
         ]
@@ -2983,6 +2984,7 @@ async def view_file_content(
             {
                 "query": query,
                 "file": path,
+                "uri": path,
                 "compiled": filtered_text,
             }
         ]
@@ -2994,7 +2996,7 @@ async def view_file_content(
         logger.error(error_msg, exc_info=True)
 
         # Return an error result in the expected format
-        yield [{"query": query, "file": path, "compiled": error_msg}]
+        yield [{"query": query, "file": path, "uri": path, "compiled": error_msg}]
 
 
 async def grep_files(
@@ -3038,7 +3040,7 @@ async def grep_files(
         # Check if no results found
         query = _generate_query(len(line_matches), len(file_matches), path_prefix, regex_pattern)
         if not line_matches:
-            yield {"query": query, "file": path_prefix, "compiled": "No matches found."}
+            yield {"query": query, "file": path_prefix, "uri": path_prefix, "compiled": "No matches found."}
             return
 
         # Truncate matched lines list if too long
@@ -3048,12 +3050,12 @@ async def grep_files(
                 f"... {len(line_matches) - max_results} more results found. Use stricter regex or path to narrow down results."
             ]
 
-        yield {"query": query, "file": path_prefix or "", "compiled": "\n".join(line_matches)}
+        yield {"query": query, "file": path_prefix, "uri": path_prefix, "compiled": "\n".join(line_matches)}
 
     except Exception as e:
         error_msg = f"Error using grep files tool: {str(e)}"
         logger.error(error_msg, exc_info=True)
-        yield [{"query": query, "file": path_prefix or "", "compiled": error_msg}]
+        yield [{"query": query, "file": path_prefix, "uri": path_prefix or "", "compiled": error_msg}]
 
 
 async def list_files(
@@ -3083,7 +3085,7 @@ async def list_files(
             file_objects = await FileObjectAdapters.aget_file_objects_by_path_prefix(user, path)
 
         if not file_objects:
-            yield {"query": _generate_query(0, path, pattern), "file": path, "compiled": "No files found."}
+            yield {"query": _generate_query(0, path, pattern), "file": path, "uri": path, "compiled": "No files found."}
             return
 
         # Extract file names from file objects
@@ -3098,7 +3100,7 @@ async def list_files(
 
         query = _generate_query(len(files), path, pattern)
         if not files:
-            yield {"query": query, "file": path, "compiled": "No files found."}
+            yield {"query": query, "file": path, "uri": path, "compiled": "No files found."}
             return
 
         # Truncate the list if it's too long
@@ -3108,9 +3110,9 @@ async def list_files(
                 f"... {len(files) - max_files} more files found. Use glob pattern to narrow down results."
             ]
 
-        yield {"query": query, "file": path, "compiled": "\n- ".join(files)}
+        yield {"query": query, "file": path, "uri": path, "compiled": "\n- ".join(files)}
 
     except Exception as e:
         error_msg = f"Error listing files in {path}: {str(e)}"
         logger.error(error_msg, exc_info=True)
-        yield {"query": query, "file": path, "compiled": error_msg}
+        yield {"query": query, "file": path, "uri": path, "compiled": error_msg}

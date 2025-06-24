@@ -99,6 +99,7 @@ class TextToEntries(ABC):
                 entry.raw = compiled_entry_chunk if raw_is_compiled else TextToEntries.clean_field(entry.raw)
                 entry.heading = TextToEntries.clean_field(entry.heading)
                 entry.file = TextToEntries.clean_field(entry.file)
+                entry_uri = TextToEntries.clean_field(entry_uri)
 
                 chunked_entries.append(
                     Entry(
@@ -107,6 +108,7 @@ class TextToEntries(ABC):
                         heading=entry.heading,
                         file=entry.file,
                         corpus_id=corpus_id,
+                        uri=entry_uri,
                     )
                 )
 
@@ -192,6 +194,7 @@ class TextToEntries(ABC):
                             file_type=file_type,
                             hashed_value=entry_hash,
                             corpus_id=entry.corpus_id,
+                            url=entry.uri,
                             search_model=model,
                             file_object=file_object,
                         )
