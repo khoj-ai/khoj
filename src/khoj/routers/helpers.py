@@ -1321,7 +1321,6 @@ async def extract_questions(
         query=prompt,
         query_images=query_images,
         query_files=query_files,
-        chat_history=chat_history,
         response_type="json_object",
         response_schema=DocumentQueries,
         user=user,
