@@ -58,7 +58,7 @@ def makelist_with_filepath(filename):
     return makelist(f, filename)
 
 
-def makelist(file, filename) -> List["Orgnode"]:
+def makelist(file, filename, start_line: int = 1, ancestry_lines: int = 0) -> List["Orgnode"]:
     """
     Read an org-mode file and return a list of Orgnode objects
     created from this file.
@@ -114,7 +114,16 @@ def makelist(file, filename) -> List["Orgnode"]:
                     logbook = list()
                 thisNode.properties = property_map
                 nodelist.append(thisNode)
-            property_map = {"LINE": f"file:{normalize_filename(filename)}::{ctr}"}
+            # Account for ancestry lines that were prepended when calculating line numbers
+            if ancestry_lines > 0:
+                calculated_line = start_line + ctr - 1 - ancestry_lines
+                if calculated_line <= 0:
+                    calculated_line = 1  # Fallback to line 1 if calculation results in invalid line number
+            else:
+                calculated_line = start_line + ctr - 1
+                if calculated_line <= 0:
+                    calculated_line = ctr  # Use the original behavior if start_line calculation fails
+            property_map = {"LINE": f"file://{normalize_filename(filename)}#line={calculated_line}"}
             previous_level = level
             previous_heading: str = heading
             level = heading_search.group(1)
