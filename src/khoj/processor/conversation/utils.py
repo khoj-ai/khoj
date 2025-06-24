@@ -184,7 +184,7 @@ def construct_iteration_history(
         iteration_history.append(ChatMessageModel(by="you", message=query_message_content))
 
     for iteration in previous_iterations:
-        if not iteration.query:
+        if not iteration.query or isinstance(iteration.query, str):
             iteration_history.append(
                 ChatMessageModel(
                     by="you",
@@ -336,7 +336,7 @@ def construct_tool_chat_history(
         ),
     }
     for iteration in previous_iterations:
-        if not iteration.query:
+        if not iteration.query or isinstance(iteration.query, str):
             chat_history.append(
                 ChatMessageModel(
                     by="you",
@@ -806,6 +806,15 @@ def count_tokens(
         return len(encoder.encode(json.dumps(message_content)))
 
 
+def count_total_tokens(messages: list[ChatMessage], encoder, system_message: Optional[ChatMessage]) -> Tuple[int, int]:
+    """Count total tokens in messages including system message"""
+    system_message_tokens = count_tokens(system_message.content, encoder) if system_message else 0
+    message_tokens = sum([count_tokens(message.content, encoder) for message in messages])
+    # Reserves 4 tokens to demarcate each message (e.g <|im_start|>user, <|im_end|>, <|endoftext|> etc.)
+    total_tokens = message_tokens + system_message_tokens + 4 * len(messages)
+    return total_tokens, system_message_tokens
+
+
 def truncate_messages(
     messages: list[ChatMessage],
     max_prompt_size: int,
@@ -824,23 +833,30 @@ def truncate_messages(
             break
 
     # Drop older messages until under max supported prompt size by model
-    # Reserves 4 tokens to demarcate each message (e.g <|im_start|>user, <|im_end|>, <|endoftext|> etc.)
-    system_message_tokens = count_tokens(system_message.content, encoder) if system_message else 0
-    tokens = sum([count_tokens(message.content, encoder) for message in messages])
-    total_tokens = tokens + system_message_tokens + 4 * len(messages)
+    total_tokens, system_message_tokens = count_total_tokens(messages, encoder, system_message)
 
     while total_tokens > max_prompt_size and (len(messages) > 1 or len(messages[0].content) > 1):
-        if len(messages[-1].content) > 1:
+        # If the last message has more than one content part, pop the oldest content part.
+        # For tool calls, the whole message should dropped, assistant's tool call content being truncated annoys AI APIs.
+        if len(messages[-1].content) > 1 and messages[-1].additional_kwargs.get("message_type") != "tool_call":
             # The oldest content part is earlier in content list. So pop from the front.
             messages[-1].content.pop(0)
+        # Otherwise, pop the last message if it has only one content part or is a tool call.
         else:
             # The oldest message is the last one. So pop from the back.
-            messages.pop()
-        tokens = sum([count_tokens(message.content, encoder) for message in messages])
-        total_tokens = tokens + system_message_tokens + 4 * len(messages)
+            dropped_message = messages.pop()
+            # Drop tool result pair of tool call, if tool call message has been removed
+            if (
+                dropped_message.additional_kwargs.get("message_type") == "tool_call"
+                and messages
+                and messages[-1].additional_kwargs.get("message_type") == "tool_result"
+            ):
+                messages.pop()
+
+        total_tokens, _ = count_total_tokens(messages, encoder, system_message)
 
     # Truncate current message if still over max supported prompt size by model
-    total_tokens = tokens + system_message_tokens + 4 * len(messages)
+    total_tokens, _ = count_total_tokens(messages, encoder, system_message)
     if total_tokens > max_prompt_size:
         # At this point, a single message with a single content part of type dict should remain
         assert (

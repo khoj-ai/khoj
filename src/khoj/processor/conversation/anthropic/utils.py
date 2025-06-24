@@ -82,6 +82,9 @@ def anthropic_completion_with_backoff(
             anthropic.types.ToolParam(name=tool.name, description=tool.description, input_schema=tool.schema)
             for tool in tools
         ]
+        # Cache tool definitions
+        last_tool = model_kwargs["tools"][-1]
+        last_tool["cache_control"] = {"type": "ephemeral"}
     elif response_schema:
         tool = create_tool_definition(response_schema)
         model_kwargs["tools"] = [
@@ -291,11 +294,10 @@ def format_messages_for_anthropic(raw_messages: list[ChatMessage], system_prompt
     else:
         system = None
 
-    # Anthropic requires the first message to be a 'user' message
-    if len(messages) == 1:
+    # Anthropic requires the first message to be a user message unless its a tool call
+    message_type = messages[0].additional_kwargs.get("message_type", None)
+    if len(messages) == 1 and message_type != "tool_call":
         messages[0].role = "user"
-    elif len(messages) > 1 and messages[0].role == "assistant":
-        messages = messages[1:]
 
     for message in messages:
         # Handle tool call and tool result message types from additional_kwargs
@@ -361,18 +363,15 @@ def format_messages_for_anthropic(raw_messages: list[ChatMessage], system_prompt
                     if isinstance(block, dict) and "cache_control" in block:
                         del block["cache_control"]
 
-        # Add cache control to the last content block of second to last message.
-        # In research mode, this message content is list of iterations, updated after each research iteration.
-        # Caching it should improve research efficiency.
-        cache_message = messages[-2]
+        # Add cache control to the last content block of last message.
+        # Caching should improve research efficiency.
+        cache_message = messages[-1]
         if isinstance(cache_message.content, list) and cache_message.content:
             # Add cache control to the last content block only if it's a text block with non-empty content
             last_block = cache_message.content[-1]
-            if (
-                isinstance(last_block, dict)
-                and last_block.get("type") == "text"
-                and last_block.get("text")
-                and last_block.get("text").strip()
+            if isinstance(last_block, dict) and (
+                (last_block.get("type") == "text" and last_block.get("text", "").strip())
+                or (last_block.get("type") == "tool_result" and last_block.get("content", []))
             ):
                 last_block["cache_control"] = {"type": "ephemeral"}
 
