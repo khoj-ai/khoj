@@ -157,6 +157,7 @@ def collate_results(hits, dedupe=True):
                     "additional": {
                         "source": hit.file_source,
                         "file": hit.file_path,
+                        "uri": hit.url,
                         "compiled": hit.compiled,
                         "heading": hit.heading,
                     },
@@ -180,6 +181,7 @@ def deduplicated_search_responses(hits: List[SearchResponse]):
                     "additional": {
                         "source": hit.additional["source"],
                         "file": hit.additional["file"],
+                        "uri": hit.additional["uri"],
                         "query": hit.additional["query"],
                         "compiled": hit.additional["compiled"],
                         "heading": hit.additional["heading"],
