@@ -110,6 +110,7 @@ from khoj.processor.conversation.utils import (
     generate_chatml_messages_with_context,
 )
 from khoj.processor.speech.text_to_speech import is_eleven_labs_enabled
+from khoj.processor.tools.mcp import MCPClient
 from khoj.routers.email import is_resend_enabled, send_task_email
 from khoj.routers.twilio import is_twilio_enabled
 from khoj.search_filter.date_filter import DateFilter
@@ -131,6 +132,7 @@ from khoj.utils.helpers import (
     mode_descriptions_for_llm,
     timer,
     tool_descriptions_for_llm,
+    tools_for_research_llm,
 )
 from khoj.utils.rawconfig import (
     ChatRequestBody,
@@ -1447,6 +1449,70 @@ async def execute_search(
     logger.debug(f"🔍 Search took: {end_time - start_time:.3f} seconds")
 
     return results
+
+
+async def get_research_tool_options(
+    mcp_clients: Dict[str, MCPClient] = {},
+    agent_tools: List[str] = [],
+    user_has_entries: bool = False,
+    max_document_searches: int = 7,
+    max_online_searches: int = 3,
+    max_webpages_to_read: int = 1,
+) -> Tuple[List[ToolDefinition], str]:
+    tools: List[ToolDefinition] = []
+    tool_options_summary: str = ""
+
+    # Add MCP tools
+    for server_name, client in mcp_clients.items():
+        try:
+            if not client.is_connected.is_set():
+                await client.connect()
+            if client.is_connected.is_set():
+                mcp_tools = await client.list_tools()
+                for mcp_tool in mcp_tools:
+                    tool_options_summary += f'- "{server_name}/{mcp_tool.name}": "{mcp_tool.description}"\n'
+                    tools.append(
+                        ToolDefinition(
+                            name=f"{server_name}-{mcp_tool.name}",
+                            description=mcp_tool.description,
+                            schema=mcp_tool.inputSchema,
+                        )
+                    )
+        except Exception as e:
+            logger.error(f"Failed to get tools from MCP server {server_name}: {e}", exc_info=True)
+
+    for tool, tool_data in tools_for_research_llm.items():
+        # Skip showing operator tool as an option if not enabled
+        if tool == ConversationCommand.Operator and not is_operator_enabled():
+            continue
+        # Skip showing document related tools if user has no documents
+        if (
+            tool == ConversationCommand.SemanticSearchFiles
+            or tool == ConversationCommand.RegexSearchFiles
+            or tool == ConversationCommand.ViewFile
+            or tool == ConversationCommand.ListFiles
+        ) and not user_has_entries:
+            continue
+        if tool == ConversationCommand.SemanticSearchFiles:
+            description = tool_data.description.format(max_search_queries=max_document_searches)
+        elif tool == ConversationCommand.Webpage:
+            description = tool_data.description.format(max_webpages_to_read=max_webpages_to_read)
+        elif tool == ConversationCommand.Online:
+            description = tool_data.description.format(max_search_queries=max_online_searches)
+        else:
+            description = tool_data.description
+        # Add tool if agent does not have any tools defined or the tool is supported by the agent.
+        if len(agent_tools) == 0 or tool.value in agent_tools:
+            tool_options_summary += f'- "{tool.value}": "{description}"\n'
+            tools.append(
+                ToolDefinition(
+                    name=tool.value,
+                    description=description,
+                    schema=tool_data.schema,
+                )
+            )
+
+    return tools, tool_options_summary
 
 
 async def send_message_to_model_wrapper(

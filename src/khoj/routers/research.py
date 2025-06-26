@@ -26,6 +26,7 @@ from khoj.routers.helpers import (
     ChatEvent,
     generate_summary_from_files,
     get_message_from_queue,
+    get_research_tool_options,
     grep_files,
     list_files,
     search_documents,
@@ -87,60 +88,11 @@ async def apick_next_tool(
         return
 
     # Construct tool options for the agent to choose from
-    tools = []
-    tool_options_str = ""
     agent_tools = agent.input_tools if agent else []
     user_has_entries = await EntryAdapters.auser_has_entries(user)
-
-    # Add MCP tools
-    for server_name, client in mcp_clients.items():
-        try:
-            if not client.is_connected.is_set():
-                await client.connect()
-            if client.is_connected.is_set():
-                mcp_tools = await client.list_tools()
-                for mcp_tool in mcp_tools:
-                    tool_options_str += f'- "{server_name}/{mcp_tool.name}": "{mcp_tool.description}"\n'
-                    tools.append(
-                        ToolDefinition(
-                            name=f"{server_name}-{mcp_tool.name}",
-                            description=mcp_tool.description,
-                            schema=mcp_tool.inputSchema,
-                        )
-                    )
-        except Exception as e:
-            logger.error(f"Failed to get tools from MCP server {server_name}: {e}", exc_info=True)
-
-    for tool, tool_data in tools_for_research_llm.items():
-        # Skip showing operator tool as an option if not enabled
-        if tool == ConversationCommand.Operator and not is_operator_enabled():
-            continue
-        # Skip showing document related tools if user has no documents
-        if (
-            tool == ConversationCommand.SemanticSearchFiles
-            or tool == ConversationCommand.RegexSearchFiles
-            or tool == ConversationCommand.ViewFile
-            or tool == ConversationCommand.ListFiles
-        ) and not user_has_entries:
-            continue
-        if tool == ConversationCommand.SemanticSearchFiles:
-            description = tool_data.description.format(max_search_queries=max_document_searches)
-        elif tool == ConversationCommand.Webpage:
-            description = tool_data.description.format(max_webpages_to_read=max_webpages_to_read)
-        elif tool == ConversationCommand.Online:
-            description = tool_data.description.format(max_search_queries=max_online_searches)
-        else:
-            description = tool_data.description
-        # Add tool if agent does not have any tools defined or the tool is supported by the agent.
-        if len(agent_tools) == 0 or tool.value in agent_tools:
-            tool_options_str += f'- "{tool.value}": "{description}"\n'
-            tools.append(
-                ToolDefinition(
-                    name=tool.value,
-                    description=description,
-                    schema=tool_data.schema,
-                )
-            )
+    tools, tool_options_summary = await get_research_tool_options(
+        mcp_clients, agent_tools, user_has_entries, max_document_searches, max_online_searches, max_webpages_to_read
+    )
 
     today = datetime.today()
     location_data = f"{location}" if location else "Unknown"
@@ -150,7 +102,7 @@ async def apick_next_tool(
     )
 
     function_planning_prompt = prompts.plan_function_execution.format(
-        tools=tool_options_str,
+        tools=tool_options_summary,
         personality_context=personality_context,
         current_date=today.strftime("%Y-%m-%d"),
         day_of_week=today.strftime("%A"),
