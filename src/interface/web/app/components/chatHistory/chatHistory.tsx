@@ -158,7 +158,7 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
             opacity: 0,
             transition: { duration: 0.3, ease: "easeIn" },
         },
-    };
+    } as const;
 
     useEffect(() => {
         if (props.completed) {
