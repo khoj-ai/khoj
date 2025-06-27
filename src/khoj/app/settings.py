@@ -139,10 +139,10 @@ if USE_EMBEDDED_DB:
         import pgserver
 
         # Set up data directory
-        PGSERVER_DATA_DIR = os.path.join(BASE_DIR, "pgserver_data")
+        PGSERVER_DATA_DIR = os.getenv("PGSERVER_DATA_DIR") or os.path.join(BASE_DIR, "pgserver_data")
         os.makedirs(PGSERVER_DATA_DIR, exist_ok=True)
 
-        logger.debug(f"Initializing embedded Postgres DB with data directory: {PGSERVER_DATA_DIR}")
+        logger.info(f"Initializing embedded Postgres DB with data directory: {PGSERVER_DATA_DIR}")
 
         # Start server
         PGSERVER_INSTANCE = pgserver.get_server(PGSERVER_DATA_DIR)
