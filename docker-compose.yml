@@ -79,8 +79,9 @@ services:
       # Default URL of SearxNG, the default web search engine used by Khoj. Its container is specified above
       - KHOJ_SEARXNG_URL=http://search:8080
       # Uncomment line below to use with Ollama running on your local machine at localhost:11434.
-      # Change URL to use with other OpenAI API compatible providers like VLLM, LMStudio etc.
+      # Change URL to use with other OpenAI API compatible providers like VLLM, LMStudio, DeepInfra, DeepSeek etc.
       # - OPENAI_BASE_URL=http://host.docker.internal:11434/v1/
+      # - KHOJ_DEFAULT_CHAT_MODEL=qwen3
       #
       # Uncomment appropriate lines below to use chat models by OpenAI, Anthropic, Google.
       # Ensure you set your provider specific API keys.
