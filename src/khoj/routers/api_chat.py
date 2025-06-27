@@ -739,6 +739,7 @@ async def event_generator(
     generated_mermaidjs_diagram: str = None
     generated_asset_results: Dict = dict()
     program_execution_context: List[str] = []
+    user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # Create a task to monitor for disconnections
     disconnect_monitor_task = None
@@ -758,7 +759,6 @@ async def event_generator(
                                 q,
                                 chat_response="",
                                 user=user,
-                                chat_history=chat_history,
                                 compiled_references=compiled_references,
                                 online_results=online_results,
                                 code_results=code_results,
@@ -773,6 +773,7 @@ async def event_generator(
                                 generated_images=generated_images,
                                 raw_generated_files=generated_asset_results,
                                 generated_mermaidjs_diagram=generated_mermaidjs_diagram,
+                                user_message_time=user_message_time,
                                 tracer=tracer,
                             )
                         )
@@ -790,7 +791,6 @@ async def event_generator(
                         q,
                         chat_response="",
                         user=user,
-                        chat_history=chat_history,
                         compiled_references=compiled_references,
                         online_results=online_results,
                         code_results=code_results,
@@ -805,6 +805,7 @@ async def event_generator(
                         generated_images=generated_images,
                         raw_generated_files=generated_asset_results,
                         generated_mermaidjs_diagram=generated_mermaidjs_diagram,
+                        user_message_time=user_message_time,
                         tracer=tracer,
                     )
                 )
@@ -953,7 +954,6 @@ async def event_generator(
     location = None
     if city or region or country or country_code:
         location = LocationData(city=city, region=region, country=country, country_code=country_code)
-    user_message_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     chat_history = conversation.messages
 
     # If interrupt flag is set, wait for the previous turn to be saved before proceeding
@@ -985,14 +985,8 @@ async def event_generator(
             )
 
     # If interrupted message in DB
-    if (
-        conversation
-        and conversation.messages
-        and conversation.messages[-1].by == "khoj"
-        and not conversation.messages[-1].message
-    ):
+    if last_message := await conversation.pop_message(interrupted=True):
         # Populate context from interrupted message
-        last_message = conversation.messages[-1]
         online_results = {key: val.model_dump() for key, val in last_message.onlineContext.items() or []}
         code_results = {key: val.model_dump() for key, val in last_message.codeContext.items() or []}
         compiled_references = [ref.model_dump() for ref in last_message.context or []]
@@ -1003,8 +997,6 @@ async def event_generator(
         ]
         operator_results = [OperatorRun(**iter_dict) for iter_dict in last_message.operatorContext or []]
         train_of_thought = [thought.model_dump() for thought in last_message.trainOfThought or []]
-        # Drop the interrupted message from conversation history
-        chat_history.pop()
         logger.info(f"Loaded interrupted partial context from conversation {conversation_id}.")
 
     if conversation_commands == [ConversationCommand.Default]:
@@ -1443,7 +1435,6 @@ async def event_generator(
             q,
             chat_response=full_response,
             user=user,
-            chat_history=chat_history,
             compiled_references=compiled_references,
             online_results=online_results,
             code_results=code_results,
