@@ -195,7 +195,7 @@ async def gemini_chat_completion_with_backoff(
 
     thinking_config = None
     if deepthought and is_reasoning_model(model_name):
-        thinking_config = gtypes.ThinkingConfig(thinking_budget=MAX_REASONING_TOKENS_GEMINI, include_thoughts=True)
+        thinking_config = gtypes.ThinkingConfig(thinking_budget=-1, include_thoughts=True)
 
     max_output_tokens = MAX_OUTPUT_TOKENS_FOR_STANDARD_GEMINI
     if is_reasoning_model(model_name):
