@@ -435,7 +435,6 @@ async def save_to_conversation_log(
     q: str,
     chat_response: str,
     user: KhojUser,
-    chat_history: List[ChatMessageModel],
     user_message_time: str = None,
     compiled_references: List[Dict[str, Any]] = [],
     online_results: Dict[str, Any] = {},
@@ -481,22 +480,22 @@ async def save_to_conversation_log(
         khoj_message_metadata["mermaidjsDiagram"] = generated_mermaidjs_diagram
 
     try:
-        updated_conversation = message_to_log(
+        new_messages = message_to_log(
             user_message=q,
             chat_response=chat_response,
             user_message_metadata=user_message_metadata,
             khoj_message_metadata=khoj_message_metadata,
-            chat_history=chat_history,
+            chat_history=[],
         )
     except ValidationError as e:
-        updated_conversation = None
+        new_messages = None
         logger.error(f"Error constructing chat history: {e}")
 
     db_conversation = None
-    if updated_conversation:
+    if new_messages:
         db_conversation = await ConversationAdapters.save_conversation(
             user,
-            updated_conversation,
+            new_messages,
             client_application=client_application,
             conversation_id=conversation_id,
             user_message=q,
