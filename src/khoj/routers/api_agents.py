@@ -72,7 +72,7 @@ async def all_agents(
             "color": agent.style_color,
             "icon": agent.style_icon,
             "privacy_level": agent.privacy_level,
-            "chat_model": agent_chat_model.name,
+            "chat_model": agent_chat_model.friendly_name,
             "files": file_names,
             "input_tools": agent.input_tools,
             "output_modes": agent.output_modes,
@@ -134,7 +134,7 @@ async def get_agent_by_conversation(
 
     chat_model = await AgentAdapters.aget_agent_chat_model(agent, user)
     if is_subscribed or chat_model.price_tier == PriceTier.FREE:
-        agent_chat_model = chat_model.name
+        agent_chat_model = chat_model.friendly_name
     else:
         agent_chat_model = None
 
@@ -219,7 +219,7 @@ async def get_agent(
         "color": agent.style_color,
         "icon": agent.style_icon,
         "privacy_level": agent.privacy_level,
-        "chat_model": agent.chat_model.name,
+        "chat_model": agent.chat_model.friendly_name,
         "files": file_names,
         "input_tools": agent.input_tools,
         "output_modes": agent.output_modes,
@@ -261,9 +261,9 @@ async def update_hidden_agent(
     user: KhojUser = request.user.object
 
     subscribed = has_required_scope(request, ["premium"])
-    chat_model = await ConversationAdapters.aget_chat_model_by_name(body.chat_model)
+    chat_model = await ConversationAdapters.aget_chat_model_by_friendly_name(body.chat_model)
     if subscribed or chat_model.price_tier == PriceTier.FREE:
-        agent_chat_model = body.chat_model
+        agent_chat_model = chat_model.name
     else:
         agent_chat_model = None
 
@@ -292,7 +292,7 @@ async def update_hidden_agent(
         "name": agent.name,
         "persona": agent.personality,
         "creator": agent.creator.username if agent.creator else None,
-        "chat_model": agent.chat_model.name,
+        "chat_model": agent.chat_model.friendly_name,
         "input_tools": agent.input_tools,
         "output_modes": agent.output_modes,
     }
@@ -311,9 +311,9 @@ async def create_hidden_agent(
     user: KhojUser = request.user.object
 
     subscribed = has_required_scope(request, ["premium"])
-    chat_model = await ConversationAdapters.aget_chat_model_by_name(body.chat_model)
+    chat_model = await ConversationAdapters.aget_chat_model_by_friendly_name(body.chat_model)
     if subscribed or chat_model.price_tier == PriceTier.FREE:
-        agent_chat_model = body.chat_model
+        agent_chat_model = chat_model.name
     else:
         agent_chat_model = None
 
@@ -355,7 +355,7 @@ async def create_hidden_agent(
         "name": agent.name,
         "persona": agent.personality,
         "creator": agent.creator.username if agent.creator else None,
-        "chat_model": agent.chat_model.name,
+        "chat_model": agent.chat_model.friendly_name,
         "input_tools": agent.input_tools,
         "output_modes": agent.output_modes,
     }
@@ -384,9 +384,9 @@ async def create_agent(
         )
 
     subscribed = has_required_scope(request, ["premium"])
-    chat_model = await ConversationAdapters.aget_chat_model_by_name(body.chat_model)
+    chat_model = await ConversationAdapters.aget_chat_model_by_friendly_name(body.chat_model)
     if subscribed or chat_model.price_tier == PriceTier.FREE:
-        agent_chat_model = body.chat_model
+        agent_chat_model = chat_model.name
     else:
         agent_chat_model = None
 
@@ -415,7 +415,7 @@ async def create_agent(
         "color": agent.style_color,
         "icon": agent.style_icon,
         "privacy_level": agent.privacy_level,
-        "chat_model": agent.chat_model.name,
+        "chat_model": agent.chat_model.friendly_name,
         "files": body.files,
         "input_tools": agent.input_tools,
         "output_modes": agent.output_modes,
@@ -455,9 +455,9 @@ async def update_agent(
         )
 
     subscribed = has_required_scope(request, ["premium"])
-    chat_model = await ConversationAdapters.aget_chat_model_by_name(body.chat_model)
+    chat_model = await ConversationAdapters.aget_chat_model_by_friendly_name(body.chat_model)
     if subscribed or chat_model.price_tier == PriceTier.FREE:
-        agent_chat_model = body.chat_model
+        agent_chat_model = chat_model.name
     else:
         agent_chat_model = None
 
@@ -485,7 +485,7 @@ async def update_agent(
         "color": agent.style_color,
         "icon": agent.style_icon,
         "privacy_level": agent.privacy_level,
-        "chat_model": agent.chat_model.name,
+        "chat_model": agent.chat_model.friendly_name,
         "files": body.files,
         "input_tools": agent.input_tools,
         "output_modes": agent.output_modes,

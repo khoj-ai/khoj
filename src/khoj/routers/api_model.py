@@ -31,7 +31,7 @@ def get_chat_model_options(
     for chat_model in chat_models:
         chat_model_options.append(
             {
-                "name": chat_model.name,
+                "name": chat_model.friendly_name,
                 "id": chat_model.id,
                 "strengths": chat_model.strengths,
                 "description": chat_model.description,
@@ -54,7 +54,7 @@ def get_user_chat_model(
     if chat_model is None:
         chat_model = ConversationAdapters.get_default_chat_model(user)
 
-    return Response(status_code=200, content=json.dumps({"id": chat_model.id, "chat_model": chat_model.name}))
+    return Response(status_code=200, content=json.dumps({"id": chat_model.id, "chat_model": chat_model.friendly_name}))
 
 
 @api_model.post("/chat", status_code=200)

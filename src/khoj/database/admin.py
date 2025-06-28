@@ -232,6 +232,7 @@ class KhojUserSubscription(unfold_admin.ModelAdmin):
 class ChatModelAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "id",
+        "friendly_name",
         "name",
         "ai_model_api",
         "max_prompt_size",
@@ -243,6 +244,7 @@ class ChatModelAdmin(unfold_admin.ModelAdmin):
 class TextToImageModelOptionsAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "id",
+        "friendly_name",
         "model_name",
         "model_type",
     )

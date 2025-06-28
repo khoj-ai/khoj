@@ -2550,7 +2550,7 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
     for chat_model in chat_models:
         chat_model_options.append(
             {
-                "name": chat_model.name,
+                "name": chat_model.friendly_name,
                 "id": chat_model.id,
                 "strengths": chat_model.strengths,
                 "description": chat_model.description,
@@ -2564,7 +2564,7 @@ def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False)
     for paint_model in paint_model_options:
         all_paint_model_options.append(
             {
-                "name": paint_model.model_name,
+                "name": paint_model.friendly_name,
                 "id": paint_model.id,
                 "tier": paint_model.price_tier,
             }

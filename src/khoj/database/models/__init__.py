@@ -214,6 +214,7 @@ class ChatModel(DbBaseModel):
     subscribed_max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
     tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
     name = models.CharField(max_length=200, default="bartowski/Meta-Llama-3.1-8B-Instruct-GGUF")
+    friendly_name = models.CharField(max_length=200, default=None, null=True, blank=True)
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
     price_tier = models.CharField(max_length=20, choices=PriceTier.choices, default=PriceTier.FREE)
     vision_enabled = models.BooleanField(default=False)
@@ -222,7 +223,7 @@ class ChatModel(DbBaseModel):
     strengths = models.TextField(default=None, null=True, blank=True)
 
     def __str__(self):
-        return self.name
+        return self.friendly_name
 
 
 class VoiceModelOption(DbBaseModel):
@@ -554,6 +555,7 @@ class TextToImageModelConfig(DbBaseModel):
         GOOGLE = "google"
 
     model_name = models.CharField(max_length=200, default="dall-e-3")
+    friendly_name = models.CharField(max_length=200, default=None, null=True, blank=True)
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OPENAI)
     price_tier = models.CharField(max_length=20, choices=PriceTier.choices, default=PriceTier.FREE)
     api_key = models.CharField(max_length=200, default=None, null=True, blank=True)
@@ -592,6 +594,7 @@ class SpeechToTextModelOptions(DbBaseModel):
         OFFLINE = "offline"
 
     model_name = models.CharField(max_length=200, default="base")
+    friendly_name = models.CharField(max_length=200, default=None, null=True, blank=True)
     model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
     price_tier = models.CharField(max_length=20, choices=PriceTier.choices, default=PriceTier.FREE)
     ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)

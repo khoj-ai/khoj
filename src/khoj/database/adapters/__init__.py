@@ -1208,6 +1208,14 @@ class ConversationAdapters:
         return await ChatModel.objects.filter(name=chat_model_name).prefetch_related("ai_model_api").afirst()
 
     @staticmethod
+    async def aget_chat_model_by_friendly_name(chat_model_name: str, ai_model_api_name: str = None):
+        if ai_model_api_name:
+            return await ChatModel.objects.filter(
+                friendly_name=chat_model_name, ai_model_api__name=ai_model_api_name
+            ).afirst()
+        return await ChatModel.objects.filter(friendly_name=chat_model_name).prefetch_related("ai_model_api").afirst()
+
+    @staticmethod
     async def aget_voice_model_config(user: KhojUser) -> Optional[VoiceModelOption]:
         voice_model_config = await UserVoiceModelConfig.objects.filter(user=user).prefetch_related("setting").afirst()
         if voice_model_config:
