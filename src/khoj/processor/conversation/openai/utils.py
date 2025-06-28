@@ -229,16 +229,22 @@ async def chat_completion_with_backoff(
         stream_processor = adeepseek_stream_processor
         reasoning_effort = "high" if deepthought else "low"
         model_kwargs["reasoning_effort"] = reasoning_effort
-    elif model_name.startswith("deepseek-reasoner"):
-        stream_processor = adeepseek_stream_processor
+    elif model_name.startswith("deepseek-reasoner") or "deepseek-r1" in model_name:
+        # Official Deepseek reasoner model returns structured thinking output.
+        # Deepseek r1 served via other AI model API providers return it in response stream
+        stream_processor = ain_stream_thought_processor if "deepseek-r1" in model_name else adeepseek_stream_processor  # type: ignore[assignment]
         # Two successive messages cannot be from the same role. Should merge any back-to-back messages from the same role.
         # The first message should always be a user message (except system message).
         updated_messages: List[dict] = []
         for i, message in enumerate(formatted_messages):
             if i > 0 and message["role"] == formatted_messages[i - 1]["role"]:
-                updated_messages[-1]["content"] += " " + message["content"]
+                updated_messages[-1]["content"] += (
+                    " " + message["content"] if isinstance(message["content"], str) else message["content"]
+                )
             elif i == 1 and formatted_messages[i - 1]["role"] == "system" and message["role"] == "assistant":
-                updated_messages[-1]["content"] += " " + message["content"]
+                updated_messages[-1]["content"] += (
+                    " " + message["content"] if isinstance(message["content"], str) else message["content"]
+                )
             else:
                 updated_messages.append(message)
         formatted_messages = updated_messages
