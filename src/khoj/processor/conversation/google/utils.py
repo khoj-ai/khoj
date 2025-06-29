@@ -92,7 +92,7 @@ def gemini_completion_with_backoff(
     messages: list[ChatMessage],
     system_prompt: str,
     model_name: str,
-    temperature=1.0,
+    temperature=1.2,
     api_key=None,
     api_base_url: str = None,
     model_kwargs=None,
@@ -130,6 +130,7 @@ def gemini_completion_with_backoff(
         response_mime_type=model_kwargs.get("response_mime_type", "text/plain") if model_kwargs else "text/plain",
         response_schema=response_schema,
         seed=seed,
+        top_p=0.95,
         http_options=gtypes.HttpOptions(client_args={"timeout": httpx.Timeout(30.0, read=60.0)}),
     )
 
@@ -201,10 +202,12 @@ async def gemini_chat_completion_with_backoff(
     if is_reasoning_model(model_name):
         max_output_tokens = MAX_OUTPUT_TOKENS_FOR_REASONING_GEMINI
 
+    top_p = 0.95
     seed = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
     config = gtypes.GenerateContentConfig(
         system_instruction=system_instruction,
         temperature=temperature,
+        top_p=top_p,
         thinking_config=thinking_config,
         max_output_tokens=max_output_tokens,
         stop_sequences=["Notes:\n["],
