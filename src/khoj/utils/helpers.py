@@ -433,6 +433,10 @@ class ConversationCommand(str, Enum):
     ListFiles = "list_files"
     RegexSearchFiles = "regex_search_files"
     SemanticSearchFiles = "semantic_search_files"
+    SearchWeb = "search_web"
+    ReadWebpage = "read_webpage"
+    RunCode = "run_code"
+    OperateComputer = "operate_computer"
 
 
 command_descriptions = {
@@ -475,8 +479,8 @@ tool_descriptions_for_llm = {
 }
 
 tools_for_research_llm = {
-    ConversationCommand.Online: ToolDefinition(
-        name="online",
+    ConversationCommand.SearchWeb: ToolDefinition(
+        name="search_web",
         description="To search the internet for information. Useful to get a quick, broad overview from the internet. Provide all relevant context to ensure new searches, not in previous iterations, are performed. Max {max_search_queries} search queries allowed per iteration.",
         schema={
             "type": "object",
@@ -489,8 +493,8 @@ tools_for_research_llm = {
             "required": ["query"],
         },
     ),
-    ConversationCommand.Webpage: ToolDefinition(
-        name="webpage",
+    ConversationCommand.ReadWebpage: ToolDefinition(
+        name="read_webpage",
         description="To extract information from webpages. Useful for more detailed research from the internet. Usually used when you know the webpage links to refer to. Share upto {max_webpages_to_read} webpage links and what information to extract from them in your query.",
         schema={
             "type": "object",
@@ -510,8 +514,8 @@ tools_for_research_llm = {
             "required": ["urls", "query"],
         },
     ),
-    ConversationCommand.Code: ToolDefinition(
-        name="code",
+    ConversationCommand.RunCode: ToolDefinition(
+        name="run_code",
         description=e2b_tool_description if is_e2b_code_sandbox_enabled() else terrarium_tool_description,
         schema={
             "type": "object",
@@ -524,8 +528,8 @@ tools_for_research_llm = {
             "required": ["query"],
         },
     ),
-    ConversationCommand.Operator: ToolDefinition(
-        name="operator",
+    ConversationCommand.OperateComputer: ToolDefinition(
+        name="operate_computer",
         description="To operate a computer to complete the task.",
         schema={
             "type": "object",
@@ -569,7 +573,13 @@ tools_for_research_llm = {
     ),
     ConversationCommand.ListFiles: ToolDefinition(
         name="list_files",
-        description="To list files under a given path or glob pattern.",
+        description=dedent(
+            """
+            To list files in the user's knowledge base.
+
+            Use the path parameter to only show files under the specified path.
+            """
+        ).strip(),
         schema={
             "type": "object",
             "properties": {
@@ -588,7 +598,7 @@ tools_for_research_llm = {
         name="semantic_search_files",
         description=dedent(
             """
-            To have the tool AI semantic search through the user's personal knowledge base.
+            To have the tool AI semantic search through the user's knowledge base.
             Helpful to answer questions for which finding some relevant notes or documents can complete the search. Example: "When was Tom born?"
             This tool AI cannot find all relevant notes or documents, only a subset of them.
             It is a good starting point to find keywords, discover similar topics or related concepts and some relevant notes or documents.
@@ -600,7 +610,7 @@ tools_for_research_llm = {
             "properties": {
                 "q": {
                     "type": "string",
-                    "description": "Your natural language query for the tool to search in the user's personal knowledge base.",
+                    "description": "Your natural language query for the tool to search in the user's knowledge base.",
                 },
             },
             "required": ["q"],
@@ -610,11 +620,15 @@ tools_for_research_llm = {
         name="regex_search_files",
         description=dedent(
             """
-            To regex search through the user's personal knowledge base. It returns all lines matching the regex pattern in the user's files.
+            To search through the user's knowledge base using regex patterns. Returns all lines matching the pattern.
             Helpful to answer questions for which all relevant notes or documents are needed to complete the search. Example: "Notes that mention Tom".
             You need to know all the correct keywords or regex patterns for this tool to be useful.
-            An optional path prefix can restrict file(s) to search in.
-            Optionally specify lines_before and lines_after to show context around matches.
+
+            REMEMBER:
+            - The regex pattern will ONLY match content on a single line. Multi-line matches are NOT supported (even if you use \\n).
+
+            An optional path prefix can restrict search to specific files/directories.
+            Use lines_before, lines_after to show context around matches.
             """
         ).strip(),
         schema={

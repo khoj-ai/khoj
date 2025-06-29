@@ -325,13 +325,13 @@ def construct_tool_chat_history(
         ConversationCommand.Notes: (
             lambda iteration: [c["query"] for c in iteration.context] if iteration.context else []
         ),
-        ConversationCommand.Online: (
+        ConversationCommand.SearchWeb: (
             lambda iteration: list(iteration.onlineContext.keys()) if iteration.onlineContext else []
         ),
-        ConversationCommand.Webpage: (
+        ConversationCommand.ReadWebpage: (
             lambda iteration: list(iteration.onlineContext.keys()) if iteration.onlineContext else []
         ),
-        ConversationCommand.Code: (
+        ConversationCommand.RunCode: (
             lambda iteration: list(iteration.codeContext.keys()) if iteration.codeContext else []
         ),
     }

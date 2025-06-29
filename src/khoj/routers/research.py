@@ -311,7 +311,7 @@ async def research(
             else:
                 this_iteration.warning = "No matching document references found"
 
-        elif this_iteration.query.name == ConversationCommand.Online:
+        elif this_iteration.query.name == ConversationCommand.SearchWeb:
             previous_subqueries = {
                 subquery
                 for iteration in previous_iterations
@@ -344,7 +344,7 @@ async def research(
                 this_iteration.warning = f"Error searching online: {e}"
                 logger.error(this_iteration.warning, exc_info=True)
 
-        elif this_iteration.query.name == ConversationCommand.Webpage:
+        elif this_iteration.query.name == ConversationCommand.ReadWebpage:
             try:
                 async for result in read_webpages_content(
                     **this_iteration.query.args,
@@ -373,7 +373,7 @@ async def research(
                 this_iteration.warning = f"Error reading webpages: {e}"
                 logger.error(this_iteration.warning, exc_info=True)
 
-        elif this_iteration.query.name == ConversationCommand.Code:
+        elif this_iteration.query.name == ConversationCommand.RunCode:
             try:
                 async for result in run_code(
                     **this_iteration.query.args,
@@ -398,7 +398,7 @@ async def research(
                 this_iteration.warning = f"Error running code: {e}"
                 logger.warning(this_iteration.warning, exc_info=True)
 
-        elif this_iteration.query.name == ConversationCommand.Operator:
+        elif this_iteration.query.name == ConversationCommand.OperateComputer:
             try:
                 async for result in operate_environment(
                     **this_iteration.query.args,
