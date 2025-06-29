@@ -4,6 +4,7 @@ import {
     Context,
     OnlineContext,
     StreamMessage,
+    UsageData,
 } from "../components/chatMessage/chatMessage";
 
 export interface RawReferenceData {
@@ -167,6 +168,9 @@ export function processMessageChunk(
         console.log(`Started streaming: ${new Date()}`);
     } else if (chunk.type === "end_llm_response") {
         console.log(`Completed streaming: ${new Date()}`);
+    } else if (chunk.type === "usage") {
+        const usageData = chunk.data as UsageData;
+        currentMessage.usage = usageData;
     } else if (chunk.type === "end_response") {
         // Append any references after all the data has been streamed
         if (codeContext) currentMessage.codeContext = codeContext;

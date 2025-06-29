@@ -1,0 +1,130 @@
+.usageContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    background-color: rgb(249 250 251);
+    border: 1px solid rgb(229 231 235);
+    font-size: 0.875rem;
+    font-family: "SF Mono", "Monaco", "Inconsolata", "Roboto Mono", monospace;
+    transition: all 0.3s ease;
+}
+
+:global(.dark) .usageContainer {
+    background-color: rgb(31 41 55);
+    border-color: rgb(55 65 81);
+}
+
+.usageContainer.streaming {
+    border-color: rgb(191 219 254);
+    background-color: rgb(239 246 255);
+    animation: pulse 2s infinite;
+}
+
+:global(.dark) .usageContainer.streaming {
+    border-color: rgb(29 78 216);
+    background-color: rgba(30, 58, 138, 0.2);
+}
+
+.usageSection {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.usageItem {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.usageIcon {
+    color: rgb(107 114 128);
+}
+
+:global(.dark) .usageIcon {
+    color: rgb(156 163 175);
+}
+
+.usageLabel {
+    color: rgb(75 85 99);
+    font-weight: 500;
+}
+
+:global(.dark) .usageLabel {
+    color: rgb(209 213 219);
+}
+
+.usageValue {
+    font-weight: 700;
+    color: rgb(31 41 55);
+    transition: color 0.3s ease;
+}
+
+:global(.dark) .usageValue {
+    color: rgb(243 244 246);
+}
+
+.usageValue.animating {
+    color: rgb(37 99 235);
+}
+
+:global(.dark) .usageValue.animating {
+    color: rgb(96 165 250);
+}
+
+.usageBreakdown {
+    font-size: 0.75rem;
+    color: rgb(107 114 128);
+    margin-top: 0.25rem;
+}
+
+:global(.dark) .usageBreakdown {
+    color: rgb(156 163 175);
+}
+
+.breakdownText {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.inputTokens {
+    color: rgb(22 163 74);
+    font-weight: 500;
+}
+
+:global(.dark) .inputTokens {
+    color: rgb(74 222 128);
+}
+
+.outputTokens {
+    color: rgb(234 88 12);
+    font-weight: 500;
+}
+
+:global(.dark) .outputTokens {
+    color: rgb(251 146 60);
+}
+
+/* Pulse animation for streaming state */
+@keyframes pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+/* Smooth number transitions */
+.usageValue {
+    display: inline-block;
+    transition: transform 0.2s ease;
+}
+
+.usageValue.animating {
+    transform: scale(1.05);
+}

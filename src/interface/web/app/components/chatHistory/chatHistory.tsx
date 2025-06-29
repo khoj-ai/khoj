@@ -9,8 +9,10 @@ import ChatMessage, {
     StreamMessage,
     TrainOfThought,
     TrainOfThoughtObject,
+    UsageData,
 } from "../chatMessage/chatMessage";
 import TrainOfThoughtVideoPlayer from "../../../components/trainOfThoughtVideoPlayer/trainOfThoughtVideoPlayer";
+import UsageDisplay from "../usageDisplay/usageDisplay";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -62,6 +64,7 @@ interface TrainOfThoughtComponentProps {
     agentColor: string;
     keyId: string;
     completed?: boolean;
+    usage?: UsageData;
 }
 
 function extractTrainOfThoughtGroups(trainOfThought?: TrainOfThoughtObject[]): TrainOfThoughtGroup[] {
@@ -244,6 +247,15 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
                                 })}
                             </div>
                         ))}
+                        {props.usage && (
+                            <div className="mt-2">
+                                <UsageDisplay
+                                    usage={props.usage}
+                                    isStreaming={!props.completed}
+                                    className="mx-2"
+                                />
+                            </div>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -552,6 +564,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         key={`${index}trainOfThought`}
                                         keyId={`${index}trainOfThought`}
                                         completed={true}
+                                        usage={chatMessage.usage}
                                     />
                                 )}
                                 <ChatMessage
@@ -615,6 +628,7 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                             key={`${index}trainOfThought-${message.trainOfThought.length}-${message.trainOfThought.map(t => t.length).join('-')}`}
                                             keyId={`${index}trainOfThought`}
                                             completed={message.completed}
+                                            usage={message.usage}
                                         />
                                     )}
                                     <ChatMessage

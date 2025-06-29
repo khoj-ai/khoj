@@ -816,13 +816,20 @@ async def event_generator(
                     )
                 )
 
-    # Cancel the disconnect monitor task if it is still running
-    async def cancel_disconnect_monitor():
+    # Cancel background tasks if still running
+    async def cancel_background_tasks():
+        logger.debug(f"Cancelling background tasks for chat with user {user}")
         if disconnect_monitor_task and not disconnect_monitor_task.done():
-            logger.debug(f"Cancelling disconnect monitor task for user {user}")
             disconnect_monitor_task.cancel()
             try:
                 await disconnect_monitor_task
+            except asyncio.CancelledError:
+                pass
+
+        if heartbeat_task and not heartbeat_task.done():
+            heartbeat_task.cancel()
+            try:
+                await heartbeat_task
             except asyncio.CancelledError:
                 pass
 
@@ -862,9 +869,9 @@ async def event_generator(
         finally:
             if not cancellation_event.is_set():
                 yield event_delimiter
-            # Cancel the disconnect monitor task if it is still running
+            # Cancel background tasks if still running
             if cancellation_event.is_set() or event_type == ChatEvent.END_RESPONSE:
-                await cancel_disconnect_monitor()
+                await cancel_background_tasks()
 
     async def send_llm_response(response: str, usage: dict = None):
         # Check if the client is still connected
@@ -910,8 +917,27 @@ async def event_generator(
             metadata=chat_metadata,
         )
 
-    # Start the disconnect monitor in the background
+    # Heartbeat task to emit usage data every second
+    heartbeat_task = None
+
+    async def heartbeat_usage(ws: WebSocket):
+        """Send usage data heartbeat every second"""
+        try:
+            while not cancellation_event.is_set():
+                if usage_data := tracer.get("usage", {}):  # Only send if there's usage data
+                    logger.debug(f"Sending heartbeat usage data: {usage_data}")
+                    async for event in send_event(ChatEvent.USAGE, usage_data):
+                        await ws.send_text(event)
+                await asyncio.sleep(1.0)  # Send heartbeat every second
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.debug(f"Heartbeat task error: {e}")
+
+    # Start the disconnect monitor and heartbeat in the background
     disconnect_monitor_task = asyncio.create_task(monitor_disconnection())
+    # Start the heartbeat task for WebSocket connections
+    heartbeat_task = asyncio.create_task(heartbeat_usage(request_obj)) if isinstance(request_obj, WebSocket) else None
 
     if is_query_empty(q):
         async for result in send_llm_response("Please ask your query to get started.", tracer.get("usage")):
@@ -1395,7 +1421,7 @@ async def event_generator(
     if cancellation_event.is_set():
         logger.debug(f"Stopping LLM response to user {user} on {common.client} client.")
         # Cancel the disconnect monitor task if it is still running
-        await cancel_disconnect_monitor()
+        await cancel_background_tasks()
         return
 
     ## Generate Text Output
@@ -1488,8 +1514,8 @@ async def event_generator(
             yield result
         logger.debug("Finished streaming response")
 
-    # Cancel the disconnect monitor task if it is still running
-    await cancel_disconnect_monitor()
+    # Cancel any background tasks still running
+    await cancel_background_tasks()
 
 
 @api_chat.websocket("/ws")

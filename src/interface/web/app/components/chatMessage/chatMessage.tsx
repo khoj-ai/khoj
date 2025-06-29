@@ -11,6 +11,7 @@ import "katex/dist/katex.min.css";
 
 import { TeaserReferencesSection, constructAllReferences } from "../referencePanel/referencePanel";
 import { renderCodeGenImageInline } from "@/app/common/chatFunctions";
+import UsageDisplay from "../usageDisplay/usageDisplay";
 
 import {
     ThumbsUp,
@@ -168,6 +169,14 @@ export interface SingleChatMessage {
     queryFiles?: AttachedFileText[];
     excalidrawDiagram?: string;
     mermaidjsDiagram?: string;
+    usage?: UsageData;
+}
+
+export interface UsageData {
+    input_tokens?: number;
+    output_tokens?: number;
+    total_tokens?: number;
+    cost?: number;
 }
 
 export interface StreamMessage {
@@ -191,6 +200,7 @@ export interface StreamMessage {
     generatedImages?: string[];
     generatedExcalidrawDiagram?: string;
     generatedMermaidjsDiagram?: string;
+    usage?: UsageData;
 }
 
 export interface ChatHistoryData {
