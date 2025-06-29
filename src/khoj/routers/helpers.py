@@ -1263,7 +1263,7 @@ async def search_documents(
         compiled_references = [
             {
                 "query": item.additional["query"],
-                "compiled": item.additional["compiled"],
+                "compiled": item["entry"],
                 "file": item.additional["file"],
             }
             for item in search_results
