@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from tenacity import (
     before_sleep_log,
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
     wait_random_exponential,
@@ -33,6 +34,31 @@ from khoj.utils.helpers import (
 logger = logging.getLogger(__name__)
 
 anthropic_clients: Dict[str, anthropic.Anthropic | anthropic.AnthropicVertex] = {}
+
+
+def is_retryable_anthropic_error(exception: BaseException) -> bool:
+    """Check if the exception is a retryable Anthropic error"""
+    # Check for specific Anthropic error types
+    if isinstance(exception, anthropic.APIError):
+        # Handle 529 overloaded error specifically
+        if hasattr(exception, "status_code") and exception.status_code == 529:
+            logger.warning("Anthropic API overloaded (529), will retry with exponential backoff")
+            return True
+        # Handle other API errors
+        return True
+    if isinstance(exception, anthropic.APITimeoutError):
+        return True
+    if isinstance(exception, anthropic.APIConnectionError):
+        return True
+    if isinstance(exception, anthropic.RateLimitError):
+        return True
+    if isinstance(exception, anthropic.APIStatusError):
+        return True
+    if isinstance(exception, ValueError):
+        return True
+    return False
+
+
 anthropic_async_clients: Dict[str, anthropic.AsyncAnthropic | anthropic.AsyncAnthropicVertex] = {}
 
 DEFAULT_MAX_TOKENS_ANTHROPIC = 8000
@@ -41,8 +67,9 @@ REASONING_MODELS = ["claude-3-7", "claude-sonnet-4", "claude-opus-4"]
 
 
 @retry(
+    retry=is_retryable_anthropic_error,
     wait=wait_random_exponential(min=1, max=10),
-    stop=stop_after_attempt(2),
+    stop=stop_after_attempt(3),
     before_sleep=before_sleep_log(logger, logging.DEBUG),
     reraise=True,
 )
@@ -130,8 +157,9 @@ def anthropic_completion_with_backoff(
 
 
 @retry(
+    retry=is_retryable_anthropic_error,
     wait=wait_exponential(multiplier=1, min=4, max=10),
-    stop=stop_after_attempt(2),
+    stop=stop_after_attempt(3),
     before_sleep=before_sleep_log(logger, logging.WARNING),
     reraise=False,
 )
