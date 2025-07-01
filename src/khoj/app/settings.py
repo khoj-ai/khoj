@@ -187,6 +187,7 @@ DATABASES = {
         "CONN_HEALTH_CHECKS": True,
     }
 }
+# Note: Local tests require a running Postgres instance or Docker Compose.
 
 # User Settings
 AUTH_USER_MODEL = "database.KhojUser"

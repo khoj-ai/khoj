@@ -104,6 +104,9 @@ async def query(
     question_embedding: Union[torch.Tensor, None] = None,
     max_distance: float = None,
     agent: Optional[Agent] = None,
+    filename_prefix_mode: Optional[str] = None,
+    filename_prefixes: Optional[list] = None,
+    file_extensions: Optional[list] = None,
 ) -> Tuple[List[dict], List[Entry]]:
     "Search for entries that answer the query"
 
@@ -133,6 +136,9 @@ async def query(
             max_distance=max_distance,
             user=user,
             agent=agent,
+            filename_prefix_mode=filename_prefix_mode,
+            filename_prefixes=filename_prefixes,
+            file_extensions=file_extensions,
         ).all()
         hits = await sync_to_async(list)(hits)  # type: ignore[call-arg]
 

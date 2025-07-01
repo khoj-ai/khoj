@@ -1708,6 +1708,9 @@ class EntryAdapters:
     file_filter = FileFilter()
     date_filter = DateFilter()
 
+    # Hardcoded prefixes for Khoj/underscored files
+    DEFAULT_FILENAME_PREFIXES = ["_khoj", "_"]
+
     @staticmethod
     @require_valid_user
     def does_entry_exist(user: KhojUser, hashed_value: str) -> bool:
@@ -1843,7 +1846,15 @@ class EntryAdapters:
         return total_size / 1024 / 1024
 
     @staticmethod
-    def apply_filters(user: KhojUser, query: str, file_type_filter: str = None, agent: Agent = None):
+    def apply_filters(
+        user: KhojUser,
+        query: str,
+        file_type_filter: str = None,
+        agent: Agent = None,
+        filename_prefix_mode: Optional[str] = None,
+        filename_prefixes: Optional[list] = None,
+        file_extensions: Optional[list] = None,
+    ):
         q_filter_terms = Q()
 
         word_filters = EntryAdapters.word_filter.get_filter_terms(query)
@@ -1861,46 +1872,66 @@ class EntryAdapters:
             return Entry.objects.none()
 
         if len(word_filters) == 0 and len(file_filters) == 0 and len(date_filters) == 0:
-            return Entry.objects.filter(owner_filter)
+            queryset = Entry.objects.filter(owner_filter)
+        else:
+            for term in word_filters:
+                if term.startswith("+"):
+                    q_filter_terms &= Q(raw__icontains=term[1:])
+                elif term.startswith("-"):
+                    q_filter_terms &= ~Q(raw__icontains=term[1:])
 
-        for term in word_filters:
-            if term.startswith("+"):
-                q_filter_terms &= Q(raw__icontains=term[1:])
-            elif term.startswith("-"):
-                q_filter_terms &= ~Q(raw__icontains=term[1:])
+            q_file_filter_terms = Q()
 
-        q_file_filter_terms = Q()
+            if len(file_filters) > 0:
+                for term in file_filters:
+                    if term.startswith("-"):
+                        regex_term = re.escape(term[1:]).replace(r"\*", ".*").replace(r"\?", ".")
+                        q_file_filter_terms &= ~Q(file_path__regex=regex_term)
+                    else:
+                        regex_term = re.escape(term).replace(r"\*", ".*").replace(r"\?", ".")
+                        q_file_filter_terms |= Q(file_path__regex=regex_term)
 
-        if len(file_filters) > 0:
-            for term in file_filters:
-                if term.startswith("-"):
-                    # Convert the glob term to a regex pattern
-                    regex_term = re.escape(term[1:]).replace(r"\*", ".*").replace(r"\?", ".")
-                    # Exclude all files that match the regex term
-                    q_file_filter_terms &= ~Q(file_path__regex=regex_term)
-                else:
-                    # Convert the glob term to a regex pattern
-                    regex_term = re.escape(term).replace(r"\*", ".*").replace(r"\?", ".")
-                    # Include any files that match the regex term
-                    q_file_filter_terms |= Q(file_path__regex=regex_term)
+                q_filter_terms &= q_file_filter_terms
 
-            q_filter_terms &= q_file_filter_terms
+            if len(date_filters) > 0:
+                min_date, max_date = date_filters
+                if min_date is not None:
+                    formatted_min_date = date.fromtimestamp(min_date).strftime("%Y-%m-%d")
+                    q_filter_terms &= Q(embeddings_dates__date__gte=formatted_min_date)
+                if max_date is not None:
+                    formatted_max_date = date.fromtimestamp(max_date).strftime("%Y-%m-%d")
+                    q_filter_terms &= Q(embeddings_dates__date__lte=formatted_max_date)
 
-        if len(date_filters) > 0:
-            min_date, max_date = date_filters
-            if min_date is not None:
-                # Convert the min_date timestamp to yyyy-mm-dd format
-                formatted_min_date = date.fromtimestamp(min_date).strftime("%Y-%m-%d")
-                q_filter_terms &= Q(embeddings_dates__date__gte=formatted_min_date)
-            if max_date is not None:
-                # Convert the max_date timestamp to yyyy-mm-dd format
-                formatted_max_date = date.fromtimestamp(max_date).strftime("%Y-%m-%d")
-                q_filter_terms &= Q(embeddings_dates__date__lte=formatted_max_date)
+            queryset = Entry.objects.filter(owner_filter).filter(q_filter_terms)
 
-        relevant_entries = Entry.objects.filter(owner_filter).filter(q_filter_terms)
+        # --- New: File extension filtering ---
+        if file_extensions:
+            ext_q = Q()
+            for ext in file_extensions:
+                ext = ext if ext.startswith(".") else f".{ext}"
+                ext_q |= Q(file_path__iendswith=ext)
+            queryset = queryset.filter(ext_q)
+
+        # --- New: Filename prefix filtering ---
+        if filename_prefixes:
+            # Use os.path.basename in Python, but in Django ORM, use regex on file_path
+            prefix_q = Q()
+            for prefix in filename_prefixes:
+                # Regex: /[^/]+$ matches the basename, ^prefix matches start
+                # So: r"/(_khoj|_)" matches files whose basename starts with _khoj or _
+                # But we want to match the basename only, so use regex for end of path
+                # Django doesn't have direct basename, so we use regex: r"/(_khoj|_)[^/]*$"
+                regex = rf"/({ '|'.join(map(re.escape, filename_prefixes)) })[^/]*$"
+                prefix_q |= Q(file_path__regex=regex)
+            if filename_prefix_mode == "exclude":
+                queryset = queryset.exclude(prefix_q)
+            elif filename_prefix_mode == "only":
+                queryset = queryset.filter(prefix_q)
+            # else: include (do nothing)
+
         if file_type_filter:
-            relevant_entries = relevant_entries.filter(file_type=file_type_filter)
-        return relevant_entries
+            queryset = queryset.filter(file_type=file_type_filter)
+        return queryset
 
     @staticmethod
     def search_with_embeddings(
@@ -1911,6 +1942,9 @@ class EntryAdapters:
         file_type_filter: str = None,
         max_distance: float = math.inf,
         agent: Agent = None,
+        filename_prefix_mode: Optional[str] = None,  # new
+        filename_prefixes: Optional[list] = None,  # new
+        file_extensions: Optional[list] = None,  # new
     ):
         owner_filter = Q()
 
@@ -1922,7 +1956,15 @@ class EntryAdapters:
         if owner_filter == Q():
             return Entry.objects.none()
 
-        relevant_entries = EntryAdapters.apply_filters(user, raw_query, file_type_filter, agent)
+        relevant_entries = EntryAdapters.apply_filters(
+            user,
+            raw_query,
+            file_type_filter,
+            agent,
+            filename_prefix_mode=filename_prefix_mode,
+            filename_prefixes=filename_prefixes,
+            file_extensions=file_extensions,
+        )
         relevant_entries = relevant_entries.filter(owner_filter).annotate(
             distance=CosineDistance("embeddings", embeddings)
         )

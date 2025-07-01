@@ -56,8 +56,19 @@ async def search(
     r: Optional[bool] = False,
     max_distance: Optional[Union[float, None]] = None,
     dedupe: Optional[bool] = True,
+    filename_prefix_mode: Optional[str] = "exclude",
+    filename_prefix: Optional[str] = "_khoj",
+    file_extension: Optional[str] = None,
 ):
     user = request.user.object
+
+    # Parse new params
+    prefix_list = [p.strip() for p in (filename_prefix.split(",") if filename_prefix else []) if p.strip()]
+    ext_list = (
+        [e.strip() for e in (file_extension.split(",") if file_extension else []) if e and e.strip()]
+        if file_extension
+        else []
+    )
 
     results = await execute_search(
         user=user,
@@ -67,6 +78,9 @@ async def search(
         r=r,
         max_distance=max_distance or math.inf,
         dedupe=dedupe,
+        filename_prefix_mode=filename_prefix_mode,
+        filename_prefixes=prefix_list,
+        file_extensions=ext_list,
     )
 
     update_telemetry_state(

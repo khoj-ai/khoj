@@ -1352,6 +1352,9 @@ async def execute_search(
     max_distance: Optional[Union[float, None]] = None,
     dedupe: Optional[bool] = True,
     agent: Optional[Agent] = None,
+    filename_prefix_mode: Optional[str] = None,  # new
+    filename_prefixes: Optional[list] = None,  # new
+    file_extensions: Optional[list] = None,  # new
 ):
     # Run validation checks
     results: List[SearchResponse] = []
@@ -1410,6 +1413,9 @@ async def execute_search(
                 question_embedding=encoded_asymmetric_query,
                 max_distance=max_distance,
                 agent=agent,
+                filename_prefix_mode=filename_prefix_mode,
+                filename_prefixes=filename_prefixes,
+                file_extensions=file_extensions,
             )
         )
 

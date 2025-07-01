@@ -1,4 +1,6 @@
 import os
+
+os.environ["DJANGO_SETTINGS_MODULE"] = "khoj.settings_test"
 from pathlib import Path
 
 import pytest

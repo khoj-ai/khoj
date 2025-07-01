@@ -1,0 +1,13 @@
+fastapi
+schedule
+asgiref
+pytest
+requests
+torch
+sentence-transformers
+django
+pgvector
+pydantic
+python-dotenv
+httpx
+pytest-asyncio

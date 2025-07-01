@@ -46,16 +46,6 @@ logging.getLogger("uvicorn.error").setLevel(logging.INFO)
 
 logger = logging.getLogger("khoj")
 
-# Initialize Django Database
-db_migrate_output = io.StringIO()
-with redirect_stdout(db_migrate_output):
-    call_command("migrate", "--noinput")
-
-# Initialize Django Static Files
-collectstatic_output = io.StringIO()
-with redirect_stdout(collectstatic_output):
-    call_command("collectstatic", "--noinput")
-
 # Initialize the Application Server
 if in_debug_mode():
     app = FastAPI(debug=True)
@@ -118,6 +108,16 @@ def shutdown_scheduler():
 def run(should_start_server=True):
     # Turn Tokenizers Parallelism Off. App does not support it.
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+    # Run Django management commands only if starting the server
+    if should_start_server:
+        global db_migrate_output, collectstatic_output
+        db_migrate_output = io.StringIO()
+        with redirect_stdout(db_migrate_output):
+            call_command("migrate", "--noinput")
+        collectstatic_output = io.StringIO()
+        with redirect_stdout(collectstatic_output):
+            call_command("collectstatic", "--noinput")
 
     # Load config from CLI
     state.cli_args = sys.argv[1:]
