@@ -2006,3 +2006,9 @@ button.reference-button:hover {
     font-size: x-small;
     vertical-align: middle;
 }
+
+.search-dropdown {
+  padding: 4px 8px;
+  height: 28px;
+  box-sizing: border-box;
+}

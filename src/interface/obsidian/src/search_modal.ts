@@ -108,9 +108,29 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
         // Add file filter dropdown and file type checkboxes above the input
         const controlsContainer = document.createElement('div');
         controlsContainer.className = "search-controls-container";
+        // File type checkboxes (group images)
+        const fileTypeRow = document.createElement('div');
+        fileTypeRow.className = 'khoj-file-type-row';
+        fileTypeRow.style.marginBottom = '8px'; // Add space below checkboxes
+        this.fileTypeOptions.forEach(opt => {
+            const label = document.createElement('label');
+            label.style.marginLeft = '8px';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = opt.value;
+            checkbox.checked = false;
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(opt.label));
+            fileTypeRow.appendChild(label);
+        });
+        controlsContainer.appendChild(fileTypeRow);
         // File filter dropdown
         this.fileFilterDropdown = document.createElement('select');
         this.fileFilterDropdown.className = "search-dropdown";
+        this.fileFilterDropdown.style.width = '140px'; // Make dropdown skinnier
+        this.fileFilterDropdown.style.marginTop = '8px'; // Add space above dropdown
+        this.fileFilterDropdown.style.background = 'var(--background-primary)';
+        this.fileFilterDropdown.style.color = 'var(--text-normal)';
         this.fileFilterOptions.forEach((opt, i) => {
             const option = document.createElement('option');
             option.value = `${opt.mode}:${opt.prefix}`;
@@ -125,21 +145,6 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
             this.inputEl.dispatchEvent(new Event('input'));
         });
         controlsContainer.appendChild(this.fileFilterDropdown);
-        // Move file type checkboxes to a new line below the dropdown
-        const fileTypeRow = document.createElement('div');
-        fileTypeRow.className = 'khoj-file-type-row';
-        this.fileTypeOptions.forEach(opt => {
-            const label = document.createElement('label');
-            label.style.marginLeft = '8px';
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.value = opt.value;
-            checkbox.checked = false;
-            label.appendChild(checkbox);
-            label.appendChild(document.createTextNode(opt.label));
-            fileTypeRow.appendChild(label);
-        });
-        controlsContainer.appendChild(fileTypeRow);
         // Insert controls at the very top of the modal
         this.modalEl.insertBefore(controlsContainer, this.modalEl.firstChild);
     }
