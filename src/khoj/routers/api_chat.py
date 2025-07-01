@@ -687,6 +687,9 @@ async def chat(
     raw_images = body.images
     raw_query_files = body.files
     interrupt_flag = body.interrupt
+    filename_prefix_mode = body.filename_prefix_mode
+    filename_prefix = body.filename_prefix
+    file_extension = body.file_extension
 
     async def event_generator(q: str, images: list[str]):
         start_time = time.perf_counter()
@@ -1082,6 +1085,9 @@ async def chat(
                     agent=agent,
                     query_files=attached_file_context,
                     tracer=tracer,
+                    filename_prefix_mode=filename_prefix_mode,
+                    filename_prefix=filename_prefix,
+                    file_extension=file_extension,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
                         yield result[ChatEvent.STATUS]

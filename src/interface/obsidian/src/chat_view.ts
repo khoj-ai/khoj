@@ -101,6 +101,9 @@ export class KhojChatView extends KhojPaneView {
     // 2. Higher invalid edit blocks than tolerable
     private maxEditRetries: number = 1; // Maximum retries for edit blocks
 
+    private fileFilterDropdown: HTMLSelectElement | null = null;
+    private fileTypeContainer: HTMLDivElement | null = null;
+
     constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
         super(leaf, setting);
         this.fileInteractions = new FileInteractions(this.app);
@@ -188,8 +191,25 @@ export class KhojChatView extends KhojPaneView {
             input_el.value = "";
             this.autoResize();
 
-            // Get and render chat response to user message
-            await this.getChatResponse(apiMessage, displayMessage, isVoice);
+            // Collect file filter and file type values
+            let filename_prefix_mode = 'include';
+            let filename_prefix = '';
+            let file_extensions: string[] = [];
+            if (this.fileFilterDropdown) {
+                const [mode, prefix] = this.fileFilterDropdown.value.split(':');
+                filename_prefix_mode = mode;
+                filename_prefix = prefix;
+            }
+            if (this.fileTypeContainer) {
+                const checkboxes = this.fileTypeContainer.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach((checkbox: HTMLInputElement) => {
+                    if (checkbox.checked) {
+                        file_extensions.push(checkbox.value);
+                    }
+                });
+            }
+            // Pass these to getChatResponse
+            await this.getChatResponse(apiMessage, displayMessage, isVoice, true, filename_prefix_mode, filename_prefix, file_extensions);
         }
     }
 
@@ -357,6 +377,49 @@ export class KhojChatView extends KhojPaneView {
                 chatInput?.focus();
             });
         });
+
+        // After creating chatInput in the inputRow, add file filter controls beside it
+        // Dropdown for file prefix filtering
+        const fileFilterDropdown = document.createElement('select');
+        fileFilterDropdown.className = 'khoj-file-filter-dropdown';
+        const fileFilterOptions = [
+          { label: 'include all', value: 'include:' },
+          { label: 'exclude khoj', value: 'exclude:_khoj' },
+          { label: 'only khoj', value: 'only:_khoj' },
+          { label: 'exclude underscored', value: 'exclude:_' },
+        ];
+        fileFilterOptions.forEach(opt => {
+          const option = document.createElement('option');
+          option.value = opt.value;
+          option.textContent = opt.label;
+          fileFilterDropdown.appendChild(option);
+        });
+        fileFilterDropdown.value = 'exclude:_khoj'; // Default for chat
+        this.fileFilterDropdown = fileFilterDropdown;
+
+        // File type checkboxes
+        const fileTypeContainer = document.createElement('div');
+        fileTypeContainer.className = 'khoj-file-type-checkboxes';
+        const fileTypes = ['.md', '.pdf', '.png', '.jpg', '.jpeg', '.gif'];
+        fileTypes.forEach(ext => {
+          const label = document.createElement('label');
+          label.style.marginLeft = '8px';
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.value = ext;
+          checkbox.checked = (ext === '.md'); // Default: only .md checked
+          label.appendChild(checkbox);
+          label.appendChild(document.createTextNode(ext));
+          fileTypeContainer.appendChild(label);
+        });
+        this.fileTypeContainer = fileTypeContainer;
+
+        // Insert controls beside chat input (or above if too squished)
+        const chatInputParent = chatInput.parentElement;
+        if (chatInputParent) {
+          chatInputParent.insertBefore(fileFilterDropdown, chatInput.nextSibling);
+          chatInputParent.insertBefore(fileTypeContainer, fileFilterDropdown.nextSibling);
+        }
     }
 
     startSpeechToText(event: KeyboardEvent | MouseEvent | TouchEvent, timeout = 200) {
@@ -1468,7 +1531,15 @@ export class KhojChatView extends KhojPaneView {
         }
     }
 
-    async getChatResponse(query: string | undefined | null, displayQuery: string | undefined | null, isVoice: boolean = false, displayUserMessage: boolean = true): Promise<void> {
+    async getChatResponse(
+        query: string | undefined | null,
+        displayQuery: string | undefined | null,
+        isVoice: boolean = false,
+        displayUserMessage: boolean = true,
+        filename_prefix_mode?: string,
+        filename_prefix?: string,
+        file_extensions?: string[]
+    ): Promise<void> {
         // Exit if query is empty
         if (!query || query === "") return;
 
@@ -1523,7 +1594,7 @@ export class KhojChatView extends KhojPaneView {
 
         // Get chat response from Khoj backend
         const chatUrl = `${this.setting.khojUrl}/api/chat?client=obsidian`;
-        const body = {
+        const body: any = {
             q: finalQuery,
             n: this.setting.resultsCount,
             stream: true,
@@ -1535,6 +1606,9 @@ export class KhojChatView extends KhojPaneView {
             ...(!!this.location && this.location.countryCode && { country_code: this.location.countryCode }),
             ...(!!this.location && this.location.timezone && { timezone: this.location.timezone }),
         };
+        if (filename_prefix_mode) body.filename_prefix_mode = filename_prefix_mode;
+        if (filename_prefix) body.filename_prefix = filename_prefix;
+        if (file_extensions && file_extensions.length > 0) body.file_extension = file_extensions.join(',');
 
         let newResponseEl = this.createKhojResponseDiv();
         let newResponseTextEl = newResponseEl.createDiv();

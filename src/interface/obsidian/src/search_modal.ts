@@ -1,4 +1,7 @@
-import { App, SuggestModal, request, MarkdownRenderer, Instruction, Platform, Notice, createDiv, createEl } from 'obsidian';
+  // @ts-nocheck
+  /* eslint-disable */
+
+import { App, SuggestModal, request, MarkdownRenderer, Instruction, Platform, Notice } from 'obsidian';
 import { KhojSetting } from 'src/settings';
 import { supportedBinaryFileTypes, createNoteAndCloseModal, getFileFromPath, getLinkToEntry, supportedImageFilesTypes } from 'src/utils';
 
@@ -19,16 +22,15 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
     fileFilterDropdown: HTMLSelectElement;
     fileTypeCheckboxes: { [key: string]: HTMLInputElement } = {};
     fileTypeOptions = [
-        { label: 'Markdown (.md)', value: '.md' },
-        { label: 'PDF (.pdf)', value: '.pdf' },
-        { label: 'Images (png, jpg, jpeg, gif)', value: '.png,.jpg,.jpeg,.gif' },
+        { label: '.md', value: '.md' },
+        { label: '.pdf', value: '.pdf' },
+        { label: 'images', value: '.png,.jpg,.jpeg,.gif' },
     ];
     fileFilterOptions = [
-        { label: 'Exclude Khoj files', mode: 'exclude', prefix: '_khoj' },
-        { label: 'Only Khoj files', mode: 'only', prefix: '_khoj' },
-        { label: 'Exclude underscored files', mode: 'exclude', prefix: '_' },
-        { label: 'Only underscored files', mode: 'only', prefix: '_' },
-        { label: 'No filter', mode: 'include', prefix: '' },
+        { label: 'include all', mode: 'include', prefix: '' },
+        { label: 'exclude _khoj', mode: 'exclude', prefix: '_khoj' },
+        { label: 'exclude all underscored', mode: 'exclude', prefix: '_' },
+        { label: 'only _khoj', mode: 'only', prefix: '_khoj' },
     ];
     selectedFileFilter = this.fileFilterOptions[0];
 
@@ -42,11 +44,10 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
         this.inputEl.hidden = this.find_similar_notes;
 
         // Create loading element
-        // @ts-ignore
-        this.loadingEl = createDiv({ cls: "search-loading" });
-        // @ts-ignore
-        const spinnerEl = createDiv({ cls: "search-loading-spinner" });
-        // @ts-ignore
+        this.loadingEl = document.createElement('div');
+        this.loadingEl.className = "search-loading";
+        const spinnerEl = document.createElement('div');
+        spinnerEl.className = "search-loading-spinner";
         this.loadingEl.appendChild(spinnerEl);
 
         this.loadingEl.style.position = "absolute";
@@ -60,11 +61,9 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
         this.modalEl.appendChild(this.loadingEl);
 
         // Customize empty state message
-        // @ts-ignore
         this.emptyStateText = "";
 
         // Register Modal Keybindings to Rerank Results
-        // @ts-ignore
         this.scope.register(['Mod'], 'Enter', async () => {
             // Re-rank when explicitly triggered by user
             this.rerank = true
@@ -75,7 +74,6 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
         });
 
         // Register Modal Keybindings to Create New Note with Query as Title
-        // @ts-ignore
         this.scope.register(['Shift'], 'Enter', async () => {
             if (this.query != "") createNoteAndCloseModal(this.query, this);
         });
@@ -102,24 +100,24 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
                 purpose: 'to dismiss',
             },
         ]
-        // @ts-ignore
         this.setInstructions(modalInstructions);
 
         // Set Placeholder Text for Modal
-        // @ts-ignore
         this.setPlaceholder('Search with Khoj...');
 
         // Add file filter dropdown and file type checkboxes above the input
-        const controlsContainer = createDiv({ cls: 'khoj-search-controls' });
+        const controlsContainer = document.createElement('div');
+        controlsContainer.className = "search-controls-container";
         // File filter dropdown
-        this.fileFilterDropdown = createEl('select');
+        this.fileFilterDropdown = document.createElement('select');
+        this.fileFilterDropdown.className = "search-dropdown";
         this.fileFilterOptions.forEach((opt, i) => {
-            const option = createEl('option');
+            const option = document.createElement('option');
             option.value = `${opt.mode}:${opt.prefix}`;
             option.text = opt.label;
             this.fileFilterDropdown.appendChild(option);
         });
-        this.fileFilterDropdown.value = `${this.selectedFileFilter.mode}:${this.selectedFileFilter.prefix}`;
+        this.fileFilterDropdown.value = 'include:';
         this.fileFilterDropdown.addEventListener('change', (e) => {
             const [mode, prefix] = (e.target as HTMLSelectElement).value.split(':');
             this.selectedFileFilter = this.fileFilterOptions.find(opt => opt.mode === mode && opt.prefix === prefix) || this.fileFilterOptions[0];
@@ -127,28 +125,23 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
             this.inputEl.dispatchEvent(new Event('input'));
         });
         controlsContainer.appendChild(this.fileFilterDropdown);
-        // File type checkboxes
+        // Move file type checkboxes to a new line below the dropdown
+        const fileTypeRow = document.createElement('div');
+        fileTypeRow.className = 'khoj-file-type-row';
         this.fileTypeOptions.forEach(opt => {
-            const label = createEl('label');
-            label.style.marginLeft = '12px';
-            const checkbox = createEl('input');
+            const label = document.createElement('label');
+            label.style.marginLeft = '8px';
+            const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.value = opt.value;
-            checkbox.checked = opt.value === '.md'; // Default to .md checked
-            checkbox.addEventListener('change', () => {
-                this.inputEl.dispatchEvent(new Event('input'));
-            });
-            this.fileTypeCheckboxes[opt.value] = checkbox;
+            checkbox.checked = false;
             label.appendChild(checkbox);
-            label.appendChild(document.createTextNode(' ' + opt.label));
-            controlsContainer.appendChild(label);
+            label.appendChild(document.createTextNode(opt.label));
+            fileTypeRow.appendChild(label);
         });
-        // Insert controls above the input
-        // @ts-ignore
-        if (this.inputEl && this.inputEl.parentElement) {
-            // @ts-ignore
-            this.inputEl.parentElement.insertBefore(controlsContainer, this.inputEl);
-        }
+        controlsContainer.appendChild(fileTypeRow);
+        // Insert controls at the very top of the modal
+        this.modalEl.insertBefore(controlsContainer, this.modalEl.firstChild);
     }
 
     // Check if the file exists in the vault

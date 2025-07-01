@@ -1173,6 +1173,9 @@ async def search_documents(
     agent: Agent = None,
     query_files: str = None,
     tracer: dict = {},
+    filename_prefix_mode: Optional[str] = None,
+    filename_prefix: Optional[str] = None,
+    file_extension: Optional[str] = None,
 ):
     # Initialize Variables
     compiled_references: List[dict[str, str]] = []
@@ -1242,6 +1245,10 @@ async def search_documents(
             async for event in send_status_func(f"**Searching Documents for:** {inferred_queries_str}"):
                 yield {ChatEvent.STATUS: event}
         for query in inferred_queries:
+            # Prepare file_extensions as a list if provided
+            file_extensions_list = None
+            if file_extension:
+                file_extensions_list = [e.strip() for e in file_extension.split(",") if e.strip()]
             results = await execute_search(
                 user if not should_limit_to_agent_knowledge else None,
                 f"{query} {filters_in_query}",
@@ -1251,6 +1258,9 @@ async def search_documents(
                 max_distance=d,
                 dedupe=False,
                 agent=agent,
+                filename_prefix_mode=filename_prefix_mode,
+                filename_prefixes=[filename_prefix] if filename_prefix else None,
+                file_extensions=file_extensions_list,
             )
             # Attach associated query to each search result
             for item in results:

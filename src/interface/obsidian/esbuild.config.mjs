@@ -9,9 +9,9 @@ if you want to view the source, please visit the github repository of this plugi
 */
 `;
 
-const prod = (process.argv[2] === 'production');
+const isProduction = process.argv.includes('production');
 
-esbuild.build({
+const buildOptions = {
     banner: {
         js: banner,
     },
@@ -43,10 +43,21 @@ esbuild.build({
         'node:net',
         ...builtins],
     format: 'cjs',
-    watch: !prod,
-    target: 'es2018',
-    logLevel: "info",
-    sourcemap: prod ? false : 'inline',
+    minify: isProduction,
+    sourcemap: !isProduction,
     treeShaking: true,
     outfile: 'main.js',
-}).catch(() => process.exit(1));
+    platform: 'browser',
+    target: ['es2020'],
+};
+
+if (!isProduction) {
+    buildOptions.watch = {
+        onRebuild(error, result) {
+            if (error) console.error('watch build failed:', error);
+            else console.log('watch build succeeded');
+        },
+    };
+}
+
+esbuild.build(buildOptions).catch(() => process.exit(1));
