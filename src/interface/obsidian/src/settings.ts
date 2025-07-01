@@ -36,10 +36,12 @@ export interface KhojSetting {
     syncFileType: SyncFileTypes;
     userInfo: UserInfo | null;
     syncFolders: string[];
+    syncFolderMode: 'include' | 'exclude';
     syncInterval: number;
     autoVoiceResponse: boolean;
     selectedChatModelId: string | null; // Mirrors server's selected_chat_model_config
     availableChatModels: ModelOption[];
+    coreMemoryFile?: string; // NEW: vault-relative path to core memory file
 }
 
 export const DEFAULT_SETTINGS: KhojSetting = {
@@ -56,10 +58,12 @@ export const DEFAULT_SETTINGS: KhojSetting = {
     },
     userInfo: null,
     syncFolders: [],
+    syncFolderMode: 'include',
     syncInterval: 60,
     autoVoiceResponse: true,
     selectedChatModelId: null, // Will be populated from server
     availableChatModels: [],
+    coreMemoryFile: '', // NEW: default blank
 }
 
 export class KhojSettingTab extends PluginSettingTab {
@@ -203,6 +207,33 @@ export class KhojSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
+        // MOVE: Core Memory File setting to end of Interact section
+        new Setting(containerEl)
+            .setName('Core Memory File')
+            .setDesc('Specify a markdown file to always append as core memory for every chat. Leave blank for none.')
+            .addText(text => {
+                text.setPlaceholder('e.g. _khoj-memory/_khoj-00-core-memory.md')
+                    .setValue(this.plugin.settings.coreMemoryFile || '')
+                    .onChange(async (value) => {
+                        this.plugin.settings.coreMemoryFile = value.trim();
+                        await this.plugin.saveSettings();
+                    });
+                // Store reference to text input for use in button callback
+                (this as any)._coreMemoryTextInput = text;
+            })
+            .addButton(button => {
+                button.setButtonText('Pick File')
+                    .onClick(() => {
+                        new FileSuggestModal(this.app, (file: string) => {
+                            this.plugin.settings.coreMemoryFile = file;
+                            // Use the closure variable to set the value
+                            const text = (this as any)._coreMemoryTextInput;
+                            if (text) text.setValue(file);
+                            this.plugin.saveSettings();
+                        }).open();
+                    });
+            });
+
         // Add new "Sync" heading
         containerEl.createEl('h3', { text: 'Sync' });
 
@@ -274,8 +305,25 @@ export class KhojSettingTab extends PluginSettingTab {
         // Add setting to manage sync folders
         const syncFoldersContainer = containerEl.createDiv('sync-folders-container');
         new Setting(syncFoldersContainer)
+            .setName('Sync Folder Mode')
+            .setDesc('Choose whether to include only the listed folders, or exclude them from syncing.')
+            .addDropdown(dropdown => dropdown
+                .addOptions({
+                    'include': 'Include only these folders',
+                    'exclude': 'Exclude these folders',
+                })
+                .setValue(this.plugin.settings.syncFolderMode)
+                .onChange(async (value: 'include' | 'exclude') => {
+                    this.plugin.settings.syncFolderMode = value;
+                    await this.plugin.saveSettings();
+                    this.updateFolderList(folderListEl);
+                })
+            );
+        new Setting(syncFoldersContainer)
             .setName('Sync Folders')
-            .setDesc('Specify folders to sync (leave empty to sync entire vault)')
+            .setDesc(this.plugin.settings.syncFolderMode === 'exclude' ?
+                'Specify folders to exclude from syncing (leave empty to sync entire vault)' :
+                'Specify folders to exclude (leave empty to sync entire vault)')
             .addButton(button => button
                 .setButtonText('Add Folder')
                 .onClick(() => {
@@ -444,7 +492,9 @@ export class KhojSettingTab extends PluginSettingTab {
         containerEl.empty();
         if (this.plugin.settings.syncFolders.length === 0) {
             containerEl.createEl('div', {
-                text: 'Syncing entire vault',
+                text: this.plugin.settings.syncFolderMode === 'exclude' ?
+                    'Syncing entire vault except excluded folders' :
+                    'Syncing entire vault',
                 cls: 'folder-list-empty'
             });
             return;
@@ -514,5 +564,31 @@ class FolderSuggestModal extends SuggestModal<string> {
         });
 
         return Array.from(folders).sort();
+    }
+}
+
+// Modal with file suggestions (markdown only)
+class FileSuggestModal extends SuggestModal<string> {
+    constructor(app: App, private onChoose: (file: string) => void) {
+        super(app);
+    }
+    getSuggestions(query: string): string[] {
+        const files = this.getAllMarkdownFiles();
+        if (!query) return files;
+        return files.filter(file => file.toLowerCase().includes(query.toLowerCase()));
+    }
+    renderSuggestion(file: string, el: HTMLElement) {
+        el.createSpan({ text: file, cls: 'file-suggest-item' });
+    }
+    onChooseSuggestion(file: string, _: MouseEvent | KeyboardEvent) {
+        this.onChoose(file);
+        this.close(); // Ensure modal closes after selection
+    }
+    onClose() {
+        // Ensure modal can always be closed with X or clicking out
+        super.onClose();
+    }
+    private getAllMarkdownFiles(): string[] {
+        return this.app.vault.getMarkdownFiles().map(f => f.path).sort();
     }
 }

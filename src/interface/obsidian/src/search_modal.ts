@@ -118,7 +118,8 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.value = opt.value;
-            checkbox.checked = false;
+            checkbox.checked = true;
+            this.fileTypeCheckboxes[opt.value] = checkbox;
             label.appendChild(checkbox);
             label.appendChild(document.createTextNode(opt.label));
             fileTypeRow.appendChild(label);
@@ -201,9 +202,14 @@ export class KhojSearchModal extends SuggestModal<SearchResult> {
                 `&n=${this.setting.resultsCount}` +
                 `&r=${this.rerank}` +
                 `&client=obsidian` +
-                `&filename_prefix_mode=${filename_prefix_mode}` +
-                (filename_prefix ? `&filename_prefix=${encodeURIComponent(filename_prefix)}` : '') +
-                (file_extensions.length > 0 ? `&file_extension=${encodeURIComponent(file_extensions.join(','))}` : '');
+                `&filename_prefix_mode=${filename_prefix_mode}`;
+            // Always send filename_prefix if mode is not 'include'
+            if (filename_prefix_mode !== 'include') {
+                searchUrl += `&filename_prefix=${encodeURIComponent(filename_prefix)}`;
+            }
+            if (file_extensions.length > 0) {
+                searchUrl += `&file_extension=${encodeURIComponent(file_extensions.join(','))}`;
+            }
             let headers = {
                 'Authorization': `Bearer ${this.setting.khojApiKey}`,
             }

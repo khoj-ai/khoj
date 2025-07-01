@@ -2,7 +2,7 @@ import { ItemView, MarkdownRenderer, Scope, WorkspaceLeaf, request, requestUrl, 
 import * as DOMPurify from 'isomorphic-dompurify';
 import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
-import { KhojView, createCopyParentText, getLinkToEntry, pasteTextAtCursor } from 'src/utils';
+import { KhojView, createCopyParentText, getLinkToEntry, pasteTextAtCursor, getVaultAbsolutePath } from 'src/utils';
 import { KhojSearchModal } from 'src/search_modal';
 import { FileInteractions, EditBlock } from 'src/interact_with_files';
 
@@ -414,8 +414,8 @@ export class KhojChatView extends KhojPaneView {
         fileFilterDropdown.style.marginTop = '';
         const fileFilterOptions = [
           { label: 'include all', value: 'include:' },
-          { label: 'exclude khoj', value: 'exclude:_khoj' },
-          { label: 'only khoj', value: 'only:_khoj' },
+          { label: 'exclude _khoj', value: 'exclude:_khoj' },
+          { label: 'only _khoj', value: 'only:_khoj' },
           { label: 'exclude underscored', value: 'exclude:_' },
         ];
         fileFilterOptions.forEach(opt => {
@@ -1603,8 +1603,29 @@ export class KhojChatView extends KhojPaneView {
         const modeCommand = modeMatch ? query.substring(0, modeMatch.command.length) : '';
         const queryWithoutMode = modeMatch ? query.substring(modeMatch.command.length).trim() : query;
 
-        // Combine mode, query and files content
+        // Combine mode, query, and files content (core memory will be handled by backend)
         const finalQuery = modeCommand + (modeCommand ? ' ' : '') + queryWithoutMode + openFilesContent;
+
+        // Validate core memory file exists if specified
+        let coreMemoryFilePath = null;
+        if (this.setting.coreMemoryFile) {
+            const file = this.app.vault.getAbstractFileByPath(this.setting.coreMemoryFile);
+            if (!file || !(file instanceof TFile) || file.extension !== 'md') {
+                console.warn(`[Khoj] Core memory file not found or invalid: ${this.setting.coreMemoryFile}`);
+            } else {
+                // Get the absolute path to the file using the vault adapter
+                const vaultPath = getVaultAbsolutePath(this.app.vault);
+                const absolutePath = `${vaultPath}/${file.path}`;
+                coreMemoryFilePath = absolutePath;
+                console.log(`[Khoj] Core memory file found: ${this.setting.coreMemoryFile} -> ${absolutePath}`);
+            }
+        }
+
+        // Debug logging to see what's being sent
+        console.log('[Khoj] Final query being sent:', finalQuery);
+        console.log('[Khoj] Query without mode:', queryWithoutMode);
+        console.log('[Khoj] Open files content length:', openFilesContent.length);
+        console.log('[Khoj] Core memory file path:', coreMemoryFilePath);
 
         // Get chat response from Khoj backend
         const chatUrl = `${this.setting.khojUrl}/api/chat?client=obsidian`;
@@ -1619,6 +1640,7 @@ export class KhojChatView extends KhojPaneView {
             ...(!!this.location && this.location.countryName && { country: this.location.countryName }),
             ...(!!this.location && this.location.countryCode && { country_code: this.location.countryCode }),
             ...(!!this.location && this.location.timezone && { timezone: this.location.timezone }),
+            ...(coreMemoryFilePath && { core_memory_file: coreMemoryFilePath }),
         };
         if (filename_prefix_mode) body.filename_prefix_mode = filename_prefix_mode;
         if (filename_prefix) body.filename_prefix = filename_prefix;

@@ -428,8 +428,12 @@ async def save_to_conversation_log(
     if raw_query_files and len(raw_query_files) > 0:
         user_message_metadata["queryFiles"] = [file.model_dump(mode="json") for file in raw_query_files]
 
+    # Filter out core memory from references before saving to conversation history
+    # Core memory should influence responses but not appear as conversation history
+    filtered_references = [ref for ref in compiled_references if ref.get("type") != "core_memory"]
+
     khoj_message_metadata = {
-        "context": compiled_references,
+        "context": filtered_references,
         "intent": {"inferred-queries": inferred_queries, "type": intent_type},
         "onlineContext": online_results,
         "codeContext": code_results,

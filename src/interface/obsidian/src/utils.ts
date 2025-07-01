@@ -73,14 +73,21 @@ export async function updateContentIndex(vault: Vault, setting: KhojSetting, las
             if (fileTypeToExtension.image.includes(file.extension)) return setting.syncFileType.images;
             return false;
         })
-        // Filter files based on specified folders
+        // Filter files based on specified folders and mode
         .filter(file => {
             // If no folders are specified, sync all files
             if (setting.syncFolders.length === 0) return true;
-            // Otherwise, check if the file is in one of the specified folders
-            return setting.syncFolders.some(folder =>
-                file.path.startsWith(folder + '/') || file.path === folder
-            );
+            if (setting.syncFolderMode === 'exclude') {
+                // Exclude files in any of the listed folders
+                return !setting.syncFolders.some(folder =>
+                    file.path.startsWith(folder + '/') || file.path === folder
+                );
+            } else {
+                // Include only files in the listed folders
+                return setting.syncFolders.some(folder =>
+                    file.path.startsWith(folder + '/') || file.path === folder
+                );
+            }
         });
 
     let countOfFilesToIndex = 0;
