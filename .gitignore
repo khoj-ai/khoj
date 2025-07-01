@@ -14,7 +14,7 @@ __pycache__
 *.py[cod]
 .vscode
 .env
-.venv/
+.venv/*
 .obsidian
 todesktop.json
 
@@ -29,6 +29,8 @@ khoj_assistant.egg-info
 .pytest_cache
 *.log
 /src/khoj/static
+venv/
+.venv/
 
 # Obsidian plugin artifacts
 # ---
@@ -56,4 +58,3 @@ src/interface/android/*.apk
 src/interface/android/*.apk.idsig
 src/interface/android/*.keystore
 src/interface/android/local.properties
-venv/

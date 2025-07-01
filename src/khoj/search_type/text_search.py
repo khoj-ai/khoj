@@ -177,7 +177,7 @@ def deduplicated_search_responses(hits: List[SearchResponse], search_model=None)
         max_per_file = 3
         final_limit = 15
 
-        seen_compiled = set()
+    seen_compiled = set()
     diverse_results: List[SearchResponse] = []
 
     # First pass: collect all unique results
