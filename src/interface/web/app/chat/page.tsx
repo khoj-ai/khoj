@@ -1,7 +1,8 @@
 "use client";
 
 import styles from "./chat.module.css";
-import React, { Suspense, useEffect, useRef, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import useWebSocket from "react-use-websocket";
 
 import ChatHistory from "../components/chatHistory/chatHistory";
 import { useSearchParams } from "next/navigation";
@@ -205,13 +206,11 @@ export default function Chat() {
     const [uploadedFiles, setUploadedFiles] = useState<AttachedFileText[] | undefined>(undefined);
     const [images, setImages] = useState<string[]>([]);
 
-    const [abortMessageStreamController, setAbortMessageStreamController] =
-        useState<AbortController | null>(null);
     const [triggeredAbort, setTriggeredAbort] = useState(false);
     const [interruptMessage, setInterruptMessage] = useState<string>("");
     const [shouldSendWithInterrupt, setShouldSendWithInterrupt] = useState(false);
-    const socketRef = useRef<WebSocket | null>(null);
     const bufferRef = useRef("");
+    const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     const { locationData, locationDataError, locationDataLoading } = useIPLocationData() || {
         locationData: {
@@ -225,111 +224,56 @@ export default function Chat() {
     } = useAuthenticatedData();
     const isMobileWidth = useIsMobileWidth();
     const [isChatSideBarOpen, setIsChatSideBarOpen] = useState(false);
+    const [socketUrl, setSocketUrl] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetch("/api/chat/options")
-            .then((response) => response.json())
-            .then((data: ChatOptions) => {
-                setLoading(false);
-                // Render chat options, if any
-                if (data) {
-                    setChatOptionsData(data);
-                }
-            })
-            .catch((err) => {
-                console.error(err);
-                return;
-            });
-
-        welcomeConsole();
+    const disconnectFromServer = useCallback(() => {
+        if (idleTimerRef.current) {
+            clearTimeout(idleTimerRef.current);
+        }
+        setSocketUrl(null);
+        console.log("WebSocket disconnected due to inactivity.");
     }, []);
 
-    const handleTriggeredAbort = (value: boolean, newMessage?: string) => {
-        if (value) {
-            setInterruptMessage(newMessage || "");
+    const resetIdleTimer = useCallback(() => {
+        const idleTimeout = 10 * 60 * 1000; // 10 minutes
+        if (idleTimerRef.current) {
+            clearTimeout(idleTimerRef.current);
         }
-        setTriggeredAbort(value);
-    };
+        idleTimerRef.current = setTimeout(disconnectFromServer, idleTimeout);
+    }, [disconnectFromServer]);
 
-    useEffect(() => {
-        if (triggeredAbort) {
-            // For WebSocket connections, send interrupt message directly
-            if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-                const messageToSend = interruptMessage || queryToProcess;
-                socketRef.current.send(
-                    JSON.stringify({
-                        type: "interrupt",
-                        query: messageToSend,
-                    }),
-                );
-                console.log("Sent interrupt message via WebSocket:", messageToSend);
-
-                // Update the current message with the new query but keep it in processing state
-                setMessages((prevMessages) => {
-                    const newMessages = [...prevMessages];
-                    const currentMessage = newMessages[newMessages.length - 1];
-                    if (currentMessage && !currentMessage.completed) {
-                        currentMessage.rawQuery = messageToSend;
-                    }
-                    return newMessages;
-                });
-
-                // Update the query being processed
-                setQueryToProcess(messageToSend);
+    const { sendMessage, lastMessage } = useWebSocket(socketUrl, {
+        share: true,
+        shouldReconnect: (closeEvent) => true,
+        reconnectAttempts: 10,
+        // reconnect using exponential backoff with jitter
+        reconnectInterval: (attemptNumber) => {
+            const baseDelay = 1000 * Math.pow(2, attemptNumber);
+            const jitter = Math.random() * 1000; // Add jitter up to 1s
+            return Math.min(baseDelay + jitter, 20000); // Cap backoff at 20s
+        },
+        onOpen: () => {
+            console.log("WebSocket connection established.");
+            resetIdleTimer();
+        },
+        onClose: () => {
+            console.log("WebSocket connection closed.");
+            if (idleTimerRef.current) {
+                clearTimeout(idleTimerRef.current);
             }
-            setTriggeredAbort(false);
-            setInterruptMessage("");
-        }
-    }, [triggeredAbort, interruptMessage, queryToProcess]);
+        },
+    });
 
     useEffect(() => {
-        if (queryToProcess) {
-            const newStreamMessage: StreamMessage = {
-                rawResponse: "",
-                trainOfThought: [],
-                context: [],
-                onlineContext: {},
-                codeContext: {},
-                completed: false,
-                timestamp: new Date().toISOString(),
-                rawQuery: queryToProcess || "",
-                images: images,
-                queryFiles: uploadedFiles,
-            };
-            setMessages((prevMessages) => [...prevMessages, newStreamMessage]);
-            setProcessQuerySignal(true);
-        }
-    }, [queryToProcess]);
-
-    useEffect(() => {
-        if (processQuerySignal) {
-            if (locationDataLoading) {
-                return;
-            }
-
-            chat();
-        }
-    }, [processQuerySignal, locationDataLoading]);
-
-    useEffect(() => {
-        if (!conversationId) return;
-
-        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        const wsUrl = `${protocol}//${window.location.host}/api/chat/ws?client=web`;
-
-        const ws = new WebSocket(wsUrl);
-        socketRef.current = ws;
-
-        ws.onopen = () => {
-            console.log("WebSocket connection established");
-        };
-
-        ws.onmessage = (event) => {
+        if (lastMessage !== null) {
+            resetIdleTimer();
             // Check if this is a control message (JSON) rather than a streaming event
             try {
-                const controlMessage = JSON.parse(event.data);
+                const controlMessage = JSON.parse(lastMessage.data);
                 if (controlMessage.type === "interrupt_acknowledged") {
                     console.log("Interrupt acknowledged by server");
+                    setSocketUrl(null);
+                    setProcessQuerySignal(false);
                     return;
                 }
                 if (controlMessage.error) {
@@ -341,7 +285,7 @@ export default function Chat() {
             }
 
             const eventDelimiter = "␃🔚␗";
-            bufferRef.current += event.data;
+            bufferRef.current += lastMessage.data;
 
             let newEventIndex;
             while ((newEventIndex = bufferRef.current.indexOf(eventDelimiter)) !== -1) {
@@ -379,47 +323,105 @@ export default function Chat() {
                     });
                 }
             }
-        };
+        }
+    }, [lastMessage, setMessages]);
 
-        ws.onclose = () => {
-            console.log("WebSocket connection closed");
-            socketRef.current = null;
-        };
+    useEffect(() => {
+        fetch("/api/chat/options")
+            .then((response) => response.json())
+            .then((data: ChatOptions) => {
+                setLoading(false);
+                // Render chat options, if any
+                if (data) {
+                    setChatOptionsData(data);
+                }
+            })
+            .catch((err) => {
+                console.error(err);
+                return;
+            });
 
-        ws.onerror = (error) => {
-            console.error("WebSocket error:", error);
+        welcomeConsole();
+    }, []);
+
+    const handleTriggeredAbort = (value: boolean, newMessage?: string) => {
+        if (value) {
+            setInterruptMessage(newMessage || "");
+        }
+        setTriggeredAbort(value);
+    };
+
+    useEffect(() => {
+        if (triggeredAbort) {
+            sendMessage(
+                JSON.stringify({
+                    type: "interrupt",
+                    query: interruptMessage,
+                }),
+            );
+            console.log("Sent interrupt message via WebSocket:", interruptMessage);
+
+            // Update the current message with the new query but keep it in processing state
+            const messageToProcess = interruptMessage || queryToProcess;
             setMessages((prevMessages) => {
                 const newMessages = [...prevMessages];
                 const currentMessage = newMessages[newMessages.length - 1];
                 if (currentMessage && !currentMessage.completed) {
-                    currentMessage.rawResponse = `A WebSocket error occurred. Please check the connection or try again.`;
-                    currentMessage.completed = true;
+                    currentMessage.rawQuery = messageToProcess;
+                    currentMessage.completed = !!interruptMessage;
                 }
-
-                setQueryToProcess("");
-                setProcessQuerySignal(false);
-
                 return newMessages;
             });
-            socketRef.current = null;
-        };
+
+            // Update the query being processed
+            setQueryToProcess(messageToProcess);
+            setTriggeredAbort(!!interruptMessage);
+            setInterruptMessage("");
+        }
+    }, [triggeredAbort, interruptMessage, queryToProcess, sendMessage]);
+
+    useEffect(() => {
+        if (queryToProcess) {
+            const newStreamMessage: StreamMessage = {
+                rawResponse: "",
+                trainOfThought: [],
+                context: [],
+                onlineContext: {},
+                codeContext: {},
+                completed: false,
+                timestamp: new Date().toISOString(),
+                rawQuery: queryToProcess || "",
+                images: images,
+                queryFiles: uploadedFiles,
+            };
+            setMessages((prevMessages) => [...prevMessages, newStreamMessage]);
+            setProcessQuerySignal(true);
+        }
+    }, [queryToProcess]);
+
+    useEffect(() => {
+        if (processQuerySignal) {
+            if (locationDataLoading) {
+                return;
+            }
+
+            chat();
+        }
+    }, [processQuerySignal, locationDataLoading]);
+
+    useEffect(() => {
+        if (!conversationId) return;
+
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${protocol}//${window.location.host}/api/chat/ws?client=web`;
+        setSocketUrl(wsUrl);
 
         return () => {
-            if (socketRef.current) {
-                socketRef.current.close();
+            if (idleTimerRef.current) {
+                clearTimeout(idleTimerRef.current);
             }
         };
     }, [conversationId]);
-
-    function handleAbortedMessage() {
-        // TODO: Implement WebSocket abort logic
-        const currentMessage = messages.find((message) => !message.completed);
-        if (!currentMessage) return;
-
-        currentMessage.completed = true;
-        setMessages([...messages]);
-        setProcessQuerySignal(false);
-    }
 
     async function chat() {
         localStorage.removeItem("message");
@@ -428,33 +430,12 @@ export default function Chat() {
             return;
         }
 
-        // Wait for WebSocket connection to be established (with timeout)
-        const maxWaitTime = 5000; // 5 seconds
-        const pollInterval = 100; // 100ms
-        let waitTime = 0;
-
-        while (
-            (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) &&
-            waitTime < maxWaitTime
-        ) {
-            await new Promise((resolve) => setTimeout(resolve, pollInterval));
-            waitTime += pollInterval;
-        }
-
-        if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
-            console.error("WebSocket connection timeout.");
-            setMessages((prevMessages) => {
-                const newMessages = [...prevMessages];
-                const currentMessage = newMessages[newMessages.length - 1];
-                if (currentMessage && !currentMessage.completed) {
-                    currentMessage.rawResponse =
-                        "Failed to connect to the server. Please check your connection and try again.";
-                    currentMessage.completed = true;
-                }
-                return newMessages;
-            });
-            setProcessQuerySignal(false);
-            return;
+        // Re-establish WebSocket connection if disconnected
+        resetIdleTimer();
+        if (!socketUrl) {
+            const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+            const wsUrl = `${protocol}//${window.location.host}/api/chat/ws?client=web`;
+            setSocketUrl(wsUrl);
         }
 
         const chatAPIBody = {
@@ -476,7 +457,7 @@ export default function Chat() {
         // Reset the flag after using it
         setShouldSendWithInterrupt(false);
 
-        socketRef.current.send(JSON.stringify(chatAPIBody));
+        sendMessage(JSON.stringify(chatAPIBody));
     }
 
     const handleConversationIdChange = (newConversationId: string) => {
