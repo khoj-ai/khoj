@@ -1,5 +1,5 @@
-""" Main module for Khoj
-   isort:skip_file
+"""Main module for Khoj
+isort:skip_file
 """
 
 from contextlib import redirect_stdout

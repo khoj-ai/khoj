@@ -30,6 +30,7 @@ processor:
 search-type:
     ...
 """
+
 from khoj.utils.yaml import load_config_from_file, save_config_to_file
 
 

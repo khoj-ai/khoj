@@ -33,6 +33,7 @@ processor:
 search-type:
     ...
 """
+
 import logging
 
 from packaging import version

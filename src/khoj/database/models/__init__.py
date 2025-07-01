@@ -542,6 +542,17 @@ class SearchModelConfig(DbBaseModel):
     # The confidence threshold of the bi_encoder model to consider the embeddings as relevant
     bi_encoder_confidence_threshold = models.FloatField(default=0.18)
 
+    # Diversity settings for search results
+    search_diversity_max_results = models.IntegerField(
+        default=25, help_text="Maximum number of results to retrieve before diversity sampling"
+    )
+    search_diversity_max_per_file = models.IntegerField(
+        default=3, help_text="Maximum number of results to include per file to promote diversity"
+    )
+    search_diversity_final_limit = models.IntegerField(
+        default=15, help_text="Final limit on number of diverse results to return"
+    )
+
     def __str__(self):
         return self.name
 

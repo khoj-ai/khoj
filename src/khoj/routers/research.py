@@ -250,7 +250,7 @@ async def research(
     query_files: str = None,
     cancellation_event: Optional[asyncio.Event] = None,
 ):
-    max_document_searches = 7
+    max_document_searches = 12
     max_online_searches = 3
     max_webpages_to_read = 1
     current_iteration = 0

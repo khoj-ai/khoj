@@ -122,8 +122,8 @@ async def query(
         with timer("Query Encode Time", logger, state.device):
             question_embedding = state.embeddings_model[search_model.name].embed_query(query)
 
-    # Find relevant entries for the query
-    top_k = 10
+    # Find relevant entries for the query - use configurable diversity settings
+    top_k = search_model.search_diversity_max_results
     with timer("Search Time", logger, state.device):
         hits = EntryAdapters.search_with_embeddings(
             raw_query=raw_query,
@@ -164,28 +164,78 @@ def collate_results(hits, dedupe=True):
             )
 
 
-def deduplicated_search_responses(hits: List[SearchResponse]):
-    hit_ids = set()
-    for hit in hits:
-        if hit.additional["compiled"] in hit_ids:
-            continue
+def deduplicated_search_responses(hits: List[SearchResponse], search_model=None):
+    """
+    Deduplicate search results while promoting diversity across files and reducing semantic redundancy.
+    Prioritizes results from different files and with different content.
+    """
+    # Get diversity settings from search model config or use defaults
+    if search_model:
+        max_per_file = search_model.search_diversity_max_per_file
+        final_limit = search_model.search_diversity_final_limit
+    else:
+        max_per_file = 3
+        final_limit = 15
 
-        else:
-            hit_ids.add(hit.additional["compiled"])
-            yield SearchResponse.model_validate(
-                {
-                    "entry": hit.entry,
-                    "score": hit.score,
-                    "corpus_id": hit.corpus_id,
-                    "additional": {
-                        "source": hit.additional["source"],
-                        "file": hit.additional["file"],
-                        "query": hit.additional["query"],
-                        "compiled": hit.additional["compiled"],
-                        "heading": hit.additional["heading"],
-                    },
-                }
-            )
+    seen_compiled = set()
+    diverse_results = []
+
+    # First pass: collect all unique results
+    unique_hits = []
+    for hit in hits:
+        if hit.additional["compiled"] not in seen_compiled:
+            seen_compiled.add(hit.additional["compiled"])
+            unique_hits.append(hit)
+
+    # Second pass: promote diversity by prioritizing different files
+    file_groups = {}
+    for hit in unique_hits:
+        file_path = hit.additional["file"]
+        if file_path not in file_groups:
+            file_groups[file_path] = []
+        file_groups[file_path].append(hit)
+
+    # Sort files by their best result score
+    sorted_files = sorted(file_groups.items(), key=lambda x: min(hit.score for hit in x[1]))
+
+    # Take top results from each file, prioritizing files with better scores
+    for file_path, file_hits in sorted_files:
+        if len(diverse_results) >= final_limit:
+            break
+
+        # Sort hits within file by score and take top ones
+        file_hits.sort(key=lambda x: x.score)
+        for hit in file_hits[:max_per_file]:
+            if len(diverse_results) >= final_limit:
+                break
+            diverse_results.append(hit)
+
+    # If we don't have enough diverse results, add more from the best files
+    min_results = min(10, final_limit)
+    if len(diverse_results) < min_results:
+        for file_path, file_hits in sorted_files:
+            if len(diverse_results) >= min_results:
+                break
+            for hit in file_hits:
+                if hit not in diverse_results and len(diverse_results) < min_results:
+                    diverse_results.append(hit)
+
+    # Yield results in order
+    for hit in diverse_results:
+        yield SearchResponse.model_validate(
+            {
+                "entry": hit.entry,
+                "score": hit.score,
+                "corpus_id": hit.corpus_id,
+                "additional": {
+                    "source": hit.additional["source"],
+                    "file": hit.additional["file"],
+                    "query": hit.additional["query"],
+                    "compiled": hit.additional["compiled"],
+                    "heading": hit.additional["heading"],
+                },
+            }
+        )
 
 
 def rerank_and_sort_results(hits, query, rank_results, search_model_name):

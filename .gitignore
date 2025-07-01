@@ -14,7 +14,7 @@ __pycache__
 *.py[cod]
 .vscode
 .env
-.venv/*
+.venv/
 .obsidian
 todesktop.json
 
@@ -56,3 +56,4 @@ src/interface/android/*.apk
 src/interface/android/*.apk.idsig
 src/interface/android/*.keystore
 src/interface/android/local.properties
+venv/

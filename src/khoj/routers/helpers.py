@@ -1257,7 +1257,9 @@ async def search_documents(
                 item.additional["query"] = query
                 search_results.append(item)
 
-        search_results = text_search.deduplicated_search_responses(search_results)
+        # Get search model for diversity configuration
+        search_model = await sync_to_async(get_default_search_model)()
+        search_results = text_search.deduplicated_search_responses(search_results, search_model)
         compiled_references = [
             {
                 "query": item.additional["query"],
