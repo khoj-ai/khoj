@@ -1,7 +1,7 @@
 import logging
 import math
 from pathlib import Path
-from typing import List, Optional, Tuple, Type, Union
+from typing import Dict, List, Optional, Tuple, Type, Union
 
 import requests
 import torch
@@ -177,8 +177,8 @@ def deduplicated_search_responses(hits: List[SearchResponse], search_model=None)
         max_per_file = 3
         final_limit = 15
 
-    seen_compiled = set()
-    diverse_results = []
+        seen_compiled = set()
+    diverse_results: List[SearchResponse] = []
 
     # First pass: collect all unique results
     unique_hits = []
@@ -188,7 +188,7 @@ def deduplicated_search_responses(hits: List[SearchResponse], search_model=None)
             unique_hits.append(hit)
 
     # Second pass: promote diversity by prioritizing different files
-    file_groups = {}
+    file_groups: Dict[str, List[SearchResponse]] = {}
     for hit in unique_hits:
         file_path = hit.additional["file"]
         if file_path not in file_groups:
