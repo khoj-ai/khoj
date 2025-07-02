@@ -411,8 +411,7 @@ div.selected-conversation {
 
 .khoj-input-row {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+    flex-direction: column;
     background-color: var(--background-secondary-alt, var(--background-secondary));
     border-radius: 16px;
     padding: 8px 16px;
@@ -423,6 +422,12 @@ div.selected-conversation {
     margin-top: 0px;
     margin-bottom: 0px;
     transform: none;
+    gap: 0;
+}
+
+.khoj-input-row > *:not(.khoj-file-filter-container) {
+    display: flex;
+    align-items: center;
     gap: 8px;
 }
 
@@ -453,12 +458,21 @@ div.selected-conversation {
     align-self: flex-start;
 }
 
+.khoj-file-filter-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
 .khoj-file-type-checkboxes {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 4px;
-    order: 3;
 }
 
 .khoj-file-type-checkboxes label {
@@ -492,7 +506,6 @@ div.selected-conversation {
     cursor: pointer;
     outline: none;
     transition: background-color 0.2s ease;
-    order: 4;
 }
 
 .khoj-file-filter-dropdown:hover {
@@ -860,11 +873,14 @@ div.khoj-logo:hover {
         padding: 8px;
     }
 
+    .khoj-file-filter-container {
+        flex-direction: column;
+        gap: 8px;
+        align-items: stretch;
+    }
+
     .khoj-file-type-checkboxes {
-        order: 3;
-        width: 100%;
         justify-content: center;
-        margin-top: 4px;
     }
 
     .khoj-file-type-checkboxes label {
@@ -873,10 +889,7 @@ div.khoj-logo:hover {
     }
 
     .khoj-file-filter-dropdown {
-        order: 4;
-        width: 100%;
         text-align: center;
-        margin-top: 4px;
         font-size: 11px;
     }
 }

@@ -423,9 +423,22 @@ export class KhojChatView extends KhojPaneView {
         fileFilterDropdown.value = 'exclude:_khoj'; // Explicitly set default for chat
         this.fileFilterDropdown = fileFilterDropdown;
 
-        // Add file filter elements directly to the input row
-        inputRow.appendChild(fileTypeContainer);
-        inputRow.appendChild(fileFilterDropdown);
+        // Create a container for file filter elements
+        const fileFilterContainer = document.createElement('div');
+        fileFilterContainer.className = 'khoj-file-filter-container';
+        fileFilterContainer.style.display = 'flex';
+        fileFilterContainer.style.alignItems = 'center';
+        fileFilterContainer.style.justifyContent = 'space-between';
+        fileFilterContainer.style.width = '100%';
+        fileFilterContainer.style.marginTop = '8px';
+        fileFilterContainer.style.paddingTop = '8px';
+        fileFilterContainer.style.borderTop = '1px solid var(--background-modifier-border)';
+
+        fileFilterContainer.appendChild(fileTypeContainer);
+        fileFilterContainer.appendChild(fileFilterDropdown);
+
+        // Add file filter container to the input row
+        inputRow.appendChild(fileFilterContainer);
     }
 
     startSpeechToText(event: KeyboardEvent | MouseEvent | TouchEvent, timeout = 200) {
