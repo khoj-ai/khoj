@@ -379,15 +379,11 @@ export class KhojChatView extends KhojPaneView {
         });
 
         // File type checkboxes (group images)
-        const fileFilterRow = document.createElement('div');
-        fileFilterRow.style.display = 'flex';
-        fileFilterRow.style.alignItems = 'center';
-        fileFilterRow.style.marginTop = '8px';
-
         const fileTypeContainer = document.createElement('div');
         fileTypeContainer.className = 'khoj-file-type-checkboxes';
         fileTypeContainer.style.flex = '1';
-        fileTypeContainer.style.marginBottom = '';
+        fileTypeContainer.style.marginLeft = '8px';
+        fileTypeContainer.style.marginRight = '8px';
         const fileTypeOptions = [
           { label: '.md', value: '.md' },
           { label: '.pdf', value: '.pdf' },
@@ -410,8 +406,8 @@ export class KhojChatView extends KhojPaneView {
         const fileFilterDropdown = document.createElement('select');
         fileFilterDropdown.className = 'khoj-file-filter-dropdown';
         fileFilterDropdown.style.width = '140px'; // Make dropdown skinnier
-        fileFilterDropdown.style.marginLeft = '16px'; // Add space to the left
-        fileFilterDropdown.style.marginTop = '';
+        fileFilterDropdown.style.marginLeft = '8px';
+        fileFilterDropdown.style.marginRight = '8px';
         const fileFilterOptions = [
           { label: 'include all', value: 'include:' },
           { label: 'exclude _khoj', value: 'exclude:_khoj' },
@@ -427,13 +423,9 @@ export class KhojChatView extends KhojPaneView {
         fileFilterDropdown.value = 'exclude:_khoj'; // Explicitly set default for chat
         this.fileFilterDropdown = fileFilterDropdown;
 
-        fileFilterRow.appendChild(fileTypeContainer);
-        fileFilterRow.appendChild(fileFilterDropdown);
-
-        // Insert controls below the input row (after all main chat controls)
-        if (inputRow && inputRow.parentElement) {
-          inputRow.parentElement.insertBefore(fileFilterRow, inputRow.nextSibling);
-        }
+        // Add file filter elements directly to the input row
+        inputRow.appendChild(fileTypeContainer);
+        inputRow.appendChild(fileFilterDropdown);
     }
 
     startSpeechToText(event: KeyboardEvent | MouseEvent | TouchEvent, timeout = 200) {

@@ -411,11 +411,11 @@ div.selected-conversation {
 
 .khoj-input-row {
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
     background-color: var(--background-secondary-alt, var(--background-secondary));
     border-radius: 16px;
-    padding: 4px 16px;
+    padding: 8px 16px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
     transition: all 0.3s ease;
     position: relative;
@@ -423,6 +423,7 @@ div.selected-conversation {
     margin-top: 0px;
     margin-bottom: 0px;
     transform: none;
+    gap: 8px;
 }
 
 /* Add focus effect */
@@ -450,6 +451,56 @@ div.selected-conversation {
     overflow: hidden;
     transition: none;
     align-self: flex-start;
+}
+
+.khoj-file-type-checkboxes {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    order: 3;
+}
+
+.khoj-file-type-checkboxes label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--font-ui-small);
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.khoj-file-type-checkboxes label:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+.khoj-file-type-checkboxes input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+}
+
+.khoj-file-filter-dropdown {
+    background: transparent;
+    border: none;
+    color: var(--text-normal);
+    font-size: var(--font-ui-small);
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    outline: none;
+    transition: background-color 0.2s ease;
+    order: 4;
+}
+
+.khoj-file-filter-dropdown:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+.khoj-file-filter-dropdown:focus {
+    background-color: var(--background-modifier-active);
 }
 
 .khoj-input-row-button {
@@ -807,6 +858,26 @@ div.khoj-logo:hover {
 
     .reference {
         padding: 8px;
+    }
+
+    .khoj-file-type-checkboxes {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+        margin-top: 4px;
+    }
+
+    .khoj-file-type-checkboxes label {
+        font-size: 11px;
+        padding: 1px 4px;
+    }
+
+    .khoj-file-filter-dropdown {
+        order: 4;
+        width: 100%;
+        text-align: center;
+        margin-top: 4px;
+        font-size: 11px;
     }
 }
 
