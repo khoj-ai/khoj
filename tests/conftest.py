@@ -14,6 +14,7 @@ from khoj.configure import (
 from khoj.database.models import (
     Agent,
     ChatModel,
+    FileObject,
     GithubConfig,
     GithubRepoConfig,
     KhojApiUser,
@@ -299,6 +300,15 @@ def chat_client_no_background(search_config: SearchConfig, default_user2: KhojUs
     return chat_client_builder(search_config, default_user2, index_content=False, require_auth=False)
 
 
+@pytest.fixture(scope="function")
+def chat_client_with_large_kb(search_config: SearchConfig, default_user2: KhojUser):
+    """
+    Chat client fixture that creates a large knowledge base with many files
+    for stress testing atomic agent updates.
+    """
+    return large_kb_chat_client_builder(search_config, default_user2)
+
+
 @pytest.mark.django_db
 def chat_client_builder(search_config, user, index_content=True, require_auth=False):
     # Initialize app state
@@ -337,6 +347,127 @@ def chat_client_builder(search_config, user, index_content=True, require_auth=Fa
     configure_middleware(app)
     app.mount("/static", StaticFiles(directory=web_directory), name="static")
     return TestClient(app)
+
+
+@pytest.mark.django_db
+def large_kb_chat_client_builder(search_config, user):
+    """
+    Build a chat client with a large knowledge base for stress testing.
+    Creates 200+ markdown files with substantial content.
+    """
+    import os
+    import shutil
+    import tempfile
+
+    # Initialize app state
+    state.config.search_type = search_config
+    state.SearchType = configure_search_types()
+
+    # Create temporary directory for large number of test files
+    temp_dir = tempfile.mkdtemp(prefix="khoj_test_large_kb_")
+    large_file_list = []
+
+    try:
+        # Generate 200 test files with substantial content
+        for i in range(300):
+            file_path = os.path.join(temp_dir, f"test_file_{i:03d}.markdown")
+            content = f"""
+# Test File {i}
+
+This is test file {i} with substantial content for stress testing agent knowledge base updates.
+
+## Section 1: Introduction
+This section introduces the topic of file {i}. It contains enough text to create meaningful
+embeddings and entries in the database for realistic testing.
+
+## Section 2: Technical Details
+Technical content for file {i}:
+- Implementation details
+- Best practices
+- Code examples
+- Architecture notes
+
+## Section 3: Code Examples
+```python
+def example_function_{i}():
+    '''Example function from file {i}'''
+    return f"Result from file {i}"
+
+class TestClass{i}:
+    def __init__(self):
+        self.value = {i}
+        self.data = [f"item_{{j}}" for j in range(10)]
+
+    def process(self):
+        return f"Processing {{len(self.data)}} items from file {i}"
+```
+
+## Section 4: Additional Content
+More substantial content to make the files realistic and ensure proper
+database entry creation during content processing.
+
+File statistics:
+- File number: {i}
+- Content sections: 4
+- Code examples: Yes
+- Purpose: Stress testing atomic agent updates
+
+{'Additional padding content. ' * 20}
+
+End of file {i}.
+"""
+            with open(file_path, "w") as f:
+                f.write(content)
+            large_file_list.append(file_path)
+
+        # Create LocalMarkdownConfig with all the generated files
+        LocalMarkdownConfig.objects.create(
+            input_files=large_file_list,
+            input_filter=None,
+            user=user,
+        )
+
+        # Index all the files into the user's knowledge base
+        all_files = fs_syncer.collect_files(user=user)
+        configure_content(user, all_files)
+
+        # Verify we have a substantial knowledge base
+        file_count = FileObject.objects.filter(user=user, agent=None).count()
+        if file_count < 150:
+            raise RuntimeError(f"Large KB fixture failed: only {file_count} files indexed, expected at least 150")
+
+    except Exception as e:
+        # Cleanup on error
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+        raise e
+
+    # Initialize chat processor
+    chat_provider = get_chat_provider()
+    online_chat_model = None
+    if chat_provider == ChatModel.ModelType.OPENAI:
+        online_chat_model = ChatModelFactory(name="gpt-4o-mini", model_type="openai")
+    elif chat_provider == ChatModel.ModelType.GOOGLE:
+        online_chat_model = ChatModelFactory(name="gemini-2.0-flash", model_type="google")
+    elif chat_provider == ChatModel.ModelType.ANTHROPIC:
+        online_chat_model = ChatModelFactory(name="claude-3-5-haiku-20241022", model_type="anthropic")
+
+    if online_chat_model:
+        online_chat_model.ai_model_api = AiModelApiFactory(api_key=get_chat_api_key(chat_provider))
+        UserConversationProcessorConfigFactory(user=user, setting=online_chat_model)
+
+    state.anonymous_mode = False
+
+    app = FastAPI()
+    configure_routes(app)
+    configure_middleware(app)
+    app.mount("/static", StaticFiles(directory=web_directory), name="static")
+
+    # Store temp_dir for cleanup (though Django test cleanup should handle it)
+    client = TestClient(app)
+    client._temp_dir = temp_dir  # Store for potential cleanup
+
+    return client
 
 
 @pytest.fixture(scope="function")
