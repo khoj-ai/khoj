@@ -434,17 +434,6 @@ async def update_agent(
 ) -> Response:
     user: KhojUser = request.user.object
 
-    is_safe_prompt, reason = await acheck_if_safe_prompt(
-        body.persona, user, lax=body.privacy_level == Agent.PrivacyLevel.PRIVATE
-    )
-
-    if not is_safe_prompt:
-        return Response(
-            content=json.dumps({"error": f"{reason}"}),
-            media_type="application/json",
-            status_code=400,
-        )
-
     selected_agent = await AgentAdapters.aget_agent_by_slug(body.slug, user)
 
     if not selected_agent:
@@ -453,6 +442,19 @@ async def update_agent(
             media_type="application/json",
             status_code=404,
         )
+
+    if selected_agent.personality != body.persona:
+        # Check if the new persona is safe
+        is_safe_prompt, reason = await acheck_if_safe_prompt(
+            body.persona, user, lax=body.privacy_level == Agent.PrivacyLevel.PRIVATE
+        )
+
+        if not is_safe_prompt:
+            return Response(
+                content=json.dumps({"error": f"{reason}"}),
+                media_type="application/json",
+                status_code=400,
+            )
 
     subscribed = has_required_scope(request, ["premium"])
     chat_model = await ConversationAdapters.aget_chat_model_by_friendly_name(body.chat_model)
