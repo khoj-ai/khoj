@@ -34,9 +34,6 @@ def cli(args=None):
     parser.add_argument("--sslkey", type=str, help="Path to SSL key file")
     parser.add_argument("--version", "-V", action="store_true", help="Print the installed Khoj version and exit")
     parser.add_argument(
-        "--disable-chat-on-gpu", action="store_true", default=False, help="Disable using GPU for the offline chat model"
-    )
-    parser.add_argument(
         "--anonymous-mode",
         action="store_true",
         default=False,
@@ -53,9 +50,6 @@ def cli(args=None):
 
     if len(remaining_args) > 0:
         logger.info(f"⚠️  Ignoring unknown commandline args: {remaining_args}")
-
-    # Set default values for arguments
-    args.chat_on_gpu = not args.disable_chat_on_gpu
 
     args.version_no = version("khoj")
     if args.version:

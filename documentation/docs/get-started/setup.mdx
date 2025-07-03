@@ -18,10 +18,6 @@ import TabItem from '@theme/TabItem';
 These are the general setup instructions for self-hosted Khoj.
 You can install the Khoj server using either [Docker](?server=docker) or [Pip](?server=pip).
 
-:::info[Offline Model + GPU]
-To use the offline chat model with your GPU, we recommend using the Docker setup with Ollama . You can also use the local Khoj setup via the Python package directly.
-:::
-
 :::info[First Run]
 Restart your Khoj server after the first run to ensure all settings are applied correctly.
 :::
@@ -224,10 +220,6 @@ To start Khoj automatically in the background use [Task scheduler](https://www.w
 
 You can now open the web app at http://localhost:42110 and start interacting!<br />
 Nothing else is necessary, but you can customize your setup further by following the steps below.
-
-:::info[First Message to Offline Chat Model]
-The offline chat model gets downloaded when you first send a message to it. The download can take a few minutes! Subsequent messages should be faster.
-:::
 
 ### Add Chat Models
 <h4>Login to the Khoj Admin Panel</h4>

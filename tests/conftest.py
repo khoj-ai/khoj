@@ -198,17 +198,6 @@ def default_openai_chat_model_option():
 
 @pytest.mark.django_db
 @pytest.fixture
-def offline_agent():
-    chat_model = ChatModelFactory()
-    return Agent.objects.create(
-        name="Accountant",
-        chat_model=chat_model,
-        personality="You are a certified CPA. You are able to tell me how much I've spent based on my notes. Regardless of what I ask, you should always respond with the total amount I've spent. ALWAYS RESPOND WITH A SUMMARY TOTAL OF HOW MUCH MONEY I HAVE SPENT.",
-    )
-
-
-@pytest.mark.django_db
-@pytest.fixture
 def openai_agent():
     chat_model = ChatModelFactory(name="gpt-4o-mini", model_type="openai")
     return Agent.objects.create(
@@ -510,40 +499,6 @@ def client(
     state.anonymous_mode = False
 
     app = FastAPI()
-    configure_routes(app)
-    configure_middleware(app)
-    app.mount("/static", StaticFiles(directory=web_directory), name="static")
-    return TestClient(app)
-
-
-@pytest.fixture(scope="function")
-def client_offline_chat(search_config: SearchConfig, default_user2: KhojUser):
-    # Initialize app state
-    state.config.search_type = search_config
-    state.SearchType = configure_search_types()
-
-    LocalMarkdownConfig.objects.create(
-        input_files=None,
-        input_filter=["tests/data/markdown/*.markdown"],
-        user=default_user2,
-    )
-
-    all_files = fs_syncer.collect_files(user=default_user2)
-    configure_content(default_user2, all_files)
-
-    # Initialize Processor from Config
-    ChatModelFactory(
-        name="bartowski/Meta-Llama-3.1-3B-Instruct-GGUF",
-        tokenizer=None,
-        max_prompt_size=None,
-        model_type="offline",
-    )
-    UserConversationProcessorConfigFactory(user=default_user2)
-
-    state.anonymous_mode = True
-
-    app = FastAPI()
-
     configure_routes(app)
     configure_middleware(app)
     app.mount("/static", StaticFiles(directory=web_directory), name="static")

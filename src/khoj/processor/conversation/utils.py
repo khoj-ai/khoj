@@ -18,8 +18,6 @@ import requests
 import tiktoken
 import yaml
 from langchain_core.messages.chat import ChatMessage
-from llama_cpp import LlamaTokenizer
-from llama_cpp.llama import Llama
 from pydantic import BaseModel, ConfigDict, ValidationError, create_model
 from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast
 
@@ -33,7 +31,6 @@ from khoj.database.models import (
     ToolContext,
 )
 from khoj.processor.conversation import prompts
-from khoj.processor.conversation.offline.utils import download_model, infer_max_tokens
 from khoj.search_filter.base_filter import BaseFilter
 from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
@@ -86,12 +83,6 @@ model_to_prompt_size = {
     "claude-sonnet-4-20250514": 60000,
     "claude-opus-4-0": 60000,
     "claude-opus-4-20250514": 60000,
-    # Offline Models
-    "bartowski/Qwen2.5-14B-Instruct-GGUF": 20000,
-    "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF": 20000,
-    "bartowski/Llama-3.2-3B-Instruct-GGUF": 20000,
-    "bartowski/gemma-2-9b-it-GGUF": 6000,
-    "bartowski/gemma-2-2b-it-GGUF": 6000,
 }
 model_to_tokenizer: Dict[str, str] = {}
 
@@ -581,7 +572,6 @@ def generate_chatml_messages_with_context(
     system_message: str = None,
     chat_history: list[ChatMessageModel] = [],
     model_name="gpt-4o-mini",
-    loaded_model: Optional[Llama] = None,
     max_prompt_size=None,
     tokenizer_name=None,
     query_images=None,
@@ -596,10 +586,7 @@ def generate_chatml_messages_with_context(
     """Generate chat messages with appropriate context from previous conversation to send to the chat model"""
     # Set max prompt size from user config or based on pre-configured for model and machine specs
     if not max_prompt_size:
-        if loaded_model:
-            max_prompt_size = infer_max_tokens(loaded_model.n_ctx(), model_to_prompt_size.get(model_name, math.inf))
-        else:
-            max_prompt_size = model_to_prompt_size.get(model_name, 10000)
+        max_prompt_size = model_to_prompt_size.get(model_name, 10000)
 
     # Scale lookback turns proportional to max prompt size supported by model
     lookback_turns = max_prompt_size // 750
@@ -739,7 +726,7 @@ def generate_chatml_messages_with_context(
             message.content = [{"type": "text", "text": message.content}]
 
     # Truncate oldest messages from conversation history until under max supported prompt size by model
-    messages = truncate_messages(messages, max_prompt_size, model_name, loaded_model, tokenizer_name)
+    messages = truncate_messages(messages, max_prompt_size, model_name, tokenizer_name)
 
     # Return message in chronological order
     return messages[::-1]
@@ -747,25 +734,20 @@ def generate_chatml_messages_with_context(
 
 def get_encoder(
     model_name: str,
-    loaded_model: Optional[Llama] = None,
     tokenizer_name=None,
-) -> tiktoken.Encoding | PreTrainedTokenizer | PreTrainedTokenizerFast | LlamaTokenizer:
+) -> tiktoken.Encoding | PreTrainedTokenizer | PreTrainedTokenizerFast:
     default_tokenizer = "gpt-4o"
 
     try:
-        if loaded_model:
-            encoder = loaded_model.tokenizer()
-        elif model_name.startswith("gpt-") or model_name.startswith("o1"):
-            # as tiktoken doesn't recognize o1 model series yet
-            encoder = tiktoken.encoding_for_model("gpt-4o" if model_name.startswith("o1") else model_name)
-        elif tokenizer_name:
+        if tokenizer_name:
             if tokenizer_name in state.pretrained_tokenizers:
                 encoder = state.pretrained_tokenizers[tokenizer_name]
             else:
                 encoder = AutoTokenizer.from_pretrained(tokenizer_name)
                 state.pretrained_tokenizers[tokenizer_name] = encoder
         else:
-            encoder = download_model(model_name).tokenizer()
+            # as tiktoken doesn't recognize o1 model series yet
+            encoder = tiktoken.encoding_for_model("gpt-4o" if model_name.startswith("o1") else model_name)
     except:
         encoder = tiktoken.encoding_for_model(default_tokenizer)
         if state.verbose > 2:
@@ -777,7 +759,7 @@ def get_encoder(
 
 def count_tokens(
     message_content: str | list[str | dict],
-    encoder: PreTrainedTokenizer | PreTrainedTokenizerFast | LlamaTokenizer | tiktoken.Encoding,
+    encoder: PreTrainedTokenizer | PreTrainedTokenizerFast | tiktoken.Encoding,
 ) -> int:
     """
     Count the total number of tokens in a list of messages.
@@ -829,11 +811,10 @@ def truncate_messages(
     messages: list[ChatMessage],
     max_prompt_size: int,
     model_name: str,
-    loaded_model: Optional[Llama] = None,
     tokenizer_name=None,
 ) -> list[ChatMessage]:
     """Truncate messages to fit within max prompt size supported by model"""
-    encoder = get_encoder(model_name, loaded_model, tokenizer_name)
+    encoder = get_encoder(model_name, tokenizer_name)
 
     # Extract system message from messages
     system_message = None

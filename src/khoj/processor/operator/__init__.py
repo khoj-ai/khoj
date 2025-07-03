@@ -245,7 +245,6 @@ def is_operator_model(model: str) -> ChatModel.ModelType | None:
         "claude-opus-4": ChatModel.ModelType.ANTHROPIC,
         "gemini-2.5-pro": ChatModel.ModelType.GOOGLE,
         "gemini-2.5-flash": ChatModel.ModelType.GOOGLE,
-        "ui-tars-1.5": ChatModel.ModelType.OFFLINE,
     }
     for operator_model in operator_models:
         if model.startswith(operator_model):

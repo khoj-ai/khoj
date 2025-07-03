@@ -103,13 +103,8 @@ class OpenAIProcessorConfig(ConfigBase):
     chat_model: Optional[str] = "gpt-4o-mini"
 
 
-class OfflineChatProcessorConfig(ConfigBase):
-    chat_model: Optional[str] = "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF"
-
-
 class ConversationProcessorConfig(ConfigBase):
     openai: Optional[OpenAIProcessorConfig] = None
-    offline_chat: Optional[OfflineChatProcessorConfig] = None
     max_prompt_size: Optional[int] = None
     tokenizer: Optional[str] = None
 
