@@ -20,7 +20,7 @@ Add all the agents you want to use for your different use-cases like Writer, Res
 ### Chat Model Options
 Add all the chat models you want to try, use and switch between for your different use-cases. For each chat model you add:
 - `Chat model`: The name of an [OpenAI](https://platform.openai.com/docs/models), [Anthropic](https://docs.anthropic.com/en/docs/about-claude/models#model-names), [Gemini](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models#gemini-models) or [Offline](https://huggingface.co/models?pipeline_tag=text-generation&library=gguf) chat model.
-- `Model type`: The chat model provider like `OpenAI`, `Offline`.
+- `Model type`: The chat model provider like `OpenAI`, `Google`.
 - `Vision enabled`: Set to `true` if your model supports vision. This is currently only supported for vision capable OpenAI models like `gpt-4o`
 - `Max prompt size`, `Subscribed max prompt size`: These are optional fields. They are used to truncate the context to the maximum context size that can be passed to the model. This can help with accuracy and cost-saving.<br />
 - `Tokenizer`: This is an optional field. It is used to accurately count tokens and truncate context passed to the chat model to stay within the models max prompt size.

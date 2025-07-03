@@ -10,13 +10,6 @@ empty_escape_sequences = "\n|\r|\t| "
 app_env_filepath = "~/.khoj/env"
 telemetry_server = "https://khoj.beta.haletic.com/v1/telemetry"
 content_directory = "~/.khoj/content/"
-default_offline_chat_models = [
-    "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
-    "bartowski/Llama-3.2-3B-Instruct-GGUF",
-    "bartowski/gemma-2-9b-it-GGUF",
-    "bartowski/gemma-2-2b-it-GGUF",
-    "bartowski/Qwen2.5-14B-Instruct-GGUF",
-]
 default_openai_chat_models = ["gpt-4o-mini", "gpt-4.1", "o3", "o4-mini"]
 default_gemini_chat_models = ["gemini-2.0-flash", "gemini-2.5-flash-preview-05-20", "gemini-2.5-pro-preview-06-05"]
 default_anthropic_chat_models = ["claude-sonnet-4-0", "claude-3-5-haiku-latest"]

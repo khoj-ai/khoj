@@ -65,7 +65,6 @@ dependencies = [
     "django == 5.1.10",
     "django-unfold == 0.42.0",
     "authlib == 1.2.1",
-    "llama-cpp-python == 0.2.88",
     "itsdangerous == 2.1.2",
     "httpx == 0.28.1",
     "pgvector == 0.2.4",

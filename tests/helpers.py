@@ -19,7 +19,7 @@ from khoj.database.models import (
 from khoj.processor.conversation.utils import message_to_log
 
 
-def get_chat_provider(default: ChatModel.ModelType | None = ChatModel.ModelType.OFFLINE):
+def get_chat_provider(default: ChatModel.ModelType | None = ChatModel.ModelType.GOOGLE):
     provider = os.getenv("KHOJ_TEST_CHAT_PROVIDER")
     if provider and provider in ChatModel.ModelType:
         return ChatModel.ModelType(provider)
@@ -93,7 +93,7 @@ class ChatModelFactory(factory.django.DjangoModelFactory):
 
     max_prompt_size = 20000
     tokenizer = None
-    name = "bartowski/Meta-Llama-3.2-3B-Instruct-GGUF"
+    name = "gemini-2.0-flash"
     model_type = get_chat_provider()
     ai_model_api = factory.LazyAttribute(lambda obj: AiModelApiFactory() if get_chat_api_key() else None)
 

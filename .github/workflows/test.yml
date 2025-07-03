@@ -64,8 +64,6 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           apt update && apt install -y git libegl1 sqlite3 libsqlite3-dev libsqlite3-0 ffmpeg libsm6 libxext6
-          # required by llama-cpp-python prebuilt wheels
-          apt install -y musl-dev && ln -s /usr/lib/x86_64-linux-musl/libc.so /lib/libc.musl-x86_64.so.1
 
       - name: ⬇️ Install Postgres
         env:
