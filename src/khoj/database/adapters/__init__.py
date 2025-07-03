@@ -796,8 +796,8 @@ class AgentAdapters:
         return Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).first()
 
     @staticmethod
-    def create_default_agent(user: KhojUser):
-        default_chat_model = ConversationAdapters.get_default_chat_model(user)
+    def create_default_agent():
+        default_chat_model = ConversationAdapters.get_default_chat_model(user=None)
         if default_chat_model is None:
             logger.info("No default conversation config found, skipping default agent creation")
             return None

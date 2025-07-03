@@ -44,13 +44,11 @@ from khoj.database.adapters import (
 )
 from khoj.database.models import ClientApplication, KhojUser, ProcessLock, Subscription
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
-from khoj.routers.api_content import configure_content, configure_search
+from khoj.routers.api_content import configure_content
 from khoj.routers.twilio import is_twilio_enabled
 from khoj.utils import constants, state
 from khoj.utils.config import SearchType
-from khoj.utils.fs_syncer import collect_files
-from khoj.utils.helpers import is_none_or_empty, telemetry_disabled
-from khoj.utils.rawconfig import FullConfig
+from khoj.utils.helpers import is_none_or_empty
 
 logger = logging.getLogger(__name__)
 
@@ -192,14 +190,6 @@ class UserAuthenticationBackend(AuthenticationBackend):
         return AuthCredentials(), UnauthenticatedUser()
 
 
-def initialize_server(config: Optional[FullConfig]):
-    try:
-        configure_server(config, init=True)
-    except Exception as e:
-        logger.error(f"🚨 Failed to configure server on app load: {e}", exc_info=True)
-        raise e
-
-
 def clean_connections(func):
     """
     A decorator that ensures that Django database connections that have become unusable, or are obsolete, are closed
@@ -220,19 +210,7 @@ def clean_connections(func):
     return func_wrapper
 
 
-def configure_server(
-    config: FullConfig,
-    regenerate: bool = False,
-    search_type: Optional[SearchType] = None,
-    init=False,
-    user: KhojUser = None,
-):
-    # Update Config
-    if config == None:
-        logger.info(f"Initializing with default config.")
-        config = FullConfig()
-    state.config = config
-
+def initialize_server():
     if ConversationAdapters.has_valid_ai_model_api():
         ai_model_api = ConversationAdapters.get_ai_model_api()
         state.openai_client = openai.OpenAI(api_key=ai_model_api.api_key, base_url=ai_model_api.api_base_url)
@@ -269,43 +247,33 @@ def configure_server(
             )
 
         state.SearchType = configure_search_types()
-        state.search_models = configure_search(state.search_models, state.config.search_type)
-        setup_default_agent(user)
+        setup_default_agent()
 
-        message = (
-            "📡 Telemetry disabled"
-            if telemetry_disabled(state.config.app, state.telemetry_disabled)
-            else "📡 Telemetry enabled"
-        )
+        message = "📡 Telemetry disabled" if state.telemetry_disabled else "📡 Telemetry enabled"
         logger.info(message)
-
-        if not init:
-            initialize_content(user, regenerate, search_type)
 
     except Exception as e:
         logger.error(f"Failed to load some search models: {e}", exc_info=True)
 
 
-def setup_default_agent(user: KhojUser):
-    AgentAdapters.create_default_agent(user)
+def setup_default_agent():
+    AgentAdapters.create_default_agent()
 
 
 def initialize_content(user: KhojUser, regenerate: bool, search_type: Optional[SearchType] = None):
     # Initialize Content from Config
-    if state.search_models:
-        try:
-            logger.info("📬 Updating content index...")
-            all_files = collect_files(user=user)
-            status = configure_content(
-                user,
-                all_files,
-                regenerate,
-                search_type,
-            )
-            if not status:
-                raise RuntimeError("Failed to update content index")
-        except Exception as e:
-            raise e
+    try:
+        logger.info("📬 Updating content index...")
+        status = configure_content(
+            user,
+            {},
+            regenerate,
+            search_type,
+        )
+        if not status:
+            raise RuntimeError("Failed to update content index")
+    except Exception as e:
+        raise e
 
 
 def configure_routes(app):
@@ -379,8 +347,7 @@ def configure_middleware(app, ssl_enabled: bool = False):
 
 def update_content_index():
     for user in get_all_users():
-        all_files = collect_files(user=user)
-        success = configure_content(user, all_files)
+        success = configure_content(user, {})
     if not success:
         raise RuntimeError("Failed to update content index")
     logger.info("📪 Content index updated via Scheduler")
@@ -405,7 +372,7 @@ def configure_search_types():
 @schedule.repeat(schedule.every(2).minutes)
 @clean_connections
 def upload_telemetry():
-    if telemetry_disabled(state.config.app, state.telemetry_disabled) or not state.telemetry:
+    if state.telemetry_disabled or not state.telemetry:
         return
 
     try:

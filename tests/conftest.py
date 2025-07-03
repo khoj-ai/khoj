@@ -33,7 +33,7 @@ from khoj.utils import fs_syncer, state
 from khoj.utils.config import SearchModels
 from khoj.utils.constants import web_directory
 from khoj.utils.helpers import resolve_absolute_path
-from khoj.utils.rawconfig import ContentConfig, ImageSearchConfig, SearchConfig
+from khoj.utils.rawconfig import ContentConfig, SearchConfig
 from tests.helpers import (
     AiModelApiFactory,
     ChatModelFactory,
@@ -68,12 +68,6 @@ def search_config() -> SearchConfig:
     model_dir = resolve_absolute_path("~/.khoj/search")
     model_dir.mkdir(parents=True, exist_ok=True)
     search_config = SearchConfig()
-
-    search_config.image = ImageSearchConfig(
-        encoder="sentence-transformers/clip-ViT-B-32",
-        model_directory=model_dir / "image/",
-        encoder_type=None,
-    )
 
     return search_config
 
@@ -301,7 +295,6 @@ def chat_client_with_large_kb(search_config: SearchConfig, default_user2: KhojUs
 @pytest.mark.django_db
 def chat_client_builder(search_config, user, index_content=True, require_auth=False):
     # Initialize app state
-    state.config.search_type = search_config
     state.SearchType = configure_search_types()
 
     if index_content:
@@ -349,7 +342,6 @@ def large_kb_chat_client_builder(search_config, user):
     import tempfile
 
     # Initialize app state
-    state.config.search_type = search_config
     state.SearchType = configure_search_types()
 
     # Create temporary directory for large number of test files
@@ -470,12 +462,8 @@ def fastapi_app():
 
 @pytest.fixture(scope="function")
 def client(
-    content_config: ContentConfig,
-    search_config: SearchConfig,
     api_user: KhojApiUser,
 ):
-    state.config.content_type = content_config
-    state.config.search_type = search_config
     state.SearchType = configure_search_types()
     state.embeddings_model = dict()
     state.embeddings_model["default"] = EmbeddingsModel()

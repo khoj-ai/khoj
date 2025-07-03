@@ -220,7 +220,6 @@ def update_telemetry_state(
             telemetry_type=telemetry_type,
             api=api,
             client=client,
-            app_config=state.config.app,
             disable_telemetry_env=state.telemetry_disabled,
             properties=user_state,
         )
