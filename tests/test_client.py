@@ -283,10 +283,6 @@ def test_get_api_config_types(client, sample_org_data, default_user: KhojUser):
 def test_get_configured_types_with_no_content_config(fastapi_app: FastAPI):
     # Arrange
     state.anonymous_mode = True
-    if state.config and state.config.content_type:
-        state.config.content_type = None
-    state.search_models = configure_search_types()
-
     configure_routes(fastapi_app)
     client = TestClient(fastapi_app)
 

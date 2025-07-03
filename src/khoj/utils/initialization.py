@@ -147,24 +147,6 @@ def initialization(interactive: bool = True):
 
         logger.info("🗣️ Chat model configuration complete")
 
-        # Set up offline speech to text model
-        use_offline_speech2text_model = "n" if not interactive else input("Use offline speech to text model? (y/n): ")
-        if use_offline_speech2text_model == "y":
-            logger.info("🗣️ Setting up offline speech to text model")
-            # Delete any existing speech to text model options. There can only be one.
-            SpeechToTextModelOptions.objects.all().delete()
-
-            default_offline_speech2text_model = "base"
-            offline_speech2text_model = input(
-                f"Enter the Whisper model to use Offline (default: {default_offline_speech2text_model}): "
-            )
-            offline_speech2text_model = offline_speech2text_model or default_offline_speech2text_model
-            SpeechToTextModelOptions.objects.create(
-                model_name=offline_speech2text_model, model_type=SpeechToTextModelOptions.ModelType.OFFLINE
-            )
-
-            logger.info(f"🗣️  Offline speech to text model configured to {offline_speech2text_model}")
-
     def _setup_chat_model_provider(
         model_type: ChatModel.ModelType,
         default_chat_models: list,

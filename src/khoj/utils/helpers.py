@@ -47,7 +47,6 @@ if TYPE_CHECKING:
     from sentence_transformers import CrossEncoder, SentenceTransformer
 
     from khoj.utils.models import BaseEncoder
-    from khoj.utils.rawconfig import AppConfig
 
 logger = logging.getLogger(__name__)
 
@@ -267,23 +266,16 @@ def get_server_id():
     return server_id
 
 
-def telemetry_disabled(app_config: AppConfig, telemetry_disable_env) -> bool:
-    if telemetry_disable_env is True:
-        return True
-    return not app_config or not app_config.should_log_telemetry
-
-
 def log_telemetry(
     telemetry_type: str,
     api: str = None,
     client: Optional[str] = None,
-    app_config: Optional[AppConfig] = None,
     disable_telemetry_env: bool = False,
     properties: dict = None,
 ):
     """Log basic app usage telemetry like client, os, api called"""
     # Do not log usage telemetry, if telemetry is disabled via app config
-    if telemetry_disabled(app_config, disable_telemetry_env):
+    if disable_telemetry_env:
         return []
 
     if properties.get("server_id") is None:

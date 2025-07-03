@@ -12,18 +12,14 @@ from whisper import Whisper
 from khoj.database.models import ProcessLock
 from khoj.processor.embeddings import CrossEncoderModel, EmbeddingsModel
 from khoj.utils import config as utils_config
-from khoj.utils.config import SearchModels
 from khoj.utils.helpers import LRU, get_device, is_env_var_true
-from khoj.utils.rawconfig import FullConfig
 
 # Application Global State
-config = FullConfig()
-search_models = SearchModels()
 embeddings_model: Dict[str, EmbeddingsModel] = None
 cross_encoder_model: Dict[str, CrossEncoderModel] = None
 openai_client: OpenAI = None
 whisper_model: Whisper = None
-config_file: Path = None
+log_file: Path = None
 verbose: int = 0
 host: str = None
 port: int = None
