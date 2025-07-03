@@ -6,16 +6,6 @@ from importlib.metadata import version
 
 logger = logging.getLogger(__name__)
 
-from khoj.migrations.migrate_offline_chat_default_model import (
-    migrate_offline_chat_default_model,
-)
-from khoj.migrations.migrate_offline_chat_schema import migrate_offline_chat_schema
-from khoj.migrations.migrate_offline_model import migrate_offline_model
-from khoj.migrations.migrate_processor_config_openai import (
-    migrate_processor_conversation_schema,
-)
-from khoj.migrations.migrate_server_pg import migrate_server_pg
-from khoj.migrations.migrate_version import migrate_config_to_version
 from khoj.utils.helpers import is_env_var_true, resolve_absolute_path
 from khoj.utils.yaml import parse_config_from_file
 
@@ -84,18 +74,4 @@ def cli(args=None):
         if is_env_var_true("KHOJ_TELEMETRY_DISABLE"):
             args.config.app.should_log_telemetry = False
 
-    return args
-
-
-def run_migrations(args):
-    migrations = [
-        migrate_config_to_version,
-        migrate_processor_conversation_schema,
-        migrate_offline_model,
-        migrate_offline_chat_schema,
-        migrate_offline_chat_default_model,
-        migrate_server_pg,
-    ]
-    for migration in migrations:
-        args = migration(args)
     return args
