@@ -144,7 +144,13 @@ def gemini_completion_with_backoff(
     try:
         # Generate the response
         response = client.models.generate_content(model=model_name, config=config, contents=formatted_messages)
-        raw_content = [part.model_dump() for part in response.candidates[0].content.parts or []]
+        if (
+            not response.candidates
+            or not response.candidates[0].content
+            or response.candidates[0].content.parts is None
+        ):
+            raise ValueError(f"Failed to get response from model.")
+        raw_content = [part.model_dump() for part in response.candidates[0].content.parts]
         if response.function_calls:
             function_calls = [
                 ToolCall(name=function_call.name, args=function_call.args, id=function_call.id).__dict__

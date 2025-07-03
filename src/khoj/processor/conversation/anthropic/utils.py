@@ -1,5 +1,6 @@
 import json
 import logging
+from copy import deepcopy
 from time import perf_counter
 from typing import AsyncGenerator, Dict, List
 
@@ -271,13 +272,14 @@ async def anthropic_chat_completion_with_backoff(
         commit_conversation_trace(messages, aggregated_response, tracer)
 
 
-def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt: str = None):
+def format_messages_for_anthropic(raw_messages: list[ChatMessage], system_prompt: str = None):
     """
     Format messages for Anthropic
     """
     # Extract system prompt
     system_prompt = system_prompt or ""
-    for message in messages.copy():
+    messages = deepcopy(raw_messages)
+    for message in messages:
         if message.role == "system":
             if isinstance(message.content, list):
                 system_prompt += "\n".join([part["text"] for part in message.content if part["type"] == "text"])
@@ -295,7 +297,6 @@ def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt: st
     elif len(messages) > 1 and messages[0].role == "assistant":
         messages = messages[1:]
 
-    # Convert image urls to base64 encoded images in Anthropic message format
     for message in messages:
         # Handle tool call and tool result message types from additional_kwargs
         message_type = message.additional_kwargs.get("message_type")
@@ -313,6 +314,7 @@ def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt: st
                     }
                 )
             message.content = content
+        # Convert image urls to base64 encoded images in Anthropic message format
         elif isinstance(message.content, list):
             content = []
             # Sort the content. Anthropic models prefer that text comes after images.

@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from io import BytesIO
-from typing import Any, Callable, Dict, List, Literal, Optional, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import PIL.Image
 import pyjson5
@@ -184,6 +184,16 @@ def construct_iteration_history(
         iteration_history.append(ChatMessageModel(by="you", message=query_message_content))
 
     for iteration in previous_iterations:
+        if not iteration.query:
+            iteration_history.append(
+                ChatMessageModel(
+                    by="you",
+                    message=iteration.summarizedResult
+                    or iteration.warning
+                    or "Please specify what you want to do next.",
+                )
+            )
+            continue
         iteration_history += [
             ChatMessageModel(
                 by="khoj",
@@ -326,6 +336,17 @@ def construct_tool_chat_history(
         ),
     }
     for iteration in previous_iterations:
+        if not iteration.query:
+            chat_history.append(
+                ChatMessageModel(
+                    by="you",
+                    message=iteration.summarizedResult
+                    or iteration.warning
+                    or "Please specify what you want to do next.",
+                )
+            )
+            continue
+
         # If a tool is provided use the inferred query extractor for that tool if available
         # If no tool is provided, use inferred query extractor for the tool used in the iteration
         # Fallback to base extractor if the tool does not have an inferred query extractor
