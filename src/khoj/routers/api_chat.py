@@ -1122,10 +1122,14 @@ async def event_generator(
                 yield result
 
         if not is_none_or_empty(compiled_references):
-            headings = "\n- " + "\n- ".join(set([c.get("compiled", c).split("\n")[0] for c in compiled_references]))
+            distinct_headings = set([d.get("compiled").split("\n")[0] for d in compiled_references if "compiled" in d])
+            distinct_files = set([d["file"] for d in compiled_references])
             # Strip only leading # from headings
-            headings = headings.replace("#", "")
-            async for result in send_event(ChatEvent.STATUS, f"**Found Relevant Notes**: {headings}"):
+            headings_str = "\n- " + "\n- ".join(distinct_headings).replace("#", "")
+            async for result in send_event(
+                ChatEvent.STATUS,
+                f"**Found {len(distinct_headings)} Notes Across {len(distinct_files)} Files**: {headings_str}",
+            ):
                 yield result
 
         if conversation_commands == [ConversationCommand.Notes] and not await EntryAdapters.auser_has_entries(user):
