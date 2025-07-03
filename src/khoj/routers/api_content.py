@@ -471,11 +471,6 @@ async def delete_content_source(
     # Delete entries from the given source
     await EntryAdapters.adelete_all_entries(user, file_source=content_source)
 
-    if content_source == DbEntry.EntrySource.NOTION:
-        await NotionConfig.objects.filter(user=user).adelete()
-    elif content_source == DbEntry.EntrySource.GITHUB:
-        await GithubConfig.objects.filter(user=user).adelete()
-
     update_telemetry_state(
         request=request,
         telemetry_type="api",
