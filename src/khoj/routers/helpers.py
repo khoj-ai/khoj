@@ -89,10 +89,6 @@ from khoj.processor.conversation.google.gemini_chat import (
     converse_gemini,
     gemini_send_message_to_model,
 )
-from khoj.processor.conversation.offline.chat_model import (
-    converse_offline,
-    send_message_to_model_offline,
-)
 from khoj.processor.conversation.openai.gpt import (
     converse_openai,
     send_message_to_model,
@@ -117,7 +113,6 @@ from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.search_type import text_search
 from khoj.utils import state
-from khoj.utils.config import OfflineChatProcessorModel
 from khoj.utils.helpers import (
     LRU,
     ConversationCommand,
@@ -167,14 +162,6 @@ async def is_ready_to_chat(user: KhojUser):
     user_chat_model = await ConversationAdapters.aget_user_chat_model(user)
     if user_chat_model == None:
         user_chat_model = await ConversationAdapters.aget_default_chat_model(user)
-
-    if user_chat_model and user_chat_model.model_type == ChatModel.ModelType.OFFLINE:
-        chat_model_name = user_chat_model.name
-        max_tokens = user_chat_model.max_prompt_size
-        if state.offline_chat_processor_config is None:
-            logger.info("Loading Offline Chat Model...")
-            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model_name, max_tokens)
-        return True
 
     if (
         user_chat_model
@@ -1470,12 +1457,6 @@ async def send_message_to_model_wrapper(
     vision_available = chat_model.vision_enabled
     api_key = chat_model.ai_model_api.api_key
     api_base_url = chat_model.ai_model_api.api_base_url
-    loaded_model = None
-
-    if model_type == ChatModel.ModelType.OFFLINE:
-        if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
-            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model_name, max_tokens)
-        loaded_model = state.offline_chat_processor_config.loaded_model
 
     truncated_messages = generate_chatml_messages_with_context(
         user_message=query,
@@ -1483,7 +1464,6 @@ async def send_message_to_model_wrapper(
         system_message=system_message,
         chat_history=chat_history,
         model_name=chat_model_name,
-        loaded_model=loaded_model,
         tokenizer_name=tokenizer,
         max_prompt_size=max_tokens,
         vision_enabled=vision_available,
@@ -1492,18 +1472,7 @@ async def send_message_to_model_wrapper(
         query_files=query_files,
     )
 
-    if model_type == ChatModel.ModelType.OFFLINE:
-        return send_message_to_model_offline(
-            messages=truncated_messages,
-            loaded_model=loaded_model,
-            model_name=chat_model_name,
-            max_prompt_size=max_tokens,
-            streaming=False,
-            response_type=response_type,
-            tracer=tracer,
-        )
-
-    elif model_type == ChatModel.ModelType.OPENAI:
+    if model_type == ChatModel.ModelType.OPENAI:
         return send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
@@ -1565,19 +1534,12 @@ def send_message_to_model_wrapper_sync(
     vision_available = chat_model.vision_enabled
     api_key = chat_model.ai_model_api.api_key
     api_base_url = chat_model.ai_model_api.api_base_url
-    loaded_model = None
-
-    if model_type == ChatModel.ModelType.OFFLINE:
-        if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
-            state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model_name, max_tokens)
-        loaded_model = state.offline_chat_processor_config.loaded_model
 
     truncated_messages = generate_chatml_messages_with_context(
         user_message=message,
         system_message=system_message,
         chat_history=chat_history,
         model_name=chat_model_name,
-        loaded_model=loaded_model,
         max_prompt_size=max_tokens,
         vision_enabled=vision_available,
         model_type=model_type,
@@ -1585,18 +1547,7 @@ def send_message_to_model_wrapper_sync(
         query_files=query_files,
     )
 
-    if model_type == ChatModel.ModelType.OFFLINE:
-        return send_message_to_model_offline(
-            messages=truncated_messages,
-            loaded_model=loaded_model,
-            model_name=chat_model_name,
-            max_prompt_size=max_tokens,
-            streaming=False,
-            response_type=response_type,
-            tracer=tracer,
-        )
-
-    elif model_type == ChatModel.ModelType.OPENAI:
+    if model_type == ChatModel.ModelType.OPENAI:
         return send_message_to_model(
             messages=truncated_messages,
             api_key=api_key,
@@ -1678,30 +1629,7 @@ async def agenerate_chat_response(
                 chat_model = vision_enabled_config
                 vision_available = True
 
-        if chat_model.model_type == "offline":
-            loaded_model = state.offline_chat_processor_config.loaded_model
-            chat_response_generator = converse_offline(
-                # Query
-                user_query=query_to_run,
-                # Context
-                references=compiled_references,
-                online_results=online_results,
-                generated_files=raw_generated_files,
-                generated_asset_results=generated_asset_results,
-                location_data=location_data,
-                user_name=user_name,
-                query_files=query_files,
-                chat_history=chat_history,
-                # Model
-                loaded_model=loaded_model,
-                model_name=chat_model.name,
-                max_prompt_size=chat_model.max_prompt_size,
-                tokenizer_name=chat_model.tokenizer,
-                agent=agent,
-                tracer=tracer,
-            )
-
-        elif chat_model.model_type == ChatModel.ModelType.OPENAI:
+        if chat_model.model_type == ChatModel.ModelType.OPENAI:
             openai_chat_config = chat_model.ai_model_api
             api_key = openai_chat_config.api_key
             chat_model_name = chat_model.name

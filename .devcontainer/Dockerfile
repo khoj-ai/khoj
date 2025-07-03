@@ -18,8 +18,8 @@ ENV PATH="/opt/venv/bin:${PATH}"
 COPY pyproject.toml README.md ./
 
 # Setup python environment
-    # Use the pre-built llama-cpp-python, torch cpu wheel
-ENV PIP_EXTRA_INDEX_URL="https://download.pytorch.org/whl/cpu https://abetlen.github.io/llama-cpp-python/whl/cpu" \
+    # Use the pre-built torch cpu wheel
+ENV PIP_EXTRA_INDEX_URL="https://download.pytorch.org/whl/cpu" \
     # Avoid downloading unused cuda specific python packages
     CUDA_VISIBLE_DEVICES="" \
     # Use static version to build app without git dependency

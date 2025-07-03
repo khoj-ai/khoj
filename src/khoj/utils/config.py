@@ -8,8 +8,6 @@ from typing import TYPE_CHECKING, Any, List, Optional, Union
 
 import torch
 
-from khoj.processor.conversation.offline.utils import download_model
-
 logger = logging.getLogger(__name__)
 
 
@@ -62,20 +60,3 @@ class ImageSearchModel:
 @dataclass
 class SearchModels:
     text_search: Optional[TextSearchModel] = None
-
-
-@dataclass
-class OfflineChatProcessorConfig:
-    loaded_model: Union[Any, None] = None
-
-
-class OfflineChatProcessorModel:
-    def __init__(self, chat_model: str = "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF", max_tokens: int = None):
-        self.chat_model = chat_model
-        self.loaded_model = None
-        try:
-            self.loaded_model = download_model(self.chat_model, max_tokens=max_tokens)
-        except ValueError as e:
-            self.loaded_model = None
-            logger.error(f"Error while loading offline chat model: {e}", exc_info=True)
-            raise e

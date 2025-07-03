@@ -220,16 +220,15 @@ class PriceTier(models.TextChoices):
 class ChatModel(DbBaseModel):
     class ModelType(models.TextChoices):
         OPENAI = "openai"
-        OFFLINE = "offline"
         ANTHROPIC = "anthropic"
         GOOGLE = "google"
 
     max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
     subscribed_max_prompt_size = models.IntegerField(default=None, null=True, blank=True)
     tokenizer = models.CharField(max_length=200, default=None, null=True, blank=True)
-    name = models.CharField(max_length=200, default="bartowski/Meta-Llama-3.1-8B-Instruct-GGUF")
+    name = models.CharField(max_length=200, default="gemini-2.5-flash")
     friendly_name = models.CharField(max_length=200, default=None, null=True, blank=True)
-    model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
+    model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.GOOGLE)
     price_tier = models.CharField(max_length=20, choices=PriceTier.choices, default=PriceTier.FREE)
     vision_enabled = models.BooleanField(default=False)
     ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)
@@ -605,11 +604,10 @@ class TextToImageModelConfig(DbBaseModel):
 class SpeechToTextModelOptions(DbBaseModel):
     class ModelType(models.TextChoices):
         OPENAI = "openai"
-        OFFLINE = "offline"
 
-    model_name = models.CharField(max_length=200, default="base")
+    model_name = models.CharField(max_length=200, default="whisper-1")
     friendly_name = models.CharField(max_length=200, default=None, null=True, blank=True)
-    model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OFFLINE)
+    model_type = models.CharField(max_length=200, choices=ModelType.choices, default=ModelType.OPENAI)
     price_tier = models.CharField(max_length=20, choices=PriceTier.choices, default=PriceTier.FREE)
     ai_model_api = models.ForeignKey(AiModelApi, on_delete=models.CASCADE, default=None, null=True, blank=True)
 

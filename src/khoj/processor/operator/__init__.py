@@ -235,7 +235,6 @@ def is_operator_model(model: str) -> ChatModel.ModelType | None:
         "claude-3-7-sonnet": ChatModel.ModelType.ANTHROPIC,
         "claude-sonnet-4": ChatModel.ModelType.ANTHROPIC,
         "claude-opus-4": ChatModel.ModelType.ANTHROPIC,
-        "ui-tars-1.5": ChatModel.ModelType.OFFLINE,
     }
     for operator_model in operator_models:
         if model.startswith(operator_model):
