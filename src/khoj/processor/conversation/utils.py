@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from io import BytesIO
-from typing import Any, Callable, Dict, List, Literal, Optional, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import PIL.Image
 import pyjson5
@@ -137,60 +137,83 @@ class OperatorRun:
         }
 
 
+class ToolCall:
+    def __init__(self, name: str, args: dict, id: str):
+        self.name = name
+        self.args = args
+        self.id = id
+
+
 class ResearchIteration:
     def __init__(
         self,
-        tool: str,
-        query: str,
+        query: ToolCall | dict | str,
         context: list = None,
         onlineContext: dict = None,
         codeContext: dict = None,
         operatorContext: dict | OperatorRun = None,
         summarizedResult: str = None,
         warning: str = None,
+        raw_response: list = None,
     ):
-        self.tool = tool
-        self.query = query
+        self.query = ToolCall(**query) if isinstance(query, dict) else query
         self.context = context
         self.onlineContext = onlineContext
         self.codeContext = codeContext
         self.operatorContext = OperatorRun(**operatorContext) if isinstance(operatorContext, dict) else operatorContext
         self.summarizedResult = summarizedResult
         self.warning = warning
+        self.raw_response = raw_response
 
     def to_dict(self) -> dict:
         data = vars(self).copy()
+        data["query"] = self.query.__dict__ if isinstance(self.query, ToolCall) else self.query
         data["operatorContext"] = self.operatorContext.to_dict() if self.operatorContext else None
         return data
 
 
 def construct_iteration_history(
     previous_iterations: List[ResearchIteration],
-    previous_iteration_prompt: str,
     query: str = None,
+    query_images: List[str] = None,
+    query_files: str = None,
 ) -> list[ChatMessageModel]:
     iteration_history: list[ChatMessageModel] = []
-    previous_iteration_messages: list[dict] = []
-    for idx, iteration in enumerate(previous_iterations):
-        iteration_data = previous_iteration_prompt.format(
-            tool=iteration.tool,
-            query=iteration.query,
-            result=iteration.summarizedResult,
-            index=idx + 1,
-        )
+    query_message_content = construct_structured_message(query, query_images, attached_file_context=query_files)
+    if query_message_content:
+        iteration_history.append(ChatMessageModel(by="you", message=query_message_content))
 
-        previous_iteration_messages.append({"type": "text", "text": iteration_data})
-
-    if previous_iteration_messages:
-        if query:
-            iteration_history.append(ChatMessageModel(by="you", message=query))
-        iteration_history.append(
+    for iteration in previous_iterations:
+        if not iteration.query or isinstance(iteration.query, str):
+            iteration_history.append(
+                ChatMessageModel(
+                    by="you",
+                    message=iteration.summarizedResult
+                    or iteration.warning
+                    or "Please specify what you want to do next.",
+                )
+            )
+            continue
+        iteration_history += [
             ChatMessageModel(
                 by="khoj",
-                intent=Intent(type="remember", query=query),
-                message=previous_iteration_messages,
-            )
-        )
+                message=iteration.raw_response or [iteration.query.__dict__],
+                intent=Intent(type="tool_call", query=query),
+            ),
+            ChatMessageModel(
+                by="you",
+                intent=Intent(type="tool_result"),
+                message=[
+                    {
+                        "type": "tool_result",
+                        "id": iteration.query.id,
+                        "name": iteration.query.name,
+                        "content": iteration.summarizedResult,
+                    }
+                ],
+            ),
+        ]
+
     return iteration_history
 
 
@@ -302,33 +325,44 @@ def construct_tool_chat_history(
         ConversationCommand.Notes: (
             lambda iteration: [c["query"] for c in iteration.context] if iteration.context else []
         ),
-        ConversationCommand.Online: (
+        ConversationCommand.SearchWeb: (
             lambda iteration: list(iteration.onlineContext.keys()) if iteration.onlineContext else []
         ),
-        ConversationCommand.Webpage: (
+        ConversationCommand.ReadWebpage: (
             lambda iteration: list(iteration.onlineContext.keys()) if iteration.onlineContext else []
         ),
-        ConversationCommand.Code: (
+        ConversationCommand.RunCode: (
             lambda iteration: list(iteration.codeContext.keys()) if iteration.codeContext else []
         ),
     }
     for iteration in previous_iterations:
+        if not iteration.query or isinstance(iteration.query, str):
+            chat_history.append(
+                ChatMessageModel(
+                    by="you",
+                    message=iteration.summarizedResult
+                    or iteration.warning
+                    or "Please specify what you want to do next.",
+                )
+            )
+            continue
+
         # If a tool is provided use the inferred query extractor for that tool if available
         # If no tool is provided, use inferred query extractor for the tool used in the iteration
         # Fallback to base extractor if the tool does not have an inferred query extractor
         inferred_query_extractor = extract_inferred_query_map.get(
-            tool or ConversationCommand(iteration.tool), base_extractor
+            tool or ConversationCommand(iteration.query.name), base_extractor
         )
         chat_history += [
             ChatMessageModel(
                 by="you",
-                message=iteration.query,
+                message=yaml.dump(iteration.query.args, default_flow_style=False),
             ),
             ChatMessageModel(
                 by="khoj",
                 intent=Intent(
                     type="remember",
-                    query=iteration.query,
+                    query=yaml.dump(iteration.query.args, default_flow_style=False),
                     inferred_queries=inferred_query_extractor(iteration),
                     memory_type="notes",
                 ),
@@ -481,28 +515,32 @@ Khoj: "{chat_response}"
 
 def construct_structured_message(
     message: list[dict] | str,
-    images: list[str],
-    model_type: str,
-    vision_enabled: bool,
+    images: list[str] = None,
+    model_type: str = None,
+    vision_enabled: bool = True,
     attached_file_context: str = None,
 ):
     """
-    Format messages into appropriate multimedia format for supported chat model types
+    Format messages into appropriate multimedia format for supported chat model types.
+
+    Assume vision is enabled and chat model provider supports messages in chatml format, unless specified otherwise.
     """
-    if model_type in [
+    if not model_type or model_type in [
         ChatModel.ModelType.OPENAI,
         ChatModel.ModelType.GOOGLE,
         ChatModel.ModelType.ANTHROPIC,
     ]:
-        constructed_messages: List[dict[str, Any]] = (
-            [{"type": "text", "text": message}] if isinstance(message, str) else message
-        )
-
+        constructed_messages: List[dict[str, Any]] = []
+        if not is_none_or_empty(message):
+            constructed_messages += [{"type": "text", "text": message}] if isinstance(message, str) else message
+        # Drop image message passed by caller if chat model does not have vision enabled
+        if not vision_enabled:
+            constructed_messages = [m for m in constructed_messages if m.get("type") != "image_url"]
         if not is_none_or_empty(attached_file_context):
-            constructed_messages.append({"type": "text", "text": attached_file_context})
+            constructed_messages += [{"type": "text", "text": attached_file_context}]
         if vision_enabled and images:
             for image in images:
-                constructed_messages.append({"type": "image_url", "image_url": {"url": image}})
+                constructed_messages += [{"type": "image_url", "image_url": {"url": image}}]
         return constructed_messages
 
     message = message if isinstance(message, str) else "\n\n".join(m["text"] for m in message)
@@ -638,7 +676,11 @@ def generate_chatml_messages_with_context(
             chat_message, chat.images if role == "user" else [], model_type, vision_enabled
         )
 
-        reconstructed_message = ChatMessage(content=message_content, role=role)
+        reconstructed_message = ChatMessage(
+            content=message_content,
+            role=role,
+            additional_kwargs={"message_type": chat.intent.type if chat.intent else None},
+        )
         chatml_messages.insert(0, reconstructed_message)
 
         if len(chatml_messages) >= 3 * lookback_turns:
@@ -737,10 +779,21 @@ def count_tokens(
         message_content_parts: list[str] = []
         # Collate message content into single string to ease token counting
         for part in message_content:
-            if isinstance(part, dict) and part.get("type") == "text":
-                message_content_parts.append(part["text"])
-            elif isinstance(part, dict) and part.get("type") == "image_url":
+            if isinstance(part, dict) and part.get("type") == "image_url":
                 image_count += 1
+            elif isinstance(part, dict) and part.get("type") == "text":
+                message_content_parts.append(part["text"])
+            elif isinstance(part, dict) and hasattr(part, "model_dump"):
+                message_content_parts.append(json.dumps(part.model_dump()))
+            elif isinstance(part, dict) and hasattr(part, "__dict__"):
+                message_content_parts.append(json.dumps(part.__dict__))
+            elif isinstance(part, dict):
+                # If part is a dict but not a recognized type, convert to JSON string
+                try:
+                    message_content_parts.append(json.dumps(part))
+                except (TypeError, ValueError) as e:
+                    logger.warning(f"Failed to serialize part {part} to JSON: {e}. Skipping.")
+                    image_count += 1  # Treat as an image/binary if serialization fails
             elif isinstance(part, str):
                 message_content_parts.append(part)
             else:
@@ -751,6 +804,15 @@ def count_tokens(
         return len(encoder.encode(message_content))
     else:
         return len(encoder.encode(json.dumps(message_content)))
+
+
+def count_total_tokens(messages: list[ChatMessage], encoder, system_message: Optional[ChatMessage]) -> Tuple[int, int]:
+    """Count total tokens in messages including system message"""
+    system_message_tokens = count_tokens(system_message.content, encoder) if system_message else 0
+    message_tokens = sum([count_tokens(message.content, encoder) for message in messages])
+    # Reserves 4 tokens to demarcate each message (e.g <|im_start|>user, <|im_end|>, <|endoftext|> etc.)
+    total_tokens = message_tokens + system_message_tokens + 4 * len(messages)
+    return total_tokens, system_message_tokens
 
 
 def truncate_messages(
@@ -771,23 +833,30 @@ def truncate_messages(
             break
 
     # Drop older messages until under max supported prompt size by model
-    # Reserves 4 tokens to demarcate each message (e.g <|im_start|>user, <|im_end|>, <|endoftext|> etc.)
-    system_message_tokens = count_tokens(system_message.content, encoder) if system_message else 0
-    tokens = sum([count_tokens(message.content, encoder) for message in messages])
-    total_tokens = tokens + system_message_tokens + 4 * len(messages)
+    total_tokens, system_message_tokens = count_total_tokens(messages, encoder, system_message)
 
     while total_tokens > max_prompt_size and (len(messages) > 1 or len(messages[0].content) > 1):
-        if len(messages[-1].content) > 1:
+        # If the last message has more than one content part, pop the oldest content part.
+        # For tool calls, the whole message should dropped, assistant's tool call content being truncated annoys AI APIs.
+        if len(messages[-1].content) > 1 and messages[-1].additional_kwargs.get("message_type") != "tool_call":
             # The oldest content part is earlier in content list. So pop from the front.
             messages[-1].content.pop(0)
+        # Otherwise, pop the last message if it has only one content part or is a tool call.
         else:
             # The oldest message is the last one. So pop from the back.
-            messages.pop()
-        tokens = sum([count_tokens(message.content, encoder) for message in messages])
-        total_tokens = tokens + system_message_tokens + 4 * len(messages)
+            dropped_message = messages.pop()
+            # Drop tool result pair of tool call, if tool call message has been removed
+            if (
+                dropped_message.additional_kwargs.get("message_type") == "tool_call"
+                and messages
+                and messages[-1].additional_kwargs.get("message_type") == "tool_result"
+            ):
+                messages.pop()
+
+        total_tokens, _ = count_total_tokens(messages, encoder, system_message)
 
     # Truncate current message if still over max supported prompt size by model
-    total_tokens = tokens + system_message_tokens + 4 * len(messages)
+    total_tokens, _ = count_total_tokens(messages, encoder, system_message)
     if total_tokens > max_prompt_size:
         # At this point, a single message with a single content part of type dict should remain
         assert (
@@ -1149,13 +1218,15 @@ def messages_to_print(messages: list[ChatMessage], max_length: int = 70) -> str:
     return "\n".join([f"{json.dumps(safe_serialize(message.content))[:max_length]}..." for message in messages])
 
 
-class JsonSupport(int, Enum):
+class StructuredOutputSupport(int, Enum):
     NONE = 0
     OBJECT = 1
     SCHEMA = 2
+    TOOL = 3
 
 
 class ResponseWithThought:
-    def __init__(self, response: str = None, thought: str = None):
-        self.response = response
+    def __init__(self, text: str = None, thought: str = None, raw_content: list = None):
+        self.text = text
         self.thought = thought
+        self.raw_content = raw_content

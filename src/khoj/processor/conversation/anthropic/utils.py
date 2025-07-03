@@ -1,9 +1,8 @@
 import json
 import logging
 from copy import deepcopy
-from textwrap import dedent
 from time import perf_counter
-from typing import AsyncGenerator, Dict, List, Optional, Type
+from typing import AsyncGenerator, Dict, List
 
 import anthropic
 from langchain_core.messages.chat import ChatMessage
@@ -18,11 +17,14 @@ from tenacity import (
 
 from khoj.processor.conversation.utils import (
     ResponseWithThought,
+    ToolCall,
     commit_conversation_trace,
     get_image_from_base64,
     get_image_from_url,
 )
 from khoj.utils.helpers import (
+    ToolDefinition,
+    create_tool_definition,
     get_anthropic_async_client,
     get_anthropic_client,
     get_chat_usage_metrics,
@@ -57,9 +59,10 @@ def anthropic_completion_with_backoff(
     max_tokens: int | None = None,
     response_type: str = "text",
     response_schema: BaseModel | None = None,
+    tools: List[ToolDefinition] = None,
     deepthought: bool = False,
     tracer: dict = {},
-) -> str:
+) -> ResponseWithThought:
     client = anthropic_clients.get(api_key)
     if not client:
         client = get_anthropic_client(api_key, api_base_url)
@@ -67,12 +70,26 @@ def anthropic_completion_with_backoff(
 
     formatted_messages, system = format_messages_for_anthropic(messages, system_prompt)
 
+    thoughts = ""
     aggregated_response = ""
     final_message = None
     model_kwargs = model_kwargs or dict()
-    if response_schema:
-        tool = create_anthropic_tool_definition(response_schema=response_schema)
-        model_kwargs["tools"] = [tool]
+
+    # Configure structured output
+    if tools:
+        # Convert tools to Anthropic format
+        model_kwargs["tools"] = [
+            anthropic.types.ToolParam(name=tool.name, description=tool.description, input_schema=tool.schema)
+            for tool in tools
+        ]
+        # Cache tool definitions
+        last_tool = model_kwargs["tools"][-1]
+        last_tool["cache_control"] = {"type": "ephemeral"}
+    elif response_schema:
+        tool = create_tool_definition(response_schema)
+        model_kwargs["tools"] = [
+            anthropic.types.ToolParam(name=tool.name, description=tool.description, input_schema=tool.schema)
+        ]
     elif response_type == "json_object" and not (is_reasoning_model(model_name) and deepthought):
         # Prefill model response with '{' to make it output a valid JSON object. Not supported with extended thinking.
         formatted_messages.append(anthropic.types.MessageParam(role="assistant", content="{"))
@@ -96,15 +113,41 @@ def anthropic_completion_with_backoff(
         max_tokens=max_tokens,
         **(model_kwargs),
     ) as stream:
-        for text in stream.text_stream:
-            aggregated_response += text
+        for chunk in stream:
+            if chunk.type != "content_block_delta":
+                continue
+            if chunk.delta.type == "thinking_delta":
+                thoughts += chunk.delta.thinking
+            elif chunk.delta.type == "text_delta":
+                aggregated_response += chunk.delta.text
         final_message = stream.get_final_message()
 
-    # Extract first tool call from final message
-    for item in final_message.content:
-        if item.type == "tool_use":
-            aggregated_response = json.dumps(item.input)
-            break
+    # Track raw content of model response to reuse for cache hits in multi-turn chats
+    raw_content = [item.model_dump() for item in final_message.content]
+
+    # Extract all tool calls if tools are enabled
+    if tools:
+        tool_calls = [
+            ToolCall(name=item.name, args=item.input, id=item.id).__dict__
+            for item in final_message.content
+            if item.type == "tool_use"
+        ]
+        if tool_calls:
+            # If there are tool calls, aggregate thoughts and responses into thoughts
+            if thoughts and aggregated_response:
+                # wrap each line of thought in italics
+                thoughts = "\n".join([f"*{line.strip()}*" for line in thoughts.splitlines() if line.strip()])
+                thoughts = f"{thoughts}\n\n{aggregated_response}"
+            else:
+                thoughts = thoughts or aggregated_response
+            # Json dump tool calls into aggregated response
+            aggregated_response = json.dumps(tool_calls)
+    # If response schema is used, return the first tool call's input
+    elif response_schema:
+        for item in final_message.content:
+            if item.type == "tool_use":
+                aggregated_response = json.dumps(item.input)
+                break
 
     # Calculate cost of chat
     input_tokens = final_message.usage.input_tokens
@@ -126,7 +169,7 @@ def anthropic_completion_with_backoff(
     if is_promptrace_enabled():
         commit_conversation_trace(messages, aggregated_response, tracer)
 
-    return aggregated_response
+    return ResponseWithThought(text=aggregated_response, thought=thoughts, raw_content=raw_content)
 
 
 @retry(
@@ -183,10 +226,10 @@ async def anthropic_chat_completion_with_backoff(
             if chunk.type == "message_delta":
                 if chunk.delta.stop_reason == "refusal":
                     yield ResponseWithThought(
-                        response="...I'm sorry, but my safety filters prevent me from assisting with this query."
+                        text="...I'm sorry, but my safety filters prevent me from assisting with this query."
                     )
                 elif chunk.delta.stop_reason == "max_tokens":
-                    yield ResponseWithThought(response="...I'm sorry, but I've hit my response length limit.")
+                    yield ResponseWithThought(text="...I'm sorry, but I've hit my response length limit.")
                 if chunk.delta.stop_reason in ["refusal", "max_tokens"]:
                     logger.warning(
                         f"LLM Response Prevented for {model_name}: {chunk.delta.stop_reason}.\n"
@@ -199,7 +242,7 @@ async def anthropic_chat_completion_with_backoff(
             # Handle streamed response chunk
             response_chunk: ResponseWithThought = None
             if chunk.delta.type == "text_delta":
-                response_chunk = ResponseWithThought(response=chunk.delta.text)
+                response_chunk = ResponseWithThought(text=chunk.delta.text)
                 aggregated_response += chunk.delta.text
             if chunk.delta.type == "thinking_delta":
                 response_chunk = ResponseWithThought(thought=chunk.delta.thinking)
@@ -232,13 +275,14 @@ async def anthropic_chat_completion_with_backoff(
         commit_conversation_trace(messages, aggregated_response, tracer)
 
 
-def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt: str = None):
+def format_messages_for_anthropic(raw_messages: list[ChatMessage], system_prompt: str = None):
     """
     Format messages for Anthropic
     """
     # Extract system prompt
     system_prompt = system_prompt or ""
-    for message in messages.copy():
+    messages = deepcopy(raw_messages)
+    for message in messages:
         if message.role == "system":
             if isinstance(message.content, list):
                 system_prompt += "\n".join([part["text"] for part in message.content if part["type"] == "text"])
@@ -250,15 +294,30 @@ def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt: st
     else:
         system = None
 
-    # Anthropic requires the first message to be a 'user' message
-    if len(messages) == 1:
+    # Anthropic requires the first message to be a user message unless its a tool call
+    message_type = messages[0].additional_kwargs.get("message_type", None)
+    if len(messages) == 1 and message_type != "tool_call":
         messages[0].role = "user"
-    elif len(messages) > 1 and messages[0].role == "assistant":
-        messages = messages[1:]
 
-    # Convert image urls to base64 encoded images in Anthropic message format
     for message in messages:
-        if isinstance(message.content, list):
+        # Handle tool call and tool result message types from additional_kwargs
+        message_type = message.additional_kwargs.get("message_type")
+        if message_type == "tool_call":
+            pass
+        elif message_type == "tool_result":
+            # Convert tool_result to Anthropic tool_result format
+            content = []
+            for part in message.content:
+                content.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": part["id"],
+                        "content": part["content"],
+                    }
+                )
+            message.content = content
+        # Convert image urls to base64 encoded images in Anthropic message format
+        elif isinstance(message.content, list):
             content = []
             # Sort the content. Anthropic models prefer that text comes after images.
             message.content.sort(key=lambda x: 0 if x["type"] == "image_url" else 1)
@@ -304,18 +363,15 @@ def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt: st
                     if isinstance(block, dict) and "cache_control" in block:
                         del block["cache_control"]
 
-        # Add cache control to the last content block of second to last message.
-        # In research mode, this message content is list of iterations, updated after each research iteration.
-        # Caching it should improve research efficiency.
-        cache_message = messages[-2]
+        # Add cache control to the last content block of last message.
+        # Caching should improve research efficiency.
+        cache_message = messages[-1]
         if isinstance(cache_message.content, list) and cache_message.content:
             # Add cache control to the last content block only if it's a text block with non-empty content
             last_block = cache_message.content[-1]
-            if (
-                isinstance(last_block, dict)
-                and last_block.get("type") == "text"
-                and last_block.get("text")
-                and last_block.get("text").strip()
+            if isinstance(last_block, dict) and (
+                (last_block.get("type") == "text" and last_block.get("text", "").strip())
+                or (last_block.get("type") == "tool_result" and last_block.get("content", []))
             ):
                 last_block["cache_control"] = {"type": "ephemeral"}
 
@@ -324,75 +380,6 @@ def format_messages_for_anthropic(messages: list[ChatMessage], system_prompt: st
     ]
 
     return formatted_messages, system
-
-
-def create_anthropic_tool_definition(
-    response_schema: Type[BaseModel],
-    tool_name: str = None,
-    tool_description: Optional[str] = None,
-) -> anthropic.types.ToolParam:
-    """
-    Converts a response schema BaseModel class into an Anthropic tool definition dictionary.
-
-    This format is expected by Anthropic's API when defining tools the model can use.
-
-    Args:
-        response_schema: The Pydantic BaseModel class to convert.
-                         This class defines the response schema for the tool.
-        tool_name: The name for the Anthropic tool (e.g., "get_weather", "plan_next_step").
-        tool_description: Optional description for the Anthropic tool.
-                           If None, it attempts to use the Pydantic model's docstring.
-                           If that's also missing, a fallback description is generated.
-
-    Returns:
-        An tool definition for Anthropic's API.
-    """
-    model_schema = response_schema.model_json_schema()
-
-    name = tool_name or response_schema.__name__.lower()
-    description = tool_description
-    if description is None:
-        docstring = response_schema.__doc__
-        if docstring:
-            description = dedent(docstring).strip()
-        else:
-            # Fallback description if no explicit one or docstring is provided
-            description = f"Tool named '{name}' accepts specified parameters."
-
-    # Process properties to inline enums and remove $defs dependency
-    processed_properties = {}
-    original_properties = model_schema.get("properties", {})
-    defs = model_schema.get("$defs", {})
-
-    for prop_name, prop_schema in original_properties.items():
-        current_prop_schema = deepcopy(prop_schema)  # Work on a copy
-        # Check for enums defined directly in the property for simpler direct enum definitions.
-        if "$ref" in current_prop_schema:
-            ref_path = current_prop_schema["$ref"]
-            if ref_path.startswith("#/$defs/"):
-                def_name = ref_path.split("/")[-1]
-                if def_name in defs and "enum" in defs[def_name]:
-                    enum_def = defs[def_name]
-                    current_prop_schema["enum"] = enum_def["enum"]
-                    current_prop_schema["type"] = enum_def.get("type", "string")
-                    if "description" not in current_prop_schema and "description" in enum_def:
-                        current_prop_schema["description"] = enum_def["description"]
-                    del current_prop_schema["$ref"]  # Remove the $ref as it's been inlined
-
-        processed_properties[prop_name] = current_prop_schema
-
-    # The input_schema for Anthropic tools is a JSON Schema object.
-    # Pydantic's model_json_schema() provides most of what's needed.
-    input_schema = {
-        "type": "object",
-        "properties": processed_properties,
-    }
-
-    # Include 'required' fields if specified in the Pydantic model
-    if "required" in model_schema and model_schema["required"]:
-        input_schema["required"] = model_schema["required"]
-
-    return anthropic.types.ToolParam(name=name, description=description, input_schema=input_schema)
 
 
 def is_reasoning_model(model_name: str) -> bool:

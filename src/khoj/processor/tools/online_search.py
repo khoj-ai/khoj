@@ -390,7 +390,25 @@ async def read_webpages(
         query_files=query_files,
         tracer=tracer,
     )
+    async for result in read_webpages_content(
+        query,
+        urls,
+        user,
+        send_status_func=send_status_func,
+        agent=agent,
+        tracer=tracer,
+    ):
+        yield result
 
+
+async def read_webpages_content(
+    query: str,
+    urls: List[str],
+    user: KhojUser,
+    send_status_func: Optional[Callable] = None,
+    agent: Agent = None,
+    tracer: dict = {},
+):
     logger.info(f"Reading web pages at: {urls}")
     if send_status_func:
         webpage_links_str = "\n- " + "\n- ".join(list(urls))

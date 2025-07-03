@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import concurrent.futures
+import fnmatch
 import hashlib
 import json
 import logging
@@ -120,6 +121,7 @@ from khoj.utils.config import OfflineChatProcessorModel
 from khoj.utils.helpers import (
     LRU,
     ConversationCommand,
+    ToolDefinition,
     get_file_type,
     in_debug_mode,
     is_none_or_empty,
@@ -303,7 +305,7 @@ async def acreate_title_from_history(
     with timer("Chat actor: Generate title from conversation history", logger):
         response = await send_message_to_model_wrapper(title_generation_prompt, user=user)
 
-    return response.strip()
+    return response.text.strip()
 
 
 async def acreate_title_from_query(query: str, user: KhojUser = None) -> str:
@@ -315,7 +317,7 @@ async def acreate_title_from_query(query: str, user: KhojUser = None) -> str:
     with timer("Chat actor: Generate title from query", logger):
         response = await send_message_to_model_wrapper(title_generation_prompt, user=user)
 
-    return response.strip()
+    return response.text.strip()
 
 
 async def acheck_if_safe_prompt(system_prompt: str, user: KhojUser = None, lax: bool = False) -> Tuple[bool, str]:
@@ -339,7 +341,7 @@ async def acheck_if_safe_prompt(system_prompt: str, user: KhojUser = None, lax: 
             safe_prompt_check, user=user, response_type="json_object", response_schema=SafetyCheck
         )
 
-        response = response.strip()
+        response = response.text.strip()
         try:
             response = json.loads(clean_json(response))
             is_safe = str(response.get("safe", "true")).lower() == "true"
@@ -418,7 +420,7 @@ async def aget_data_sources_and_output_format(
         output: str
 
     with timer("Chat actor: Infer information sources to refer", logger):
-        response = await send_message_to_model_wrapper(
+        raw_response = await send_message_to_model_wrapper(
             relevant_tools_prompt,
             response_type="json_object",
             response_schema=PickTools,
@@ -429,7 +431,7 @@ async def aget_data_sources_and_output_format(
         )
 
     try:
-        response = clean_json(response)
+        response = clean_json(raw_response.text)
         response = json.loads(response)
 
         chosen_sources = [s.strip() for s in response.get("source", []) if s.strip()]
@@ -506,7 +508,7 @@ async def infer_webpage_urls(
         links: List[str] = Field(..., min_items=1, max_items=max_webpages)
 
     with timer("Chat actor: Infer webpage urls to read", logger):
-        response = await send_message_to_model_wrapper(
+        raw_response = await send_message_to_model_wrapper(
             online_queries_prompt,
             query_images=query_images,
             response_type="json_object",
@@ -519,7 +521,7 @@ async def infer_webpage_urls(
 
     # Validate that the response is a non-empty, JSON-serializable list of URLs
     try:
-        response = clean_json(response)
+        response = clean_json(raw_response.text)
         urls = json.loads(response)
         valid_unique_urls = {str(url).strip() for url in urls["links"] if is_valid_url(url)}
         if is_none_or_empty(valid_unique_urls):
@@ -571,7 +573,7 @@ async def generate_online_subqueries(
         queries: List[str] = Field(..., min_items=1, max_items=max_queries)
 
     with timer("Chat actor: Generate online search subqueries", logger):
-        response = await send_message_to_model_wrapper(
+        raw_response = await send_message_to_model_wrapper(
             online_queries_prompt,
             query_images=query_images,
             response_type="json_object",
@@ -584,7 +586,7 @@ async def generate_online_subqueries(
 
     # Validate that the response is a non-empty, JSON-serializable list
     try:
-        response = clean_json(response)
+        response = clean_json(raw_response.text)
         response = pyjson5.loads(response)
         response = {q.strip() for q in response["queries"] if q.strip()}
         if not isinstance(response, set) or not response or len(response) == 0:
@@ -645,7 +647,7 @@ async def aschedule_query(
 
     # Validate that the response is a non-empty, JSON-serializable list
     try:
-        raw_response = raw_response.strip()
+        raw_response = raw_response.text.strip()
         response: Dict[str, str] = json.loads(clean_json(raw_response))
         if not response or not isinstance(response, Dict) or len(response) != 3:
             raise AssertionError(f"Invalid response for scheduling query : {response}")
@@ -683,7 +685,7 @@ async def extract_relevant_info(
         agent_chat_model=agent_chat_model,
         tracer=tracer,
     )
-    return response.strip()
+    return response.text.strip()
 
 
 async def extract_relevant_summary(
@@ -726,7 +728,7 @@ async def extract_relevant_summary(
             agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
-    return response.strip()
+    return response.text.strip()
 
 
 async def generate_summary_from_files(
@@ -897,7 +899,7 @@ async def generate_better_diagram_description(
             agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
-        response = response.strip()
+        response = response.text.strip()
         if response.startswith(('"', "'")) and response.endswith(('"', "'")):
             response = response[1:-1]
 
@@ -925,10 +927,10 @@ async def generate_excalidraw_diagram_from_description(
         raw_response = await send_message_to_model_wrapper(
             query=excalidraw_diagram_generation, user=user, agent_chat_model=agent_chat_model, tracer=tracer
         )
-        raw_response = clean_json(raw_response)
+        raw_response_text = clean_json(raw_response.text)
         try:
             # Expect response to have `elements` and `scratchpad` keys
-            response: Dict[str, str] = json.loads(raw_response)
+            response: Dict[str, str] = json.loads(raw_response_text)
             if (
                 not response
                 or not isinstance(response, Dict)
@@ -937,7 +939,7 @@ async def generate_excalidraw_diagram_from_description(
             ):
                 raise AssertionError(f"Invalid response for generating Excalidraw diagram: {response}")
         except Exception:
-            raise AssertionError(f"Invalid response for generating Excalidraw diagram: {raw_response}")
+            raise AssertionError(f"Invalid response for generating Excalidraw diagram: {raw_response_text}")
         if not response or not isinstance(response["elements"], List) or not isinstance(response["elements"][0], Dict):
             # TODO Some additional validation here that it's a valid Excalidraw diagram
             raise AssertionError(f"Invalid response for improving diagram description: {response}")
@@ -1048,11 +1050,11 @@ async def generate_better_mermaidjs_diagram_description(
             agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
-        response = response.strip()
-        if response.startswith(('"', "'")) and response.endswith(('"', "'")):
-            response = response[1:-1]
+        response_text = response.text.strip()
+        if response_text.startswith(('"', "'")) and response_text.endswith(('"', "'")):
+            response_text = response_text[1:-1]
 
-    return response
+    return response_text
 
 
 async def generate_mermaidjs_diagram_from_description(
@@ -1076,7 +1078,7 @@ async def generate_mermaidjs_diagram_from_description(
         raw_response = await send_message_to_model_wrapper(
             query=mermaidjs_diagram_generation, user=user, agent_chat_model=agent_chat_model, tracer=tracer
         )
-        return clean_mermaidjs(raw_response.strip())
+        return clean_mermaidjs(raw_response.text.strip())
 
 
 async def generate_better_image_prompt(
@@ -1151,11 +1153,11 @@ async def generate_better_image_prompt(
             agent_chat_model=agent_chat_model,
             tracer=tracer,
         )
-        response = response.strip()
-        if response.startswith(('"', "'")) and response.endswith(('"', "'")):
-            response = response[1:-1]
+        response_text = response.text.strip()
+        if response_text.startswith(('"', "'")) and response_text.endswith(('"', "'")):
+            response_text = response_text[1:-1]
 
-    return response
+    return response_text
 
 
 async def search_documents(
@@ -1329,7 +1331,7 @@ async def extract_questions(
 
     # Extract questions from the response
     try:
-        response = clean_json(raw_response)
+        response = clean_json(raw_response.text)
         response = pyjson5.loads(response)
         queries = [q.strip() for q in response["queries"] if q.strip()]
         if not isinstance(queries, list) or not queries:
@@ -1439,6 +1441,7 @@ async def send_message_to_model_wrapper(
     system_message: str = "",
     response_type: str = "text",
     response_schema: BaseModel = None,
+    tools: List[ToolDefinition] = None,
     deepthought: bool = False,
     user: KhojUser = None,
     query_images: List[str] = None,
@@ -1506,6 +1509,7 @@ async def send_message_to_model_wrapper(
             model=chat_model_name,
             response_type=response_type,
             response_schema=response_schema,
+            tools=tools,
             deepthought=deepthought,
             api_base_url=api_base_url,
             tracer=tracer,
@@ -1517,6 +1521,7 @@ async def send_message_to_model_wrapper(
             model=chat_model_name,
             response_type=response_type,
             response_schema=response_schema,
+            tools=tools,
             deepthought=deepthought,
             api_base_url=api_base_url,
             tracer=tracer,
@@ -1528,6 +1533,7 @@ async def send_message_to_model_wrapper(
             model=chat_model_name,
             response_type=response_type,
             response_schema=response_schema,
+            tools=tools,
             deepthought=deepthought,
             api_base_url=api_base_url,
             tracer=tracer,
@@ -2796,3 +2802,264 @@ def get_notion_auth_url(user: KhojUser):
     if not NOTION_OAUTH_CLIENT_ID or not NOTION_OAUTH_CLIENT_SECRET or not NOTION_REDIRECT_URI:
         return None
     return f"https://api.notion.com/v1/oauth/authorize?client_id={NOTION_OAUTH_CLIENT_ID}&redirect_uri={NOTION_REDIRECT_URI}&response_type=code&state={user.uuid}"
+
+
+async def view_file_content(
+    path: str,
+    start_line: Optional[int] = None,
+    end_line: Optional[int] = None,
+    user: KhojUser = None,
+):
+    """
+    View the contents of a file from the user's document database with optional line range specification.
+    """
+    query = f"View file: {path}"
+    if start_line and end_line:
+        query += f" (lines {start_line}-{end_line})"
+
+    try:
+        # Get the file object from the database by name
+        file_objects = await FileObjectAdapters.aget_file_objects_by_name(user, path)
+
+        if not file_objects:
+            error_msg = f"File '{path}' not found in user documents"
+            logger.warning(error_msg)
+            yield [{"query": query, "file": path, "compiled": error_msg}]
+            return
+
+        # Use the first file object if multiple exist
+        file_object = file_objects[0]
+        raw_text = file_object.raw_text
+
+        # Apply line range filtering if specified
+        if start_line is None and end_line is None:
+            filtered_text = raw_text
+        else:
+            lines = raw_text.split("\n")
+            start_line = start_line or 1
+            end_line = end_line or len(lines)
+
+            # Validate line range
+            if start_line < 1 or end_line < 1 or start_line > end_line:
+                error_msg = f"Invalid line range: {start_line}-{end_line}"
+                logger.warning(error_msg)
+                yield [{"query": query, "file": path, "compiled": error_msg}]
+                return
+            if start_line > len(lines):
+                error_msg = f"Start line {start_line} exceeds total number of lines {len(lines)}"
+                logger.warning(error_msg)
+                yield [{"query": query, "file": path, "compiled": error_msg}]
+                return
+
+            # Convert from 1-based to 0-based indexing and ensure bounds
+            start_idx = max(0, start_line - 1)
+            end_idx = min(len(lines), end_line)
+
+            selected_lines = lines[start_idx:end_idx]
+            filtered_text = "\n".join(selected_lines)
+
+        # Truncate the text if it's too long
+        if len(filtered_text) > 10000:
+            filtered_text = filtered_text[:10000] + "\n\n[Truncated. Use line numbers to view specific sections.]"
+
+        # Format the result as a document reference
+        document_results = [
+            {
+                "query": query,
+                "file": path,
+                "compiled": filtered_text,
+            }
+        ]
+
+        yield document_results
+
+    except Exception as e:
+        error_msg = f"Error viewing file {path}: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+
+        # Return an error result in the expected format
+        yield [{"query": query, "file": path, "compiled": error_msg}]
+
+
+async def grep_files(
+    regex_pattern: str,
+    path_prefix: Optional[str] = None,
+    lines_before: Optional[int] = None,
+    lines_after: Optional[int] = None,
+    user: KhojUser = None,
+):
+    """
+    Search for a regex pattern in files with an optional path prefix and context lines.
+    """
+
+    # Construct the query string based on provided parameters
+    def _generate_query(line_count, doc_count, path, pattern, lines_before, lines_after, max_results=1000):
+        query = f"**Found {line_count} matches for '{pattern}' in {doc_count} documents**"
+        if path:
+            query += f" in {path}"
+        if lines_before or lines_after or line_count > max_results:
+            query += " Showing"
+        if lines_before or lines_after:
+            context_info = []
+            if lines_before:
+                context_info.append(f"{lines_before} lines before")
+            if lines_after:
+                context_info.append(f"{lines_after} lines after")
+            query += f" {' and '.join(context_info)}"
+        if line_count > max_results:
+            if lines_before or lines_after:
+                query += f" for"
+            query += f" first {max_results} results"
+        return query
+
+    # Validate regex pattern
+    path_prefix = path_prefix or ""
+    lines_before = lines_before or 0
+    lines_after = lines_after or 0
+
+    try:
+        regex = re.compile(regex_pattern, re.IGNORECASE)
+    except re.error as e:
+        yield {
+            "query": _generate_query(0, 0, path_prefix, regex_pattern, lines_before, lines_after),
+            "file": path_prefix,
+            "compiled": f"Invalid regex pattern: {e}",
+        }
+        return
+
+    try:
+        file_matches = await FileObjectAdapters.aget_file_objects_by_regex(user, regex_pattern, path_prefix)
+
+        line_matches = []
+        for file_object in file_matches:
+            lines = file_object.raw_text.split("\n")
+            matched_line_numbers = []
+
+            # Find all matching line numbers first
+            for i, line in enumerate(lines, 1):
+                if regex.search(line):
+                    matched_line_numbers.append(i)
+
+            # Build context for each match
+            for line_num in matched_line_numbers:
+                context_lines = []
+
+                # Calculate start and end indices for context (0-based)
+                start_idx = max(0, line_num - 1 - lines_before)
+                end_idx = min(len(lines), line_num + lines_after)
+
+                # Add context lines with line numbers
+                for idx in range(start_idx, end_idx):
+                    current_line_num = idx + 1
+                    line_content = lines[idx]
+
+                    if current_line_num == line_num:
+                        # This is the matching line, mark it
+                        context_lines.append(f"{file_object.file_name}:{current_line_num}:> {line_content}")
+                    else:
+                        # This is a context line
+                        context_lines.append(f"{file_object.file_name}:{current_line_num}:  {line_content}")
+
+                # Add separator between matches if showing context
+                if lines_before > 0 or lines_after > 0:
+                    context_lines.append("--")
+
+                line_matches.extend(context_lines)
+
+        # Remove the last separator if it exists
+        if line_matches and line_matches[-1] == "--":
+            line_matches.pop()
+
+        # Check if no results found
+        max_results = 1000
+        query = _generate_query(
+            len([m for m in line_matches if ":>" in m]),
+            len(file_matches),
+            path_prefix,
+            regex_pattern,
+            lines_before,
+            lines_after,
+            max_results,
+        )
+        if not line_matches:
+            yield {"query": query, "file": path_prefix, "compiled": "No matches found."}
+            return
+
+        # Truncate matched lines list if too long
+        if len(line_matches) > max_results:
+            line_matches = line_matches[:max_results] + [
+                f"... {len(line_matches) - max_results} more results found. Use stricter regex or path to narrow down results."
+            ]
+
+        yield {"query": query, "file": path_prefix or "", "compiled": "\n".join(line_matches)}
+
+    except Exception as e:
+        error_msg = f"Error using grep files tool: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        yield [
+            {
+                "query": _generate_query(0, 0, path_prefix or "", regex_pattern, lines_before, lines_after),
+                "file": path_prefix,
+                "compiled": error_msg,
+            }
+        ]
+
+
+async def list_files(
+    path: Optional[str] = None,
+    pattern: Optional[str] = None,
+    user: KhojUser = None,
+):
+    """
+    List files under a given path or glob pattern from the user's document database.
+    """
+
+    # Construct the query string based on provided parameters
+    def _generate_query(doc_count, path, pattern):
+        query = f"**Found {doc_count} files**"
+        if path:
+            query += f" in {path}"
+        if pattern:
+            query += f" filtered by {pattern}"
+        return query
+
+    try:
+        # Get user files by path prefix when specified
+        path = path or ""
+        if path in ["", "/", ".", "./", "~", "~/"]:
+            file_objects = await FileObjectAdapters.aget_all_file_objects(user, limit=10000)
+        else:
+            file_objects = await FileObjectAdapters.aget_file_objects_by_path_prefix(user, path)
+
+        if not file_objects:
+            yield {"query": _generate_query(0, path, pattern), "file": path, "compiled": "No files found."}
+            return
+
+        # Extract file names from file objects
+        files = [f.file_name for f in file_objects]
+        # Convert to relative file path (similar to ls)
+        if path:
+            files = [f[len(path) :] for f in files]
+
+        # Apply glob pattern filtering if specified
+        if pattern:
+            files = [f for f in files if fnmatch.fnmatch(f, pattern)]
+
+        query = _generate_query(len(files), path, pattern)
+        if not files:
+            yield {"query": query, "file": path, "compiled": "No files found."}
+            return
+
+        # Truncate the list if it's too long
+        max_files = 100
+        if len(files) > max_files:
+            files = files[:max_files] + [
+                f"... {len(files) - max_files} more files found. Use glob pattern to narrow down results."
+            ]
+
+        yield {"query": query, "file": path, "compiled": "\n- ".join(files)}
+
+    except Exception as e:
+        error_msg = f"Error listing files in {path}: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        yield {"query": query, "file": path, "compiled": error_msg}

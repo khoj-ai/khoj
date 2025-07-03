@@ -1,25 +1,24 @@
 import logging
 from datetime import datetime
-from typing import AsyncGenerator, Dict, List, Optional
-
-from openai.lib._pydantic import _ensure_strict_json_schema
-from pydantic import BaseModel
+from typing import Any, AsyncGenerator, Dict, List, Optional
 
 from khoj.database.models import Agent, ChatMessageModel, ChatModel
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.openai.utils import (
     chat_completion_with_backoff,
+    clean_response_schema,
     completion_with_backoff,
-    get_openai_api_json_support,
+    get_structured_output_support,
+    to_openai_tools,
 )
 from khoj.processor.conversation.utils import (
-    JsonSupport,
     OperatorRun,
     ResponseWithThought,
+    StructuredOutputSupport,
     generate_chatml_messages_with_context,
     messages_to_print,
 )
-from khoj.utils.helpers import is_none_or_empty, truncate_code_context
+from khoj.utils.helpers import ToolDefinition, is_none_or_empty, truncate_code_context
 from khoj.utils.rawconfig import FileAttachment, LocationData
 from khoj.utils.yaml import yaml_dump
 
@@ -32,6 +31,7 @@ def send_message_to_model(
     model,
     response_type="text",
     response_schema=None,
+    tools: list[ToolDefinition] = None,
     deepthought=False,
     api_base_url=None,
     tracer: dict = {},
@@ -40,9 +40,11 @@ def send_message_to_model(
     Send message to model
     """
 
-    model_kwargs = {}
-    json_support = get_openai_api_json_support(model, api_base_url)
-    if response_schema and json_support == JsonSupport.SCHEMA:
+    model_kwargs: Dict[str, Any] = {}
+    json_support = get_structured_output_support(model, api_base_url)
+    if tools and json_support == StructuredOutputSupport.TOOL:
+        model_kwargs["tools"] = to_openai_tools(tools)
+    elif response_schema and json_support >= StructuredOutputSupport.SCHEMA:
         # Drop unsupported fields from schema passed to OpenAI APi
         cleaned_response_schema = clean_response_schema(response_schema)
         model_kwargs["response_format"] = {
@@ -53,7 +55,7 @@ def send_message_to_model(
                 "strict": True,
             },
         }
-    elif response_type == "json_object" and json_support == JsonSupport.OBJECT:
+    elif response_type == "json_object" and json_support == StructuredOutputSupport.OBJECT:
         model_kwargs["response_format"] = {"type": response_type}
 
     # Get Response from GPT
@@ -171,30 +173,3 @@ async def converse_openai(
         tracer=tracer,
     ):
         yield chunk
-
-
-def clean_response_schema(schema: BaseModel | dict) -> dict:
-    """
-    Format response schema to be compatible with OpenAI API.
-
-    Clean the response schema by removing unsupported fields.
-    """
-    # Normalize schema to OpenAI compatible JSON schema format
-    schema_json = schema if isinstance(schema, dict) else schema.model_json_schema()
-    schema_json = _ensure_strict_json_schema(schema_json, path=(), root=schema_json)
-
-    # Recursively drop unsupported fields from schema passed to OpenAI API
-    # See https://platform.openai.com/docs/guides/structured-outputs#supported-schemas
-    fields_to_exclude = ["minItems", "maxItems"]
-    if isinstance(schema_json, dict) and isinstance(schema_json.get("properties"), dict):
-        for _, prop_value in schema_json["properties"].items():
-            if isinstance(prop_value, dict):
-                # Remove specified fields from direct properties
-                for field in fields_to_exclude:
-                    prop_value.pop(field, None)
-            # Recursively remove specified fields from child properties
-            if "items" in prop_value and isinstance(prop_value["items"], dict):
-                clean_response_schema(prop_value["items"])
-
-    # Return cleaned schema
-    return schema_json

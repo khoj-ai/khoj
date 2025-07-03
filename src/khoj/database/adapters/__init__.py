@@ -1718,6 +1718,14 @@ class FileObjectAdapters:
 
     @staticmethod
     @arequire_valid_user
+    async def aget_file_objects_by_path_prefix(user: KhojUser, path_prefix: str, agent: Agent = None):
+        """Get file objects from the database by path prefix."""
+        return await sync_to_async(list)(
+            FileObject.objects.filter(user=user, agent=agent, file_name__startswith=path_prefix)
+        )
+
+    @staticmethod
+    @arequire_valid_user
     async def aget_file_objects_by_names(user: KhojUser, file_names: List[str]):
         return await sync_to_async(list)(FileObject.objects.filter(user=user, file_name__in=file_names))
 
@@ -1747,6 +1755,18 @@ class FileObjectAdapters:
     @arequire_valid_user
     async def adelete_all_file_objects(user: KhojUser):
         return await FileObject.objects.filter(user=user).adelete()
+
+    @staticmethod
+    @arequire_valid_user
+    async def aget_file_objects_by_regex(user: KhojUser, regex_pattern: str, path_prefix: Optional[str] = None):
+        """
+        Search for a regex pattern in file objects, with an optional path prefix filter.
+        Outputs results in grep format.
+        """
+        query = FileObject.objects.filter(user=user, agent=None, raw_text__iregex=regex_pattern)
+        if path_prefix:
+            query = query.filter(file_name__startswith=path_prefix)
+        return await sync_to_async(list)(query)
 
 
 class EntryAdapters:

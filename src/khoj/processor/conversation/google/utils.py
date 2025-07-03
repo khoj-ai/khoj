@@ -1,9 +1,10 @@
+import json
 import logging
 import os
 import random
 from copy import deepcopy
 from time import perf_counter
-from typing import AsyncGenerator, AsyncIterator, Dict
+from typing import AsyncGenerator, AsyncIterator, Dict, List
 
 import httpx
 from google import genai
@@ -22,11 +23,13 @@ from tenacity import (
 
 from khoj.processor.conversation.utils import (
     ResponseWithThought,
+    ToolCall,
     commit_conversation_trace,
     get_image_from_base64,
     get_image_from_url,
 )
 from khoj.utils.helpers import (
+    ToolDefinition,
     get_chat_usage_metrics,
     get_gemini_client,
     is_none_or_empty,
@@ -95,26 +98,29 @@ def gemini_completion_with_backoff(
     temperature=1.2,
     api_key=None,
     api_base_url: str = None,
-    model_kwargs=None,
+    model_kwargs={},
     deepthought=False,
     tracer={},
-) -> str:
+) -> ResponseWithThought:
     client = gemini_clients.get(api_key)
     if not client:
         client = get_gemini_client(api_key, api_base_url)
         gemini_clients[api_key] = client
 
     formatted_messages, system_instruction = format_messages_for_gemini(messages, system_prompt)
-    response_thoughts: str | None = None
+    raw_content, response_text, response_thoughts = [], "", None
 
-    # format model response schema
+    # Configure structured output
+    tools = None
     response_schema = None
-    if model_kwargs and model_kwargs.get("response_schema"):
+    if model_kwargs.get("tools"):
+        tools = to_gemini_tools(model_kwargs["tools"])
+    elif model_kwargs.get("response_schema"):
         response_schema = clean_response_schema(model_kwargs["response_schema"])
 
     thinking_config = None
     if deepthought and is_reasoning_model(model_name):
-        thinking_config = gtypes.ThinkingConfig(thinking_budget=MAX_REASONING_TOKENS_GEMINI)
+        thinking_config = gtypes.ThinkingConfig(thinking_budget=MAX_REASONING_TOKENS_GEMINI, include_thoughts=True)
 
     max_output_tokens = MAX_OUTPUT_TOKENS_FOR_STANDARD_GEMINI
     if is_reasoning_model(model_name):
@@ -127,8 +133,9 @@ def gemini_completion_with_backoff(
         thinking_config=thinking_config,
         max_output_tokens=max_output_tokens,
         safety_settings=SAFETY_SETTINGS,
-        response_mime_type=model_kwargs.get("response_mime_type", "text/plain") if model_kwargs else "text/plain",
+        response_mime_type=model_kwargs.get("response_mime_type", "text/plain"),
         response_schema=response_schema,
+        tools=tools,
         seed=seed,
         top_p=0.95,
         http_options=gtypes.HttpOptions(client_args={"timeout": httpx.Timeout(30.0, read=60.0)}),
@@ -137,7 +144,25 @@ def gemini_completion_with_backoff(
     try:
         # Generate the response
         response = client.models.generate_content(model=model_name, config=config, contents=formatted_messages)
-        response_text = response.text
+        if (
+            not response.candidates
+            or not response.candidates[0].content
+            or response.candidates[0].content.parts is None
+        ):
+            raise ValueError(f"Failed to get response from model.")
+        raw_content = [part.model_dump() for part in response.candidates[0].content.parts]
+        if response.function_calls:
+            function_calls = [
+                ToolCall(name=function_call.name, args=function_call.args, id=function_call.id).__dict__
+                for function_call in response.function_calls
+            ]
+            response_text = json.dumps(function_calls)
+        else:
+            # If no function calls, use the text response
+            response_text = response.text
+        response_thoughts = "\n".join(
+            [part.text for part in response.candidates[0].content.parts if part.thought and isinstance(part.text, str)]
+        )
     except gerrors.ClientError as e:
         response = None
         response_text, _ = handle_gemini_response(e.args)
@@ -151,8 +176,14 @@ def gemini_completion_with_backoff(
     input_tokens = response.usage_metadata.prompt_token_count or 0 if response else 0
     output_tokens = response.usage_metadata.candidates_token_count or 0 if response else 0
     thought_tokens = response.usage_metadata.thoughts_token_count or 0 if response else 0
+    cache_read_tokens = response.usage_metadata.cached_content_token_count or 0 if response else 0
     tracer["usage"] = get_chat_usage_metrics(
-        model_name, input_tokens, output_tokens, thought_tokens=thought_tokens, usage=tracer.get("usage")
+        model_name,
+        input_tokens,
+        output_tokens,
+        cache_read_tokens=cache_read_tokens,
+        thought_tokens=thought_tokens,
+        usage=tracer.get("usage"),
     )
 
     # Validate the response. If empty, raise an error to retry.
@@ -166,7 +197,7 @@ def gemini_completion_with_backoff(
     if is_promptrace_enabled():
         commit_conversation_trace(messages, response_text, tracer)
 
-    return response_text
+    return ResponseWithThought(text=response_text, thought=response_thoughts, raw_content=raw_content)
 
 
 @retry(
@@ -234,7 +265,7 @@ async def gemini_chat_completion_with_backoff(
         # handle safety, rate-limit, other finish reasons
         stop_message, stopped = handle_gemini_response(chunk.candidates, chunk.prompt_feedback)
         if stopped:
-            yield ResponseWithThought(response=stop_message)
+            yield ResponseWithThought(text=stop_message)
             logger.warning(
                 f"LLM Response Prevented for {model_name}: {stop_message}.\n"
                 + f"Last Message by {messages[-1].role}: {messages[-1].content}"
@@ -247,7 +278,7 @@ async def gemini_chat_completion_with_backoff(
                 yield ResponseWithThought(thought=part.text)
             elif part.text:
                 aggregated_response += part.text
-                yield ResponseWithThought(response=part.text)
+                yield ResponseWithThought(text=part.text)
     # Calculate cost of chat
     input_tokens = final_chunk.usage_metadata.prompt_token_count or 0 if final_chunk else 0
     output_tokens = final_chunk.usage_metadata.candidates_token_count or 0 if final_chunk else 0
@@ -346,8 +377,24 @@ def format_messages_for_gemini(
     system_prompt = None if is_none_or_empty(system_prompt) else system_prompt
 
     for message in messages:
+        if message.role == "assistant":
+            message.role = "model"
+
+        # Handle tool call and tool result message types from additional_kwargs
+        message_type = message.additional_kwargs.get("message_type")
+        if message_type == "tool_call":
+            pass
+        elif message_type == "tool_result":
+            # Convert tool_result to Gemini function response format
+            # Need to find the corresponding function call from previous messages
+            tool_result_msg_content = []
+            for part in message.content:
+                tool_result_msg_content.append(
+                    gtypes.Part.from_function_response(name=part["name"], response={"result": part["content"]})
+                )
+            message.content = tool_result_msg_content
         # Convert message content to string list from chatml dictionary list
-        if isinstance(message.content, list):
+        elif isinstance(message.content, list):
             # Convert image_urls to PIL.Image and place them at beginning of list (better for Gemini)
             message_content = []
             for item in sorted(message.content, key=lambda x: 0 if x["type"] == "image_url" else 1):
@@ -367,15 +414,12 @@ def format_messages_for_gemini(
                 messages.remove(message)
                 continue
             message.content = message_content
-        elif isinstance(message.content, str):
+        elif isinstance(message.content, str) and message.content.strip():
             message.content = [gtypes.Part.from_text(text=message.content)]
         else:
             logger.error(f"Dropping invalid type: {type(message.content)} of message content: {message.content}")
             messages.remove(message)
             continue
-
-        if message.role == "assistant":
-            message.role = "model"
 
     if len(messages) == 1:
         messages[0].role = "user"
@@ -404,3 +448,21 @@ def is_reasoning_model(model_name: str) -> bool:
     Check if the model is a reasoning model.
     """
     return model_name.startswith("gemini-2.5")
+
+
+def to_gemini_tools(tools: List[ToolDefinition]) -> List[gtypes.ToolDict] | None:
+    "Transform tool definitions from standard format to Gemini format."
+    gemini_tools = [
+        gtypes.ToolDict(
+            function_declarations=[
+                gtypes.FunctionDeclarationDict(
+                    name=tool.name,
+                    description=tool.description,
+                    parameters=tool.schema,
+                )
+                for tool in tools
+            ]
+        )
+    ]
+
+    return gemini_tools or None

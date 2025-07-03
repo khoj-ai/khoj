@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from copy import deepcopy
@@ -9,6 +10,7 @@ from urllib.parse import urlparse
 import httpx
 import openai
 from langchain_core.messages.chat import ChatMessage
+from openai.lib._pydantic import _ensure_strict_json_schema
 from openai.lib.streaming.chat import (
     ChatCompletionStream,
     ChatCompletionStreamEvent,
@@ -20,6 +22,7 @@ from openai.types.chat.chat_completion_chunk import (
     Choice,
     ChoiceDelta,
 )
+from pydantic import BaseModel
 from tenacity import (
     before_sleep_log,
     retry,
@@ -30,11 +33,13 @@ from tenacity import (
 )
 
 from khoj.processor.conversation.utils import (
-    JsonSupport,
     ResponseWithThought,
+    StructuredOutputSupport,
+    ToolCall,
     commit_conversation_trace,
 )
 from khoj.utils.helpers import (
+    ToolDefinition,
     convert_image_data_uri,
     get_chat_usage_metrics,
     get_openai_async_client,
@@ -72,7 +77,7 @@ def completion_with_backoff(
     deepthought: bool = False,
     model_kwargs: dict = {},
     tracer: dict = {},
-) -> str:
+) -> ResponseWithThought:
     client_key = f"{openai_api_key}--{api_base_url}"
     client = openai_clients.get(client_key)
     if not client:
@@ -117,6 +122,9 @@ def completion_with_backoff(
     if os.getenv("KHOJ_LLM_SEED"):
         model_kwargs["seed"] = int(os.getenv("KHOJ_LLM_SEED"))
 
+    tool_ids = []
+    tool_calls: list[ToolCall] = []
+    thoughts = ""
     aggregated_response = ""
     if stream:
         with client.beta.chat.completions.stream(
@@ -130,7 +138,16 @@ def completion_with_backoff(
                 if chunk.type == "content.delta":
                     aggregated_response += chunk.delta
                 elif chunk.type == "thought.delta":
-                    pass
+                    thoughts += chunk.delta
+                elif chunk.type == "chunk" and chunk.chunk.choices and chunk.chunk.choices[0].delta.tool_calls:
+                    tool_ids += [tool_call.id for tool_call in chunk.chunk.choices[0].delta.tool_calls]
+                elif chunk.type == "tool_calls.function.arguments.done":
+                    tool_calls += [ToolCall(name=chunk.name, args=json.loads(chunk.arguments), id=None)]
+        if tool_calls:
+            tool_calls = [
+                ToolCall(name=chunk.name, args=chunk.args, id=tool_id) for chunk, tool_id in zip(tool_calls, tool_ids)
+            ]
+            aggregated_response = json.dumps([tool_call.__dict__ for tool_call in tool_calls])
     else:
         # Non-streaming chat completion
         chunk = client.beta.chat.completions.parse(
@@ -164,7 +181,7 @@ def completion_with_backoff(
     if is_promptrace_enabled():
         commit_conversation_trace(messages, aggregated_response, tracer)
 
-    return aggregated_response
+    return ResponseWithThought(text=aggregated_response, thought=thoughts)
 
 
 @retry(
@@ -190,6 +207,7 @@ async def chat_completion_with_backoff(
     deepthought=False,
     model_kwargs: dict = {},
     tracer: dict = {},
+    tools=None,
 ) -> AsyncGenerator[ResponseWithThought, None]:
     client_key = f"{openai_api_key}--{api_base_url}"
     client = openai_async_clients.get(client_key)
@@ -258,6 +276,8 @@ async def chat_completion_with_backoff(
     read_timeout = 300 if is_local_api(api_base_url) else 60
     if os.getenv("KHOJ_LLM_SEED"):
         model_kwargs["seed"] = int(os.getenv("KHOJ_LLM_SEED"))
+    if tools:
+        model_kwargs["tools"] = tools
 
     aggregated_response = ""
     final_chunk = None
@@ -277,7 +297,7 @@ async def chat_completion_with_backoff(
             raise ValueError("No response by model.")
         aggregated_response = response.choices[0].message.content
         final_chunk = response
-        yield ResponseWithThought(response=aggregated_response)
+        yield ResponseWithThought(text=aggregated_response)
     else:
         async for chunk in stream_processor(response):
             # Log the time taken to start response
@@ -293,8 +313,8 @@ async def chat_completion_with_backoff(
             response_chunk: ResponseWithThought = None
             response_delta = chunk.choices[0].delta
             if response_delta.content:
-                response_chunk = ResponseWithThought(response=response_delta.content)
-                aggregated_response += response_chunk.response
+                response_chunk = ResponseWithThought(text=response_delta.content)
+                aggregated_response += response_chunk.text
             elif response_delta.thought:
                 response_chunk = ResponseWithThought(thought=response_delta.thought)
             if response_chunk:
@@ -327,16 +347,16 @@ async def chat_completion_with_backoff(
         commit_conversation_trace(messages, aggregated_response, tracer)
 
 
-def get_openai_api_json_support(model_name: str, api_base_url: str = None) -> JsonSupport:
+def get_structured_output_support(model_name: str, api_base_url: str = None) -> StructuredOutputSupport:
     if model_name.startswith("deepseek-reasoner"):
-        return JsonSupport.NONE
+        return StructuredOutputSupport.NONE
     if api_base_url:
         host = urlparse(api_base_url).hostname
         if host and host.endswith(".ai.azure.com"):
-            return JsonSupport.OBJECT
+            return StructuredOutputSupport.OBJECT
         if host == "api.deepinfra.com":
-            return JsonSupport.OBJECT
-    return JsonSupport.SCHEMA
+            return StructuredOutputSupport.OBJECT
+    return StructuredOutputSupport.TOOL
 
 
 def format_message_for_api(messages: List[ChatMessage], api_base_url: str) -> List[dict]:
@@ -345,6 +365,43 @@ def format_message_for_api(messages: List[ChatMessage], api_base_url: str) -> Li
     """
     formatted_messages = []
     for message in deepcopy(messages):
+        # Handle tool call and tool result message types
+        message_type = message.additional_kwargs.get("message_type")
+        if message_type == "tool_call":
+            # Convert tool_call to OpenAI function call format
+            content = []
+            for part in message.content:
+                content.append(
+                    {
+                        "type": "function",
+                        "id": part.get("id"),
+                        "function": {
+                            "name": part.get("name"),
+                            "arguments": json.dumps(part.get("input", part.get("args", {}))),
+                        },
+                    }
+                )
+            formatted_messages.append(
+                {
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": content,
+                }
+            )
+            continue
+        if message_type == "tool_result":
+            # Convert tool_result to OpenAI tool result format
+            # Each part is a result for a tool call
+            for part in message.content:
+                formatted_messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": part.get("id") or part.get("tool_use_id"),
+                        "name": part.get("name"),
+                        "content": part.get("content"),
+                    }
+                )
+            continue
         if isinstance(message.content, list) and not is_openai_api(api_base_url):
             assistant_texts = []
             has_images = False
@@ -708,3 +765,47 @@ def add_qwen_no_think_tag(formatted_messages: List[dict]) -> None:
                     if isinstance(content_part, dict) and content_part.get("type") == "text":
                         content_part["text"] += " /no_think"
                         break
+
+
+def to_openai_tools(tools: List[ToolDefinition]) -> List[Dict] | None:
+    "Transform tool definitions from standard format to OpenAI format."
+    openai_tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": tool.name,
+                "description": tool.description,
+                "parameters": clean_response_schema(tool.schema),
+            },
+        }
+        for tool in tools
+    ]
+
+    return openai_tools or None
+
+
+def clean_response_schema(schema: BaseModel | dict) -> dict:
+    """
+    Format response schema to be compatible with OpenAI API.
+
+    Clean the response schema by removing unsupported fields.
+    """
+    # Normalize schema to OpenAI compatible JSON schema format
+    schema_json = schema if isinstance(schema, dict) else schema.model_json_schema()
+    schema_json = _ensure_strict_json_schema(schema_json, path=(), root=schema_json)
+
+    # Recursively drop unsupported fields from schema passed to OpenAI API
+    # See https://platform.openai.com/docs/guides/structured-outputs#supported-schemas
+    fields_to_exclude = ["minItems", "maxItems"]
+    if isinstance(schema_json, dict) and isinstance(schema_json.get("properties"), dict):
+        for _, prop_value in schema_json["properties"].items():
+            if isinstance(prop_value, dict):
+                # Remove specified fields from direct properties
+                for field in fields_to_exclude:
+                    prop_value.pop(field, None)
+            # Recursively remove specified fields from child properties
+            if "items" in prop_value and isinstance(prop_value["items"], dict):
+                clean_response_schema(prop_value["items"])
+
+    # Return cleaned schema
+    return schema_json

@@ -145,12 +145,12 @@ async def converse_offline(
                 aggregated_response += response_delta
                 # Put chunk into the asyncio queue (non-blocking)
                 try:
-                    queue.put_nowait(ResponseWithThought(response=response_delta))
+                    queue.put_nowait(ResponseWithThought(text=response_delta))
                 except asyncio.QueueFull:
                     # Should not happen with default queue size unless consumer is very slow
                     logger.warning("Asyncio queue full during offline LLM streaming.")
                     # Potentially block here or handle differently if needed
-                    asyncio.run(queue.put(ResponseWithThought(response=response_delta)))
+                    asyncio.run(queue.put(ResponseWithThought(text=response_delta)))
 
             # Log the time taken to stream the entire response
             logger.info(f"Chat streaming took: {perf_counter() - start_time:.3f} seconds")
@@ -221,4 +221,4 @@ def send_message_to_model_offline(
     if is_promptrace_enabled():
         commit_conversation_trace(messages, response_text, tracer)
 
-    return response_text
+    return ResponseWithThought(text=response_text)

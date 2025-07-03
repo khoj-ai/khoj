@@ -22,12 +22,20 @@ logger = logging.getLogger(__name__)
 
 
 def anthropic_send_message_to_model(
-    messages, api_key, api_base_url, model, response_type="text", response_schema=None, deepthought=False, tracer={}
+    messages,
+    api_key,
+    api_base_url,
+    model,
+    response_type="text",
+    response_schema=None,
+    tools=None,
+    deepthought=False,
+    tracer={},
 ):
     """
     Send message to model
     """
-    # Get Response from GPT. Don't use response_type because Anthropic doesn't support it.
+    # Get response from model. Don't use response_type because Anthropic doesn't support it.
     return anthropic_completion_with_backoff(
         messages=messages,
         system_prompt="",
@@ -36,6 +44,7 @@ def anthropic_send_message_to_model(
         api_base_url=api_base_url,
         response_type=response_type,
         response_schema=response_schema,
+        tools=tools,
         deepthought=deepthought,
         tracer=tracer,
     )
