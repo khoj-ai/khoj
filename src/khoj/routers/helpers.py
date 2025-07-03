@@ -218,7 +218,6 @@ def update_telemetry_state(
             telemetry_type=telemetry_type,
             api=api,
             client=client,
-            app_config=state.config.app,
             disable_telemetry_env=state.telemetry_disabled,
             properties=user_state,
         )
@@ -2726,7 +2725,8 @@ def configure_content(
 
     search_type = t.value if t else None
 
-    no_documents = all([not files.get(file_type) for file_type in files])
+    # Check if client sent any documents of the supported types
+    no_client_sent_documents = all([not files.get(file_type) for file_type in files])
 
     if files is None:
         logger.warning(f"🚨 No files to process for {search_type} search.")
@@ -2800,7 +2800,8 @@ def configure_content(
         success = False
 
     try:
-        if no_documents:
+        # Run server side indexing of user Github docs if no client sent documents
+        if no_client_sent_documents:
             github_config = GithubConfig.objects.filter(user=user).prefetch_related("githubrepoconfig").first()
             if (
                 search_type == state.SearchType.All.value or search_type == state.SearchType.Github.value
@@ -2820,7 +2821,8 @@ def configure_content(
         success = False
 
     try:
-        if no_documents:
+        # Run server side indexing of user Notion docs if no client sent documents
+        if no_client_sent_documents:
             # Initialize Notion Search
             notion_config = NotionConfig.objects.filter(user=user).first()
             if (

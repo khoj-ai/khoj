@@ -1,26 +1,19 @@
 import argparse
 import logging
-import os
 import pathlib
 from importlib.metadata import version
 
 logger = logging.getLogger(__name__)
-
-from khoj.utils.helpers import is_env_var_true, resolve_absolute_path
-from khoj.utils.yaml import parse_config_from_file
 
 
 def cli(args=None):
     # Setup Argument Parser for the Commandline Interface
     parser = argparse.ArgumentParser(description="Start Khoj; An AI personal assistant for your Digital Brain")
     parser.add_argument(
-        "--config-file", default="~/.khoj/khoj.yml", type=pathlib.Path, help="YAML file to configure Khoj"
-    )
-    parser.add_argument(
-        "--regenerate",
-        action="store_true",
-        default=False,
-        help="Regenerate model embeddings from source files. Default: false",
+        "--log-file",
+        default="~/.khoj/khoj.log",
+        type=pathlib.Path,
+        help="File path for server logs. Default: ~/.khoj/khoj.log",
     )
     parser.add_argument("--verbose", "-v", action="count", default=0, help="Show verbose conversion logs. Default: 0")
     parser.add_argument("--host", type=str, default="127.0.0.1", help="Host address of the server. Default: 127.0.0.1")
@@ -37,7 +30,7 @@ def cli(args=None):
         "--anonymous-mode",
         action="store_true",
         default=False,
-        help="Run Khoj in anonymous mode. This does not require any login for connecting users.",
+        help="Run Khoj in single user mode with no login required. Useful for personal use or testing.",
     )
     parser.add_argument(
         "--non-interactive",
@@ -56,16 +49,5 @@ def cli(args=None):
         # Show version of khoj installed and exit
         print(args.version_no)
         exit(0)
-
-    # Normalize config_file path to absolute path
-    args.config_file = resolve_absolute_path(args.config_file)
-
-    if not args.config_file.exists():
-        args.config = None
-    else:
-        args = run_migrations(args)
-        args.config = parse_config_from_file(args.config_file)
-        if is_env_var_true("KHOJ_TELEMETRY_DISABLE"):
-            args.config.app.should_log_telemetry = False
 
     return args

@@ -47,7 +47,6 @@ class NotionBlockType(Enum):
 
 class NotionToEntries(TextToEntries):
     def __init__(self, config: NotionConfig):
-        super().__init__(config)
         self.config = NotionContentConfig(
             token=config.token,
         )

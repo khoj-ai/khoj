@@ -488,34 +488,6 @@ class ServerChatSettings(DbBaseModel):
         super().save(*args, **kwargs)
 
 
-class LocalOrgConfig(DbBaseModel):
-    input_files = models.JSONField(default=list, null=True)
-    input_filter = models.JSONField(default=list, null=True)
-    index_heading_entries = models.BooleanField(default=False)
-    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
-
-
-class LocalMarkdownConfig(DbBaseModel):
-    input_files = models.JSONField(default=list, null=True)
-    input_filter = models.JSONField(default=list, null=True)
-    index_heading_entries = models.BooleanField(default=False)
-    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
-
-
-class LocalPdfConfig(DbBaseModel):
-    input_files = models.JSONField(default=list, null=True)
-    input_filter = models.JSONField(default=list, null=True)
-    index_heading_entries = models.BooleanField(default=False)
-    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
-
-
-class LocalPlaintextConfig(DbBaseModel):
-    input_files = models.JSONField(default=list, null=True)
-    input_filter = models.JSONField(default=list, null=True)
-    index_heading_entries = models.BooleanField(default=False)
-    user = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
-
-
 class SearchModelConfig(DbBaseModel):
     class ModelType(models.TextChoices):
         TEXT = "text"
