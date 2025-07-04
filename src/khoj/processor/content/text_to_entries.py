@@ -81,8 +81,35 @@ class TextToEntries(ABC):
             chunked_entry_chunks = text_splitter.split_text(entry.compiled)
             corpus_id = uuid.uuid4()
 
+            line_start = None
+            last_offset = 0
+            if entry.uri and entry.uri.startswith("file://"):
+                if "#line=" in entry.uri:
+                    line_start = int(entry.uri.split("#line=", 1)[-1].split("&", 1)[0])
+                else:
+                    line_start = 0
+
             # Create heading prefixed entry from each chunk
             for chunk_index, compiled_entry_chunk in enumerate(chunked_entry_chunks):
+                # set line start in uri of chunked entries
+                entry_uri = entry.uri
+                if line_start is not None:
+                    # Find the chunk in the raw text to get an accurate line number.
+                    # Search for the unmodified chunk from the last offset.
+                    searchable_chunk = compiled_entry_chunk.strip()
+                    if searchable_chunk:
+                        chunk_start_pos_in_raw = entry.raw.find(searchable_chunk, last_offset)
+                        if chunk_start_pos_in_raw != -1:
+                            # Found the chunk. Calculate its line offset from the start of the raw text.
+                            line_offset_in_raw = entry.raw[:chunk_start_pos_in_raw].count("\n")
+                            new_line_num = line_start + line_offset_in_raw
+                            entry_uri = re.sub(r"#line=\d+", f"#line={new_line_num}", entry.uri)
+                            # Update search position for the next chunk to start after the current one.
+                            last_offset = chunk_start_pos_in_raw + len(searchable_chunk)
+                        else:
+                            # Chunk not found in raw text, likely from a heading. Use original line_start.
+                            entry_uri = re.sub(r"#line=\d+", f"#line={line_start}", entry.uri)
+
                 # Prepend heading to all other chunks, the first chunk already has heading from original entry
                 if chunk_index > 0 and entry.heading:
                     # Snip heading to avoid crossing max_tokens limit
@@ -99,6 +126,7 @@ class TextToEntries(ABC):
                 entry.raw = compiled_entry_chunk if raw_is_compiled else TextToEntries.clean_field(entry.raw)
                 entry.heading = TextToEntries.clean_field(entry.heading)
                 entry.file = TextToEntries.clean_field(entry.file)
+                entry_uri = TextToEntries.clean_field(entry_uri)
 
                 chunked_entries.append(
                     Entry(
@@ -107,6 +135,7 @@ class TextToEntries(ABC):
                         heading=entry.heading,
                         file=entry.file,
                         corpus_id=corpus_id,
+                        uri=entry_uri,
                     )
                 )
 
@@ -192,6 +221,7 @@ class TextToEntries(ABC):
                             file_type=file_type,
                             hashed_value=entry_hash,
                             corpus_id=entry.corpus_id,
+                            url=entry.uri,
                             search_model=model,
                             file_object=file_object,
                         )

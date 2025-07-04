@@ -147,12 +147,10 @@ body line 1.1
     # Extract Entries from specified Org files
     extracted_entries = OrgToEntries.extract_org_entries(org_files=data, max_tokens=12)
     assert len(extracted_entries) == 2
-    for entry in extracted_entries[1]:
-        entry.raw = clean(entry.raw)
 
     # Assert
     assert len(extracted_entries[1]) == 1
-    assert entry.raw == expected_entry
+    assert extracted_entries[1][-1].raw == expected_entry
 
 
 def test_parse_org_entry_with_children_as_single_entry_if_small(tmp_path):
@@ -388,13 +386,65 @@ def test_extract_entries_with_different_level_headings(tmp_path):
     # Extract Entries from specified Org files
     entries = OrgToEntries.extract_org_entries(org_files=data, index_heading_entries=True, max_tokens=3)
     assert len(entries) == 2
-    for entry in entries[1]:
-        entry.raw = clean(f"{entry.raw}")
 
     # Assert
     assert len(entries[1]) == 2
     assert entries[1][0].raw == "* Heading 1\n** Sub-Heading 1.1\n", "Ensure entry includes heading ancestory"
     assert entries[1][1].raw == "* Heading 2\n"
+
+
+def test_line_number_tracking_in_recursive_split():
+    "Ensure line numbers in URIs are correct after recursive splitting by checking against the actual file."
+    # Arrange
+    org_file_path = os.path.abspath("tests/data/org/main_readme.org")
+
+    with open(org_file_path, "r") as f:
+        org_content = f.read()
+    lines = org_content.splitlines()
+    data = {org_file_path: org_content}
+
+    # Act
+    # Using a small max_tokens to force recursive splitting
+    _, entries = OrgToEntries.extract_org_entries(org_files=data, max_tokens=10, index_heading_entries=True)
+
+    # Assert
+    assert len(entries) > 0, "No entries were extracted."
+
+    for entry in entries:
+        # Extract file path and line number from the entry URI
+        # for files uri is expected in format: file:///path/to/file.org#line=5
+        match = re.search(r"file://(.*?)#line=(\d+)", entry.uri)
+        if not match:
+            continue
+        filepath_from_uri = match.group(1)
+        line_number_from_uri = int(match.group(2))
+
+        # line_number is 1-based, list index is 0-based
+        line_in_file = clean(lines[line_number_from_uri - 1])
+        next_line_in_file = clean(lines[line_number_from_uri]) if line_number_from_uri < len(lines) else ""
+
+        # Remove ancestor heading lines inserted during post-processing
+        first_entry_line = ""
+        for line in entry.raw.splitlines():
+            if line.startswith("*"):
+                first_entry_line = line
+            else:
+                break  # Stop at the first non-heading line
+        # Remove heading prefix from entry.compiled as level changed during post-processing
+        cleaned_first_entry_line = first_entry_line.strip()
+        # Remove multiple consecutive spaces
+        cleaned_first_entry_line = clean(cleaned_first_entry_line)
+
+        assert entry.uri is not None, f"Entry '{entry}' has a None URI."
+        assert match is not None, f"URI format is incorrect: {entry.uri}"
+        assert (
+            filepath_from_uri == org_file_path
+        ), f"File path in URI '{filepath_from_uri}' does not match expected '{org_file_path}'"
+
+        # Ensure the first non-heading line in the compiled entry matches the line in the file
+        assert (
+            cleaned_first_entry_line in line_in_file.strip() or cleaned_first_entry_line in next_line_in_file.strip()
+        ), f"First non-heading line '{cleaned_first_entry_line}' in {entry.raw} does not match line {line_number_from_uri} in file: '{line_in_file}' or next line '{next_line_in_file}'"
 
 
 # Helper Functions
@@ -406,6 +456,6 @@ def create_file(tmp_path, entry=None, filename="test.org"):
     return org_file
 
 
-def clean(entry):
-    "Remove properties from entry for easier comparison."
-    return re.sub(r"\n:PROPERTIES:(.*?):END:", "", entry, flags=re.DOTALL)
+def clean(text):
+    "Normalize spaces in text for easier comparison."
+    return re.sub(r"\s+", " ", text)

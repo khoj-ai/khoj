@@ -100,9 +100,8 @@ def test_render_entry_with_property_drawer_and_empty_body(tmp_path):
 
     expected_entry = f"""*** [#A] Heading1                                            :tag1:
 :PROPERTIES:
-:LINE: file:{orgfile}::2
+:LINE: file://{orgfile}#line=2
 :ID: id:111-111-111-1111-1111
-:SOURCE: [[file:{orgfile}::*Heading1]]
 :END:
 """
 
@@ -133,37 +132,12 @@ Body Line 2
 
     # Assert
     # SOURCE link rendered with Heading
-    assert f":SOURCE: [[file:{orgfile}::*{entries[0].heading}]]" in f"{entries[0]}"
     # ID link rendered with ID
     assert f":ID: id:123-456-789-4234-1231" in f"{entries[0]}"
     # LINE link rendered with line number
-    assert f":LINE: file:{orgfile}::2" in f"{entries[0]}"
-
-
-# ----------------------------------------------------------------------------------------------------
-def test_source_link_to_entry_escaped_for_rendering(tmp_path):
-    "Test SOURCE link renders with square brackets in filename, heading escaped for org-mode rendering"
-    # Arrange
-    entry = f"""
-*** [#A] Heading[1]   :tag1:
-:PROPERTIES:
-:ID: 123-456-789-4234-1231
-:END:
-Body Line 1"""
-    orgfile = create_file(tmp_path, entry, filename="test[1].org")
-
-    # Act
-    entries = orgnode.makelist_with_filepath(orgfile)
-
-    # Assert
-    assert len(entries) == 1
-    # parsed heading from entry
-    assert entries[0].heading == "Heading[1]"
-    # track ancestors of entry
-    assert entries[0].ancestors == [f"{orgfile}"]
-    # ensure SOURCE link has square brackets in filename, heading escaped in rendered entries
-    escaped_orgfile = f"{orgfile}".replace("[1]", "\\[1\\]")
-    assert f":SOURCE: [[file:{escaped_orgfile}::*Heading\\[1\\]" in f"{entries[0]}"
+    assert f":LINE: file://{orgfile}#line=2" in f"{entries[0]}"
+    # LINE link rendered with line number
+    assert f":LINE: file://{orgfile}#line=7" in f"{entries[1]}"
 
 
 # ----------------------------------------------------------------------------------------------------

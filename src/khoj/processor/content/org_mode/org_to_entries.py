@@ -87,6 +87,7 @@ class OrgToEntries(TextToEntries):
         entry_to_file_map: List[Tuple[Orgnode, str]],
         max_tokens=256,
         ancestry: Dict[int, str] = {},
+        start_line: int = 1,
     ) -> Tuple[List[List[Orgnode]], List[Tuple[Orgnode, str]]]:
         """Parse org_content from org_file into OrgNode entries
 
@@ -104,7 +105,9 @@ class OrgToEntries(TextToEntries):
         if len(TextToEntries.tokenizer(org_content_with_ancestry)) <= max_tokens or not re.search(
             rf"^\*{{{len(ancestry)+1},}}\s", org_content, re.MULTILINE
         ):
-            orgnode_content_with_ancestry = orgnode.makelist(org_content_with_ancestry, org_file)
+            orgnode_content_with_ancestry = orgnode.makelist(
+                org_content_with_ancestry, org_file, start_line=start_line, ancestry_lines=len(ancestry)
+            )
             entry_to_file_map += zip(orgnode_content_with_ancestry, [org_file] * len(orgnode_content_with_ancestry))
             entries.extend([orgnode_content_with_ancestry])
             return entries, entry_to_file_map
@@ -125,10 +128,15 @@ class OrgToEntries(TextToEntries):
             return entries, entry_to_file_map
 
         # Recurse down each non-empty section after parsing its body, heading and ancestry
+        current_line_offset = 0
         for section in sections:
+            num_lines_in_section = section.count("\n")
             # Skip empty sections
             if section.strip() == "":
+                current_line_offset += num_lines_in_section
                 continue
+
+            section_start_line_in_file = start_line + current_line_offset
 
             # Extract the section body and (when present) the heading
             current_ancestry = ancestry.copy()
@@ -136,13 +144,16 @@ class OrgToEntries(TextToEntries):
             # If first non-empty line is a heading with expected heading level
             if re.search(rf"^\*{{{next_heading_level}}}\s", first_non_empty_line):
                 # Extract the section body without the heading
-                current_section_body = "\n".join(section.split(first_non_empty_line, 1)[1:])
+                current_section_heading, current_section_body = section.split(first_non_empty_line, 1)
+                current_section_body_offset = current_section_heading.count("\n")
                 # Parse the section heading into current section ancestry
                 current_section_title = first_non_empty_line[next_heading_level:].strip()
                 current_ancestry[next_heading_level] = current_section_title
+                recursive_start_line = section_start_line_in_file + current_section_body_offset
             # Else process the section as just body text
             else:
                 current_section_body = section
+                recursive_start_line = section_start_line_in_file
 
             # Recurse down children of the current entry
             OrgToEntries.process_single_org_file(
@@ -152,7 +163,9 @@ class OrgToEntries(TextToEntries):
                 entry_to_file_map,
                 max_tokens,
                 current_ancestry,
+                start_line=recursive_start_line,
             )
+            current_line_offset += num_lines_in_section
 
         return entries, entry_to_file_map
 
@@ -207,6 +220,8 @@ class OrgToEntries(TextToEntries):
                 if parsed_entry.hasBody:
                     compiled += f"\n {parsed_entry.body}"
 
+                uri = parsed_entry.properties.pop("LINE", None)
+
                 # Add the sub-entry contents to the entry
                 entry_compiled += compiled
                 entry_raw += f"{parsed_entry}"
@@ -220,6 +235,7 @@ class OrgToEntries(TextToEntries):
                         raw=entry_raw,
                         heading=entry_heading,
                         file=entry_to_file_map[parsed_entry],
+                        uri=uri,
                     )
                 )
 
