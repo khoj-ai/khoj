@@ -2,6 +2,9 @@ name: pre-commit
 
 on:
   pull_request:
+    branches:
+      - master
+      - release/1.x
     paths:
       - src/**
       - tests/**
@@ -12,6 +15,7 @@ on:
   push:
     branches:
       - master
+      - release/1.x
     paths:
       - src/khoj/**
       - tests/**

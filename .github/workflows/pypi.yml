@@ -6,6 +6,7 @@ on:
       - "*"
     branches:
       - 'master'
+      - 'release/1.x'
     paths:
       - src/khoj/**
       - src/interface/web/**
@@ -14,6 +15,7 @@ on:
   pull_request:
     branches:
       - 'master'
+      - 'release/1.x'
     paths:
       - src/khoj/**
       - src/interface/web/**
@@ -74,7 +76,7 @@ jobs:
           path: dist/khoj-*.whl
 
       - name: 📦 Publish Python Package to PyPI
-        if: startsWith(github.ref, 'refs/tags') || github.ref == 'refs/heads/master'
+        if: startsWith(github.ref, 'refs/tags') || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/release/1.x'
         uses: pypa/gh-action-pypi-publish@release/v1.12
         with:
           skip-existing: true

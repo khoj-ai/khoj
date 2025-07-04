@@ -6,6 +6,7 @@ on:
       - "*"
     branches:
       - 'master'
+      - 'release/1.x'
     paths:
       - src/interface/desktop/**
       - .github/workflows/desktop.yml
