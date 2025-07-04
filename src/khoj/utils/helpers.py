@@ -475,6 +475,33 @@ tool_descriptions_for_llm = {
     ConversationCommand.Operator: "To use when you need to operate a computer to complete the task.",
 }
 
+tools_for_live_chat = [
+    ToolDefinition(
+        name="research",
+        description=dedent(
+            """
+            To find information from the web or the user's personal knowledge base, generate images, and run code for data analysis.
+            You can use this tool to ask follow-up questions and refine your search. It remembers the context of the conversation.
+            Your query should be detailed and from the user's first-person perspective. E.g "When did I go surfing with Tom? Look it up in my notes.",
+            """
+        ).strip(),
+        schema={
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The query to look up information, generate images, or run code. The query should be detailed and from the user's first person perspective.",
+                },
+                "deep_research": {
+                    "type": "boolean",
+                    "description": "Set deep research mode for substantial, multi-step tasks.",
+                },
+            },
+            "required": ["query"],
+        },
+    ),
+]
+
 tools_for_research_llm = {
     ConversationCommand.SearchWeb: ToolDefinition(
         name="search_web",
@@ -901,6 +928,8 @@ def get_cost_of_chat_message(
     thought_tokens: int = 0,
     cache_read_tokens: int = 0,
     cache_write_tokens: int = 0,
+    input_audio_tokens: int = 0,
+    output_audio_tokens: int = 0,
     prev_cost: float = 0.0,
 ):
     """
@@ -913,8 +942,19 @@ def get_cost_of_chat_message(
     thought_cost = constants.model_to_cost.get(model_name, {}).get("thought", 0) * (thought_tokens / 1e6)
     cache_read_cost = constants.model_to_cost.get(model_name, {}).get("cache_read", 0) * (cache_read_tokens / 1e6)
     cache_write_cost = constants.model_to_cost.get(model_name, {}).get("cache_write", 0) * (cache_write_tokens / 1e6)
+    input_audio_cost = constants.model_to_cost.get(model_name, {}).get("input_audio", 0) * (input_audio_tokens / 1e6)
+    output_audio_cost = constants.model_to_cost.get(model_name, {}).get("output_audio", 0) * (output_audio_tokens / 1e6)
 
-    return input_cost + output_cost + thought_cost + cache_read_cost + cache_write_cost + prev_cost
+    return (
+        input_cost
+        + output_cost
+        + thought_cost
+        + cache_read_cost
+        + cache_write_cost
+        + input_audio_cost
+        + output_audio_cost
+        + prev_cost
+    )
 
 
 def get_chat_usage_metrics(
@@ -924,6 +964,8 @@ def get_chat_usage_metrics(
     cache_read_tokens: int = 0,
     cache_write_tokens: int = 0,
     thought_tokens: int = 0,
+    input_audio_tokens: int = 0,
+    output_audio_tokens: int = 0,
     usage: dict = {},
     cost: float = None,
 ):
@@ -936,6 +978,8 @@ def get_chat_usage_metrics(
         "thought_tokens": 0,
         "cache_read_tokens": 0,
         "cache_write_tokens": 0,
+        "input_audio_tokens": 0,
+        "output_audio_tokens": 0,
         "cost": 0.0,
     }
     current_usage = {
@@ -944,6 +988,8 @@ def get_chat_usage_metrics(
         "thought_tokens": prev_usage.get("thought_tokens", 0) + thought_tokens,
         "cache_read_tokens": prev_usage.get("cache_read_tokens", 0) + cache_read_tokens,
         "cache_write_tokens": prev_usage.get("cache_write_tokens", 0) + cache_write_tokens,
+        "input_audio_tokens": prev_usage.get("input_audio_tokens", 0) + input_audio_tokens,
+        "output_audio_tokens": prev_usage.get("output_audio_tokens", 0) + output_audio_tokens,
         "cost": cost
         or get_cost_of_chat_message(
             model_name,
@@ -952,6 +998,8 @@ def get_chat_usage_metrics(
             thought_tokens,
             cache_read_tokens,
             cache_write_tokens,
+            input_audio_tokens,
+            output_audio_tokens,
             prev_cost=prev_usage["cost"],
         ),
     }

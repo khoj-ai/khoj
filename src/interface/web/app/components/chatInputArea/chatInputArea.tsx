@@ -53,6 +53,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SendMessage } from "react-use-websocket";
 
 export interface ChatOptions {
     [key: string]: string;
@@ -85,6 +86,7 @@ interface ChatInputProps {
     setTriggeredAbort: (value: boolean, newMessage?: string) => void;
     prefillMessage?: string;
     focus?: ChatInputFocus;
+    sharedWebSocketSendMessage?: SendMessage | null;
 }
 
 export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((props, ref) => {
@@ -108,6 +110,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
 
     const [recording, setRecording] = useState(false);
     const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+    const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+    const [audioWorkletNode, setAudioWorkletNode] = useState<AudioWorkletNode | null>(null);
 
     const [progressValue, setProgressValue] = useState(0);
     const [isDragAndDropping, setIsDragAndDropping] = useState(false);
@@ -329,81 +333,110 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
         }
     }
 
-    // Assuming this function is added within the same context as the provided excerpt
+    // Use shared WebSocket connection for audio input
     async function startRecordingAndTranscribe() {
         try {
-            const microphone = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const mediaRecorder = new MediaRecorder(microphone, { mimeType: "audio/webm" });
+            // Get microphone with optimal settings for speech
+            const microphone = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    channelCount: 1,
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                },
+            });
 
-            const audioChunks: Blob[] = [];
+            // Create AudioContext with default sample rate
+            const context = new AudioContext();
+            console.log(`AudioContext created with sample rate: ${context.sampleRate}Hz`);
+            setAudioContext(context);
 
-            mediaRecorder.ondataavailable = async (event) => {
-                audioChunks.push(event.data);
-                const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-                const formData = new FormData();
-                formData.append("file", audioBlob);
+            // Load the PCM processor worklet
+            await context.audioWorklet.addModule("/static/pcm-processor.js");
 
-                // Send the incremental audio blob to the server
-                try {
-                    const response = await fetch("/api/transcribe", {
-                        method: "POST",
-                        body: formData,
-                    });
+            // Create the worklet node
+            const workletNode = new AudioWorkletNode(context, "pcm-processor");
+            setAudioWorkletNode(workletNode);
 
-                    if (!response.ok) {
-                        throw new Error("Network response was not ok");
-                    }
+            // Handle messages from the AudioWorklet (PCM data)
+            workletNode.port.onmessage = (event) => {
+                if (event.data.type === "pcm-data" && props.sharedWebSocketSendMessage) {
+                    // Use the actual sample rate from the worklet for the MIME type
+                    const sampleRate = event.data.sampleRate || context.sampleRate;
 
-                    const transcription = await response.json();
-                    setMessage(transcription.text.trim());
-                } catch (error) {
-                    console.error("Error sending audio to server:", error);
+                    // Convert Int16Array to base64 to avoid JSON serialization issues
+                    const uint8Array = new Uint8Array(event.data.data);
+                    const base64Data = btoa(
+                        String.fromCharCode.apply(null, Array.from(uint8Array)),
+                    );
+
+                    props.sharedWebSocketSendMessage(
+                        JSON.stringify({
+                            type: "audio",
+                            data: base64Data,
+                            sampleRate: sampleRate,
+                            format: "int16le", // Specify format for server
+                            conversation_id: props.conversationId,
+                            stream: true,
+                            research_mode: useResearchMode,
+                        }),
+                    );
                 }
             };
 
-            // Send an audio blob every 1.5 seconds
-            mediaRecorder.start(1500);
+            // Connect the audio pipeline: microphone -> worklet -> (PCM data sent via shared WebSocket)
+            const source = context.createMediaStreamSource(microphone);
+            source.connect(workletNode);
+            // Note: workletNode doesn't need to connect to destination for our use case
 
-            mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-                const formData = new FormData();
-                formData.append("file", audioBlob);
-
-                // Send the audio blob to the server
-                try {
-                    const response = await fetch("/api/transcribe", {
-                        method: "POST",
-                        body: formData,
-                    });
-
-                    if (!response.ok) {
-                        throw new Error("Network response was not ok");
-                    }
-
-                    const transcription = await response.json();
-                    mediaRecorder.stream.getTracks().forEach((track) => track.stop());
-                    setMediaRecorder(null);
-                    setMessage(transcription.text.trim());
-                } catch (error) {
-                    console.error("Error sending audio to server:", error);
-                }
-            };
-
-            setMediaRecorder(mediaRecorder);
+            // Store a reference to the microphone stream for cleanup
+            setMediaRecorder({ stream: microphone } as any);
         } catch (error) {
-            console.error("Error getting microphone", error);
+            console.error("Error setting up audio recording:", error);
         }
     }
 
     useEffect(() => {
-        if (!recording && mediaRecorder) {
-            mediaRecorder.stop();
+        if (!recording && (mediaRecorder || audioContext)) {
+            // Stop recording and cleanup resources
+            if (audioWorkletNode) {
+                audioWorkletNode.disconnect();
+                setAudioWorkletNode(null);
+            }
+            if (audioContext && audioContext.state !== "closed") {
+                audioContext.close();
+                setAudioContext(null);
+            }
+            if (mediaRecorder?.stream) {
+                mediaRecorder.stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
+            }
+            setMediaRecorder(null);
         }
 
         if (recording && !mediaRecorder) {
             startRecordingAndTranscribe();
         }
+
+        return () => {
+            // Cleanup on component unmount
+            if (audioWorkletNode) {
+                audioWorkletNode.disconnect();
+            }
+            if (audioContext && audioContext.state !== "closed") {
+                audioContext.close();
+            }
+        };
     }, [recording, mediaRecorder]);
+
+    // Clear message input when starting voice recording
+    useEffect(() => {
+        if (message && recording && !mediaRecorder) {
+            if (props.sendDisabled) {
+                props.setTriggeredAbort(true, message);
+            }
+            setMessage("");
+        }
+    }, [recording, message, mediaRecorder]);
 
     useEffect(() => {
         if (!chatInputRef?.current) return;
@@ -722,9 +755,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                             <Stop weight="fill" className="w-6 h-6" />
                                         </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent>
-                                        Click to stop recording and transcribe your voice.
-                                    </TooltipContent>
+                                    <TooltipContent>Click to stop live voice chat</TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>
                         ) : mediaRecorder ? (
@@ -759,8 +790,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
                                     </TooltipTrigger>
                                     <TooltipContent>
                                         {props.sendDisabled
-                                            ? "Click here to stop the streaming."
-                                            : "Click to transcribe your message with voice."}
+                                            ? "Click to record voice interrupt message"
+                                            : "Click to start live voice chat"}
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>

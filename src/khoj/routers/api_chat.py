@@ -20,6 +20,8 @@ from fastapi import (
 )
 from fastapi.responses import RedirectResponse, Response, StreamingResponse
 from fastapi.websockets import WebSocketState
+from google.genai import types as gtypes
+from google.genai.live import AsyncSession as LiveSession
 from starlette.authentication import has_required_scope, requires
 from starlette.requests import Headers
 
@@ -69,10 +71,12 @@ from khoj.routers.helpers import (
     generate_mermaidjs_diagram,
     generate_summary_from_files,
     get_conversation_command,
+    get_live_client,
     is_query_empty,
     is_ready_to_chat,
     read_chat_stream,
     search_documents,
+    send_user_input_to_model,
     update_telemetry_state,
     validate_chat_model,
 )
@@ -84,12 +88,14 @@ from khoj.utils.helpers import (
     clean_text_for_db,
     command_descriptions,
     convert_image_to_webp,
+    get_chat_usage_metrics,
     get_country_code_from_timezone,
     get_country_name_from_timezone,
     get_device,
     is_env_var_true,
     is_none_or_empty,
     is_operator_enabled,
+    tools_for_live_chat,
 )
 from khoj.utils.rawconfig import (
     ChatRequestBody,
@@ -673,6 +679,7 @@ async def event_generator(
     headers: Headers,
     request_obj: Request | WebSocket,
     interrupt_queue: asyncio.Queue = None,
+    tracer: dict = {},
 ):
     # Access the parameters from the body
     q = body.q
@@ -680,8 +687,8 @@ async def event_generator(
     d = body.d
     stream = body.stream
     title = body.title
-    conversation_id = body.conversation_id
-    turn_id = str(body.turn_id or uuid.uuid4())
+    conversation_id = body.conversation_id or tracer.get("cid")
+    turn_id = str(body.turn_id or tracer.get("mid") or uuid.uuid4())
     city = body.city
     region = body.region
     country = body.country or get_country_name_from_timezone(body.timezone)
@@ -701,7 +708,7 @@ async def event_generator(
     train_of_thought = []
     cancellation_event = asyncio.Event()
 
-    tracer: dict = {
+    tracer = {
         "mid": turn_id,
         "cid": conversation_id,
         "uid": user.id,
@@ -1450,6 +1457,144 @@ async def event_generator(
     await cancel_disconnect_monitor()
 
 
+async def _run_research_and_respond(
+    session: LiveSession,
+    fc: gtypes.FunctionCall,
+    websocket: WebSocket,
+    body: ChatRequestBody,
+    common: CommonQueryParams,
+    interrupt_queue: asyncio.Queue,
+    tracer: dict,
+):
+    """Helper to run research task in background and send tool response."""
+    try:
+        response = await process_chat_request(websocket, body, common, interrupt_queue, tracer)
+        function_response = gtypes.FunctionResponse(
+            id=fc.id,
+            name=fc.name,
+            response={"output": response["response"], "scheduling": "WHEN_IDLE"},
+        )
+        await session.send_tool_response(function_responses=[function_response])
+    except Exception as e:
+        logger.error(f"Error in background research task: {e}", exc_info=True)
+        # Optionally send an error response back to the model
+        error_response = gtypes.FunctionResponse(
+            id=fc.id,
+            name=fc.name,
+            response={"error": f"An error occurred: {e}", "scheduling": "WHEN_IDLE"},
+        )
+        try:
+            await session.send_tool_response(function_responses=[error_response])
+        except Exception as send_e:
+            logger.error(f"Failed to send error response for tool call: {send_e}", exc_info=True)
+
+
+async def handle_live_model_output(
+    websocket: WebSocket,
+    session: LiveSession,
+    live_session_state: dict,
+    common: CommonQueryParams,
+    interrupt_queue: asyncio.Queue,
+    tracer: dict = {},
+):
+    """Handle model output for live chat with research tool support"""
+
+    input_message, output_message = "", ""
+    user: KhojUser = websocket.scope["user"].object
+    conversation_id = live_session_state.get("conversation_id")
+    client_app = websocket.scope["user"].client_app
+    try:
+        while True:
+            async for response in session.receive():
+                # logger.debug(f"Received Gemini response: {response.data}")
+                if response.data:
+                    # logger.debug(f"🔊 Khoj -> User Audio: {len(response.data)} bytes")
+                    await websocket.send_bytes(response.data)
+                elif response.tool_call:
+                    logger.debug(f"🛠️ Khoj -> Tool Call: {[f.model_dump() for f in response.tool_call.function_calls]}")
+                    for fc in response.tool_call.function_calls:
+                        if fc.name == "research":
+                            # Handle research tool calls
+                            query = fc.args["query"]
+                            ai_set_research_mode = fc.args.get("deep_research")
+                            user_set_research_mode = live_session_state.get("research_mode", False)
+                            if (ai_set_research_mode or user_set_research_mode) and not query.startswith("/research"):
+                                query = f"/research {query}"
+                            processed_data = {
+                                "q": query,
+                                "conversation_id": conversation_id,
+                                "stream": False,
+                            }
+                            body = ChatRequestBody(**processed_data)
+                            asyncio.create_task(
+                                _run_research_and_respond(session, fc, websocket, body, common, interrupt_queue, tracer)
+                            )
+                        else:
+                            logger.warning(f"Unhandled tool call: {fc.name}. Please implement handling for this tool.")
+                elif response.server_content and response.server_content.interrupted:
+                    logger.debug("⚠️ User -> Khoj Audio: Interrupted")
+                    await websocket.send_text(json.dumps({"interrupted": True}))
+                elif response.server_content and response.server_content.input_transcription:
+                    # logger.debug(f"✍🏽 User -> Khoj Transcribed Text: {response.server_content.input_transcription.text}")
+                    input_message += response.server_content.input_transcription.text
+                elif response.server_content and response.server_content.output_transcription:
+                    # logger.debug(f"✍🏽 Khoj -> User Transcribed Text: {response.server_content.output_transcription.text}")
+                    output_message += response.server_content.output_transcription.text
+                elif response.server_content and response.server_content.generation_complete:
+                    # If input_message and output_message are both present
+                    if input_message and output_message:
+                        # Save them to conversation history
+                        tracer["mid"] = str(tracer.get("turn_id") or uuid.uuid4())  # Get/set turn_id at turn end
+                        # asyncio.create_task(
+                        #     save_to_conversation_log(
+                        #         input_message,
+                        #         chat_response=output_message,
+                        #         user=user,
+                        #         client_application=client_app,
+                        #         conversation_id=conversation_id,
+                        #         tracer=tracer,
+                        #     )
+                        # )
+                        # Clear turn messages
+                        input_message = ""
+                        output_message = ""
+                        tracer["mid"] = None
+                elif response.server_content and response.server_content.turn_complete:
+                    input_tokens, output_tokens, input_audio_tokens, output_audio_tokens = 0, 0, 0, 0
+                    for token_detail in response.usage_metadata.prompt_tokens_details or []:
+                        if token_detail.modality == gtypes.Modality.TEXT:
+                            input_tokens += token_detail.token_count
+                        elif token_detail.modality == gtypes.Modality.AUDIO:
+                            input_audio_tokens += token_detail.token_count
+                    for token_detail in response.usage_metadata.response_tokens_details or []:
+                        if token_detail.modality == gtypes.Modality.TEXT:
+                            output_tokens += token_detail.token_count
+                        elif token_detail.modality == gtypes.Modality.AUDIO:
+                            output_audio_tokens += token_detail.token_count
+                    thought_tokens = response.usage_metadata.thoughts_token_count or 0
+                    cache_read_tokens = response.usage_metadata.cached_content_token_count or 0
+                    tracer["usage"] = get_chat_usage_metrics(
+                        "gemini-2.5-flash-preview-native-audio-dialog",
+                        input_tokens,
+                        output_tokens,
+                        input_audio_tokens=input_audio_tokens,
+                        output_audio_tokens=output_audio_tokens,
+                        cache_read_tokens=cache_read_tokens,
+                        thought_tokens=thought_tokens,
+                        usage=tracer.get("usage"),
+                    )
+                elif response.text:
+                    logger.debug(f"Khoj -> User Text: {response.text}")
+                else:
+                    logger.warning(f"Unhandled Gemini response: {response}")
+    except WebSocketDisconnect:
+        logger.info("WebSocket disconnected while sending live model output to user client.")
+    except Exception as e:
+        if e.__class__.__name__ == "WebSocketDisconnect":
+            pass
+        logger.error(f"Error sending live model output: {e}", exc_info=True)
+
+
 @api_chat.websocket("/ws")
 @requires(["authenticated"])
 async def chat_ws(
@@ -1467,58 +1612,107 @@ async def chat_ws(
 
     # Shared interrupt queue for communicating interrupts to ongoing research
     interrupt_queue: asyncio.Queue = asyncio.Queue()
-    current_task = None
+    current_task, model_output_task = None, None
+
+    # Shared state for live session settings
+    session_state = {"research_mode": False}
+    user_id = websocket.scope["user"].object.id
+    conversation_id = None
+    tracer: dict = {
+        "uid": user_id,
+        "khoj_version": state.khoj_version,
+    }
+
+    # Get Gemini API key from configured chat models
+    live_session_cm = None
+    live_session = None
+    system_prompt = "You are Khoj, a personal AI. You can look up information from the user's documents, get real-time information from the web, generate images, run code for data analysis."
+    live_client, client_kwargs = await get_live_client(system_prompt=system_prompt, tools=tools_for_live_chat)
+    if not live_client:
+        logger.error("GEMINI_API_KEY not configured on the server.")
+        await websocket.close(code=1008, reason="GEMINI_API_KEY not configured on the server.")
+        return
 
     try:
         while True:
             data = await websocket.receive_json()
+            conversation_id = data.get("conversation_id") or conversation_id
+            tracer["cid"] = conversation_id
 
             # Check if this is an interrupt message
             if data.get("type") == "interrupt":
                 if current_task and not current_task.done():
+                    logger.debug(f"Research mode state: {session_state['research_mode']}")
+                    if not session_state["research_mode"]:
+                        current_task.cancel()
                     # Send interrupt signal to the ongoing task
-                    await interrupt_queue.put(data.get("query", ""))
-                    logger.info(f"Interrupt signal sent to ongoing task for user {websocket.scope['user'].object.id}")
+                    await interrupt_queue.put(data.get("q", ""))
+                    logger.info(f"Interrupt signal sent to ongoing task for user {user_id}")
                     await websocket.send_text(json.dumps({"type": "interrupt_acknowledged"}))
                 else:
-                    logger.info(f"No ongoing task to interrupt for user {websocket.scope['user'].object.id}")
+                    logger.info(f"No ongoing task to interrupt for user {user_id}")
                 continue
 
-            # Handle regular chat messages - ensure data has required fields
+            # Handle live chat interactions
             if "q" not in data:
-                await websocket.send_text(json.dumps({"error": "Missing required field 'q' in chat message"}))
-                continue
+                # Update research mode state from audio message
+                session_state["research_mode"] = data.get("research_mode", False)
+                session_state["conversation_id"] = data.get("conversation_id", "")
+                # Lazy initialization of live session once
+                if live_session is None:
+                    logger.info(f"Initializing live session for user {user_id}")
+                    live_session_cm = live_client(**client_kwargs)
+                    live_session: LiveSession = await live_session_cm.__aenter__()
+                    # Start the model output task once when session is created
+                    model_output_task = asyncio.create_task(
+                        handle_live_model_output(
+                            websocket, live_session, session_state, common, interrupt_queue, tracer
+                        )
+                    )
+                if data.get("type") == "audio":
+                    # Detailed logging for audio messages
+                    # logger.debug(f"🎙️ User -> Khoj Audio: {len(data.get('data'))} size")
+                    await send_user_input_to_model(audio_message=data, session=live_session)
+            else:
+                # Handle regular chat messages - ensure data has required fields
+                body = ChatRequestBody(**data)
+                session_state["research_mode"] = body.q.startswith("/research")
 
-            body = ChatRequestBody(**data)
-
-            # Apply rate limiting manually
-            try:
-                rate_limiter_per_minute.check_websocket(websocket)
-                rate_limiter_per_day.check_websocket(websocket)
-                image_rate_limiter.check_websocket(websocket, body)
-            except HTTPException as e:
-                await websocket.send_text(json.dumps({"error": e.detail}))
-                continue
-
-            # Cancel any ongoing task before starting a new one
-            if current_task and not current_task.done():
-                current_task.cancel()
+                # Apply rate limiting manually
                 try:
-                    await current_task
-                except asyncio.CancelledError:
-                    pass
+                    rate_limiter_per_minute.check_websocket(websocket)
+                    rate_limiter_per_day.check_websocket(websocket)
+                    image_rate_limiter.check_websocket(websocket, body)
+                except HTTPException as e:
+                    await websocket.send_text(json.dumps({"error": e.detail}))
+                    continue
 
-            # Create a new task for processing the chat request
-            current_task = asyncio.create_task(process_chat_request(websocket, body, common, interrupt_queue))
+                # Cancel any ongoing task before starting a new one
+                if current_task and not current_task.done():
+                    current_task.cancel()
+                    try:
+                        await current_task
+                    except asyncio.CancelledError:
+                        pass
+
+                # Create a new task for processing the chat request
+                current_task = asyncio.create_task(
+                    process_chat_request(websocket, body, common, interrupt_queue, tracer)
+                )
 
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected for user {websocket.scope['user'].object.id}")
         # Don't cancel the task - let it continue processing even after disconnect
     except Exception as e:
         logger.error(f"Error in websocket chat: {e}", exc_info=True)
+        await websocket.close(code=1011, reason="Internal Server Error")
+    finally:
         if current_task and not current_task.done():
             current_task.cancel()
-        await websocket.close(code=1011, reason="Internal Server Error")
+        if model_output_task and not model_output_task.done():
+            model_output_task.cancel()
+        if live_session_cm:
+            await live_session_cm.__aexit__(None, None, None)
 
 
 async def process_chat_request(
@@ -1526,6 +1720,7 @@ async def process_chat_request(
     body: ChatRequestBody,
     common: CommonQueryParams,
     interrupt_queue: asyncio.Queue,
+    tracer: dict = {},
 ):
     """Process a single chat request with interrupt support"""
     is_connected = True
@@ -1538,16 +1733,33 @@ async def process_chat_request(
             websocket.headers,
             websocket,
             interrupt_queue,
+            tracer,
         )
-        async for event in response_iterator:
-            if is_connected:
-                try:
-                    await websocket.send_text(event)
-                except Exception as e:
-                    is_connected = False
-                    logger.info(
-                        f"Client disconnected while sending event: {e}. Finishing processing in the background."
-                    )
+
+        async def tee_and_send_iterator(source_iterator):
+            """An async generator that yields events from a source iterator and also sends them to a websocket."""
+            async for event in source_iterator:
+                if is_connected:
+                    try:
+                        await websocket.send_text(event)
+                        yield event
+                    except Exception as e:
+                        is_connected = False
+                        logger.info(
+                            f"Client disconnected while sending event: {e}. Finishing processing in the background."
+                        )
+
+        new_iterator = tee_and_send_iterator(response_iterator)
+        if not body.stream:
+            # For non-streaming requests (like from a tool call),
+            # we consume the new iterator to both send events and get the final aggregated response.
+            response_data = await read_chat_stream(new_iterator)
+            return response_data
+        else:
+            # For regular streaming requests, we just need to consume the iterator
+            # to ensure all events are sent to the websocket.
+            async for _ in new_iterator:
+                pass
     except asyncio.CancelledError:
         logger.debug(f"Chat request cancelled for user {websocket.scope['user'].object.id}")
         raise

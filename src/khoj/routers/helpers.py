@@ -34,6 +34,8 @@ from apscheduler.triggers.cron import CronTrigger
 from asgiref.sync import sync_to_async
 from django.utils import timezone as django_timezone
 from fastapi import Depends, Header, HTTPException, Request, UploadFile, WebSocket
+from google.genai import types as gtypes
+from google.genai.live import AsyncSession as LiveSession
 from pydantic import BaseModel, EmailStr, Field
 from starlette.authentication import has_required_scope
 from starlette.requests import URL
@@ -89,6 +91,7 @@ from khoj.processor.conversation.google.gemini_chat import (
     converse_gemini,
     gemini_send_message_to_model,
 )
+from khoj.processor.conversation.google.utils import get_gemini_live_client
 from khoj.processor.conversation.offline.chat_model import (
     converse_offline,
     send_message_to_model_offline,
@@ -1435,6 +1438,18 @@ async def execute_search(
     logger.debug(f"🔍 Search took: {end_time - start_time:.3f} seconds")
 
     return results
+
+
+async def get_live_client(system_prompt: str, tools: List[ToolDefinition] = None):
+    chat_models: List[ChatModel] = await ConversationAdapters.aget_all_chat_models()  # Ensure chat models are loaded
+    gemini_api_key = (
+        [chat.ai_model_api.api_key for chat in chat_models if chat.model_type == ChatModel.ModelType.GOOGLE][0]
+        if chat_models
+        else None
+    )
+    if gemini_api_key:
+        return get_gemini_live_client(system_prompt=system_prompt, tools=tools, api_key=gemini_api_key)
+    return None, None
 
 
 async def send_message_to_model_wrapper(
@@ -3169,3 +3184,16 @@ async def list_files(
         error_msg = f"Error listing files in {path}: {str(e)}"
         logger.error(error_msg, exc_info=True)
         yield {"query": query, "file": path, "uri": path, "compiled": error_msg}
+
+
+async def send_user_input_to_model(audio_message: dict, session: LiveSession):
+    # Decode base64 data to bytes
+    base64_data = audio_message["data"]
+    audio_data = base64.b64decode(base64_data)
+
+    # Use the actual sample rate in MIME type - Gemini will resample as needed
+    sample_rate = audio_message["sampleRate"]
+    mime_type = f"audio/pcm;rate={sample_rate}"
+
+    # Send the audio data to the Gemini session
+    await session.send_realtime_input(audio=gtypes.Blob(data=audio_data, mime_type=mime_type))

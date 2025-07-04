@@ -2,7 +2,7 @@
 
 import styles from "./chat.module.css";
 import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import useWebSocket from "react-use-websocket";
+import useWebSocket, { SendMessage } from "react-use-websocket";
 
 import ChatHistory from "../components/chatHistory/chatHistory";
 import { useSearchParams } from "next/navigation";
@@ -52,6 +52,7 @@ interface ChatBodyDataProps {
     isActive?: boolean;
     isParentProcessing?: boolean;
     onRetryMessage?: (query: string, turnId?: string) => void;
+    sharedWebSocketSendMessage?: SendMessage | null;
 }
 
 function ChatBodyData(props: ChatBodyDataProps) {
@@ -178,6 +179,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                         ref={chatInputRef}
                         isResearchModeEnabled={isInResearchMode}
                         setTriggeredAbort={props.setTriggeredAbort}
+                        sharedWebSocketSendMessage={props.sharedWebSocketSendMessage}
                     />
                 </div>
             </div>
@@ -203,8 +205,12 @@ export default function Chat() {
     const [messages, setMessages] = useState<StreamMessage[]>([]);
     const [queryToProcess, setQueryToProcess] = useState<string>("");
     const [processQuerySignal, setProcessQuerySignal] = useState(false);
+    const currentAudioSourceRef = useRef<AudioBufferSourceNode | null>(null);
     const [uploadedFiles, setUploadedFiles] = useState<AttachedFileText[] | undefined>(undefined);
     const [images, setImages] = useState<string[]>([]);
+    const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+    const audioContextRef = useRef<AudioContext | null>(null);
+    const audioWorkletNodeRef = useRef<AudioWorkletNode | null>(null);
 
     const [triggeredAbort, setTriggeredAbort] = useState(false);
     const [interruptMessage, setInterruptMessage] = useState<string>("");
@@ -256,6 +262,13 @@ export default function Chat() {
             console.log("WebSocket connection established.");
             resetIdleTimer();
         },
+        onReconnectStop: (_) => {
+            stopContinuousPlayback();
+            if (audioContextRef.current) {
+                audioContextRef.current.close();
+                audioContextRef.current = null;
+            }
+        },
         onClose: () => {
             console.log("WebSocket connection closed.");
             if (idleTimerRef.current) {
@@ -264,9 +277,154 @@ export default function Chat() {
         },
     });
 
+    const handleAudioResponse = async (audioData: Blob | ArrayBuffer) => {
+        // Convert Blob to ArrayBuffer if needed
+        let arrayBuffer: ArrayBuffer;
+        if (audioData instanceof Blob) {
+            arrayBuffer = await audioData.arrayBuffer();
+        } else {
+            arrayBuffer = audioData;
+        }
+
+        // Convert to PCM data and send to audio worklet
+        const pcmData = new Int16Array(arrayBuffer);
+
+        if (!audioWorkletNodeRef.current) {
+            // Initialize audio worklet on first chunk
+            await startContinuousPlayback();
+        }
+
+        // Send audio data to worklet
+        if (audioWorkletNodeRef.current) {
+            audioWorkletNodeRef.current.port.postMessage({
+                type: "audio-data",
+                pcmData: pcmData.buffer,
+            });
+        }
+    };
+
+    const startContinuousPlayback = async () => {
+        if (isPlayingAudio) return;
+        setIsPlayingAudio(true);
+
+        try {
+            if (!audioContextRef.current) {
+                audioContextRef.current = new AudioContext();
+            }
+
+            // Load the audio worklet module
+            await audioContextRef.current.audioWorklet.addModule(
+                "/static/audio-playback-processor.js",
+            );
+
+            // Create the audio worklet node
+            audioWorkletNodeRef.current = new AudioWorkletNode(
+                audioContextRef.current,
+                "audio-playback-processor",
+            );
+
+            // Connect to audio destination
+            audioWorkletNodeRef.current.connect(audioContextRef.current.destination);
+        } catch (error) {
+            console.error("Error starting continuous playback:", error);
+            setIsPlayingAudio(false);
+        }
+    };
+
+    const stopContinuousPlayback = () => {
+        if (audioWorkletNodeRef.current) {
+            // Reset the audio worklet
+            audioWorkletNodeRef.current.port.postMessage({ type: "reset" });
+            audioWorkletNodeRef.current.disconnect();
+            audioWorkletNodeRef.current = null;
+        }
+        setIsPlayingAudio(false);
+    };
+
+    const playRawAudio = async (audioData: ArrayBuffer): Promise<void> => {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!audioContextRef.current) {
+                    audioContextRef.current = new AudioContext();
+                }
+
+                // Create a WAV header for the raw audio data
+                const wavData = createWavFile(audioData, 24000, 1); // Assuming 24kHz mono
+
+                // Decode the WAV audio data
+                const audioBuffer = await audioContextRef.current.decodeAudioData(wavData);
+
+                // Create audio source and play
+                const source = audioContextRef.current.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(audioContextRef.current.destination);
+                // Store the source in the ref
+                currentAudioSourceRef.current = source;
+
+                source.onended = () => resolve();
+                source.start();
+            } catch (error) {
+                console.error("Error in playRawAudio:", error);
+                reject(error);
+            }
+        });
+    };
+
+    const createWavFile = (
+        audioData: ArrayBuffer,
+        sampleRate: number,
+        channels: number,
+    ): ArrayBuffer => {
+        const pcmData = new Int16Array(audioData);
+        const wavBuffer = new ArrayBuffer(44 + pcmData.length * 2);
+        const view = new DataView(wavBuffer);
+
+        // WAV header
+        const writeString = (offset: number, string: string) => {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        };
+
+        writeString(0, "RIFF");
+        view.setUint32(4, 36 + pcmData.length * 2, true);
+        writeString(8, "WAVE");
+        writeString(12, "fmt ");
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, channels, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * channels * 2, true);
+        view.setUint16(32, channels * 2, true);
+        view.setUint16(34, 16, true);
+        writeString(36, "data");
+        view.setUint32(40, pcmData.length * 2, true);
+
+        // Copy PCM data
+        const int16View = new Int16Array(wavBuffer, 44);
+        int16View.set(pcmData);
+
+        return wavBuffer;
+    };
+
+    // Clean up audio streaming on unmount or conversation change
+    useEffect(() => {
+        return () => {
+            stopContinuousPlayback();
+        };
+    }, [conversationId]);
+
     useEffect(() => {
         if (lastMessage !== null) {
             resetIdleTimer();
+
+            // Check if this is audio data (Blob or ArrayBuffer)
+            if (lastMessage.data instanceof Blob || lastMessage.data instanceof ArrayBuffer) {
+                // Handle audio response for voice mode
+                handleAudioResponse(lastMessage.data);
+                return;
+            }
+
             // Check if this is a control message (JSON) rather than a streaming event
             try {
                 const controlMessage = JSON.parse(lastMessage.data);
@@ -278,6 +436,22 @@ export default function Chat() {
                 }
                 if (controlMessage.error) {
                     console.error("WebSocket error:", controlMessage.error);
+                    return;
+                }
+
+                // Handle audio transcription responses
+                if (controlMessage.text) {
+                    // This is a transcription response from audio input
+                    // We can trigger the message processing here or let the parent handle it
+                    console.log("Transcription response:", controlMessage.text);
+                    setQueryToProcess(controlMessage.text.trim());
+                    return;
+                }
+
+                // Handle user voice interrupt while playing Khoj response
+                if (controlMessage.interrupted) {
+                    console.log("Received audio interrupt signal from server.");
+                    stopContinuousPlayback(); // Stop continuous audio streaming
                     return;
                 }
             } catch {
@@ -566,6 +740,7 @@ export default function Chat() {
                                     isActive={authenticatedData?.is_active}
                                     isParentProcessing={processQuerySignal}
                                     onRetryMessage={handleRetryMessage}
+                                    sharedWebSocketSendMessage={sendMessage}
                                 />
                             </Suspense>
                         </div>
