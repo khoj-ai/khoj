@@ -1,4 +1,5 @@
 import os
+import re
 from pathlib import Path
 
 from khoj.processor.content.markdown.markdown_to_entries import MarkdownToEntries
@@ -248,6 +249,58 @@ def test_get_markdown_files(tmp_path):
     assert set(extracted_org_files.keys()) == expected_files
 
 
+def test_line_number_tracking_in_recursive_split():
+    "Ensure line numbers in URIs are correct after recursive splitting by checking against the actual file."
+    # Arrange
+    markdown_file_path = os.path.abspath("tests/data/markdown/main_readme.md")
+
+    with open(markdown_file_path, "r") as f:
+        markdown_content = f.read()
+    lines = markdown_content.splitlines()
+    data = {markdown_file_path: markdown_content}
+
+    # Act
+    # Using a small max_tokens to force recursive splitting
+    _, entries = MarkdownToEntries.extract_markdown_entries(markdown_files=data, max_tokens=10)
+
+    # Assert
+    assert len(entries) > 0, "No entries were extracted."
+
+    for entry in entries:
+        # Extract file path and line number from the entry URI
+        # for files uri is expected in format: file:///path/to/file.md#line=5
+        match = re.search(r"file://(.*?)#line=(\d+)", entry.uri)
+        filepath_from_uri = match.group(1)
+        line_number_from_uri = int(match.group(2))
+
+        # line_number is 1-based, list index is 0-based
+        line_in_file = clean(lines[line_number_from_uri - 1])
+        next_line_in_file = clean(lines[line_number_from_uri]) if line_number_from_uri < len(lines) else ""
+
+        # Remove ancestor heading lines inserted during post-processing
+        first_entry_line = ""
+        for line in entry.raw.splitlines():
+            if line.startswith("#"):
+                first_entry_line = line
+            else:
+                break  # Stop at the first non-heading line
+        # Remove heading prefix from entry.compiled as level changed during post-processing
+        cleaned_first_entry_line = first_entry_line.strip()
+        # Remove multiple consecutive spaces
+        cleaned_first_entry_line = clean(cleaned_first_entry_line)
+
+        assert entry.uri is not None, f"Entry '{entry}' has a None URI."
+        assert match is not None, f"URI format is incorrect: {entry.uri}"
+        assert (
+            filepath_from_uri == markdown_file_path
+        ), f"File path in URI '{filepath_from_uri}' does not match expected '{markdown_file_path}'"
+
+        # Ensure the first non-heading line in the compiled entry matches the line in the file
+        assert (
+            cleaned_first_entry_line in line_in_file.strip() or cleaned_first_entry_line in next_line_in_file.strip()
+        ), f"First non-heading line '{cleaned_first_entry_line}' in {entry.raw} does not match line {line_number_from_uri} in file: '{line_in_file}' or next line '{next_line_in_file}'"
+
+
 # Helper Functions
 def create_file(tmp_path: Path, entry=None, filename="test.md"):
     markdown_file = tmp_path / filename
@@ -255,3 +308,8 @@ def create_file(tmp_path: Path, entry=None, filename="test.md"):
     if entry:
         markdown_file.write_text(entry)
     return markdown_file
+
+
+def clean(text):
+    "Normalize spaces in text for easier comparison."
+    return re.sub(r"\s+", " ", text)
