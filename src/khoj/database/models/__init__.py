@@ -664,6 +664,34 @@ class Conversation(DbBaseModel):
                 continue
         return validated_messages
 
+    async def pop_message(self, interrupted: bool = False) -> Optional[ChatMessageModel]:
+        """
+        Remove and return the last message from the conversation log, persisting the change to the database.
+        When interrupted is True, we only drop the last message if it was an interrupted message by khoj.
+        """
+        chat_log = self.conversation_log.get("chat", [])
+
+        if not chat_log:
+            return None
+
+        last_message = chat_log[-1]
+        is_interrupted_msg = last_message.get("by") == "khoj" and not last_message.get("message")
+        # When handling an interruption, only pop if the last message is an empty one by khoj.
+        if interrupted and not is_interrupted_msg:
+            return None
+
+        # Pop the last message, save the conversation, and then return the message.
+        popped_message_dict = chat_log.pop()
+        await self.asave()
+
+        # Try to validate and return the popped message as a Pydantic model
+        try:
+            return ChatMessageModel.model_validate(popped_message_dict)
+        except ValidationError as e:
+            logger.warning(f"Popped an invalid message from conversation. The removal has been saved. Error: {e}")
+            # The invalid message was removed and saved, but we can't return a valid model.
+            return None
+
 
 class PublicConversation(DbBaseModel):
     source_owner = models.ForeignKey(KhojUser, on_delete=models.CASCADE)
