@@ -125,7 +125,7 @@ do
                 $project_root/manifest.json \
                 $project_root/versions.json
             git commit -m "Release Khoj version $current_version"
-            git tag $current_version master
+            git tag $current_version
             ;;
         c)
             # Get current project version
@@ -172,7 +172,7 @@ do
                 $project_root/manifest.json \
                 $project_root/versions.json
             git commit -m "Release Khoj version $current_version"
-            git tag $current_version master
+            git tag $current_version
             ;;
         n)
             # Induce hatch to compute next version number

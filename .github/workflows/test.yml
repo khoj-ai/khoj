@@ -2,6 +2,9 @@ name: test
 
 on:
   pull_request:
+    branches:
+      - master
+      - release/1.x
     paths:
       - src/khoj/**
       - tests/**
@@ -13,6 +16,7 @@ on:
   push:
     branches:
       - master
+      - release/1.x
     paths:
       - src/khoj/**
       - tests/**
