@@ -83,7 +83,6 @@ from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
 from khoj.processor.content.pdf.pdf_to_entries import PdfToEntries
 from khoj.processor.content.plaintext.plaintext_to_entries import PlaintextToEntries
 from khoj.processor.conversation import prompts
-from khoj.processor.conversation.google.utils import get_gemini_live_client
 from khoj.processor.conversation.helpers import (
     send_message_to_model_wrapper,
     send_message_to_model_wrapper_sync,
@@ -1417,18 +1416,6 @@ async def execute_search(
     logger.debug(f"🔍 Search took: {end_time - start_time:.3f} seconds")
 
     return results
-
-
-async def get_live_client(system_prompt: str, tools: List[ToolDefinition] = None):
-    chat_models: List[ChatModel] = await ConversationAdapters.aget_all_chat_models()  # Ensure chat models are loaded
-    gemini_api_key = (
-        [chat.ai_model_api.api_key for chat in chat_models if chat.model_type == ChatModel.ModelType.GOOGLE][0]
-        if chat_models
-        else None
-    )
-    if gemini_api_key:
-        return get_gemini_live_client(system_prompt=system_prompt, tools=tools, api_key=gemini_api_key)
-    return None, None
 
 
 class DeleteMessageRequestBody(BaseModel):

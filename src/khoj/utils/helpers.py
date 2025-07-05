@@ -475,33 +475,6 @@ tool_descriptions_for_llm = {
     ConversationCommand.Operator: "To use when you need to operate a computer to complete the task.",
 }
 
-tools_for_live_chat = [
-    ToolDefinition(
-        name="research",
-        description=dedent(
-            """
-            To find information from the web or the user's personal knowledge base, generate images, and run code for data analysis.
-            You can use this tool to ask follow-up questions and refine your search. It remembers the context of the conversation.
-            Your query should be detailed and from the user's first-person perspective. E.g "When did I go surfing with Tom? Look it up in my notes.",
-            """
-        ).strip(),
-        schema={
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "The query to look up information, generate images, or run code. The query should be detailed and from the user's first person perspective.",
-                },
-                "deep_research": {
-                    "type": "boolean",
-                    "description": "Set deep research mode for substantial, multi-step tasks.",
-                },
-            },
-            "required": ["query"],
-        },
-    ),
-]
-
 tools_for_research_llm = {
     ConversationCommand.SearchWeb: ToolDefinition(
         name="search_web",

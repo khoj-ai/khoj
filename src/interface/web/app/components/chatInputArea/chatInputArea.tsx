@@ -398,6 +398,17 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputProps>((pr
 
     useEffect(() => {
         if (!recording && (mediaRecorder || audioContext)) {
+            // Send end-of-audio signal before cleanup
+            if (props.sharedWebSocketSendMessage) {
+                props.sharedWebSocketSendMessage(
+                    JSON.stringify({
+                        type: "audio",
+                        end_of_audio: true,
+                        conversation_id: props.conversationId,
+                    }),
+                );
+            }
+
             // Stop recording and cleanup resources
             if (audioWorkletNode) {
                 audioWorkletNode.disconnect();

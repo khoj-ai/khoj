@@ -88,36 +88,6 @@ def _is_retryable_error(exception: BaseException) -> bool:
     return False
 
 
-def get_gemini_live_client(api_key: str, system_prompt: str | None = None, tools: List[ToolDefinition] = []):
-    client = genai.Client(api_key=api_key, http_options={"api_version": "v1alpha"})
-    # model = "gemini-2.5-flash-preview-native-audio-dialog"
-    model = "gemini-live-2.5-flash-preview"
-    config = gtypes.LiveConnectConfig(
-        system_instruction=system_prompt,
-        tools=to_gemini_tools(tools, live=True),
-        response_modalities=["AUDIO"],
-        input_audio_transcription=gtypes.AudioTranscriptionConfig(),
-        output_audio_transcription=gtypes.AudioTranscriptionConfig(),
-        enable_affective_dialog="native" in model,
-        proactivity=gtypes.ProactivityConfig(proactive_audio="native" in model),
-        # realtime_input_config=gtypes.RealtimeInputConfig(
-        #     automatic_activity_detection=gtypes.AutomaticActivityDetection(
-        #         start_of_speech_sensitivity=gtypes.StartSensitivity.START_SENSITIVITY_LOW,
-        #         prefix_padding_ms=50,
-        #     ),
-        # ),
-        speech_config=gtypes.SpeechConfig(
-            voice_config=gtypes.VoiceConfig(prebuilt_voice_config=gtypes.PrebuiltVoiceConfig(voice_name="Kore")),
-            language_code="en-US",
-        ),
-        context_window_compression=gtypes.ContextWindowCompressionConfig(
-            trigger_tokens=128000,
-            sliding_window=gtypes.SlidingWindow(target_tokens=64000),
-        ),
-    )
-    return client.aio.live.connect, {"model": model, "config": config}
-
-
 @retry(
     retry=retry_if_exception(_is_retryable_error),
     wait=wait_random_exponential(min=1, max=10),
@@ -484,7 +454,7 @@ def is_reasoning_model(model_name: str) -> bool:
     return model_name.startswith("gemini-2.5")
 
 
-def to_gemini_tools(tools: List[ToolDefinition], live: bool = False) -> List[gtypes.ToolDict] | None:
+def to_gemini_tools(tools: List[ToolDefinition]) -> List[gtypes.ToolDict] | None:
     "Transform tool definitions from standard format to Gemini format."
 
     def clean_schema(schema: Dict[str, Any]) -> Dict[str, Any]:
@@ -511,7 +481,6 @@ def to_gemini_tools(tools: List[ToolDefinition], live: bool = False) -> List[gty
                     name=tool.name,
                     description=tool.description,
                     parameters=clean_schema(tool.schema),
-                    behavior="NON_BLOCKING" if live else None,
                 )
                 for tool in tools
             ]

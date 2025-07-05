@@ -2,6 +2,7 @@ import asyncio
 import base64
 import json
 import logging
+import os
 import time
 import uuid
 from datetime import datetime
@@ -20,8 +21,6 @@ from fastapi import (
 )
 from fastapi.responses import RedirectResponse, Response, StreamingResponse
 from fastapi.websockets import WebSocketState
-from google.genai import types as gtypes
-from google.genai.live import AsyncSession as LiveSession
 from starlette.authentication import has_required_scope, requires
 from starlette.requests import Headers
 
@@ -46,6 +45,8 @@ from khoj.processor.conversation.utils import (
 )
 from khoj.processor.image.generate import text_to_image
 from khoj.processor.operator import operate_environment
+from khoj.processor.speech.openai_realtime import create_realtime_session
+from khoj.processor.speech.speech_to_text import transcribe_audio_from_buffer
 from khoj.processor.speech.text_to_speech import generate_text_to_speech
 from khoj.processor.tools.online_search import (
     deduplicate_organic_results,
@@ -71,7 +72,6 @@ from khoj.routers.helpers import (
     generate_mermaidjs_diagram,
     generate_summary_from_files,
     get_conversation_command,
-    get_live_client,
     is_query_empty,
     is_ready_to_chat,
     read_chat_stream,
@@ -95,7 +95,6 @@ from khoj.utils.helpers import (
     is_env_var_true,
     is_none_or_empty,
     is_operator_enabled,
-    tools_for_live_chat,
 )
 from khoj.utils.rawconfig import (
     ChatRequestBody,
@@ -213,12 +212,12 @@ async def text_to_speech(
 ) -> Response:
     voice_model = await ConversationAdapters.aget_voice_model_config(request.user.object)
 
-    params = {"text_to_speak": text}
+    params = {"text_to_speak": text, "user": request.user.object}
 
     if voice_model:
         params["voice_id"] = voice_model.model_id
 
-    speech_stream = generate_text_to_speech(**params)
+    speech_stream = await generate_text_to_speech(**params)
     return StreamingResponse(speech_stream.iter_content(chunk_size=1024), media_type="audio/mpeg")
 
 
@@ -1457,144 +1456,6 @@ async def event_generator(
     await cancel_disconnect_monitor()
 
 
-async def _run_research_and_respond(
-    session: LiveSession,
-    fc: gtypes.FunctionCall,
-    websocket: WebSocket,
-    body: ChatRequestBody,
-    common: CommonQueryParams,
-    interrupt_queue: asyncio.Queue,
-    tracer: dict,
-):
-    """Helper to run research task in background and send tool response."""
-    try:
-        response = await process_chat_request(websocket, body, common, interrupt_queue, tracer)
-        function_response = gtypes.FunctionResponse(
-            id=fc.id,
-            name=fc.name,
-            response={"output": response["response"], "scheduling": "WHEN_IDLE"},
-        )
-        await session.send_tool_response(function_responses=[function_response])
-    except Exception as e:
-        logger.error(f"Error in background research task: {e}", exc_info=True)
-        # Optionally send an error response back to the model
-        error_response = gtypes.FunctionResponse(
-            id=fc.id,
-            name=fc.name,
-            response={"error": f"An error occurred: {e}", "scheduling": "WHEN_IDLE"},
-        )
-        try:
-            await session.send_tool_response(function_responses=[error_response])
-        except Exception as send_e:
-            logger.error(f"Failed to send error response for tool call: {send_e}", exc_info=True)
-
-
-async def handle_live_model_output(
-    websocket: WebSocket,
-    session: LiveSession,
-    live_session_state: dict,
-    common: CommonQueryParams,
-    interrupt_queue: asyncio.Queue,
-    tracer: dict = {},
-):
-    """Handle model output for live chat with research tool support"""
-
-    input_message, output_message = "", ""
-    user: KhojUser = websocket.scope["user"].object
-    conversation_id = live_session_state.get("conversation_id")
-    client_app = websocket.scope["user"].client_app
-    try:
-        while True:
-            async for response in session.receive():
-                # logger.debug(f"Received Gemini response: {response.data}")
-                if response.data:
-                    # logger.debug(f"🔊 Khoj -> User Audio: {len(response.data)} bytes")
-                    await websocket.send_bytes(response.data)
-                elif response.tool_call:
-                    logger.debug(f"🛠️ Khoj -> Tool Call: {[f.model_dump() for f in response.tool_call.function_calls]}")
-                    for fc in response.tool_call.function_calls:
-                        if fc.name == "research":
-                            # Handle research tool calls
-                            query = fc.args["query"]
-                            ai_set_research_mode = fc.args.get("deep_research")
-                            user_set_research_mode = live_session_state.get("research_mode", False)
-                            if (ai_set_research_mode or user_set_research_mode) and not query.startswith("/research"):
-                                query = f"/research {query}"
-                            processed_data = {
-                                "q": query,
-                                "conversation_id": conversation_id,
-                                "stream": False,
-                            }
-                            body = ChatRequestBody(**processed_data)
-                            asyncio.create_task(
-                                _run_research_and_respond(session, fc, websocket, body, common, interrupt_queue, tracer)
-                            )
-                        else:
-                            logger.warning(f"Unhandled tool call: {fc.name}. Please implement handling for this tool.")
-                elif response.server_content and response.server_content.interrupted:
-                    logger.debug("⚠️ User -> Khoj Audio: Interrupted")
-                    await websocket.send_text(json.dumps({"interrupted": True}))
-                elif response.server_content and response.server_content.input_transcription:
-                    # logger.debug(f"✍🏽 User -> Khoj Transcribed Text: {response.server_content.input_transcription.text}")
-                    input_message += response.server_content.input_transcription.text
-                elif response.server_content and response.server_content.output_transcription:
-                    # logger.debug(f"✍🏽 Khoj -> User Transcribed Text: {response.server_content.output_transcription.text}")
-                    output_message += response.server_content.output_transcription.text
-                elif response.server_content and response.server_content.generation_complete:
-                    # If input_message and output_message are both present
-                    if input_message and output_message:
-                        # Save them to conversation history
-                        tracer["mid"] = str(tracer.get("turn_id") or uuid.uuid4())  # Get/set turn_id at turn end
-                        # asyncio.create_task(
-                        #     save_to_conversation_log(
-                        #         input_message,
-                        #         chat_response=output_message,
-                        #         user=user,
-                        #         client_application=client_app,
-                        #         conversation_id=conversation_id,
-                        #         tracer=tracer,
-                        #     )
-                        # )
-                        # Clear turn messages
-                        input_message = ""
-                        output_message = ""
-                        tracer["mid"] = None
-                elif response.server_content and response.server_content.turn_complete:
-                    input_tokens, output_tokens, input_audio_tokens, output_audio_tokens = 0, 0, 0, 0
-                    for token_detail in response.usage_metadata.prompt_tokens_details or []:
-                        if token_detail.modality == gtypes.Modality.TEXT:
-                            input_tokens += token_detail.token_count
-                        elif token_detail.modality == gtypes.Modality.AUDIO:
-                            input_audio_tokens += token_detail.token_count
-                    for token_detail in response.usage_metadata.response_tokens_details or []:
-                        if token_detail.modality == gtypes.Modality.TEXT:
-                            output_tokens += token_detail.token_count
-                        elif token_detail.modality == gtypes.Modality.AUDIO:
-                            output_audio_tokens += token_detail.token_count
-                    thought_tokens = response.usage_metadata.thoughts_token_count or 0
-                    cache_read_tokens = response.usage_metadata.cached_content_token_count or 0
-                    tracer["usage"] = get_chat_usage_metrics(
-                        "gemini-2.5-flash-preview-native-audio-dialog",
-                        input_tokens,
-                        output_tokens,
-                        input_audio_tokens=input_audio_tokens,
-                        output_audio_tokens=output_audio_tokens,
-                        cache_read_tokens=cache_read_tokens,
-                        thought_tokens=thought_tokens,
-                        usage=tracer.get("usage"),
-                    )
-                elif response.text:
-                    logger.debug(f"Khoj -> User Text: {response.text}")
-                else:
-                    logger.warning(f"Unhandled Gemini response: {response}")
-    except WebSocketDisconnect:
-        logger.info("WebSocket disconnected while sending live model output to user client.")
-    except Exception as e:
-        if e.__class__.__name__ == "WebSocketDisconnect":
-            pass
-        logger.error(f"Error sending live model output: {e}", exc_info=True)
-
-
 @api_chat.websocket("/ws")
 @requires(["authenticated"])
 async def chat_ws(
@@ -1612,10 +1473,10 @@ async def chat_ws(
 
     # Shared interrupt queue for communicating interrupts to ongoing research
     interrupt_queue: asyncio.Queue = asyncio.Queue()
-    current_task, model_output_task = None, None
+    current_task = None
 
     # Shared state for live session settings
-    session_state = {"research_mode": False}
+    session_state = {"research_mode": False, "voice_mode": False}
     user_id = websocket.scope["user"].object.id
     conversation_id = None
     tracer: dict = {
@@ -1623,15 +1484,95 @@ async def chat_ws(
         "khoj_version": state.khoj_version,
     }
 
-    # Get Gemini API key from configured chat models
-    live_session_cm = None
-    live_session = None
-    system_prompt = "You are Khoj, a personal AI. You can look up information from the user's documents, get real-time information from the web, generate images, run code for data analysis."
-    live_client, client_kwargs = await get_live_client(system_prompt=system_prompt, tools=tools_for_live_chat)
-    if not live_client:
-        logger.error("GEMINI_API_KEY not configured on the server.")
-        await websocket.close(code=1008, reason="GEMINI_API_KEY not configured on the server.")
-        return
+    # OpenAI Realtime API session
+    openai_realtime_client = None
+
+    # Handler functions for OpenAI Realtime API
+    def handle_audio_response(audio_bytes: bytes):
+        # TODO: Stream audio response back to client
+        logger.debug(f"Received audio response: {len(audio_bytes)} bytes")
+
+    def user_interrupt():
+        asyncio.create_task(websocket.send_json({"interrupted": True}))
+
+    async def handle_transcript(transcript: str):
+        nonlocal current_task
+        # Process transcribed text as a chat message
+        logger.info(f"Received transcript: '{transcript}'")
+        if transcript and transcript.strip():
+            # Add /research prefix if research mode is enabled and transcript doesn't already have a slash command
+            processed_transcript = transcript.strip()
+            if session_state.get("research_mode", False) and not processed_transcript.startswith("/"):
+                processed_transcript = f"/research {processed_transcript}"
+                logger.debug(
+                    f"Added /research prefix to transcript. Original: '{transcript}', Processed: '{processed_transcript}'"
+                )
+
+            if current_task and not current_task.done() and session_state["research_mode"]:
+                # Send interrupt signal to the ongoing task
+                await interrupt_queue.put(processed_transcript)
+                logger.info(f"Interrupt signal sent to ongoing task for user {user_id}")
+                return
+            elif current_task and not current_task.done():
+                current_task.cancel()
+
+            # After handling a transcript, clear the audio buffer on OpenAI's side
+            # to ensure no residual audio carries over to the next turn.
+            if openai_realtime_client:
+                await openai_realtime_client.clear_audio_buffer()
+
+            body = ChatRequestBody(
+                q=processed_transcript,
+                conversation_id=conversation_id,
+                interrupt=False,
+            )
+            current_task = asyncio.create_task(
+                process_chat_request(
+                    websocket,
+                    body,
+                    common,
+                    interrupt_queue,
+                    tracer,
+                    is_voice_input=True,
+                )
+            )
+
+    def handle_realtime_error(error_msg: str):
+        logger.error(f"OpenAI Realtime API error: {error_msg}")
+        # Send user-friendly error message based on error type
+        error_response = {"error": "Voice processing temporarily unavailable"}
+
+        # Check for specific error types and provide more helpful messages
+        if "keepalive ping timeout" in error_msg.lower():
+            error_response["error"] = "Voice connection timed out. Please try again."
+        elif "connection" in error_msg.lower():
+            error_response["error"] = "Voice connection lost. Attempting to reconnect..."
+        elif "failed to send audio" in error_msg.lower():
+            error_response["error"] = "Voice input failed. Please try speaking again."
+
+        asyncio.create_task(websocket.send_text(json.dumps(error_response)))
+
+    # Initialize OpenAI Realtime API if we have an API key
+    async def initialize_openai_client():
+        """Initialize or reinitialize the OpenAI Realtime API client"""
+        nonlocal openai_realtime_client
+        try:
+            openai_realtime_client = await create_realtime_session(
+                api_key=os.getenv("OPENAI_API_KEY"),
+                audio_handler=handle_audio_response,
+                transcript_handler=handle_transcript,
+                error_handler=handle_realtime_error,
+                interrupt_handler=user_interrupt,
+            )
+            logger.info("OpenAI Realtime API session initialized")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to initialize OpenAI Realtime API: {e}")
+            openai_realtime_client = None
+            return False
+
+    # Try to initialize the client
+    await initialize_openai_client()
 
     try:
         while True:
@@ -1653,52 +1594,106 @@ async def chat_ws(
                     logger.info(f"No ongoing task to interrupt for user {user_id}")
                 continue
 
-            # Handle live chat interactions
-            if "q" not in data:
-                # Update research mode state from audio message
-                session_state["research_mode"] = data.get("research_mode", False)
-                session_state["conversation_id"] = data.get("conversation_id", "")
-                # Lazy initialization of live session once
-                if live_session is None:
-                    logger.info(f"Initializing live session for user {user_id}")
-                    live_session_cm = live_client(**client_kwargs)
-                    live_session: LiveSession = await live_session_cm.__aenter__()
-                    # Start the model output task once when session is created
-                    model_output_task = asyncio.create_task(
-                        handle_live_model_output(
-                            websocket, live_session, session_state, common, interrupt_queue, tracer
-                        )
-                    )
-                if data.get("type") == "audio":
-                    # Detailed logging for audio messages
-                    # logger.debug(f"🎙️ User -> Khoj Audio: {len(data.get('data'))} size")
-                    await send_user_input_to_model(audio_message=data, session=live_session)
-            else:
-                # Handle regular chat messages - ensure data has required fields
-                body = ChatRequestBody(**data)
-                session_state["research_mode"] = body.q.startswith("/research")
-
-                # Apply rate limiting manually
+            if data.get("type") == "audio":
                 try:
-                    rate_limiter_per_minute.check_websocket(websocket)
-                    rate_limiter_per_day.check_websocket(websocket)
-                    image_rate_limiter.check_websocket(websocket, body)
-                except HTTPException as e:
-                    await websocket.send_text(json.dumps({"error": e.detail}))
-                    continue
+                    # Set voice mode when audio input is received
+                    session_state["voice_mode"] = True
 
-                # Cancel any ongoing task before starting a new one
-                if current_task and not current_task.done():
-                    current_task.cancel()
+                    # Update research mode if provided in audio data
+                    if "research_mode" in data:
+                        session_state["research_mode"] = data.get("research_mode", False)
+
+                    if not openai_realtime_client or not openai_realtime_client.is_connected:
+                        # Attempt to reconnect if the client exists but is disconnected
+                        if openai_realtime_client and not openai_realtime_client.is_connected:
+                            try:
+                                logger.info("Attempting to reconnect to OpenAI Realtime API...")
+                                await openai_realtime_client.connect()
+                                logger.info("Successfully reconnected to OpenAI Realtime API")
+                            except Exception as reconnect_error:
+                                logger.error(f"Failed to reconnect to OpenAI Realtime API: {reconnect_error}")
+                                # Try to reinitialize the client completely
+                                logger.info("Attempting to reinitialize OpenAI Realtime API client...")
+                                if not await initialize_openai_client():
+                                    await websocket.send_text(
+                                        json.dumps({"error": "Voice connection failed. Please refresh and try again."})
+                                    )
+                                    continue
+                        else:
+                            # Try to initialize a new client
+                            if not await initialize_openai_client():
+                                await websocket.send_text(
+                                    json.dumps({"error": "OpenAI Realtime API not available - voice features disabled"})
+                                )
+                                continue
+
+                    # Check if this is an end-of-audio signal
+                    if data.get("end_of_audio", False):
+                        await openai_realtime_client.send_audio_end()
+                        logger.debug("Sent end-of-audio signal to OpenAI Realtime API")
+                        continue
+
+                    # Forward audio data to OpenAI Realtime API
                     try:
-                        await current_task
-                    except asyncio.CancelledError:
-                        pass
+                        audio_data = data.get("data")
+                        audio_bytes = base64.b64decode(audio_data)
+                    except Exception as e:
+                        logger.error(f"Failed to decode base64 audio data: {e}")
+                        continue
 
-                # Create a new task for processing the chat request
-                current_task = asyncio.create_task(
-                    process_chat_request(websocket, body, common, interrupt_queue, tracer)
+                    # OpenAI Realtime API expects 24kHz PCM16, resample if needed
+                    # Pass the sample rate to enable proper resampling
+                    sample_rate = data.get("sampleRate")
+                    await openai_realtime_client.send_audio_chunk(audio_bytes, sample_rate or 24000)
+                except Exception as e:
+                    logger.error(f"Error handling audio for OpenAI Realtime API: {e}", exc_info=True)
+                    await websocket.send_text(json.dumps({"error": "Failed to process audio"}))
+                continue
+
+            # Handle regular text chat messages only if not an audio message
+            if "q" not in data:
+                continue
+
+            # Handle regular chat messages - ensure data has required fields
+            body = ChatRequestBody(**data)
+            session_state["research_mode"] = body.q.startswith("/research")
+
+            # Check if this is a voice mode toggle
+            if data.get("voice_mode") is not None:
+                session_state["voice_mode"] = data.get("voice_mode")
+                logger.info(f"Voice mode set to: {session_state['voice_mode']}")
+
+            # Apply rate limiting manually
+            try:
+                rate_limiter_per_minute.check_websocket(websocket)
+                rate_limiter_per_day.check_websocket(websocket)
+                image_rate_limiter.check_websocket(websocket, body)
+            except HTTPException as e:
+                await websocket.send_text(json.dumps({"error": e.detail}))
+                continue
+
+            # Cancel any ongoing task before starting a new one
+            if current_task and not current_task.done():
+                current_task.cancel()
+                try:
+                    await current_task
+                except asyncio.CancelledError:
+                    pass
+
+            # Create a new task for processing the chat request
+            # Enable TTS if user is in voice mode
+            is_voice_enabled = session_state.get("voice_mode", False)
+            logger.info(f"Processing chat request. Voice mode enabled: {is_voice_enabled}")
+            current_task = asyncio.create_task(
+                process_chat_request(
+                    websocket,
+                    body,
+                    common,
+                    interrupt_queue,
+                    tracer,
+                    is_voice_enabled,
                 )
+            )
 
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected for user {websocket.scope['user'].object.id}")
@@ -1709,10 +1704,12 @@ async def chat_ws(
     finally:
         if current_task and not current_task.done():
             current_task.cancel()
-        if model_output_task and not model_output_task.done():
-            model_output_task.cancel()
-        if live_session_cm:
-            await live_session_cm.__aexit__(None, None, None)
+        # Clean up OpenAI Realtime API connection
+        if openai_realtime_client:
+            try:
+                await openai_realtime_client.disconnect()
+            except Exception as e:
+                logger.error(f"Error disconnecting OpenAI Realtime API: {e}")
 
 
 async def process_chat_request(
@@ -1721,6 +1718,7 @@ async def process_chat_request(
     common: CommonQueryParams,
     interrupt_queue: asyncio.Queue,
     tracer: dict = {},
+    is_voice_input: bool = False,
 ):
     """Process a single chat request with interrupt support"""
     is_connected = True
@@ -1738,16 +1736,94 @@ async def process_chat_request(
 
         async def tee_and_send_iterator(source_iterator):
             """An async generator that yields events from a source iterator and also sends them to a websocket."""
+            accumulated_response = ""
+            user = websocket.scope["user"].object
+            message_start = False
+            is_connected = True
+
             async for event in source_iterator:
                 if is_connected:
+                    # Always send the text event to websocket first
                     try:
                         await websocket.send_text(event)
-                        yield event
                     except Exception as e:
                         is_connected = False
                         logger.info(
                             f"Client disconnected while sending event: {e}. Finishing processing in the background."
                         )
+
+                if is_voice_input:
+                    trigger_tts = False  # Flag to trigger TTS generation
+                    # logger.debug(f"Voice input processing event: {event}")
+                    try:
+                        # Only attempt to parse as JSON if the event looks like JSON
+                        if isinstance(event, str) and event.strip().startswith("{"):
+                            event_data = json.loads(event)
+                            if event_data.get("type") == "start_llm_response" and not message_start:
+                                accumulated_response = ""
+                                message_start = True  # Mark that we have started receiving a message
+                            elif event_data.get("type") == "end_llm_response" and accumulated_response.strip():
+                                trigger_tts = True
+                            elif event_data.get("type") == "message":
+                                accumulated_response += event_data.get("data", "")
+                            elif event_data.get("type") == "thought":
+                                accumulated_response = event_data.get("thought", "")
+                                trigger_tts = True
+                            elif event_data.get("type") == "status":
+                                exclude_status = [
+                                    "Generating a well-informed response",
+                                ]
+                                data = event_data.get("data", "")
+                                if data and any(status in data for status in exclude_status):
+                                    continue
+                                accumulated_response = event_data.get("data", "")
+                                trigger_tts = True
+                            else:
+                                logger.debug(f"Skipping non-message event: {event_data.get('type')}")
+                                continue  # Skip non-message events
+                        else:
+                            # Accumulate final response content for TTS
+                            marker_text_to_ignore = "␃🔚␗"
+                            accumulated_response += event.replace(marker_text_to_ignore, "")
+
+                        # Generate TTS when we receive END_LLM_RESPONSE
+                        if trigger_tts and accumulated_response.strip():
+                            trigger_tts = False  # Reset trigger after processing
+                            try:
+                                # Prepare TTS parameters
+                                voice_model = await ConversationAdapters.aget_voice_model_config(user)
+                                tts_params = {
+                                    "text_to_speak": accumulated_response.strip(),
+                                    "voice_id": voice_model.model_id if voice_model else None,
+                                    "stream": False,
+                                    "user": user,
+                                    "is_thought": not message_start,
+                                }
+
+                                # Generate speech and stream it as binary data
+                                logger.info(f"Calling generate_text_to_speech with params: {tts_params}")
+                                response = await generate_text_to_speech(**tts_params)
+                                if isinstance(response, str):
+                                    logger.error(f"TTS generation failed: {response}")
+                                    continue
+
+                                # Send audio data as a binary message
+                                if is_connected:
+                                    try:
+                                        await websocket.send_bytes(response.content)
+                                    except:
+                                        is_connected = False
+                                        logger.info(
+                                            f"Client disconnected while sending event: {e}. Finishing processing in the background."
+                                        )
+                                logger.info(f"TTS audio sent to client for playback")
+                            except Exception as tts_error:
+                                logger.error(f"TTS generation failed: {tts_error}", exc_info=True)
+                    except (json.JSONDecodeError, KeyError) as e:
+                        logger.debug(f"Event parsing error: {e}")
+                        # Not a JSON-RPC message, or not a message event
+                        pass
+                yield event
 
         new_iterator = tee_and_send_iterator(response_iterator)
         if not body.stream:

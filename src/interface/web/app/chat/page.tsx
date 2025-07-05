@@ -206,6 +206,8 @@ export default function Chat() {
     const [queryToProcess, setQueryToProcess] = useState<string>("");
     const [processQuerySignal, setProcessQuerySignal] = useState(false);
     const currentAudioSourceRef = useRef<AudioBufferSourceNode | null>(null);
+    const currentAudioElementRef = useRef<HTMLAudioElement | null>(null);
+    const [currentAudioChunkId, setCurrentAudioChunkId] = useState<string | null>(null);
     const [uploadedFiles, setUploadedFiles] = useState<AttachedFileText[] | undefined>(undefined);
     const [images, setImages] = useState<string[]>([]);
     const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -286,22 +288,68 @@ export default function Chat() {
             arrayBuffer = audioData;
         }
 
-        // Convert to PCM data and send to audio worklet
-        const pcmData = new Int16Array(arrayBuffer);
+        // Try play audio as MP3 first
+        try {
+            // Create blob with MP3 content type
+            let mp3Buffer = new Uint8Array(arrayBuffer);
+            const blob = new Blob([mp3Buffer], { type: "audio/mpeg" });
+            const url = URL.createObjectURL(blob);
 
-        if (!audioWorkletNodeRef.current) {
-            // Initialize audio worklet on first chunk
-            await startContinuousPlayback();
-        }
+            console.debug(`Playing complete MP3 file: ${mp3Buffer.length} bytes`);
+            await playAudio(url);
+        } catch (error) {
+            // Fallback to PCM streaming data if MP3 playback fails
+            // Convert to PCM data and send to audio worklet
+            const pcmData = new Int16Array(arrayBuffer);
 
-        // Send audio data to worklet
-        if (audioWorkletNodeRef.current) {
-            audioWorkletNodeRef.current.port.postMessage({
-                type: "audio-data",
-                pcmData: pcmData.buffer,
-            });
+            if (!audioWorkletNodeRef.current) {
+                // Initialize audio worklet on first chunk
+                await startContinuousPlayback();
+            }
+
+            // Send audio data to worklet
+            if (audioWorkletNodeRef.current) {
+                audioWorkletNodeRef.current.port.postMessage({
+                    type: "audio-data",
+                    pcmData: pcmData.buffer,
+                });
+            }
         }
     };
+
+    function playAudio(url: string) {
+        return new Promise((resolve, reject) => {
+            const audio = new Audio(url);
+            currentAudioElementRef.current = audio; // Store reference for stopping
+
+            const resolvePromise = () => {
+                // Clean up listeners to avoid multiple resolves
+                audio.onended = null;
+                audio.onpause = null;
+                audio.onerror = null;
+                resolve(undefined);
+            };
+
+            audio.onended = () => {
+                if (sendMessage && currentAudioChunkId) {
+                    sendMessage(
+                        JSON.stringify({
+                            type: "audio_ack",
+                            chunk_id: currentAudioChunkId,
+                        }),
+                    );
+                }
+                currentAudioElementRef.current = null; // Clear reference when ended
+                setCurrentAudioChunkId(null);
+                resolvePromise();
+            };
+            audio.onerror = reject;
+            // When an interrupt pauses playback, we should resolve the promise
+            // to allow the next audio chunk to be processed.
+            audio.onpause = resolvePromise;
+            audio.play();
+        });
+    }
 
     const startContinuousPlayback = async () => {
         if (isPlayingAudio) return;
@@ -332,79 +380,39 @@ export default function Chat() {
     };
 
     const stopContinuousPlayback = () => {
+        console.log("Stopping continuous audio playback...");
+
+        // Stop any currently playing HTML5 audio (MP3)
+        if (currentAudioElementRef.current) {
+            try {
+                currentAudioElementRef.current.pause();
+                currentAudioElementRef.current.currentTime = 0;
+                currentAudioElementRef.current = null;
+            } catch (error) {
+                console.debug("Audio element already stopped:", error);
+            }
+        }
+
+        // Stop any currently playing audio buffer source (PCM)
+        if (currentAudioSourceRef.current) {
+            try {
+                currentAudioSourceRef.current.stop();
+                currentAudioSourceRef.current = null;
+            } catch (error) {
+                // Audio source might already be stopped, ignore error
+                console.debug("Audio source already stopped:", error);
+            }
+        }
+
+        // Stop audio worklet for streaming audio
         if (audioWorkletNodeRef.current) {
             // Reset the audio worklet
             audioWorkletNodeRef.current.port.postMessage({ type: "reset" });
             audioWorkletNodeRef.current.disconnect();
             audioWorkletNodeRef.current = null;
         }
+        setCurrentAudioChunkId(null);
         setIsPlayingAudio(false);
-    };
-
-    const playRawAudio = async (audioData: ArrayBuffer): Promise<void> => {
-        return new Promise(async (resolve, reject) => {
-            try {
-                if (!audioContextRef.current) {
-                    audioContextRef.current = new AudioContext();
-                }
-
-                // Create a WAV header for the raw audio data
-                const wavData = createWavFile(audioData, 24000, 1); // Assuming 24kHz mono
-
-                // Decode the WAV audio data
-                const audioBuffer = await audioContextRef.current.decodeAudioData(wavData);
-
-                // Create audio source and play
-                const source = audioContextRef.current.createBufferSource();
-                source.buffer = audioBuffer;
-                source.connect(audioContextRef.current.destination);
-                // Store the source in the ref
-                currentAudioSourceRef.current = source;
-
-                source.onended = () => resolve();
-                source.start();
-            } catch (error) {
-                console.error("Error in playRawAudio:", error);
-                reject(error);
-            }
-        });
-    };
-
-    const createWavFile = (
-        audioData: ArrayBuffer,
-        sampleRate: number,
-        channels: number,
-    ): ArrayBuffer => {
-        const pcmData = new Int16Array(audioData);
-        const wavBuffer = new ArrayBuffer(44 + pcmData.length * 2);
-        const view = new DataView(wavBuffer);
-
-        // WAV header
-        const writeString = (offset: number, string: string) => {
-            for (let i = 0; i < string.length; i++) {
-                view.setUint8(offset + i, string.charCodeAt(i));
-            }
-        };
-
-        writeString(0, "RIFF");
-        view.setUint32(4, 36 + pcmData.length * 2, true);
-        writeString(8, "WAVE");
-        writeString(12, "fmt ");
-        view.setUint32(16, 16, true);
-        view.setUint16(20, 1, true);
-        view.setUint16(22, channels, true);
-        view.setUint32(24, sampleRate, true);
-        view.setUint32(28, sampleRate * channels * 2, true);
-        view.setUint16(32, channels * 2, true);
-        view.setUint16(34, 16, true);
-        writeString(36, "data");
-        view.setUint32(40, pcmData.length * 2, true);
-
-        // Copy PCM data
-        const int16View = new Int16Array(wavBuffer, 44);
-        int16View.set(pcmData);
-
-        return wavBuffer;
     };
 
     // Clean up audio streaming on unmount or conversation change
@@ -436,6 +444,13 @@ export default function Chat() {
                 }
                 if (controlMessage.error) {
                     console.error("WebSocket error:", controlMessage.error);
+                    return;
+                }
+                if (controlMessage.type === "audio_chunk") {
+                    const chunkId = controlMessage.chunk_id;
+                    // The actual audio data will come in the next binary message
+                    // Store the chunk ID to send acknowledgment after playback
+                    setCurrentAudioChunkId(chunkId);
                     return;
                 }
 
