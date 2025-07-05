@@ -14,9 +14,8 @@ from starlette.authentication import has_required_scope, requires
 from khoj.configure import initialize_content
 from khoj.database import adapters
 from khoj.database.adapters import ConversationAdapters, EntryAdapters, get_user_photo
-from khoj.database.models import KhojUser, SpeechToTextModelOptions
-from khoj.processor.conversation.offline.whisper import transcribe_audio_offline
-from khoj.processor.conversation.openai.whisper import transcribe_audio
+from khoj.database.models import KhojUser
+from khoj.processor.speech.speech_to_text import transcribe_audio_from_data
 from khoj.routers.helpers import (
     ApiUserRateLimiter,
     CommonQueryParams,
@@ -129,8 +128,8 @@ async def transcribe(
     ),
 ):
     user: KhojUser = request.user.object
-    audio_filename = f"{user.uuid}-{str(uuid.uuid4())}.webm"
     user_message: str = None
+    status_code: int = 200
 
     # If the file is too large, return an unprocessable entity error
     if file.size > 10 * 1024 * 1024:
@@ -141,37 +140,19 @@ async def transcribe(
     try:
         # Store the audio from the request in a temporary file
         audio_data = await file.read()
-        with open(audio_filename, "wb") as audio_file_writer:
-            audio_file_writer.write(audio_data)
-        audio_file = open(audio_filename, "rb")
 
-        # Send the audio data to the Whisper API
-        speech_to_text_config = await ConversationAdapters.get_speech_to_text_config()
-        if not speech_to_text_config:
-            # If the user has not configured a speech to text model, return an unsupported on server error
-            status_code = 501
-        elif speech_to_text_config.model_type == SpeechToTextModelOptions.ModelType.OFFLINE:
-            speech2text_model = speech_to_text_config.model_name
-            user_message = await transcribe_audio_offline(audio_filename, speech2text_model)
-        elif speech_to_text_config.model_type == SpeechToTextModelOptions.ModelType.OPENAI:
-            speech2text_model = speech_to_text_config.model_name
-            if speech_to_text_config.ai_model_api:
-                api_key = speech_to_text_config.ai_model_api.api_key
-                api_base_url = speech_to_text_config.ai_model_api.api_base_url
-                openai_client = openai.OpenAI(api_key=api_key, base_url=api_base_url)
-            elif state.openai_client:
-                openai_client = state.openai_client
-            if openai_client:
-                user_message = await transcribe_audio(audio_file, speech2text_model, client=openai_client)
-            else:
-                status_code = 501
-    finally:
-        # Close and Delete the temporary audio file
-        audio_file.close()
-        os.remove(audio_filename)
+        # Use the extracted transcription function
+        user_message = await transcribe_audio_from_data(audio_data, file_extension="webm")
+
+        if user_message is None:
+            status_code = 501  # Service unavailable if transcription fails
+
+    except Exception as e:
+        logger.error(f"Error during transcription: {e}", exc_info=True)
+        status_code = 500
 
     if user_message is None:
-        return Response(status_code=status_code or 500)
+        return Response(status_code=status_code)
 
     update_telemetry_state(
         request=request,
