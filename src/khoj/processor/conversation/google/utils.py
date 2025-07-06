@@ -73,7 +73,11 @@ def _is_retryable_error(exception: BaseException) -> bool:
     if isinstance(exception, gerrors.APIError):
         return exception.code in [429, 502, 503, 504]
     # client errors
-    if isinstance(exception, httpx.TimeoutException) or isinstance(exception, httpx.NetworkError):
+    if (
+        isinstance(exception, httpx.TimeoutException)
+        or isinstance(exception, httpx.NetworkError)
+        or isinstance(exception, httpx.ReadError)
+    ):
         return True
     # validation errors
     if isinstance(exception, ValueError):
