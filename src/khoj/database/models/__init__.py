@@ -14,7 +14,7 @@ from django.dispatch import receiver
 from pgvector.django import VectorField
 from phonenumber_field.modelfields import PhoneNumberField
 from pydantic import BaseModel as PydanticBaseModel
-from pydantic import Field
+from pydantic import Field, model_validator
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +25,19 @@ class Context(PydanticBaseModel):
     file: str
     uri: str
     query: Optional[str] = None
+
+    @model_validator(mode="after")
+    def set_uri_fallback(self):
+        """Set the URI to existing deeplink URI. Fallback to file based URI if unset."""
+        if self.uri and self.uri.strip():
+            self.uri = self.uri
+        elif self.file and (self.file.startswith("http") or self.file.startswith("file://")):
+            self.uri = self.file
+        elif self.file:
+            self.uri = f"file://{self.file}"
+        else:
+            self.uri = None
+        return self
 
 
 class CodeContextFile(PydanticBaseModel):
