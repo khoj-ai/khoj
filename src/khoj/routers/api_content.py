@@ -101,9 +101,9 @@ async def put_content(
     host: Optional[str] = Header(None),
     indexed_data_limiter: ApiIndexedDataLimiter = Depends(
         ApiIndexedDataLimiter(
-            incoming_entries_size_limit=10,
-            subscribed_incoming_entries_size_limit=75,
-            total_entries_size_limit=10,
+            incoming_entries_size_limit=50,
+            subscribed_incoming_entries_size_limit=100,
+            total_entries_size_limit=50,
             subscribed_total_entries_size_limit=500,
         )
     ),
@@ -123,9 +123,9 @@ async def patch_content(
     host: Optional[str] = Header(None),
     indexed_data_limiter: ApiIndexedDataLimiter = Depends(
         ApiIndexedDataLimiter(
-            incoming_entries_size_limit=10,
-            subscribed_incoming_entries_size_limit=75,
-            total_entries_size_limit=10,
+            incoming_entries_size_limit=50,
+            subscribed_incoming_entries_size_limit=100,
+            total_entries_size_limit=50,
             subscribed_total_entries_size_limit=500,
         )
     ),
