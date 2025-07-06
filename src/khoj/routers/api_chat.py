@@ -35,6 +35,7 @@ from khoj.database.adapters import (
 )
 from khoj.database.models import Agent, ChatMessageModel, KhojUser
 from khoj.processor.conversation import prompts
+from khoj.processor.conversation.helpers import agenerate_chat_response
 from khoj.processor.conversation.openai.utils import is_local_api
 from khoj.processor.conversation.prompts import help_message, no_entries_found
 from khoj.processor.conversation.utils import (
@@ -63,7 +64,6 @@ from khoj.routers.helpers import (
     DeleteMessageRequestBody,
     FeedbackData,
     acreate_title_from_history,
-    agenerate_chat_response,
     aget_data_sources_and_output_format,
     construct_automation_created_message,
     create_automation,
