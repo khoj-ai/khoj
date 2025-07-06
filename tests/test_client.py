@@ -457,7 +457,7 @@ def test_user_no_data_returns_empty(client, sample_org_data, api_user3: KhojApiU
 
 @pytest.mark.skipif(os.getenv("OPENAI_API_KEY") is None, reason="requires OPENAI_API_KEY")
 @pytest.mark.django_db(transaction=True)
-async def test_chat_with_unauthenticated_user(chat_client_with_auth, api_user2: KhojApiUser):
+def test_chat_with_unauthenticated_user(chat_client_with_auth, api_user2: KhojApiUser):
     # Arrange
     query = "Hello!"
     headers = {"Authorization": f"Bearer {api_user2.token}"}
@@ -511,7 +511,7 @@ def get_big_size_sample_files_data():
 
 
 def get_medium_size_sample_files_data():
-    big_text = "a" * (10 * 1024 * 1024)  # a string of approximately 10 MB
+    big_text = "a" * (50 * 1024 * 1024)  # a string of approximately 50 MB
     return [
         (
             "files",
