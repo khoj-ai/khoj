@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 class Context(PydanticBaseModel):
     compiled: str
     file: str
-    uri: str
+    uri: Optional[str] = None
     query: Optional[str] = None
 
     @model_validator(mode="after")

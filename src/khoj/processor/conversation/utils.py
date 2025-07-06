@@ -646,7 +646,11 @@ def generate_chatml_messages_with_context(
 
         if not is_none_or_empty(chat.context):
             references = "\n\n".join(
-                {f"# URI: {item.uri}\n## {item.compiled}\n" for item in chat.context or [] if isinstance(item, dict)}
+                {
+                    f"# URI: {item.uri or item.file}\n## {item.compiled}\n"
+                    for item in chat.context or []
+                    if isinstance(item, dict)
+                }
             )
             message_context += [{"type": "text", "text": f"{prompts.notes_conversation.format(references=references)}"}]
 
