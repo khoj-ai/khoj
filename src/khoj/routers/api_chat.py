@@ -22,7 +22,7 @@ from khoj.database.adapters import (
     PublicConversationAdapters,
     aget_user_name,
 )
-from khoj.database.models import Agent, KhojUser
+from khoj.database.models import Agent, ChatMessageModel, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.openai.utils import is_local_api
 from khoj.processor.conversation.prompts import help_message, no_entries_found
@@ -739,6 +739,7 @@ async def chat(
         generated_mermaidjs_diagram: str = None
         generated_asset_results: Dict = dict()
         program_execution_context: List[str] = []
+        chat_history: List[ChatMessageModel] = []
 
         # Create a task to monitor for disconnections
         disconnect_monitor_task = None
