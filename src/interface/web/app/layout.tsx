@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { noto_sans, noto_sans_arabic } from "@/app/fonts";
 import "./globals.css";
+import "./globals-print.css";
 import { ContentSecurityPolicy } from "./common/layoutHelper";
 import { ThemeProvider } from "./components/providers/themeProvider";
 

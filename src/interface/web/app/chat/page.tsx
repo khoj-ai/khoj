@@ -162,7 +162,7 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     />
                 </div>
                 <div
-                    className={`${styles.inputBox} p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-2xl md:rounded-xl h-fit ${chatHistoryCustomClassName} mr-auto ml-auto mt-auto`}
+                    className={`${styles.inputBox} print-hidden p-1 md:px-2 shadow-md bg-background align-middle items-center justify-center dark:bg-neutral-700 dark:border-0 dark:shadow-sm rounded-2xl md:rounded-xl h-fit ${chatHistoryCustomClassName} mr-auto ml-auto mt-auto`}
                 >
                     <ChatInputArea
                         agentColor={agentMetadata?.color}
@@ -180,13 +180,15 @@ function ChatBodyData(props: ChatBodyDataProps) {
                     />
                 </div>
             </div>
-            <ChatSidebar
-                conversationId={conversationId}
-                isActive={props.isActive}
-                isOpen={props.isChatSideBarOpen}
-                onOpenChange={props.setIsChatSideBarOpen}
-                isMobileWidth={props.isMobileWidth}
-            />
+            <div className="print-hidden">
+                <ChatSidebar
+                    conversationId={conversationId}
+                    isActive={props.isActive}
+                    isOpen={props.isChatSideBarOpen}
+                    onOpenChange={props.setIsChatSideBarOpen}
+                    isMobileWidth={props.isMobileWidth}
+                />
+            </div>
         </div>
     );
 }
@@ -458,9 +460,11 @@ export default function Chat() {
 
     return (
         <SidebarProvider>
-            <AppSidebar conversationId={conversationId || ""} />
+            <div className="print-hidden">
+                <AppSidebar conversationId={conversationId || ""} />
+            </div>
             <SidebarInset>
-                <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+                <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 print-hidden">
                     <SidebarTrigger className="-ml-1" />
                     <Separator orientation="vertical" className="mr-2 h-4" />
                     {conversationId && (
@@ -493,7 +497,7 @@ export default function Chat() {
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-12 w-12 data-[state=open]:bg-accent"
+                            className="h-12 w-12 data-[state=open]:bg-accent print-hidden"
                             onClick={() => setIsChatSideBarOpen(!isChatSideBarOpen)}
                         >
                             <Joystick className="w-6 h-6" />

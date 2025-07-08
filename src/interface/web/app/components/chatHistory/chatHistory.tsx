@@ -24,6 +24,7 @@ import { AgentData } from "@/app/components/agentCard/agentCard";
 import React from "react";
 import { useIsMobileWidth } from "@/app/common/utils";
 import { Button } from "@/components/ui/button";
+import { KhojLogo } from "../logo/khojLogo";
 
 interface ChatResponse {
     status: string;
@@ -536,6 +537,27 @@ export default function ChatHistory(props: ChatHistoryProps) {
             ref={scrollAreaRef}
         >
             <div ref={scrollableContentWrapperRef}>
+                {/* Print-only header with conversation info */}
+                <div className="print-only-header">
+                    <div className="print-header-content">
+                        <div className="print-header-left">
+                            <KhojLogo className="print-logo" />
+                        </div>
+                        <div className="print-header-right">
+                            <h1>{data?.slug || "Conversation with Khoj"}</h1>
+                            <div className="conversation-meta">
+                                <p>
+                                    <strong>Agent:</strong> {constructAgentName()}
+                                </p>
+                                <p>
+                                    <strong>Printed On:</strong> {new Date().toLocaleDateString()}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <hr />
+                </div>
+
                 <div className={`${styles.chatHistory} ${props.customClassName}`}>
                     <div ref={sentinelRef} style={{ height: "1px" }}>
                         {fetchingData && <InlineLoading className="opacity-50" />}

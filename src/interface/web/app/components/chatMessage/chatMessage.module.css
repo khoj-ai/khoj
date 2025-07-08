@@ -198,3 +198,109 @@ div.trainOfThoughtElement ul {
         height: auto;
     }
 }
+
+/* Print-specific styles for chat messages */
+@media print {
+    div.chatMessageContainer {
+        background: transparent !important;
+        border: 1px solid #ccc !important;
+        border-radius: 8px !important;
+        margin: 0.5rem 0 !important;
+        padding: 0.5rem !important;
+        page-break-inside: avoid;
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    div.chatMessageWrapper {
+        padding-left: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    div.you {
+        background-color: #f5f5f5 !important;
+        color: #000 !important;
+        width: 100% !important;
+        max-width: none !important;
+        align-self: stretch !important;
+    }
+
+    div.khoj {
+        background-color: transparent !important;
+        color: #000 !important;
+        width: 100% !important;
+        max-width: none !important;
+        align-self: stretch !important;
+    }
+
+    div.youfullHistory,
+    div.khojfullHistory {
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    div.author {
+        color: #666 !important;
+        font-size: 0.7rem !important;
+    }
+
+    /* Hide interactive elements */
+    div.chatFooter,
+    div.chatButtons,
+    button.codeCopyButton,
+    button.copyButton,
+    button.retryButton,
+    div.feedbackButtons {
+        display: none !important;
+    }
+
+    /* Image styling for print */
+    div.imagesContainer {
+        display: block !important;
+        overflow: visible !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    div.imageWrapper {
+        margin-right: 0 !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    div.imageWrapper img,
+    div.khoj div.imageWrapper img {
+        width: auto !important;
+        height: auto !important;
+        max-width: 100% !important;
+        max-height: 4in !important;
+        object-fit: contain !important;
+        page-break-inside: avoid;
+    }
+
+    /* Train of thought styling for print */
+    div.trainOfThought {
+        border-left: 2px solid #ccc !important;
+        margin: 0.5rem 0 !important;
+        padding: 0.5rem !important;
+        font-size: 0.9em !important;
+        color: #666 !important;
+    }
+
+    div.trainOfThought strong {
+        color: #000 !important;
+    }
+
+    div.trainOfThought.primary {
+        border-left-color: #000 !important;
+    }
+
+    div.trainOfThought.primary strong {
+        color: #000 !important;
+    }
+
+    div.trainOfThoughtElement {
+        display: block !important;
+        margin-bottom: 0.5rem !important;
+    }
+}
