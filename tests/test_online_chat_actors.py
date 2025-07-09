@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 import freezegun
@@ -20,7 +21,7 @@ from tests.helpers import generate_chat_history, get_chat_api_key
 
 # Initialize variables for tests
 api_key = get_chat_api_key()
-if api_key is None:
+if api_key is None or not os.getenv("KHOJ_TEST_CHAT_PROVIDER"):
     pytest.skip(
         reason="Set OPENAI_API_KEY, GEMINI_API_KEY or ANTHROPIC_API_KEY environment variable to run tests below.",
         allow_module_level=True,

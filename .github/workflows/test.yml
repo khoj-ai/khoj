@@ -92,5 +92,6 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: postgres
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: pytest
         timeout-minutes: 10
