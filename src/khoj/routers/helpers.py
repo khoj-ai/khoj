@@ -2174,7 +2174,7 @@ def scheduled_chat(
     scheduling_request: str,
     subject: str,
     user: KhojUser,
-    calling_url: str,
+    calling_url: str | URL,
     job_id: str = None,
     conversation_id: str = None,
 ):
@@ -2194,8 +2194,8 @@ def scheduled_chat(
                 return
 
     # Extract relevant params from the original URL
-    parsed_url = urlparse(calling_url)
-    scheme = parsed_url.scheme
+    parsed_url = URL(calling_url) if isinstance(calling_url, str) else calling_url
+    scheme = "http" if not parsed_url.is_secure else "https"
     query_dict = parse_qs(parsed_url.query)
 
     # Pop the stream value from query_dict if it exists
