@@ -148,7 +148,7 @@ async def search_online(
     for subquery in response_dict:
         if "answerBox" in response_dict[subquery]:
             continue
-        for idx, organic in enumerate(response_dict[subquery].get("organic", [])):
+        for idx, organic in enumerate(response_dict[subquery].get("organic") or []):
             link = organic.get("link")
             if link in webpages and idx < max_webpages_to_read:
                 webpages[link]["queries"].add(subquery)
