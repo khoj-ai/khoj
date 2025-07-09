@@ -619,13 +619,13 @@ def schedule_query(
 
     # Validate that the response is a non-empty, JSON-serializable list
     try:
-        raw_response = raw_response.strip()
-        response: Dict[str, str] = json.loads(clean_json(raw_response))
+        raw_response_text = raw_response.text
+        response: Dict[str, str] = json.loads(clean_json(raw_response_text))
         if not response or not isinstance(response, Dict) or len(response) != 3:
             raise AssertionError(f"Invalid response for scheduling query : {response}")
         return response.get("crontime"), response.get("query"), response.get("subject")
     except Exception:
-        raise AssertionError(f"Invalid response for scheduling query: {raw_response}")
+        raise AssertionError(f"Invalid response for scheduling query: {raw_response.text}")
 
 
 async def aschedule_query(
@@ -2130,7 +2130,8 @@ def format_automation_response(scheduling_request: str, executed_query: str, ai_
     )
 
     with timer("Chat actor: Format automation response", logger):
-        return send_message_to_model_wrapper_sync(automation_format_prompt, user=user)
+        raw_response = send_message_to_model_wrapper_sync(automation_format_prompt, user=user)
+        return raw_response.text if raw_response else None
 
 
 def should_notify(original_query: str, executed_query: str, ai_response: str, user: KhojUser) -> bool:
@@ -2150,8 +2151,10 @@ def should_notify(original_query: str, executed_query: str, ai_response: str, us
     with timer("Chat actor: Decide to notify user of automation response", logger):
         try:
             # TODO Replace with async call so we don't have to maintain a sync version
-            raw_response = send_message_to_model_wrapper_sync(to_notify_or_not, user=user, response_type="json_object")
-            response = json.loads(clean_json(raw_response))
+            raw_response: ResponseWithThought = send_message_to_model_wrapper_sync(
+                to_notify_or_not, user=user, response_type="json_object"
+            )
+            response = json.loads(clean_json(raw_response.text))
             should_notify_result = response["decision"] == "Yes"
             reason = response.get("reason", "unknown")
             logger.info(
@@ -2171,7 +2174,7 @@ def scheduled_chat(
     scheduling_request: str,
     subject: str,
     user: KhojUser,
-    calling_url: URL,
+    calling_url: str,
     job_id: str = None,
     conversation_id: str = None,
 ):
@@ -2191,8 +2194,9 @@ def scheduled_chat(
                 return
 
     # Extract relevant params from the original URL
-    scheme = "http" if not calling_url.is_secure else "https"
-    query_dict = parse_qs(calling_url.query)
+    parsed_url = urlparse(calling_url)
+    scheme = parsed_url.scheme
+    query_dict = parse_qs(parsed_url.query)
 
     # Pop the stream value from query_dict if it exists
     query_dict.pop("stream", None)
@@ -2214,7 +2218,7 @@ def scheduled_chat(
     json_payload = {key: values[0] for key, values in query_dict.items()}
 
     # Construct the URL to call the chat API with the scheduled query string
-    url = f"{scheme}://{calling_url.netloc}/api/chat?client=khoj"
+    url = f"{scheme}://{parsed_url.netloc}/api/chat?client=khoj"
 
     # Construct the Headers for the chat API
     headers = {"User-Agent": "Khoj", "Content-Type": "application/json"}

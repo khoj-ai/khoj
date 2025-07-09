@@ -102,7 +102,7 @@ def post_automation(
     # Schedule automation with query_to_run, timezone, subject directly provided by user
     try:
         # Use the query to run as the scheduling request if the scheduling request is unset
-        calling_url = request.url.replace(query=f"{request.url.query}")
+        calling_url = str(request.url.replace(query=f"{request.url.query}"))
         automation = schedule_automation(
             query_to_run, subject, crontime, timezone, q, user, calling_url, str(conversation.id)
         )
@@ -224,7 +224,7 @@ def edit_job(
             "subject": subject,
             "scheduling_request": q,
             "user": user,
-            "calling_url": request.url,
+            "calling_url": str(request.url),
             "conversation_id": conversation_id,
         },
     )
