@@ -703,8 +703,7 @@ class AgentAdapters:
         if agent.creator != user:
             return False
 
-        async for entry in Entry.objects.filter(agent=agent).aiterator():
-            await entry.adelete()
+        await Entry.objects.filter(agent=agent).adelete()
 
         if agent:
             await agent.adelete()
