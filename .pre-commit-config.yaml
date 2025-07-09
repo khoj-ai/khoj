@@ -12,7 +12,7 @@ repos:
     # Exclude elisp files to not clear page breaks
     exclude: \.el$
   - id: check-json
-    exclude: (devcontainer\.json|launch\.json)$
+    exclude: (devcontainer\.json|launch\.json|settings\.json)$
   - id: check-toml
   - id: check-yaml
 
