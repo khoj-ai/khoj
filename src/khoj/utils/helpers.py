@@ -450,9 +450,6 @@ command_descriptions = {
     ConversationCommand.Diagram: "Draw a flowchart, diagram, or any other visual representation best expressed with primitives like lines, rectangles, and text.",
     ConversationCommand.Research: "Do deep research on a topic. This will take longer than usual, but give a more detailed, comprehensive answer.",
     ConversationCommand.Operator: "Operate and perform tasks using a computer.",
-    ConversationCommand.ViewFile: "View the contents of a file with optional line range specification.",
-    ConversationCommand.ListFiles: "List files under a given path with optional glob pattern.",
-    ConversationCommand.RegexSearchFiles: "Search for lines in files matching regex pattern with an optional path prefix.",
 }
 
 command_descriptions_for_agent = {
