@@ -549,9 +549,6 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                 <p>
                                     <strong>Agent:</strong> {constructAgentName()}
                                 </p>
-                                <p>
-                                    <strong>Printed On:</strong> {new Date().toLocaleDateString()}
-                                </p>
                             </div>
                         </div>
                     </div>

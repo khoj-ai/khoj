@@ -713,6 +713,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             className={constructClasses(props.chatMessage)}
             onMouseLeave={(event) => setIsHovering(false)}
             onMouseEnter={(event) => setIsHovering(true)}
+            data-created={formatDate(props.chatMessage.created)}
         >
             <div className={chatMessageWrapperClasses(props.chatMessage)}>
                 {props.chatMessage.queryFiles && props.chatMessage.queryFiles.length > 0 && (
