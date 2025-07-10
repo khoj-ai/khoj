@@ -784,31 +784,8 @@ async def event_generator(
                 await asyncio.sleep(1)
 
             logger.debug(f"WebSocket disconnected. User {user} from {common.client} client.")
-            cancellation_event.set()
-            if conversation:
-                await asyncio.shield(
-                    save_to_conversation_log(
-                        q,
-                        chat_response="",
-                        user=user,
-                        compiled_references=compiled_references,
-                        online_results=online_results,
-                        code_results=code_results,
-                        operator_results=operator_results,
-                        research_results=research_results,
-                        inferred_queries=inferred_queries,
-                        client_application=user_scope.client_app,
-                        conversation_id=conversation_id,
-                        query_images=uploaded_images,
-                        train_of_thought=train_of_thought,
-                        raw_query_files=raw_query_files,
-                        generated_images=generated_images,
-                        raw_generated_files=generated_asset_results,
-                        generated_mermaidjs_diagram=generated_mermaidjs_diagram,
-                        user_message_time=user_message_time,
-                        tracer=tracer,
-                    )
-                )
+            # Don't set cancellation_event - let the task continue processing
+            # Only log the disconnect, the task will complete naturally
 
     # Cancel the disconnect monitor task if it is still running
     async def cancel_disconnect_monitor():
@@ -1536,8 +1513,7 @@ async def chat_ws(
 
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected for user {websocket.scope['user'].object.id}")
-        if current_task and not current_task.done():
-            current_task.cancel()
+        # Don't cancel the task - let it continue processing even after disconnect
     except Exception as e:
         logger.error(f"Error in websocket chat: {e}", exc_info=True)
         if current_task and not current_task.done():
@@ -1552,6 +1528,7 @@ async def process_chat_request(
     interrupt_queue: asyncio.Queue,
 ):
     """Process a single chat request with interrupt support"""
+    is_connected = True
     try:
         # Since we are using websockets, we can ignore the stream parameter and always stream
         response_iterator = event_generator(
@@ -1563,13 +1540,26 @@ async def process_chat_request(
             interrupt_queue,
         )
         async for event in response_iterator:
-            await websocket.send_text(event)
+            if is_connected:
+                try:
+                    await websocket.send_text(event)
+                except Exception as e:
+                    is_connected = False
+                    logger.info(
+                        f"Client disconnected while sending event: {e}. Finishing processing in the background."
+                    )
     except asyncio.CancelledError:
         logger.debug(f"Chat request cancelled for user {websocket.scope['user'].object.id}")
         raise
     except Exception as e:
         logger.error(f"Error processing chat request: {e}", exc_info=True)
-        await websocket.send_text(json.dumps({"error": "Internal server error"}))
+        if is_connected:
+            try:
+                await websocket.close(code=1011, reason="Internal Server Error")
+            except WebSocketDisconnect:
+                logger.info(f"WebSocket already disconnected for user {websocket.scope['user'].object.id}")
+            except Exception as close_error:
+                logger.error(f"Error closing websocket: {close_error}", exc_info=True)
         raise
 
 
