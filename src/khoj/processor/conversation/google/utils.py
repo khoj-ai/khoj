@@ -4,7 +4,7 @@ import os
 import random
 from copy import deepcopy
 from time import perf_counter
-from typing import AsyncGenerator, AsyncIterator, Dict, List
+from typing import Any, AsyncGenerator, AsyncIterator, Dict, List
 
 import httpx
 from google import genai
@@ -456,13 +456,31 @@ def is_reasoning_model(model_name: str) -> bool:
 
 def to_gemini_tools(tools: List[ToolDefinition]) -> List[gtypes.ToolDict] | None:
     "Transform tool definitions from standard format to Gemini format."
+
+    def clean_schema(schema: Dict[str, Any]) -> Dict[str, Any]:
+        """Remove additionalProperties from schema as Gemini doesn't accept it."""
+        if not isinstance(schema, dict):
+            return schema
+
+        cleaned: Dict[str, Any] = {}
+        for key, value in schema.items():
+            if key == "additionalProperties":
+                continue
+            if isinstance(value, dict):
+                cleaned[key] = clean_schema(value)
+            elif isinstance(value, list):
+                cleaned[key] = [clean_schema(item) if isinstance(item, dict) else item for item in value]
+            else:
+                cleaned[key] = value
+        return cleaned
+
     gemini_tools = [
         gtypes.ToolDict(
             function_declarations=[
                 gtypes.FunctionDeclarationDict(
                     name=tool.name,
                     description=tool.description,
-                    parameters=tool.schema,
+                    parameters=clean_schema(tool.schema),
                 )
                 for tool in tools
             ]

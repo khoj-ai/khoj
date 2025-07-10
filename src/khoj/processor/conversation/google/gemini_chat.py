@@ -41,7 +41,7 @@ def gemini_send_message_to_model(
     if tools:
         model_kwargs["tools"] = tools
     # Monitor for flakiness in 1.5+ models. This would cause unwanted behavior and terminate response early in 1.5 models.
-    elif response_type == "json_object" and not model.startswith("gemini-1.5"):
+    elif response_type == "json_object":
         model_kwargs["response_mime_type"] = "application/json"
         if response_schema:
             model_kwargs["response_schema"] = response_schema
