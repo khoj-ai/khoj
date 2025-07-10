@@ -99,7 +99,7 @@ def gemini_completion_with_backoff(
     messages: list[ChatMessage],
     system_prompt: str,
     model_name: str,
-    temperature=1.2,
+    temperature=1.0,
     api_key=None,
     api_base_url: str = None,
     model_kwargs={},
