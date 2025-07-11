@@ -380,7 +380,7 @@ def format_messages_for_gemini(
             messages.remove(message)
     system_prompt = None if is_none_or_empty(system_prompt) else system_prompt
 
-    for message in messages:
+    for message in reversed(messages):  # Process in reverse to not mess up iterator when drop invalid messages
         if message.role == "assistant":
             message.role = "model"
 

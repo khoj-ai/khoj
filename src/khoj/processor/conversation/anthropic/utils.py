@@ -299,7 +299,7 @@ def format_messages_for_anthropic(raw_messages: list[ChatMessage], system_prompt
     if len(messages) == 1 and message_type != "tool_call":
         messages[0].role = "user"
 
-    for message in messages:
+    for message in reversed(messages):  # Process in reverse to not mess up iterator when drop invalid messages
         # Handle tool call and tool result message types from additional_kwargs
         message_type = message.additional_kwargs.get("message_type")
         if message_type == "tool_call":

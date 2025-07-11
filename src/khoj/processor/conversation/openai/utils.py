@@ -359,12 +359,13 @@ def get_structured_output_support(model_name: str, api_base_url: str = None) -> 
     return StructuredOutputSupport.TOOL
 
 
-def format_message_for_api(messages: List[ChatMessage], api_base_url: str) -> List[dict]:
+def format_message_for_api(raw_messages: List[ChatMessage], api_base_url: str) -> List[dict]:
     """
     Format messages to send to chat model served over OpenAI (compatible) API.
     """
     formatted_messages = []
-    for message in deepcopy(messages):
+    messages = deepcopy(raw_messages)
+    for message in reversed(messages):  # Process in reverse to not mess up iterator when drop invalid messages
         # Handle tool call and tool result message types
         message_type = message.additional_kwargs.get("message_type")
         if message_type == "tool_call":
@@ -425,6 +426,21 @@ def format_message_for_api(messages: List[ChatMessage], api_base_url: str) -> Li
                     message.content += [{"type": "text", "text": assistant_texts_str}]
                 else:
                     message.content = assistant_texts_str
+        elif isinstance(message.content, list):
+            # Drop invalid content parts
+            for part in reversed(message.content):
+                if part["type"] == "text" and not part.get("text"):
+                    message.content.remove(part)
+                elif part["type"] == "image_url" and not part.get("image_url"):
+                    message.content.remove(part)
+            # If no valid content parts left, remove the message
+            if is_none_or_empty(message.content):
+                messages.remove(message)
+                continue
+        elif isinstance(message.content, str) and not message.content.strip():
+            # If content is empty string, remove the message
+            messages.remove(message)
+            continue
         formatted_messages.append({"role": message.role, "content": message.content})
 
     return formatted_messages
