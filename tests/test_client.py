@@ -13,7 +13,6 @@ from khoj.database.models import KhojApiUser, KhojUser
 from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
 from khoj.search_type import text_search
 from khoj.utils import state
-from khoj.utils.rawconfig import ContentConfig, SearchConfig
 
 
 # Test
@@ -296,7 +295,7 @@ def test_get_configured_types_with_no_content_config(fastapi_app: FastAPI):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_notes_search(client, search_config: SearchConfig, sample_org_data, default_user: KhojUser):
+def test_notes_search(client, search_config, sample_org_data, default_user: KhojUser):
     # Arrange
     headers = {"Authorization": "Bearer kk-secret"}
     text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)
@@ -315,7 +314,7 @@ def test_notes_search(client, search_config: SearchConfig, sample_org_data, defa
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_notes_search_no_results(client, search_config: SearchConfig, sample_org_data, default_user: KhojUser):
+def test_notes_search_no_results(client, search_config, sample_org_data, default_user: KhojUser):
     # Arrange
     headers = {"Authorization": "Bearer kk-secret"}
     text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)
@@ -331,9 +330,7 @@ def test_notes_search_no_results(client, search_config: SearchConfig, sample_org
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_notes_search_with_only_filters(
-    client, content_config: ContentConfig, search_config: SearchConfig, sample_org_data, default_user: KhojUser
-):
+def test_notes_search_with_only_filters(client, sample_org_data, default_user: KhojUser):
     # Arrange
     headers = {"Authorization": "Bearer kk-secret"}
     text_search.setup(
@@ -397,9 +394,7 @@ def test_notes_search_with_exclude_filter(client, sample_org_data, default_user:
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db(transaction=True)
-def test_notes_search_requires_parent_context(
-    client, search_config: SearchConfig, sample_org_data, default_user: KhojUser
-):
+def test_notes_search_requires_parent_context(client, search_config, sample_org_data, default_user: KhojUser):
     # Arrange
     headers = {"Authorization": "Bearer kk-secret"}
     text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)

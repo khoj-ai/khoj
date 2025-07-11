@@ -1,3 +1,5 @@
+import glob
+import logging
 import os
 from datetime import datetime
 
@@ -17,6 +19,9 @@ from khoj.database.models import (
     UserConversationConfig,
 )
 from khoj.processor.conversation.utils import message_to_log
+from khoj.utils.helpers import get_absolute_path, is_none_or_empty
+
+logger = logging.getLogger(__name__)
 
 
 def get_chat_provider(default: ChatModel.ModelType | None = ChatModel.ModelType.GOOGLE):
@@ -59,6 +64,140 @@ def generate_chat_history(message_list):
             chat_history=chat_history,
         )
     return chat_history
+
+
+def get_sample_data(type):
+    sample_data = {
+        "org": {
+            "elisp.org": """
+* Emacs Khoj
+  /An Emacs interface for [[https://github.com/khoj-ai/khoj][khoj]]/
+
+** Requirements
+   - Install and Run [[https://github.com/khoj-ai/khoj][khoj]]
+
+** Installation
+*** Direct
+     - Put ~khoj.el~ in your Emacs load path. For e.g. ~/.emacs.d/lisp
+     - Load via ~use-package~ in your ~/.emacs.d/init.el or .emacs file by adding below snippet
+       #+begin_src elisp
+         ;; Khoj Package
+         (use-package khoj
+           :load-path "~/.emacs.d/lisp/khoj.el"
+           :bind ("C-c s" . 'khoj))
+       #+end_src
+
+*** Using [[https://github.com/quelpa/quelpa#installation][Quelpa]]
+     - Ensure [[https://github.com/quelpa/quelpa#installation][Quelpa]], [[https://github.com/quelpa/quelpa-use-package#installation][quelpa-use-package]] are installed
+     - Add below snippet to your ~/.emacs.d/init.el or .emacs config file and execute it.
+       #+begin_src elisp
+         ;; Khoj Package
+         (use-package khoj
+           :quelpa (khoj :fetcher url :url "https://raw.githubusercontent.com/khoj-ai/khoj/master/interface/emacs/khoj.el")
+           :bind ("C-c s" . 'khoj))
+       #+end_src
+
+** Usage
+   1. Call ~khoj~ using keybinding ~C-c s~ or ~M-x khoj~
+   2. Enter Query in Natural Language
+      e.g. "What is the meaning of life?" "What are my life goals?"
+   3. Wait for results
+      *Note: It takes about 15s on a Mac M1 and a ~100K lines corpus of org-mode files*
+   4. (Optional) Narrow down results further
+      Include/Exclude specific words from results by adding to query
+      e.g. "What is the meaning of life? -god +none"
+
+""",
+            "readme.org": """
+* Khoj
+  /Allow natural language search on user content like notes, images using transformer based models/
+
+  All data is processed locally. User can interface with khoj app via [[./interface/emacs/khoj.el][Emacs]], API or Commandline
+
+** Dependencies
+   - Python3
+   - [[https://docs.conda.io/en/latest/miniconda.html#latest-miniconda-installer-links][Miniconda]]
+
+** Install
+   #+begin_src shell
+   git clone https://github.com/khoj-ai/khoj && cd khoj
+   conda env create -f environment.yml
+   conda activate khoj
+   #+end_src""",
+        },
+        "markdown": {
+            "readme.markdown": """
+# Khoj
+Allow natural language search on user content like notes, images using transformer based models
+
+All data is processed locally. User can interface with khoj app via [Emacs](./interface/emacs/khoj.el), API or Commandline
+
+## Dependencies
+- Python3
+- [Miniconda](https://docs.conda.io/en/latest/miniconda.html#latest-miniconda-installer-links)
+
+## Install
+```shell
+git clone
+conda env create -f environment.yml
+conda activate khoj
+```
+"""
+        },
+        "plaintext": {
+            "readme.txt": """
+Khoj
+Allow natural language search on user content like notes, images using transformer based models
+
+All data is processed locally. User can interface with khoj app via Emacs, API or Commandline
+
+Dependencies
+- Python3
+- Miniconda
+
+Install
+git clone
+conda env create -f environment.yml
+conda activate khoj
+"""
+        },
+    }
+
+    return sample_data[type]
+
+
+def get_index_files(
+    input_files: list[str] = None, input_filters: list[str] | None = ["tests/data/org/*.org"]
+) -> dict[str, str]:
+    # Input Validation
+    if is_none_or_empty(input_files) and is_none_or_empty(input_filters):
+        logger.debug("At least one of input_files or input_filter is required to be specified")
+        return {}
+
+    # Get files to process
+    absolute_files, filtered_files = set(), set()
+    if input_files:
+        absolute_files = {get_absolute_path(input_file) for input_file in input_files}
+    if input_filters:
+        filtered_files = {
+            filtered_file
+            for file_filter in input_filters
+            for filtered_file in glob.glob(get_absolute_path(file_filter), recursive=True)
+            if os.path.isfile(filtered_file)
+        }
+
+    all_files = sorted(absolute_files | filtered_files)
+
+    filename_to_content_map = {}
+    for file in all_files:
+        with open(file, "r", encoding="utf8") as f:
+            try:
+                filename_to_content_map[file] = f.read()
+            except Exception as e:
+                logger.warning(f"Unable to read file: {file}. Skipping file.")
+                logger.warning(e, exc_info=True)
+
+    return filename_to_content_map
 
 
 class UserFactory(factory.django.DjangoModelFactory):

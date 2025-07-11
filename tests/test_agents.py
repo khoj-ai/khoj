@@ -15,7 +15,7 @@ from tests.helpers import ChatModelFactory
 def test_create_default_agent(default_user: KhojUser):
     ChatModelFactory()
 
-    agent = AgentAdapters.create_default_agent(default_user)
+    agent = AgentAdapters.create_default_agent()
     assert agent is not None
     assert agent.input_tools == []
     assert agent.output_modes == []
