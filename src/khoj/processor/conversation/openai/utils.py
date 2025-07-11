@@ -443,7 +443,7 @@ def format_message_for_api(raw_messages: List[ChatMessage], api_base_url: str) -
             continue
         formatted_messages.append({"role": message.role, "content": message.content})
 
-    return formatted_messages
+    return list(reversed(formatted_messages))
 
 
 def is_openai_api(api_base_url: str = None) -> bool:
