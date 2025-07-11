@@ -412,9 +412,9 @@ def format_messages_for_gemini(
                 elif not is_none_or_empty(item.get("text")):
                     message_content += [gtypes.Part.from_text(text=item["text"])]
                 else:
-                    logger.error(f"Dropping invalid message content part: {item}")
+                    logger.warning(f"Dropping invalid message content part: {item}")
             if not message_content:
-                logger.error(f"Dropping message with empty content as not supported:\n{message}")
+                logger.warning(f"Dropping message with empty content as not supported:\n{message}")
                 messages.remove(message)
                 continue
             message.content = message_content
