@@ -372,6 +372,10 @@ def format_message_for_api(raw_messages: List[ChatMessage], api_base_url: str) -
             # Convert tool_call to OpenAI function call format
             content = []
             for part in message.content:
+                # Skip tool calls without valid IDs as OpenAI API requires string IDs
+                if not part.get("id"):
+                    logger.warning(f"Dropping tool call without valid ID: {part.get('name')}")
+                    continue
                 content.append(
                     {
                         "type": "function",
@@ -382,22 +386,31 @@ def format_message_for_api(raw_messages: List[ChatMessage], api_base_url: str) -
                         },
                     }
                 )
-            formatted_messages.append(
-                {
-                    "role": "assistant",
-                    "content": None,
-                    "tool_calls": content,
-                }
-            )
+            # Only add the message if there are valid tool calls
+            if content:
+                formatted_messages.append(
+                    {
+                        "role": "assistant",
+                        "content": None,
+                        "tool_calls": content,
+                    }
+                )
+            else:
+                logger.warning("Dropping tool call message with no valid tool calls")
             continue
         if message_type == "tool_result":
             # Convert tool_result to OpenAI tool result format
             # Each part is a result for a tool call
             for part in message.content:
+                tool_call_id = part.get("id") or part.get("tool_use_id")
+                # Skip tool results without valid tool_call_id as OpenAI API requires string IDs
+                if not tool_call_id:
+                    logger.warning(f"Dropping tool result without valid tool_call_id: {part.get('name')}")
+                    continue
                 formatted_messages.append(
                     {
                         "role": "tool",
-                        "tool_call_id": part.get("id") or part.get("tool_use_id"),
+                        "tool_call_id": tool_call_id,
                         "name": part.get("name"),
                         "content": part.get("content"),
                     }

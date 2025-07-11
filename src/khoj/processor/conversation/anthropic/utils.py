@@ -308,6 +308,10 @@ def format_messages_for_anthropic(raw_messages: list[ChatMessage], system_prompt
             # Convert tool_result to Anthropic tool_result format
             content = []
             for part in message.content:
+                # Skip tool results without valid tool_use_id as Anthropic API requires string IDs
+                if not part.get("id"):
+                    logger.warning(f"Dropping tool result without valid tool_use_id: {part.get('name')}")
+                    continue
                 content.append(
                     {
                         "type": "tool_result",
