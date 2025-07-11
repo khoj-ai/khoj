@@ -491,8 +491,9 @@ async def save_to_conversation_log(
         updated_conversation = None
         logger.error(f"Error constructing chat history: {e}")
 
+    db_conversation = None
     if updated_conversation:
-        await ConversationAdapters.save_conversation(
+        db_conversation = await ConversationAdapters.save_conversation(
             user,
             updated_conversation,
             client_application=client_application,
@@ -505,7 +506,7 @@ async def save_to_conversation_log(
 
     logger.info(
         f"""
-Saved Conversation Turn
+Saved Conversation Turn ({db_conversation.id if db_conversation else 'N/A'}):
 You ({user.username}): "{q}"
 
 Khoj: "{chat_response}"

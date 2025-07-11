@@ -1488,9 +1488,10 @@ class ConversationAdapters:
             conversation.updated_at = django_timezone.now()
             await conversation.asave()
         else:
-            await Conversation.objects.acreate(
+            conversation = await Conversation.objects.acreate(
                 user=user, conversation_log=cleaned_conversation_log, client=client_application, slug=slug
             )
+        return conversation
 
     @staticmethod
     def get_conversation_processor_options():
