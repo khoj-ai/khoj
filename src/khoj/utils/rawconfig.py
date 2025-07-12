@@ -168,7 +168,6 @@ class ChatRequestBody(BaseModel):
     images: Optional[list[str]] = None
     files: Optional[list[FileAttachment]] = []
     create_new: Optional[bool] = False
-    interrupt: Optional[bool] = False
 
 
 class Entry:

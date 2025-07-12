@@ -7,6 +7,7 @@ from typing import Callable, List, Optional
 from khoj.database.adapters import AgentAdapters, ConversationAdapters
 from khoj.database.models import Agent, ChatMessageModel, ChatModel, KhojUser
 from khoj.processor.conversation.utils import (
+    AgentMessage,
     OperatorRun,
     construct_chat_history_for_operator,
 )
@@ -22,7 +23,7 @@ from khoj.processor.operator.operator_environment_base import (
 )
 from khoj.processor.operator.operator_environment_browser import BrowserEnvironment
 from khoj.processor.operator.operator_environment_computer import ComputerEnvironment
-from khoj.routers.helpers import ChatEvent
+from khoj.routers.helpers import ChatEvent, get_message_from_queue
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import LocationData
 
@@ -42,6 +43,7 @@ async def operate_environment(
     agent: Agent = None,
     query_files: str = None,  # TODO: Handle query files
     cancellation_event: Optional[asyncio.Event] = None,
+    interrupt_queue: Optional[asyncio.Queue] = None,
     tracer: dict = {},
 ):
     response, user_input_message = None, None
@@ -139,6 +141,14 @@ async def operate_environment(
                 if cancellation_event and cancellation_event.is_set():
                     logger.debug(f"{environment_type.value} operator cancelled by client disconnect")
                     break
+
+                # Add interrupt query to current operator run
+                if interrupt_query := get_message_from_queue(interrupt_queue):
+                    # Add the interrupt query as a new user message to the research conversation history
+                    logger.info(f"Continuing operator run with the new instruction: {interrupt_query}")
+                    operator_agent.messages.append(AgentMessage(role="user", content=interrupt_query))
+                    async for result in send_status_func(f"**Incorporate New Instruction**: {interrupt_query}"):
+                        yield result
 
                 iterations += 1
 
