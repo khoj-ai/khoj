@@ -19,7 +19,7 @@ from tenacity import (
     wait_random_exponential,
 )
 
-from khoj.database.adapters import FileObjectAdapters
+from khoj.database.adapters import AgentAdapters, FileObjectAdapters
 from khoj.database.models import Agent, ChatMessageModel, FileObject, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.utils import (
@@ -152,12 +152,15 @@ async def generate_python_code(
         personality_context=personality_context,
     )
 
+    agent_chat_model = AgentAdapters.get_agent_chat_model(agent, user) if agent else None
+
     response = await send_message_to_model_wrapper(
         code_generation_prompt,
         query_images=query_images,
-        user=user,
-        tracer=tracer,
         query_files=query_files,
+        user=user,
+        agent_chat_model=agent_chat_model,
+        tracer=tracer,
     )
 
     # Extract python code wrapped in markdown code blocks from the response
