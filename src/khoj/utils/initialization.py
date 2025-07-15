@@ -235,6 +235,7 @@ def initialization(interactive: bool = True):
 
             chat_model_options = {
                 "name": chat_model,
+                "friendly_name": chat_model,
                 "model_type": model_type,
                 "max_prompt_size": default_max_tokens,
                 "vision_enabled": vision_enabled,
@@ -275,6 +276,7 @@ def initialization(interactive: bool = True):
                         if not existing_models.filter(name=model_name).exists():
                             ChatModel.objects.create(
                                 name=model_name,
+                                friendly_name=model_name,
                                 model_type=ChatModel.ModelType.OPENAI,
                                 max_prompt_size=model_to_prompt_size.get(model_name),
                                 vision_enabled=model_name in default_openai_chat_models,

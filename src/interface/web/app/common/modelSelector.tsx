@@ -92,7 +92,7 @@ export function ModelSelector({ ...props }: ModelSelectorProps) {
                         disabled={props.disabled ?? false}
                     >
                         <p className="truncate">
-                            {selectedModel ? selectedModel.name.substring(0, 20) : "Select a model..."}
+                            {selectedModel ? selectedModel.name?.substring(0, 20) : "Select a model..."}
                         </p>
                         <CaretUpDown className="opacity-50" />
                     </Button>
