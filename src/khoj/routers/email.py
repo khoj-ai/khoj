@@ -44,7 +44,7 @@ async def send_magic_link_email(email, unique_id, host):
         {
             "sender": os.environ.get("RESEND_EMAIL", "noreply@khoj.dev"),
             "to": email,
-            "subject": f"Your login code to Khoj",
+            "subject": "Your login code to Khoj",
             "html": html_content,
         }
     )
@@ -98,11 +98,11 @@ async def send_query_feedback(uquery, kquery, sentiment, user_email):
         user_email=user_email if not is_none_or_empty(user_email) else "N/A",
     )
     # send feedback to fixed account
-    r = resend.Emails.send(
+    resend.Emails.send(
         {
             "sender": os.environ.get("RESEND_EMAIL", "noreply@khoj.dev"),
             "to": "team@khoj.dev",
-            "subject": f"User Feedback",
+            "subject": "User Feedback",
             "html": html_content,
         }
     )
@@ -127,7 +127,7 @@ def send_task_email(name, email, query, result, subject, is_image=False):
 
     r = resend.Emails.send(
         {
-            "sender": f'Khoj <{os.environ.get("RESEND_EMAIL", "khoj@khoj.dev")}>',
+            "sender": f"Khoj <{os.environ.get('RESEND_EMAIL', 'khoj@khoj.dev')}>",
             "to": email,
             "subject": f"✨ {subject}",
             "html": html_content,

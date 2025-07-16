@@ -3,7 +3,6 @@ import logging
 from typing import Dict, Optional, Union
 
 from fastapi import APIRouter, Request
-from fastapi.requests import Request
 from fastapi.responses import Response
 from starlette.authentication import has_required_scope, requires
 

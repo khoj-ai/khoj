@@ -29,6 +29,7 @@ processor:
 search-type:
     ...
 """
+
 import logging
 
 from packaging import version
@@ -63,9 +64,9 @@ def migrate_offline_chat_default_model(args):
         # Update offline chat model to use Nous Research's Hermes-2-Pro GGUF in path format suitable for llama-cpp
         offline_chat_model = raw_config["processor"]["conversation"]["offline-chat"]["chat-model"]
         if offline_chat_model == "mistral-7b-instruct-v0.1.Q4_0.gguf":
-            raw_config["processor"]["conversation"]["offline-chat"][
-                "chat-model"
-            ] = "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF"
+            raw_config["processor"]["conversation"]["offline-chat"]["chat-model"] = (
+                "NousResearch/Hermes-2-Pro-Mistral-7B-GGUF"
+            )
 
         save_config_to_file(raw_config, args.config_file)
     return args

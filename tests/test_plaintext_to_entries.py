@@ -10,7 +10,7 @@ from khoj.utils.rawconfig import TextContentConfig
 def test_plaintext_file(tmp_path):
     "Convert files with no heading to jsonl."
     # Arrange
-    raw_entry = f"""
+    raw_entry = """
     Hi, I am a plaintext file and I have some plaintext words.
     """
     plaintextfile = create_file(tmp_path, raw_entry)

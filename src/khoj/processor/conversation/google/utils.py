@@ -153,7 +153,7 @@ def gemini_completion_with_backoff(
             or not response.candidates[0].content
             or response.candidates[0].content.parts is None
         ):
-            raise ValueError(f"Failed to get response from model.")
+            raise ValueError("Failed to get response from model.")
         raw_content = [part.model_dump() for part in response.candidates[0].content.parts]
         if response.function_calls:
             function_calls = [

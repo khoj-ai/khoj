@@ -9,9 +9,8 @@ from asgiref.sync import sync_to_async
 from sentence_transformers import util
 
 from khoj.database.adapters import EntryAdapters, get_default_search_model
-from khoj.database.models import Agent
+from khoj.database.models import Agent, KhojUser
 from khoj.database.models import Entry as DbEntry
-from khoj.database.models import KhojUser
 from khoj.processor.content.text_to_entries import TextToEntries
 from khoj.utils import state
 from khoj.utils.helpers import get_absolute_path, timer

@@ -423,11 +423,11 @@ Expenses:Food:Dining  10.00 USD"""
 Expenses:Food:Dining  10.00 USD"""
         },
         {
-            "compiled": f"""2020-04-01 "SuperMercado" "Bananas"
+            "compiled": """2020-04-01 "SuperMercado" "Bananas"
 Expenses:Food:Groceries  10.00 USD"""
         },
         {
-            "compiled": f"""2020-01-01 "Naco Taco" "Burittos for Dinner"
+            "compiled": """2020-01-01 "Naco Taco" "Burittos for Dinner"
 Expenses:Food:Dining  10.00 USD"""
         },
     ]
@@ -463,11 +463,11 @@ Expenses:Food:Dining  10.00 USD"""
 Expenses:Food:Dining  10.00 USD"""
         },
         {
-            "compiled": f"""2020-04-01 "SuperMercado" "Bananas"
+            "compiled": """2020-04-01 "SuperMercado" "Bananas"
 Expenses:Food:Groceries  10.00 USD"""
         },
         {
-            "compiled": f"""2020-01-01 "Naco Taco" "Burittos for Dinner"
+            "compiled": """2020-01-01 "Naco Taco" "Burittos for Dinner"
 Expenses:Food:Dining  10.00 USD"""
         },
     ]
@@ -520,15 +520,15 @@ def test_ask_for_clarification_if_not_enough_context_in_question(loaded_model):
     # Arrange
     context = [
         {
-            "compiled": f"""# Ramya
+            "compiled": """# Ramya
 My sister, Ramya, is married to Kali Devi. They have 2 kids, Ravi and Rani."""
         },
         {
-            "compiled": f"""# Fang
+            "compiled": """# Fang
 My sister, Fang Liu is married to Xi Li. They have 1 kid, Xiao Li."""
         },
         {
-            "compiled": f"""# Aiyla
+            "compiled": """# Aiyla
 My sister, Aiyla is married to Tolga. They have 3 kids, Yildiz, Ali and Ahmet."""
         },
     ]
@@ -554,9 +554,9 @@ def test_agent_prompt_should_be_used(loaded_model, offline_agent):
     "Chat actor should ask be tuned to think like an accountant based on the agent definition"
     # Arrange
     context = [
-        {"compiled": f"""I went to the store and bought some bananas for 2.20"""},
-        {"compiled": f"""I went to the store and bought some apples for 1.30"""},
-        {"compiled": f"""I went to the store and bought some oranges for 6.00"""},
+        {"compiled": """I went to the store and bought some bananas for 2.20"""},
+        {"compiled": """I went to the store and bought some apples for 1.30"""},
+        {"compiled": """I went to the store and bought some oranges for 6.00"""},
     ]
 
     # Act

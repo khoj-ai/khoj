@@ -228,8 +228,8 @@ def configure_server(
     user: KhojUser = None,
 ):
     # Update Config
-    if config == None:
-        logger.info(f"Initializing with default config.")
+    if config is None:
+        logger.info("Initializing with default config.")
         config = FullConfig()
     state.config = config
 

@@ -18,7 +18,22 @@ from openai import AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import ChatCompletion
 from PIL import Image
 
-from khoj.processor.operator.operator_actions import *
+from khoj.processor.operator.operator_actions import (
+    BackAction,
+    ClickAction,
+    DoubleClickAction,
+    DragAction,
+    GotoAction,
+    KeyDownAction,
+    KeypressAction,
+    KeyUpAction,
+    MoveAction,
+    OperatorAction,
+    RequestUserAction,
+    ScrollAction,
+    TypeAction,
+    WaitAction,
+)
 from khoj.processor.operator.operator_environment_base import EnvironmentType, EnvState
 from khoj.utils.helpers import get_chat_usage_metrics
 
@@ -122,11 +137,10 @@ class GroundingAgentUitars:
         )
 
         temperature = self.temperature
-        top_k = self.top_k
         try_times = 3
         while not parsed_responses:
             if try_times <= 0:
-                logger.warning(f"Reach max retry times to fetch response from client, as error flag.")
+                logger.warning("Reach max retry times to fetch response from client, as error flag.")
                 return "client error\nFAIL", []
             try:
                 message_content = "\n".join([msg["content"][0].get("text") or "[image]" for msg in messages])
@@ -163,7 +177,6 @@ class GroundingAgentUitars:
                 prediction = None
                 try_times -= 1
                 temperature = 1
-                top_k = -1
 
         if prediction is None:
             return "client error\nFAIL", []
@@ -264,9 +277,9 @@ class GroundingAgentUitars:
             raise ValueError(f"Unsupported environment type: {environment_type}")
 
     def _format_messages_for_api(self, instruction: str, current_state: EnvState):
-        assert len(self.observations) == len(self.actions) and len(self.actions) == len(
-            self.thoughts
-        ), "The number of observations and actions should be the same."
+        assert len(self.observations) == len(self.actions) and len(self.actions) == len(self.thoughts), (
+            "The number of observations and actions should be the same."
+        )
 
         self.history_images.append(base64.b64decode(current_state.screenshot))
         self.observations.append({"screenshot": current_state.screenshot, "accessibility_tree": None})
@@ -524,7 +537,7 @@ class GroundingAgentUitars:
         parsed_actions = [self.parse_action_string(action.replace("\n", "\\n").lstrip()) for action in all_action]
         actions: list[dict] = []
         for action_instance, raw_str in zip(parsed_actions, all_action):
-            if action_instance == None:
+            if action_instance is None:
                 print(f"Action can't parse: {raw_str}")
                 raise ValueError(f"Action can't parse: {raw_str}")
             action_type = action_instance["function"]
@@ -756,7 +769,7 @@ class GroundingAgentUitars:
             The pyautogui code string
         """
 
-        pyautogui_code = f"import pyautogui\nimport time\n"
+        pyautogui_code = "import pyautogui\nimport time\n"
         actions = []
         if isinstance(responses, dict):
             responses = [responses]
@@ -774,7 +787,7 @@ class GroundingAgentUitars:
             if response_id == 0:
                 pyautogui_code += f"'''\nObservation:\n{observation}\n\nThought:\n{thought}\n'''\n"
             else:
-                pyautogui_code += f"\ntime.sleep(1)\n"
+                pyautogui_code += "\ntime.sleep(1)\n"
 
             action_dict = response
             action_type = action_dict.get("action_type")
@@ -846,17 +859,17 @@ class GroundingAgentUitars:
                 if content:
                     if input_swap:
                         actions += TypeAction()
-                        pyautogui_code += f"\nimport pyperclip"
+                        pyautogui_code += "\nimport pyperclip"
                         pyautogui_code += f"\npyperclip.copy('{stripped_content}')"
-                        pyautogui_code += f"\npyautogui.hotkey('ctrl', 'v')"
-                        pyautogui_code += f"\ntime.sleep(0.5)\n"
+                        pyautogui_code += "\npyautogui.hotkey('ctrl', 'v')"
+                        pyautogui_code += "\ntime.sleep(0.5)\n"
                         if content.endswith("\n") or content.endswith("\\n"):
-                            pyautogui_code += f"\npyautogui.press('enter')"
+                            pyautogui_code += "\npyautogui.press('enter')"
                     else:
                         pyautogui_code += f"\npyautogui.write('{stripped_content}', interval=0.1)"
-                        pyautogui_code += f"\ntime.sleep(0.5)\n"
+                        pyautogui_code += "\ntime.sleep(0.5)\n"
                         if content.endswith("\n") or content.endswith("\\n"):
-                            pyautogui_code += f"\npyautogui.press('enter')"
+                            pyautogui_code += "\npyautogui.press('enter')"
 
             elif action_type in ["drag", "select"]:
                 # Parsing drag or select action based on start and end_boxes
@@ -869,9 +882,7 @@ class GroundingAgentUitars:
                     x1, y1, x2, y2 = eval(end_box)  # Assuming box is in [x1, y1, x2, y2]
                     ex = round(float((x1 + x2) / 2) * image_width, 3)
                     ey = round(float((y1 + y2) / 2) * image_height, 3)
-                    pyautogui_code += (
-                        f"\npyautogui.moveTo({sx}, {sy})\n" f"\npyautogui.dragTo({ex}, {ey}, duration=1.0)\n"
-                    )
+                    pyautogui_code += f"\npyautogui.moveTo({sx}, {sy})\n\npyautogui.dragTo({ex}, {ey}, duration=1.0)\n"
 
             elif action_type == "scroll":
                 # Parsing scroll action
@@ -888,11 +899,11 @@ class GroundingAgentUitars:
                     y = None
                 direction = action_inputs.get("direction", "")
 
-                if x == None:
+                if x is None:
                     if "up" in direction.lower():
-                        pyautogui_code += f"\npyautogui.scroll(5)"
+                        pyautogui_code += "\npyautogui.scroll(5)"
                     elif "down" in direction.lower():
-                        pyautogui_code += f"\npyautogui.scroll(-5)"
+                        pyautogui_code += "\npyautogui.scroll(-5)"
                 else:
                     if "up" in direction.lower():
                         pyautogui_code += f"\npyautogui.scroll(5, x={x}, y={y})"
@@ -923,7 +934,7 @@ class GroundingAgentUitars:
                         pyautogui_code += f"\npyautogui.moveTo({x}, {y})"
 
             elif action_type in ["finished"]:
-                pyautogui_code = f"DONE"
+                pyautogui_code = "DONE"
 
             else:
                 pyautogui_code += f"\n# Unrecognized action type: {action_type}"

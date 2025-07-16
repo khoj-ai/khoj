@@ -8,13 +8,8 @@ import pytest
 
 from khoj.database.adapters import EntryAdapters
 from khoj.database.models import Entry, GithubConfig, KhojUser, LocalOrgConfig
-from khoj.processor.content.docx.docx_to_entries import DocxToEntries
 from khoj.processor.content.github.github_to_entries import GithubToEntries
-from khoj.processor.content.images.image_to_entries import ImageToEntries
-from khoj.processor.content.markdown.markdown_to_entries import MarkdownToEntries
 from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
-from khoj.processor.content.pdf.pdf_to_entries import PdfToEntries
-from khoj.processor.content.plaintext.plaintext_to_entries import PlaintextToEntries
 from khoj.processor.content.text_to_entries import TextToEntries
 from khoj.search_type import text_search
 from khoj.utils.fs_syncer import collect_files, get_org_files
@@ -193,9 +188,9 @@ def test_entry_chunking_by_max_tokens(org_config_with_only_new_file: LocalOrgCon
         text_search.setup(OrgToEntries, data, regenerate=False, user=default_user)
 
     # Assert
-    assert (
-        "Deleted 0 entries. Created 3 new entries for user " in caplog.records[-1].message
-    ), "new entry not split by max tokens"
+    assert "Deleted 0 entries. Created 3 new entries for user " in caplog.records[-1].message, (
+        "new entry not split by max tokens"
+    )
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -250,9 +245,9 @@ conda activate khoj
         )
 
     # Assert
-    assert (
-        "Deleted 0 entries. Created 3 new entries for user " in caplog.records[-1].message
-    ), "new entry not split by max tokens"
+    assert "Deleted 0 entries. Created 3 new entries for user " in caplog.records[-1].message, (
+        "new entry not split by max tokens"
+    )
 
 
 # ----------------------------------------------------------------------------------------------------

@@ -78,7 +78,7 @@ class AsyncIteratorWrapper:
 
 
 def is_none_or_empty(item):
-    return item == None or (hasattr(item, "__iter__") and len(item) == 0) or item == ""
+    return item is None or (hasattr(item, "__iter__") and len(item) == 0) or item == ""
 
 
 def to_snake_case_from_dash(item: str):
@@ -98,7 +98,7 @@ def get_from_dict(dictionary, *args):
     Returns: dictionary[args[0]][args[1]]... or None if any keys missing"""
     current = dictionary
     for arg in args:
-        if not hasattr(current, "__iter__") or not arg in current:
+        if not hasattr(current, "__iter__") or arg not in current:
             return None
         current = current[arg]
     return current
@@ -759,7 +759,7 @@ def is_valid_url(url: str) -> bool:
     try:
         result = urlparse(url.strip())
         return all([result.scheme, result.netloc])
-    except:
+    except Exception:
         return False
 
 
@@ -767,7 +767,7 @@ def is_internet_connected():
     try:
         response = requests.head("https://www.google.com")
         return response.status_code == 200
-    except:
+    except Exception:
         return False
 
 

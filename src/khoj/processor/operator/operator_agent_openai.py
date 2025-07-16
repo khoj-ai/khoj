@@ -1,6 +1,5 @@
 import json
 import logging
-import platform
 from copy import deepcopy
 from datetime import datetime
 from textwrap import dedent
@@ -10,7 +9,23 @@ from openai.types.responses import Response, ResponseOutputItem
 
 from khoj.database.models import ChatModel
 from khoj.processor.conversation.utils import AgentMessage
-from khoj.processor.operator.operator_actions import *
+from khoj.processor.operator.operator_actions import (
+    BackAction,
+    ClickAction,
+    DoubleClickAction,
+    DragAction,
+    GotoAction,
+    KeypressAction,
+    MoveAction,
+    NoopAction,
+    OperatorAction,
+    Point,
+    RequestUserAction,
+    ScreenshotAction,
+    ScrollAction,
+    TypeAction,
+    WaitAction,
+)
 from khoj.processor.operator.operator_agent_base import AgentActResult, OperatorAgent
 from khoj.processor.operator.operator_environment_base import (
     EnvironmentType,
@@ -152,7 +167,7 @@ class OpenAIOperatorAgent(OperatorAgent):
                 # Add screenshot data in openai message format
                 action_result["output"] = {
                     "type": "input_image",
-                    "image_url": f'data:image/webp;base64,{result_content["image"]}',
+                    "image_url": f"data:image/webp;base64,{result_content['image']}",
                     "current_url": result_content["url"],
                 }
             elif action_result["type"] == "computer_call_output" and idx == len(env_steps) - 1:
@@ -311,7 +326,7 @@ class OpenAIOperatorAgent(OperatorAgent):
             elif block.type == "function_call":
                 if block.name == "goto":
                     args = json.loads(block.arguments)
-                    render_texts = [f'Open URL: {args.get("url", "[Missing URL]")}']
+                    render_texts = [f"Open URL: {args.get('url', '[Missing URL]')}"]
                 else:
                     render_texts += [block.name]
             elif block.type == "computer_call":
@@ -351,7 +366,7 @@ class OpenAIOperatorAgent(OperatorAgent):
                 * When viewing a webpage it can be helpful to zoom out so that you can see everything on the page. Either that, or make sure you scroll down to see everything before deciding something isn't available.
                 * When using your computer function calls, they take a while to run and send back to you. Where possible/feasible, try to chain multiple of these calls all into one function calls request.
                 * Perform web searches using DuckDuckGo. Don't use Google even if requested as the query will fail.
-                * The current date is {datetime.today().strftime('%A, %B %-d, %Y')}.
+                * The current date is {datetime.today().strftime("%A, %B %-d, %Y")}.
                 * The current URL is {current_state.url}.
                 </SYSTEM_CAPABILITY>
 
@@ -374,7 +389,7 @@ class OpenAIOperatorAgent(OperatorAgent):
                 </SYSTEM_CAPABILITY>
 
                 <CONTEXT>
-                * The current date is {datetime.today().strftime('%A, %B %-d, %Y')}.
+                * The current date is {datetime.today().strftime("%A, %B %-d, %Y")}.
                 </CONTEXT>
                 """
             ).lstrip()

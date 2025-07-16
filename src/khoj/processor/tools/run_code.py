@@ -93,7 +93,7 @@ async def run_code(
 
     # Run Code
     if send_status_func:
-        async for event in send_status_func(f"**Running code snippet**"):
+        async for event in send_status_func("**Running code snippet**"):
             yield {ChatEvent.STATUS: event}
     try:
         with timer("Chat actor: Execute generated program", logger, log_level=logging.INFO):
