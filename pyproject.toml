@@ -122,7 +122,7 @@ dev = [
     "freezegun >= 1.2.0",
     "factory-boy >= 3.2.1",
     "mypy >= 1.0.1",
-    "black >= 23.1.0",
+    "ruff >= 0.12.0",
     "pre-commit >= 3.0.4",
     "gitpython ~= 3.1.43",
     "datasets",
@@ -149,11 +149,31 @@ non_interactive = true
 show_error_codes = true
 warn_unused_ignores = false
 
-[tool.black]
+[tool.ruff]
 line-length = 120
 
-[tool.isort]
-profile = "black"
+[tool.ruff.lint]
+select = ["E", "F", "I"]  # Enable error, warning, and import checks
+ignore = [
+    "E501",  # Ignore line length
+    "F405",  # Ignore name not defined (e.g., from imports)
+    "E402",  # Ignore module level import not at top of file
+]
+unfixable = ["F841"]  # Don't auto-remove unused variables
+exclude = [ "tests/*.py" ]
+[tool.ruff.lint.per-file-ignores]
+"src/khoj/main.py" = [
+    "I001",  # Ignore Import order
+    "I002",  # Ignore Import not at top of file
+    "E402",  # Ignore module level import not at top of file
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.ruff.lint.isort]
+known-first-party = ["khoj"]
 
 [tool.pytest.ini_options]
 addopts = "--strict-markers"
