@@ -117,7 +117,7 @@ async def subscribe(request: Request):
         )
         logger.log(logging.INFO, f"🥳 New User Created: {user.user.uuid}")
 
-    logger.info(f'Stripe subscription {event["type"]} for {customer_email}')
+    logger.info(f"Stripe subscription {event['type']} for {customer_email}")
     return {"success": success}
 
 

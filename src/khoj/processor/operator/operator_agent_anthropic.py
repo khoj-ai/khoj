@@ -11,7 +11,32 @@ from anthropic.types.beta import BetaContentBlock, BetaTextBlock, BetaToolUseBlo
 from khoj.database.models import ChatModel
 from khoj.processor.conversation.anthropic.utils import is_reasoning_model
 from khoj.processor.conversation.utils import AgentMessage
-from khoj.processor.operator.operator_actions import *
+from khoj.processor.operator.operator_actions import (
+    BackAction,
+    ClickAction,
+    CursorPositionAction,
+    DoubleClickAction,
+    DragAction,
+    GotoAction,
+    HoldKeyAction,
+    KeypressAction,
+    MouseDownAction,
+    MouseUpAction,
+    MoveAction,
+    NoopAction,
+    OperatorAction,
+    Point,
+    ScreenshotAction,
+    ScrollAction,
+    TerminalAction,
+    TextEditorCreateAction,
+    TextEditorInsertAction,
+    TextEditorStrReplaceAction,
+    TextEditorViewAction,
+    TripleClickAction,
+    TypeAction,
+    WaitAction,
+)
 from khoj.processor.operator.operator_agent_base import AgentActResult, OperatorAgent
 from khoj.processor.operator.operator_environment_base import (
     EnvironmentType,
@@ -518,7 +543,7 @@ class AnthropicOperatorAgent(OperatorAgent):
     def model_default_headers(self) -> list[str]:
         """Get the default computer use headers for the given model."""
         if self.vision_model.name.startswith("claude-3-7-sonnet"):
-            return [f"computer-use-2025-01-24", "token-efficient-tools-2025-02-19"]
+            return ["computer-use-2025-01-24", "token-efficient-tools-2025-02-19"]
         elif self.vision_model.name.startswith("claude-sonnet-4") or self.vision_model.name.startswith("claude-opus-4"):
             return ["computer-use-2025-01-24"]
         else:
@@ -538,7 +563,7 @@ class AnthropicOperatorAgent(OperatorAgent):
                 * When viewing a webpage it can be helpful to zoom out so that you can see everything on the page. Either that, or make sure you scroll down to see everything before deciding something isn't available.
                 * When using your computer function calls, they take a while to run and send back to you. Where possible/feasible, try to chain multiple of these calls all into one function calls request.
                 * Perform web searches using DuckDuckGo. Don't use Google even if requested as the query will fail.
-                * The current date is {datetime.today().strftime('%A, %B %-d, %Y')}.
+                * The current date is {datetime.today().strftime("%A, %B %-d, %Y")}.
                 * The current URL is {current_state.url}.
                 </SYSTEM_CAPABILITY>
 
@@ -563,7 +588,7 @@ class AnthropicOperatorAgent(OperatorAgent):
                 </SYSTEM_CAPABILITY>
 
                 <CONTEXT>
-                * The current date is {datetime.today().strftime('%A, %B %-d, %Y')}.
+                * The current date is {datetime.today().strftime("%A, %B %-d, %Y")}.
                 </CONTEXT>
                 """
             ).lstrip()

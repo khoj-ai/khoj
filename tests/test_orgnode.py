@@ -8,7 +8,7 @@ from khoj.processor.content.org_mode import orgnode
 def test_parse_entry_with_no_headings(tmp_path):
     "Test parsing of entry with minimal fields"
     # Arrange
-    entry = f"""Body Line 1"""
+    entry = """Body Line 1"""
     orgfile = create_file(tmp_path, entry)
 
     # Act
@@ -30,7 +30,7 @@ def test_parse_entry_with_no_headings(tmp_path):
 def test_parse_minimal_entry(tmp_path):
     "Test parsing of entry with minimal fields"
     # Arrange
-    entry = f"""
+    entry = """
 * Heading
 Body Line 1"""
     orgfile = create_file(tmp_path, entry)
@@ -54,7 +54,7 @@ Body Line 1"""
 def test_parse_complete_entry(tmp_path):
     "Test parsing of entry with all important fields"
     # Arrange
-    entry = f"""
+    entry = """
 *** DONE [#A] Heading   :Tag1:TAG2:tag3:
 CLOSED: [1984-04-01 Sun 12:00] SCHEDULED: <1984-04-01 Sun 09:00> DEADLINE: <1984-04-01 Sun>
 :PROPERTIES:
@@ -89,7 +89,7 @@ Body Line 2"""
 def test_render_entry_with_property_drawer_and_empty_body(tmp_path):
     "Render heading entry with property drawer"
     # Arrange
-    entry_to_render = f"""
+    entry_to_render = """
 *** [#A] Heading1   :tag1:
     :PROPERTIES:
     :ID: 111-111-111-1111-1111
@@ -116,7 +116,7 @@ def test_render_entry_with_property_drawer_and_empty_body(tmp_path):
 def test_all_links_to_entry_rendered(tmp_path):
     "Ensure all links to entry rendered in property drawer from entry"
     # Arrange
-    entry = f"""
+    entry = """
 *** [#A] Heading   :tag1:
 :PROPERTIES:
 :ID: 123-456-789-4234-1231
@@ -133,7 +133,7 @@ Body Line 2
     # Assert
     # SOURCE link rendered with Heading
     # ID link rendered with ID
-    assert f":ID: id:123-456-789-4234-1231" in f"{entries[0]}"
+    assert ":ID: id:123-456-789-4234-1231" in f"{entries[0]}"
     # LINE link rendered with line number
     assert f":LINE: file://{orgfile}#line=2" in f"{entries[0]}"
     # LINE link rendered with line number
@@ -144,7 +144,7 @@ Body Line 2
 def test_parse_multiple_entries(tmp_path):
     "Test parsing of multiple entries"
     # Arrange
-    content = f"""
+    content = """
 *** FAILED [#A] Heading1   :tag1:
 CLOSED: [1984-04-01 Sun 12:00] SCHEDULED: <1984-04-01 Sun 09:00> DEADLINE: <1984-04-01 Sun>
 :PROPERTIES:
@@ -176,12 +176,12 @@ Body 2
     # Assert
     assert len(entries) == 2
     for index, entry in enumerate(entries):
-        assert entry.heading == f"Heading{index+1}"
+        assert entry.heading == f"Heading{index + 1}"
         assert entry.todo == "FAILED" if index == 0 else "CANCELLED"
-        assert entry.tags == [f"tag{index+1}"]
-        assert entry.body == f"- Clocked Log {index+1}\n\nBody {index+1}\n\n"
+        assert entry.tags == [f"tag{index + 1}"]
+        assert entry.body == f"- Clocked Log {index + 1}\n\nBody {index + 1}\n\n"
         assert entry.priority == "A"
-        assert entry.Property("ID") == f"id:123-456-789-4234-000{index+1}"
+        assert entry.Property("ID") == f"id:123-456-789-4234-000{index + 1}"
         assert entry.closed == datetime.date(1984, 4, index + 1)
         assert entry.scheduled == datetime.date(1984, 4, index + 1)
         assert entry.deadline == datetime.date(1984, 4, index + 1)
@@ -194,7 +194,7 @@ Body 2
 def test_parse_entry_with_empty_title(tmp_path):
     "Test parsing of entry with minimal fields"
     # Arrange
-    entry = f"""#+TITLE:
+    entry = """#+TITLE:
 Body Line 1"""
     orgfile = create_file(tmp_path, entry)
 
@@ -217,7 +217,7 @@ Body Line 1"""
 def test_parse_entry_with_title_and_no_headings(tmp_path):
     "Test parsing of entry with minimal fields"
     # Arrange
-    entry = f"""#+TITLE: test
+    entry = """#+TITLE: test
 Body Line 1"""
     orgfile = create_file(tmp_path, entry)
 
@@ -241,7 +241,7 @@ Body Line 1"""
 def test_parse_entry_with_multiple_titles_and_no_headings(tmp_path):
     "Test parsing of entry with minimal fields"
     # Arrange
-    entry = f"""#+TITLE: title1
+    entry = """#+TITLE: title1
 Body Line 1
 #+TITLE:  title2 """
     orgfile = create_file(tmp_path, entry)
@@ -266,7 +266,7 @@ Body Line 1
 def test_parse_org_with_intro_text_before_heading(tmp_path):
     "Test parsing of org file with intro text before heading"
     # Arrange
-    body = f"""#+TITLE: Title
+    body = """#+TITLE: Title
 intro body
 * Entry Heading
 entry body
@@ -290,7 +290,7 @@ entry body
 def test_parse_org_with_intro_text_multiple_titles_and_heading(tmp_path):
     "Test parsing of org file with intro text, multiple titles and heading entry"
     # Arrange
-    body = f"""#+TITLE: Title1
+    body = """#+TITLE: Title1
 intro body
 * Entry Heading
 entry body
@@ -314,7 +314,7 @@ entry body
 def test_parse_org_with_single_ancestor_heading(tmp_path):
     "Parse org entries with parent headings context"
     # Arrange
-    body = f"""
+    body = """
 * Heading 1
 body 1
 ** Sub Heading 1
@@ -336,7 +336,7 @@ body 1
 def test_parse_org_with_multiple_ancestor_headings(tmp_path):
     "Parse org entries with parent headings context"
     # Arrange
-    body = f"""
+    body = """
 * Heading 1
 body 1
 ** Sub Heading 1
@@ -362,7 +362,7 @@ sub sub body 1
 def test_parse_org_with_multiple_ancestor_headings_of_siblings(tmp_path):
     "Parse org entries with parent headings context"
     # Arrange
-    body = f"""
+    body = """
 * Heading 1
 body 1
 ** Sub Heading 1

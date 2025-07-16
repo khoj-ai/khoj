@@ -385,7 +385,7 @@ async def read_webpages(
     tracer: dict = {},
 ):
     "Infer web pages to read from the query and extract relevant information from them"
-    logger.info(f"Inferring web pages to read")
+    logger.info("Inferring web pages to read")
     urls = await infer_webpage_urls(
         query,
         max_webpages_to_read,

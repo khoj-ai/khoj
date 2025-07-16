@@ -1,5 +1,4 @@
 from django.core.management.base import BaseCommand
-from django.db import transaction
 from django.db.models import Exists, OuterRef
 
 from khoj.database.models import Entry, FileObject

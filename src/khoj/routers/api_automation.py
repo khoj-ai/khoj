@@ -109,7 +109,7 @@ def post_automation(
     except Exception as e:
         logger.error(f"Error creating automation {q} for {user.email}: {e}", exc_info=True)
         return Response(
-            content=f"Unable to create automation. Ensure the automation doesn't already exist.",
+            content="Unable to create automation. Ensure the automation doesn't already exist.",
             media_type="text/plain",
             status_code=500,
         )

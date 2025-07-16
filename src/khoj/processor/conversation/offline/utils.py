@@ -32,7 +32,7 @@ def download_model(repo_id: str, filename: str = "*Q4_K_M.gguf", max_tokens: int
     chat_model = None
     try:
         chat_model = load_model(model_path, repo_id, filename, kwargs)
-    except:
+    except Exception:
         # Load model on CPU if GPU is not available
         kwargs["n_gpu_layers"], device = 0, "cpu"
         chat_model = load_model(model_path, repo_id, filename, kwargs)

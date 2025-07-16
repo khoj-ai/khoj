@@ -7,7 +7,6 @@ from typing import List, Optional, Union
 
 import openai
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
-from fastapi.requests import Request
 from fastapi.responses import Response
 from starlette.authentication import has_required_scope, requires
 

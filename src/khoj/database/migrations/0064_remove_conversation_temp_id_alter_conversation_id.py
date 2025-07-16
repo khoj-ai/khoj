@@ -41,7 +41,7 @@ def update_conversation_id_in_job_state(apps, schema_editor):
                     job.save()
                 except Conversation.DoesNotExist:
                     pass
-    except LookupError as e:
+    except LookupError:
         pass
 
 

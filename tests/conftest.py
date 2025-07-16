@@ -239,7 +239,7 @@ def anyio_backend():
 @pytest.mark.django_db
 @pytest.fixture(scope="function")
 def content_config(tmp_path_factory, search_models: SearchModels, default_user: KhojUser):
-    content_dir = tmp_path_factory.mktemp("content")
+    tmp_path_factory.mktemp("content")
 
     # Generate Image Embeddings from Test Images
     content_config = ContentConfig()
@@ -412,7 +412,7 @@ File statistics:
 - Code examples: Yes
 - Purpose: Stress testing atomic agent updates
 
-{'Additional padding content. ' * 20}
+{"Additional padding content. " * 20}
 
 End of file {i}.
 """

@@ -606,7 +606,7 @@ async def indexer(
             docx=index_files["docx"],
         )
 
-        if state.config == None:
+        if state.config is None:
             logger.info("📬 Initializing content index on first run.")
             default_full_config = FullConfig(
                 content_type=None,

@@ -1,6 +1,6 @@
 # Made manually by sabaimran for use by Django 5.0.9 on 2024-12-01 16:59
 
-from django.db import migrations, models
+from django.db import migrations
 
 # This script was written alongside when Pydantic validation was added to the Conversation conversation_log field.
 
