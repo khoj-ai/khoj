@@ -271,11 +271,13 @@ export default function Chat() {
                 const controlMessage = JSON.parse(lastMessage.data);
                 if (controlMessage.type === "interrupt_acknowledged") {
                     console.log("Interrupt acknowledged by server");
-                    setSocketUrl(null);
                     setProcessQuerySignal(false);
                     return;
-                }
-                if (controlMessage.error) {
+                } else if (controlMessage.type === "interrupt_message_acknowledged") {
+                    console.log("Interrupt message acknowledged by server");
+                    setProcessQuerySignal(false);
+                    return;
+                } else if (controlMessage.error) {
                     console.error("WebSocket error:", controlMessage.error);
                     return;
                 }
@@ -360,24 +362,20 @@ export default function Chat() {
             );
             console.log("Sent interrupt message via WebSocket:", interruptMessage);
 
-            // Update the current message with the new query but keep it in processing state
-            const messageToProcess = interruptMessage || queryToProcess;
+            // Mark the last message as completed
             setMessages((prevMessages) => {
                 const newMessages = [...prevMessages];
                 const currentMessage = newMessages[newMessages.length - 1];
-                if (currentMessage && !currentMessage.completed) {
-                    currentMessage.rawQuery = messageToProcess;
-                    currentMessage.completed = !!interruptMessage;
-                }
+                if (currentMessage) currentMessage.completed = true;
                 return newMessages;
             });
 
-            // Update the query being processed
-            setQueryToProcess(messageToProcess);
-            setTriggeredAbort(!!interruptMessage);
+            // Set the interrupt message as the new query being processed
+            setQueryToProcess(interruptMessage);
+            setTriggeredAbort(false); // Always set to false after processing
             setInterruptMessage("");
         }
-    }, [triggeredAbort, interruptMessage, queryToProcess, sendMessage]);
+    }, [triggeredAbort, sendMessage]);
 
     useEffect(() => {
         if (queryToProcess) {

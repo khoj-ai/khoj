@@ -44,6 +44,7 @@ async def operate_environment(
     query_files: str = None,  # TODO: Handle query files
     cancellation_event: Optional[asyncio.Event] = None,
     interrupt_queue: Optional[asyncio.Queue] = None,
+    abort_message: Optional[str] = "␃🔚␗",
     tracer: dict = {},
 ):
     response, user_input_message = None, None
@@ -144,6 +145,10 @@ async def operate_environment(
 
                 # Add interrupt query to current operator run
                 if interrupt_query := get_message_from_queue(interrupt_queue):
+                    if interrupt_query == abort_message:
+                        cancellation_event.set()
+                        logger.debug(f"Operator run cancelled by user {user} via interrupt queue.")
+                        break
                     # Add the interrupt query as a new user message to the research conversation history
                     logger.info(f"Continuing operator run with the new instruction: {interrupt_query}")
                     operator_agent.messages.append(AgentMessage(role="user", content=interrupt_query))

@@ -224,6 +224,7 @@ async def research(
     query_files: str = None,
     cancellation_event: Optional[asyncio.Event] = None,
     interrupt_queue: Optional[asyncio.Queue] = None,
+    abort_message: str = "␃🔚␗",
 ):
     max_document_searches = 7
     max_online_searches = 3
@@ -246,6 +247,10 @@ async def research(
 
         # Update the query for the current research iteration
         if interrupt_query := get_message_from_queue(interrupt_queue):
+            if interrupt_query == abort_message:
+                cancellation_event.set()
+                logger.debug(f"Research cancelled by user {user} via interrupt queue.")
+                break
             # Add the interrupt query as a new user message to the research conversation history
             logger.info(
                 f"Continuing research with the previous {len(previous_iterations)} iterations and new instruction: {interrupt_query}"
