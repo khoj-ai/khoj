@@ -1,7 +1,8 @@
 "use client";
 
 import styles from "./chat.module.css";
-import React, { Suspense, useEffect, useRef, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import useWebSocket from "react-use-websocket";
 
 import ChatHistory from "../components/chatHistory/chatHistory";
 import { useSearchParams } from "next/navigation";
@@ -45,7 +46,7 @@ interface ChatBodyDataProps {
     isMobileWidth?: boolean;
     isLoggedIn: boolean;
     setImages: (images: string[]) => void;
-    setTriggeredAbort: (triggeredAbort: boolean) => void;
+    setTriggeredAbort: (triggeredAbort: boolean, newMessage?: string) => void;
     isChatSideBarOpen: boolean;
     setIsChatSideBarOpen: (open: boolean) => void;
     isActive?: boolean;
@@ -205,10 +206,10 @@ export default function Chat() {
     const [uploadedFiles, setUploadedFiles] = useState<AttachedFileText[] | undefined>(undefined);
     const [images, setImages] = useState<string[]>([]);
 
-    const [abortMessageStreamController, setAbortMessageStreamController] =
-        useState<AbortController | null>(null);
     const [triggeredAbort, setTriggeredAbort] = useState(false);
-    const [shouldSendWithInterrupt, setShouldSendWithInterrupt] = useState(false);
+    const [interruptMessage, setInterruptMessage] = useState<string>("");
+    const bufferRef = useRef("");
+    const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     const { locationData, locationDataError, locationDataLoading } = useIPLocationData() || {
         locationData: {
@@ -222,6 +223,109 @@ export default function Chat() {
     } = useAuthenticatedData();
     const isMobileWidth = useIsMobileWidth();
     const [isChatSideBarOpen, setIsChatSideBarOpen] = useState(false);
+    const [socketUrl, setSocketUrl] = useState<string | null>(null);
+
+    const disconnectFromServer = useCallback(() => {
+        if (idleTimerRef.current) {
+            clearTimeout(idleTimerRef.current);
+        }
+        setSocketUrl(null);
+        console.log("WebSocket disconnected due to inactivity.");
+    }, []);
+
+    const resetIdleTimer = useCallback(() => {
+        const idleTimeout = 10 * 60 * 1000; // 10 minutes
+        if (idleTimerRef.current) {
+            clearTimeout(idleTimerRef.current);
+        }
+        idleTimerRef.current = setTimeout(disconnectFromServer, idleTimeout);
+    }, [disconnectFromServer]);
+
+    const { sendMessage, lastMessage } = useWebSocket(socketUrl, {
+        share: true,
+        shouldReconnect: (closeEvent) => true,
+        reconnectAttempts: 10,
+        // reconnect using exponential backoff with jitter
+        reconnectInterval: (attemptNumber) => {
+            const baseDelay = 1000 * Math.pow(2, attemptNumber);
+            const jitter = Math.random() * 1000; // Add jitter up to 1s
+            return Math.min(baseDelay + jitter, 20000); // Cap backoff at 20s
+        },
+        onOpen: () => {
+            console.log("WebSocket connection established.");
+            resetIdleTimer();
+        },
+        onClose: () => {
+            console.log("WebSocket connection closed.");
+            if (idleTimerRef.current) {
+                clearTimeout(idleTimerRef.current);
+            }
+        },
+    });
+
+    useEffect(() => {
+        if (lastMessage !== null) {
+            resetIdleTimer();
+            // Check if this is a control message (JSON) rather than a streaming event
+            try {
+                const controlMessage = JSON.parse(lastMessage.data);
+                if (controlMessage.type === "interrupt_acknowledged") {
+                    console.log("Interrupt acknowledged by server");
+                    setProcessQuerySignal(false);
+                    return;
+                } else if (controlMessage.type === "interrupt_message_acknowledged") {
+                    console.log("Interrupt message acknowledged by server");
+                    setProcessQuerySignal(false);
+                    return;
+                } else if (controlMessage.error) {
+                    console.error("WebSocket error:", controlMessage.error);
+                    return;
+                }
+            } catch {
+                // Not a JSON control message, process as streaming event
+            }
+
+            const eventDelimiter = "␃🔚␗";
+            bufferRef.current += lastMessage.data;
+
+            let newEventIndex;
+            while ((newEventIndex = bufferRef.current.indexOf(eventDelimiter)) !== -1) {
+                const eventChunk = bufferRef.current.slice(0, newEventIndex);
+                bufferRef.current = bufferRef.current.slice(newEventIndex + eventDelimiter.length);
+                if (eventChunk) {
+                    setMessages((prevMessages) => {
+                        const newMessages = [...prevMessages];
+                        const currentMessage = newMessages[newMessages.length - 1];
+                        if (!currentMessage || currentMessage.completed) {
+                            return prevMessages;
+                        }
+
+                        const { context, onlineContext, codeContext } = processMessageChunk(
+                            eventChunk,
+                            currentMessage,
+                            currentMessage.context || [],
+                            currentMessage.onlineContext || {},
+                            currentMessage.codeContext || {},
+                        );
+
+                        // Update the current message with the new reference data
+                        currentMessage.context = context;
+                        currentMessage.onlineContext = onlineContext;
+                        currentMessage.codeContext = codeContext;
+
+                        if (currentMessage.completed) {
+                            setQueryToProcess("");
+                            setProcessQuerySignal(false);
+                            setImages([]);
+                            if (conversationId) generateNewTitle(conversationId, setTitle);
+                        }
+
+                        return newMessages;
+                    });
+                }
+            }
+        }
+    }, [lastMessage, setMessages]);
 
     useEffect(() => {
         fetch("/api/chat/options")
@@ -241,14 +345,37 @@ export default function Chat() {
         welcomeConsole();
     }, []);
 
+    const handleTriggeredAbort = (value: boolean, newMessage?: string) => {
+        if (value) {
+            setInterruptMessage(newMessage || "");
+        }
+        setTriggeredAbort(value);
+    };
+
     useEffect(() => {
         if (triggeredAbort) {
-            abortMessageStreamController?.abort();
-            handleAbortedMessage();
-            setShouldSendWithInterrupt(true);
-            setTriggeredAbort(false);
+            sendMessage(
+                JSON.stringify({
+                    type: "interrupt",
+                    query: interruptMessage,
+                }),
+            );
+            console.log("Sent interrupt message via WebSocket:", interruptMessage);
+
+            // Mark the last message as completed
+            setMessages((prevMessages) => {
+                const newMessages = [...prevMessages];
+                const currentMessage = newMessages[newMessages.length - 1];
+                if (currentMessage) currentMessage.completed = true;
+                return newMessages;
+            });
+
+            // Set the interrupt message as the new query being processed
+            setQueryToProcess(interruptMessage);
+            setTriggeredAbort(false); // Always set to false after processing
+            setInterruptMessage("");
         }
-    }, [triggeredAbort]);
+    }, [triggeredAbort, sendMessage]);
 
     useEffect(() => {
         if (queryToProcess) {
@@ -266,7 +393,6 @@ export default function Chat() {
             };
             setMessages((prevMessages) => [...prevMessages, newStreamMessage]);
             setProcessQuerySignal(true);
-            setAbortMessageStreamController(new AbortController());
         }
     }, [queryToProcess]);
 
@@ -280,70 +406,19 @@ export default function Chat() {
         }
     }, [processQuerySignal, locationDataLoading]);
 
-    async function readChatStream(response: Response) {
-        if (!response.ok) throw new Error(response.statusText);
-        if (!response.body) throw new Error("Response body is null");
+    useEffect(() => {
+        if (!conversationId) return;
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        const eventDelimiter = "␃🔚␗";
-        let buffer = "";
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${protocol}//${window.location.host}/api/chat/ws?client=web`;
+        setSocketUrl(wsUrl);
 
-        // Track context used for chat response
-        let context: Context[] = [];
-        let onlineContext: OnlineContext = {};
-        let codeContext: CodeContext = {};
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-                setQueryToProcess("");
-                setProcessQuerySignal(false);
-                setImages([]);
-
-                if (conversationId) generateNewTitle(conversationId, setTitle);
-
-                break;
+        return () => {
+            if (idleTimerRef.current) {
+                clearTimeout(idleTimerRef.current);
             }
-
-            const chunk = decoder.decode(value, { stream: true });
-            buffer += chunk;
-
-            let newEventIndex;
-            while ((newEventIndex = buffer.indexOf(eventDelimiter)) !== -1) {
-                const event = buffer.slice(0, newEventIndex);
-                buffer = buffer.slice(newEventIndex + eventDelimiter.length);
-                if (event) {
-                    const currentMessage = messages.find((message) => !message.completed);
-
-                    if (!currentMessage) {
-                        console.error("No current message found");
-                        return;
-                    }
-
-                    // Track context used for chat response. References are rendered at the end of the chat
-                    ({ context, onlineContext, codeContext } = processMessageChunk(
-                        event,
-                        currentMessage,
-                        context,
-                        onlineContext,
-                        codeContext,
-                    ));
-
-                    setMessages([...messages]);
-                }
-            }
-        }
-    }
-
-    function handleAbortedMessage() {
-        const currentMessage = messages.find((message) => !message.completed);
-        if (!currentMessage) return;
-
-        currentMessage.completed = true;
-        setMessages([...messages]);
-        setProcessQuerySignal(false);
-    }
+        };
+    }, [conversationId]);
 
     async function chat() {
         localStorage.removeItem("message");
@@ -351,12 +426,19 @@ export default function Chat() {
             setProcessQuerySignal(false);
             return;
         }
-        const chatAPI = "/api/chat?client=web";
+
+        // Re-establish WebSocket connection if disconnected
+        resetIdleTimer();
+        if (!socketUrl) {
+            const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+            const wsUrl = `${protocol}//${window.location.host}/api/chat/ws?client=web`;
+            setSocketUrl(wsUrl);
+        }
+
         const chatAPIBody = {
             q: queryToProcess,
             conversation_id: conversationId,
             stream: true,
-            interrupt: shouldSendWithInterrupt,
             ...(locationData && {
                 city: locationData.city,
                 region: locationData.region,
@@ -368,58 +450,7 @@ export default function Chat() {
             ...(uploadedFiles && { files: uploadedFiles }),
         };
 
-        // Reset the flag after using it
-        setShouldSendWithInterrupt(false);
-
-        const response = await fetch(chatAPI, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(chatAPIBody),
-            signal: abortMessageStreamController?.signal,
-        });
-
-        try {
-            await readChatStream(response);
-        } catch (err) {
-            let apiError;
-            try {
-                apiError = await response.json();
-            } catch (err) {
-                // Error reading API error response
-                apiError = {
-                    streamError: "Error reading API error response stream. Expected JSON response.",
-                };
-            }
-            console.error(apiError);
-            // Retrieve latest message being processed
-            const currentMessage = messages.find((message) => !message.completed);
-            if (!currentMessage) return;
-
-            // Render error message as current message
-            const errorMessage = (err as Error).message;
-            const errorName = (err as Error).name;
-            if (errorMessage.includes("Error in input stream"))
-                currentMessage.rawResponse = `Woops! The connection broke while I was writing my thoughts down. Maybe try again in a bit or dislike this message if the issue persists?`;
-            else if (apiError.streamError) {
-                currentMessage.rawResponse = `Umm, not sure what just happened but I lost my train of thought. Could you try again or ask my developers to look into this if the issue persists? They can be contacted at the Khoj Github, Discord or team@khoj.dev.`;
-            } else if (response.status === 429) {
-                "detail" in apiError
-                    ? (currentMessage.rawResponse = `${apiError.detail}`)
-                    : (currentMessage.rawResponse = `I'm a bit overwhelmed at the moment. Could you try again in a bit or dislike this message if the issue persists?`);
-            } else if (errorName === "AbortError") {
-                currentMessage.rawResponse = `I've stopped processing this message. If you'd like to continue, please send the message again.`;
-            } else {
-                currentMessage.rawResponse = `Umm, not sure what just happened. I see this error message: ${errorMessage}. Could you try again or dislike this message if the issue persists?`;
-            }
-
-            // Complete message streaming teardown properly
-            currentMessage.completed = true;
-            setMessages([...messages]);
-            setQueryToProcess("");
-            setProcessQuerySignal(false);
-        }
+        sendMessage(JSON.stringify(chatAPIBody));
     }
 
     const handleConversationIdChange = (newConversationId: string) => {
@@ -522,7 +553,7 @@ export default function Chat() {
                                     isMobileWidth={isMobileWidth}
                                     onConversationIdChange={handleConversationIdChange}
                                     setImages={setImages}
-                                    setTriggeredAbort={setTriggeredAbort}
+                                    setTriggeredAbort={handleTriggeredAbort}
                                     isChatSideBarOpen={isChatSideBarOpen}
                                     setIsChatSideBarOpen={setIsChatSideBarOpen}
                                     isActive={authenticatedData?.is_active}

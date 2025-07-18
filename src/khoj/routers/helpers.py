@@ -33,7 +33,7 @@ from apscheduler.job import Job
 from apscheduler.triggers.cron import CronTrigger
 from asgiref.sync import sync_to_async
 from django.utils import timezone as django_timezone
-from fastapi import Depends, Header, HTTPException, Request, UploadFile
+from fastapi import Depends, Header, HTTPException, Request, UploadFile, WebSocket
 from pydantic import BaseModel, EmailStr, Field
 from starlette.authentication import has_required_scope
 from starlette.requests import URL
@@ -1936,6 +1936,53 @@ class ApiUserRateLimiter:
         # Add the current request to the cache
         UserRequests.objects.create(user=user, slug=self.slug)
 
+    def check_websocket(self, websocket: WebSocket):
+        """WebSocket-specific rate limiting method"""
+        # Rate limiting disabled if billing is disabled
+        if state.billing_enabled is False:
+            return
+
+        # Rate limiting is disabled if user unauthenticated.
+        if not websocket.scope.get("user") or not websocket.scope["user"].is_authenticated:
+            return
+
+        user: KhojUser = websocket.scope["user"].object
+        subscribed = has_required_scope(websocket, ["premium"])
+
+        # Remove requests outside of the time window
+        cutoff = django_timezone.now() - timedelta(seconds=self.window)
+        count_requests = UserRequests.objects.filter(user=user, created_at__gte=cutoff, slug=self.slug).count()
+
+        # Check if the user has exceeded the rate limit
+        if subscribed and count_requests >= self.subscribed_requests:
+            logger.info(
+                f"Rate limit: {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for subscribed user: {user}."
+            )
+            raise HTTPException(
+                status_code=429,
+                detail="I'm glad you're enjoying interacting with me! You've unfortunately exceeded your usage limit for today. But let's chat more tomorrow?",
+            )
+        if not subscribed and count_requests >= self.requests:
+            if self.requests >= self.subscribed_requests:
+                logger.info(
+                    f"Rate limit: {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for user: {user}."
+                )
+                raise HTTPException(
+                    status_code=429,
+                    detail="I'm glad you're enjoying interacting with me! You've unfortunately exceeded your usage limit for today. But let's chat more tomorrow?",
+                )
+
+            logger.info(
+                f"Rate limit: {count_requests}/{self.requests} requests not allowed in {self.window} seconds for user: {user}."
+            )
+            raise HTTPException(
+                status_code=429,
+                detail="I'm glad you're enjoying interacting with me! You've unfortunately exceeded your usage limit for today. You can subscribe to increase your usage limit via [your settings](https://app.khoj.dev/settings) or we can continue our conversation tomorrow?",
+            )
+
+        # Add the current request to the cache
+        UserRequests.objects.create(user=user, slug=self.slug)
+
 
 class ApiImageRateLimiter:
     def __init__(self, max_images: int = 10, max_combined_size_mb: float = 10):
@@ -1983,6 +2030,47 @@ class ApiImageRateLimiter:
                 detail=f"Those images are way too large for me! I can handle up to {self.max_combined_size_mb}MB of images per message.",
             )
 
+    def check_websocket(self, websocket: WebSocket, body: ChatRequestBody):
+        """WebSocket-specific image rate limiting method"""
+        if state.billing_enabled is False:
+            return
+
+        # Rate limiting is disabled if user unauthenticated.
+        if not websocket.scope.get("user") or not websocket.scope["user"].is_authenticated:
+            return
+
+        if not body.images:
+            return
+
+        # Check number of images
+        if len(body.images) > self.max_images:
+            logger.info(f"Rate limit: {len(body.images)}/{self.max_images} images not allowed per message.")
+            raise HTTPException(
+                status_code=429,
+                detail=f"Those are way too many images for me! I can handle up to {self.max_images} images per message.",
+            )
+
+        # Check total size of images
+        total_size_mb = 0.0
+        for image in body.images:
+            # Unquote the image in case it's URL encoded
+            image = unquote(image)
+            # Assuming the image is a base64 encoded string
+            # Remove the data:image/jpeg;base64, part if present
+            if "," in image:
+                image = image.split(",", 1)[1]
+
+            # Decode base64 to get the actual size
+            image_bytes = base64.b64decode(image)
+            total_size_mb += len(image_bytes) / (1024 * 1024)  # Convert bytes to MB
+
+        if total_size_mb > self.max_combined_size_mb:
+            logger.info(f"Data limit: {total_size_mb}MB/{self.max_combined_size_mb}MB size not allowed per message.")
+            raise HTTPException(
+                status_code=429,
+                detail=f"Those images are way too large for me! I can handle up to {self.max_combined_size_mb}MB of images per message.",
+            )
+
 
 class ConversationCommandRateLimiter:
     def __init__(self, trial_rate_limit: int, subscribed_rate_limit: int, slug: str):
@@ -1991,7 +2079,7 @@ class ConversationCommandRateLimiter:
         self.subscribed_rate_limit = subscribed_rate_limit
         self.restricted_commands = [ConversationCommand.Research]
 
-    async def update_and_check_if_valid(self, request: Request, conversation_command: ConversationCommand):
+    async def update_and_check_if_valid(self, request: Request | WebSocket, conversation_command: ConversationCommand):
         if state.billing_enabled is False:
             return
 
@@ -2510,6 +2598,17 @@ async def read_chat_stream(response_iterator: AsyncGenerator[str, None]) -> Dict
         "files": processor.generated_files,
         "mermaidjsDiagram": processor.generated_mermaidjs_diagram,
     }
+
+
+def get_message_from_queue(queue: asyncio.Queue) -> Optional[str]:
+    """Get any message in queue if available."""
+    if not queue:
+        return None
+    try:
+        # Non-blocking check for message in the queue
+        return queue.get_nowait()
+    except asyncio.QueueEmpty:
+        return None
 
 
 def get_user_config(user: KhojUser, request: Request, is_detailed: bool = False):

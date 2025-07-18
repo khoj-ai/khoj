@@ -15,6 +15,7 @@ from khoj.processor.conversation.utils import (
     ResearchIteration,
     ToolCall,
     construct_iteration_history,
+    construct_structured_message,
     construct_tool_chat_history,
     load_complex_json,
 )
@@ -24,6 +25,7 @@ from khoj.processor.tools.run_code import run_code
 from khoj.routers.helpers import (
     ChatEvent,
     generate_summary_from_files,
+    get_message_from_queue,
     grep_files,
     list_files,
     search_documents,
@@ -74,7 +76,7 @@ async def apick_next_tool(
     ):
         previous_iteration = previous_iterations[-1]
         yield ResearchIteration(
-            query=query,
+            query=ToolCall(name=previous_iteration.query.name, args={"query": query}, id=previous_iteration.query.id),  # type: ignore
             context=previous_iteration.context,
             onlineContext=previous_iteration.onlineContext,
             codeContext=previous_iteration.codeContext,
@@ -221,6 +223,8 @@ async def research(
     tracer: dict = {},
     query_files: str = None,
     cancellation_event: Optional[asyncio.Event] = None,
+    interrupt_queue: Optional[asyncio.Queue] = None,
+    abort_message: str = "␃🔚␗",
 ):
     max_document_searches = 7
     max_online_searches = 3
@@ -240,6 +244,26 @@ async def research(
         if cancellation_event and cancellation_event.is_set():
             logger.debug(f"Research cancelled. User {user} disconnected client.")
             break
+
+        # Update the query for the current research iteration
+        if interrupt_query := get_message_from_queue(interrupt_queue):
+            if interrupt_query == abort_message:
+                cancellation_event.set()
+                logger.debug(f"Research cancelled by user {user} via interrupt queue.")
+                break
+            # Add the interrupt query as a new user message to the research conversation history
+            logger.info(
+                f"Continuing research with the previous {len(previous_iterations)} iterations and new instruction: {interrupt_query}"
+            )
+            previous_iterations_history = construct_iteration_history(
+                previous_iterations, query, query_images, query_files
+            )
+            research_conversation_history += previous_iterations_history
+            query = interrupt_query
+            previous_iterations = []
+
+            async for result in send_status_func(f"**Incorporate New Instruction**: {interrupt_query}"):
+                yield result
 
         online_results: Dict = dict()
         code_results: Dict = dict()
@@ -428,6 +452,7 @@ async def research(
                     agent=agent,
                     query_files=query_files,
                     cancellation_event=cancellation_event,
+                    interrupt_queue=interrupt_queue,
                     tracer=tracer,
                 ):
                     if isinstance(result, dict) and ChatEvent.STATUS in result:
