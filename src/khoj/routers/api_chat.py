@@ -1533,8 +1533,8 @@ async def chat_ws(
 
             # Apply rate limiting manually
             try:
-                rate_limiter_per_minute.check_websocket(websocket)
-                rate_limiter_per_day.check_websocket(websocket)
+                await rate_limiter_per_minute.check_websocket(websocket)
+                await rate_limiter_per_day.check_websocket(websocket)
                 image_rate_limiter.check_websocket(websocket, body)
             except HTTPException as e:
                 await websocket.send_text(json.dumps({"error": e.detail}))
