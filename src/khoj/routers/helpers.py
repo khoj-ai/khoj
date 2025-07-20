@@ -1909,7 +1909,7 @@ class ApiUserRateLimiter:
         # Check if the user has exceeded the rate limit
         if subscribed and count_requests >= self.subscribed_requests:
             logger.info(
-                f"Rate limit: {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for subscribed user: {user}."
+                f"Rate limit ({self.slug}): {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for subscribed user: {user}."
             )
             raise HTTPException(
                 status_code=429,
@@ -1918,7 +1918,7 @@ class ApiUserRateLimiter:
         if not subscribed and count_requests >= self.requests:
             if self.requests >= self.subscribed_requests:
                 logger.info(
-                    f"Rate limit: {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for user: {user}."
+                    f"Rate limit ({self.slug}): {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for user: {user}."
                 )
                 raise HTTPException(
                     status_code=429,
@@ -1926,7 +1926,7 @@ class ApiUserRateLimiter:
                 )
 
             logger.info(
-                f"Rate limit: {count_requests}/{self.requests} requests not allowed in {self.window} seconds for user: {user}."
+                f"Rate limit ({self.slug}): {count_requests}/{self.requests} requests not allowed in {self.window} seconds for user: {user}."
             )
             raise HTTPException(
                 status_code=429,
@@ -1948,6 +1948,9 @@ class ApiUserRateLimiter:
 
         user: KhojUser = websocket.scope["user"].object
         subscribed = has_required_scope(websocket, ["premium"])
+        current_window = "today" if self.window == 60 * 60 * 24 else f"now"
+        next_window = "tomorrow" if self.window == 60 * 60 * 24 else f"in a bit"
+        common_message_prefix = f"I'm glad you're enjoying interacting with me! You've unfortunately exceeded your usage limit for {current_window}."
 
         # Remove requests outside of the time window
         cutoff = django_timezone.now() - timedelta(seconds=self.window)
@@ -1956,28 +1959,28 @@ class ApiUserRateLimiter:
         # Check if the user has exceeded the rate limit
         if subscribed and count_requests >= self.subscribed_requests:
             logger.info(
-                f"Rate limit: {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for subscribed user: {user}."
+                f"Rate limit ({self.slug}): {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for subscribed user: {user}."
             )
             raise HTTPException(
                 status_code=429,
-                detail="I'm glad you're enjoying interacting with me! You've unfortunately exceeded your usage limit for today. But let's chat more tomorrow?",
+                detail=f"{common_message_prefix} But let's chat more {next_window}?",
             )
         if not subscribed and count_requests >= self.requests:
             if self.requests >= self.subscribed_requests:
                 logger.info(
-                    f"Rate limit: {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for user: {user}."
+                    f"Rate limit ({self.slug}): {count_requests}/{self.subscribed_requests} requests not allowed in {self.window} seconds for user: {user}."
                 )
                 raise HTTPException(
                     status_code=429,
-                    detail="I'm glad you're enjoying interacting with me! You've unfortunately exceeded your usage limit for today. But let's chat more tomorrow?",
+                    detail=f"{common_message_prefix} But let's chat more {next_window}?",
                 )
 
             logger.info(
-                f"Rate limit: {count_requests}/{self.requests} requests not allowed in {self.window} seconds for user: {user}."
+                f"Rate limit ({self.slug}): {count_requests}/{self.requests} requests not allowed in {self.window} seconds for user: {user}."
             )
             raise HTTPException(
                 status_code=429,
-                detail="I'm glad you're enjoying interacting with me! You've unfortunately exceeded your usage limit for today. You can subscribe to increase your usage limit via [your settings](https://app.khoj.dev/settings) or we can continue our conversation tomorrow?",
+                detail=f"{common_message_prefix} You can subscribe to increase your usage limit via [your settings](https://app.khoj.dev/settings) or we can continue our conversation {next_window}.",
             )
 
         # Add the current request to the cache

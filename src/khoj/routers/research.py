@@ -253,7 +253,7 @@ async def research(
                 break
             # Add the interrupt query as a new user message to the research conversation history
             logger.info(
-                f"Continuing research with the previous {len(previous_iterations)} iterations and new instruction: {interrupt_query}"
+                f"Continuing research for user {user} with the previous {len(previous_iterations)} iterations and new instruction: {interrupt_query}"
             )
             previous_iterations_history = construct_iteration_history(
                 previous_iterations, query, query_images, query_files
