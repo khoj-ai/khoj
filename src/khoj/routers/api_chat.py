@@ -60,6 +60,7 @@ from khoj.routers.helpers import (
     ConversationCommandRateLimiter,
     DeleteMessageRequestBody,
     FeedbackData,
+    WebSocketConnectionManager,
     acreate_title_from_history,
     agenerate_chat_response,
     aget_data_sources_and_output_format,
@@ -1467,7 +1468,20 @@ async def chat_ws(
     websocket: WebSocket,
     common: CommonQueryParams,
 ):
+    # Limit open websocket connections per user
+    user = websocket.scope["user"].object
+    connection_manager = WebSocketConnectionManager(trial_user_max_connections=5, subscribed_user_max_connections=10)
+    connection_id = str(uuid.uuid4())
+
+    if not await connection_manager.can_connect(websocket):
+        await websocket.close(code=1008, reason="Connection limit exceeded")
+        logger.info(f"WebSocket connection rejected for user {user.id}: connection limit exceeded")
+        return
+
     await websocket.accept()
+
+    # Note new websocket connection for the user
+    await connection_manager.register_connection(user, connection_id)
 
     # Initialize rate limiters
     rate_limiter_per_minute = ApiUserRateLimiter(requests=20, subscribed_requests=20, window=60, slug="chat_minute")
@@ -1539,6 +1553,9 @@ async def chat_ws(
         if current_task and not current_task.done():
             current_task.cancel()
         await websocket.close(code=1011, reason="Internal Server Error")
+    finally:
+        # Always unregister the connection on disconnect
+        await connection_manager.unregister_connection(user, connection_id)
 
 
 async def process_chat_request(

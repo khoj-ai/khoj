@@ -2075,6 +2075,48 @@ class ApiImageRateLimiter:
             )
 
 
+class WebSocketConnectionManager:
+    """Limit max open websockets per user."""
+
+    def __init__(self, trial_user_max_connections: int = 10, subscribed_user_max_connections: int = 10):
+        self.trial_user_max_connections = trial_user_max_connections
+        self.subscribed_user_max_connections = subscribed_user_max_connections
+        self.connection_slug_prefix = "ws_connection_"
+        # Set cleanup window to 24 hours for truly stale connections (e.g., server crashes)
+        self.cleanup_window = 86400  # 24 hours
+
+    async def can_connect(self, websocket: WebSocket) -> bool:
+        """Check if user can establish a new WebSocket connection."""
+        # Cleanup very old connections (likely from server crashes)
+        user: KhojUser = websocket.scope["user"].object
+        subscribed = has_required_scope(websocket, ["premium"])
+        max_connections = self.subscribed_user_max_connections if subscribed else self.trial_user_max_connections
+
+        await self._cleanup_stale_connections(user)
+
+        # Count ALL connections for this user (not filtered by time)
+        active_connections = await UserRequests.objects.filter(
+            user=user, slug__startswith=self.connection_slug_prefix
+        ).acount()
+
+        return active_connections < max_connections
+
+    async def register_connection(self, user: KhojUser, connection_id: str) -> None:
+        """Register a new WebSocket connection."""
+        await UserRequests.objects.acreate(user=user, slug=f"{self.connection_slug_prefix}{connection_id}")
+
+    async def unregister_connection(self, user: KhojUser, connection_id: str) -> None:
+        """Remove a WebSocket connection record."""
+        await UserRequests.objects.filter(user=user, slug=f"{self.connection_slug_prefix}{connection_id}").adelete()
+
+    async def _cleanup_stale_connections(self, user: KhojUser) -> None:
+        """Remove connection records older than cleanup window."""
+        cutoff = django_timezone.now() - timedelta(seconds=self.cleanup_window)
+        await UserRequests.objects.filter(
+            user=user, slug__startswith=self.connection_slug_prefix, created_at__lt=cutoff
+        ).adelete()
+
+
 class ConversationCommandRateLimiter:
     def __init__(self, trial_rate_limit: int, subscribed_rate_limit: int, slug: str):
         self.slug = slug
