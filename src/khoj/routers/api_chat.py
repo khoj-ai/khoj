@@ -702,7 +702,7 @@ async def event_generator(
     defiltered_query = defilter_query(q)
     train_of_thought = []
     cancellation_event = asyncio.Event()
-    child_interrupt_queue: asyncio.Queue = asyncio.Queue()
+    child_interrupt_queue: asyncio.Queue = asyncio.Queue(maxsize=10)
     event_delimiter = "␃🔚␗"
 
     tracer: dict = {
@@ -797,6 +797,7 @@ async def event_generator(
                         # Pass the interrupt query to child tasks
                         logger.info(f"Continuing chat with the new instruction: {interrupt_query}")
                         await child_interrupt_queue.put(interrupt_query)
+                        # Append the interrupt query to the main query
                         q += f"\n\n{interrupt_query}"
                         defiltered_query += f"\n\n{defilter_query(interrupt_query)}"
 
@@ -1497,7 +1498,7 @@ async def chat_ws(
     image_rate_limiter = ApiImageRateLimiter(max_images=10, max_combined_size_mb=20)
 
     # Shared interrupt queue for communicating interrupts to ongoing research
-    interrupt_queue: asyncio.Queue = asyncio.Queue()
+    interrupt_queue: asyncio.Queue = asyncio.Queue(maxsize=10)
     current_task = None
 
     try:
