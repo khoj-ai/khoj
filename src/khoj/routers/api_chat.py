@@ -1397,6 +1397,7 @@ async def event_generator(
     )
 
     full_response = ""
+    message_start = True
     async for item in llm_response:
         # Should not happen with async generator. Skip.
         if item is None or not isinstance(item, ResponseWithThought):
@@ -1410,10 +1411,11 @@ async def event_generator(
             async for result in send_event(ChatEvent.THOUGHT, item.thought):
                 yield result
             continue
-
         # Start sending response
-        async for result in send_event(ChatEvent.START_LLM_RESPONSE, ""):
-            yield result
+        elif message_start:
+            message_start = False
+            async for result in send_event(ChatEvent.START_LLM_RESPONSE, ""):
+                yield result
 
         try:
             async for result in send_event(ChatEvent.MESSAGE, message):
