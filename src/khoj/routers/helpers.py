@@ -2099,7 +2099,8 @@ class WebSocketConnectionManager:
             user=user, slug__startswith=self.connection_slug_prefix
         ).acount()
 
-        return active_connections < max_connections
+        # Restrict max active connections per user in production
+        return active_connections < max_connections or state.anonymous_mode or in_debug_mode()
 
     async def register_connection(self, user: KhojUser, connection_id: str) -> None:
         """Register a new WebSocket connection."""
