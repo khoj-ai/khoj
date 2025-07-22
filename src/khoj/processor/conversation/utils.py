@@ -385,6 +385,7 @@ class ChatEvent(Enum):
     USAGE = "usage"
     END_RESPONSE = "end_response"
     INTERRUPT = "interrupt"
+    END_EVENT = "␃🔚␗"
 
 
 def message_to_log(

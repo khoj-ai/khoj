@@ -2617,7 +2617,6 @@ class MessageProcessor:
 
 async def read_chat_stream(response_iterator: AsyncGenerator[str, None]) -> Dict[str, Any]:
     processor = MessageProcessor()
-    event_delimiter = "␃🔚␗"
     buffer = ""
 
     async for chunk in response_iterator:
@@ -2625,9 +2624,9 @@ async def read_chat_stream(response_iterator: AsyncGenerator[str, None]) -> Dict
         buffer += chunk
 
         # Once the buffer contains a complete event
-        while event_delimiter in buffer:
+        while ChatEvent.END_EVENT.value in buffer:
             # Extract the event from the buffer
-            event, buffer = buffer.split(event_delimiter, 1)
+            event, buffer = buffer.split(ChatEvent.END_EVENT.value, 1)
             # Process the event
             if event:
                 processor.process_message_chunk(event)

@@ -704,7 +704,6 @@ async def event_generator(
     train_of_thought = []
     cancellation_event = asyncio.Event()
     child_interrupt_queue: asyncio.Queue = asyncio.Queue(maxsize=10)
-    event_delimiter = "␃🔚␗"
 
     tracer: dict = {
         "mid": turn_id,
@@ -791,7 +790,7 @@ async def event_generator(
 
                 # Check if any interrupt query is received
                 if interrupt_query := get_message_from_queue(parent_interrupt_queue):
-                    if interrupt_query == event_delimiter:
+                    if interrupt_query == ChatEvent.END_EVENT.value:
                         cancellation_event.set()
                         logger.debug(f"Chat cancelled by user {user} via interrupt queue.")
                     else:
@@ -872,7 +871,7 @@ async def event_generator(
                 )
         finally:
             if not cancellation_event.is_set():
-                yield event_delimiter
+                yield ChatEvent.END_EVENT.value
             # Cancel the disconnect monitor task if it is still running
             if cancellation_event.is_set() or event_type == ChatEvent.END_RESPONSE:
                 await cancel_disconnect_monitor()
@@ -1044,7 +1043,7 @@ async def event_generator(
             tracer=tracer,
             cancellation_event=cancellation_event,
             interrupt_queue=child_interrupt_queue,
-            abort_message=event_delimiter,
+            abort_message=ChatEvent.END_EVENT.value,
         ):
             if isinstance(research_result, ResearchIteration):
                 if research_result.summarizedResult:
@@ -1510,8 +1509,7 @@ async def chat_ws(
             if data.get("type") == "interrupt":
                 if current_task and not current_task.done():
                     # Send interrupt signal to the ongoing task
-                    abort_message = "␃🔚␗"
-                    await interrupt_queue.put(data.get("query") or abort_message)
+                    await interrupt_queue.put(data.get("query") or ChatEvent.END_EVENT.value)
                     logger.info(
                         f"Interrupt signal sent to ongoing task for user {websocket.scope['user'].object.id} with query: {data.get('query')}"
                     )

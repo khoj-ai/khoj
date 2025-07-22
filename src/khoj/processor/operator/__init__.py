@@ -44,7 +44,7 @@ async def operate_environment(
     query_files: str = None,  # TODO: Handle query files
     cancellation_event: Optional[asyncio.Event] = None,
     interrupt_queue: Optional[asyncio.Queue] = None,
-    abort_message: Optional[str] = "␃🔚␗",
+    abort_message: Optional[str] = ChatEvent.END_EVENT.value,
     tracer: dict = {},
 ):
     response, user_input_message = None, None

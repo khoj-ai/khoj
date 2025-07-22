@@ -224,7 +224,7 @@ async def research(
     query_files: str = None,
     cancellation_event: Optional[asyncio.Event] = None,
     interrupt_queue: Optional[asyncio.Queue] = None,
-    abort_message: str = "␃🔚␗",
+    abort_message: str = ChatEvent.END_EVENT.value,
 ):
     max_document_searches = 7
     max_online_searches = 3
