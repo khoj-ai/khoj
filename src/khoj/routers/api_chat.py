@@ -1425,6 +1425,13 @@ async def event_generator(
                 logger.warning(f"Error during streaming. Stopping send: {e}")
             break
 
+    # Check if the user has disconnected
+    if cancellation_event.is_set():
+        logger.debug(f"Stopping LLM response to user {user} on {common.client} client.")
+        # Cancel the disconnect monitor task if it is still running
+        await cancel_disconnect_monitor()
+        return
+
     # Save conversation once finish streaming
     asyncio.create_task(
         save_to_conversation_log(
@@ -1450,16 +1457,16 @@ async def event_generator(
     )
 
     # Signal end of LLM response after the loop finishes
-    if not cancellation_event.is_set():
-        async for result in send_event(ChatEvent.END_LLM_RESPONSE, ""):
-            yield result
-        # Send Usage Metadata once llm interactions are complete
-        if tracer.get("usage"):
-            async for event in send_event(ChatEvent.USAGE, tracer.get("usage")):
-                yield event
-        async for result in send_event(ChatEvent.END_RESPONSE, ""):
-            yield result
-        logger.debug("Finished streaming response")
+    async for result in send_event(ChatEvent.END_LLM_RESPONSE, ""):
+        yield result
+
+    # Send Usage Metadata once llm interactions are complete
+    if tracer.get("usage"):
+        async for event in send_event(ChatEvent.USAGE, tracer.get("usage")):
+            yield event
+    async for result in send_event(ChatEvent.END_RESPONSE, ""):
+        yield result
+    logger.debug("Finished streaming response")
 
     # Cancel the disconnect monitor task if it is still running
     await cancel_disconnect_monitor()
