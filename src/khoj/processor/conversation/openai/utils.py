@@ -158,6 +158,13 @@ def completion_with_backoff(
             **model_kwargs,
         )
         aggregated_response = chunk.choices[0].message.content
+        raw_tool_calls = chunk.choices[0].message.tool_calls
+        if raw_tool_calls:
+            tool_calls = [
+                ToolCall(name=tool.function.name, args=tool.function.parsed_arguments, id=tool.id)
+                for tool in raw_tool_calls
+            ]
+            aggregated_response = json.dumps([tool_call.__dict__ for tool_call in tool_calls])
 
     # Calculate cost of chat
     input_tokens = chunk.usage.prompt_tokens if hasattr(chunk, "usage") and chunk.usage else 0
