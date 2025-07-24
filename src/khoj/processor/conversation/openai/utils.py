@@ -111,7 +111,7 @@ def completion_with_backoff(
             else:
                 updated_messages.append(message)
         formatted_messages = updated_messages
-    elif is_qwen_reasoning_model(model_name, api_base_url):
+    elif is_qwen_style_reasoning_model(model_name, api_base_url):
         stream_processor = partial(in_stream_thought_processor, thought_tag="think")
         # Reasoning is enabled by default. Disable when deepthought is False.
         # See https://qwenlm.github.io/blog/qwen3/#advanced-usages
@@ -273,7 +273,7 @@ async def chat_completion_with_backoff(
             else:
                 updated_messages.append(message)
         formatted_messages = updated_messages
-    elif is_qwen_reasoning_model(model_name, api_base_url):
+    elif is_qwen_style_reasoning_model(model_name, api_base_url):
         stream_processor = partial(ain_stream_thought_processor, thought_tag="think")
         # Reasoning is enabled by default. Disable when deepthought is False.
         # See https://qwenlm.github.io/blog/qwen3/#advanced-usages
@@ -499,11 +499,12 @@ def is_twitter_reasoning_model(model_name: str, api_base_url: str = None) -> boo
     )
 
 
-def is_qwen_reasoning_model(model_name: str, api_base_url: str = None) -> bool:
+def is_qwen_style_reasoning_model(model_name: str, api_base_url: str = None) -> bool:
     """
-    Check if the model is a Qwen reasoning model
+    Check if the model is a Qwen style reasoning model
     """
-    return "qwen3" in model_name.lower() and api_base_url is not None
+    qwen_style_reason_model = ["qwen3", "smollm3"]
+    return any(prefix in model_name.lower() for prefix in qwen_style_reason_model) and api_base_url is not None
 
 
 def is_local_api(api_base_url: str) -> bool:
