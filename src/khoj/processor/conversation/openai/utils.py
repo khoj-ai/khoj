@@ -836,6 +836,7 @@ def to_openai_tools(tools: List[ToolDefinition]) -> List[Dict] | None:
                 "name": tool.name,
                 "description": tool.description,
                 "parameters": clean_response_schema(tool.schema),
+                "strict": True,
             },
         }
         for tool in tools
