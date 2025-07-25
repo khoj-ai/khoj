@@ -91,7 +91,7 @@ class TestTruncateMessage:
         # Arrange
         chat_history = generate_chat_history(5)
         big_chat_message = ChatMessage(role="user", content=generate_content(100, suffix="Question?"))
-        copy_big_chat_message = big_chat_message.copy()
+        copy_big_chat_message = big_chat_message.model_copy()
         chat_history.insert(0, big_chat_message)
         initial_tokens = sum([utils.count_tokens(message.content, self.encoder) for message in chat_history])
 
@@ -114,7 +114,7 @@ class TestTruncateMessage:
         chat_history = generate_chat_history(5)
         chat_history[0].role = "system"  # Mark the first message as system message
         big_chat_message = ChatMessage(role="user", content=generate_content(100, suffix="Question?"))
-        copy_big_chat_message = big_chat_message.copy()
+        copy_big_chat_message = big_chat_message.model_copy()
 
         chat_history.insert(0, big_chat_message)
         initial_tokens = sum([utils.count_tokens(message.content, self.encoder) for message in chat_history])
@@ -138,7 +138,7 @@ class TestTruncateMessage:
     def test_truncate_single_large_non_system_message(self):
         # Arrange
         big_chat_message = ChatMessage(role="user", content=generate_content(100, suffix="Question?"))
-        copy_big_chat_message = big_chat_message.copy()
+        copy_big_chat_message = big_chat_message.model_copy()
         chat_messages = [big_chat_message]
         initial_tokens = sum([utils.count_tokens(message.content, self.encoder) for message in chat_messages])
 
@@ -160,7 +160,7 @@ class TestTruncateMessage:
         # Arrange
         big_chat_message_content = [{"type": "text", "text": " ".join(["hi"] * (self.max_prompt_size + 1))}]
         big_chat_message = ChatMessage(role="user", content=big_chat_message_content)
-        copy_big_chat_message = big_chat_message.copy()
+        copy_big_chat_message = big_chat_message.model_copy()
         chat_messages = [big_chat_message]
         initial_tokens = sum([utils.count_tokens(message.content, self.encoder) for message in chat_messages])
 
