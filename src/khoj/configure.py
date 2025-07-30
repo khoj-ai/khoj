@@ -11,9 +11,15 @@ import requests
 import schedule
 from asgiref.sync import sync_to_async
 from django.conf import settings
-from django.db import close_old_connections, connections
+from django.db import (
+    DatabaseError,
+    OperationalError,
+    close_old_connections,
+    connections,
+)
 from django.utils.timezone import make_aware
-from fastapi import Request, Response
+from fastapi import HTTPException, Request, Response
+from fastapi.responses import RedirectResponse
 from starlette.authentication import (
     AuthCredentials,
     AuthenticationBackend,
@@ -113,13 +119,24 @@ class UserAuthenticationBackend(AuthenticationBackend):
             Subscription.objects.create(user=default_user, type=Subscription.Type.STANDARD, renewal_date=renewal_date)
 
     async def authenticate(self, request: HTTPConnection):
+        # Skip authentication for error pages to avoid infinite recursion
+        if request.url.path == "/server/error":
+            return AuthCredentials(), UnauthenticatedUser()
+
         current_user = request.session.get("user")
         if current_user and current_user.get("email"):
-            user = (
-                await self.khojuser_manager.filter(email=current_user.get("email"))
-                .prefetch_related("subscription")
-                .afirst()
-            )
+            try:
+                user = (
+                    await self.khojuser_manager.filter(email=current_user.get("email"))
+                    .prefetch_related("subscription")
+                    .afirst()
+                )
+            except (DatabaseError, OperationalError):
+                logger.error("DB Exception: Failed to authenticate user", exc_info=True)
+                raise HTTPException(
+                    status_code=503,
+                    detail="Please report this issue on Github, Discord or email team@khoj.dev and try again later.",
+                )
             if user:
                 subscribed = await ais_user_subscribed(user)
                 if subscribed:
@@ -131,12 +148,19 @@ class UserAuthenticationBackend(AuthenticationBackend):
             # Get bearer token from header
             bearer_token = request.headers["Authorization"].split("Bearer ")[1]
             # Get user owning token
-            user_with_token = (
-                await self.khojapiuser_manager.filter(token=bearer_token)
-                .select_related("user")
-                .prefetch_related("user__subscription")
-                .afirst()
-            )
+            try:
+                user_with_token = (
+                    await self.khojapiuser_manager.filter(token=bearer_token)
+                    .select_related("user")
+                    .prefetch_related("user__subscription")
+                    .afirst()
+                )
+            except (DatabaseError, OperationalError):
+                logger.error("DB Exception: Failed to authenticate user applications", exc_info=True)
+                raise HTTPException(
+                    status_code=503,
+                    detail="Please report this issue on Github, Discord or email team@khoj.dev and try again later.",
+                )
             if user_with_token:
                 subscribed = await ais_user_subscribed(user_with_token.user)
                 if subscribed:
@@ -155,7 +179,16 @@ class UserAuthenticationBackend(AuthenticationBackend):
                 )
 
             # Get the client application
-            client_application = await ClientApplicationAdapters.aget_client_application_by_id(client_id, client_secret)
+            try:
+                client_application = await ClientApplicationAdapters.aget_client_application_by_id(
+                    client_id, client_secret
+                )
+            except (DatabaseError, OperationalError):
+                logger.error("DB Exception: Failed to authenticate first party application", exc_info=True)
+                raise HTTPException(
+                    status_code=503,
+                    detail="Please report this issue on Github, Discord or email team@khoj.dev and try again later.",
+                )
             if client_application is None:
                 return AuthCredentials(), UnauthenticatedUser()
             # Get the identifier used for the user
@@ -185,7 +218,14 @@ class UserAuthenticationBackend(AuthenticationBackend):
 
         # No auth required if server in anonymous mode
         if state.anonymous_mode:
-            user = await self.khojuser_manager.filter(username="default").prefetch_related("subscription").afirst()
+            try:
+                user = await self.khojuser_manager.filter(username="default").prefetch_related("subscription").afirst()
+            except (DatabaseError, OperationalError):
+                logger.error("DB Exception: Failed to fetch default user from DB", exc_info=True)
+                raise HTTPException(
+                    status_code=503,
+                    detail="Please report this issue on Github, Discord or email team@khoj.dev and try again later.",
+                )
             if user:
                 return AuthCredentials(["authenticated", "premium"]), AuthenticatedKhojUser(user)
 
@@ -368,11 +408,30 @@ def configure_middleware(app, ssl_enabled: bool = False):
                 # and prevent further error logging.
                 return Response(status_code=499)
 
+    class ServerErrorMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request: Request, call_next):
+            try:
+                return await call_next(request)
+            except HTTPException as e:
+                # Check if this is a server error (5xx) that we want to handle
+                if e.status_code >= 500 and e.status_code < 600:
+                    # Check if this is a web route (not API route)
+                    path = request.url.path
+                    is_api_route = path.startswith("/api/") or path.startswith("/server/")
+
+                    # Redirect web routes to error page, let API routes get the raw error
+                    if not is_api_route:
+                        return RedirectResponse(url="/server/error", status_code=302)
+
+                # Re-raise for API routes and non-5xx errors
+                raise e
+
     if ssl_enabled:
         app.add_middleware(HTTPSRedirectMiddleware)
     app.add_middleware(SuppressClientDisconnectMiddleware)
     app.add_middleware(AsyncCloseConnectionsMiddleware)
     app.add_middleware(AuthenticationMiddleware, backend=UserAuthenticationBackend())
+    app.add_middleware(ServerErrorMiddleware)  # Add after AuthenticationMiddleware to catch its exceptions
     app.add_middleware(NextJsMiddleware)
     app.add_middleware(SessionMiddleware, secret_key=os.environ.get("KHOJ_DJANGO_SECRET_KEY", "!secret"))
 
