@@ -138,7 +138,7 @@ async def get_agent_by_conversation(
     else:
         agent_chat_model = None
 
-    has_files = agent.fileobject_set.exists()
+    has_files = await agent.fileobject_set.aexists()
 
     agents_packet = {
         "slug": agent.slug,
