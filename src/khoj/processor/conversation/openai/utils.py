@@ -147,6 +147,12 @@ def completion_with_backoff(
                     aggregated_response += chunk.delta
                 elif chunk.type == "thought.delta":
                     thoughts += chunk.delta
+                elif (
+                    chunk.type == "chunk"
+                    and chunk.chunk.choices
+                    and hasattr(chunk.chunk.choices[0].delta, "reasoning_content")
+                ):
+                    thoughts += chunk.chunk.choices[0].delta.reasoning_content
                 elif chunk.type == "chunk" and chunk.chunk.choices and chunk.chunk.choices[0].delta.tool_calls:
                     tool_ids += [tool_call.id for tool_call in chunk.chunk.choices[0].delta.tool_calls]
                 elif chunk.type == "tool_calls.function.arguments.done":
