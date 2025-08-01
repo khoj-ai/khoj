@@ -2,23 +2,16 @@
 import asyncio
 import logging
 import os
-from pathlib import Path
 
 import pytest
 
 from khoj.database.adapters import EntryAdapters
-from khoj.database.models import Entry, GithubConfig, KhojUser, LocalOrgConfig
-from khoj.processor.content.docx.docx_to_entries import DocxToEntries
+from khoj.database.models import Entry, GithubConfig, KhojUser
 from khoj.processor.content.github.github_to_entries import GithubToEntries
-from khoj.processor.content.images.image_to_entries import ImageToEntries
-from khoj.processor.content.markdown.markdown_to_entries import MarkdownToEntries
 from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
-from khoj.processor.content.pdf.pdf_to_entries import PdfToEntries
-from khoj.processor.content.plaintext.plaintext_to_entries import PlaintextToEntries
 from khoj.processor.content.text_to_entries import TextToEntries
 from khoj.search_type import text_search
-from khoj.utils.fs_syncer import collect_files, get_org_files
-from khoj.utils.rawconfig import ContentConfig, SearchConfig
+from tests.helpers import get_index_files, get_sample_data
 
 logger = logging.getLogger(__name__)
 
@@ -26,53 +19,20 @@ logger = logging.getLogger(__name__)
 # Test
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_text_search_setup_with_missing_file_raises_error(org_config_with_only_new_file: LocalOrgConfig):
+def test_text_search_setup_with_empty_file_creates_no_entries(search_config, default_user: KhojUser):
     # Arrange
-    # Ensure file mentioned in org.input-files is missing
-    single_new_file = Path(org_config_with_only_new_file.input_files[0])
-    single_new_file.unlink()
-
-    # Act
-    # Generate notes embeddings during asymmetric setup
-    with pytest.raises(FileNotFoundError):
-        get_org_files(org_config_with_only_new_file)
-
-
-# ----------------------------------------------------------------------------------------------------
-@pytest.mark.django_db
-def test_get_org_files_with_org_suffixed_dir_doesnt_raise_error(tmp_path, default_user: KhojUser):
-    # Arrange
-    orgfile = tmp_path / "directory.org" / "file.org"
-    orgfile.parent.mkdir()
-    with open(orgfile, "w") as f:
-        f.write("* Heading\n- List item\n")
-
-    LocalOrgConfig.objects.create(
-        input_filter=[f"{tmp_path}/**/*"],
-        input_files=None,
-        user=default_user,
-    )
-
-    # Act
-    org_files = collect_files(user=default_user)["org"]
-
-    # Assert
-    # should return orgfile and not raise IsADirectoryError
-    assert org_files == {f"{orgfile}": "* Heading\n- List item\n"}
-
-
-# ----------------------------------------------------------------------------------------------------
-@pytest.mark.django_db
-def test_text_search_setup_with_empty_file_creates_no_entries(
-    org_config_with_only_new_file: LocalOrgConfig, default_user: KhojUser
-):
-    # Arrange
+    initial_data = {
+        "test.org": "* First heading\nFirst content",
+        "test2.org": "* Second heading\nSecond content",
+    }
+    text_search.setup(OrgToEntries, initial_data, regenerate=True, user=default_user)
     existing_entries = Entry.objects.filter(user=default_user).count()
-    data = get_org_files(org_config_with_only_new_file)
+
+    final_data = {"new_file.org": ""}
 
     # Act
     # Generate notes embeddings during asymmetric setup
-    text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
+    text_search.setup(OrgToEntries, final_data, regenerate=True, user=default_user)
 
     # Assert
     updated_entries = Entry.objects.filter(user=default_user).count()
@@ -84,13 +44,14 @@ def test_text_search_setup_with_empty_file_creates_no_entries(
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_text_indexer_deletes_embedding_before_regenerate(
-    content_config: ContentConfig, default_user: KhojUser, caplog
-):
+def test_text_indexer_deletes_embedding_before_regenerate(search_config, default_user: KhojUser, caplog):
     # Arrange
+    data = {
+        "test1.org": "* Test heading\nTest content",
+        "test2.org": "* Another heading\nAnother content",
+    }
+    text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
     existing_entries = Entry.objects.filter(user=default_user).count()
-    org_config = LocalOrgConfig.objects.filter(user=default_user).first()
-    data = get_org_files(org_config)
 
     # Act
     # Generate notes embeddings during asymmetric setup
@@ -107,11 +68,10 @@ def test_text_indexer_deletes_embedding_before_regenerate(
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_text_index_same_if_content_unchanged(content_config: ContentConfig, default_user: KhojUser, caplog):
+def test_text_index_same_if_content_unchanged(search_config, default_user: KhojUser, caplog):
     # Arrange
     existing_entries = Entry.objects.filter(user=default_user)
-    org_config = LocalOrgConfig.objects.filter(user=default_user).first()
-    data = get_org_files(org_config)
+    data = {"test.org": "* Test heading\nTest content"}
 
     # Act
     # Generate initial notes embeddings during asymmetric setup
@@ -136,20 +96,14 @@ def test_text_index_same_if_content_unchanged(content_config: ContentConfig, def
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-@pytest.mark.anyio
-# @pytest.mark.asyncio
-async def test_text_search(search_config: SearchConfig):
+@pytest.mark.asyncio
+async def test_text_search(search_config):
     # Arrange
-    default_user = await KhojUser.objects.acreate(
+    default_user, _ = await KhojUser.objects.aget_or_create(
         username="test_user", password="test_password", email="test@example.com"
     )
-    org_config = await LocalOrgConfig.objects.acreate(
-        input_files=None,
-        input_filter=["tests/data/org/*.org"],
-        index_heading_entries=False,
-        user=default_user,
-    )
-    data = get_org_files(org_config)
+    # Get some sample org data to index
+    data = get_sample_data("org")
 
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(
@@ -175,17 +129,15 @@ async def test_text_search(search_config: SearchConfig):
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_entry_chunking_by_max_tokens(org_config_with_only_new_file: LocalOrgConfig, default_user: KhojUser, caplog):
+def test_entry_chunking_by_max_tokens(tmp_path, search_config, default_user: KhojUser, caplog):
     # Arrange
     # Insert org-mode entry with size exceeding max token limit to new org file
     max_tokens = 256
-    new_file_to_index = Path(org_config_with_only_new_file.input_files[0])
-    with open(new_file_to_index, "w") as f:
-        f.write(f"* Entry more than {max_tokens} words\n")
-        for index in range(max_tokens + 1):
-            f.write(f"{index} ")
-
-    data = get_org_files(org_config_with_only_new_file)
+    new_file_to_index = tmp_path / "test.org"
+    content = f"* Entry more than {max_tokens} words\n"
+    for index in range(max_tokens + 1):
+        content += f"{index} "
+    data = {str(new_file_to_index): content}
 
     # Act
     # reload embeddings, entries, notes model after adding new org-mode file
@@ -200,9 +152,7 @@ def test_entry_chunking_by_max_tokens(org_config_with_only_new_file: LocalOrgCon
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_entry_chunking_by_max_tokens_not_full_corpus(
-    org_config_with_only_new_file: LocalOrgConfig, default_user: KhojUser, caplog
-):
+def test_entry_chunking_by_max_tokens_not_full_corpus(tmp_path, search_config, default_user: KhojUser, caplog):
     # Arrange
     # Insert org-mode entry with size exceeding max token limit to new org file
     data = {
@@ -231,13 +181,11 @@ conda activate khoj
     )
 
     max_tokens = 256
-    new_file_to_index = Path(org_config_with_only_new_file.input_files[0])
-    with open(new_file_to_index, "w") as f:
-        f.write(f"* Entry more than {max_tokens} words\n")
-        for index in range(max_tokens + 1):
-            f.write(f"{index} ")
-
-    data = get_org_files(org_config_with_only_new_file)
+    new_file_to_index = tmp_path / "test.org"
+    content = f"* Entry more than {max_tokens} words\n"
+    for index in range(max_tokens + 1):
+        content += f"{index} "
+    data = {str(new_file_to_index): content}
 
     # Act
     # reload embeddings, entries, notes model after adding new org-mode file
@@ -257,34 +205,34 @@ conda activate khoj
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_regenerate_index_with_new_entry(content_config: ContentConfig, new_org_file: Path, default_user: KhojUser):
+def test_regenerate_index_with_new_entry(search_config, default_user: KhojUser):
     # Arrange
+    # Initial indexed files
+    text_search.setup(OrgToEntries, get_sample_data("org"), regenerate=True, user=default_user)
     existing_entries = list(Entry.objects.filter(user=default_user).values_list("compiled", flat=True))
-    org_config = LocalOrgConfig.objects.filter(user=default_user).first()
-    initial_data = get_org_files(org_config)
 
-    # append org-mode entry to first org input file in config
-    org_config.input_files = [f"{new_org_file}"]
-    with open(new_org_file, "w") as f:
-        f.write("\n* A Chihuahua doing Tango\n- Saw a super cute video of a chihuahua doing the Tango on Youtube\n")
-
-    final_data = get_org_files(org_config)
-
-    # Act
-    text_search.setup(OrgToEntries, initial_data, regenerate=True, user=default_user)
+    # Regenerate index with only files from test data set
+    files_to_index = get_index_files()
+    text_search.setup(OrgToEntries, files_to_index, regenerate=True, user=default_user)
     updated_entries1 = list(Entry.objects.filter(user=default_user).values_list("compiled", flat=True))
 
+    # Act
+    # Update index with the new file
+    new_file = "test.org"
+    new_entry = "\n* A Chihuahua doing Tango\n- Saw a super cute video of a chihuahua doing the Tango on Youtube\n"
+    files_to_index[new_file] = new_entry
+
     # regenerate notes jsonl, model embeddings and model to include entry from new file
-    text_search.setup(OrgToEntries, final_data, regenerate=True, user=default_user)
+    text_search.setup(OrgToEntries, files_to_index, regenerate=True, user=default_user)
     updated_entries2 = list(Entry.objects.filter(user=default_user).values_list("compiled", flat=True))
 
     # Assert
     for entry in updated_entries1:
         assert entry in updated_entries2
 
-    assert not any([new_org_file.name in entry for entry in updated_entries1])
-    assert not any([new_org_file.name in entry for entry in existing_entries])
-    assert any([new_org_file.name in entry for entry in updated_entries2])
+    assert not any([new_file in entry for entry in updated_entries1])
+    assert not any([new_file in entry for entry in existing_entries])
+    assert any([new_file in entry for entry in updated_entries2])
 
     assert any(
         ["Saw a super cute video of a chihuahua doing the Tango on Youtube" in entry for entry in updated_entries2]
@@ -294,28 +242,24 @@ def test_regenerate_index_with_new_entry(content_config: ContentConfig, new_org_
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_update_index_with_duplicate_entries_in_stable_order(
-    org_config_with_only_new_file: LocalOrgConfig, default_user: KhojUser
-):
+def test_update_index_with_duplicate_entries_in_stable_order(tmp_path, search_config, default_user: KhojUser):
     # Arrange
+    initial_data = get_sample_data("org")
+    text_search.setup(OrgToEntries, initial_data, regenerate=True, user=default_user)
     existing_entries = list(Entry.objects.filter(user=default_user).values_list("compiled", flat=True))
-    new_file_to_index = Path(org_config_with_only_new_file.input_files[0])
 
     # Insert org-mode entries with same compiled form into new org file
+    new_file_to_index = tmp_path / "test.org"
     new_entry = "* TODO A Chihuahua doing Tango\n- Saw a super cute video of a chihuahua doing the Tango on Youtube\n"
-    with open(new_file_to_index, "w") as f:
-        f.write(f"{new_entry}{new_entry}")
-
-    data = get_org_files(org_config_with_only_new_file)
+    # Initial data with duplicate entries
+    data = {str(new_file_to_index): f"{new_entry}{new_entry}"}
 
     # Act
     # generate embeddings, entries, notes model from scratch after adding new org-mode file
     text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
     updated_entries1 = list(Entry.objects.filter(user=default_user).values_list("compiled", flat=True))
 
-    data = get_org_files(org_config_with_only_new_file)
-
-    # update embeddings, entries, notes model with no new changes
+    # idempotent indexing when data unchanged
     text_search.setup(OrgToEntries, data, regenerate=False, user=default_user)
     updated_entries2 = list(Entry.objects.filter(user=default_user).values_list("compiled", flat=True))
 
@@ -324,6 +268,7 @@ def test_update_index_with_duplicate_entries_in_stable_order(
     for entry in existing_entries:
         assert entry not in updated_entries1
 
+    # verify the second indexing update has same entries and ordering as first
     for entry in updated_entries1:
         assert entry in updated_entries2
 
@@ -334,22 +279,17 @@ def test_update_index_with_duplicate_entries_in_stable_order(
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_update_index_with_deleted_entry(org_config_with_only_new_file: LocalOrgConfig, default_user: KhojUser):
+def test_update_index_with_deleted_entry(tmp_path, search_config, default_user: KhojUser):
     # Arrange
     existing_entries = list(Entry.objects.filter(user=default_user).values_list("compiled", flat=True))
-    new_file_to_index = Path(org_config_with_only_new_file.input_files[0])
 
-    # Insert org-mode entries with same compiled form into new org file
+    new_file_to_index = tmp_path / "test.org"
     new_entry = "* TODO A Chihuahua doing Tango\n- Saw a super cute video of a chihuahua doing the Tango on Youtube\n"
-    with open(new_file_to_index, "w") as f:
-        f.write(f"{new_entry}{new_entry} -- Tatooine")
-    initial_data = get_org_files(org_config_with_only_new_file)
 
-    # update embeddings, entries, notes model after removing an entry from the org file
-    with open(new_file_to_index, "w") as f:
-        f.write(f"{new_entry}")
-
-    final_data = get_org_files(org_config_with_only_new_file)
+    # Initial data with two entries
+    initial_data = {str(new_file_to_index): f"{new_entry}{new_entry} -- Tatooine"}
+    # Final data with only first entry, with second entry removed
+    final_data = {str(new_file_to_index): f"{new_entry}"}
 
     # Act
     # load embeddings, entries, notes model after adding new org file with 2 entries
@@ -375,29 +315,29 @@ def test_update_index_with_deleted_entry(org_config_with_only_new_file: LocalOrg
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.django_db
-def test_update_index_with_new_entry(content_config: ContentConfig, new_org_file: Path, default_user: KhojUser):
+def test_update_index_with_new_entry(search_config, default_user: KhojUser):
     # Arrange
-    existing_entries = list(Entry.objects.filter(user=default_user).values_list("compiled", flat=True))
-    org_config = LocalOrgConfig.objects.filter(user=default_user).first()
-    data = get_org_files(org_config)
-    text_search.setup(OrgToEntries, data, regenerate=True, user=default_user)
+    # Initial indexed files
+    text_search.setup(OrgToEntries, get_sample_data("org"), regenerate=True, user=default_user)
+    old_entries = list(Entry.objects.filter(user=default_user).values_list("compiled", flat=True))
 
-    # append org-mode entry to first org input file in config
-    with open(new_org_file, "w") as f:
-        new_entry = "\n* A Chihuahua doing Tango\n- Saw a super cute video of a chihuahua doing the Tango on Youtube\n"
-        f.write(new_entry)
-
-    data = get_org_files(org_config)
+    # Regenerate index with only files from test data set
+    files_to_index = get_index_files()
+    new_entries = text_search.setup(OrgToEntries, files_to_index, regenerate=True, user=default_user)
 
     # Act
-    # update embeddings, entries with the newly added note
-    text_search.setup(OrgToEntries, data, regenerate=False, user=default_user)
-    updated_entries1 = list(Entry.objects.filter(user=default_user).values_list("compiled", flat=True))
+    # Update index with the new file
+    new_file = "test.org"
+    new_entry = "\n* A Chihuahua doing Tango\n- Saw a super cute video of a chihuahua doing the Tango on Youtube\n"
+    final_data = {new_file: new_entry}
+
+    text_search.setup(OrgToEntries, final_data, regenerate=False, user=default_user)
+    updated_new_entries = list(Entry.objects.filter(user=default_user).values_list("compiled", flat=True))
 
     # Assert
-    for entry in existing_entries:
-        assert entry not in updated_entries1
-    assert len(updated_entries1) == len(existing_entries) + 1
+    for old_entry in old_entries:
+        assert old_entry not in updated_new_entries
+    assert len(updated_new_entries) == len(new_entries) + 1
     verify_embeddings(3, default_user)
 
 
@@ -409,9 +349,7 @@ def test_update_index_with_new_entry(content_config: ContentConfig, new_org_file
         (OrgToEntries),
     ],
 )
-def test_update_index_with_deleted_file(
-    org_config_with_only_new_file: LocalOrgConfig, text_to_entries: TextToEntries, default_user: KhojUser
-):
+def test_update_index_with_deleted_file(text_to_entries: TextToEntries, search_config, default_user: KhojUser):
     "Delete entries associated with new file when file path with empty content passed."
     # Arrange
     file_to_index = "test"
@@ -446,7 +384,7 @@ def test_update_index_with_deleted_file(
 
 # ----------------------------------------------------------------------------------------------------
 @pytest.mark.skipif(os.getenv("GITHUB_PAT_TOKEN") is None, reason="GITHUB_PAT_TOKEN not set")
-def test_text_search_setup_github(content_config: ContentConfig, default_user: KhojUser):
+def test_text_search_setup_github(search_config, default_user: KhojUser):
     # Arrange
     github_config = GithubConfig.objects.filter(user=default_user).first()
 

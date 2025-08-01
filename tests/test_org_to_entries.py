@@ -4,9 +4,8 @@ import time
 
 from khoj.processor.content.org_mode.org_to_entries import OrgToEntries
 from khoj.processor.content.text_to_entries import TextToEntries
-from khoj.utils.fs_syncer import get_org_files
 from khoj.utils.helpers import is_none_or_empty
-from khoj.utils.rawconfig import Entry, TextContentConfig
+from khoj.utils.rawconfig import Entry
 
 
 def test_configure_indexing_heading_only_entries(tmp_path):
@@ -328,46 +327,6 @@ def test_file_with_no_headings_to_entry(tmp_path):
     # Assert
     assert len(entries) == 2
     assert len(entries[1]) == 1
-
-
-def test_get_org_files(tmp_path):
-    "Ensure Org files specified via input-filter, input-files extracted"
-    # Arrange
-    # Include via input-filter globs
-    group1_file1 = create_file(tmp_path, filename="group1-file1.org")
-    group1_file2 = create_file(tmp_path, filename="group1-file2.org")
-    group2_file1 = create_file(tmp_path, filename="group2-file1.org")
-    group2_file2 = create_file(tmp_path, filename="group2-file2.org")
-    # Include via input-file field
-    orgfile1 = create_file(tmp_path, filename="orgfile1.org")
-    # Not included by any filter
-    create_file(tmp_path, filename="orgfile2.org")
-    create_file(tmp_path, filename="text1.txt")
-
-    expected_files = set(
-        [
-            os.path.join(tmp_path, file.name)
-            for file in [group1_file1, group1_file2, group2_file1, group2_file2, orgfile1]
-        ]
-    )
-
-    # Setup input-files, input-filters
-    input_files = [tmp_path / "orgfile1.org"]
-    input_filter = [tmp_path / "group1*.org", tmp_path / "group2*.org"]
-
-    org_config = TextContentConfig(
-        input_files=input_files,
-        input_filter=[str(filter) for filter in input_filter],
-        compressed_jsonl=tmp_path / "test.jsonl",
-        embeddings_file=tmp_path / "test_embeddings.jsonl",
-    )
-
-    # Act
-    extracted_org_files = get_org_files(org_config)
-
-    # Assert
-    assert len(extracted_org_files) == 5
-    assert set(extracted_org_files.keys()) == expected_files
 
 
 def test_extract_entries_with_different_level_headings(tmp_path):

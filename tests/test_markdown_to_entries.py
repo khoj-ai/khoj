@@ -3,8 +3,6 @@ import re
 from pathlib import Path
 
 from khoj.processor.content.markdown.markdown_to_entries import MarkdownToEntries
-from khoj.utils.fs_syncer import get_markdown_files
-from khoj.utils.rawconfig import TextContentConfig
 
 
 def test_extract_markdown_with_no_headings(tmp_path):
@@ -210,43 +208,6 @@ longer body line 2.1
     assert (
         entries[1][2].raw == "# Heading 2\n## Subheading 2.1\nlonger body line 2.1\n"
     ), "Third entry is second entries child heading"
-
-
-def test_get_markdown_files(tmp_path):
-    "Ensure Markdown files specified via input-filter, input-files extracted"
-    # Arrange
-    # Include via input-filter globs
-    group1_file1 = create_file(tmp_path, filename="group1-file1.md")
-    group1_file2 = create_file(tmp_path, filename="group1-file2.md")
-    group2_file1 = create_file(tmp_path, filename="group2-file1.markdown")
-    group2_file2 = create_file(tmp_path, filename="group2-file2.markdown")
-    # Include via input-file field
-    file1 = create_file(tmp_path, filename="notes.md")
-    # Not included by any filter
-    create_file(tmp_path, filename="not-included-markdown.md")
-    create_file(tmp_path, filename="not-included-text.txt")
-
-    expected_files = set(
-        [os.path.join(tmp_path, file.name) for file in [group1_file1, group1_file2, group2_file1, group2_file2, file1]]
-    )
-
-    # Setup input-files, input-filters
-    input_files = [tmp_path / "notes.md"]
-    input_filter = [tmp_path / "group1*.md", tmp_path / "group2*.markdown"]
-
-    markdown_config = TextContentConfig(
-        input_files=input_files,
-        input_filter=[str(filter) for filter in input_filter],
-        compressed_jsonl=tmp_path / "test.jsonl",
-        embeddings_file=tmp_path / "test_embeddings.jsonl",
-    )
-
-    # Act
-    extracted_org_files = get_markdown_files(markdown_config)
-
-    # Assert
-    assert len(extracted_org_files) == 5
-    assert set(extracted_org_files.keys()) == expected_files
 
 
 def test_line_number_tracking_in_recursive_split():

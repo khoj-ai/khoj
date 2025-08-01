@@ -27,7 +27,6 @@ logger = logging.getLogger(__name__)
 class TextToEntries(ABC):
     def __init__(self, config: Any = None):
         self.embeddings_model = state.embeddings_model
-        self.config = config
         self.date_filter = DateFilter()
 
     @abstractmethod

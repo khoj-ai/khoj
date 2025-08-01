@@ -1,6 +1,12 @@
 # Application Packages
 from khoj.search_filter.word_filter import WordFilter
-from khoj.utils.rawconfig import Entry
+
+
+# Mock Entry class for testing
+class Entry:
+    def __init__(self, compiled="", raw=""):
+        self.compiled = compiled
+        self.raw = raw
 
 
 # Test

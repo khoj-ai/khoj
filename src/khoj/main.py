@@ -138,10 +138,10 @@ def run(should_start_server=True):
     initialization(not args.non_interactive)
 
     # Create app directory, if it doesn't exist
-    state.config_file.parent.mkdir(parents=True, exist_ok=True)
+    state.log_file.parent.mkdir(parents=True, exist_ok=True)
 
     # Set Log File
-    fh = logging.FileHandler(state.config_file.parent / "khoj.log", encoding="utf-8")
+    fh = logging.FileHandler(state.log_file, encoding="utf-8")
     fh.setLevel(logging.DEBUG)
     logger.addHandler(fh)
 
@@ -194,7 +194,7 @@ def run(should_start_server=True):
     # Configure Middleware
     configure_middleware(app, state.ssl_config)
 
-    initialize_server(args.config)
+    initialize_server()
 
     # If the server is started through gunicorn (external to the script), don't start the server
     if should_start_server:
@@ -204,8 +204,7 @@ def run(should_start_server=True):
 
 
 def set_state(args):
-    state.config_file = args.config_file
-    state.config = args.config
+    state.log_file = args.log_file
     state.verbose = args.verbose
     state.host = args.host
     state.port = args.port
@@ -214,7 +213,6 @@ def set_state(args):
     )
     state.anonymous_mode = args.anonymous_mode
     state.khoj_version = version("khoj")
-    state.chat_on_gpu = args.chat_on_gpu
 
 
 def start_server(app, host=None, port=None, socket=None):

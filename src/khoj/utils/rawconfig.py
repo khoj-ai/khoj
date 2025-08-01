@@ -48,17 +48,6 @@ class FilesFilterRequest(BaseModel):
     conversation_id: str
 
 
-class TextConfigBase(ConfigBase):
-    compressed_jsonl: Path
-    embeddings_file: Path
-
-
-class TextContentConfig(ConfigBase):
-    input_files: Optional[List[Path]] = None
-    input_filter: Optional[List[str]] = None
-    index_heading_entries: Optional[bool] = False
-
-
 class GithubRepoConfig(ConfigBase):
     name: str
     owner: str
@@ -72,62 +61,6 @@ class GithubContentConfig(ConfigBase):
 
 class NotionContentConfig(ConfigBase):
     token: str
-
-
-class ContentConfig(ConfigBase):
-    org: Optional[TextContentConfig] = None
-    markdown: Optional[TextContentConfig] = None
-    pdf: Optional[TextContentConfig] = None
-    plaintext: Optional[TextContentConfig] = None
-    github: Optional[GithubContentConfig] = None
-    notion: Optional[NotionContentConfig] = None
-    image: Optional[TextContentConfig] = None
-    docx: Optional[TextContentConfig] = None
-
-
-class ImageSearchConfig(ConfigBase):
-    encoder: str
-    encoder_type: Optional[str] = None
-    model_directory: Optional[Path] = None
-
-    class Config:
-        protected_namespaces = ()
-
-
-class SearchConfig(ConfigBase):
-    image: Optional[ImageSearchConfig] = None
-
-
-class OpenAIProcessorConfig(ConfigBase):
-    api_key: str
-    chat_model: Optional[str] = "gpt-4o-mini"
-
-
-class OfflineChatProcessorConfig(ConfigBase):
-    chat_model: Optional[str] = "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF"
-
-
-class ConversationProcessorConfig(ConfigBase):
-    openai: Optional[OpenAIProcessorConfig] = None
-    offline_chat: Optional[OfflineChatProcessorConfig] = None
-    max_prompt_size: Optional[int] = None
-    tokenizer: Optional[str] = None
-
-
-class ProcessorConfig(ConfigBase):
-    conversation: Optional[ConversationProcessorConfig] = None
-
-
-class AppConfig(ConfigBase):
-    should_log_telemetry: bool = True
-
-
-class FullConfig(ConfigBase):
-    content_type: Optional[ContentConfig] = None
-    search_type: Optional[SearchConfig] = None
-    processor: Optional[ProcessorConfig] = None
-    app: Optional[AppConfig] = AppConfig()
-    version: Optional[str] = None
 
 
 class SearchResponse(ConfigBase):

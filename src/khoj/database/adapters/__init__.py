@@ -72,7 +72,6 @@ from khoj.search_filter.date_filter import DateFilter
 from khoj.search_filter.file_filter import FileFilter
 from khoj.search_filter.word_filter import WordFilter
 from khoj.utils import state
-from khoj.utils.config import OfflineChatProcessorModel
 from khoj.utils.helpers import (
     clean_object_for_db,
     clean_text_for_db,
@@ -789,8 +788,8 @@ class AgentAdapters:
         return Agent.objects.filter(name=AgentAdapters.DEFAULT_AGENT_NAME).first()
 
     @staticmethod
-    def create_default_agent(user: KhojUser):
-        default_chat_model = ConversationAdapters.get_default_chat_model(user)
+    def create_default_agent():
+        default_chat_model = ConversationAdapters.get_default_chat_model(user=None)
         if default_chat_model is None:
             logger.info("No default conversation config found, skipping default agent creation")
             return None
@@ -1552,14 +1551,6 @@ class ConversationAdapters:
 
         if chat_model is None:
             chat_model = await ConversationAdapters.aget_default_chat_model()
-
-        if chat_model.model_type == ChatModel.ModelType.OFFLINE:
-            if state.offline_chat_processor_config is None or state.offline_chat_processor_config.loaded_model is None:
-                chat_model_name = chat_model.name
-                max_tokens = chat_model.max_prompt_size
-                state.offline_chat_processor_config = OfflineChatProcessorModel(chat_model_name, max_tokens)
-
-            return chat_model
 
         if (
             chat_model.model_type

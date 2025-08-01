@@ -15,7 +15,6 @@ from khoj.configure import initialize_content
 from khoj.database import adapters
 from khoj.database.adapters import ConversationAdapters, EntryAdapters, get_user_photo
 from khoj.database.models import KhojUser, SpeechToTextModelOptions
-from khoj.processor.conversation.offline.whisper import transcribe_audio_offline
 from khoj.processor.conversation.openai.whisper import transcribe_audio
 from khoj.routers.helpers import (
     ApiUserRateLimiter,
@@ -88,22 +87,14 @@ def update(
     force: Optional[bool] = False,
 ):
     user = request.user.object
-    if not state.config:
-        error_msg = f"🚨 Khoj is not configured.\nConfigure it via http://localhost:42110/settings, plugins or by editing {state.config_file}."
-        logger.warning(error_msg)
-        raise HTTPException(status_code=500, detail=error_msg)
     try:
         initialize_content(user=user, regenerate=force, search_type=t)
     except Exception as e:
-        error_msg = f"🚨 Failed to update server via API: {e}"
+        error_msg = f"🚨 Failed to update server indexed content via API: {e}"
         logger.error(error_msg, exc_info=True)
         raise HTTPException(status_code=500, detail=error_msg)
     else:
-        components = []
-        if state.search_models:
-            components.append("Search models")
-        components_msg = ", ".join(components)
-        logger.info(f"📪 {components_msg} updated via API")
+        logger.info(f"📪 Server indexed content updated via API")
 
     update_telemetry_state(
         request=request,
@@ -150,9 +141,6 @@ async def transcribe(
         if not speech_to_text_config:
             # If the user has not configured a speech to text model, return an unsupported on server error
             status_code = 501
-        elif speech_to_text_config.model_type == SpeechToTextModelOptions.ModelType.OFFLINE:
-            speech2text_model = speech_to_text_config.model_name
-            user_message = await transcribe_audio_offline(audio_filename, speech2text_model)
         elif speech_to_text_config.model_type == SpeechToTextModelOptions.ModelType.OPENAI:
             speech2text_model = speech_to_text_config.model_name
             if speech_to_text_config.ai_model_api:
