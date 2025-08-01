@@ -532,7 +532,7 @@ class ComputerEnvironment(Environment):
             else:
                 return {"success": False, "output": process.stdout, "error": process.stderr}
         except asyncio.TimeoutError:
-            return {"success": False, "output": "", "error": f"Command timed out after 120 seconds."}
+            return {"success": False, "output": "", "error": "Command timed out after 120 seconds."}
         except Exception as e:
             return {"success": False, "output": "", "error": str(e)}
 

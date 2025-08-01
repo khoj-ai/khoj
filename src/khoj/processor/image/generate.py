@@ -108,12 +108,12 @@ async def text_to_image(
             if "content_policy_violation" in e.message:
                 logger.error(f"Image Generation blocked by OpenAI: {e}")
                 status_code = e.status_code  # type: ignore
-                message = f"Image generation blocked by OpenAI due to policy violation"  # type: ignore
+                message = "Image generation blocked by OpenAI due to policy violation"  # type: ignore
                 yield image_url or image, status_code, message
                 return
             else:
                 logger.error(f"Image Generation failed with {e}", exc_info=True)
-                message = f"Image generation failed using OpenAI"  # type: ignore
+                message = "Image generation failed using OpenAI"  # type: ignore
                 status_code = e.status_code  # type: ignore
                 yield image_url or image, status_code, message
                 return
@@ -199,7 +199,7 @@ def generate_image_with_stability(
 
     # Call Stability AI API to generate image
     response = requests.post(
-        f"https://api.stability.ai/v2beta/stable-image/generate/sd3",
+        "https://api.stability.ai/v2beta/stable-image/generate/sd3",
         headers={"authorization": f"Bearer {text_to_image_config.api_key}", "accept": "image/*"},
         files={"none": ""},
         data={

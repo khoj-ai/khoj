@@ -1,7 +1,6 @@
 import base64
 import json
 import logging
-import math
 import mimetypes
 import os
 import re
@@ -18,7 +17,7 @@ import requests
 import tiktoken
 import yaml
 from langchain_core.messages.chat import ChatMessage
-from pydantic import BaseModel, ConfigDict, ValidationError, create_model
+from pydantic import BaseModel, ConfigDict, ValidationError
 from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizerFast
 
 from khoj.database.adapters import ConversationAdapters
@@ -47,7 +46,11 @@ from khoj.utils.yaml import yaml_dump
 logger = logging.getLogger(__name__)
 
 try:
-    from git import Repo
+    import importlib.util
+
+    git_spec = importlib.util.find_spec("git")
+    if git_spec is None:
+        raise ImportError
 except ImportError:
     if is_promptrace_enabled():
         logger.warning("GitPython not installed. `pip install gitpython` to use prompt tracer.")
@@ -294,7 +297,7 @@ def construct_chat_history_for_operator(conversation_history: List[ChatMessageMo
         if chat.by == "you" and chat.message:
             content = [{"type": "text", "text": chat.message}]
             for file in chat.queryFiles or []:
-                content += [{"type": "text", "text": f'## File: {file["name"]}\n\n{file["content"]}'}]
+                content += [{"type": "text", "text": f"## File: {file['name']}\n\n{file['content']}"}]
             user_message = AgentMessage(role="user", content=content)
         elif chat.by == "khoj" and chat.message:
             chat_history += [user_message, AgentMessage(role="assistant", content=chat.message)]
@@ -311,7 +314,10 @@ def construct_tool_chat_history(
     If no tool is provided inferred query for all tools used are added.
     """
     chat_history: list = []
-    base_extractor: Callable[[ResearchIteration], List[str]] = lambda iteration: []
+
+    def base_extractor(iteration: ResearchIteration) -> List[str]:
+        return []
+
     extract_inferred_query_map: Dict[ConversationCommand, Callable[[ResearchIteration], List[str]]] = {
         ConversationCommand.SemanticSearchFiles: (
             lambda iteration: [c["query"] for c in iteration.context] if iteration.context else []
@@ -498,7 +504,7 @@ async def save_to_conversation_log(
 
     logger.info(
         f"""
-Saved Conversation Turn ({db_conversation.id if db_conversation else 'N/A'}):
+Saved Conversation Turn ({db_conversation.id if db_conversation else "N/A"}):
 You ({user.username}): "{q}"
 
 Khoj: "{chat_response}"
@@ -625,7 +631,7 @@ def generate_chatml_messages_with_context(
 
         if not is_none_or_empty(chat.operatorContext):
             operator_context = chat.operatorContext
-            operator_content = "\n\n".join([f'## Task: {oc["query"]}\n{oc["response"]}\n' for oc in operator_context])
+            operator_content = "\n\n".join([f"## Task: {oc['query']}\n{oc['response']}\n" for oc in operator_context])
             message_context += [
                 {
                     "type": "text",
@@ -744,7 +750,7 @@ def get_encoder(
         else:
             # as tiktoken doesn't recognize o1 model series yet
             encoder = tiktoken.encoding_for_model("gpt-4o" if model_name.startswith("o1") else model_name)
-    except:
+    except Exception:
         encoder = tiktoken.encoding_for_model(default_tokenizer)
         if state.verbose > 2:
             logger.debug(
@@ -846,9 +852,9 @@ def truncate_messages(
     total_tokens, _ = count_total_tokens(messages, encoder, system_message)
     if total_tokens > max_prompt_size:
         # At this point, a single message with a single content part of type dict should remain
-        assert (
-            len(messages) == 1 and len(messages[0].content) == 1 and isinstance(messages[0].content[0], dict)
-        ), "Expected a single message with a single content part remaining at this point in truncation"
+        assert len(messages) == 1 and len(messages[0].content) == 1 and isinstance(messages[0].content[0], dict), (
+            "Expected a single message with a single content part remaining at this point in truncation"
+        )
 
         # Collate message content into single string to ease truncation
         part = messages[0].content[0]

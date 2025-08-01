@@ -65,7 +65,7 @@ def makelist(file, filename, start_line: int = 1, ancestry_lines: int = 0) -> Li
     """
     ctr = 0
 
-    if type(file) == str:
+    if isinstance(file, str):
         f = file.splitlines()
     else:
         f = file
@@ -512,11 +512,11 @@ class Orgnode(object):
         if self._closed or self._scheduled or self._deadline:
             n = n + indent
         if self._closed:
-            n = n + f'CLOSED: [{self._closed.strftime("%Y-%m-%d %a")}] '
+            n = n + f"CLOSED: [{self._closed.strftime('%Y-%m-%d %a')}] "
         if self._scheduled:
-            n = n + f'SCHEDULED: <{self._scheduled.strftime("%Y-%m-%d %a")}> '
+            n = n + f"SCHEDULED: <{self._scheduled.strftime('%Y-%m-%d %a')}> "
         if self._deadline:
-            n = n + f'DEADLINE: <{self._deadline.strftime("%Y-%m-%d %a")}> '
+            n = n + f"DEADLINE: <{self._deadline.strftime('%Y-%m-%d %a')}> "
         if self._closed or self._scheduled or self._deadline:
             n = n + "\n"
 

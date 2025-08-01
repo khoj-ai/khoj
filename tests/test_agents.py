@@ -20,7 +20,7 @@ def test_create_default_agent(default_user: KhojUser):
     assert agent.input_tools == []
     assert agent.output_modes == []
     assert agent.privacy_level == Agent.PrivacyLevel.PUBLIC
-    assert agent.managed_by_admin == True
+    assert agent.managed_by_admin
 
 
 @pytest.mark.anyio
@@ -178,7 +178,7 @@ async def test_multiple_agents_with_knowledge_base_and_users(
     default_user2: KhojUser, default_openai_chat_model_option: ChatModel, chat_client, default_user3: KhojUser
 ):
     full_filename = get_absolute_path("tests/data/markdown/having_kids.markdown")
-    new_agent = await AgentAdapters.aupdate_agent(
+    await AgentAdapters.aupdate_agent(
         default_user2,
         "Test Agent",
         "Test Personality",
@@ -290,17 +290,17 @@ async def test_large_knowledge_base_atomic_update(
     assert len(final_entries) > initial_entries_count, "Should have more entries after update"
 
     # With 180 files, we should have many entries (each file creates multiple entries)
-    assert (
-        len(final_entries) >= expected_file_count
-    ), f"Expected at least {expected_file_count} entries, got {len(final_entries)}"
+    assert len(final_entries) >= expected_file_count, (
+        f"Expected at least {expected_file_count} entries, got {len(final_entries)}"
+    )
 
     # Verify no partial state - all entries should correspond to the final file set
     entry_file_paths = {entry.file_path for entry in final_entries}
 
     # All file objects should have corresponding entries
-    assert file_paths_in_db.issubset(
-        entry_file_paths
-    ), "All file objects should have corresponding entries - atomic update verification"
+    assert file_paths_in_db.issubset(entry_file_paths), (
+        "All file objects should have corresponding entries - atomic update verification"
+    )
 
     # Additional stress test: verify referential integrity
     # Count entries per file to ensure no partial file processing
@@ -333,7 +333,7 @@ async def test_concurrent_agent_updates_atomicity(
     test_files = available_files  # Use all available files for the stress test
 
     # Create initial agent
-    agent = await AgentAdapters.aupdate_agent(
+    await AgentAdapters.aupdate_agent(
         default_user2,
         "Concurrent Test Agent",
         "Test concurrent updates",
@@ -391,14 +391,14 @@ async def test_concurrent_agent_updates_atomicity(
         file_object_paths = {fo.file_name for fo in final_file_objects}
 
         # All entries should have corresponding file objects
-        assert entry_file_paths.issubset(
-            file_object_paths
-        ), "All entries should have corresponding file objects - indicates atomic update worked"
+        assert entry_file_paths.issubset(file_object_paths), (
+            "All entries should have corresponding file objects - indicates atomic update worked"
+        )
 
     except Exception as e:
         # If we get database integrity errors, that's actually expected behavior
         # with proper atomic transactions - they should fail cleanly rather than
         # allowing partial updates
-        assert (
-            "database" in str(e).lower() or "integrity" in str(e).lower()
-        ), f"Expected database/integrity error with concurrent updates, got: {e}"
+        assert "database" in str(e).lower() or "integrity" in str(e).lower(), (
+            f"Expected database/integrity error with concurrent updates, got: {e}"
+        )

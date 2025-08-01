@@ -6,12 +6,11 @@ from typing import Dict, List, Optional
 
 from asgiref.sync import sync_to_async
 from fastapi import APIRouter, Request
-from fastapi.requests import Request
 from fastapi.responses import Response
 from pydantic import BaseModel
 from starlette.authentication import has_required_scope, requires
 
-from khoj.database.adapters import AgentAdapters, ConversationAdapters, EntryAdapters
+from khoj.database.adapters import AgentAdapters, ConversationAdapters
 from khoj.database.models import Agent, Conversation, KhojUser, PriceTier
 from khoj.routers.helpers import CommonQueryParams, acheck_if_safe_prompt
 from khoj.utils.helpers import (

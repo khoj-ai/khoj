@@ -551,12 +551,12 @@ class TextToImageModelConfig(DbBaseModel):
         error = {}
         if self.model_type == self.ModelType.OPENAI:
             if self.api_key and self.ai_model_api:
-                error[
-                    "api_key"
-                ] = "Both API key and AI Model API cannot be set for OpenAI models. Please set only one of them."
-                error[
-                    "ai_model_api"
-                ] = "Both API key and OpenAI config cannot be set for OpenAI models. Please set only one of them."
+                error["api_key"] = (
+                    "Both API key and AI Model API cannot be set for OpenAI models. Please set only one of them."
+                )
+                error["ai_model_api"] = (
+                    "Both API key and OpenAI config cannot be set for OpenAI models. Please set only one of them."
+                )
         if self.model_type != self.ModelType.OPENAI and self.model_type != self.ModelType.GOOGLE:
             if not self.api_key:
                 error["api_key"] = "The API key field must be set for non OpenAI, non Google models."

@@ -2,7 +2,7 @@ import os
 import threading
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from openai import OpenAI

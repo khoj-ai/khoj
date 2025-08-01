@@ -1,5 +1,5 @@
-""" Main module for Khoj
-   isort:skip_file
+"""Main module for Khoj
+isort:skip_file
 """
 
 from contextlib import redirect_stdout
@@ -189,7 +189,7 @@ def run(should_start_server=True):
     static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
     if not os.path.exists(static_dir):
         os.mkdir(static_dir)
-    app.mount(f"/static", StaticFiles(directory=static_dir), name=static_dir)
+    app.mount("/static", StaticFiles(directory=static_dir), name=static_dir)
 
     # Configure Middleware
     configure_middleware(app, state.ssl_config)

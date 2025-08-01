@@ -1,5 +1,3 @@
-import os
-
 from khoj.processor.content.images.image_to_entries import ImageToEntries
 
 
