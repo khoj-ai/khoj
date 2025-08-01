@@ -52,7 +52,7 @@ interface TrainOfThoughtFrame {
 }
 
 interface TrainOfThoughtGroup {
-    type: 'video' | 'text';
+    type: "video" | "text";
     frames?: TrainOfThoughtFrame[];
     textEntries?: TrainOfThoughtObject[];
 }
@@ -65,7 +65,9 @@ interface TrainOfThoughtComponentProps {
     completed?: boolean;
 }
 
-function extractTrainOfThoughtGroups(trainOfThought?: TrainOfThoughtObject[]): TrainOfThoughtGroup[] {
+function extractTrainOfThoughtGroups(
+    trainOfThought?: TrainOfThoughtObject[],
+): TrainOfThoughtGroup[] {
     if (!trainOfThought) return [];
 
     const groups: TrainOfThoughtGroup[] = [];
@@ -94,8 +96,8 @@ function extractTrainOfThoughtGroups(trainOfThought?: TrainOfThoughtObject[]): T
                     // If we have accumulated text entries, add them as a text group
                     if (currentTextEntries.length > 0) {
                         groups.push({
-                            type: 'text',
-                            textEntries: [...currentTextEntries]
+                            type: "text",
+                            textEntries: [...currentTextEntries],
                         });
                         currentTextEntries = [];
                     }
@@ -116,8 +118,8 @@ function extractTrainOfThoughtGroups(trainOfThought?: TrainOfThoughtObject[]): T
             // If we have accumulated video frames, add them as a video group
             if (currentVideoFrames.length > 0) {
                 groups.push({
-                    type: 'video',
-                    frames: [...currentVideoFrames]
+                    type: "video",
+                    frames: [...currentVideoFrames],
                 });
                 currentVideoFrames = [];
             }
@@ -130,14 +132,14 @@ function extractTrainOfThoughtGroups(trainOfThought?: TrainOfThoughtObject[]): T
     // Add any remaining frames/entries
     if (currentVideoFrames.length > 0) {
         groups.push({
-            type: 'video',
-            frames: currentVideoFrames
+            type: "video",
+            frames: currentVideoFrames,
         });
     }
     if (currentTextEntries.length > 0) {
         groups.push({
-            type: 'text',
-            textEntries: currentTextEntries
+            type: "text",
+            textEntries: currentTextEntries,
         });
     }
 
@@ -177,10 +179,10 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
         // Convert string array to TrainOfThoughtObject array if needed
         let trainOfThoughtObjects: TrainOfThoughtObject[];
 
-        if (typeof props.trainOfThought[0] === 'string') {
+        if (typeof props.trainOfThought[0] === "string") {
             trainOfThoughtObjects = (props.trainOfThought as string[]).map((data, index) => ({
-                type: 'text',
-                data: data
+                type: "text",
+                data: data,
             }));
         } else {
             trainOfThoughtObjects = props.trainOfThought as TrainOfThoughtObject[];
@@ -221,28 +223,37 @@ function TrainOfThoughtComponent(props: TrainOfThoughtComponentProps) {
                     <motion.div initial="closed" animate="open" exit="closed" variants={variants}>
                         {trainOfThoughtGroups.map((group, groupIndex) => (
                             <div key={`train-group-${groupIndex}`}>
-                                {group.type === 'video' && group.frames && group.frames.length > 0 && (
-                                    <TrainOfThoughtVideoPlayer
-                                        frames={group.frames}
-                                        autoPlay={false}
-                                        playbackSpeed={1500}
-                                    />
-                                )}
-                                {group.type === 'text' && group.textEntries && group.textEntries.map((entry, entryIndex) => {
-                                    const lastIndex = trainOfThoughtGroups.length - 1;
-                                    const isLastGroup = groupIndex === lastIndex;
-                                    const isLastEntry = entryIndex === group.textEntries!.length - 1;
-                                    const isPrimaryEntry = isLastGroup && isLastEntry && props.lastMessage && !props.completed;
-
-                                    return (
-                                        <TrainOfThought
-                                            key={`train-text-${groupIndex}-${entryIndex}-${entry.data.length}`}
-                                            message={entry.data}
-                                            primary={isPrimaryEntry}
-                                            agentColor={props.agentColor}
+                                {group.type === "video" &&
+                                    group.frames &&
+                                    group.frames.length > 0 && (
+                                        <TrainOfThoughtVideoPlayer
+                                            frames={group.frames}
+                                            autoPlay={false}
+                                            playbackSpeed={1500}
                                         />
-                                    );
-                                })}
+                                    )}
+                                {group.type === "text" &&
+                                    group.textEntries &&
+                                    group.textEntries.map((entry, entryIndex) => {
+                                        const lastIndex = trainOfThoughtGroups.length - 1;
+                                        const isLastGroup = groupIndex === lastIndex;
+                                        const isLastEntry =
+                                            entryIndex === group.textEntries!.length - 1;
+                                        const isPrimaryEntry =
+                                            isLastGroup &&
+                                            isLastEntry &&
+                                            props.lastMessage &&
+                                            !props.completed;
+
+                                        return (
+                                            <TrainOfThought
+                                                key={`train-text-${groupIndex}-${entryIndex}-${entry.data.length}`}
+                                                message={entry.data}
+                                                primary={isPrimaryEntry}
+                                                agentColor={props.agentColor}
+                                            />
+                                        );
+                                    })}
                             </div>
                         ))}
                     </motion.div>
@@ -300,7 +311,8 @@ export default function ChatHistory(props: ChatHistoryProps) {
     // ResizeObserver to handle content height changes (e.g., images loading)
     useEffect(() => {
         const contentWrapper = scrollableContentWrapperRef.current;
-        const scrollViewport = scrollAreaRef.current?.querySelector<HTMLElement>(scrollAreaSelector);
+        const scrollViewport =
+            scrollAreaRef.current?.querySelector<HTMLElement>(scrollAreaSelector);
 
         if (!contentWrapper || !scrollViewport) return;
 
@@ -308,14 +320,18 @@ export default function ChatHistory(props: ChatHistoryProps) {
             // Check current scroll position to decide if auto-scroll is warranted
             const { scrollTop, scrollHeight, clientHeight } = scrollViewport;
             const bottomThreshold = 50;
-            const currentlyNearBottom = (scrollHeight - (scrollTop + clientHeight)) <= bottomThreshold;
+            const currentlyNearBottom =
+                scrollHeight - (scrollTop + clientHeight) <= bottomThreshold;
 
             if (currentlyNearBottom) {
                 // Only auto-scroll if there are incoming messages being processed
                 if (props.incomingMessages && props.incomingMessages.length > 0) {
                     const lastMessage = props.incomingMessages[props.incomingMessages.length - 1];
                     // If the last message is not completed, or it just completed (indicated by incompleteIncomingMessageIndex still being set)
-                    if (!lastMessage.completed || (lastMessage.completed && incompleteIncomingMessageIndex !== null)) {
+                    if (
+                        !lastMessage.completed ||
+                        (lastMessage.completed && incompleteIncomingMessageIndex !== null)
+                    ) {
                         scrollToBottom(true); // Use instant scroll
                     }
                 }
@@ -463,7 +479,12 @@ export default function ChatHistory(props: ChatHistoryProps) {
             });
         });
         // Optimistically set, the scroll listener will verify
-        if (instant || scrollAreaEl && (scrollAreaEl.scrollHeight - (scrollAreaEl.scrollTop + scrollAreaEl.clientHeight)) < 5) {
+        if (
+            instant ||
+            (scrollAreaEl &&
+                scrollAreaEl.scrollHeight - (scrollAreaEl.scrollTop + scrollAreaEl.clientHeight) <
+                    5)
+        ) {
             setIsNearBottom(true);
         }
     };
@@ -626,16 +647,19 @@ export default function ChatHistory(props: ChatHistoryProps) {
                                         conversationId={props.conversationId}
                                         turnId={messageTurnId}
                                     />
-                                    {message.trainOfThought && message.trainOfThought.length > 0 && (
-                                        <TrainOfThoughtComponent
-                                            trainOfThought={message.trainOfThought}
-                                            lastMessage={index === incompleteIncomingMessageIndex}
-                                            agentColor={data?.agent?.color || "orange"}
-                                            key={`${index}trainOfThought-${message.trainOfThought.length}-${message.trainOfThought.map(t => t.length).join('-')}`}
-                                            keyId={`${index}trainOfThought`}
-                                            completed={message.completed}
-                                        />
-                                    )}
+                                    {message.trainOfThought &&
+                                        message.trainOfThought.length > 0 && (
+                                            <TrainOfThoughtComponent
+                                                trainOfThought={message.trainOfThought}
+                                                lastMessage={
+                                                    index === incompleteIncomingMessageIndex
+                                                }
+                                                agentColor={data?.agent?.color || "orange"}
+                                                key={`${index}trainOfThought-${message.trainOfThought.length}-${message.trainOfThought.map((t) => t.length).join("-")}`}
+                                                keyId={`${index}trainOfThought`}
+                                                completed={message.completed}
+                                            />
+                                        )}
                                     <ChatMessage
                                         key={`${index}incoming`}
                                         isMobileWidth={isMobileWidth}
