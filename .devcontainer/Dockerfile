@@ -1,14 +1,14 @@
 ARG PYTHON_VERSION=3.12
 FROM mcr.microsoft.com/devcontainers/python:${PYTHON_VERSION}
 
-# Install UV and Deno
-RUN curl -fsSL https://deno.land/install.sh | sh
+# Install UV and Bun
+RUN curl -fsSL https://bun.sh/install | bash
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 RUN uv python pin $PYTHON_VERSION
 # create python virtual environment
 RUN uv venv /opt/venv --python $PYTHON_VERSION --seed
 # Add venv, deno to PATH for subsequent RUN commands and for the container environment
-ENV PATH="/opt/venv/bin:/root/.deno/bin:$PATH"
+ENV PATH="/opt/venv/bin:/root/.bun/bin:$PATH"
 
 # Setup working directory
 WORKDIR /workspace
@@ -31,10 +31,10 @@ RUN sed -i "s/dynamic = \\[\"version\"\\]/version = \"$VERSION\"/" pyproject.tom
 
 # --- Web App Dependencies ---
 # Copy web app manifest files
-COPY src/interface/web/package.json src/interface/web/deno.json src/interface/web/deno.lock /tmp/web/
+COPY src/interface/web/package.json src/interface/web/bun.lock /tmp/web/
 
 # Install web app dependencies
-RUN cd /tmp/web && deno install
+RUN cd /tmp/web && bun install
 
 # The .venv and node_modules are now populated in the image.
 # The rest of the source code will be mounted by VS Code from your local checkout,

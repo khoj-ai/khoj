@@ -40,10 +40,10 @@ if [ "$DEVCONTAINER" = true ]; then
     # Install Web App using cached dependencies
     echo "Installing Web App using cached dependencies..."
     cd "$PROJECT_ROOT/src/interface/web"
-    if command -v deno &> /dev/null
+    if command -v bun &> /dev/null
     then
-        echo "using Deno."
-        deno install && deno run ciexport
+        echo "using Bun."
+        bun install && bun run ciexport
     else
         echo "using Yarn."
         yarn install && yarn ciexport
@@ -63,10 +63,10 @@ else
 
     echo "Installing Web App..."
     cd "$PROJECT_ROOT/src/interface/web"
-    if command -v deno &> /dev/null
+    if command -v bun &> /dev/null
     then
-        echo "using Deno."
-        deno install && deno run export
+        echo "using Bun."
+        bun install && bun run export
     else
         echo "using Yarn."
         yarn install && yarn export

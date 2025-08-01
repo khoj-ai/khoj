@@ -51,4 +51,4 @@ jobs:
         run: uv sync --all-extras
 
       - name: 🌡️ Validate Application
-        run: pre-commit run --hook-stage manual --all
+        run: uv run pre-commit run --hook-stage manual --all

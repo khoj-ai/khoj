@@ -40,21 +40,21 @@ jobs:
           version: "latest"
 
       - name: Set up Python 3.11
-        run: uv python install 3.11
+        run: uv python install 3.11.12
 
       - name: ⬇️ Install Server
         run: uv sync --all-extras
 
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: ⬇️ Install Web Client
         run: |
-          yarn install
-          yarn pypiciexport
+          bun install
+          bun pypiciexport
         working-directory: src/interface/web
-
-      - name: 📂 Copy Generated Files
-        run: |
-          mkdir -p src/khoj/interface/compiled
-          cp -r $(uv python find-python 3.11)/lib/python3.11/site-packages/khoj/interface/compiled/* src/khoj/interface/compiled/
 
       - name: ⚙️ Build Python Package
         run: |

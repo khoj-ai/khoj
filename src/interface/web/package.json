@@ -6,16 +6,16 @@
         "dev": "next dev",
         "build": "next build",
         "start": "next start",
-        "lint": "deno fmt",
+        "lint": "next lint",
         "collectstatic": "bash -c 'pushd ../../../ && source .venv/bin/activate && python3 src/khoj/manage.py collectstatic --noinput && deactivate && popd'",
-        "cicollectstatic": "bash -c 'pushd ../../../ && python3 src/khoj/manage.py collectstatic --noinput && popd'",
-        "export": "yarn build && cp -r out/ ../../khoj/interface/built && yarn collectstatic",
-        "ciexport": "yarn build && cp -r out/ ../../khoj/interface/built && yarn cicollectstatic",
-        "pypiciexport": "yarn build && cp -r out/ /opt/hostedtoolcache/Python/3.11.12/x64/lib/python3.11/site-packages/khoj/interface/compiled && yarn cicollectstatic",
-        "watch": "nodemon --watch . --ext js,jsx,ts,tsx,css --ignore 'out/**/*' --exec 'yarn export'",
-        "windowswatch": "nodemon --watch . --ext js,jsx,ts,tsx,css --ignore 'out/**/*' --exec 'yarn windowsexport'",
+        "cicollectstatic": "bash -c 'pushd ../../../ && uv run python src/khoj/manage.py collectstatic --noinput && popd'",
+        "export": "bun run build && cp -r out/ ../../khoj/interface/built && bun run collectstatic",
+        "ciexport": "bun run build && cp -r out/ ../../khoj/interface/built && bun run cicollectstatic",
+        "pypiciexport": "bun run build && mkdir -p ../../khoj/interface/compiled && cp -r out/. ../../khoj/interface/compiled && bun run cicollectstatic",
+        "watch": "nodemon --watch . --ext js,jsx,ts,tsx,css --ignore 'out/**/*' --exec 'bun run export'",
+        "windowswatch": "nodemon --watch . --ext js,jsx,ts,tsx,css --ignore 'out/**/*' --exec 'bun run windowsexport'",
         "windowscollectstatic": "cd ..\\..\\.. && .\\.venv\\Scripts\\Activate.bat && py .\\src\\khoj\\manage.py collectstatic --noinput && .\\.venv\\Scripts\\deactivate.bat && cd ..",
-        "windowsexport": "yarn build && xcopy out ..\\..\\khoj\\interface\\built /E /Y && yarn windowscollectstatic",
+        "windowsexport": "bun run build && xcopy out ..\\..\\khoj\\interface\\built /E /Y && bun run windowscollectstatic",
         "prepare": "husky"
     },
     "dependencies": {
@@ -100,6 +100,6 @@
         "printWidth": 100
     },
     "lint-staged": {
-        "*": "yarn lint --fix"
+        "*": "bun run lint"
     }
 }
