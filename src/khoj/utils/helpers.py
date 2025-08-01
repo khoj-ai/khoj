@@ -478,7 +478,7 @@ tool_descriptions_for_llm = {
 tools_for_research_llm = {
     ConversationCommand.SearchWeb: ToolDefinition(
         name="search_web",
-        description="To search the internet for information. Useful to get a quick, broad overview from the internet. Provide all relevant context to ensure new searches, not in previous iterations, are performed. Max {max_search_queries} search queries allowed per iteration.",
+        description="To search the internet for information. Useful to get a quick, broad overview from the internet. Provide all relevant context to ensure new searches, not in previous iterations, are performed. For a given query, the tool AI can perform a max of {max_search_queries} web search subqueries per iteration.",
         schema={
             "type": "object",
             "properties": {
@@ -599,7 +599,7 @@ tools_for_research_llm = {
             Helpful to answer questions for which finding some relevant notes or documents can complete the search. Example: "When was Tom born?"
             This tool AI cannot find all relevant notes or documents, only a subset of them.
             It is a good starting point to find keywords, discover similar topics or related concepts and some relevant notes or documents.
-            The tool AI can perform a maximum of {max_search_queries} semantic search queries per iteration.
+            For a given query, the tool AI can perform a maximum of {max_search_queries} semantic search subqueries per iteration.
             """
         ).strip(),
         schema={
