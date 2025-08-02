@@ -135,6 +135,10 @@ jobs:
           git clone https://github.com/khoj-ai/terrarium.git && cd terrarium && npm install --legacy-peer-deps && mkdir pyodide_cache
 
       - name: ⬇️ Install Application
+        env:
+          UV_INDEX: "https://download.pytorch.org/whl/cpu"
+          UV_INDEX_STRATEGY: "unsafe-best-match"
+          CUDA_VISIBLE_DEVICES: ""
         run: |
           sed -i 's/dynamic = \["version"\]/version = "${{ steps.hatch.outputs.version }}"/' pyproject.toml
           uv sync --all-extras

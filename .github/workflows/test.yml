@@ -76,7 +76,8 @@ jobs:
 
       - name: ⬇️ Install Application
         env:
-          PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu https://abetlen.github.io/llama-cpp-python/whl/cpu"
+          UV_INDEX: "https://download.pytorch.org/whl/cpu"
+          UV_INDEX_STRATEGY: "unsafe-best-match"
           CUDA_VISIBLE_DEVICES: ""
         run: sed -i 's/dynamic = \["version"\]/version = "0.0.0"/' pyproject.toml && uv sync --all-extras
 

@@ -48,6 +48,10 @@ jobs:
           sudo apt update && sudo apt install -y libegl1
 
       - name: ⬇️ Install Application
+        env:
+          UV_INDEX: "https://download.pytorch.org/whl/cpu"
+          UV_INDEX_STRATEGY: "unsafe-best-match"
+          CUDA_VISIBLE_DEVICES: ""
         run: uv sync --all-extras
 
       - name: 🌡️ Validate Application
