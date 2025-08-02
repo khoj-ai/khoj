@@ -24,30 +24,17 @@ if [ "$DEVCONTAINER" = true ]; then
     # Use devcontainer launch.json
     mkdir -p .vscode && cp .devcontainer/launch.json .vscode/launch.json
 
-    # Activate the pre-installed venv (no need to create new one)
-    echo "Using Python environment at /opt/venv"
-    # PATH should already include /opt/venv/bin from Dockerfile
-
-    # Install khoj in editable mode (dependencies already installed)
-    # Use uv if available, else fall back to pipx
-    if command -v uv &> /dev/null
-    then
-        uv sync --all-extras
-    else
-        python3 -m pip install -e '.[dev]'
-    fi
+    # Install Server App using pre-installed dependencies
+    echo "Setup Server App with UV. Use pre-installed dependencies in $UV_PROJECT_ENVIRONMENT."
+    sed -i "s/dynamic = \\[\"version\"\\]/version = \"$VERSION\"/" pyproject.toml
+    cp /opt/uv.lock.linux uv.lock
+    uv sync --all-extras
 
     # Install Web App using cached dependencies
-    echo "Installing Web App using cached dependencies..."
+    echo "Setup Web App with Bun. Use pre-installed dependencies in /opt/khoj_web."
     cd "$PROJECT_ROOT/src/interface/web"
-    if command -v bun &> /dev/null
-    then
-        echo "using Bun."
-        bun install && bun run ciexport
-    else
-        echo "using Yarn."
-        yarn install && yarn ciexport
-    fi
+    ln -sf /opt/khoj_web/node_modules node_modules
+    bun install && bun run ciexport
 else
     # Standard setup
     echo "Installing Server App..."
