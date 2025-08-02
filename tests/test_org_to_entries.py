@@ -12,7 +12,7 @@ def test_configure_indexing_heading_only_entries(tmp_path):
     """Ensure entries with empty body are ignored, unless explicitly configured to index heading entries.
     Property drawers not considered Body. Ignore control characters for evaluating if Body empty."""
     # Arrange
-    entry = f"""*** Heading
+    entry = """*** Heading
     :PROPERTIES:
     :ID:       42-42-42
     :END:
@@ -74,7 +74,7 @@ def test_entry_split_when_exceeds_max_tokens():
     "Ensure entries with compiled words exceeding max_tokens are split."
     # Arrange
     tmp_path = "/tmp/test.org"
-    entry = f"""*** Heading
+    entry = """*** Heading
     \t\r
     Body Line
     """
@@ -99,7 +99,7 @@ def test_entry_split_when_exceeds_max_tokens():
 def test_entry_split_drops_large_words():
     "Ensure entries drops words larger than specified max word length from compiled version."
     # Arrange
-    entry_text = f"""First Line
+    entry_text = """First Line
 dog=1\n\r\t
 cat=10
 car=4
@@ -124,7 +124,7 @@ book=2
 def test_parse_org_file_into_single_entry_if_small(tmp_path):
     "Parse org file into single entry if it fits within the token limits."
     # Arrange
-    original_entry = f"""
+    original_entry = """
 * Heading 1
 body line 1
 ** Subheading 1.1
@@ -133,7 +133,7 @@ body line 1.1
     data = {
         f"{tmp_path}": original_entry,
     }
-    expected_entry = f"""
+    expected_entry = """
 * Heading 1
 body line 1
 
@@ -155,7 +155,7 @@ body line 1.1
 def test_parse_org_entry_with_children_as_single_entry_if_small(tmp_path):
     "Parse org entry with child headings as single entry only if it fits within the tokens limits."
     # Arrange
-    entry = f"""
+    entry = """
 * Heading 1
 body line 1
 ** Subheading 1.1
@@ -205,7 +205,7 @@ longer body line 2.1
 def test_separate_sibling_org_entries_if_all_cannot_fit_in_token_limit(tmp_path):
     "Parse org sibling entries as separate entries only if it fits within the tokens limits."
     # Arrange
-    entry = f"""
+    entry = """
 * Heading 1
 body line 1
 ** Subheading 1.1
@@ -267,7 +267,7 @@ body line 3.1
 def test_entry_with_body_to_entry(tmp_path):
     "Ensure entries with valid body text are loaded."
     # Arrange
-    entry = f"""*** Heading
+    entry = """*** Heading
     :PROPERTIES:
     :ID:       42-42-42
     :END:
@@ -290,7 +290,7 @@ def test_entry_with_body_to_entry(tmp_path):
 def test_file_with_entry_after_intro_text_to_entry(tmp_path):
     "Ensure intro text before any headings is indexed."
     # Arrange
-    entry = f"""
+    entry = """
 Intro text
 
 * Entry Heading
@@ -312,7 +312,7 @@ Intro text
 def test_file_with_no_headings_to_entry(tmp_path):
     "Ensure files with no heading, only body text are loaded."
     # Arrange
-    entry = f"""
+    entry = """
     - Bullet point 1
     - Bullet point 2
     """
@@ -332,7 +332,7 @@ def test_file_with_no_headings_to_entry(tmp_path):
 def test_extract_entries_with_different_level_headings(tmp_path):
     "Extract org entries with different level headings."
     # Arrange
-    entry = f"""
+    entry = """
 * Heading 1
 ** Sub-Heading 1.1
 * Heading 2
@@ -396,14 +396,16 @@ def test_line_number_tracking_in_recursive_split():
 
         assert entry.uri is not None, f"Entry '{entry}' has a None URI."
         assert match is not None, f"URI format is incorrect: {entry.uri}"
-        assert (
-            filepath_from_uri == org_file_path
-        ), f"File path in URI '{filepath_from_uri}' does not match expected '{org_file_path}'"
+        assert filepath_from_uri == org_file_path, (
+            f"File path in URI '{filepath_from_uri}' does not match expected '{org_file_path}'"
+        )
 
         # Ensure the first non-heading line in the compiled entry matches the line in the file
         assert (
             cleaned_first_entry_line in line_in_file.strip() or cleaned_first_entry_line in next_line_in_file.strip()
-        ), f"First non-heading line '{cleaned_first_entry_line}' in {entry.raw} does not match line {line_number_from_uri} in file: '{line_in_file}' or next line '{next_line_in_file}'"
+        ), (
+            f"First non-heading line '{cleaned_first_entry_line}' in {entry.raw} does not match line {line_number_from_uri} in file: '{line_in_file}' or next line '{next_line_in_file}'"
+        )
 
 
 # Helper Functions

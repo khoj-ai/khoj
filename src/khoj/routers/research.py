@@ -15,7 +15,6 @@ from khoj.processor.conversation.utils import (
     ResearchIteration,
     ToolCall,
     construct_iteration_history,
-    construct_structured_message,
     construct_tool_chat_history,
     load_complex_json,
 )
@@ -24,7 +23,6 @@ from khoj.processor.tools.online_search import read_webpages_content, search_onl
 from khoj.processor.tools.run_code import run_code
 from khoj.routers.helpers import (
     ChatEvent,
-    generate_summary_from_files,
     get_message_from_queue,
     grep_files,
     list_files,
@@ -184,7 +182,7 @@ async def apick_next_tool(
         # TODO: Handle multiple tool calls.
         response_text = response.text
         parsed_response = [ToolCall(**item) for item in load_complex_json(response_text)][0]
-    except Exception as e:
+    except Exception:
         # Otherwise assume the model has decided to end the research run and respond to the user.
         parsed_response = ToolCall(name=ConversationCommand.Text, args={"response": response_text}, id=None)
 
@@ -199,7 +197,7 @@ async def apick_next_tool(
         if i.warning is None and isinstance(i.query, ToolCall)
     }
     if (parsed_response.name, dict_to_tuple(parsed_response.args)) in previous_tool_query_combinations:
-        warning = f"Repeated tool, query combination detected. Skipping iteration. Try something different."
+        warning = "Repeated tool, query combination detected. Skipping iteration. Try something different."
     # Only send client status updates if we'll execute this iteration and model has thoughts to share.
     elif send_status_func and not is_none_or_empty(response.thought):
         async for event in send_status_func(response.thought):

@@ -326,7 +326,7 @@ File statistics:
 - Code examples: Yes
 - Purpose: Stress testing atomic agent updates
 
-{'Additional padding content. ' * 20}
+{"Additional padding content. " * 20}
 
 End of file {i}.
 """

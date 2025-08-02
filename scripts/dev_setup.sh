@@ -7,11 +7,11 @@ INSTALL_FULL=false
 DEVCONTAINER=false
 for arg in "$@"
 do
-    if [ "$arg" == "--full" ]
+    if [ "$arg" = "--full" ]
     then
         INSTALL_FULL=true
     fi
-    if [ "$arg" == "--devcontainer" ]
+    if [ "$arg" = "--devcontainer" ]
     then
         DEVCONTAINER=true
     fi
@@ -24,26 +24,40 @@ if [ "$DEVCONTAINER" = true ]; then
     # Use devcontainer launch.json
     mkdir -p .vscode && cp .devcontainer/launch.json .vscode/launch.json
 
-    # Activate the pre-installed venv (no need to create new one)
-    echo "Using Python environment at /opt/venv"
-    # PATH should already include /opt/venv/bin from Dockerfile
-
-    # Install khoj in editable mode (dependencies already installed)
-    python3 -m pip install -e '.[dev]'
+    # Install Server App using pre-installed dependencies
+    echo "Setup Server App with UV. Use pre-installed dependencies in $UV_PROJECT_ENVIRONMENT."
+    sed -i "s/dynamic = \\[\"version\"\\]/version = \"$VERSION\"/" pyproject.toml
+    cp /opt/uv.lock.linux uv.lock
+    uv sync --all-extras
 
     # Install Web App using cached dependencies
-    echo "Installing Web App using cached dependencies..."
+    echo "Setup Web App with Bun. Use pre-installed dependencies in /opt/khoj_web."
     cd "$PROJECT_ROOT/src/interface/web"
-    yarn install --cache-folder /opt/yarn-cache && yarn export
+    ln -sf /opt/khoj_web/node_modules node_modules
+    bun install && bun run ciexport
 else
     # Standard setup
     echo "Installing Server App..."
     cd "$PROJECT_ROOT"
-    python3 -m venv .venv && . .venv/bin/activate && python3 -m pip install -e '.[dev]'
+    if command -v uv &> /dev/null
+    then
+        uv venv
+        uv sync --all-extras
+    else
+        python3 -m venv .venv && . .venv/bin/activate
+        python3 -m pip install -e '.[dev]'
+    fi
 
     echo "Installing Web App..."
     cd "$PROJECT_ROOT/src/interface/web"
-    yarn install && yarn export
+    if command -v bun &> /dev/null
+    then
+        echo "using Bun."
+        bun install && bun run export
+    else
+        echo "using Yarn."
+        yarn install && yarn export
+    fi
 fi
 
 # Install Obsidian App

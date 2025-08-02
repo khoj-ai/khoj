@@ -5,7 +5,6 @@ from urllib.parse import quote
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from PIL import Image
 
 from khoj.configure import configure_routes, configure_search_types
 from khoj.database.adapters import EntryAdapters
@@ -101,7 +100,7 @@ def test_update_with_invalid_content_type(client):
     headers = {"Authorization": "Bearer kk-secret"}
 
     # Act
-    response = client.get(f"/api/update?t=invalid_content_type", headers=headers)
+    response = client.get("/api/update?t=invalid_content_type", headers=headers)
 
     # Assert
     assert response.status_code == 422
@@ -114,7 +113,7 @@ def test_regenerate_with_invalid_content_type(client):
     headers = {"Authorization": "Bearer kk-secret"}
 
     # Act
-    response = client.get(f"/api/update?force=true&t=invalid_content_type", headers=headers)
+    response = client.get("/api/update?force=true&t=invalid_content_type", headers=headers)
 
     # Assert
     assert response.status_code == 422
@@ -238,13 +237,13 @@ def test_regenerate_with_valid_content_type(client):
 def test_regenerate_with_github_fails_without_pat(client):
     # Act
     headers = {"Authorization": "Bearer kk-secret"}
-    response = client.get(f"/api/update?force=true&t=github", headers=headers)
+    response = client.get("/api/update?force=true&t=github", headers=headers)
 
     # Arrange
     files = get_sample_files_data()
 
     # Act
-    response = client.patch(f"/api/content?t=github", files=files, headers=headers)
+    response = client.patch("/api/content?t=github", files=files, headers=headers)
 
     # Assert
     assert response.status_code == 200, f"Returned status: {response.status_code} for content type: github"
@@ -270,7 +269,7 @@ def test_get_api_config_types(client, sample_org_data, default_user: KhojUser):
     text_search.setup(OrgToEntries, sample_org_data, regenerate=False, user=default_user)
 
     # Act
-    response = client.get(f"/api/content/types", headers=headers)
+    response = client.get("/api/content/types", headers=headers)
 
     # Assert
     assert response.status_code == 200
@@ -286,7 +285,7 @@ def test_get_configured_types_with_no_content_config(fastapi_app: FastAPI):
     client = TestClient(fastapi_app)
 
     # Act
-    response = client.get(f"/api/content/types")
+    response = client.get("/api/content/types")
 
     # Assert
     assert response.status_code == 200
@@ -454,8 +453,8 @@ def test_chat_with_unauthenticated_user(chat_client_with_auth, api_user2: KhojAp
     headers = {"Authorization": f"Bearer {api_user2.token}"}
 
     # Act
-    auth_response = chat_client_with_auth.post(f"/api/chat", json={"q": query}, headers=headers)
-    no_auth_response = chat_client_with_auth.post(f"/api/chat", json={"q": query})
+    auth_response = chat_client_with_auth.post("/api/chat", json={"q": query}, headers=headers)
+    no_auth_response = chat_client_with_auth.post("/api/chat", json={"q": query})
 
     # Assert
     assert auth_response.status_code == 200

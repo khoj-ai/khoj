@@ -1061,12 +1061,27 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                                                             className="h-6 px-2 text-xs"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                const filteredFiles = allFileOptions.filter(file =>
-                                                                    file.toLowerCase().includes(fileSearchValue.toLowerCase())
+                                                                const filteredFiles =
+                                                                    allFileOptions.filter((file) =>
+                                                                        file
+                                                                            .toLowerCase()
+                                                                            .includes(
+                                                                                fileSearchValue.toLowerCase(),
+                                                                            ),
+                                                                    );
+                                                                const currentFiles =
+                                                                    props.form.getValues("files") ||
+                                                                    [];
+                                                                const newFiles = [
+                                                                    ...new Set([
+                                                                        ...currentFiles,
+                                                                        ...filteredFiles,
+                                                                    ]),
+                                                                ];
+                                                                props.form.setValue(
+                                                                    "files",
+                                                                    newFiles,
                                                                 );
-                                                                const currentFiles = props.form.getValues("files") || [];
-                                                                const newFiles = [...new Set([...currentFiles, ...filteredFiles])];
-                                                                props.form.setValue("files", newFiles);
                                                             }}
                                                         >
                                                             Select All
@@ -1078,12 +1093,28 @@ export function AgentModificationForm(props: AgentModificationFormProps) {
                                                             className="h-6 px-2 text-xs"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                const filteredFiles = allFileOptions.filter(file =>
-                                                                    file.toLowerCase().includes(fileSearchValue.toLowerCase())
+                                                                const filteredFiles =
+                                                                    allFileOptions.filter((file) =>
+                                                                        file
+                                                                            .toLowerCase()
+                                                                            .includes(
+                                                                                fileSearchValue.toLowerCase(),
+                                                                            ),
+                                                                    );
+                                                                const currentFiles =
+                                                                    props.form.getValues("files") ||
+                                                                    [];
+                                                                const newFiles =
+                                                                    currentFiles.filter(
+                                                                        (file) =>
+                                                                            !filteredFiles.includes(
+                                                                                file,
+                                                                            ),
+                                                                    );
+                                                                props.form.setValue(
+                                                                    "files",
+                                                                    newFiles,
                                                                 );
-                                                                const currentFiles = props.form.getValues("files") || [];
-                                                                const newFiles = currentFiles.filter(file => !filteredFiles.includes(file));
-                                                                props.form.setValue("files", newFiles);
                                                             }}
                                                         >
                                                             Deselect All

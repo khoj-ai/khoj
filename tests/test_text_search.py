@@ -145,9 +145,9 @@ def test_entry_chunking_by_max_tokens(tmp_path, search_config, default_user: Kho
         text_search.setup(OrgToEntries, data, regenerate=False, user=default_user)
 
     # Assert
-    assert (
-        "Deleted 0 entries. Created 3 new entries for user " in caplog.records[-1].message
-    ), "new entry not split by max tokens"
+    assert "Deleted 0 entries. Created 3 new entries for user " in caplog.records[-1].message, (
+        "new entry not split by max tokens"
+    )
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -198,9 +198,9 @@ conda activate khoj
         )
 
     # Assert
-    assert (
-        "Deleted 0 entries. Created 3 new entries for user " in caplog.records[-1].message
-    ), "new entry not split by max tokens"
+    assert "Deleted 0 entries. Created 3 new entries for user " in caplog.records[-1].message, (
+        "new entry not split by max tokens"
+    )
 
 
 # ----------------------------------------------------------------------------------------------------

@@ -1910,9 +1910,9 @@ class EntryAdapters:
 
         owner_filter = Q()
 
-        if user != None:
+        if user is not None:
             owner_filter = Q(user=user)
-        if agent != None:
+        if agent is not None:
             owner_filter |= Q(agent=agent)
 
         if owner_filter == Q():
@@ -1972,9 +1972,9 @@ class EntryAdapters:
     ):
         owner_filter = Q()
 
-        if user != None:
+        if user is not None:
             owner_filter = Q(user=user)
-        if agent != None:
+        if agent is not None:
             owner_filter |= Q(agent=agent)
 
         if owner_filter == Q():

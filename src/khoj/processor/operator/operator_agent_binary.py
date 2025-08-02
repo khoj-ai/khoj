@@ -12,7 +12,7 @@ from khoj.processor.conversation.utils import (
 )
 from khoj.processor.operator.grounding_agent import GroundingAgent
 from khoj.processor.operator.grounding_agent_uitars import GroundingAgentUitars
-from khoj.processor.operator.operator_actions import *
+from khoj.processor.operator.operator_actions import OperatorAction, WaitAction
 from khoj.processor.operator.operator_agent_base import AgentActResult, OperatorAgent
 from khoj.processor.operator.operator_environment_base import (
     EnvironmentType,
@@ -181,7 +181,7 @@ class BinaryOperatorAgent(OperatorAgent):
                     elif action.type == "key_down":
                         rendered_parts += [f'**Action**: Press Key "{action.key}"']
                     elif action.type == "screenshot" and not current_state.screenshot:
-                        rendered_parts += [f"**Error**: Failed to take screenshot"]
+                        rendered_parts += ["**Error**: Failed to take screenshot"]
                     elif action.type == "goto":
                         rendered_parts += [f"**Action**: Open URL {action.url}"]
                     else:
@@ -317,7 +317,7 @@ class BinaryOperatorAgent(OperatorAgent):
                 # Introduction
                 * You are Khoj, a smart and resourceful web browsing assistant. You help the user accomplish their task using a web browser.
                 * You are given the user's query and screenshots of the browser's state transitions.
-                * The current date is {datetime.today().strftime('%A, %B %-d, %Y')}.
+                * The current date is {datetime.today().strftime("%A, %B %-d, %Y")}.
                 * The current URL is {env_state.url}.
 
                 # Your Task
@@ -362,7 +362,7 @@ class BinaryOperatorAgent(OperatorAgent):
                 # Introduction
                 * You are Khoj, a smart and resourceful computer assistant. You help the user accomplish their task using a computer.
                 * You are given the user's query and screenshots of the computer's state transitions.
-                * The current date is {datetime.today().strftime('%A, %B %-d, %Y')}.
+                * The current date is {datetime.today().strftime("%A, %B %-d, %Y")}.
 
                 # Your Task
                 * First look at the screenshots carefully to notice all pertinent information.

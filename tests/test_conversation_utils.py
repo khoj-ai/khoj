@@ -77,12 +77,12 @@ class TestTruncateMessage:
 
         # Assert
         # The original object has been modified. Verify certain properties
-        assert (
-            len(chat_history) == 1
-        ), "Only most recent message should be present as it itself is larger than context size"
-        assert len(truncated_chat_history[0].content) < len(
-            copy_big_chat_message.content
-        ), "message content list should be modified"
+        assert len(chat_history) == 1, (
+            "Only most recent message should be present as it itself is larger than context size"
+        )
+        assert len(truncated_chat_history[0].content) < len(copy_big_chat_message.content), (
+            "message content list should be modified"
+        )
         assert truncated_chat_history[0].content[-1]["text"] == "Question?", "Query should be preserved"
         assert initial_tokens > self.max_prompt_size, "Initial tokens should be greater than max prompt size"
         assert final_tokens <= self.max_prompt_size, "Truncated message should be within max prompt size"
@@ -101,9 +101,9 @@ class TestTruncateMessage:
 
         # Assert
         # The original object has been modified. Verify certain properties
-        assert (
-            len(chat_history) == 1
-        ), "Only most recent message should be present as it itself is larger than context size"
+        assert len(chat_history) == 1, (
+            "Only most recent message should be present as it itself is larger than context size"
+        )
         assert truncated_chat_history[0] != copy_big_chat_message, "Original message should be modified"
         assert truncated_chat_history[0].content[0]["text"].endswith("\nQuestion?"), "Query should be preserved"
         assert initial_tokens > self.max_prompt_size, "Initial tokens should be greater than max prompt size"
@@ -150,9 +150,9 @@ class TestTruncateMessage:
         # The original object has been modified. Verify certain properties
         assert initial_tokens > self.max_prompt_size, "Initial tokens should be greater than max prompt size"
         assert final_tokens <= self.max_prompt_size, "Final tokens should be within max prompt size"
-        assert (
-            len(chat_messages) == 1
-        ), "Only most recent message should be present as it itself is larger than context size"
+        assert len(chat_messages) == 1, (
+            "Only most recent message should be present as it itself is larger than context size"
+        )
         assert truncated_chat_history[0] != copy_big_chat_message, "Original message should be modified"
         assert truncated_chat_history[0].content[0]["text"].endswith("\nQuestion?"), "Query should be preserved"
 
@@ -172,9 +172,9 @@ class TestTruncateMessage:
         # The original object has been modified. Verify certain properties
         assert initial_tokens > self.max_prompt_size, "Initial tokens should be greater than max prompt size"
         assert final_tokens <= self.max_prompt_size, "Final tokens should be within max prompt size"
-        assert (
-            len(chat_messages) == 1
-        ), "Only most recent message should be present as it itself is larger than context size"
+        assert len(chat_messages) == 1, (
+            "Only most recent message should be present as it itself is larger than context size"
+        )
         assert truncated_chat_history[0] != copy_big_chat_message, "Original message should be modified"
 
 

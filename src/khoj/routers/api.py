@@ -7,7 +7,6 @@ from typing import List, Optional, Union
 
 import openai
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
-from fastapi.requests import Request
 from fastapi.responses import Response
 from starlette.authentication import has_required_scope, requires
 
@@ -94,7 +93,7 @@ def update(
         logger.error(error_msg, exc_info=True)
         raise HTTPException(status_code=500, detail=error_msg)
     else:
-        logger.info(f"📪 Server indexed content updated via API")
+        logger.info("📪 Server indexed content updated via API")
 
     update_telemetry_state(
         request=request,

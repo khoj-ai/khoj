@@ -10,7 +10,6 @@ from functools import partial
 from typing import Any, Dict, List, Optional
 from urllib.parse import unquote
 
-from asgiref.sync import sync_to_async
 from fastapi import (
     APIRouter,
     Depends,
@@ -32,10 +31,10 @@ from khoj.database.adapters import (
     PublicConversationAdapters,
     aget_user_name,
 )
-from khoj.database.models import Agent, ChatMessageModel, KhojUser
+from khoj.database.models import Agent, KhojUser
 from khoj.processor.conversation import prompts
 from khoj.processor.conversation.openai.utils import is_local_api
-from khoj.processor.conversation.prompts import help_message, no_entries_found
+from khoj.processor.conversation.prompts import no_entries_found
 from khoj.processor.conversation.utils import (
     OperatorRun,
     ResponseWithThought,
@@ -65,11 +64,8 @@ from khoj.routers.helpers import (
     acreate_title_from_history,
     agenerate_chat_response,
     aget_data_sources_and_output_format,
-    construct_automation_created_message,
-    create_automation,
     gather_raw_query_files,
     generate_mermaidjs_diagram,
-    generate_summary_from_files,
     get_conversation_command,
     get_message_from_queue,
     is_query_empty,
@@ -89,13 +85,11 @@ from khoj.utils.helpers import (
     convert_image_to_webp,
     get_country_code_from_timezone,
     get_country_name_from_timezone,
-    get_device,
     is_env_var_true,
     is_none_or_empty,
     is_operator_enabled,
 )
 from khoj.utils.rawconfig import (
-    ChatRequestBody,
     FileAttachment,
     FileFilterRequest,
     FilesFilterRequest,
@@ -689,7 +683,6 @@ async def event_generator(
     region = body.region
     country = body.country or get_country_name_from_timezone(body.timezone)
     country_code = body.country_code or get_country_code_from_timezone(body.timezone)
-    timezone = body.timezone
     raw_images = body.images
     raw_query_files = body.files
 
@@ -853,7 +846,8 @@ async def event_generator(
                 if (
                     len(train_of_thought) > 0
                     and train_of_thought[-1]["type"] == ChatEvent.THOUGHT.value
-                    and type(train_of_thought[-1]["data"]) == type(data) == str
+                    and isinstance(train_of_thought[-1]["data"], str)
+                    and isinstance(data, str)
                 ):
                     train_of_thought[-1]["data"] += data
                 else:
@@ -1075,11 +1069,11 @@ async def event_generator(
 
         # researched_results = await extract_relevant_info(q, researched_results, agent)
         if state.verbose > 1:
-            logger.debug(f'Researched Results: {"".join(r.summarizedResult or "" for r in research_results)}')
+            logger.debug(f"Researched Results: {''.join(r.summarizedResult or '' for r in research_results)}")
 
     # Gather Context
     ## Extract Document References
-    if not ConversationCommand.Research in conversation_commands:
+    if ConversationCommand.Research not in conversation_commands:
         try:
             async for result in search_documents(
                 q,
@@ -1218,7 +1212,7 @@ async def event_generator(
                 else:
                     code_results = result
         except ValueError as e:
-            program_execution_context.append(f"Failed to run code")
+            program_execution_context.append("Failed to run code")
             logger.warning(
                 f"Failed to use code tool: {e}. Attempting to respond without code results",
                 exc_info=True,
@@ -1297,7 +1291,7 @@ async def event_generator(
         inferred_queries.append(improved_image_prompt)
         if generated_image is None or status_code != 200:
             program_execution_context.append(f"Failed to generate image with {improved_image_prompt}")
-            async for result in send_event(ChatEvent.STATUS, f"Failed to generate image"):
+            async for result in send_event(ChatEvent.STATUS, "Failed to generate image"):
                 yield result
         else:
             generated_images.append(generated_image)
@@ -1315,7 +1309,7 @@ async def event_generator(
                 yield result
 
     if ConversationCommand.Diagram in conversation_commands:
-        async for result in send_event(ChatEvent.STATUS, f"Creating diagram"):
+        async for result in send_event(ChatEvent.STATUS, "Creating diagram"):
             yield result
 
         inferred_queries = []
@@ -1372,7 +1366,7 @@ async def event_generator(
         return
 
     ## Generate Text Output
-    async for result in send_event(ChatEvent.STATUS, f"**Generating a well-informed response**"):
+    async for result in send_event(ChatEvent.STATUS, "**Generating a well-informed response**"):
         yield result
 
     llm_response, chat_metadata = await agenerate_chat_response(

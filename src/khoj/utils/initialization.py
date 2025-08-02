@@ -60,9 +60,7 @@ def initialization(interactive: bool = True):
                 ]
                 default_chat_models = known_available_models + other_available_models
             except Exception as e:
-                logger.warning(
-                    f"⚠️ Failed to fetch {provider} chat models. Fallback to default models. Error: {str(e)}"
-                )
+                logger.warning(f"⚠️ Failed to fetch {provider} chat models. Fallback to default models. Error: {str(e)}")
 
         # Set up OpenAI's online chat models
         openai_configured, openai_provider = _setup_chat_model_provider(

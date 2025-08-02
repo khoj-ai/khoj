@@ -11,7 +11,7 @@ from khoj.processor.conversation.utils import (
     OperatorRun,
     construct_chat_history_for_operator,
 )
-from khoj.processor.operator.operator_actions import *
+from khoj.processor.operator.operator_actions import RequestUserAction
 from khoj.processor.operator.operator_agent_anthropic import AnthropicOperatorAgent
 from khoj.processor.operator.operator_agent_base import OperatorAgent
 from khoj.processor.operator.operator_agent_binary import BinaryOperatorAgent
@@ -59,7 +59,7 @@ async def operate_environment(
     if not reasoning_model or not reasoning_model.vision_enabled:
         reasoning_model = await ConversationAdapters.aget_vision_enabled_config()
     if not reasoning_model:
-        raise ValueError(f"No vision enabled chat model found. Configure a vision chat model to operate environment.")
+        raise ValueError("No vision enabled chat model found. Configure a vision chat model to operate environment.")
 
     # Create conversation history from conversation log
     chat_history = construct_chat_history_for_operator(conversation_log)

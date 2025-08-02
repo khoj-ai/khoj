@@ -12,7 +12,15 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Moon, Sun, UserCircle, Question, ArrowRight, Code, BuildingOffice } from "@phosphor-icons/react";
+import {
+    Moon,
+    Sun,
+    UserCircle,
+    Question,
+    ArrowRight,
+    Code,
+    BuildingOffice,
+} from "@phosphor-icons/react";
 import { useIsDarkMode, useIsMobileWidth } from "@/app/common/utils";
 import LoginPrompt from "../loginPrompt/loginPrompt";
 import { Button } from "@/components/ui/button";
@@ -69,7 +77,7 @@ export default function FooterMenu({ sideBarIsOpen }: NavMenuProps) {
             icon: <BuildingOffice className="w-6 h-6" />,
             link: "https://khoj.dev/teams",
         },
-    ]
+    ];
 
     return (
         <SidebarMenu className="border-none p-0 m-0">
@@ -131,18 +139,16 @@ export default function FooterMenu({ sideBarIsOpen }: NavMenuProps) {
                                 </p>
                             </div>
                         </DropdownMenuItem>
-                        {
-                            menuItems.map((menuItem, index) => (
-                                <DropdownMenuItem key={index}>
-                                    <Link href={menuItem.link} className="no-underline w-full">
-                                        <div className="flex flex-rows">
-                                            {menuItem.icon}
-                                            <p className="ml-3 font-semibold">{menuItem.title}</p>
-                                        </div>
-                                    </Link>
-                                </DropdownMenuItem>
-                            ))
-                        }
+                        {menuItems.map((menuItem, index) => (
+                            <DropdownMenuItem key={index}>
+                                <Link href={menuItem.link} className="no-underline w-full">
+                                    <div className="flex flex-rows">
+                                        {menuItem.icon}
+                                        <p className="ml-3 font-semibold">{menuItem.title}</p>
+                                    </div>
+                                </Link>
+                            </DropdownMenuItem>
+                        ))}
                         {!userData ? (
                             <DropdownMenuItem>
                                 <Button

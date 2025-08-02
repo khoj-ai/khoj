@@ -1,6 +1,5 @@
 import asyncio
 import base64
-import concurrent.futures
 import fnmatch
 import hashlib
 import json
@@ -47,14 +46,12 @@ from khoj.database.adapters import (
     EntryAdapters,
     FileObjectAdapters,
     aget_user_by_email,
-    ais_user_subscribed,
     create_khoj_token,
     get_default_search_model,
     get_khoj_tokens,
     get_user_name,
     get_user_notion_config,
     get_user_subscription_state,
-    is_user_subscribed,
     run_with_process_lock,
 )
 from khoj.database.models import (
@@ -160,7 +157,7 @@ def validate_chat_model(user: KhojUser):
 
 async def is_ready_to_chat(user: KhojUser):
     user_chat_model = await ConversationAdapters.aget_user_chat_model(user)
-    if user_chat_model == None:
+    if user_chat_model is None:
         user_chat_model = await ConversationAdapters.aget_default_chat_model(user)
 
     if (
@@ -581,7 +578,7 @@ async def generate_online_subqueries(
             )
             return {q}
         return response
-    except Exception as e:
+    except Exception:
         logger.error(f"Invalid response for constructing online subqueries: {response}. Returning original query: {q}")
         return {q}
 
@@ -1172,8 +1169,8 @@ async def search_documents(
         agent_has_entries = await sync_to_async(EntryAdapters.agent_has_entries)(agent=agent)
 
     if (
-        not ConversationCommand.Notes in conversation_commands
-        and not ConversationCommand.Default in conversation_commands
+        ConversationCommand.Notes not in conversation_commands
+        and ConversationCommand.Default not in conversation_commands
         and not agent_has_entries
     ):
         yield compiled_references, inferred_queries, q
@@ -1325,8 +1322,8 @@ async def extract_questions(
             logger.error(f"Invalid response for constructing subqueries: {response}")
             return [query]
         return queries
-    except:
-        logger.warning(f"LLM returned invalid JSON. Falling back to using user message as search query.")
+    except Exception:
+        logger.warning("LLM returned invalid JSON. Falling back to using user message as search query.")
         return [query]
 
 
@@ -1351,7 +1348,7 @@ async def execute_search(
         return results
 
     if q is None or q == "":
-        logger.warning(f"No query param (q) passed in API call to initiate search")
+        logger.warning("No query param (q) passed in API call to initiate search")
         return results
 
     # initialize variables
@@ -1364,7 +1361,7 @@ async def execute_search(
     if user:
         query_cache_key = f"{user_query}-{n}-{t}-{r}-{max_distance}-{dedupe}"
         if query_cache_key in state.query_cache[user.uuid]:
-            logger.debug(f"Return response from query cache")
+            logger.debug("Return response from query cache")
             return state.query_cache[user.uuid][query_cache_key]
 
     # Encode query with filter terms removed
@@ -1875,8 +1872,8 @@ class ApiUserRateLimiter:
 
         user: KhojUser = websocket.scope["user"].object
         subscribed = has_required_scope(websocket, ["premium"])
-        current_window = "today" if self.window == 60 * 60 * 24 else f"now"
-        next_window = "tomorrow" if self.window == 60 * 60 * 24 else f"in a bit"
+        current_window = "today" if self.window == 60 * 60 * 24 else "now"
+        next_window = "tomorrow" if self.window == 60 * 60 * 24 else "in a bit"
         common_message_prefix = f"I'm glad you're enjoying interacting with me! You've unfortunately exceeded your usage limit for {current_window}."
 
         # Remove requests outside of the time window
@@ -2219,7 +2216,7 @@ def should_notify(original_query: str, executed_query: str, ai_response: str, us
             should_notify_result = response["decision"] == "Yes"
             reason = response.get("reason", "unknown")
             logger.info(
-                f'Decided to {"not " if not should_notify_result else ""}notify user of automation response because of reason: {reason}.'
+                f"Decided to {'not ' if not should_notify_result else ''}notify user of automation response because of reason: {reason}."
             )
             return should_notify_result
         except Exception as e:
@@ -2313,7 +2310,7 @@ def scheduled_chat(
         response_map = raw_response.json()
         ai_response = response_map.get("response") or response_map.get("image")
         is_image = False
-        if type(ai_response) == dict:
+        if isinstance(ai_response, dict):
             is_image = ai_response.get("image") is not None
     else:
         ai_response = raw_response.text
@@ -2460,12 +2457,12 @@ async def aschedule_automation(
 
 def construct_automation_created_message(automation: Job, crontime: str, query_to_run: str, subject: str):
     # Display next run time in user timezone instead of UTC
-    schedule = f'{cron_descriptor.get_description(crontime)} {automation.next_run_time.strftime("%Z")}'
+    schedule = f"{cron_descriptor.get_description(crontime)} {automation.next_run_time.strftime('%Z')}"
     next_run_time = automation.next_run_time.strftime("%Y-%m-%d %I:%M %p %Z")
     # Remove /automated_task prefix from inferred_query
     unprefixed_query_to_run = re.sub(r"^\/automated_task\s*", "", query_to_run)
     # Create the automation response
-    automation_icon_url = f"/static/assets/icons/automation.svg"
+    automation_icon_url = "/static/assets/icons/automation.svg"
     return f"""
     ### ![]({automation_icon_url}) Created Automation
 - Subject: **{subject}**
@@ -2713,13 +2710,13 @@ def configure_content(
     t: Optional[state.SearchType] = state.SearchType.All,
 ) -> bool:
     success = True
-    if t == None:
+    if t is None:
         t = state.SearchType.All
 
     if t is not None and t in [type.value for type in state.SearchType]:
         t = state.SearchType(t)
 
-    if t is not None and not t.value in [type.value for type in state.SearchType]:
+    if t is not None and t.value not in [type.value for type in state.SearchType]:
         logger.warning(f"🚨 Invalid search type: {t}")
         return False
 
@@ -2988,7 +2985,7 @@ async def grep_files(
             query += f" {' and '.join(context_info)}"
         if line_count > max_results:
             if lines_before or lines_after:
-                query += f" for"
+                query += " for"
             query += f" first {max_results} results"
         return query
 

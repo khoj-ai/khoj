@@ -2,7 +2,6 @@ import json
 import logging
 import os
 from copy import deepcopy
-from functools import partial
 from time import perf_counter
 from typing import AsyncGenerator, Dict, Generator, List, Literal, Optional, Union
 from urllib.parse import urlparse
@@ -284,9 +283,9 @@ async def chat_completion_with_backoff(
             if len(system_messages) > 0:
                 first_system_message_index, first_system_message = system_messages[0]
                 first_system_message_content = first_system_message["content"]
-                formatted_messages[first_system_message_index][
-                    "content"
-                ] = f"{first_system_message_content}\nFormatting re-enabled"
+                formatted_messages[first_system_message_index]["content"] = (
+                    f"{first_system_message_content}\nFormatting re-enabled"
+                )
     elif is_twitter_reasoning_model(model_name, api_base_url):
         reasoning_effort = "high" if deepthought else "low"
         # Grok-4 models do not support reasoning_effort parameter

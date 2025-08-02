@@ -1,8 +1,6 @@
 import logging
 from typing import List
-from urllib.parse import urlparse
 
-import openai
 import requests
 import tqdm
 from sentence_transformers import CrossEncoder, SentenceTransformer

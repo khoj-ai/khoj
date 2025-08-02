@@ -344,14 +344,16 @@ export default function Agents() {
                                     />
                                     <span className="font-bold">How it works</span> Use any of these
                                     specialized personas to tune your conversation to your needs.
-                                    {
-                                        !isSubscribed && (
-                                            <span>
-                                                {" "}
-                                                <Link href="/settings" className="font-bold">Upgrade your plan</Link> to leverage custom models. You will fallback to the default model when chatting.
-                                            </span>
-                                        )
-                                    }
+                                    {!isSubscribed && (
+                                        <span>
+                                            {" "}
+                                            <Link href="/settings" className="font-bold">
+                                                Upgrade your plan
+                                            </Link>{" "}
+                                            to leverage custom models. You will fallback to the
+                                            default model when chatting.
+                                        </span>
+                                    )}
                                 </AlertDescription>
                             </Alert>
                             <div className="pt-6 md:pt-8">

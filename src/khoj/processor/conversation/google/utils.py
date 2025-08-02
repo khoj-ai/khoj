@@ -194,7 +194,7 @@ def gemini_completion_with_backoff(
             or not response.candidates[0].content
             or response.candidates[0].content.parts is None
         ):
-            raise ValueError(f"Failed to get response from model.")
+            raise ValueError("Failed to get response from model.")
         raw_content = [part.model_dump() for part in response.candidates[0].content.parts]
         if response.function_calls:
             function_calls = [
@@ -212,7 +212,7 @@ def gemini_completion_with_backoff(
         response = None
         # Handle 429 rate limit errors directly
         if e.code == 429:
-            response_text = f"My brain is exhausted. Can you please try again in a bit?"
+            response_text = "My brain is exhausted. Can you please try again in a bit?"
             # Log the full error details for debugging
             logger.error(f"Gemini ClientError: {e.code} {e.status}. Details: {e.details}")
         # Handle other errors
@@ -361,7 +361,7 @@ def handle_gemini_response(
 
     # Ensure we have a proper list of candidates
     if not isinstance(candidates, list):
-        message = f"\nUnexpected response format. Try again."
+        message = "\nUnexpected response format. Try again."
         stopped = True
         return message, stopped
 
