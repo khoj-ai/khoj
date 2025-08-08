@@ -513,7 +513,9 @@ def is_openai_reasoning_model(model_name: str, api_base_url: str = None) -> bool
     """
     Check if the model is an OpenAI reasoning model
     """
-    return model_name.lower().startswith("o") and is_openai_api(api_base_url)
+    return is_openai_api(api_base_url) and (
+        model_name.lower().startswith("o") or model_name.lower().startswith("gpt-5")
+    )
 
 
 def is_non_streaming_model(model_name: str, api_base_url: str = None) -> bool:
