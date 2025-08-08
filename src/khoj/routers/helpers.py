@@ -3002,7 +3002,7 @@ async def grep_files(
     lines_after = lines_after or 0
 
     try:
-        regex = re.compile(regex_pattern, re.IGNORECASE)
+        regex = re.compile(regex_pattern, re.IGNORECASE | re.MULTILINE)
     except re.error as e:
         yield {
             "query": _generate_query(0, 0, path_prefix, regex_pattern, lines_before, lines_after),
@@ -3012,7 +3012,14 @@ async def grep_files(
         return
 
     try:
-        file_matches = await FileObjectAdapters.aget_file_objects_by_regex(user, regex_pattern, path_prefix)
+        # Make db pushdown filters more permissive by removing line anchors
+        # The precise line-anchored matching will be done in Python stage
+        db_pattern = regex_pattern
+        db_pattern = re.sub(r"\(\?\w*\)", "", db_pattern)  # Remove inline flags like (?i), (?m), (?im)
+        db_pattern = re.sub(r"^\^", "", db_pattern)  # Remove ^ at regex pattern start
+        db_pattern = re.sub(r"\$$", "", db_pattern)  # Remove $ at regex pattern end
+
+        file_matches = await FileObjectAdapters.aget_file_objects_by_regex(user, db_pattern, path_prefix)
 
         line_matches = []
         for file_object in file_matches:
