@@ -1264,6 +1264,7 @@ async def extract_questions(
     location_data: LocationData = None,
     query_images: Optional[List[str]] = None,
     query_files: str = None,
+    max_queries: int = 5,
     tracer: dict = {},
 ):
     """
@@ -1293,14 +1294,20 @@ async def extract_questions(
         location=location,
         username=username,
         personality_context=personality_context,
+        max_queries=max_queries,
     )
 
     prompt = prompts.extract_questions_user_message.format(text=query, chat_history=chat_history_str)
 
     class DocumentQueries(BaseModel):
-        """Choose searches to run on user documents."""
+        """Choose semantic search queries to run on user documents."""
 
-        queries: List[str] = Field(..., min_items=1, description="List of search queries to run on user documents.")
+        queries: List[str] = Field(
+            ...,
+            min_length=1,
+            max_length=max_queries,
+            description="List of semantic search queries to run on user documents.",
+        )
 
     raw_response = await send_message_to_model_wrapper(
         system_message=system_prompt,
