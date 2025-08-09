@@ -5,19 +5,19 @@ This is a [Next.js](https://nextjs.org/) project.
 First, install the dependencies:
 
 ```bash
-yarn install
+bun install
 ```
 
 In case you run into any dependency linking issues, you can try running:
 
 ```bash
-yarn add next
+bun add next
 ```
 
 ### Run the development server:
 
 ```bash
-yarn dev
+bun dev
 ```
 
 Make sure the `rewrites` in `next.config.mjs` are set up correctly for your environment. The rewrites are used to proxy requests to the API server.
@@ -44,27 +44,30 @@ You can start editing the page by modifying any of the `.tsx` pages. The page au
 We've setup a utility command for building and serving the built files. This is useful for testing the production build locally.
 
 1. Exporting code
-To build the files once and serve them, run:
+   To build the files once and serve them, run:
+
 ```bash
-yarn export
+bun export
 ```
 
 If you're using Windows:
-```bash
-yarn windowsexport
-```
 
+```bash
+bun windowsexport
+```
 
 2. Continuously building code
 
 To keep building the files and serving them, run:
+
 ```bash
-yarn watch
+bun watch
 ```
 
 If you're using Windows:
+
 ```bash
-yarn windowswatch
+bun windowswatch
 ```
 
 Now you should be able to load your custom pages from the Khoj app at http://localhost:42110/. To server any of the built files, you should update the routes in the `web_client.py` like so, where `new_file` is the new page you've added in this repo:

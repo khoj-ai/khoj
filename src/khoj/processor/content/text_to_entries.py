@@ -30,8 +30,7 @@ class TextToEntries(ABC):
         self.date_filter = DateFilter()
 
     @abstractmethod
-    def process(self, files: dict[str, str], user: KhojUser, regenerate: bool = False) -> Tuple[int, int]:
-        ...
+    def process(self, files: dict[str, str], user: KhojUser, regenerate: bool = False) -> Tuple[int, int]: ...
 
     @staticmethod
     def hash_func(key: str) -> Callable:

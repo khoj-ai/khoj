@@ -343,12 +343,12 @@ Expenses:Food:Dining  10.00 USD""",
             "file": "Ledger.org",
         },
         {
-            "compiled": f"""2020-04-01 "SuperMercado" "Bananas"
+            "compiled": """2020-04-01 "SuperMercado" "Bananas"
 Expenses:Food:Groceries  10.00 USD""",
             "file": "Ledger.org",
         },
         {
-            "compiled": f"""2020-01-01 "Naco Taco" "Burittos for Dinner"
+            "compiled": """2020-01-01 "Naco Taco" "Burittos for Dinner"
 Expenses:Food:Dining  10.00 USD""",
             "file": "Ledger.org",
         },
@@ -389,12 +389,12 @@ Expenses:Food:Dining  10.00 USD""",
             "file": "Ledger.md",
         },
         {
-            "compiled": f"""2020-04-01 "SuperMercado" "Bananas"
+            "compiled": """2020-04-01 "SuperMercado" "Bananas"
 Expenses:Food:Groceries  10.00 USD""",
             "file": "Ledger.md",
         },
         {
-            "compiled": f"""2020-01-01 "Naco Taco" "Burittos for Dinner"
+            "compiled": """2020-01-01 "Naco Taco" "Burittos for Dinner"
 Expenses:Food:Dining  10.00 USD""",
             "file": "Ledger.md",
         },
@@ -452,17 +452,17 @@ async def test_ask_for_clarification_if_not_enough_context_in_question():
     # Arrange
     context = [
         {
-            "compiled": f"""# Ramya
+            "compiled": """# Ramya
 My sister, Ramya, is married to Kali Devi. They have 2 kids, Ravi and Rani.""",
             "file": "Family.md",
         },
         {
-            "compiled": f"""# Fang
+            "compiled": """# Fang
 My sister, Fang Liu is married to Xi Li. They have 1 kid, Xiao Li.""",
             "file": "Family.md",
         },
         {
-            "compiled": f"""# Aiyla
+            "compiled": """# Aiyla
 My sister, Aiyla is married to Tolga. They have 3 kids, Yildiz, Ali and Ahmet.""",
             "file": "Family.md",
         },
@@ -497,9 +497,9 @@ async def test_agent_prompt_should_be_used(openai_agent):
     "Chat actor should ask be tuned to think like an accountant based on the agent definition"
     # Arrange
     context = [
-        {"compiled": f"""I went to the store and bought some bananas for 2.20""", "file": "Ledger.md"},
-        {"compiled": f"""I went to the store and bought some apples for 1.30""", "file": "Ledger.md"},
-        {"compiled": f"""I went to the store and bought some oranges for 6.00""", "file": "Ledger.md"},
+        {"compiled": """I went to the store and bought some bananas for 2.20""", "file": "Ledger.md"},
+        {"compiled": """I went to the store and bought some apples for 1.30""", "file": "Ledger.md"},
+        {"compiled": """I went to the store and bought some oranges for 6.00""", "file": "Ledger.md"},
     ]
     expected_responses = ["9.50", "9.5"]
 
@@ -539,13 +539,13 @@ async def test_websearch_with_operators(chat_client, default_user2):
     responses = await generate_online_subqueries(user_query, [], None, default_user2)
 
     # Assert
-    assert any(
-        ["reddit.com/r/worldnews" in response for response in responses]
-    ), "Expected a search query to include site:reddit.com but got: " + str(responses)
+    assert any(["reddit.com/r/worldnews" in response for response in responses]), (
+        "Expected a search query to include site:reddit.com but got: " + str(responses)
+    )
 
-    assert any(
-        ["site:reddit.com" in response for response in responses]
-    ), "Expected a search query to include site:reddit.com but got: " + str(responses)
+    assert any(["site:reddit.com" in response for response in responses]), (
+        "Expected a search query to include site:reddit.com but got: " + str(responses)
+    )
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -559,9 +559,9 @@ async def test_websearch_khoj_website_for_info_about_khoj(chat_client, default_u
     responses = await generate_online_subqueries(user_query, [], None, default_user2)
 
     # Assert
-    assert any(
-        ["site:khoj.dev" in response for response in responses]
-    ), "Expected search query to include site:khoj.dev but got: " + str(responses)
+    assert any(["site:khoj.dev" in response for response in responses]), (
+        "Expected search query to include site:khoj.dev but got: " + str(responses)
+    )
 
 
 # ----------------------------------------------------------------------------------------------------
@@ -693,9 +693,9 @@ def test_infer_task_scheduling_request(
     for expected_q in expected_qs:
         assert expected_q in inferred_query, f"Expected fragment {expected_q} in query: {inferred_query}"
     for unexpected_q in unexpected_qs:
-        assert (
-            unexpected_q not in inferred_query
-        ), f"Did not expect fragment '{unexpected_q}' in query: '{inferred_query}'"
+        assert unexpected_q not in inferred_query, (
+            f"Did not expect fragment '{unexpected_q}' in query: '{inferred_query}'"
+        )
 
 
 # ----------------------------------------------------------------------------------------------------

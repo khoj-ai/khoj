@@ -462,7 +462,7 @@ def evaluate_response_with_gemini(
     Ground Truth: {ground_truth}
 
     Provide your evaluation in the following json format:
-    {"explanation:" "[How you made the decision?)", "decision:" "(TRUE if response contains key information, FALSE otherwise)"}
+    {"explanation:[How you made the decision?)", "decision:(TRUE if response contains key information, FALSE otherwise)"}
     """
     gemini_api_url = (
         f"https://generativelanguage.googleapis.com/v1beta/models/{eval_model}:generateContent?key={GEMINI_API_KEY}"
@@ -557,7 +557,7 @@ def process_batch(batch, batch_start, results, dataset_length, response_evaluato
 ---------
 Decision: {colored_decision}
 Accuracy: {running_accuracy:.2%}
-Progress: {running_total_count.get()/dataset_length:.2%}
+Progress: {running_total_count.get() / dataset_length:.2%}
 Index: {current_index}
 Question: {prompt}
 Expected Answer: {answer}

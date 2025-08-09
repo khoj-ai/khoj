@@ -247,7 +247,7 @@ class BrowserEnvironment(Environment):
 
                 case "drag":
                     if not isinstance(action, DragAction):
-                        raise TypeError(f"Invalid action type for drag")
+                        raise TypeError("Invalid action type for drag")
                     path = action.path
                     if not path:
                         error = "Missing path for drag action"

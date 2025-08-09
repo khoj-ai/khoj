@@ -30,7 +30,7 @@ def v1_telemetry(telemetry_data: List[Dict[str, str]]):
     try:
         for row in telemetry_data:
             posthog.capture(row["server_id"], "api_request", row)
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=500,
             detail="Could not POST equest to new khoj telemetry server. Contact developer to get this fixed.",

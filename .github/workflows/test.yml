@@ -54,10 +54,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
         with:
-          python-version: ${{ matrix.python_version }}
+          version: "latest"
+
+      - name: Set up Python ${{ matrix.python_version }}
+        run: uv python install ${{ matrix.python_version }}
 
       - name: ⏬️ Install Dependencies
         env:
@@ -71,17 +74,12 @@ jobs:
         run : |
           apt install -y postgresql postgresql-client && apt install -y postgresql-server-dev-16
 
-      - name: ⬇️ Install pip
-        run: |
-          apt install -y python3-pip
-          python3 -m ensurepip --upgrade
-          python3 -m pip install --upgrade pip
-
       - name: ⬇️ Install Application
         env:
-          PIP_EXTRA_INDEX_URL: "https://download.pytorch.org/whl/cpu https://abetlen.github.io/llama-cpp-python/whl/cpu"
+          UV_INDEX: "https://download.pytorch.org/whl/cpu"
+          UV_INDEX_STRATEGY: "unsafe-best-match"
           CUDA_VISIBLE_DEVICES: ""
-        run: sed -i 's/dynamic = \["version"\]/version = "0.0.0"/' pyproject.toml && pip install --break-system-packages --upgrade .[dev]
+        run: sed -i 's/dynamic = \["version"\]/version = "0.0.0"/' pyproject.toml && uv sync --all-extras
 
       - name: 🧪 Test Application
         env:
@@ -91,5 +89,5 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: postgres
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: pytest
+        run: uv run pytest
         timeout-minutes: 10

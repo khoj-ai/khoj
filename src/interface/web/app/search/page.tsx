@@ -508,7 +508,7 @@ function FileFilterComboBox(props: FileFilterComboBoxProps) {
     }, [open]);
 
     return (
-        <Popover open={open || (noMatchingFiles && (!!inputText))} onOpenChange={setOpen}>
+        <Popover open={open || (noMatchingFiles && !!inputText)} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
                 <Button
                     variant="outline"
@@ -521,14 +521,18 @@ function FileFilterComboBox(props: FileFilterComboBoxProps) {
                             ? "✔️"
                             : "Selected"
                         : props.isMobileWidth
-                            ? " "
-                            : "Select file"}
+                          ? " "
+                          : "Select file"}
                     <Funnel className="opacity-50" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[200px] p-0">
                 <Command>
-                    <CommandInput placeholder="Search files..." value={inputText} onInput={(e) => setInputText(e.currentTarget.value)} />
+                    <CommandInput
+                        placeholder="Search files..."
+                        value={inputText}
+                        onInput={(e) => setInputText(e.currentTarget.value)}
+                    />
                     <CommandList>
                         <CommandEmpty>No files found.</CommandEmpty>
                         <CommandGroup>
@@ -614,7 +618,6 @@ export default function Search() {
                 setSelectedFileFilter("INITIALIZE");
             }
         }
-
     }, [searchQuery]);
 
     function handleSearchInputChange(value: string) {

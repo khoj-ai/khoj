@@ -8,7 +8,6 @@ from khoj.database.models import KhojUser
 from khoj.processor.content.org_mode import orgnode
 from khoj.processor.content.org_mode.orgnode import Orgnode
 from khoj.processor.content.text_to_entries import TextToEntries
-from khoj.utils import state
 from khoj.utils.helpers import timer
 from khoj.utils.rawconfig import Entry
 
@@ -103,7 +102,7 @@ class OrgToEntries(TextToEntries):
         # If content is small or content has no children headings, save it as a single entry
         # Note: This is the terminating condition for this recursive function
         if len(TextToEntries.tokenizer(org_content_with_ancestry)) <= max_tokens or not re.search(
-            rf"^\*{{{len(ancestry)+1},}}\s", org_content, re.MULTILINE
+            rf"^\*{{{len(ancestry) + 1},}}\s", org_content, re.MULTILINE
         ):
             orgnode_content_with_ancestry = orgnode.makelist(
                 org_content_with_ancestry, org_file, start_line=start_line, ancestry_lines=len(ancestry)
@@ -195,7 +194,7 @@ class OrgToEntries(TextToEntries):
                 if not entry_heading and parsed_entry.level > 0:
                     base_level = parsed_entry.level
                 # Indent entry by 1 heading level as ancestry is prepended as top level heading
-                heading = f"{'*' * (parsed_entry.level-base_level+2)} {todo_str}" if parsed_entry.level > 0 else ""
+                heading = f"{'*' * (parsed_entry.level - base_level + 2)} {todo_str}" if parsed_entry.level > 0 else ""
                 if parsed_entry.heading:
                     heading += f"{parsed_entry.heading}."
 
@@ -212,10 +211,10 @@ class OrgToEntries(TextToEntries):
                     compiled += f"\t {tags_str}."
 
                 if parsed_entry.closed:
-                    compiled += f'\n Closed on {parsed_entry.closed.strftime("%Y-%m-%d")}.'
+                    compiled += f"\n Closed on {parsed_entry.closed.strftime('%Y-%m-%d')}."
 
                 if parsed_entry.scheduled:
-                    compiled += f'\n Scheduled for {parsed_entry.scheduled.strftime("%Y-%m-%d")}.'
+                    compiled += f"\n Scheduled for {parsed_entry.scheduled.strftime('%Y-%m-%d')}."
 
                 if parsed_entry.hasBody:
                     compiled += f"\n {parsed_entry.body}"

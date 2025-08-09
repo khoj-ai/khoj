@@ -1,14 +1,27 @@
 import json
 import logging
 from textwrap import dedent
+from typing import List, Optional
 
 from openai import AzureOpenAI, OpenAI
 from openai.types.chat import ChatCompletion, ChatCompletionMessage
 
 from khoj.database.models import ChatModel
 from khoj.processor.conversation.utils import construct_structured_message
-from khoj.processor.operator.operator_actions import *
-from khoj.processor.operator.operator_agent_base import AgentActResult
+from khoj.processor.operator.operator_actions import (
+    BackAction,
+    ClickAction,
+    DoubleClickAction,
+    DragAction,
+    GotoAction,
+    KeypressAction,
+    OperatorAction,
+    Point,
+    ScreenshotAction,
+    ScrollAction,
+    TypeAction,
+    WaitAction,
+)
 from khoj.processor.operator.operator_environment_base import EnvironmentType, EnvState
 from khoj.utils.helpers import get_chat_usage_metrics
 

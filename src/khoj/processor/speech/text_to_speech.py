@@ -1,4 +1,3 @@
-import json  # Used for working with JSON data
 import os
 
 import requests  # Used for making HTTP requests

@@ -1,6 +1,5 @@
 import logging
 import re
-from pathlib import Path
 from typing import Dict, List, Tuple
 
 import urllib3.util
@@ -86,7 +85,7 @@ class MarkdownToEntries(TextToEntries):
 
         # If content is small or content has no children headings, save it as a single entry
         if len(TextToEntries.tokenizer(markdown_content_with_ancestry)) <= max_tokens or not re.search(
-            rf"^#{{{len(ancestry)+1},}}\s", markdown_content, flags=re.MULTILINE
+            rf"^#{{{len(ancestry) + 1},}}\s", markdown_content, flags=re.MULTILINE
         ):
             # Create entry with line number information
             entry_with_line_info = (markdown_content_with_ancestry, markdown_file, start_line)
@@ -160,7 +159,7 @@ class MarkdownToEntries(TextToEntries):
             calculated_line = start_line if start_line > 0 else 1
 
             # Check if raw_filename is a URL. If so, save it as is. If not, convert it to a Path.
-            if type(raw_filename) == str and re.search(r"^https?://", raw_filename):
+            if isinstance(raw_filename, str) and re.search(r"^https?://", raw_filename):
                 # Escape the URL to avoid issues with special characters
                 entry_filename = urllib3.util.parse_url(raw_filename).url
                 uri = entry_filename

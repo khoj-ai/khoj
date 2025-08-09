@@ -51,7 +51,7 @@ class GithubToEntries(TextToEntries):
     def process(self, files: dict[str, str], user: KhojUser, regenerate: bool = False) -> Tuple[int, int]:
         if is_none_or_empty(self.config.pat_token):
             logger.warning(
-                f"Github PAT token is not set. Private repositories cannot be indexed and lower rate limits apply."
+                "Github PAT token is not set. Private repositories cannot be indexed and lower rate limits apply."
             )
         current_entries = []
         for repo in self.config.repos:
@@ -137,7 +137,7 @@ class GithubToEntries(TextToEntries):
             # Find all markdown files in the repository
             if item["type"] == "blob" and item["path"].endswith(".md"):
                 # Create URL for each markdown file on Github
-                url_path = f'https://github.com/{repo.owner}/{repo.name}/blob/{repo.branch}/{item["path"]}'
+                url_path = f"https://github.com/{repo.owner}/{repo.name}/blob/{repo.branch}/{item['path']}"
 
                 # Add markdown file contents and URL to list
                 markdown_files += [{"content": self.get_file_contents(item["url"]), "path": url_path}]
@@ -145,19 +145,19 @@ class GithubToEntries(TextToEntries):
             # Find all org files in the repository
             elif item["type"] == "blob" and item["path"].endswith(".org"):
                 # Create URL for each org file on Github
-                url_path = f'https://github.com/{repo.owner}/{repo.name}/blob/{repo.branch}/{item["path"]}'
+                url_path = f"https://github.com/{repo.owner}/{repo.name}/blob/{repo.branch}/{item['path']}"
 
                 # Add org file contents and URL to list
                 org_files += [{"content": self.get_file_contents(item["url"]), "path": url_path}]
 
             # Find, index remaining non-binary files in the repository
             elif item["type"] == "blob":
-                url_path = f'https://github.com/{repo.owner}/{repo.name}/blob/{repo.branch}/{item["path"]}'
+                url_path = f"https://github.com/{repo.owner}/{repo.name}/blob/{repo.branch}/{item['path']}"
                 content_bytes = self.get_file_contents(item["url"], decode=False)
                 content_type, content_str = None, None
                 try:
                     content_type = magika.identify_bytes(content_bytes).output.group
-                except:
+                except Exception:
                     logger.error(f"Unable to identify content type of file at {url_path}. Skip indexing it")
                     continue
 
@@ -165,7 +165,7 @@ class GithubToEntries(TextToEntries):
                 if content_type in ["text", "code"]:
                     try:
                         content_str = content_bytes.decode("utf-8")
-                    except:
+                    except Exception:
                         logger.error(f"Unable to decode content of file at {url_path}. Skip indexing it")
                         continue
                     plaintext_files += [{"content": content_str, "path": url_path}]

@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
 . "$(dirname "$0")/_/husky.sh"
 
-yarn run lint-staged
-yarn test
+bun run lint-staged
+bun run test

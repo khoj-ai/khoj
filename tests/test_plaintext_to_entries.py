@@ -7,7 +7,7 @@ from khoj.processor.content.plaintext.plaintext_to_entries import PlaintextToEnt
 def test_plaintext_file():
     "Convert files with no heading to jsonl."
     # Arrange
-    raw_entry = f"""
+    raw_entry = """
     Hi, I am a plaintext file and I have some plaintext words.
     """
     plaintextfile = "test.txt"
