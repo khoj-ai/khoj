@@ -40,6 +40,9 @@ model_to_cost: Dict[str, Dict[str, float]] = {
     "o3": {"input": 2.0, "output": 8.00},
     "o3-pro": {"input": 20.0, "output": 80.00},
     "o4-mini": {"input": 1.10, "output": 4.40},
+    "gpt-5-2025-08-07": {"input": 1.25, "output": 10.00, "cache_read": 0.125},
+    "gpt-5-mini-2025-08-07": {"input": 0.25, "output": 2.00, "cache_read": 0.025},
+    "gpt-5-nano-2025-08-07": {"input": 0.05, "output": 0.40, "cache_read": 0.005},
     # Gemini Pricing: https://ai.google.dev/pricing
     "gemini-1.5-flash": {"input": 0.075, "output": 0.30},
     "gemini-1.5-flash-002": {"input": 0.075, "output": 0.30},

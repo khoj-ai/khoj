@@ -9,6 +9,9 @@ from khoj.processor.conversation.openai.utils import (
     clean_response_schema,
     completion_with_backoff,
     get_structured_output_support,
+    is_openai_api,
+    responses_chat_completion_with_backoff,
+    responses_completion_with_backoff,
     to_openai_tools,
 )
 from khoj.processor.conversation.utils import (
@@ -43,31 +46,52 @@ def send_message_to_model(
     model_kwargs: Dict[str, Any] = {}
     json_support = get_structured_output_support(model, api_base_url)
     if tools and json_support == StructuredOutputSupport.TOOL:
-        model_kwargs["tools"] = to_openai_tools(tools)
+        model_kwargs["tools"] = to_openai_tools(tools, use_responses_api=is_openai_api(api_base_url))
     elif response_schema and json_support >= StructuredOutputSupport.SCHEMA:
         # Drop unsupported fields from schema passed to OpenAI APi
         cleaned_response_schema = clean_response_schema(response_schema)
-        model_kwargs["response_format"] = {
-            "type": "json_schema",
-            "json_schema": {
-                "schema": cleaned_response_schema,
-                "name": response_schema.__name__,
-                "strict": True,
-            },
-        }
+        if is_openai_api(api_base_url):
+            model_kwargs["text"] = {
+                "format": {
+                    "type": "json_schema",
+                    "strict": True,
+                    "name": response_schema.__name__,
+                    "schema": cleaned_response_schema,
+                }
+            }
+        else:
+            model_kwargs["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "schema": cleaned_response_schema,
+                    "name": response_schema.__name__,
+                    "strict": True,
+                },
+            }
     elif response_type == "json_object" and json_support == StructuredOutputSupport.OBJECT:
         model_kwargs["response_format"] = {"type": response_type}
 
     # Get Response from GPT
-    return completion_with_backoff(
-        messages=messages,
-        model_name=model,
-        openai_api_key=api_key,
-        api_base_url=api_base_url,
-        deepthought=deepthought,
-        model_kwargs=model_kwargs,
-        tracer=tracer,
-    )
+    if is_openai_api(api_base_url):
+        return responses_completion_with_backoff(
+            messages=messages,
+            model_name=model,
+            openai_api_key=api_key,
+            api_base_url=api_base_url,
+            deepthought=deepthought,
+            model_kwargs=model_kwargs,
+            tracer=tracer,
+        )
+    else:
+        return completion_with_backoff(
+            messages=messages,
+            model_name=model,
+            openai_api_key=api_key,
+            api_base_url=api_base_url,
+            deepthought=deepthought,
+            model_kwargs=model_kwargs,
+            tracer=tracer,
+        )
 
 
 async def converse_openai(
@@ -163,13 +187,26 @@ async def converse_openai(
     logger.debug(f"Conversation Context for GPT: {messages_to_print(messages)}")
 
     # Get Response from GPT
-    async for chunk in chat_completion_with_backoff(
-        messages=messages,
-        model_name=model,
-        temperature=temperature,
-        openai_api_key=api_key,
-        api_base_url=api_base_url,
-        deepthought=deepthought,
-        tracer=tracer,
-    ):
-        yield chunk
+    if is_openai_api(api_base_url):
+        async for chunk in responses_chat_completion_with_backoff(
+            messages=messages,
+            model_name=model,
+            temperature=temperature,
+            openai_api_key=api_key,
+            api_base_url=api_base_url,
+            deepthought=deepthought,
+            tracer=tracer,
+        ):
+            yield chunk
+    else:
+        # For non-OpenAI APIs, use the chat completion method
+        async for chunk in chat_completion_with_backoff(
+            messages=messages,
+            model_name=model,
+            temperature=temperature,
+            openai_api_key=api_key,
+            api_base_url=api_base_url,
+            deepthought=deepthought,
+            tracer=tracer,
+        ):
+            yield chunk

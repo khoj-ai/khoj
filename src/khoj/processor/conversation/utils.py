@@ -68,6 +68,9 @@ model_to_prompt_size = {
     "o3": 60000,
     "o3-pro": 30000,
     "o4-mini": 90000,
+    "gpt-5-2025-08-07": 120000,
+    "gpt-5-mini-2025-08-07": 120000,
+    "gpt-5-nano-2025-08-07": 120000,
     # Google Models
     "gemini-2.5-flash": 120000,
     "gemini-2.5-pro": 60000,
