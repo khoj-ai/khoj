@@ -934,6 +934,9 @@ async def astream_thought_processor(
             if not chunk_data.get("object") or chunk_data.get("object") != "chat.completion.chunk":
                 logger.warning(f"Skipping invalid chunk with object field: {chunk_data.get('object', 'missing')}")
                 continue
+            # Handle unsupported service tiers like "on_demand" by Groq
+            if chunk.service_tier and chunk.service_tier == "on_demand":
+                chunk_data["service_tier"] = "auto"
 
             tchunk = ChatCompletionWithThoughtsChunk.model_validate(chunk_data)
 

@@ -433,7 +433,7 @@ async def research(
                         this_iteration.codeContext = code_results
                 async for result in send_status_func(f"**Ran code snippets**: {len(this_iteration.codeContext)}"):
                     yield result
-            except ValueError as e:
+            except (ValueError, TypeError) as e:
                 this_iteration.warning = f"Error running code: {e}"
                 logger.warning(this_iteration.warning, exc_info=True)
 

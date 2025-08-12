@@ -71,4 +71,7 @@ model_to_cost: Dict[str, Dict[str, float]] = {
     "grok-3-latest": {"input": 3.0, "output": 15.0},
     "grok-3-mini": {"input": 0.30, "output": 0.50},
     "grok-3-mini-latest": {"input": 0.30, "output": 0.50},
+    # Groq pricing
+    "moonshotai/kimi-k2-instruct": {"input": 1.00, "output": 3.00},
+    "openai/gpt-oss-120b": {"input": 0.15, "output": 0.75},
 }
