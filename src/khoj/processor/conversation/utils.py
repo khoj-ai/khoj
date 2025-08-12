@@ -331,7 +331,7 @@ def construct_tool_chat_history(
         ConversationCommand.ReadWebpage: (
             lambda iteration: list(iteration.onlineContext.keys()) if iteration.onlineContext else []
         ),
-        ConversationCommand.RunCode: (
+        ConversationCommand.PythonCoder: (
             lambda iteration: list(iteration.codeContext.keys()) if iteration.codeContext else []
         ),
     }

@@ -100,7 +100,7 @@ async def apick_next_tool(
         ConversationCommand.Notes.value: [tool.value for tool in document_research_tools],
         ConversationCommand.Webpage.value: [ConversationCommand.ReadWebpage.value],
         ConversationCommand.Online.value: [ConversationCommand.SearchWeb.value],
-        ConversationCommand.Code.value: [ConversationCommand.RunCode.value],
+        ConversationCommand.Code.value: [ConversationCommand.PythonCoder.value],
         ConversationCommand.Operator.value: [ConversationCommand.OperateComputer.value],
     }
     for input_tool, research_tools in input_tools_to_research_tools.items():
@@ -412,11 +412,13 @@ async def research(
                 this_iteration.warning = f"Error reading webpages: {e}"
                 logger.error(this_iteration.warning, exc_info=True)
 
-        elif this_iteration.query.name == ConversationCommand.RunCode:
+        elif this_iteration.query.name == ConversationCommand.PythonCoder:
             try:
                 async for result in run_code(
                     **this_iteration.query.args,
-                    conversation_history=construct_tool_chat_history(previous_iterations, ConversationCommand.RunCode),
+                    conversation_history=construct_tool_chat_history(
+                        previous_iterations, ConversationCommand.PythonCoder
+                    ),
                     context="",
                     location_data=location,
                     user=user,

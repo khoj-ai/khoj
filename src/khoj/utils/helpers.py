@@ -427,7 +427,7 @@ class ConversationCommand(str, Enum):
     SemanticSearchFiles = "semantic_search_files"
     SearchWeb = "search_web"
     ReadWebpage = "read_webpage"
-    RunCode = "run_code"
+    PythonCoder = "run_code"
     OperateComputer = "operate_computer"
 
 
@@ -503,15 +503,15 @@ tools_for_research_llm = {
             "required": ["urls", "query"],
         },
     ),
-    ConversationCommand.RunCode: ToolDefinition(
-        name="run_code",
-        description=e2b_tool_description if is_e2b_code_sandbox_enabled() else terrarium_tool_description,
+    ConversationCommand.PythonCoder: ToolDefinition(
+        name="python_coder",
+        description="Ask them " + e2b_tool_description if is_e2b_code_sandbox_enabled() else terrarium_tool_description,
         schema={
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "Detailed query and all input data required to generate, execute code in the sandbox.",
+                    "description": "Detailed query and all input data required for the Python Coder to generate, execute code in the sandbox.",
                 },
             },
             "required": ["query"],
