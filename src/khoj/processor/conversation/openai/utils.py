@@ -78,10 +78,8 @@ def _extract_text_for_instructions(content: Union[str, List, Dict, None]) -> str
 @retry(
     retry=(
         retry_if_exception_type(openai._exceptions.APITimeoutError)
-        | retry_if_exception_type(openai._exceptions.APIError)
-        | retry_if_exception_type(openai._exceptions.APIConnectionError)
         | retry_if_exception_type(openai._exceptions.RateLimitError)
-        | retry_if_exception_type(openai._exceptions.APIStatusError)
+        | retry_if_exception_type(openai._exceptions.InternalServerError)
         | retry_if_exception_type(ValueError)
     ),
     wait=wait_random_exponential(min=1, max=10),
@@ -249,10 +247,8 @@ def completion_with_backoff(
 @retry(
     retry=(
         retry_if_exception_type(openai._exceptions.APITimeoutError)
-        | retry_if_exception_type(openai._exceptions.APIError)
-        | retry_if_exception_type(openai._exceptions.APIConnectionError)
         | retry_if_exception_type(openai._exceptions.RateLimitError)
-        | retry_if_exception_type(openai._exceptions.APIStatusError)
+        | retry_if_exception_type(openai._exceptions.InternalServerError)
         | retry_if_exception_type(ValueError)
     ),
     wait=wait_exponential(multiplier=1, min=4, max=10),
@@ -415,10 +411,8 @@ async def chat_completion_with_backoff(
 @retry(
     retry=(
         retry_if_exception_type(openai._exceptions.APITimeoutError)
-        | retry_if_exception_type(openai._exceptions.APIError)
-        | retry_if_exception_type(openai._exceptions.APIConnectionError)
         | retry_if_exception_type(openai._exceptions.RateLimitError)
-        | retry_if_exception_type(openai._exceptions.APIStatusError)
+        | retry_if_exception_type(openai._exceptions.InternalServerError)
         | retry_if_exception_type(ValueError)
     ),
     wait=wait_random_exponential(min=1, max=10),
@@ -529,10 +523,8 @@ def responses_completion_with_backoff(
 @retry(
     retry=(
         retry_if_exception_type(openai._exceptions.APITimeoutError)
-        | retry_if_exception_type(openai._exceptions.APIError)
-        | retry_if_exception_type(openai._exceptions.APIConnectionError)
         | retry_if_exception_type(openai._exceptions.RateLimitError)
-        | retry_if_exception_type(openai._exceptions.APIStatusError)
+        | retry_if_exception_type(openai._exceptions.InternalServerError)
         | retry_if_exception_type(ValueError)
     ),
     wait=wait_exponential(multiplier=1, min=4, max=10),
@@ -764,7 +756,7 @@ def format_message_for_api(raw_messages: List[ChatMessage], api_base_url: str) -
                         {
                             "type": "function_call_output",
                             "call_id": tool_call_id,
-                            "output": part.get("content"),
+                            "output": part.get("content") or "No output",
                         }
                     )
                 else:
@@ -773,7 +765,7 @@ def format_message_for_api(raw_messages: List[ChatMessage], api_base_url: str) -
                             "role": "tool",
                             "tool_call_id": tool_call_id,
                             "name": part.get("name"),
-                            "content": part.get("content"),
+                            "content": part.get("content") or "No output",
                         }
                     )
             continue
