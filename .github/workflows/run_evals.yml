@@ -172,8 +172,13 @@ jobs:
           USE_EMBEDDED_DB: "true"
           KHOJ_TELEMETRY_DISABLE: "True"  # To disable telemetry for tests
         run: |
+          set -euo pipefail
+
           # Start Khoj server in background
-          khoj --anonymous-mode --non-interactive &
+          # Capture stdout/stderr to a log for debugging if startup fails
+          uv run khoj --anonymous-mode --non-interactive > khoj_server.log 2>&1 &
+          KHOJ_PID=$!
+          echo "Started Khoj (PID=$KHOJ_PID)"
 
           # Start code sandbox
           npm install -g pm2
@@ -182,17 +187,25 @@ jobs:
           # Wait for server to be ready
           timeout=120
           while ! curl -s http://localhost:42110/api/health > /dev/null; do
-            if [ $timeout -le 0 ]; then
-              echo "Timed out waiting for Khoj server"
+            # If process died, surface logs and fail fast
+            if ! kill -0 "$KHOJ_PID" 2>/dev/null; then
+              echo "Khoj process exited before becoming healthy. Logs:" >&2
+              sed -n '1,200p' khoj_server.log >&2 || true
               exit 1
             fi
-            echo "Waiting for Khoj server..."
+            if [ $timeout -le 0 ]; then
+              echo "Timed out waiting for Khoj server. Partial logs:" >&2
+              sed -n '1,200p' khoj_server.log >&2 || true
+              exit 1
+            fi
+            echo "Waiting for Khoj server... ($timeout s left)"
             sleep 2
             timeout=$((timeout-2))
           done
+          echo "Khoj server is healthy"
 
           # Run evals
-          python tests/evals/eval.py -d ${{ matrix.dataset }}
+          uv run python tests/evals/eval.py -d ${{ matrix.dataset }}
 
       - name: Upload Results
         if: always()  # Upload results even if tests fail
