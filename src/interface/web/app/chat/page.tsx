@@ -33,6 +33,7 @@ import { Separator } from "@/components/ui/separator";
 import { KhojLogoType } from "../components/logo/khojLogo";
 import { Button } from "@/components/ui/button";
 import { Joystick } from "@phosphor-icons/react";
+import { useToast } from "@/components/ui/use-toast";
 import { ChatSidebar } from "../components/chatSidebar/chatSidebar";
 
 interface ChatBodyDataProps {
@@ -224,11 +225,17 @@ export default function Chat() {
     const isMobileWidth = useIsMobileWidth();
     const [isChatSideBarOpen, setIsChatSideBarOpen] = useState(false);
     const [socketUrl, setSocketUrl] = useState<string | null>(null);
+    // track whether we've already shown a toast for the current disconnect cycle to avoid duplicates
+    const disconnectToastShownRef = useRef(false);
+    // Track whether the websocket is closing due to an intentional action (page refresh/navigation or idle timeout)
+    const intentionalCloseRef = useRef(false);
 
     const disconnectFromServer = useCallback(() => {
         if (idleTimerRef.current) {
             clearTimeout(idleTimerRef.current);
         }
+        // Mark as intentional so onClose does not show transient network error banner
+        intentionalCloseRef.current = true;
         setSocketUrl(null);
         console.log("WebSocket disconnected due to inactivity.");
     }, []);
@@ -241,6 +248,7 @@ export default function Chat() {
         idleTimerRef.current = setTimeout(disconnectFromServer, idleTimeout);
     }, [disconnectFromServer]);
 
+    const { toast } = useToast();
     const { sendMessage, lastMessage } = useWebSocket(socketUrl, {
         share: true,
         shouldReconnect: (closeEvent) => true,
@@ -254,11 +262,36 @@ export default function Chat() {
         onOpen: () => {
             console.log("WebSocket connection established.");
             resetIdleTimer();
+            // Reset disconnect toast guard so future disconnects can notify again
+            disconnectToastShownRef.current = false;
+            // Reset intentional close flag after a successful open
+            intentionalCloseRef.current = false;
         },
-        onClose: () => {
+        onClose: (event) => {
             console.log("WebSocket connection closed.");
             if (idleTimerRef.current) {
                 clearTimeout(idleTimerRef.current);
+            }
+            // Suppress notice if:
+            //  - Intentional close (page refresh/navigation or idle management)
+            //  - Normal closure (1000) or Going Away (1001 - typical on page reload)
+            //  - No query to process
+            if (
+                !intentionalCloseRef.current &&
+                event?.code !== 1000 &&
+                event?.code !== 1001 &&
+                queryToProcess
+            ) {
+                if (!disconnectToastShownRef.current) {
+                    toast({
+                        title: "Network issue",
+                        description:
+                            "Connection lost. Please check your network and try again when ready.",
+                        variant: "destructive",
+                        duration: 6000,
+                    });
+                    disconnectToastShownRef.current = true;
+                }
             }
             // Mark any in-progress streamed message as completed so UI updates (stop spinner, show send icon)
             setMessages((prev) => {
@@ -288,8 +321,27 @@ export default function Chat() {
             });
             setProcessQuerySignal(false);
             setQueryToProcess("");
+            if (!intentionalCloseRef.current && !disconnectToastShownRef.current) {
+                toast({
+                    title: "Network error",
+                    description:
+                        "Connection lost. Please check your network and try again when ready.",
+                    variant: "destructive",
+                    duration: 5000,
+                });
+                disconnectToastShownRef.current = true;
+            }
         },
     });
+
+    // Handle page unload / refresh: mark intentional so we don't show a toast
+    useEffect(() => {
+        const handleBeforeUnload = () => {
+            intentionalCloseRef.current = true;
+        };
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }, []);
 
     useEffect(() => {
         if (lastMessage !== null) {

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "../globals.css";
+import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
     title: "Khoj AI - Chat",
@@ -39,6 +40,7 @@ export default function ChildLayout({
     return (
         <>
             {children}
+            <Toaster />
             <script
                 dangerouslySetInnerHTML={{
                     __html: `window.EXCALIDRAW_ASSET_PATH = 'https://assets.khoj.dev/@excalidraw/excalidraw/dist/';`,
