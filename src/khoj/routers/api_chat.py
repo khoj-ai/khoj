@@ -786,6 +786,9 @@ async def event_generator(
                     if interrupt_query == ChatEvent.END_EVENT.value:
                         cancellation_event.set()
                         logger.debug(f"Chat cancelled by user {user} via interrupt queue.")
+                    elif interrupt_query == ChatEvent.INTERRUPT.value:
+                        cancellation_event.set()
+                        logger.debug("Chat interrupted.")
                     else:
                         # Pass the interrupt query to child tasks
                         logger.info(f"Continuing chat with the new instruction: {interrupt_query}")
@@ -1556,7 +1559,7 @@ async def chat_ws(
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected for user {websocket.scope['user'].object.id}")
         if current_task and not current_task.done():
-            current_task.cancel()
+            interrupt_queue.put_nowait(ChatEvent.INTERRUPT.value)
     except Exception as e:
         logger.error(f"Error in websocket chat: {e}", exc_info=True)
         if current_task and not current_task.done():

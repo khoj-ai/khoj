@@ -260,6 +260,34 @@ export default function Chat() {
             if (idleTimerRef.current) {
                 clearTimeout(idleTimerRef.current);
             }
+            // Mark any in-progress streamed message as completed so UI updates (stop spinner, show send icon)
+            setMessages((prev) => {
+                if (!prev || prev.length === 0) return prev;
+                const newMessages = [...prev];
+                const last = newMessages[newMessages.length - 1];
+                if (last && !last.completed) {
+                    last.completed = true;
+                }
+                return newMessages;
+            });
+            // Reset processing state so ChatInputArea send button reappears
+            setProcessQuerySignal(false);
+            setQueryToProcess("");
+        },
+        onError: (event) => {
+            console.error("WebSocket error", event);
+            // Perform same cleanup as onClose to avoid stuck UI
+            setMessages((prev) => {
+                if (!prev || prev.length === 0) return prev;
+                const newMessages = [...prev];
+                const last = newMessages[newMessages.length - 1];
+                if (last && !last.completed) {
+                    last.completed = true;
+                }
+                return newMessages;
+            });
+            setProcessQuerySignal(false);
+            setQueryToProcess("");
         },
     });
 
