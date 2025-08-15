@@ -197,7 +197,7 @@ async def apick_next_tool(
         if i.warning is None and isinstance(i.query, ToolCall)
     }
     if (parsed_response.name, dict_to_tuple(parsed_response.args)) in previous_tool_query_combinations:
-        warning = "Repeated tool, query combination detected. Skipping iteration. Try something different."
+        warning = f"Repeated tool, query combination detected. You've already called {parsed_response.name} with args: {parsed_response.args}. Try something different."
     # Only send client status updates if we'll execute this iteration and model has thoughts to share.
     elif send_status_func and not is_none_or_empty(response.thought):
         async for event in send_status_func(response.thought):

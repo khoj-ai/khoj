@@ -588,7 +588,7 @@ tools_for_research_llm = {
         description=dedent(
             """
             To have the tool AI semantic search through the user's knowledge base.
-            Helpful to answer questions for which finding some relevant notes or documents can complete the search. Example: "When was Tom born?"
+            Helpful to answer questions for which finding some relevant notes or documents can be useful. Example: "When was Tom born?"
             This tool AI cannot find all relevant notes or documents, only a subset of them.
             It is a good starting point to find keywords, discover similar topics or related concepts and some relevant notes or documents.
             For a given query, the tool AI can perform a maximum of {max_search_queries} semantic search subqueries per iteration.
