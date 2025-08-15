@@ -467,9 +467,12 @@ export function constructAllReferences(
     if (contextData) {
         let localContextReferences = contextData.map((context) => {
             if (!context.compiled && context.compiled !== "") {
-                const fileContent = context as unknown as string;
-                const title = fileContent.split("\n")[0];
-                const content = fileContent.split("\n").slice(1).join("\n");
+                const raw = context as unknown;
+                const fileContent = typeof raw === "string" ? raw : raw == null ? "" : String(raw);
+
+                const lines = fileContent.split("\n");
+                const title = lines[0] && lines[0].trim() ? lines[0] : "(untitled)";
+                const content = lines.slice(1).join("\n");
                 return {
                     title: title,
                     content: content,
