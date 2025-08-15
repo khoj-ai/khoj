@@ -995,7 +995,7 @@ async def event_generator(
             )
         except ValueError as e:
             logger.error(f"Error getting data sources and output format: {e}. Falling back to default.")
-            conversation_commands = [ConversationCommand.General]
+            chosen_io = {"sources": [ConversationCommand.General], "output": ConversationCommand.Text}
 
         conversation_commands = chosen_io.get("sources") + [chosen_io.get("output")]
 
