@@ -802,8 +802,9 @@ def format_message_for_api(raw_messages: List[ChatMessage], api_base_url: str) -
                 # OpenAI models use the Responses API which uses slightly different content types
                 if part["type"] == "text":
                     part["type"] = "output_text" if message.role == "assistant" else "input_text"
-                if part["type"] == "image":
+                if part["type"] == "image_url":
                     part["type"] = "output_image" if message.role == "assistant" else "input_image"
+                    part["image_url"] = part["image_url"]["url"]
             # If no valid content parts left, remove the message
             if is_none_or_empty(message.content):
                 messages.remove(message)
