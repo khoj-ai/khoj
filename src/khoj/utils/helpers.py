@@ -613,8 +613,11 @@ tools_for_research_llm = {
             Helpful to answer questions for which all relevant notes or documents are needed to complete the search. Example: "Notes that mention Tom".
             You need to know all the correct keywords or regex patterns for this tool to be useful.
 
-            REMEMBER:
+            IMPORTANT:
             - The regex pattern will ONLY match content on a single line. Multi-line matches are NOT supported (even if you use \\n).
+
+            TIPS:
+            - The output follows a grep-like format. Matches are prefixed with the file path and line number. Useful to combine with viewing file around specific line numbers.
 
             An optional path prefix can restrict search to specific files/directories.
             Use lines_before, lines_after to show context around matches.

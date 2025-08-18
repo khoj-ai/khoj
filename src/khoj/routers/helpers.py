@@ -3023,6 +3023,7 @@ async def grep_files(
         file_matches = await FileObjectAdapters.aget_file_objects_by_regex(user, db_pattern, path_prefix)
 
         line_matches = []
+        line_matches_count = 0
         for file_object in file_matches:
             lines = file_object.raw_text.split("\n")
             matched_line_numbers = []
@@ -3031,6 +3032,7 @@ async def grep_files(
             for i, line in enumerate(lines, 1):
                 if regex.search(line):
                     matched_line_numbers.append(i)
+            line_matches_count += len(matched_line_numbers)
 
             # Build context for each match
             for line_num in matched_line_numbers:
@@ -3047,10 +3049,10 @@ async def grep_files(
 
                     if current_line_num == line_num:
                         # This is the matching line, mark it
-                        context_lines.append(f"{file_object.file_name}:{current_line_num}:> {line_content}")
+                        context_lines.append(f"{file_object.file_name}:{current_line_num}: {line_content}")
                     else:
                         # This is a context line
-                        context_lines.append(f"{file_object.file_name}:{current_line_num}:  {line_content}")
+                        context_lines.append(f"{file_object.file_name}-{current_line_num}-  {line_content}")
 
                 # Add separator between matches if showing context
                 if lines_before > 0 or lines_after > 0:
@@ -3065,7 +3067,7 @@ async def grep_files(
         # Check if no results found
         max_results = 1000
         query = _generate_query(
-            len([m for m in line_matches if ":>" in m]),
+            line_matches_count,
             len(file_matches),
             path_prefix,
             regex_pattern,
