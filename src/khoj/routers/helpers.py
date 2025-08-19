@@ -1625,6 +1625,7 @@ async def agenerate_chat_response(
             deepthought = True
 
         chat_model = await ConversationAdapters.aget_valid_chat_model(user, conversation, is_subscribed)
+        max_prompt_size = await ConversationAdapters.aget_max_context_size(chat_model, user)
         vision_available = chat_model.vision_enabled
         if not vision_available and query_images:
             vision_enabled_config = await ConversationAdapters.aget_vision_enabled_config()
@@ -1656,7 +1657,7 @@ async def agenerate_chat_response(
                 model=chat_model_name,
                 api_key=api_key,
                 api_base_url=openai_chat_config.api_base_url,
-                max_prompt_size=chat_model.max_prompt_size,
+                max_prompt_size=max_prompt_size,
                 tokenizer_name=chat_model.tokenizer,
                 agent=agent,
                 vision_available=vision_available,
@@ -1687,7 +1688,7 @@ async def agenerate_chat_response(
                 model=chat_model.name,
                 api_key=api_key,
                 api_base_url=api_base_url,
-                max_prompt_size=chat_model.max_prompt_size,
+                max_prompt_size=max_prompt_size,
                 tokenizer_name=chat_model.tokenizer,
                 agent=agent,
                 vision_available=vision_available,
@@ -1717,7 +1718,7 @@ async def agenerate_chat_response(
                 model=chat_model.name,
                 api_key=api_key,
                 api_base_url=api_base_url,
-                max_prompt_size=chat_model.max_prompt_size,
+                max_prompt_size=max_prompt_size,
                 tokenizer_name=chat_model.tokenizer,
                 agent=agent,
                 vision_available=vision_available,
