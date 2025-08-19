@@ -2916,38 +2916,34 @@ async def view_file_content(
         raw_text = file_object.raw_text
 
         # Apply line range filtering if specified
-        if start_line is None and end_line is None:
-            filtered_text = raw_text
-        else:
-            lines = raw_text.split("\n")
-            start_line = start_line or 1
-            end_line = end_line or len(lines)
+        lines = raw_text.split("\n")
+        start_line = start_line or 1
+        end_line = end_line or len(lines)
 
-            # Validate line range
-            if start_line < 1 or end_line < 1 or start_line > end_line:
-                error_msg = f"Invalid line range: {start_line}-{end_line}"
-                logger.warning(error_msg)
-                yield [{"query": query, "file": path, "compiled": error_msg}]
-                return
-            if start_line > len(lines):
-                error_msg = f"Start line {start_line} exceeds total number of lines {len(lines)}"
-                logger.warning(error_msg)
-                yield [{"query": query, "file": path, "compiled": error_msg}]
-                return
+        # Validate line range
+        if start_line < 1 or end_line < 1 or start_line > end_line:
+            error_msg = f"Invalid line range: {start_line}-{end_line}"
+            logger.warning(error_msg)
+            yield [{"query": query, "file": path, "compiled": error_msg}]
+            return
+        if start_line > len(lines):
+            error_msg = f"Start line {start_line} exceeds total number of lines {len(lines)}"
+            logger.warning(error_msg)
+            yield [{"query": query, "file": path, "compiled": error_msg}]
+            return
 
-            # Convert from 1-based to 0-based indexing and ensure bounds
-            start_idx = max(0, start_line - 1)
-            end_idx = min(len(lines), end_line)
+        # Convert from 1-based to 0-based indexing and ensure bounds
+        start_idx = max(0, start_line - 1)
+        end_idx = min(len(lines), end_line)
 
-            selected_lines = lines[start_idx:end_idx]
-            filtered_text = "\n".join(selected_lines)
+        # Limit to first 50 lines if more than 50 lines are requested
+        truncation_message = ""
+        if end_idx - start_idx > 50:
+            truncation_message = "\n\n[Truncated after 50 lines! Use narrower line range to view complete section.]"
+            end_idx = start_idx + 50
 
-        # Truncate the text if it's too long
-        if len(filtered_text) > 10000:
-            filtered_text = (
-                filtered_text[:10000]
-                + "\n\n[Truncated after first 10K characters! Use narrower line range to view complete section.]"
-            )
+        selected_lines = lines[start_idx:end_idx]
+        filtered_text = "\n".join(selected_lines) + truncation_message
 
         # Format the result as a document reference
         document_results = [

@@ -567,7 +567,7 @@ tools_for_research_llm = {
             To view the contents of specific note or document in the user's personal knowledge base.
             Especially helpful if the question expects context from the user's notes or documents.
             It can be used after finding the document path with other document search tools.
-            Specify a line range to view only specific sections of files. Especially useful to read large files.
+            Specify a line range to efficiently read relevant sections of a file. You can view up to 50 lines at a time.
             """
         ).strip(),
         schema={
