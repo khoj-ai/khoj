@@ -195,7 +195,6 @@ def completion_with_backoff(
         chunk = client.beta.chat.completions.parse(
             messages=formatted_messages,  # type: ignore
             model=model_name,
-            temperature=temperature,
             timeout=httpx.Timeout(30, read=read_timeout),
             **model_kwargs,
         )
