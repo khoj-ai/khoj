@@ -219,6 +219,10 @@ def completion_with_backoff(
             # Json dump tool calls into aggregated response
             aggregated_response = json.dumps([tool_call.__dict__ for tool_call in tool_calls])
 
+    # Align chunk definition with non-streaming mode for post stream completion usage
+    if hasattr(chunk, "chunk"):
+        chunk = chunk.chunk
+
     # Calculate cost of chat
     input_tokens = chunk.usage.prompt_tokens if hasattr(chunk, "usage") and chunk.usage else 0
     output_tokens = chunk.usage.completion_tokens if hasattr(chunk, "usage") and chunk.usage else 0
