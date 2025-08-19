@@ -962,7 +962,9 @@ export class KhojChatView extends KhojPaneView {
             let endpoint = `${this.setting.khojUrl}/api/chat/sessions`;
             if (agentSlug) {
                 endpoint += `?agent_slug=${encodeURIComponent(agentSlug)}`;
-            }
+            } else if (this.currentAgent)  {
+				endpoint += `?agent_slug=${encodeURIComponent(this.currentAgent)}`;
+			}
 
             const response = await fetch(endpoint, {
                 method: "POST",
