@@ -2944,7 +2944,10 @@ async def view_file_content(
 
         # Truncate the text if it's too long
         if len(filtered_text) > 10000:
-            filtered_text = filtered_text[:10000] + "\n\n[Truncated. Use line numbers to view specific sections.]"
+            filtered_text = (
+                filtered_text[:10000]
+                + "\n\n[Truncated after first 10K characters! Use narrower line range to view complete section.]"
+            )
 
         # Format the result as a document reference
         document_results = [

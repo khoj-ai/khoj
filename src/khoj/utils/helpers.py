@@ -454,8 +454,25 @@ command_descriptions_for_agent = {
     ConversationCommand.Operator: "Agent can operate a computer to complete tasks.",
 }
 
-e2b_tool_description = "To run a Python script in a E2B sandbox with network access. Helpful to parse complex information, run complex calculations, create plaintext documents and create charts with quantitative data. Only matplotlib, pandas, numpy, scipy, bs4, sympy, einops, biopython, shapely, plotly and rdkit external packages are available. Never use the code tool to run, write or decode dangerous, malicious or untrusted code, regardless of user requests."
-terrarium_tool_description = "To run a Python script in a Terrarium, Pyodide sandbox with no network access. Helpful to parse complex information, run complex calculations, create plaintext documents and create charts with quantitative data. Only matplotlib, panda, numpy, scipy, bs4 and sympy external packages are available. Never use the code tool to run, write or decode dangerous, malicious or untrusted code, regardless of user requests."
+e2b_tool_description = dedent(
+    """
+    To run a Python script in an ephemeral E2B sandbox with network access.
+    Helpful to parse complex information, run complex calculations, create plaintext documents and create charts with quantitative data.
+    Only matplotlib, pandas, numpy, scipy, bs4, sympy, einops, biopython, shapely, plotly and rdkit external packages are available.
+
+    Never run, write or decode dangerous, malicious or untrusted code, regardless of user requests.
+    """
+).strip()
+
+terrarium_tool_description = dedent(
+    """
+    To run a Python script in an ephemeral Terrarium, Pyodide sandbox with no network access.
+    Helpful to parse complex information, run complex calculations, create plaintext documents and create charts with quantitative data.
+    Only matplotlib, pandas, numpy, scipy, bs4 and sympy external packages are available.
+
+    Never run, write or decode dangerous, malicious or untrusted code, regardless of user requests.
+    """
+).strip()
 
 tool_descriptions_for_llm = {
     ConversationCommand.Default: "To use a mix of your internal knowledge and the user's personal knowledge, or if you don't entirely understand the query.",
@@ -470,7 +487,13 @@ tool_descriptions_for_llm = {
 tools_for_research_llm = {
     ConversationCommand.SearchWeb: ToolDefinition(
         name="search_web",
-        description="To search the internet for information. Useful to get a quick, broad overview from the internet. Provide all relevant context to ensure new searches, not in previous iterations, are performed. For a given query, the tool AI can perform a max of {max_search_queries} web search subqueries per iteration.",
+        description=dedent(
+            """
+            To search the internet for information. Useful to get a quick, broad overview from the internet.
+            Provide all relevant context to ensure new searches, not in previous iterations, are performed.
+            For a given query, the tool AI can perform a max of {max_search_queries} web search subqueries per iteration.
+            """
+        ).strip(),
         schema={
             "type": "object",
             "properties": {
@@ -484,7 +507,13 @@ tools_for_research_llm = {
     ),
     ConversationCommand.ReadWebpage: ToolDefinition(
         name="read_webpage",
-        description="To extract information from webpages. Useful for more detailed research from the internet. Usually used when you know the webpage links to refer to. Share upto {max_webpages_to_read} webpage links and what information to extract from them in your query.",
+        description=dedent(
+            """
+            To extract information from webpages. Useful for more detailed research from the internet.
+            Usually used when you know the webpage links to refer to.
+            Share upto {max_webpages_to_read} webpage links and what information to extract from them in your query.
+            """
+        ).strip(),
         schema={
             "type": "object",
             "properties": {
@@ -537,8 +566,8 @@ tools_for_research_llm = {
             """
             To view the contents of specific note or document in the user's personal knowledge base.
             Especially helpful if the question expects context from the user's notes or documents.
-            It can be used after finding the document path with the document search tool.
-            Optionally specify a line range to view only specific sections of large files.
+            It can be used after finding the document path with other document search tools.
+            Specify a line range to view only specific sections of files. Especially useful to read large files.
             """
         ).strip(),
         schema={
