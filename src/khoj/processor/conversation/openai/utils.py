@@ -170,6 +170,7 @@ def completion_with_backoff(
                     chunk.type == "chunk"
                     and chunk.chunk.choices
                     and hasattr(chunk.chunk.choices[0].delta, "reasoning_content")
+                    and chunk.chunk.choices[0].delta.reasoning_content
                 ):
                     thoughts += chunk.chunk.choices[0].delta.reasoning_content
                 elif chunk.type == "chunk" and chunk.chunk.choices and chunk.chunk.choices[0].delta.tool_calls:
@@ -1073,6 +1074,10 @@ async def ain_stream_thought_processor(
         if mode == "message":
             # Message mode is terminal, so just yield chunks, no processing
             yield chunk
+            continue
+
+        if chunk.choices[0].delta.content is None:
+            # If delta content is None, we can't process it, just yield the chunk
             continue
 
         buf += chunk.choices[0].delta.content
