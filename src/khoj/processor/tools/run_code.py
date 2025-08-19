@@ -49,7 +49,7 @@ class GeneratedCode(NamedTuple):
 
 
 async def run_code(
-    query: str,
+    instructions: str,
     conversation_history: List[ChatMessageModel],
     context: str,
     location_data: LocationData,
@@ -63,12 +63,12 @@ async def run_code(
 ):
     # Generate Code
     if send_status_func:
-        async for event in send_status_func(f"**Generate code snippet** for {query}"):
+        async for event in send_status_func(f"**Generate code snippet** for {instructions}"):
             yield {ChatEvent.STATUS: event}
     try:
         with timer("Chat actor: Generate programs to execute", logger):
             generated_code = await generate_python_code(
-                query,
+                instructions,
                 conversation_history,
                 context,
                 location_data,
@@ -79,7 +79,7 @@ async def run_code(
                 query_files,
             )
     except Exception as e:
-        raise ValueError(f"Failed to generate code for {query} with error: {e}")
+        raise ValueError(f"Failed to generate code for {instructions} with error: {e}")
 
     # Prepare Input Data
     input_data = []
@@ -101,21 +101,21 @@ async def run_code(
             code = result.pop("code")
             cleaned_result = truncate_code_context({"cleaned": {"results": result}})["cleaned"]["results"]
             logger.info(f"Executed Code\n----\n{code}\n----\nResult\n----\n{cleaned_result}\n----")
-            yield {query: {"code": code, "results": result}}
+            yield {instructions: {"code": code, "results": result}}
     except asyncio.TimeoutError as e:
         # Call the sandbox_url/stop GET API endpoint to stop the code sandbox
-        error = f"Failed to run code for {query} with Timeout error: {e}"
+        error = f"Failed to run code for {instructions} with Timeout error: {e}"
         try:
             await aiohttp.ClientSession().get(f"{sandbox_url}/stop", timeout=5)
         except Exception as e:
             error += f"\n\nFailed to stop code sandbox with error: {e}"
         raise ValueError(error)
     except Exception as e:
-        raise ValueError(f"Failed to run code for {query} with error: {e}")
+        raise ValueError(f"Failed to run code for {instructions} with error: {e}")
 
 
 async def generate_python_code(
-    q: str,
+    instructions: str,
     chat_history: List[ChatMessageModel],
     context: str,
     location_data: LocationData,
@@ -142,7 +142,7 @@ async def generate_python_code(
     network_access_context = "**NO** " if not is_e2b_code_sandbox_enabled() else ""
 
     code_generation_prompt = prompts.python_code_generation_prompt.format(
-        query=q,
+        instructions=instructions,
         chat_history=chat_history_str,
         context=context,
         has_network_access=network_access_context,

@@ -1003,9 +1003,9 @@ Chat History:
 ---
 {chat_history}
 
-User Query:
+User Instructions:
 ---
-{query}
+{instructions}
 """.strip()
 )
 

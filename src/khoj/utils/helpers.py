@@ -538,12 +538,12 @@ tools_for_research_llm = {
         schema={
             "type": "object",
             "properties": {
-                "query": {
+                "instructions": {
                     "type": "string",
-                    "description": "Detailed query and all input data required for the Python Coder to generate, execute code in the sandbox.",
+                    "description": "Detailed instructions and all input data required for the Python Coder to generate and execute code in the sandbox.",
                 },
             },
-            "required": ["query"],
+            "required": ["instructions"],
         },
     ),
     ConversationCommand.OperateComputer: ToolDefinition(
