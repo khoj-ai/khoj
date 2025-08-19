@@ -458,6 +458,7 @@ def responses_completion_with_backoff(
         temperature = 1
         reasoning_effort = "medium" if deepthought else "low"
         model_kwargs["reasoning"] = {"effort": reasoning_effort, "summary": "auto"}
+        model_kwargs["include"] = ["reasoning.encrypted_content"]
         # Remove unsupported params for reasoning models
         model_kwargs.pop("top_p", None)
         model_kwargs.pop("stop", None)
@@ -472,7 +473,6 @@ def responses_completion_with_backoff(
         temperature=temperature,
         timeout=httpx.Timeout(30, read=read_timeout),  # type: ignore
         store=False,
-        include=["reasoning.encrypted_content"],
         **model_kwargs,
     )
     if not model_response or not isinstance(model_response, OpenAIResponse) or not model_response.output:
