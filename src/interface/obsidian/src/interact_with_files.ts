@@ -1,4 +1,4 @@
-import { App, TFile } from 'obsidian';
+import { App, MarkdownView, TFile } from 'obsidian';
 import { diffWords } from 'diff';
 
 /**
@@ -55,6 +55,7 @@ export class FileInteractions {
     private app: App;
     private readonly EDIT_BLOCK_START = '<khoj_edit>';
     private readonly EDIT_BLOCK_END = '</khoj_edit>';
+    private readonly CONTEXT_FILES_LIMIT = 3;
 
     /**
      * Constructor for FileInteractions
@@ -63,6 +64,26 @@ export class FileInteractions {
      */
     constructor(app: App) {
         this.app = app;
+    }
+
+    /**
+     * Get N open, recently viewed markdown files.
+     */
+    private getRecentActiveMarkdownFiles(N: number): TFile[] {
+        const seen = new Set<string>();
+        const recentActiveFiles = this.app.workspace.getLeavesOfType('markdown')
+            .sort((a, b) => (b as any).activeTime - (a as any).activeTime) // Sort by leaf activeTime (note: undocumented prop)
+            .map(leaf => (leaf.view as MarkdownView)?.file)
+            // Dedupe by file path
+            .filter((file): file is TFile => {
+                if (!file || seen.has(file.path)) return false;
+                seen.add(file.path);
+                return true;
+            })
+            .slice(0, N);
+
+        console.log(`Using ${recentActiveFiles.length} recently viewed md files for context: ${recentActiveFiles.map(file => file.path).join(', ')}`);
+        return recentActiveFiles;
     }
 
     /**
@@ -75,9 +96,9 @@ export class FileInteractions {
         // Only proceed if we have read or write access
         if (fileAccessMode === 'none') return '';
 
-        // Get all open markdown leaves
-        const leaves = this.app.workspace.getLeavesOfType('markdown');
-        if (leaves.length === 0) return '';
+        // Get recently viewed markdown files
+        const recentFiles = this.getRecentActiveMarkdownFiles(this.CONTEXT_FILES_LIMIT);
+        if (recentFiles.length === 0) return '';
 
         // Instructions in write access mode
         let editInstructions: string = '';
@@ -274,11 +295,7 @@ For context, the user is currently working on the following files:
 
 `;
 
-        for (const leaf of leaves) {
-            const view = leaf.view as any;
-            const file = view?.file;
-            if (!file || file.extension !== 'md') continue;
-
+        for (const file of recentFiles) {
             // Read file content
             let fileContent: string;
             try {
@@ -684,10 +701,8 @@ For context, the user is currently working on the following files:
         // Track current content for each file as we apply edits
         const currentFileContents = new Map<string, string>();
 
-        // Get all open markdown files
-        const files = this.app.workspace.getLeavesOfType('markdown')
-            .map(leaf => (leaf.view as any)?.file)
-            .filter(file => file && file.extension === 'md');
+        // Get recently viewed markdown file(s) to edit
+        const files = this.getRecentActiveMarkdownFiles(this.CONTEXT_FILES_LIMIT);
 
         // Track success/failure for each edit
         const editResults: { block: EditBlock, success: boolean, error?: string }[] = [];
