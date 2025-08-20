@@ -981,7 +981,7 @@ export class KhojChatView extends KhojPaneView {
                 this.currentAgent = agentSlug || null;
 
                 // Update agent selector to reflect current agent
-                const agentSelect = this.contentEl.querySelector('.khoj-agent-select') as HTMLSelectElement;
+                const agentSelect = this.contentEl.querySelector('.khoj-header-agent-select') as HTMLSelectElement;
                 if (agentSelect) {
                     agentSelect.value = this.currentAgent || '';
                 }
