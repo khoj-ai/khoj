@@ -432,8 +432,16 @@ For context, the user is currently working on the following files:
             }
 
             // Try parse SEARCH/REPLACE format for complete edit blocks
-            // Regex: file_path\n<<<<<<< SEARCH\nsearch_content\n=======\nreplacement_content\n>>>>>>> REPLACE
-            const newFormatRegex = /^([^\n]+)\n<<<<<<< SEARCH\n([\s\S]*?)\n=======\n([\s\S]*?)\n>>>>>>> REPLACE\s*$/;
+            // Supports empty SEARCH (new file / replace whole file) and empty REPLACE (deletion)
+            // Regex structure:
+            //   file_path               (group 1)
+            //   <<<<<<< SEARCH          literal marker
+            //   search_content          (group 2, can be empty)
+            //   =======                 divider
+            //   replacement_content     (group 3, can be empty => deletion)
+            //   >>>>>>> REPLACE         end marker
+            // Note: The trailing newline before the end marker is optional to allow zero-length replacement
+            const newFormatRegex = /^([^\n]+)\n<<<<<<< SEARCH\n([\s\S]*?)\n=======\n([\s\S]*?)\n?>>>>>>> REPLACE\s*$/;
             const newFormatMatch = newFormatRegex.exec(cleanContent);
 
             let editData: EditBlock | null = null;
@@ -458,14 +466,14 @@ For context, the user is currently working on the following files:
                 error = {
                     type: 'missing_field',
                     message: 'Missing "find" field markers',
-                    details: 'The "find" field is required and should contain the content to find in the file'
+                    details: 'The "find" field is required. It should contain the content to find in the file or be empty for new files'
                 };
             }
-            else if (editData && !editData.replace) {
+            else if (editData && editData.replace === undefined) {
                 error = {
                     type: 'missing_field',
                     message: 'Missing "replace" field in edit block',
-                    details: 'The "replace" field is required and should contain the replacement text'
+                    details: 'The "replace" field is required. It should contain the content to replace or be empty to indicate deletion'
                 };
             }
 
