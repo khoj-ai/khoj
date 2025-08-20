@@ -73,7 +73,7 @@ export default class Khoj extends Plugin {
                 this.activateView(KhojView.CHAT).then(() => {
                     const chatView = this.app.workspace.getActiveViewOfType(KhojChatView);
                     if (chatView) {
-                        chatView.toggleChatSessions(true);
+                        chatView.toggleChatSessions();
                     }
                 });
             }
@@ -88,8 +88,9 @@ export default class Khoj extends Plugin {
                 this.activateView(KhojView.CHAT).then(() => {
                     const chatView = this.app.workspace.getActiveViewOfType(KhojChatView);
                     if (chatView) {
-                        // Trigger speech to text functionality
-                        chatView.speechToText(new KeyboardEvent('keydown'));
+                        // Toggle speech to text functionality
+                        const toggleEvent = chatView.voiceChatActive ? 'keyup' : 'keydown';
+                        chatView.speechToText(new KeyboardEvent(toggleEvent));
                     }
                 });
             }

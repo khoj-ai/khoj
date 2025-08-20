@@ -72,6 +72,7 @@ export class KhojChatView extends KhojPaneView {
     keyPressTimeout: NodeJS.Timeout | null = null;
     userMessages: string[] = [];  // Store user sent messages for input history cycling
     currentMessageIndex: number = -1;  // Track current message index in userMessages array
+    voiceChatActive: boolean = false; // Flag to track if voice chat is active
     private currentUserInput: string = ""; // Stores the current user input that is being typed in chat
     private startingMessage: string = this.getLearningMoment();
     chatMessageState: ChatMessageState;
@@ -131,7 +132,7 @@ export class KhojChatView extends KhojPaneView {
         this.scope = new Scope(this.app.scope);
         this.scope.register(["Ctrl", "Alt"], 'n', (_) => this.createNewConversation(this.currentAgent));
         this.scope.register(["Ctrl", "Alt"], 'o', async (_) => await this.toggleChatSessions());
-        this.scope.register(["Ctrl", "Alt"], 'v', (_) => this.speechToText(new KeyboardEvent('keydown')));
+        this.scope.register(["Ctrl", "Alt"], 'v', (_) => this.speechToText(this.voiceChatActive ? new KeyboardEvent('keyup') : new KeyboardEvent('keydown')));
         this.scope.register(["Ctrl"], 'f', (_) => new KhojSearchModal(this.app, this.setting).open());
         this.scope.register(["Ctrl"], 'r', (_) => { this.activateView(KhojView.SIMILAR); });
     }
@@ -340,7 +341,7 @@ export class KhojChatView extends KhojPaneView {
             attr: {
                 id: "khoj-transcribe",
                 class: "khoj-transcribe khoj-input-row-button clickable-icon ",
-                title: "Start Voice Chat (Ctrl+Alt+V)",
+                title: "Hold to Voice Chat (Ctrl+Alt+V)",
             },
         })
         transcribe.addEventListener('mousedown', (event) => { this.startSpeechToText(event) });
@@ -1741,6 +1742,7 @@ export class KhojChatView extends KhojPaneView {
 
         // Toggle recording
         if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive' || event.type === 'touchstart' || event.type === 'mousedown' || event.type === 'keydown') {
+            this.voiceChatActive = true;
             navigator.mediaDevices
                 .getUserMedia({ audio: true })
                 ?.then(handleRecording)
@@ -1748,6 +1750,7 @@ export class KhojChatView extends KhojPaneView {
                     this.flashStatusInChatInput("⛔️ Failed to access microphone");
                 });
         } else if (this.mediaRecorder?.state === 'recording' || event.type === 'touchend' || event.type === 'touchcancel' || event.type === 'mouseup' || event.type === 'keyup') {
+            this.voiceChatActive = false;
             this.mediaRecorder.stop();
             this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
             this.mediaRecorder = undefined;
