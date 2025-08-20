@@ -145,6 +145,11 @@ def completion_with_backoff(
         # See https://qwenlm.github.io/blog/qwen3/#advanced-usages
         if not deepthought:
             add_qwen_no_think_tag(formatted_messages)
+    elif "gpt-oss" in model_name.lower():
+        model_kwargs["temperature"] = 1
+        reasoning_effort = "medium" if deepthought else "low"
+        model_kwargs["reasoning_effort"] = reasoning_effort
+        model_kwargs["top_p"] = 1.0
 
     read_timeout = 300 if is_local_api(api_base_url) else 60
     if os.getenv("KHOJ_LLM_SEED"):
@@ -346,6 +351,11 @@ async def chat_completion_with_backoff(
         # See https://qwenlm.github.io/blog/qwen3/#advanced-usages
         if not deepthought:
             add_qwen_no_think_tag(formatted_messages)
+    elif "gpt-oss" in model_name.lower():
+        temperature = 1
+        reasoning_effort = "medium" if deepthought else "low"
+        model_kwargs["reasoning_effort"] = reasoning_effort
+        model_kwargs["top_p"] = 1.0
 
     read_timeout = 300 if is_local_api(api_base_url) else 60
     if os.getenv("KHOJ_LLM_SEED"):
