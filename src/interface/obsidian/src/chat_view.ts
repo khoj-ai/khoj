@@ -104,6 +104,9 @@ export class KhojChatView extends KhojPaneView {
         super(leaf, plugin);
         this.fileInteractions = new FileInteractions(this.app);
 
+        // Initialize file access mode from persisted settings
+        this.fileAccessMode = this.setting.fileAccessMode ?? 'read';
+
         this.waitingForLocation = true;
 
         fetch("https://ipapi.co/json")
@@ -271,29 +274,48 @@ export class KhojChatView extends KhojPaneView {
             text: "File Access",
             attr: {
                 class: "khoj-input-row-button clickable-icon",
-                title: "Toggle file access mode (Read Only)",
+                title: "Toggle open file access",
             },
         });
-        setIcon(fileAccessButton, "file-search");
-        fileAccessButton.addEventListener('click', () => {
+        // Set initial icon based on persisted setting
+        switch (this.fileAccessMode) {
+            case 'none':
+                setIcon(fileAccessButton, "file-x");
+                fileAccessButton.title = "Toggle open file access (No Access)";
+                break;
+            case 'write':
+                setIcon(fileAccessButton, "file-edit");
+                fileAccessButton.title = "Toggle open file access (Read & Write)";
+                break;
+            case 'read':
+            default:
+                setIcon(fileAccessButton, "file-search");
+                fileAccessButton.title = "Toggle open file access (Read Only)";
+                break;
+        }
+        fileAccessButton.addEventListener('click', async () => {
             // Cycle through modes: none -> read -> write -> none
             switch (this.fileAccessMode) {
                 case 'none':
                     this.fileAccessMode = 'read';
                     setIcon(fileAccessButton, "file-search");
-                    fileAccessButton.title = "Toggle file access mode (Read Only)";
+                    fileAccessButton.title = "Toggle open file access (Read Only)";
                     break;
                 case 'read':
                     this.fileAccessMode = 'write';
                     setIcon(fileAccessButton, "file-edit");
-                    fileAccessButton.title = "Toggle file access mode (Read & Write)";
+                    fileAccessButton.title = "Toggle open file access (Read & Write)";
                     break;
                 case 'write':
                     this.fileAccessMode = 'none';
                     setIcon(fileAccessButton, "file-x");
-                    fileAccessButton.title = "Toggle file access mode (No Access)";
+                    fileAccessButton.title = "Toggle open file access (No Access)";
                     break;
             }
+
+            // Persist the updated mode to settings
+            this.setting.fileAccessMode = this.fileAccessMode;
+            await this.plugin.saveSettings();
         });
 
         let chatInput = inputRow.createEl("textarea", {

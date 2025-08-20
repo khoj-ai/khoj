@@ -38,6 +38,7 @@ export interface KhojSetting {
     syncFolders: string[];
     syncInterval: number;
     autoVoiceResponse: boolean;
+    fileAccessMode: 'none' | 'read' | 'write';
     selectedChatModelId: string | null; // Mirrors server's selected_chat_model_config
     availableChatModels: ModelOption[];
 }
@@ -58,6 +59,7 @@ export const DEFAULT_SETTINGS: KhojSetting = {
     syncFolders: [],
     syncInterval: 60,
     autoVoiceResponse: true,
+    fileAccessMode: 'read',
     selectedChatModelId: null, // Will be populated from server
     availableChatModels: [],
 }
