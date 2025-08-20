@@ -17,6 +17,14 @@ div.trainOfThought {
     margin: 12px;
 }
 
+/* If there is an inline element holding extremely long content, ensure it wraps */
+div.trainOfThought pre,
+div.trainOfThought code,
+div.trainOfThought p,
+div.trainOfThought span {
+    overflow-wrap: anywhere;
+}
+
 /* Print-specific styles for chat history */
 @media print {
     div.chatHistory {
