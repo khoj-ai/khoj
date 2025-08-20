@@ -9,6 +9,7 @@ import logging
 import os
 import platform
 import random
+import re
 import urllib.parse
 import uuid
 from collections import OrderedDict
@@ -894,6 +895,13 @@ def truncate_code_context(original_code_results: dict[str, Any], max_chars=10000
                     "filename": output_file["filename"],
                     "b64_data": output_file["b64_data"][:max_chars] + "...",
                 }
+        # Truncate long "words" in stdout, stderr. Words are alphanumeric strings not separated by whitespace.
+        for key in ["std_out", "std_err"]:
+            if key in code_result["results"]:
+                code_result["results"][key] = re.sub(
+                    r"\S{1000,}", lambda m: m.group(0)[:1000] + "...", code_result["results"][key]
+                )
+
     return code_results
 
 
