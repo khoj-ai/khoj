@@ -173,6 +173,13 @@ def completion_with_backoff(
                     and chunk.chunk.choices[0].delta.reasoning_content
                 ):
                     thoughts += chunk.chunk.choices[0].delta.reasoning_content
+                elif (
+                    chunk.type == "chunk"
+                    and chunk.chunk.choices
+                    and hasattr(chunk.chunk.choices[0].delta, "reasoning")
+                    and chunk.chunk.choices[0].delta.reasoning
+                ):
+                    thoughts += chunk.chunk.choices[0].delta.reasoning
                 elif chunk.type == "chunk" and chunk.chunk.choices and chunk.chunk.choices[0].delta.tool_calls:
                     tool_ids += [tool_call.id for tool_call in chunk.chunk.choices[0].delta.tool_calls]
                 elif chunk.type == "tool_calls.function.arguments.done":
@@ -944,6 +951,14 @@ async def astream_thought_processor(
                 and tchunk.choices[0].delta.reasoning_content
             ):
                 tchunk.choices[0].delta.thought = chunk.choices[0].delta.reasoning_content
+
+            # Handlle openai reasoning style response with thoughts. Used by gpt-oss.
+            if (
+                len(tchunk.choices) > 0
+                and hasattr(tchunk.choices[0].delta, "reasoning")
+                and tchunk.choices[0].delta.reasoning
+            ):
+                tchunk.choices[0].delta.thought = chunk.choices[0].delta.reasoning
 
             # Handlle llama.cpp server style response with thoughts.
             elif len(tchunk.choices) > 0 and tchunk.choices[0].delta.model_extra.get("reasoning_content"):
