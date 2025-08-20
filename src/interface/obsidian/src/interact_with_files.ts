@@ -447,28 +447,21 @@ For context, the user is currently working on the following files:
 
             // Validate required fields
             let error: { type: 'missing_field' | 'invalid_format' | 'preprocessing' | 'unknown', message: string, details?: string } | null = null;
-            if (!editData) {
-                error = {
-                    type: 'invalid_format',
-                    message: 'Invalid edit block format',
-                    details: 'The edit block does not match the expected format'
-                };
-            }
-            else if (!editData.file) {
+            if (editData && !editData.file) {
                 error = {
                     type: 'missing_field',
                     message: 'Missing "file" field in edit block',
                     details: 'The "file" field is required and should contain the target file name'
                 };
             }
-            else if (editData.find === undefined || editData.find === null) {
+            else if (editData && (editData.find === undefined || editData.find === null)) {
                 error = {
                     type: 'missing_field',
                     message: 'Missing "find" field markers',
                     details: 'The "find" field is required and should contain the content to find in the file'
                 };
             }
-            else if (!editData.replace) {
+            else if (editData && !editData.replace) {
                 error = {
                     type: 'missing_field',
                     message: 'Missing "replace" field in edit block',
@@ -524,7 +517,7 @@ For context, the user is currently working on the following files:
             }
 
             if (!editData) {
-                console.error("No edit data parsed");
+                console.debug("No edit data parsed");
                 continue;
             }
 
@@ -898,6 +891,10 @@ For context, the user is currently working on the following files:
 
             // Parse the block content
             const { editData, cleanContent, error, inProgress } = this.parseEditBlock(content, isComplete);
+            if (!editData && !error) {
+                // If no edit data and no error, skip this block
+                continue;
+            }
 
             // Escape content for HTML display
             const diff = diffWords(editData?.find || '', editData?.replace || '');
@@ -913,7 +910,7 @@ For context, the user is currently working on the following files:
             ).join('').trim();
 
             let htmlRender = '';
-            if (error || !editData) {
+            if (error) {
                 // Error block
                 console.error("Error parsing khoj-edit block:", error);
                 console.error("Content causing error:", content);
@@ -928,7 +925,7 @@ For context, the user is currently working on the following files:
                         <pre><code class="language-md error">${diffContent}</code></pre>
                     </div>
                 </details>`;
-            } else if (inProgress) {
+            } else if (editData && inProgress) {
                 // In-progress block
                 htmlRender = `<details class="khoj-edit-accordion in-progress">
                     <summary>📄 ${editData.file} <span class="khoj-edit-status">In Progress</span></summary>
@@ -936,7 +933,7 @@ For context, the user is currently working on the following files:
                         <pre><code class="language-md">${diffContent}</code></pre>
                     </div>
                 </details>`;
-            } else {
+            } else if (editData) {
                 // Success block
                 // Find the actual file that will be modified
                 const targetFile = this.findBestMatchingFile(editData.file, files);
