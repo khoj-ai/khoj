@@ -1225,7 +1225,7 @@ export class KhojChatView extends KhojPaneView {
                     console.log("Found agent in conversation history:", responseJson.response.agent);
                     this.currentAgent = responseJson.response.agent.slug;
                     // Update the agent selector if it exists
-                    const agentSelect = this.contentEl.querySelector('.khoj-agent-select') as HTMLSelectElement;
+                    const agentSelect = this.contentEl.querySelector('.khoj-header-agent-select') as HTMLSelectElement;
                     if (agentSelect && this.currentAgent) {
                         agentSelect.value = this.currentAgent;
                         console.log("Updated agent selector to:", this.currentAgent);
