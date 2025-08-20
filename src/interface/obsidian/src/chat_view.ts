@@ -1,9 +1,9 @@
 import { ItemView, MarkdownRenderer, Scope, WorkspaceLeaf, request, requestUrl, setIcon, Platform, TFile } from 'obsidian';
 import * as DOMPurify from 'isomorphic-dompurify';
-import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
 import { KhojView, createCopyParentText, getLinkToEntry, pasteTextAtCursor } from 'src/utils';
 import { KhojSearchModal } from 'src/search_modal';
+import Khoj from 'src/main';
 import { FileInteractions, EditBlock } from 'src/interact_with_files';
 
 export interface ChatJsonResult {
@@ -67,7 +67,6 @@ interface Agent {
 
 export class KhojChatView extends KhojPaneView {
     result: string;
-    setting: KhojSetting;
     waitingForLocation: boolean;
     location: Location = { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone };
     keyPressTimeout: NodeJS.Timeout | null = null;
@@ -101,8 +100,8 @@ export class KhojChatView extends KhojPaneView {
     // 2. Higher invalid edit blocks than tolerable
     private maxEditRetries: number = 1; // Maximum retries for edit blocks
 
-    constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
-        super(leaf, setting);
+    constructor(leaf: WorkspaceLeaf, plugin: Khoj) {
+        super(leaf, plugin);
         this.fileInteractions = new FileInteractions(this.app);
 
         this.waitingForLocation = true;
@@ -1190,7 +1189,7 @@ export class KhojChatView extends KhojPaneView {
             chatUrl += `&conversation_id=${chatBodyEl.dataset.conversationId}`;
         }
 
-        console.log("Fetching chat history from:", chatUrl);
+        console.debug("Fetching chat history from:", chatUrl);
 
         try {
             let response = await fetch(chatUrl, {
@@ -1199,7 +1198,7 @@ export class KhojChatView extends KhojPaneView {
             });
 
             let responseJson: any = await response.json();
-            console.log("Chat history response:", responseJson);
+            console.debug("Chat history response:", responseJson);
 
             chatBodyEl.dataset.conversationId = responseJson.conversation_id;
 
@@ -1221,7 +1220,7 @@ export class KhojChatView extends KhojPaneView {
 
                 // Update current agent from conversation history
                 if (responseJson.response.agent?.slug) {
-                    console.log("Found agent in conversation history:", responseJson.response.agent);
+                    console.debug("Found agent in conversation history:", responseJson.response.agent);
                     this.currentAgent = responseJson.response.agent.slug;
                     // Update the agent selector if it exists
                     const agentSelect = this.contentEl.querySelector('.khoj-header-agent-select') as HTMLSelectElement;

@@ -1,7 +1,7 @@
 import { WorkspaceLeaf, TFile, MarkdownRenderer, Notice, setIcon } from 'obsidian';
-import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
 import { KhojView, getLinkToEntry, supportedBinaryFileTypes } from 'src/utils';
+import Khoj from 'src/main';
 
 export interface SimilarResult {
     entry: string;
@@ -11,7 +11,6 @@ export interface SimilarResult {
 
 export class KhojSimilarView extends KhojPaneView {
     static iconName: string = "search";
-    setting: KhojSetting;
     currentController: AbortController | null = null;
     isLoading: boolean = false;
     loadingEl: HTMLElement;
@@ -21,9 +20,8 @@ export class KhojSimilarView extends KhojPaneView {
     fileWatcher: any;
     component: any;
 
-    constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
-        super(leaf, setting);
-        this.setting = setting;
+    constructor(leaf: WorkspaceLeaf, plugin: Khoj) {
+        super(leaf, plugin);
         this.component = this;
     }
 

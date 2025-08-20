@@ -3,8 +3,8 @@ import { KhojSetting, KhojSettingTab, DEFAULT_SETTINGS } from 'src/settings'
 import { KhojSearchModal } from 'src/search_modal'
 import { KhojChatView } from 'src/chat_view'
 import { KhojSimilarView } from 'src/similar_view'
-import { updateContentIndex, canConnectToBackend, KhojView, jumpToPreviousView } from './utils';
-import { KhojPaneView } from './pane_view';
+import { updateContentIndex, canConnectToBackend, KhojView } from 'src/utils';
+import { KhojPaneView } from 'src/pane_view';
 
 
 export default class Khoj extends Plugin {
@@ -136,8 +136,8 @@ export default class Khoj extends Plugin {
         });
 
         // Register views
-        this.registerView(KhojView.CHAT, (leaf) => new KhojChatView(leaf, this.settings));
-        this.registerView(KhojView.SIMILAR, (leaf) => new KhojSimilarView(leaf, this.settings));
+        this.registerView(KhojView.CHAT, (leaf) => new KhojChatView(leaf, this));
+        this.registerView(KhojView.SIMILAR, (leaf) => new KhojSimilarView(leaf, this));
 
         // Create an icon in the left ribbon.
         this.addRibbonIcon('message-circle', 'Khoj', (_: MouseEvent) => {
