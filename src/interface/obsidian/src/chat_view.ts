@@ -127,7 +127,7 @@ export class KhojChatView extends KhojPaneView {
 
         // Register chat view keybindings
         this.scope = new Scope(this.app.scope);
-        this.scope.register(["Ctrl", "Alt"], 'n', (_) => this.createNewConversation());
+        this.scope.register(["Ctrl", "Alt"], 'n', (_) => this.createNewConversation(this.currentAgent));
         this.scope.register(["Ctrl", "Alt"], 'o', async (_) => await this.toggleChatSessions());
         this.scope.register(["Ctrl", "Alt"], 'v', (_) => this.speechToText(new KeyboardEvent('keydown')));
         this.scope.register(["Ctrl"], 'f', (_) => new KhojSearchModal(this.app, this.setting).open());
@@ -220,7 +220,7 @@ export class KhojChatView extends KhojPaneView {
         await this.fetchAgents();
 
         // Populate the agent selector in the header
-        const headerAgentSelect = this.contentEl.querySelector('#khoj-header-agent-select') as HTMLSelectElement;
+        const headerAgentSelect = this.contentEl.querySelector('.khoj-header-agent-select') as HTMLSelectElement;
         if (headerAgentSelect && this.agents.length > 0) {
             // Clear existing options
             headerAgentSelect.innerHTML = '';
@@ -943,7 +943,7 @@ export class KhojChatView extends KhojPaneView {
         return learningMoments[Math.floor(Math.random() * learningMoments.length)];
     }
 
-    async createNewConversation(agentSlug?: string) {
+    async createNewConversation(agentSlug?: string | null) {
         let chatBodyEl = this.contentEl.getElementsByClassName("khoj-chat-body")[0] as HTMLElement;
         chatBodyEl.innerHTML = "";
         chatBodyEl.dataset.conversationId = "";
@@ -960,6 +960,7 @@ export class KhojChatView extends KhojPaneView {
         try {
             // Create a new conversation with or without an agent
             let endpoint = `${this.setting.khojUrl}/api/chat/sessions`;
+			agentSlug = agentSlug || this.currentAgent;
             if (agentSlug) {
                 endpoint += `?agent_slug=${encodeURIComponent(agentSlug)}`;
             }
@@ -979,7 +980,7 @@ export class KhojChatView extends KhojPaneView {
                 this.currentAgent = agentSlug || null;
 
                 // Update agent selector to reflect current agent
-                const agentSelect = this.contentEl.querySelector('.khoj-agent-select') as HTMLSelectElement;
+                const agentSelect = this.contentEl.querySelector('.khoj-header-agent-select') as HTMLSelectElement;
                 if (agentSelect) {
                     agentSelect.value = this.currentAgent || '';
                 }
@@ -1009,7 +1010,7 @@ export class KhojChatView extends KhojPaneView {
         const newConversationButtonEl = newConversationEl.createEl("button");
         newConversationButtonEl.classList.add("new-conversation-button");
         newConversationButtonEl.classList.add("side-panel-button");
-        newConversationButtonEl.addEventListener('click', (_) => this.createNewConversation());
+        newConversationButtonEl.addEventListener('click', (_) => this.createNewConversation(this.currentAgent));
         setIcon(newConversationButtonEl, "plus");
         newConversationButtonEl.innerHTML += "New";
         newConversationButtonEl.title = "New Conversation (Ctrl+Alt+N)";
@@ -1223,7 +1224,7 @@ export class KhojChatView extends KhojPaneView {
                     console.log("Found agent in conversation history:", responseJson.response.agent);
                     this.currentAgent = responseJson.response.agent.slug;
                     // Update the agent selector if it exists
-                    const agentSelect = this.contentEl.querySelector('.khoj-agent-select') as HTMLSelectElement;
+                    const agentSelect = this.contentEl.querySelector('.khoj-header-agent-select') as HTMLSelectElement;
                     if (agentSelect && this.currentAgent) {
                         agentSelect.value = this.currentAgent;
                         console.log("Updated agent selector to:", this.currentAgent);
