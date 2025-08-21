@@ -1,14 +1,17 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
 import { KhojSetting } from 'src/settings';
 import { KhojView, populateHeaderPane } from './utils';
+import Khoj from 'src/main';
 
 export abstract class KhojPaneView extends ItemView {
     setting: KhojSetting;
+    plugin: Khoj;
 
-    constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
+    constructor(leaf: WorkspaceLeaf, plugin: Khoj) {
         super(leaf);
 
-        this.setting = setting;
+        this.setting = plugin.settings;
+        this.plugin = plugin;
 
         // Register Modal Keybindings to send user message
         // this.scope.register([], 'Enter', async () => { await this.chat() });

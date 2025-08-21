@@ -1,4 +1,4 @@
-import { App, TFile } from 'obsidian';
+import { App, MarkdownView, TFile } from 'obsidian';
 import { diffWords } from 'diff';
 
 /**
@@ -55,6 +55,7 @@ export class FileInteractions {
     private app: App;
     private readonly EDIT_BLOCK_START = '<khoj_edit>';
     private readonly EDIT_BLOCK_END = '</khoj_edit>';
+    private readonly CONTEXT_FILES_LIMIT = 3;
 
     /**
      * Constructor for FileInteractions
@@ -63,6 +64,26 @@ export class FileInteractions {
      */
     constructor(app: App) {
         this.app = app;
+    }
+
+    /**
+     * Get N open, recently viewed markdown files.
+     */
+    private getRecentActiveMarkdownFiles(N: number): TFile[] {
+        const seen = new Set<string>();
+        const recentActiveFiles = this.app.workspace.getLeavesOfType('markdown')
+            .sort((a, b) => (b as any).activeTime - (a as any).activeTime) // Sort by leaf activeTime (note: undocumented prop)
+            .map(leaf => (leaf.view as MarkdownView)?.file)
+            // Dedupe by file path
+            .filter((file): file is TFile => {
+                if (!file || seen.has(file.path)) return false;
+                seen.add(file.path);
+                return true;
+            })
+            .slice(0, N);
+
+        console.log(`Using ${recentActiveFiles.length} recently viewed md files for context: ${recentActiveFiles.map(file => file.path).join(', ')}`);
+        return recentActiveFiles;
     }
 
     /**
@@ -75,9 +96,9 @@ export class FileInteractions {
         // Only proceed if we have read or write access
         if (fileAccessMode === 'none') return '';
 
-        // Get all open markdown leaves
-        const leaves = this.app.workspace.getLeavesOfType('markdown');
-        if (leaves.length === 0) return '';
+        // Get recently viewed markdown files
+        const recentFiles = this.getRecentActiveMarkdownFiles(this.CONTEXT_FILES_LIMIT);
+        if (recentFiles.length === 0) return '';
 
         // Instructions in write access mode
         let editInstructions: string = '';
@@ -274,11 +295,7 @@ For context, the user is currently working on the following files:
 
 `;
 
-        for (const leaf of leaves) {
-            const view = leaf.view as any;
-            const file = view?.file;
-            if (!file || file.extension !== 'md') continue;
-
+        for (const file of recentFiles) {
             // Read file content
             let fileContent: string;
             try {
@@ -415,8 +432,16 @@ For context, the user is currently working on the following files:
             }
 
             // Try parse SEARCH/REPLACE format for complete edit blocks
-            // Regex: file_path\n<<<<<<< SEARCH\nsearch_content\n=======\nreplacement_content\n>>>>>>> REPLACE
-            const newFormatRegex = /^([^\n]+)\n<<<<<<< SEARCH\n([\s\S]*?)\n=======\n([\s\S]*?)\n>>>>>>> REPLACE\s*$/;
+            // Supports empty SEARCH (new file / replace whole file) and empty REPLACE (deletion)
+            // Regex structure:
+            //   file_path               (group 1)
+            //   <<<<<<< SEARCH          literal marker
+            //   search_content          (group 2, can be empty)
+            //   =======                 divider
+            //   replacement_content     (group 3, can be empty => deletion)
+            //   >>>>>>> REPLACE         end marker
+            // Note: The trailing newline before the end marker is optional to allow zero-length replacement
+            const newFormatRegex = /^([^\n]+)\n<<<<<<< SEARCH\n([\s\S]*?)\n=======\n([\s\S]*?)\n?>>>>>>> REPLACE\s*$/;
             const newFormatMatch = newFormatRegex.exec(cleanContent);
 
             let editData: EditBlock | null = null;
@@ -430,32 +455,25 @@ For context, the user is currently working on the following files:
 
             // Validate required fields
             let error: { type: 'missing_field' | 'invalid_format' | 'preprocessing' | 'unknown', message: string, details?: string } | null = null;
-            if (!editData) {
-                error = {
-                    type: 'invalid_format',
-                    message: 'Invalid edit block format',
-                    details: 'The edit block does not match the expected format'
-                };
-            }
-            else if (!editData.file) {
+            if (editData && !editData.file) {
                 error = {
                     type: 'missing_field',
                     message: 'Missing "file" field in edit block',
                     details: 'The "file" field is required and should contain the target file name'
                 };
             }
-            else if (editData.find === undefined || editData.find === null) {
+            else if (editData && (editData.find === undefined || editData.find === null)) {
                 error = {
                     type: 'missing_field',
                     message: 'Missing "find" field markers',
-                    details: 'The "find" field is required and should contain the content to find in the file'
+                    details: 'The "find" field is required. It should contain the content to find in the file or be empty for new files'
                 };
             }
-            else if (!editData.replace) {
+            else if (editData && editData.replace === undefined) {
                 error = {
                     type: 'missing_field',
                     message: 'Missing "replace" field in edit block',
-                    details: 'The "replace" field is required and should contain the replacement text'
+                    details: 'The "replace" field is required. It should contain the content to replace or be empty to indicate deletion'
                 };
             }
 
@@ -507,7 +525,7 @@ For context, the user is currently working on the following files:
             }
 
             if (!editData) {
-                console.error("No edit data parsed");
+                console.debug("No edit data parsed");
                 continue;
             }
 
@@ -684,10 +702,8 @@ For context, the user is currently working on the following files:
         // Track current content for each file as we apply edits
         const currentFileContents = new Map<string, string>();
 
-        // Get all open markdown files
-        const files = this.app.workspace.getLeavesOfType('markdown')
-            .map(leaf => (leaf.view as any)?.file)
-            .filter(file => file && file.extension === 'md');
+        // Get recently viewed markdown file(s) to edit
+        const files = this.getRecentActiveMarkdownFiles(this.CONTEXT_FILES_LIMIT);
 
         // Track success/failure for each edit
         const editResults: { block: EditBlock, success: boolean, error?: string }[] = [];
@@ -883,6 +899,10 @@ For context, the user is currently working on the following files:
 
             // Parse the block content
             const { editData, cleanContent, error, inProgress } = this.parseEditBlock(content, isComplete);
+            if (!editData && !error) {
+                // If no edit data and no error, skip this block
+                continue;
+            }
 
             // Escape content for HTML display
             const diff = diffWords(editData?.find || '', editData?.replace || '');
@@ -898,7 +918,7 @@ For context, the user is currently working on the following files:
             ).join('').trim();
 
             let htmlRender = '';
-            if (error || !editData) {
+            if (error) {
                 // Error block
                 console.error("Error parsing khoj-edit block:", error);
                 console.error("Content causing error:", content);
@@ -913,7 +933,7 @@ For context, the user is currently working on the following files:
                         <pre><code class="language-md error">${diffContent}</code></pre>
                     </div>
                 </details>`;
-            } else if (inProgress) {
+            } else if (editData && inProgress) {
                 // In-progress block
                 htmlRender = `<details class="khoj-edit-accordion in-progress">
                     <summary>📄 ${editData.file} <span class="khoj-edit-status">In Progress</span></summary>
@@ -921,7 +941,7 @@ For context, the user is currently working on the following files:
                         <pre><code class="language-md">${diffContent}</code></pre>
                     </div>
                 </details>`;
-            } else {
+            } else if (editData) {
                 // Success block
                 // Find the actual file that will be modified
                 const targetFile = this.findBestMatchingFile(editData.file, files);

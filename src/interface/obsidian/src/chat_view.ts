@@ -1,9 +1,9 @@
 import { ItemView, MarkdownRenderer, Scope, WorkspaceLeaf, request, requestUrl, setIcon, Platform, TFile } from 'obsidian';
 import * as DOMPurify from 'isomorphic-dompurify';
-import { KhojSetting } from 'src/settings';
 import { KhojPaneView } from 'src/pane_view';
 import { KhojView, createCopyParentText, getLinkToEntry, pasteTextAtCursor } from 'src/utils';
 import { KhojSearchModal } from 'src/search_modal';
+import Khoj from 'src/main';
 import { FileInteractions, EditBlock } from 'src/interact_with_files';
 
 export interface ChatJsonResult {
@@ -67,12 +67,12 @@ interface Agent {
 
 export class KhojChatView extends KhojPaneView {
     result: string;
-    setting: KhojSetting;
     waitingForLocation: boolean;
     location: Location = { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone };
     keyPressTimeout: NodeJS.Timeout | null = null;
     userMessages: string[] = [];  // Store user sent messages for input history cycling
     currentMessageIndex: number = -1;  // Track current message index in userMessages array
+    voiceChatActive: boolean = false; // Flag to track if voice chat is active
     private currentUserInput: string = ""; // Stores the current user input that is being typed in chat
     private startingMessage: string = this.getLearningMoment();
     chatMessageState: ChatMessageState;
@@ -101,9 +101,12 @@ export class KhojChatView extends KhojPaneView {
     // 2. Higher invalid edit blocks than tolerable
     private maxEditRetries: number = 1; // Maximum retries for edit blocks
 
-    constructor(leaf: WorkspaceLeaf, setting: KhojSetting) {
-        super(leaf, setting);
+    constructor(leaf: WorkspaceLeaf, plugin: Khoj) {
+        super(leaf, plugin);
         this.fileInteractions = new FileInteractions(this.app);
+
+        // Initialize file access mode from persisted settings
+        this.fileAccessMode = this.setting.fileAccessMode ?? 'read';
 
         this.waitingForLocation = true;
 
@@ -129,7 +132,7 @@ export class KhojChatView extends KhojPaneView {
         this.scope = new Scope(this.app.scope);
         this.scope.register(["Ctrl", "Alt"], 'n', (_) => this.createNewConversation(this.currentAgent));
         this.scope.register(["Ctrl", "Alt"], 'o', async (_) => await this.toggleChatSessions());
-        this.scope.register(["Ctrl", "Alt"], 'v', (_) => this.speechToText(new KeyboardEvent('keydown')));
+        this.scope.register(["Ctrl", "Alt"], 'v', (_) => this.speechToText(this.voiceChatActive ? new KeyboardEvent('keyup') : new KeyboardEvent('keydown')));
         this.scope.register(["Ctrl"], 'f', (_) => new KhojSearchModal(this.app, this.setting).open());
         this.scope.register(["Ctrl"], 'r', (_) => { this.activateView(KhojView.SIMILAR); });
     }
@@ -272,29 +275,48 @@ export class KhojChatView extends KhojPaneView {
             text: "File Access",
             attr: {
                 class: "khoj-input-row-button clickable-icon",
-                title: "Toggle file access mode (Read Only)",
+                title: "Toggle open file access",
             },
         });
-        setIcon(fileAccessButton, "file-search");
-        fileAccessButton.addEventListener('click', () => {
+        // Set initial icon based on persisted setting
+        switch (this.fileAccessMode) {
+            case 'none':
+                setIcon(fileAccessButton, "file-x");
+                fileAccessButton.title = "Toggle open file access (No Access)";
+                break;
+            case 'write':
+                setIcon(fileAccessButton, "file-edit");
+                fileAccessButton.title = "Toggle open file access (Read & Write)";
+                break;
+            case 'read':
+            default:
+                setIcon(fileAccessButton, "file-search");
+                fileAccessButton.title = "Toggle open file access (Read Only)";
+                break;
+        }
+        fileAccessButton.addEventListener('click', async () => {
             // Cycle through modes: none -> read -> write -> none
             switch (this.fileAccessMode) {
                 case 'none':
                     this.fileAccessMode = 'read';
                     setIcon(fileAccessButton, "file-search");
-                    fileAccessButton.title = "Toggle file access mode (Read Only)";
+                    fileAccessButton.title = "Toggle open file access (Read Only)";
                     break;
                 case 'read':
                     this.fileAccessMode = 'write';
                     setIcon(fileAccessButton, "file-edit");
-                    fileAccessButton.title = "Toggle file access mode (Read & Write)";
+                    fileAccessButton.title = "Toggle open file access (Read & Write)";
                     break;
                 case 'write':
                     this.fileAccessMode = 'none';
                     setIcon(fileAccessButton, "file-x");
-                    fileAccessButton.title = "Toggle file access mode (No Access)";
+                    fileAccessButton.title = "Toggle open file access (No Access)";
                     break;
             }
+
+            // Persist the updated mode to settings
+            this.setting.fileAccessMode = this.fileAccessMode;
+            await this.plugin.saveSettings();
         });
 
         let chatInput = inputRow.createEl("textarea", {
@@ -319,7 +341,7 @@ export class KhojChatView extends KhojPaneView {
             attr: {
                 id: "khoj-transcribe",
                 class: "khoj-transcribe khoj-input-row-button clickable-icon ",
-                title: "Start Voice Chat (Ctrl+Alt+V)",
+                title: "Hold to Voice Chat (Ctrl+Alt+V)",
             },
         })
         transcribe.addEventListener('mousedown', (event) => { this.startSpeechToText(event) });
@@ -1037,7 +1059,7 @@ export class KhojChatView extends KhojPaneView {
                     if (incomingConversationId == conversationId) {
                         conversationSessionEl.classList.add("selected-conversation");
                     }
-                    const conversationTitle = conversation["slug"] || `New conversation 🌱`;
+                    const conversationTitle = conversation["slug"].split("<SYSTEM>")[0].trim() || `New conversation 🌱`;
                     const conversationSessionTitleEl = conversationSessionEl.createDiv("conversation-session-title");
                     conversationSessionTitleEl.textContent = conversationTitle;
                     conversationSessionTitleEl.addEventListener('click', () => {
@@ -1190,7 +1212,7 @@ export class KhojChatView extends KhojPaneView {
             chatUrl += `&conversation_id=${chatBodyEl.dataset.conversationId}`;
         }
 
-        console.log("Fetching chat history from:", chatUrl);
+        console.debug("Fetching chat history from:", chatUrl);
 
         try {
             let response = await fetch(chatUrl, {
@@ -1199,7 +1221,7 @@ export class KhojChatView extends KhojPaneView {
             });
 
             let responseJson: any = await response.json();
-            console.log("Chat history response:", responseJson);
+            console.debug("Chat history response:", responseJson);
 
             chatBodyEl.dataset.conversationId = responseJson.conversation_id;
 
@@ -1221,7 +1243,7 @@ export class KhojChatView extends KhojPaneView {
 
                 // Update current agent from conversation history
                 if (responseJson.response.agent?.slug) {
-                    console.log("Found agent in conversation history:", responseJson.response.agent);
+                    console.debug("Found agent in conversation history:", responseJson.response.agent);
                     this.currentAgent = responseJson.response.agent.slug;
                     // Update the agent selector if it exists
                     const agentSelect = this.contentEl.querySelector('.khoj-header-agent-select') as HTMLSelectElement;
@@ -1352,18 +1374,25 @@ export class KhojChatView extends KhojPaneView {
             if (this.fileAccessMode === 'write') {
                 const editBlocks = this.parseEditBlocks(this.chatMessageState.rawResponse);
 
-                // Check for errors and retry if needed
-                if (editBlocks.length > 0 && editBlocks[0].hasError && this.editRetryCount < this.maxEditRetries) {
-                    await this.handleEditRetry(editBlocks[0]);
-                    return;
-                }
-
-                // Reset retry count on success
-                this.editRetryCount = 0;
-
-                // Apply edits if there are any
                 if (editBlocks.length > 0) {
-                    await this.applyEditBlocks(editBlocks);
+                    const firstBlock = editBlocks[0];
+                    if (firstBlock.hasError) {
+                        // Only retry if we have remaining attempts; do NOT reset counter on failure
+                        if (this.editRetryCount < this.maxEditRetries) {
+                            await this.handleEditRetry(firstBlock);
+                            return; // Wait for retry response
+                        } else {
+                            // Exhausted retries; surface error and do not attempt further automatic retries
+                            console.warn('[Khoj] Max edit retries reached. Aborting further retries.');
+                        }
+                    } else {
+                        // Successful parse => reset counter and apply edits
+                        this.editRetryCount = 0;
+                        await this.applyEditBlocks(editBlocks);
+                    }
+                } else {
+                    // No edit blocks => reset counter just in case
+                    this.editRetryCount = 0;
                 }
             }
 
@@ -1720,6 +1749,7 @@ export class KhojChatView extends KhojPaneView {
 
         // Toggle recording
         if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive' || event.type === 'touchstart' || event.type === 'mousedown' || event.type === 'keydown') {
+            this.voiceChatActive = true;
             navigator.mediaDevices
                 .getUserMedia({ audio: true })
                 ?.then(handleRecording)
@@ -1727,6 +1757,7 @@ export class KhojChatView extends KhojPaneView {
                     this.flashStatusInChatInput("⛔️ Failed to access microphone");
                 });
         } else if (this.mediaRecorder?.state === 'recording' || event.type === 'touchend' || event.type === 'touchcancel' || event.type === 'mouseup' || event.type === 'keyup') {
+            this.voiceChatActive = false;
             this.mediaRecorder.stop();
             this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
             this.mediaRecorder = undefined;
@@ -2403,7 +2434,7 @@ export class KhojChatView extends KhojPaneView {
         // Add retry count
         retryBadge.createSpan({
             cls: "retry-count",
-            text: `Attempt ${this.editRetryCount}/3`
+            text: `Attempt ${this.editRetryCount}/${this.maxEditRetries}`
         });
 
         // Add error details as a tooltip
@@ -2418,7 +2449,7 @@ export class KhojChatView extends KhojPaneView {
         retryBadge.scrollIntoView({ behavior: "smooth", block: "center" });
 
         // Create a retry prompt for the LLM
-        const retryPrompt = `/general I noticed some issues with the edit block. Please fix the following and provide a corrected version (retry ${this.editRetryCount}/3):\n\n${errorDetails}\n\nPlease provide a new edit block that fixes these issues. Make sure to follow the exact format required.`;
+        const retryPrompt = `/general I noticed some issues with the edit block. Please fix the following and provide a corrected version (retry ${this.editRetryCount}/${this.maxEditRetries}):\n\n${errorDetails}\n\nPlease provide a new edit block that fixes these issues. Make sure to follow the exact format required.`;
 
         // Send retry request without displaying the user message
         await this.getChatResponse(retryPrompt, "", false, false);
