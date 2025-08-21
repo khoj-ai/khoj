@@ -1526,6 +1526,8 @@ async def chat_ws(
                         ack_type = "interrupt_acknowledged"
                         await websocket.send_text(json.dumps({"type": ack_type}))
                 else:
+                    ack_type = "interrupt_acknowledged"
+                    await websocket.send_text(json.dumps({"type": ack_type}))
                     logger.info(f"No ongoing task to interrupt for user {websocket.scope['user'].object.id}")
                 continue
 
@@ -1704,8 +1706,8 @@ async def process_chat_request(
         logger.debug(f"Chat request cancelled for user {websocket.scope['user'].object.id}")
         raise
     except Exception as e:
-        logger.error(f"Error processing chat request: {e}", exc_info=True)
         await websocket.send_text(json.dumps({"error": "Internal server error"}))
+        logger.error(f"Error processing chat request: {e}", exc_info=True)
         raise
 
 

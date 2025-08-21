@@ -145,6 +145,11 @@ def completion_with_backoff(
         # See https://qwenlm.github.io/blog/qwen3/#advanced-usages
         if not deepthought:
             add_qwen_no_think_tag(formatted_messages)
+    elif "gpt-oss" in model_name.lower():
+        model_kwargs["temperature"] = 1
+        reasoning_effort = "medium" if deepthought else "low"
+        model_kwargs["reasoning_effort"] = reasoning_effort
+        model_kwargs["top_p"] = 1.0
 
     read_timeout = 300 if is_local_api(api_base_url) else 60
     if os.getenv("KHOJ_LLM_SEED"):
@@ -170,8 +175,16 @@ def completion_with_backoff(
                     chunk.type == "chunk"
                     and chunk.chunk.choices
                     and hasattr(chunk.chunk.choices[0].delta, "reasoning_content")
+                    and chunk.chunk.choices[0].delta.reasoning_content
                 ):
                     thoughts += chunk.chunk.choices[0].delta.reasoning_content
+                elif (
+                    chunk.type == "chunk"
+                    and chunk.chunk.choices
+                    and hasattr(chunk.chunk.choices[0].delta, "reasoning")
+                    and chunk.chunk.choices[0].delta.reasoning
+                ):
+                    thoughts += chunk.chunk.choices[0].delta.reasoning
                 elif chunk.type == "chunk" and chunk.chunk.choices and chunk.chunk.choices[0].delta.tool_calls:
                     tool_ids += [tool_call.id for tool_call in chunk.chunk.choices[0].delta.tool_calls]
                 elif chunk.type == "tool_calls.function.arguments.done":
@@ -194,7 +207,6 @@ def completion_with_backoff(
         chunk = client.beta.chat.completions.parse(
             messages=formatted_messages,  # type: ignore
             model=model_name,
-            temperature=temperature,
             timeout=httpx.Timeout(30, read=read_timeout),
             **model_kwargs,
         )
@@ -218,6 +230,10 @@ def completion_with_backoff(
                 thoughts = thoughts or aggregated_response
             # Json dump tool calls into aggregated response
             aggregated_response = json.dumps([tool_call.__dict__ for tool_call in tool_calls])
+
+    # Align chunk definition with non-streaming mode for post stream completion usage
+    if hasattr(chunk, "chunk"):
+        chunk = chunk.chunk
 
     # Calculate cost of chat
     input_tokens = chunk.usage.prompt_tokens if hasattr(chunk, "usage") and chunk.usage else 0
@@ -335,6 +351,11 @@ async def chat_completion_with_backoff(
         # See https://qwenlm.github.io/blog/qwen3/#advanced-usages
         if not deepthought:
             add_qwen_no_think_tag(formatted_messages)
+    elif "gpt-oss" in model_name.lower():
+        temperature = 1
+        reasoning_effort = "medium" if deepthought else "low"
+        model_kwargs["reasoning_effort"] = reasoning_effort
+        model_kwargs["top_p"] = 1.0
 
     read_timeout = 300 if is_local_api(api_base_url) else 60
     if os.getenv("KHOJ_LLM_SEED"):
@@ -454,6 +475,7 @@ def responses_completion_with_backoff(
         temperature = 1
         reasoning_effort = "medium" if deepthought else "low"
         model_kwargs["reasoning"] = {"effort": reasoning_effort, "summary": "auto"}
+        model_kwargs["include"] = ["reasoning.encrypted_content"]
         # Remove unsupported params for reasoning models
         model_kwargs.pop("top_p", None)
         model_kwargs.pop("stop", None)
@@ -468,7 +490,6 @@ def responses_completion_with_backoff(
         temperature=temperature,
         timeout=httpx.Timeout(30, read=read_timeout),  # type: ignore
         store=False,
-        include=["reasoning.encrypted_content"],
         **model_kwargs,
     )
     if not model_response or not isinstance(model_response, OpenAIResponse) or not model_response.output:
@@ -941,6 +962,14 @@ async def astream_thought_processor(
             ):
                 tchunk.choices[0].delta.thought = chunk.choices[0].delta.reasoning_content
 
+            # Handlle openai reasoning style response with thoughts. Used by gpt-oss.
+            if (
+                len(tchunk.choices) > 0
+                and hasattr(tchunk.choices[0].delta, "reasoning")
+                and tchunk.choices[0].delta.reasoning
+            ):
+                tchunk.choices[0].delta.thought = chunk.choices[0].delta.reasoning
+
             # Handlle llama.cpp server style response with thoughts.
             elif len(tchunk.choices) > 0 and tchunk.choices[0].delta.model_extra.get("reasoning_content"):
                 tchunk.choices[0].delta.thought = tchunk.choices[0].delta.model_extra.get("reasoning_content")
@@ -1069,6 +1098,10 @@ async def ain_stream_thought_processor(
         if mode == "message":
             # Message mode is terminal, so just yield chunks, no processing
             yield chunk
+            continue
+
+        if chunk.choices[0].delta.content is None:
+            # If delta content is None, we can't process it, just yield the chunk
             continue
 
         buf += chunk.choices[0].delta.content

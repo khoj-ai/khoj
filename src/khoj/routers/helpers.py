@@ -1625,6 +1625,7 @@ async def agenerate_chat_response(
             deepthought = True
 
         chat_model = await ConversationAdapters.aget_valid_chat_model(user, conversation, is_subscribed)
+        max_prompt_size = await ConversationAdapters.aget_max_context_size(chat_model, user)
         vision_available = chat_model.vision_enabled
         if not vision_available and query_images:
             vision_enabled_config = await ConversationAdapters.aget_vision_enabled_config()
@@ -1656,7 +1657,7 @@ async def agenerate_chat_response(
                 model=chat_model_name,
                 api_key=api_key,
                 api_base_url=openai_chat_config.api_base_url,
-                max_prompt_size=chat_model.max_prompt_size,
+                max_prompt_size=max_prompt_size,
                 tokenizer_name=chat_model.tokenizer,
                 agent=agent,
                 vision_available=vision_available,
@@ -1687,7 +1688,7 @@ async def agenerate_chat_response(
                 model=chat_model.name,
                 api_key=api_key,
                 api_base_url=api_base_url,
-                max_prompt_size=chat_model.max_prompt_size,
+                max_prompt_size=max_prompt_size,
                 tokenizer_name=chat_model.tokenizer,
                 agent=agent,
                 vision_available=vision_available,
@@ -1717,7 +1718,7 @@ async def agenerate_chat_response(
                 model=chat_model.name,
                 api_key=api_key,
                 api_base_url=api_base_url,
-                max_prompt_size=chat_model.max_prompt_size,
+                max_prompt_size=max_prompt_size,
                 tokenizer_name=chat_model.tokenizer,
                 agent=agent,
                 vision_available=vision_available,
@@ -2915,35 +2916,34 @@ async def view_file_content(
         raw_text = file_object.raw_text
 
         # Apply line range filtering if specified
-        if start_line is None and end_line is None:
-            filtered_text = raw_text
-        else:
-            lines = raw_text.split("\n")
-            start_line = start_line or 1
-            end_line = end_line or len(lines)
+        lines = raw_text.split("\n")
+        start_line = start_line or 1
+        end_line = end_line or len(lines)
 
-            # Validate line range
-            if start_line < 1 or end_line < 1 or start_line > end_line:
-                error_msg = f"Invalid line range: {start_line}-{end_line}"
-                logger.warning(error_msg)
-                yield [{"query": query, "file": path, "compiled": error_msg}]
-                return
-            if start_line > len(lines):
-                error_msg = f"Start line {start_line} exceeds total number of lines {len(lines)}"
-                logger.warning(error_msg)
-                yield [{"query": query, "file": path, "compiled": error_msg}]
-                return
+        # Validate line range
+        if start_line < 1 or end_line < 1 or start_line > end_line:
+            error_msg = f"Invalid line range: {start_line}-{end_line}"
+            logger.warning(error_msg)
+            yield [{"query": query, "file": path, "compiled": error_msg}]
+            return
+        if start_line > len(lines):
+            error_msg = f"Start line {start_line} exceeds total number of lines {len(lines)}"
+            logger.warning(error_msg)
+            yield [{"query": query, "file": path, "compiled": error_msg}]
+            return
 
-            # Convert from 1-based to 0-based indexing and ensure bounds
-            start_idx = max(0, start_line - 1)
-            end_idx = min(len(lines), end_line)
+        # Convert from 1-based to 0-based indexing and ensure bounds
+        start_idx = max(0, start_line - 1)
+        end_idx = min(len(lines), end_line)
 
-            selected_lines = lines[start_idx:end_idx]
-            filtered_text = "\n".join(selected_lines)
+        # Limit to first 50 lines if more than 50 lines are requested
+        truncation_message = ""
+        if end_idx - start_idx > 50:
+            truncation_message = "\n\n[Truncated after 50 lines! Use narrower line range to view complete section.]"
+            end_idx = start_idx + 50
 
-        # Truncate the text if it's too long
-        if len(filtered_text) > 10000:
-            filtered_text = filtered_text[:10000] + "\n\n[Truncated. Use line numbers to view specific sections.]"
+        selected_lines = lines[start_idx:end_idx]
+        filtered_text = "\n".join(selected_lines) + truncation_message
 
         # Format the result as a document reference
         document_results = [
@@ -3022,6 +3022,7 @@ async def grep_files(
         file_matches = await FileObjectAdapters.aget_file_objects_by_regex(user, db_pattern, path_prefix)
 
         line_matches = []
+        line_matches_count = 0
         for file_object in file_matches:
             lines = file_object.raw_text.split("\n")
             matched_line_numbers = []
@@ -3030,6 +3031,7 @@ async def grep_files(
             for i, line in enumerate(lines, 1):
                 if regex.search(line):
                     matched_line_numbers.append(i)
+            line_matches_count += len(matched_line_numbers)
 
             # Build context for each match
             for line_num in matched_line_numbers:
@@ -3046,10 +3048,10 @@ async def grep_files(
 
                     if current_line_num == line_num:
                         # This is the matching line, mark it
-                        context_lines.append(f"{file_object.file_name}:{current_line_num}:> {line_content}")
+                        context_lines.append(f"{file_object.file_name}:{current_line_num}: {line_content}")
                     else:
                         # This is a context line
-                        context_lines.append(f"{file_object.file_name}:{current_line_num}:  {line_content}")
+                        context_lines.append(f"{file_object.file_name}-{current_line_num}-  {line_content}")
 
                 # Add separator between matches if showing context
                 if lines_before > 0 or lines_after > 0:
@@ -3064,7 +3066,7 @@ async def grep_files(
         # Check if no results found
         max_results = 1000
         query = _generate_query(
-            len([m for m in line_matches if ":>" in m]),
+            line_matches_count,
             len(file_matches),
             path_prefix,
             regex_pattern,

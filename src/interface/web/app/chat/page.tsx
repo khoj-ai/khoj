@@ -359,6 +359,7 @@ export default function Chat() {
                     return;
                 } else if (controlMessage.error) {
                     console.error("WebSocket error:", controlMessage.error);
+                    setProcessQuerySignal(false);
                     return;
                 }
             } catch {

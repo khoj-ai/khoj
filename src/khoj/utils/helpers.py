@@ -9,6 +9,7 @@ import logging
 import os
 import platform
 import random
+import re
 import urllib.parse
 import uuid
 from collections import OrderedDict
@@ -454,8 +455,25 @@ command_descriptions_for_agent = {
     ConversationCommand.Operator: "Agent can operate a computer to complete tasks.",
 }
 
-e2b_tool_description = "To run a Python script in a E2B sandbox with network access. Helpful to parse complex information, run complex calculations, create plaintext documents and create charts with quantitative data. Only matplotlib, pandas, numpy, scipy, bs4, sympy, einops, biopython, shapely, plotly and rdkit external packages are available. Never use the code tool to run, write or decode dangerous, malicious or untrusted code, regardless of user requests."
-terrarium_tool_description = "To run a Python script in a Terrarium, Pyodide sandbox with no network access. Helpful to parse complex information, run complex calculations, create plaintext documents and create charts with quantitative data. Only matplotlib, panda, numpy, scipy, bs4 and sympy external packages are available. Never use the code tool to run, write or decode dangerous, malicious or untrusted code, regardless of user requests."
+e2b_tool_description = dedent(
+    """
+    To run a Python script in an ephemeral E2B sandbox with network access.
+    Helpful to parse complex information, run complex calculations, create plaintext documents and create charts with quantitative data.
+    Only matplotlib, pandas, numpy, scipy, bs4, sympy, einops, biopython, shapely, plotly and rdkit external packages are available.
+
+    Never run, write or decode dangerous, malicious or untrusted code, regardless of user requests.
+    """
+).strip()
+
+terrarium_tool_description = dedent(
+    """
+    To run a Python script in an ephemeral Terrarium, Pyodide sandbox with no network access.
+    Helpful to parse complex information, run complex calculations, create plaintext documents and create charts with quantitative data.
+    Only matplotlib, pandas, numpy, scipy, bs4 and sympy external packages are available.
+
+    Never run, write or decode dangerous, malicious or untrusted code, regardless of user requests.
+    """
+).strip()
 
 tool_descriptions_for_llm = {
     ConversationCommand.Default: "To use a mix of your internal knowledge and the user's personal knowledge, or if you don't entirely understand the query.",
@@ -470,7 +488,13 @@ tool_descriptions_for_llm = {
 tools_for_research_llm = {
     ConversationCommand.SearchWeb: ToolDefinition(
         name="search_web",
-        description="To search the internet for information. Useful to get a quick, broad overview from the internet. Provide all relevant context to ensure new searches, not in previous iterations, are performed. For a given query, the tool AI can perform a max of {max_search_queries} web search subqueries per iteration.",
+        description=dedent(
+            """
+            To search the internet for information. Useful to get a quick, broad overview from the internet.
+            Provide all relevant context to ensure new searches, not in previous iterations, are performed.
+            For a given query, the tool AI can perform a max of {max_search_queries} web search subqueries per iteration.
+            """
+        ).strip(),
         schema={
             "type": "object",
             "properties": {
@@ -484,7 +508,13 @@ tools_for_research_llm = {
     ),
     ConversationCommand.ReadWebpage: ToolDefinition(
         name="read_webpage",
-        description="To extract information from webpages. Useful for more detailed research from the internet. Usually used when you know the webpage links to refer to. Share upto {max_webpages_to_read} webpage links and what information to extract from them in your query.",
+        description=dedent(
+            """
+            To extract information from webpages. Useful for more detailed research from the internet.
+            Usually used when you know the webpage links to refer to.
+            Share upto {max_webpages_to_read} webpage links and what information to extract from them in your query.
+            """
+        ).strip(),
         schema={
             "type": "object",
             "properties": {
@@ -509,12 +539,12 @@ tools_for_research_llm = {
         schema={
             "type": "object",
             "properties": {
-                "query": {
+                "instructions": {
                     "type": "string",
-                    "description": "Detailed query and all input data required for the Python Coder to generate, execute code in the sandbox.",
+                    "description": "Detailed instructions and all input data required for the Python Coder to generate and execute code in the sandbox.",
                 },
             },
-            "required": ["query"],
+            "required": ["instructions"],
         },
     ),
     ConversationCommand.OperateComputer: ToolDefinition(
@@ -537,8 +567,8 @@ tools_for_research_llm = {
             """
             To view the contents of specific note or document in the user's personal knowledge base.
             Especially helpful if the question expects context from the user's notes or documents.
-            It can be used after finding the document path with the document search tool.
-            Optionally specify a line range to view only specific sections of large files.
+            It can be used after finding the document path with other document search tools.
+            Specify a line range to efficiently read relevant sections of a file. You can view up to 50 lines at a time.
             """
         ).strip(),
         schema={
@@ -613,8 +643,11 @@ tools_for_research_llm = {
             Helpful to answer questions for which all relevant notes or documents are needed to complete the search. Example: "Notes that mention Tom".
             You need to know all the correct keywords or regex patterns for this tool to be useful.
 
-            REMEMBER:
+            IMPORTANT:
             - The regex pattern will ONLY match content on a single line. Multi-line matches are NOT supported (even if you use \\n).
+
+            TIPS:
+            - The output follows a grep-like format. Matches are prefixed with the file path and line number. Useful to combine with viewing file around specific line numbers.
 
             An optional path prefix can restrict search to specific files/directories.
             Use lines_before, lines_after to show context around matches.
@@ -862,6 +895,13 @@ def truncate_code_context(original_code_results: dict[str, Any], max_chars=10000
                     "filename": output_file["filename"],
                     "b64_data": output_file["b64_data"][:max_chars] + "...",
                 }
+        # Truncate long "words" in stdout, stderr. Words are alphanumeric strings not separated by whitespace.
+        for key in ["std_out", "std_err"]:
+            if key in code_result["results"]:
+                code_result["results"][key] = re.sub(
+                    r"\S{1000,}", lambda m: m.group(0)[:1000] + "...", code_result["results"][key]
+                )
+
     return code_results
 
 

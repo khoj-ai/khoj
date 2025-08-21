@@ -46,8 +46,8 @@ async def test_grep_files_simple_match(default_user: KhojUser):
     assert len(results) == 1
     result = results[0]
     assert "Found 2 matches for 'hello' in 1 documents" in result["query"]
-    assert "test.txt:1:> hello world" in result["compiled"]
-    assert "test.txt:3:> hello again" in result["compiled"]
+    assert "test.txt:1: hello world" in result["compiled"]
+    assert "test.txt:3: hello again" in result["compiled"]
 
 
 @pytest.mark.django_db
@@ -110,7 +110,7 @@ async def test_grep_files_with_path_prefix(default_user: KhojUser):
     result = results[0]
     assert "Found 1 matches for 'hello' in 1 documents" in result["query"]
     assert "in dir1/" in result["query"]
-    assert "dir1/test1.txt:1:> hello from dir1" in result["compiled"]
+    assert "dir1/test1.txt:1: hello from dir1" in result["compiled"]
     assert "dir2/test2.txt" not in result["compiled"]
 
 
@@ -142,9 +142,9 @@ async def test_grep_files_with_context(default_user: KhojUser):
     result = results[0]
     assert "Found 1 matches for 'match' in 1 documents" in result["query"]
     assert "Showing 1 lines before and 1 lines after" in result["query"]
-    assert "test.txt:2:  line 2" in result["compiled"]
-    assert "test.txt:3:> line 3 (match)" in result["compiled"]
-    assert "test.txt:4:  line 4" in result["compiled"]
+    assert "test.txt-2-  line 2" in result["compiled"]
+    assert "test.txt:3: line 3 (match)" in result["compiled"]
+    assert "test.txt-4-  line 4" in result["compiled"]
     assert "line 1" not in result["compiled"]
     assert "line 5" not in result["compiled"]
 
@@ -199,8 +199,8 @@ async def test_grep_files_multiple_files(default_user: KhojUser):
     assert len(results) == 1
     result = results[0]
     assert "Found 2 matches for 'hello' in 2 documents" in result["query"]
-    assert "file1.txt:1:> hello from file1" in result["compiled"]
-    assert "file2.txt:1:> hello from file2" in result["compiled"]
+    assert "file1.txt:1: hello from file1" in result["compiled"]
+    assert "file2.txt:1: hello from file2" in result["compiled"]
 
 
 @pytest.mark.parametrize(
@@ -272,4 +272,4 @@ async def test_grep_files_financial_entries_regex_patterns(
 
     # All patterns should find the sailing entry
     assert f"Found {expected_matches} matches" in result["query"]
-    assert 'ledger.txt:8:> 1984-06-24 * "Center for Boats" "Sailing" #bob' in result["compiled"]
+    assert 'ledger.txt:8: 1984-06-24 * "Center for Boats" "Sailing" #bob' in result["compiled"]

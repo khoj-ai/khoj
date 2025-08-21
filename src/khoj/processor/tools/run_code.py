@@ -49,7 +49,7 @@ class GeneratedCode(NamedTuple):
 
 
 async def run_code(
-    query: str,
+    instructions: str,
     conversation_history: List[ChatMessageModel],
     context: str,
     location_data: LocationData,
@@ -63,12 +63,12 @@ async def run_code(
 ):
     # Generate Code
     if send_status_func:
-        async for event in send_status_func(f"**Generate code snippet** for {query}"):
+        async for event in send_status_func(f"**Generate code snippet** for {instructions}"):
             yield {ChatEvent.STATUS: event}
     try:
         with timer("Chat actor: Generate programs to execute", logger):
             generated_code = await generate_python_code(
-                query,
+                instructions,
                 conversation_history,
                 context,
                 location_data,
@@ -79,7 +79,7 @@ async def run_code(
                 query_files,
             )
     except Exception as e:
-        raise ValueError(f"Failed to generate code for {query} with error: {e}")
+        raise ValueError(f"Failed to generate code for {instructions} with error: {e}")
 
     # Prepare Input Data
     input_data = []
@@ -101,21 +101,21 @@ async def run_code(
             code = result.pop("code")
             cleaned_result = truncate_code_context({"cleaned": {"results": result}})["cleaned"]["results"]
             logger.info(f"Executed Code\n----\n{code}\n----\nResult\n----\n{cleaned_result}\n----")
-            yield {query: {"code": code, "results": result}}
+            yield {instructions: {"code": code, "results": result}}
     except asyncio.TimeoutError as e:
         # Call the sandbox_url/stop GET API endpoint to stop the code sandbox
-        error = f"Failed to run code for {query} with Timeout error: {e}"
+        error = f"Failed to run code for {instructions} with Timeout error: {e}"
         try:
             await aiohttp.ClientSession().get(f"{sandbox_url}/stop", timeout=5)
         except Exception as e:
             error += f"\n\nFailed to stop code sandbox with error: {e}"
         raise ValueError(error)
     except Exception as e:
-        raise ValueError(f"Failed to run code for {query} with error: {e}")
+        raise ValueError(f"Failed to run code for {instructions} with error: {e}")
 
 
 async def generate_python_code(
-    q: str,
+    instructions: str,
     chat_history: List[ChatMessageModel],
     context: str,
     location_data: LocationData,
@@ -142,7 +142,7 @@ async def generate_python_code(
     network_access_context = "**NO** " if not is_e2b_code_sandbox_enabled() else ""
 
     code_generation_prompt = prompts.python_code_generation_prompt.format(
-        query=q,
+        instructions=instructions,
         chat_history=chat_history_str,
         context=context,
         has_network_access=network_access_context,
@@ -252,8 +252,12 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
 
         # Identify new files created during execution
         new_files = set(E2bFile(f.name, f.path) for f in await sandbox.files.list("~")) - original_files
+
         # Read newly created files in parallel
-        download_tasks = [sandbox.files.read(f.path, request_timeout=30) for f in new_files]
+        def read_format(f):
+            return "bytes" if Path(f.name).suffix in image_file_ext else "text"
+
+        download_tasks = [sandbox.files.read(f.path, format=read_format(f), request_timeout=30) for f in new_files]
         downloaded_files = await asyncio.gather(*download_tasks)
         for f, content in zip(new_files, downloaded_files):
             if isinstance(content, bytes):
@@ -261,22 +265,11 @@ async def execute_e2b(code: str, input_files: list[dict]) -> dict[str, Any]:
                 b64_data = base64.b64encode(content).decode("utf-8")
             elif Path(f.name).suffix in image_file_ext:
                 # Ignore image files as they are extracted from execution results below for inline display
-                continue
+                b64_data = base64.b64encode(content).decode("utf-8")
             else:
                 # Text files - encode utf-8 string as base64
                 b64_data = content
             output_files.append({"filename": f.name, "b64_data": b64_data})
-
-        # Collect output files from execution results
-        # Repect ordering of output result types to disregard text output associated with images
-        output_result_types = ["png", "jpeg", "svg", "text", "markdown", "json"]
-        for idx, result in enumerate(execution.results):
-            if getattr(result, "chart", None):
-                continue
-            for result_type in output_result_types:
-                if b64_data := getattr(result, result_type, None):
-                    output_files.append({"filename": f"{idx}.{result_type}", "b64_data": b64_data})
-                    break
 
         # collect logs
         success = not execution.error and not execution.logs.stderr
