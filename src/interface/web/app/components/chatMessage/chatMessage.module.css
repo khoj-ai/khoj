@@ -23,6 +23,22 @@ div.chatMessageWrapper a span {
     display: revert !important;
 }
 
+/* File link styling */
+.chatMessageWrapper a.file-link {
+    color: hsl(var(--primary));
+    text-decoration: underline;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.chatMessageWrapper a.file-link:hover {
+    color: hsl(var(--primary-foreground));
+    background-color: hsl(var(--primary));
+    text-decoration: none;
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
 div.khojfullHistory {
     padding-left: 4px;
 }

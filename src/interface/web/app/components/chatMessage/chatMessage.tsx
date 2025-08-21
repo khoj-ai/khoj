@@ -6,11 +6,18 @@ import markdownIt from "markdown-it";
 import mditHljs from "markdown-it-highlightjs";
 import React, { useEffect, useRef, useState, forwardRef } from "react";
 import { createRoot } from "react-dom/client";
+import { createPortal } from "react-dom";
 
 import "katex/dist/katex.min.css";
 
-import { TeaserReferencesSection, constructAllReferences } from "../referencePanel/referencePanel";
+import {
+    TeaserReferencesSection,
+    constructAllReferences,
+} from "@/app/components/referencePanel/referencePanel";
 import { renderCodeGenImageInline } from "@/app/common/chatFunctions";
+import { fileLinksPlugin } from "@/app/components/chatMessage/fileLinksPlugin";
+import FileContentSnippet from "@/app/components/chatMessage/FileContentSnippet";
+import { useFileContent } from "@/app/components/chatMessage/useFileContent";
 
 import {
     ThumbsUp,
@@ -41,7 +48,6 @@ import { convertColorToTextClass } from "@/app/common/colorUtils";
 import { AgentData } from "@/app/components/agentCard/agentCard";
 
 import renderMathInElement from "katex/contrib/auto-render";
-import "katex/dist/katex.min.css";
 import ExcalidrawComponent from "../excalidraw/excalidraw";
 import { AttachedFileText } from "../chatInputArea/chatInputArea";
 import {
@@ -67,6 +73,8 @@ md.use(mditHljs, {
     inline: true,
     code: true,
 });
+
+md.use(fileLinksPlugin);
 
 export interface Context {
     compiled: string;
@@ -395,6 +403,23 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
     const [excalidrawData, setExcalidrawData] = useState<string>("");
     const [mermaidjsData, setMermaidjsData] = useState<string>("");
 
+    // State for file content preview on file link click, hover
+    const [previewOpen, setPreviewOpen] = useState<boolean>(false);
+    const [previewFilePath, setPreviewFilePath] = useState<string>("");
+    const [previewLineNumber, setPreviewLineNumber] = useState<number | undefined>(undefined);
+    const [previewLoading, setPreviewLoading] = useState<boolean>(false);
+    const [previewError, setPreviewError] = useState<string | null>(null);
+    const [previewContent, setPreviewContent] = useState<string>("");
+
+    const [hoverOpen, setHoverOpen] = useState<boolean>(false);
+    const [hoverFilePath, setHoverFilePath] = useState<string>("");
+    const [hoverLineNumber, setHoverLineNumber] = useState<number | undefined>(undefined);
+    const [hoverLoading, setHoverLoading] = useState<boolean>(false);
+    const [hoverError, setHoverError] = useState<string | null>(null);
+    const [hoverContent, setHoverContent] = useState<string>("");
+    const [hoverPos, setHoverPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+    const hoverCloseTimeoutRef = useRef<number | null>(null);
+
     const interruptedRef = useRef<boolean>(false);
     const messageRef = useRef<HTMLDivElement>(null);
 
@@ -451,6 +476,13 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
         // Replace file links with base64 data
         message = renderCodeGenImageInline(message, props.chatMessage.codeContext);
 
+        // Preprocess file:// links so markdown-it processes them
+        // We convert them to a custom scheme (filelink://) and handle in the plugin
+        message = message.replace(/\[([^\]]+)\]\(file:\/\/([^)]+)\)/g, (match, text, path) => {
+            // Use a special scheme that markdown-it will process
+            return `[${text}](filelink://${path})`;
+        });
+
         // Add code context files to the message
         if (props.chatMessage.codeContext) {
             Object.entries(props.chatMessage.codeContext).forEach(([key, value]) => {
@@ -504,7 +536,12 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             .replace(/RIGHTBRACKET/g, "\\]");
 
         // Sanitize and set the rendered markdown
-        setMarkdownRendered(DOMPurify.sanitize(markdownRendered));
+        // Configure DOMPurify to allow file link attributes
+        const cleanMarkdown = DOMPurify.sanitize(markdownRendered, {
+            ADD_ATTR: ["data-file-path", "data-line-number"],
+        });
+
+        setMarkdownRendered(cleanMarkdown);
     }, [props.chatMessage.message, props.chatMessage.images, props.chatMessage.intent]);
 
     useEffect(() => {
@@ -542,6 +579,90 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                 }
             });
 
+            // Event delegation on the message container for reliability
+            const container = messageRef.current;
+
+            const delegatedPointerDown = (ev: Event) => {
+                const e = ev as MouseEvent;
+                const target = e.target as HTMLElement | null;
+                const anchor = target?.closest?.("a.file-link") as HTMLAnchorElement | null;
+                if (!anchor) return;
+                e.preventDefault();
+                e.stopPropagation();
+                const path = anchor.getAttribute("data-file-path") || "";
+                const line = anchor.getAttribute("data-line-number") || undefined;
+                if (!path) return;
+                // Close hover popover if open
+                setHoverOpen(false);
+                setPreviewFilePath(path);
+                setPreviewLineNumber(line ? parseInt(line) : undefined);
+                setPreviewOpen(true);
+            };
+
+            let currentHoverAnchor: HTMLAnchorElement | null = null;
+            const delegatedMouseOver = (ev: Event) => {
+                const e = ev as MouseEvent;
+                const target = e.target as HTMLElement | null;
+                const anchor = target?.closest?.("a.file-link") as HTMLAnchorElement | null;
+                if (!anchor) return;
+                if (currentHoverAnchor === anchor) return;
+                currentHoverAnchor = anchor;
+                const rect = anchor.getBoundingClientRect();
+                const path = anchor.getAttribute("data-file-path") || "";
+                const line = anchor.getAttribute("data-line-number") || undefined;
+                if (!path) return;
+                setHoverPos({ x: Math.max(8, rect.left), y: rect.bottom + 6 });
+                setHoverFilePath(path);
+                setHoverLineNumber(line ? parseInt(line) : undefined);
+                if (hoverCloseTimeoutRef.current) {
+                    window.clearTimeout(hoverCloseTimeoutRef.current);
+                    hoverCloseTimeoutRef.current = null;
+                }
+                // Open immediately for reliability
+                setHoverOpen(true);
+            };
+
+            const delegatedMouseOut = (ev: Event) => {
+                const e = ev as MouseEvent;
+                const target = e.target as HTMLElement | null;
+                const related = e.relatedTarget as HTMLElement | null;
+                const anchor = target?.closest?.("a.file-link") as HTMLAnchorElement | null;
+                const stillInsideAnchor = !!(related && anchor && anchor.contains(related));
+                // If moving between descendants of the same anchor, ignore
+                if (stillInsideAnchor) return;
+                // Schedule close; will be canceled if we move into the popover
+                if (hoverCloseTimeoutRef.current) {
+                    window.clearTimeout(hoverCloseTimeoutRef.current);
+                }
+                hoverCloseTimeoutRef.current = window.setTimeout(() => {
+                    setHoverOpen(false);
+                    currentHoverAnchor = null;
+                    hoverCloseTimeoutRef.current = null;
+                }, 200);
+            };
+
+            const delegatedKeyDown = (ev: Event) => {
+                const e = ev as KeyboardEvent;
+                const target = e.target as HTMLElement | null;
+                const anchor = target?.closest?.("a.file-link") as HTMLAnchorElement | null;
+                if (!anchor) return;
+                if (e.key !== "Enter" && e.key !== " ") return;
+                e.preventDefault();
+                e.stopPropagation();
+                const path = anchor.getAttribute("data-file-path") || "";
+                const line = anchor.getAttribute("data-line-number") || undefined;
+                if (!path) return;
+                setHoverOpen(false);
+                setPreviewFilePath(path);
+                setPreviewLineNumber(line ? parseInt(line) : undefined);
+                setPreviewOpen(true);
+            };
+
+            container.addEventListener("pointerdown", delegatedPointerDown);
+            container.addEventListener("keydown", delegatedKeyDown);
+            container.addEventListener("mouseover", delegatedMouseOver);
+            container.addEventListener("mouseout", delegatedMouseOut);
+
             renderMathInElement(messageRef.current, {
                 delimiters: [
                     { left: "$$", right: "$$", display: true },
@@ -549,8 +670,51 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                     { left: "\\(", right: "\\)", display: false },
                 ],
             });
+            // Cleanup old listeners when content changes
+            return () => {
+                container.removeEventListener("pointerdown", delegatedPointerDown);
+                container.removeEventListener("keydown", delegatedKeyDown);
+                container.removeEventListener("mouseover", delegatedMouseOver);
+                container.removeEventListener("mouseout", delegatedMouseOut);
+                if (hoverCloseTimeoutRef.current) {
+                    window.clearTimeout(hoverCloseTimeoutRef.current);
+                    hoverCloseTimeoutRef.current = null;
+                }
+            };
         }
-    }, [markdownRendered, isHovering, messageRef]);
+    }, [markdownRendered, messageRef]);
+
+    // Fetch file content for dialog and hover using shared hook
+    const {
+        content: previewContentHook,
+        loading: previewLoadingHook,
+        error: previewErrorHook,
+    } = useFileContent(previewFilePath, previewOpen);
+    const {
+        content: hoverContentHook,
+        loading: hoverLoadingHook,
+        error: hoverErrorHook,
+    } = useFileContent(hoverFilePath, hoverOpen);
+
+    useEffect(() => {
+        setPreviewContent(previewContentHook);
+    }, [previewContentHook]);
+    useEffect(() => {
+        setPreviewLoading(previewLoadingHook);
+    }, [previewLoadingHook]);
+    useEffect(() => {
+        setPreviewError(previewErrorHook);
+    }, [previewErrorHook]);
+
+    useEffect(() => {
+        setHoverContent(hoverContentHook);
+    }, [hoverContentHook]);
+    useEffect(() => {
+        setHoverLoading(hoverLoadingHook);
+    }, [hoverLoadingHook]);
+    useEffect(() => {
+        setHoverError(hoverErrorHook);
+    }, [hoverErrorHook]);
 
     function formatDate(timestamp: string) {
         // Format date in HH:MM, DD MMM YYYY format
@@ -761,6 +925,120 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
                     className={styles.chatMessage}
                     dangerouslySetInnerHTML={{ __html: markdownRendered }}
                 />
+                {/* File preview hover dialog */}
+                {hoverOpen &&
+                    typeof window !== "undefined" &&
+                    createPortal(
+                        <div
+                            onMouseEnter={() => {
+                                if (hoverCloseTimeoutRef.current) {
+                                    window.clearTimeout(hoverCloseTimeoutRef.current);
+                                    hoverCloseTimeoutRef.current = null;
+                                }
+                                setHoverOpen(true);
+                            }}
+                            onMouseDown={(e) => {
+                                // If user clicks the hover preview, open the dialog for the same file
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setHoverOpen(false);
+                                if (hoverFilePath) {
+                                    setPreviewFilePath(hoverFilePath);
+                                    setPreviewLineNumber(hoverLineNumber);
+                                    setPreviewOpen(true);
+                                }
+                            }}
+                            onMouseLeave={() => {
+                                if (hoverCloseTimeoutRef.current) {
+                                    window.clearTimeout(hoverCloseTimeoutRef.current);
+                                }
+                                hoverCloseTimeoutRef.current = window.setTimeout(() => {
+                                    setHoverOpen(false);
+                                    hoverCloseTimeoutRef.current = null;
+                                }, 200);
+                            }}
+                            style={{
+                                position: "fixed",
+                                left: hoverPos.x,
+                                top: hoverPos.y,
+                                zIndex: 9999,
+                            }}
+                            className="w-96 max-h-80 rounded-md border bg-popover p-4 text-popover-foreground shadow-md"
+                        >
+                            <div className="space-y-2">
+                                <div className="flex items-center text-sm font-medium">
+                                    <span className="truncate">
+                                        {hoverFilePath.split("/").pop() || hoverFilePath}
+                                    </span>
+                                    {hoverLineNumber && (
+                                        <span className="text-gray-500 ml-2">
+                                            - Line {hoverLineNumber}
+                                        </span>
+                                    )}
+                                </div>
+                                <ScrollArea className="max-h-60">
+                                    {hoverLoading && (
+                                        <div className="flex items-center justify-center p-4">
+                                            <InlineLoading />
+                                        </div>
+                                    )}
+                                    {!hoverLoading && hoverError && (
+                                        <div className="p-3 text-red-500 text-sm">
+                                            Error: {hoverError}
+                                        </div>
+                                    )}
+                                    {!hoverLoading && !hoverError && (
+                                        <div className="text-sm">
+                                            <FileContentSnippet
+                                                content={hoverContent}
+                                                targetLine={hoverLineNumber}
+                                                maxLines={8}
+                                            />
+                                        </div>
+                                    )}
+                                </ScrollArea>
+                            </div>
+                        </div>,
+                        document.body,
+                    )}
+                {/* File preview popup dialog */}
+                <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+                    <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                            <DialogTitle>
+                                <div className="truncate min-w-0 break-words break-all text-wrap max-w-full whitespace-normal">
+                                    {previewFilePath.split("/").pop() || previewFilePath}
+                                    <span className="text-gray-500 ml-2">
+                                        {previewLineNumber ? `- Line ${previewLineNumber}` : ""}
+                                    </span>
+                                </div>
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className="text-left">
+                            <ScrollArea className="h-80 w-full rounded-md">
+                                {previewLoading && (
+                                    <div className="flex items-center justify-center p-4">
+                                        <InlineLoading />
+                                    </div>
+                                )}
+                                {!previewLoading && previewError && (
+                                    <div className="p-3 text-red-500 text-sm">
+                                        Error: {previewError}
+                                    </div>
+                                )}
+                                {!previewLoading && !previewError && (
+                                    <div className="text-sm">
+                                        <FileContentSnippet
+                                            content={previewContent}
+                                            targetLine={previewLineNumber}
+                                            maxLines={20}
+                                        />
+                                    </div>
+                                )}
+                            </ScrollArea>
+                        </div>
+                    </DialogContent>
+                </Dialog>
                 {excalidrawData && <ExcalidrawComponent data={excalidrawData} />}
                 {mermaidjsData && <Mermaid chart={mermaidjsData} />}
             </div>
