@@ -1059,7 +1059,7 @@ export class KhojChatView extends KhojPaneView {
                     if (incomingConversationId == conversationId) {
                         conversationSessionEl.classList.add("selected-conversation");
                     }
-                    const conversationTitle = conversation["slug"] || `New conversation 🌱`;
+                    const conversationTitle = conversation["slug"].split("<SYSTEM>")[0].trim() || `New conversation 🌱`;
                     const conversationSessionTitleEl = conversationSessionEl.createDiv("conversation-session-title");
                     conversationSessionTitleEl.textContent = conversationTitle;
                     conversationSessionTitleEl.addEventListener('click', () => {
