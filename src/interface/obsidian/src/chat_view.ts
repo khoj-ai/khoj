@@ -1374,18 +1374,25 @@ export class KhojChatView extends KhojPaneView {
             if (this.fileAccessMode === 'write') {
                 const editBlocks = this.parseEditBlocks(this.chatMessageState.rawResponse);
 
-                // Check for errors and retry if needed
-                if (editBlocks.length > 0 && editBlocks[0].hasError && this.editRetryCount < this.maxEditRetries) {
-                    await this.handleEditRetry(editBlocks[0]);
-                    return;
-                }
-
-                // Reset retry count on success
-                this.editRetryCount = 0;
-
-                // Apply edits if there are any
                 if (editBlocks.length > 0) {
-                    await this.applyEditBlocks(editBlocks);
+                    const firstBlock = editBlocks[0];
+                    if (firstBlock.hasError) {
+                        // Only retry if we have remaining attempts; do NOT reset counter on failure
+                        if (this.editRetryCount < this.maxEditRetries) {
+                            await this.handleEditRetry(firstBlock);
+                            return; // Wait for retry response
+                        } else {
+                            // Exhausted retries; surface error and do not attempt further automatic retries
+                            console.warn('[Khoj] Max edit retries reached. Aborting further retries.');
+                        }
+                    } else {
+                        // Successful parse => reset counter and apply edits
+                        this.editRetryCount = 0;
+                        await this.applyEditBlocks(editBlocks);
+                    }
+                } else {
+                    // No edit blocks => reset counter just in case
+                    this.editRetryCount = 0;
                 }
             }
 
@@ -2427,7 +2434,7 @@ export class KhojChatView extends KhojPaneView {
         // Add retry count
         retryBadge.createSpan({
             cls: "retry-count",
-            text: `Attempt ${this.editRetryCount}/3`
+            text: `Attempt ${this.editRetryCount}/${this.maxEditRetries}`
         });
 
         // Add error details as a tooltip
@@ -2442,7 +2449,7 @@ export class KhojChatView extends KhojPaneView {
         retryBadge.scrollIntoView({ behavior: "smooth", block: "center" });
 
         // Create a retry prompt for the LLM
-        const retryPrompt = `/general I noticed some issues with the edit block. Please fix the following and provide a corrected version (retry ${this.editRetryCount}/3):\n\n${errorDetails}\n\nPlease provide a new edit block that fixes these issues. Make sure to follow the exact format required.`;
+        const retryPrompt = `/general I noticed some issues with the edit block. Please fix the following and provide a corrected version (retry ${this.editRetryCount}/${this.maxEditRetries}):\n\n${errorDetails}\n\nPlease provide a new edit block that fixes these issues. Make sure to follow the exact format required.`;
 
         // Send retry request without displaying the user message
         await this.getChatResponse(retryPrompt, "", false, false);
