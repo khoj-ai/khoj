@@ -2739,7 +2739,9 @@ def configure_content(
 
     try:
         # Initialize Org Notes Search
-        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Org.value) and files["org"]:
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Org.value) and files.get(
+            "org"
+        ):
             logger.info("🦄 Setting up search for orgmode notes")
             # Extract Entries, Generate Notes Embeddings
             text_search.setup(
@@ -2754,9 +2756,9 @@ def configure_content(
 
     try:
         # Initialize Markdown Search
-        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Markdown.value) and files[
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Markdown.value) and files.get(
             "markdown"
-        ]:
+        ):
             logger.info("💎 Setting up search for markdown notes")
             # Extract Entries, Generate Markdown Embeddings
             text_search.setup(
@@ -2772,7 +2774,9 @@ def configure_content(
 
     try:
         # Initialize PDF Search
-        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Pdf.value) and files["pdf"]:
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Pdf.value) and files.get(
+            "pdf"
+        ):
             logger.info("🖨️ Setting up search for pdf")
             # Extract Entries, Generate PDF Embeddings
             text_search.setup(
@@ -2788,9 +2792,9 @@ def configure_content(
 
     try:
         # Initialize Plaintext Search
-        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Plaintext.value) and files[
+        if (search_type == state.SearchType.All.value or search_type == state.SearchType.Plaintext.value) and files.get(
             "plaintext"
-        ]:
+        ):
             logger.info("📄 Setting up search for plaintext")
             # Extract Entries, Generate Plaintext Embeddings
             text_search.setup(
