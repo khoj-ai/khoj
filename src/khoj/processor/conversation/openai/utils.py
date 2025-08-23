@@ -145,11 +145,8 @@ def completion_with_backoff(
         # See https://qwenlm.github.io/blog/qwen3/#advanced-usages
         if not deepthought:
             add_qwen_no_think_tag(formatted_messages)
-    elif "gpt-oss" in model_name.lower():
-        model_kwargs["temperature"] = 1
-        reasoning_effort = "medium" if deepthought else "low"
-        model_kwargs["reasoning_effort"] = reasoning_effort
-        model_kwargs["top_p"] = 1.0
+    elif is_groq_api(api_base_url):
+        model_kwargs["service_tier"] = "auto"
 
     read_timeout = 300 if is_local_api(api_base_url) else 60
     if os.getenv("KHOJ_LLM_SEED"):
@@ -355,11 +352,8 @@ async def chat_completion_with_backoff(
         # See https://qwenlm.github.io/blog/qwen3/#advanced-usages
         if not deepthought:
             add_qwen_no_think_tag(formatted_messages)
-    elif "gpt-oss" in model_name.lower():
-        temperature = 1
-        reasoning_effort = "medium" if deepthought else "low"
-        model_kwargs["reasoning_effort"] = reasoning_effort
-        model_kwargs["top_p"] = 1.0
+    elif is_groq_api(api_base_url):
+        model_kwargs["service_tier"] = "auto"
 
     read_timeout = 300 if is_local_api(api_base_url) else 60
     if os.getenv("KHOJ_LLM_SEED"):
@@ -854,8 +848,10 @@ def is_openai_reasoning_model(model_name: str, api_base_url: str = None) -> bool
     """
     Check if the model is an OpenAI reasoning model
     """
-    return is_openai_api(api_base_url) and (
-        model_name.lower().startswith("o") or model_name.lower().startswith("gpt-5")
+    return (
+        is_openai_api(api_base_url)
+        and (model_name.lower().startswith("o") or model_name.lower().startswith("gpt-5"))
+        or model_name.lower().startswith("gpt-oss")
     )
 
 
@@ -877,6 +873,13 @@ def is_twitter_reasoning_model(model_name: str, api_base_url: str = None) -> boo
         and api_base_url is not None
         and api_base_url.startswith("https://api.x.ai/v1")
     )
+
+
+def is_groq_api(api_base_url: str = None) -> bool:
+    """
+    Check if the model is served over the Groq API
+    """
+    return api_base_url is not None and api_base_url.startswith("https://api.groq.com")
 
 
 def is_qwen_style_reasoning_model(model_name: str, api_base_url: str = None) -> bool:

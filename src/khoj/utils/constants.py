@@ -75,4 +75,5 @@ model_to_cost: Dict[str, Dict[str, float]] = {
     # Groq pricing
     "moonshotai/kimi-k2-instruct": {"input": 1.00, "output": 3.00},
     "openai/gpt-oss-120b": {"input": 0.15, "output": 0.75},
+    "openai/gpt-oss-20b": {"input": 0.10, "output": 0.50},
 }
