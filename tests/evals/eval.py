@@ -34,10 +34,10 @@ logger = logging.getLogger(__name__)
 KHOJ_URL = os.getenv("KHOJ_URL", "http://localhost:42110")
 KHOJ_CHAT_API_URL = f"{KHOJ_URL}/api/chat"
 KHOJ_API_KEY = os.getenv("KHOJ_API_KEY")
-KHOJ_MODE = os.getenv("KHOJ_MODE", "default").lower()  # E.g research, general, notes etc.
+KHOJ_MODE = os.getenv("KHOJ_MODE", "default").lower()  # E.g research, general, default etc.
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_EVAL_MODEL = os.getenv("GEMINI_EVAL_MODEL", "gemini-2.0-flash-001")
+GEMINI_EVAL_MODEL = os.getenv("GEMINI_EVAL_MODEL", "gemini-2.5-flash")
 
 LLM_SEED = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
 SAMPLE_SIZE = os.getenv("SAMPLE_SIZE")  # Number of examples to evaluate
@@ -636,7 +636,7 @@ def main():
         response_evaluator = evaluate_response_with_mcq_match
     elif args.dataset == "math500":
         response_evaluator = partial(
-            evaluate_response_with_gemini, eval_model=os.getenv("GEMINI_EVAL_MODEL", "gemini-2.0-flash-001")
+            evaluate_response_with_gemini, eval_model=os.getenv("GEMINI_EVAL_MODEL", "gemini-2.5-flash-lite")
         )
     elif args.dataset == "frames_ir":
         response_evaluator = evaluate_response_for_ir
@@ -696,7 +696,7 @@ def main():
 if __name__ == "__main__":
     """
     Evaluate Khoj on supported benchmarks.
-    Response are evaluated by GEMINI_EVAL_MODEL (default: gemini-pro-1.5-002).
+    Response are evaluated by GEMINI_EVAL_MODEL (default: gemini-2.5-flash).
 
     Khoj should be running at KHOJ_URL (default: http://localhost:42110).
     The Gemini judge model is accessed via the Gemini API with your GEMINI_API_KEY.

@@ -43,7 +43,7 @@ on:
       chat_model:
         description: 'Chat model to use'
         required: false
-        default: 'gemini-2.0-flash'
+        default: 'gemini-2.5-flash'
         type: string
       max_research_iterations:
         description: 'Maximum number of iterations in research mode'
@@ -151,7 +151,7 @@ jobs:
           RANDOMIZE: ${{ github.event_name == 'workflow_dispatch' && inputs.randomize || 'true' }}
           KHOJ_URL: "http://localhost:42110"
           KHOJ_LLM_SEED: "42"
-          KHOJ_DEFAULT_CHAT_MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.chat_model || 'gemini-2.0-flash' }}
+          KHOJ_DEFAULT_CHAT_MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.chat_model || 'gemini-2.5-flash' }}
           KHOJ_RESEARCH_ITERATIONS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_research_iterations || 10 }}
           KHOJ_AUTO_READ_WEBPAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.auto_read_webpage || 'false' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -224,7 +224,7 @@ jobs:
           echo "## Evaluation Summary of Khoj on ${{ matrix.dataset }} in ${{ matrix.khoj_mode }} mode" >> $GITHUB_STEP_SUMMARY
           echo "**$(head -n 1 *_evaluation_summary_*.txt)**" >> $GITHUB_STEP_SUMMARY
           echo "- Khoj Version: ${{ steps.hatch.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Chat Model: ${{ inputs.chat_model || 'gemini-2.0-flash' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Chat Model: ${{ inputs.chat_model || 'gemini-2.5-flash' }}" >> $GITHUB_STEP_SUMMARY
           echo "- Code Sandbox: ${{ inputs.sandbox || 'terrarium' }}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           tail -n +2 *_evaluation_summary_*.txt >> $GITHUB_STEP_SUMMARY

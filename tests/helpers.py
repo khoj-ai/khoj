@@ -232,7 +232,7 @@ class ChatModelFactory(factory.django.DjangoModelFactory):
 
     max_prompt_size = 20000
     tokenizer = None
-    name = "gemini-2.0-flash"
+    name = "gemini-2.5-flash"
     model_type = get_chat_provider()
     ai_model_api = factory.LazyAttribute(lambda obj: AiModelApiFactory() if get_chat_api_key() else None)
 

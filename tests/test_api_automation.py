@@ -20,7 +20,7 @@ def create_test_automation(client: TestClient) -> str:
     """Helper function to create a test automation and return its ID."""
     state.anonymous_mode = True
     ChatModelFactory(
-        name="gemini-2.0-flash", model_type="google", ai_model_api=AiModelApiFactory(api_key=get_chat_api_key("google"))
+        name="gemini-2.5-flash", model_type="google", ai_model_api=AiModelApiFactory(api_key=get_chat_api_key("google"))
     )
     params = {
         "q": "test automation",
@@ -37,7 +37,7 @@ def test_create_automation(client: TestClient):
     # Arrange
     state.anonymous_mode = True
     ChatModelFactory(
-        name="gemini-2.0-flash", model_type="google", ai_model_api=AiModelApiFactory(api_key=get_chat_api_key("google"))
+        name="gemini-2.5-flash", model_type="google", ai_model_api=AiModelApiFactory(api_key=get_chat_api_key("google"))
     )
     params = {
         "q": "test automation",

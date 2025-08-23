@@ -76,7 +76,7 @@ async def converse_gemini(
     user_name: str = None,
     chat_history: List[ChatMessageModel] = [],
     # Model
-    model: Optional[str] = "gemini-2.0-flash",
+    model: Optional[str] = "gemini-2.5-flash",
     api_key: Optional[str] = None,
     api_base_url: Optional[str] = None,
     temperature: float = 1.0,
