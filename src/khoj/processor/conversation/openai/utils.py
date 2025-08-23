@@ -126,7 +126,7 @@ def completion_with_backoff(
         if model_name.startswith("grok-4"):
             # Grok-4 models do not support reasoning_effort parameter
             model_kwargs.pop("reasoning_effort", None)
-    elif model_name.startswith("deepseek-reasoner"):
+    elif model_name.startswith("deepseek-reasoner") or model_name.startswith("deepseek-chat"):
         stream_processor = in_stream_thought_processor
         # Two successive messages cannot be from the same role. Should merge any back-to-back messages from the same role.
         # The first message should always be a user message (except system message).
@@ -325,8 +325,12 @@ async def chat_completion_with_backoff(
         # Grok-4 models do not support reasoning_effort parameter
         if not model_name.startswith("grok-4"):
             model_kwargs["reasoning_effort"] = reasoning_effort
-    elif model_name.startswith("deepseek-reasoner") or "deepseek-r1" in model_name:
-        # Official Deepseek reasoner model and some inference APIs like vLLM return structured thinking output.
+    elif (
+        model_name.startswith("deepseek-chat")
+        or model_name.startswith("deepseek-reasoner")
+        or "deepseek-r1" in model_name
+    ):
+        # Official Deepseek models and some inference APIs like vLLM return structured thinking output.
         # Others like DeepInfra return it in response stream.
         # Using the instream thought processor handles both cases, structured thoughts and in response thoughts.
         stream_processor = ain_stream_thought_processor
