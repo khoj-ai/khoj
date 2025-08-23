@@ -39,6 +39,40 @@ div.chatMessageWrapper a span {
     border-radius: 4px;
 }
 
+/* Table styling */
+.chatMessageWrapper table {
+    border-collapse: collapse;
+    border: 1px solid hsl(var(--border));
+    margin: 1rem 0;
+    width: 100%;
+}
+
+.chatMessageWrapper table th,
+.chatMessageWrapper table td {
+    border: 1px solid hsl(var(--border));
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.chatMessageWrapper table th {
+    background-color: hsl(var(--muted));
+    font-weight: 600;
+}
+
+/* Alternating row colors for better readability */
+.chatMessageWrapper table tbody tr:nth-child(even) {
+    background-color: hsl(var(--muted) / 0.3);
+}
+
+.chatMessageWrapper table tbody tr:nth-child(odd) {
+    background-color: transparent;
+}
+
+/* Hover effect for table rows */
+.chatMessageWrapper table tbody tr:hover {
+    background-color: hsl(var(--muted) / 0.5);
+}
+
 div.khojfullHistory {
     padding-left: 4px;
 }

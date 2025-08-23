@@ -88,7 +88,7 @@ export function ChatSidebar({ ...props }: ChatSideBarProps) {
     }
 
     return (
-        <div className="relative">
+        <div className="relative h-full">
             <ChatSidebarInternal {...props} />
         </div>
     );
