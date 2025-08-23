@@ -176,7 +176,7 @@ jobs:
 
           # Start Khoj server in background
           # Capture stdout/stderr to a log for debugging if startup fails
-          uv run khoj --anonymous-mode --non-interactive > khoj_server.log 2>&1 &
+          uv run khoj --anonymous-mode --non-interactive -vv > khoj_server.log 2>&1 &
           KHOJ_PID=$!
           echo "Started Khoj (PID=$KHOJ_PID)"
 
@@ -215,6 +215,7 @@ jobs:
           path: |
             *_evaluation_results_*.csv
             *_evaluation_summary_*.txt
+            khoj_server.log
 
       - name: Display Results
         if: always()
