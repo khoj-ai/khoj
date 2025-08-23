@@ -256,10 +256,10 @@ class AiModelApiAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "id",
         "name",
-        "api_key",
         "api_base_url",
+        "api_key",
     )
-    search_fields = ("id", "name", "api_key", "api_base_url")
+    search_fields = ("id", "name", "api_base_url", "api_key")
 
 
 @admin.register(SearchModelConfig)
