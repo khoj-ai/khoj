@@ -46,7 +46,7 @@ gemini_clients: Dict[str, genai.Client] = {}
 # This avoids premature response termination.
 MAX_OUTPUT_TOKENS_FOR_REASONING_GEMINI = 20000
 MAX_OUTPUT_TOKENS_FOR_STANDARD_GEMINI = 8000
-MAX_REASONING_TOKENS_GEMINI = 10000
+MAX_REASONING_TOKENS_GEMINI = 512
 
 SAFETY_SETTINGS = [
     gtypes.SafetySetting(
