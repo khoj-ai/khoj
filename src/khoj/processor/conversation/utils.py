@@ -23,7 +23,6 @@ from transformers import AutoTokenizer, PreTrainedTokenizer, PreTrainedTokenizer
 from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import (
     ChatMessageModel,
-    ChatModel,
     ClientApplication,
     Intent,
     KhojUser,
@@ -528,29 +527,18 @@ def construct_structured_message(
 
     Assume vision is enabled and chat model provider supports messages in chatml format, unless specified otherwise.
     """
-    if not model_type or model_type in [
-        ChatModel.ModelType.OPENAI,
-        ChatModel.ModelType.GOOGLE,
-        ChatModel.ModelType.ANTHROPIC,
-    ]:
-        constructed_messages: List[dict[str, Any]] = []
-        if not is_none_or_empty(message):
-            constructed_messages += [{"type": "text", "text": message}] if isinstance(message, str) else message
-        # Drop image message passed by caller if chat model does not have vision enabled
-        if not vision_enabled:
-            constructed_messages = [m for m in constructed_messages if m.get("type") != "image_url"]
-        if not is_none_or_empty(attached_file_context):
-            constructed_messages += [{"type": "text", "text": attached_file_context}]
-        if vision_enabled and images:
-            for image in images:
-                constructed_messages += [{"type": "image_url", "image_url": {"url": image}}]
-        return constructed_messages
-
-    message = message if isinstance(message, str) else "\n\n".join(m["text"] for m in message)
+    constructed_messages: List[dict[str, Any]] = []
+    if not is_none_or_empty(message):
+        constructed_messages += [{"type": "text", "text": message}] if isinstance(message, str) else message
+    # Drop image message passed by caller if chat model does not have vision enabled
+    if not vision_enabled:
+        constructed_messages = [m for m in constructed_messages if m.get("type") != "image_url"]
     if not is_none_or_empty(attached_file_context):
-        return f"{attached_file_context}\n\n{message}"
-
-    return message
+        constructed_messages += [{"type": "text", "text": attached_file_context}]
+    if vision_enabled and images:
+        for image in images:
+            constructed_messages += [{"type": "image_url", "image_url": {"url": image}}]
+    return constructed_messages
 
 
 def gather_raw_query_files(
