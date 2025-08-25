@@ -466,22 +466,8 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             setMermaidjsData(props.chatMessage.mermaidjsDiagram);
         }
 
-        // Replace LaTeX delimiters with placeholders
-        message = message
-            .replace(/\\\(/g, "LEFTPAREN")
-            .replace(/\\\)/g, "RIGHTPAREN")
-            .replace(/\\\[/g, "LEFTBRACKET")
-            .replace(/\\\]/g, "RIGHTBRACKET");
-
         // Replace file links with base64 data
         message = renderCodeGenImageInline(message, props.chatMessage.codeContext);
-
-        // Preprocess file:// links so markdown-it processes them
-        // We convert them to a custom scheme (filelink://) and handle in the plugin
-        message = message.replace(/\[([^\]]+)\]\(file:\/\/([^)]+)\)/g, (match, text, path) => {
-            // Use a special scheme that markdown-it will process
-            return `[${text}](filelink://${path})`;
-        });
 
         // Add code context files to the message
         if (props.chatMessage.codeContext) {
@@ -497,7 +483,7 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             });
         }
 
-        // Handle user attached images rendering
+        // Handle rendering user attached or khoj generated images
         let messageForClipboard = message;
         let messageToRender = message;
         if (props.chatMessage.images && props.chatMessage.images.length > 0) {
@@ -509,12 +495,12 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
             });
             const imagesInMd = sanitizedImages
                 .map((sanitizedImage, index) => {
-                    return `![uploaded image ${index + 1}](${sanitizedImage})`;
+                    return `![rendered image ${index + 1}](${sanitizedImage})`;
                 })
                 .join("\n");
             const imagesInHtml = sanitizedImages
                 .map((sanitizedImage, index) => {
-                    return `<div class="${styles.imageWrapper}"><img src="${sanitizedImage}" alt="uploaded image ${index + 1}" /></div>`;
+                    return `<div class="${styles.imageWrapper}"><img src="${sanitizedImage}" alt="rendered image ${index + 1}" /></div>`;
                 })
                 .join("");
             const userImagesInHtml = `<div class="${styles.imagesContainer}">${imagesInHtml}</div>`;
@@ -525,10 +511,27 @@ const ChatMessage = forwardRef<HTMLDivElement, ChatMessageProps>((props, ref) =>
         // Set the message text
         setTextRendered(messageForClipboard);
 
+        // Replace LaTeX delimiters with placeholders
+        messageToRender = messageToRender
+            .replace(/\\\(/g, "LEFTPAREN")
+            .replace(/\\\)/g, "RIGHTPAREN")
+            .replace(/\\\[/g, "LEFTBRACKET")
+            .replace(/\\\]/g, "RIGHTBRACKET");
+
+        // Preprocess file:// links so markdown-it processes them
+        // We convert them to a custom scheme (filelink://) and handle in the plugin
+        messageToRender = messageToRender.replace(
+            /\[([^\]]+)\]\(file:\/\/([^)]+)\)/g,
+            (match, text, path) => {
+                // Use a special scheme that markdown-it will process
+                return `[${text}](filelink://${path})`;
+            },
+        );
+
         // Render the markdown
         let markdownRendered = md.render(messageToRender);
 
-        // Replace placeholders with LaTeX delimiters
+        // Revert placeholders with LaTeX delimiters
         markdownRendered = markdownRendered
             .replace(/LEFTPAREN/g, "\\(")
             .replace(/RIGHTPAREN/g, "\\)")

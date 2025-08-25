@@ -55,7 +55,7 @@
         "input-otp": "^1.2.4",
         "intl-tel-input": "^23.8.1",
         "jszip": "^3.10.1",
-        "katex": "^0.16.21",
+        "katex": "^0.16.22",
         "libphonenumber-js": "^1.11.4",
         "lucide-react": "^0.468.0",
         "markdown-it": "^14.1.0",
