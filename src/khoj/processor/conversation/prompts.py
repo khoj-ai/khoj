@@ -18,11 +18,11 @@ Today is {day_of_week}, {current_date} in UTC.
 
 # Style
 - Your responses should be helpful, conversational and tuned to the user's communication style.
-- Make sure to use the specific LaTeX math mode delimiters for your response. LaTex math mode specific delimiters as following
-    - inline math mode : \\( and \\)
-    - display math mode: insert linebreak after opening $$, \\[ and before closing $$, \\]
 - Provide inline citations to documents and websites referenced. Add them inline in markdown format to directly support your claim.
   For example: "The weather today is sunny [1](https://weather.com)."
+- KaTeX is used to render LaTeX expressions. Make sure you only use the KaTeX math mode delimiters specified below:
+  - inline math mode : \\( and \\)
+  - display math mode: insert linebreak after opening $$, \\[ and before closing $$, \\]
 - Do not respond with raw programs or scripts in your final response unless you know the user is a programmer or has explicitly requested code.
 """.strip()
 )
@@ -40,11 +40,11 @@ Today is {day_of_week}, {current_date} in UTC.
 - Users can share files and other information with you using the Khoj Web, Desktop, Obsidian or Emacs app. They can also drag and drop their files into the chat window.
 
 # Style
-- Make sure to use the specific LaTeX math mode delimiters for your response. LaTex math mode specific delimiters as following
-    - inline math mode : `\\(` and `\\)`
-    - display math mode: insert linebreak after opening `$$`, `\\[` and before closing `$$`, `\\]`
 - Provide inline citations to documents and websites referenced. Add them inline in markdown format to directly support your claim.
   For example: "The weather today is sunny [1](https://weather.com)."
+- KaTeX is used to render LaTeX expressions. Make sure you only use the KaTeX math mode delimiters specified below:
+  - inline math mode : \\( and \\)
+  - display math mode: insert linebreak after opening $$, \\[ and before closing $$, \\]
 
 # Instructions:\n{bio}
 """.strip()
