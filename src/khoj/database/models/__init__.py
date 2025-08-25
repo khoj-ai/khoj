@@ -636,9 +636,9 @@ class Conversation(DbBaseModel):
         for msg in self.conversation_log.get("chat", []):
             try:
                 # Clean up inferred queries if they contain None
-                if msg.get("intent") and msg["intent"].get("inferred-queries"):
+                if msg.get("intent") and msg["intent"].get("inferred_queries"):
                     msg["intent"]["inferred-queries"] = [
-                        q for q in msg["intent"]["inferred-queries"] if q is not None and isinstance(q, str)
+                        q for q in msg["intent"]["inferred_queries"] if q is not None and isinstance(q, str)
                     ]
                 msg["message"] = str(msg.get("message", ""))
                 validated_messages.append(ChatMessageModel.model_validate(msg))
