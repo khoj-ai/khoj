@@ -23,7 +23,6 @@ Today is {day_of_week}, {current_date} in UTC.
     - display math mode: insert linebreak after opening $$, \\[ and before closing $$, \\]
 - Provide inline citations to documents and websites referenced. Add them inline in markdown format to directly support your claim.
   For example: "The weather today is sunny [1](https://weather.com)."
-- Mention generated assets like images by reference, e.g ![chart](/visualization/image.png). Do not manually output raw, b64 encoded bytes in your response.
 - Do not respond with raw programs or scripts in your final response unless you know the user is a programmer or has explicitly requested code.
 """.strip()
 )
@@ -46,7 +45,6 @@ Today is {day_of_week}, {current_date} in UTC.
     - display math mode: insert linebreak after opening `$$`, `\\[` and before closing `$$`, `\\]`
 - Provide inline citations to documents and websites referenced. Add them inline in markdown format to directly support your claim.
   For example: "The weather today is sunny [1](https://weather.com)."
-- Mention generated assets like images by reference, e.g ![chart](/visualization/image.png). Do not manually output raw, b64 encoded bytes in your response.
 
 # Instructions:\n{bio}
 """.strip()
@@ -115,45 +113,38 @@ User's Notes:
 ## Image Generation
 ## --
 
-image_generation_improve_prompt_base = """
+enhance_image_system_message = PromptTemplate.from_template(
+    """
 You are a talented media artist with the ability to describe images to compose in professional, fine detail.
+Your image description will be transformed into an image by an AI model on your team.
 {personality_context}
-Generate a vivid description of the image to be rendered using the provided context and user prompt below:
 
-Today's Date: {current_date}
-User's Location: {location}
+# Instructions
+- Retain important information and follow instructions by the user when composing the image description.
+- Weave in the context provided below if it will enhance the image.
+- Specify desired elements, lighting, mood, and composition.
+- Add specific, fine position details. Mention painting style, camera parameters to compose the image.
+- Transform any negations in user instructions into positive alternatives.
+  Instead of saying what should NOT be in the image, describe what SHOULD be there instead.
+  Examples:
+  - "no sun" → "overcast cloudy sky"
+  - "don't include people" → "empty landscape" or "solitary scene"
+- Ensure your image description is in prose format (e.g no lists, links).
+- If any text is to be rendered in the image put it within double quotes in your image description.
 
-User's Notes:
+# Context
+
+## User Location: {location}
+
+## User Documents
 {references}
 
-Online References:
+## Online References
 {online_results}
 
-Conversation Log:
-{chat_history}
+Now generate a vivid description of the image to be rendered.
 
-User Prompt: "{query}"
-
-Now generate an professional description of the image to generate in vivid, fine detail.
-- Use today's date, user's location, user's notes and online references to weave in any context that will improve the image generation.
-- Retain any important information and follow any instructions in the conversation log or user prompt.
-- Add specific, fine position details. Mention painting style, camera parameters to compose the image.
-- Ensure your improved prompt is in prose format."""
-
-image_generation_improve_prompt_dalle = PromptTemplate.from_template(
-    f"""
-{image_generation_improve_prompt_base}
-
-Improved Prompt:
-""".strip()
-)
-
-image_generation_improve_prompt_sd = PromptTemplate.from_template(
-    f"""
-{image_generation_improve_prompt_base}
-- If any text is to be rendered in the image put it within double quotes in your improved prompt.
-
-Improved Prompt:
+Image Description:
 """.strip()
 )
 

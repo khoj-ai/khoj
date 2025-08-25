@@ -1066,7 +1066,7 @@ async def generate_mermaidjs_diagram_from_description(
 
 async def generate_better_image_prompt(
     q: str,
-    conversation_history: str,
+    conversation_history: List[ChatMessageModel],
     location_data: LocationData,
     note_references: List[Dict[str, Any]],
     online_results: Optional[dict] = None,
@@ -1081,7 +1081,6 @@ async def generate_better_image_prompt(
     Generate a better image prompt from the given query
     """
 
-    today_date = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d, %A")
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
     )
@@ -1089,51 +1088,33 @@ async def generate_better_image_prompt(
 
     location = f"{location_data}" if location_data else "Unknown"
 
-    user_references = "\n\n".join([f"# {item['compiled']}" for item in note_references])
+    user_references = "\n\n".join([f"- text:\n{item['compiled']}" for item in note_references])
 
     simplified_online_results = {}
+    for result in online_results or []:
+        if online_results[result].get("answerBox"):
+            simplified_online_results[result] = online_results[result]["answerBox"]
+        elif online_results[result].get("webpages"):
+            simplified_online_results[result] = online_results[result]["webpages"]
 
-    if online_results:
-        for result in online_results:
-            if online_results[result].get("answerBox"):
-                simplified_online_results[result] = online_results[result]["answerBox"]
-            elif online_results[result].get("webpages"):
-                simplified_online_results[result] = online_results[result]["webpages"]
-
-    if model_type == TextToImageModelConfig.ModelType.OPENAI:
-        image_prompt = prompts.image_generation_improve_prompt_dalle.format(
-            query=q,
-            chat_history=conversation_history,
-            location=location,
-            current_date=today_date,
-            references=user_references,
-            online_results=simplified_online_results,
-            personality_context=personality_context,
-        )
-    elif model_type in [
-        TextToImageModelConfig.ModelType.STABILITYAI,
-        TextToImageModelConfig.ModelType.REPLICATE,
-        TextToImageModelConfig.ModelType.GOOGLE,
-    ]:
-        image_prompt = prompts.image_generation_improve_prompt_sd.format(
-            query=q,
-            chat_history=conversation_history,
-            location=location,
-            current_date=today_date,
-            references=user_references,
-            online_results=simplified_online_results,
-            personality_context=personality_context,
-        )
+    enhance_image_system_message = prompts.enhance_image_system_message.format(
+        location=location,
+        references=user_references,
+        online_results=simplified_online_results or "",
+        personality_context=personality_context,
+    )
 
     agent_chat_model = AgentAdapters.get_agent_chat_model(agent, user) if agent else None
 
     with timer("Chat actor: Generate contextual image prompt", logger):
         response = await send_message_to_model_wrapper(
-            image_prompt,
+            q,
+            system_message=enhance_image_system_message,
             query_images=query_images,
-            user=user,
             query_files=query_files,
+            chat_history=conversation_history,
             agent_chat_model=agent_chat_model,
+            user=user,
             tracer=tracer,
         )
         response_text = response.text.strip()

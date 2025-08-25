@@ -645,9 +645,10 @@ def generate_chatml_messages_with_context(
             reconstructed_context_message = ChatMessage(content=message_context, role="user")
             chatml_messages.insert(0, reconstructed_context_message)
 
+        # Add generated assets
         if not is_none_or_empty(chat.images) and role == "assistant":
             generated_assets["image"] = {
-                "query": (chat.intent.inferred_queries or [user_message])[0],
+                "description": (chat.intent.inferred_queries or [user_message])[0],
             }
 
         if not is_none_or_empty(chat.mermaidjsDiagram) and role == "assistant":

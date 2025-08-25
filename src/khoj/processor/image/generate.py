@@ -1,6 +1,7 @@
 import base64
 import io
 import logging
+import os
 import time
 from typing import Any, Callable, Dict, List, Optional
 
@@ -21,6 +22,7 @@ from khoj.database.adapters import ConversationAdapters
 from khoj.database.models import (
     Agent,
     ChatMessageModel,
+    Intent,
     KhojUser,
     TextToImageModelConfig,
 )
@@ -60,14 +62,17 @@ async def text_to_image(
         return
 
     text2image_model = text_to_image_config.model_name
-    chat_history_str = ""
+    image_chat_history: List[ChatMessageModel] = []
+    default_intent = Intent(type="remember")
     for chat in chat_history[-4:]:
         if chat.by == "you":
-            chat_history_str += f"Q: {chat.message}\n"
+            image_chat_history += [ChatMessageModel(by=chat.by, message=chat.message, intent=default_intent)]
+        elif chat.by == "khoj" and chat.images and chat.intent and chat.intent.inferred_queries:
+            image_chat_history += [
+                ChatMessageModel(by=chat.by, message=chat.intent.inferred_queries[0], intent=default_intent)
+            ]
         elif chat.by == "khoj" and chat.intent and chat.intent.type in ["remember", "reminder"]:
-            chat_history_str += f"A: {chat.message}\n"
-        elif chat.by == "khoj" and chat.images:
-            chat_history_str += f"A: Improved Prompt: {chat.intent.inferred_queries[0]}\n"
+            image_chat_history += [ChatMessageModel(by=chat.by, message=chat.message, intent=default_intent)]
 
     if send_status_func:
         async for event in send_status_func("**Enhancing the Painting Prompt**"):
@@ -77,7 +82,7 @@ async def text_to_image(
     # Use the user's message, chat history, and other context
     image_prompt = await generate_better_image_prompt(
         message,
-        chat_history_str,
+        image_chat_history,
         location_data=location_data,
         note_references=references,
         online_results=online_results,
@@ -241,6 +246,11 @@ def generate_image_with_replicate(
             "output_quality": 100,
         }
     }
+
+    seed = int(os.getenv("KHOJ_LLM_SEED")) if os.getenv("KHOJ_LLM_SEED") else None
+    if seed:
+        json["input"]["seed"] = seed
+
     create_prediction = requests.post(replicate_create_prediction_url, headers=headers, json=json).json()
 
     # Get status of image generation task

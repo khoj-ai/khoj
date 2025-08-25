@@ -1300,7 +1300,7 @@ async def event_generator(
             generated_images.append(generated_image)
 
             generated_asset_results["images"] = {
-                "query": improved_image_prompt,
+                "description": improved_image_prompt,
             }
 
             async for result in send_event(
