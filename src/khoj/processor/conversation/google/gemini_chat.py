@@ -106,14 +106,14 @@ async def converse_gemini(
             day_of_week=current_date.strftime("%A"),
         )
 
-    system_prompt += f"{system_prompt}\n\n{prompts.gemini_verbose_language_personality}"
+    system_prompt += f"\n\n{prompts.gemini_verbose_language_personality}"
     if location_data:
         location_prompt = prompts.user_location.format(location=f"{location_data}")
-        system_prompt = f"{system_prompt}\n{location_prompt}"
+        system_prompt += f"\n{location_prompt}"
 
     if user_name:
         user_name_prompt = prompts.user_name.format(name=user_name)
-        system_prompt = f"{system_prompt}\n{user_name_prompt}"
+        system_prompt += f"\n{user_name_prompt}"
 
     context_message = ""
     if not is_none_or_empty(references):

@@ -472,9 +472,12 @@ def format_messages_for_gemini(
     for message in messages.copy():
         if message.role == "system":
             if isinstance(message.content, list):
-                system_prompt += "\n".join([part["text"] for part in message.content if part["type"] == "text"])
+                system_prompt += "\n\n" + "\n".join(
+                    [part["text"] for part in message.content if part["type"] == "text"]
+                )
             else:
-                system_prompt += message.content
+                system_prompt += "\n\n" + message.content
+            system_prompt = system_prompt.strip()
             messages.remove(message)
     system_prompt = None if is_none_or_empty(system_prompt) else system_prompt
 
