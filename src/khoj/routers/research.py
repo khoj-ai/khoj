@@ -317,7 +317,7 @@ async def research(
                 user=user,
                 chat_history=construct_tool_chat_history(previous_iterations, ConversationCommand.SemanticSearchFiles),
                 conversation_id=conversation_id,
-                conversation_commands=[ConversationCommand.Default],
+                conversation_commands=[ConversationCommand.Notes],
                 location_data=location,
                 send_status_func=send_status_func,
                 query_images=query_images,

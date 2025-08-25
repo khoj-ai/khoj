@@ -1143,7 +1143,7 @@ async def search_documents(
     user: KhojUser,
     chat_history: list[ChatMessageModel],
     conversation_id: str,
-    conversation_commands: List[ConversationCommand] = [ConversationCommand.Default],
+    conversation_commands: List[ConversationCommand] = [ConversationCommand.Notes],
     location_data: LocationData = None,
     send_status_func: Optional[Callable] = None,
     query_images: Optional[List[str]] = None,
@@ -1161,19 +1161,12 @@ async def search_documents(
     if agent:
         agent_has_entries = await sync_to_async(EntryAdapters.agent_has_entries)(agent=agent)
 
-    if (
-        ConversationCommand.Notes not in conversation_commands
-        and ConversationCommand.Default not in conversation_commands
-        and not agent_has_entries
-    ):
+    if ConversationCommand.Notes not in conversation_commands and not agent_has_entries:
         yield compiled_references, inferred_queries, q
         return
 
-    # If Notes or Default is not in the conversation command, then the search should be restricted to the agent's knowledge base
-    should_limit_to_agent_knowledge = (
-        ConversationCommand.Notes not in conversation_commands
-        and ConversationCommand.Default not in conversation_commands
-    )
+    # If Notes is not in the conversation command, then the search should be restricted to the agent's knowledge base
+    should_limit_to_agent_knowledge = ConversationCommand.Notes not in conversation_commands
 
     if not await sync_to_async(EntryAdapters.user_has_entries)(user=user):
         if not agent_has_entries:

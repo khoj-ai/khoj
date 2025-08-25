@@ -1071,8 +1071,8 @@ async def event_generator(
             logger.debug(f"Researched Results: {''.join(r.summarizedResult or '' for r in research_results)}")
 
     # Gather Context
-    ## Extract Document References
-    if ConversationCommand.Research not in conversation_commands:
+    ## Gather Document References
+    if ConversationCommand.Notes in conversation_commands:
         try:
             async for result in search_documents(
                 q,
@@ -1190,7 +1190,7 @@ async def event_generator(
             ):
                 yield result
 
-    ## Gather Code Results
+    ## Run Code
     if ConversationCommand.Code in conversation_commands:
         try:
             context = f"# Iteration 1:\n#---\nNotes:\n{compiled_references}\n\nOnline Results:{online_results}"
@@ -1216,6 +1216,8 @@ async def event_generator(
                 f"Failed to use code tool: {e}. Attempting to respond without code results",
                 exc_info=True,
             )
+
+    ## Operate Computer
     if ConversationCommand.Operator in conversation_commands:
         try:
             async for result in operate_environment(

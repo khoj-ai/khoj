@@ -435,7 +435,6 @@ class ConversationCommand(str, Enum):
 command_descriptions = {
     ConversationCommand.General: "Only talk about information that relies on Khoj's general knowledge, not your personal knowledge base.",
     ConversationCommand.Notes: "Only talk about information that is available in your knowledge base.",
-    ConversationCommand.Default: "The default command when no command specified. It intelligently auto-switches between general and notes mode.",
     ConversationCommand.Online: "Search for information on the internet.",
     ConversationCommand.Webpage: "Get information from webpage suggested by you.",
     ConversationCommand.Code: "Run Python code to parse information, run complex calculations, create documents and charts.",
@@ -476,7 +475,6 @@ terrarium_tool_description = dedent(
 ).strip()
 
 tool_descriptions_for_llm = {
-    ConversationCommand.Default: "To use a mix of your internal knowledge and the user's personal knowledge, or if you don't entirely understand the query.",
     ConversationCommand.General: "To use when you can answer the question without any outside information or personal knowledge",
     ConversationCommand.Notes: "To search the user's personal knowledge base. Especially helpful if the question expects context from the user's notes or documents.",
     ConversationCommand.Online: "To search for the latest, up-to-date information from the internet. Note: **Questions about Khoj should always use this data source**",
