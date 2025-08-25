@@ -90,7 +90,6 @@ from khoj.utils.helpers import (
     is_operator_enabled,
 )
 from khoj.utils.rawconfig import (
-    FileAttachment,
     FileFilterRequest,
     FilesFilterRequest,
     LocationData,
@@ -732,7 +731,6 @@ async def event_generator(
     attached_file_context = gather_raw_query_files(query_files)
 
     generated_images: List[str] = []
-    generated_files: List[FileAttachment] = []
     generated_mermaidjs_diagram: str = None
     generated_asset_results: Dict = dict()
     program_execution_context: List[str] = []
@@ -769,7 +767,6 @@ async def event_generator(
                                 train_of_thought=train_of_thought,
                                 raw_query_files=raw_query_files,
                                 generated_images=generated_images,
-                                raw_generated_files=generated_asset_results,
                                 generated_mermaidjs_diagram=generated_mermaidjs_diagram,
                                 user_message_time=user_message_time,
                                 tracer=tracer,
@@ -816,7 +813,6 @@ async def event_generator(
                         train_of_thought=train_of_thought,
                         raw_query_files=raw_query_files,
                         generated_images=generated_images,
-                        raw_generated_files=generated_asset_results,
                         generated_mermaidjs_diagram=generated_mermaidjs_diagram,
                         user_message_time=user_message_time,
                         tracer=tracer,
@@ -1316,8 +1312,6 @@ async def event_generator(
             yield result
 
         inferred_queries = []
-        diagram_description = ""
-
         async for result in generate_mermaidjs_diagram(
             q=defiltered_query,
             chat_history=chat_history,
@@ -1337,9 +1331,7 @@ async def event_generator(
                 better_diagram_description_prompt, mermaidjs_diagram_description = result
                 if better_diagram_description_prompt and mermaidjs_diagram_description:
                     inferred_queries.append(better_diagram_description_prompt)
-                    diagram_description = mermaidjs_diagram_description
-
-                    generated_mermaidjs_diagram = diagram_description
+                    generated_mermaidjs_diagram = mermaidjs_diagram_description
 
                     generated_asset_results["diagrams"] = {
                         "query": better_diagram_description_prompt,
@@ -1386,7 +1378,6 @@ async def event_generator(
         user_name,
         uploaded_images,
         attached_file_context,
-        generated_files,
         program_execution_context,
         generated_asset_results,
         is_subscribed,
@@ -1447,7 +1438,6 @@ async def event_generator(
             train_of_thought=train_of_thought,
             raw_query_files=raw_query_files,
             generated_images=generated_images,
-            raw_generated_files=generated_files,
             generated_mermaidjs_diagram=generated_mermaidjs_diagram,
             tracer=tracer,
         )

@@ -15,7 +15,7 @@ from khoj.processor.conversation.utils import (
     messages_to_print,
 )
 from khoj.utils.helpers import is_none_or_empty, truncate_code_context
-from khoj.utils.rawconfig import FileAttachment, LocationData
+from khoj.utils.rawconfig import LocationData
 from khoj.utils.yaml import yaml_dump
 
 logger = logging.getLogger(__name__)
@@ -60,7 +60,6 @@ async def converse_anthropic(
     operator_results: Optional[List[OperatorRun]] = None,
     query_images: Optional[list[str]] = None,
     query_files: str = None,
-    generated_files: List[FileAttachment] = None,
     program_execution_context: Optional[List[str]] = None,
     generated_asset_results: Dict[str, Dict] = {},
     location_data: LocationData = None,
@@ -134,7 +133,6 @@ async def converse_anthropic(
         vision_enabled=vision_available,
         model_type=ChatModel.ModelType.ANTHROPIC,
         query_files=query_files,
-        generated_files=generated_files,
         generated_asset_results=generated_asset_results,
         program_execution_context=program_execution_context,
     )

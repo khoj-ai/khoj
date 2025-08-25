@@ -22,7 +22,7 @@ from khoj.processor.conversation.utils import (
     messages_to_print,
 )
 from khoj.utils.helpers import ToolDefinition, is_none_or_empty, truncate_code_context
-from khoj.utils.rawconfig import FileAttachment, LocationData
+from khoj.utils.rawconfig import LocationData
 from khoj.utils.yaml import yaml_dump
 
 logger = logging.getLogger(__name__)
@@ -104,7 +104,6 @@ async def converse_openai(
     operator_results: Optional[List[OperatorRun]] = None,
     query_images: Optional[list[str]] = None,
     query_files: str = None,
-    generated_files: List[FileAttachment] = None,
     generated_asset_results: Dict[str, Dict] = {},
     program_execution_context: List[str] = None,
     location_data: LocationData = None,
@@ -180,7 +179,6 @@ async def converse_openai(
         vision_enabled=vision_available,
         model_type=ChatModel.ModelType.OPENAI,
         query_files=query_files,
-        generated_files=generated_files,
         generated_asset_results=generated_asset_results,
         program_execution_context=program_execution_context,
     )

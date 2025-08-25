@@ -449,7 +449,6 @@ async def save_to_conversation_log(
     query_images: List[str] = None,
     raw_query_files: List[FileAttachment] = [],
     generated_images: List[str] = [],
-    raw_generated_files: List[FileAttachment] = [],
     generated_mermaidjs_diagram: str = None,
     research_results: Optional[List[ResearchIteration]] = None,
     train_of_thought: List[Any] = [],
@@ -474,7 +473,6 @@ async def save_to_conversation_log(
         "trainOfThought": train_of_thought,
         "turnId": turn_id,
         "images": generated_images,
-        "queryFiles": [file.model_dump(mode="json") for file in raw_generated_files],
     }
 
     if generated_mermaidjs_diagram:
@@ -569,7 +567,6 @@ def generate_chatml_messages_with_context(
     model_type="",
     context_message="",
     query_files: str = None,
-    generated_files: List[FileAttachment] = None,
     generated_asset_results: Dict[str, Dict] = {},
     program_execution_context: List[str] = [],
 ):
@@ -693,10 +690,6 @@ def generate_chatml_messages_with_context(
 
     if not is_none_or_empty(context_message):
         messages.append(ChatMessage(content=context_message, role="user"))
-
-    if generated_files:
-        message_attached_files = gather_raw_query_files({file.name: file.content for file in generated_files})
-        messages.append(ChatMessage(content=message_attached_files, role="assistant"))
 
     if not is_none_or_empty(generated_asset_results):
         messages.append(
