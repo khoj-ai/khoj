@@ -160,6 +160,7 @@ async def generate_python_code(
         query_files=query_files,
         user=user,
         agent_chat_model=agent_chat_model,
+        fast_model=False,
         tracer=tracer,
     )
 

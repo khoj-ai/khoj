@@ -1293,32 +1293,71 @@ class ConversationAdapters:
         return ChatModel.objects.filter().first()
 
     @staticmethod
-    async def aget_default_chat_model(user: KhojUser = None, fallback_chat_model: Optional[ChatModel] = None):
-        """Get default conversation config. Prefer chat model by server admin > agent > user > first created chat model"""
+    async def aget_default_chat_model(
+        user: KhojUser = None, fallback_chat_model: Optional[ChatModel] = None, fast: Optional[bool] = None
+    ):
+        """
+        Get the chat model to use. Prefer chat model by server admin > agent > user > first created chat model
+
+        Fast is a trinary flag to indicate preference for fast, deep or default chat model configured by the server admin.
+        If fast is True, prefer fast models over deep models when both are configured.
+        If fast is False, prefer deep models over fast models when both are configured.
+        If fast is None, do not consider speed preference and use the default model selection logic.
+
+        If fallback_chat_model is provided, it will be used as a fallback if server chat settings are not configured.
+        Else if user settings are found use that.
+        Otherwise the first chat model will be used.
+        """
         # Get the server chat settings
         server_chat_settings: ServerChatSettings = (
             await ServerChatSettings.objects.filter()
             .prefetch_related(
-                "chat_default", "chat_default__ai_model_api", "chat_advanced", "chat_advanced__ai_model_api"
+                "chat_default",
+                "chat_default__ai_model_api",
+                "chat_advanced",
+                "chat_advanced__ai_model_api",
+                "think_free_fast",
+                "think_free_fast__ai_model_api",
+                "think_free_deep",
+                "think_free_deep__ai_model_api",
+                "think_paid_fast",
+                "think_paid_fast__ai_model_api",
+                "think_paid_deep",
+                "think_paid_deep__ai_model_api",
             )
             .afirst()
         )
         is_subscribed = await ais_user_subscribed(user) if user else False
 
         if server_chat_settings:
-            # If the user is subscribed and the advanced model is enabled, return the advanced model
-            if is_subscribed and server_chat_settings.chat_advanced:
-                return server_chat_settings.chat_advanced
-            # If the default model is set, return it
-            if server_chat_settings.chat_default:
-                return server_chat_settings.chat_default
+            # If the user is subscribed
+            if is_subscribed:
+                # If fast is requested and fast paid model is available
+                if server_chat_settings.think_paid_fast and fast is True:
+                    return server_chat_settings.think_paid_fast
+                # Else if fast is not requested and deep paid model is available
+                elif server_chat_settings.think_paid_deep and fast is not None:
+                    return server_chat_settings.think_paid_deep
+                # Else if advanced model is available
+                elif server_chat_settings.chat_advanced:
+                    return server_chat_settings.chat_advanced
+            else:
+                # If fast is requested and fast free model is available
+                if server_chat_settings.think_free_fast and fast:
+                    return server_chat_settings.think_free_fast
+                # Else if fast is not requested and deep free model is available
+                elif server_chat_settings.think_free_deep:
+                    return server_chat_settings.think_free_deep
+                # Else if default model is available
+                elif server_chat_settings.chat_default:
+                    return server_chat_settings.chat_default
 
         # Revert to an explicit fallback model if the server chat settings are not set
         if fallback_chat_model:
             # The chat model may not be full loaded from the db, so explicitly load it here
             return await ChatModel.objects.filter(id=fallback_chat_model.id).prefetch_related("ai_model_api").afirst()
 
-        # Get the user's chat settings, if the server chat settings are not set
+        # Get the user's chat settings, if both the server chat settings and the fallback model are not set
         user_chat_settings = (
             (await UserConversationConfig.objects.filter(user=user).prefetch_related("setting__ai_model_api").afirst())
             if user

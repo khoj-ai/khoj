@@ -472,6 +472,18 @@ class ServerChatSettings(DbBaseModel):
     chat_advanced = models.ForeignKey(
         ChatModel, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="chat_advanced"
     )
+    think_free_fast = models.ForeignKey(
+        ChatModel, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="think_free_fast"
+    )
+    think_free_deep = models.ForeignKey(
+        ChatModel, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="think_free_deep"
+    )
+    think_paid_fast = models.ForeignKey(
+        ChatModel, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="think_paid_fast"
+    )
+    think_paid_deep = models.ForeignKey(
+        ChatModel, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="think_paid_deep"
+    )
     web_scraper = models.ForeignKey(
         WebScraper, on_delete=models.CASCADE, default=None, null=True, blank=True, related_name="web_scraper"
     )
@@ -480,6 +492,10 @@ class ServerChatSettings(DbBaseModel):
         error = {}
         if self.chat_default and self.chat_default.price_tier != PriceTier.FREE:
             error["chat_default"] = "Set the price tier of this chat model to free or use a free tier chat model."
+        if self.think_free_fast and self.think_free_fast.price_tier != PriceTier.FREE:
+            error["think_free_fast"] = "Set the price tier of this chat model to free or use a free tier chat model."
+        if self.think_free_deep and self.think_free_deep.price_tier != PriceTier.FREE:
+            error["think_free_deep"] = "Set the price tier of this chat model to free or use a free tier chat model."
         if error:
             raise ValidationError(error)
 

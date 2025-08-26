@@ -278,6 +278,10 @@ class ServerChatSettingsAdmin(unfold_admin.ModelAdmin):
     list_display = (
         "chat_default",
         "chat_advanced",
+        "think_free_fast",
+        "think_free_deep",
+        "think_paid_fast",
+        "think_paid_deep",
         "web_scraper",
     )
 

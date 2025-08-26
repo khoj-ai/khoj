@@ -163,6 +163,7 @@ async def apick_next_tool(
                 chat_history=chat_and_research_history,
                 tools=tools,
                 deepthought=True,
+                fast_model=False,
                 user=user,
                 query_images=query_images,
                 query_files=query_files,

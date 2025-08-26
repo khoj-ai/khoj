@@ -286,7 +286,7 @@ async def acreate_title_from_history(
     title_generation_prompt = prompts.conversation_title_generation.format(chat_history=chat_history)
 
     with timer("Chat actor: Generate title from conversation history", logger):
-        response = await send_message_to_model_wrapper(title_generation_prompt, user=user)
+        response = await send_message_to_model_wrapper(title_generation_prompt, user=user, fast_model=True)
 
     return response.text.strip()
 
@@ -298,7 +298,7 @@ async def acreate_title_from_query(query: str, user: KhojUser = None) -> str:
     title_generation_prompt = prompts.subject_generation.format(query=query)
 
     with timer("Chat actor: Generate title from query", logger):
-        response = await send_message_to_model_wrapper(title_generation_prompt, user=user)
+        response = await send_message_to_model_wrapper(title_generation_prompt, user=user, fast_model=True)
 
     return response.text.strip()
 
@@ -321,7 +321,7 @@ async def acheck_if_safe_prompt(system_prompt: str, user: KhojUser = None, lax: 
 
     with timer("Chat actor: Check if safe prompt", logger):
         response = await send_message_to_model_wrapper(
-            safe_prompt_check, user=user, response_type="json_object", response_schema=SafetyCheck
+            safe_prompt_check, user=user, response_type="json_object", response_schema=SafetyCheck, fast_model=True
         )
 
         response = response.text.strip()
@@ -410,6 +410,7 @@ async def aget_data_sources_and_output_format(
             user=user,
             query_files=query_files,
             agent_chat_model=agent_chat_model,
+            fast_model=False,
             tracer=tracer,
         )
 
@@ -499,6 +500,7 @@ async def infer_webpage_urls(
             user=user,
             query_files=query_files,
             agent_chat_model=agent_chat_model,
+            fast_model=False,
             tracer=tracer,
         )
 
@@ -564,6 +566,7 @@ async def generate_online_subqueries(
             user=user,
             query_files=query_files,
             agent_chat_model=agent_chat_model,
+            fast_model=False,
             tracer=tracer,
         )
 
@@ -625,7 +628,12 @@ async def aschedule_query(
     )
 
     raw_response = await send_message_to_model_wrapper(
-        crontime_prompt, query_images=query_images, response_type="json_object", user=user, tracer=tracer
+        crontime_prompt,
+        query_images=query_images,
+        response_type="json_object",
+        fast_model=False,
+        user=user,
+        tracer=tracer,
     )
 
     # Validate that the response is a non-empty, JSON-serializable list
@@ -666,6 +674,7 @@ async def extract_relevant_info(
         prompts.system_prompt_extract_relevant_information,
         user=user,
         agent_chat_model=agent_chat_model,
+        fast_model=True,
         tracer=tracer,
     )
     return response.text.strip()
@@ -709,6 +718,7 @@ async def extract_relevant_summary(
             user=user,
             query_images=query_images,
             agent_chat_model=agent_chat_model,
+            fast_model=True,
             tracer=tracer,
         )
     return response.text.strip()
@@ -880,6 +890,7 @@ async def generate_better_diagram_description(
             user=user,
             query_files=query_files,
             agent_chat_model=agent_chat_model,
+            fast_model=False,
             tracer=tracer,
         )
         response = response.text.strip()
@@ -908,7 +919,11 @@ async def generate_excalidraw_diagram_from_description(
 
     with timer("Chat actor: Generate excalidraw diagram", logger):
         raw_response = await send_message_to_model_wrapper(
-            query=excalidraw_diagram_generation, user=user, agent_chat_model=agent_chat_model, tracer=tracer
+            query=excalidraw_diagram_generation,
+            user=user,
+            agent_chat_model=agent_chat_model,
+            fast_model=False,
+            tracer=tracer,
         )
         raw_response_text = clean_json(raw_response.text)
         try:
@@ -1031,6 +1046,7 @@ async def generate_better_mermaidjs_diagram_description(
             user=user,
             query_files=query_files,
             agent_chat_model=agent_chat_model,
+            fast_model=False,
             tracer=tracer,
         )
         response_text = response.text.strip()
@@ -1059,7 +1075,11 @@ async def generate_mermaidjs_diagram_from_description(
 
     with timer("Chat actor: Generate Mermaid.js diagram", logger):
         raw_response = await send_message_to_model_wrapper(
-            query=mermaidjs_diagram_generation, user=user, agent_chat_model=agent_chat_model, tracer=tracer
+            query=mermaidjs_diagram_generation,
+            user=user,
+            agent_chat_model=agent_chat_model,
+            fast_model=False,
+            tracer=tracer,
         )
         return clean_mermaidjs(raw_response.text.strip())
 
@@ -1120,6 +1140,7 @@ async def generate_better_image_prompt(
             query_files=query_files,
             chat_history=conversation_history,
             agent_chat_model=agent_chat_model,
+            fast_model=False,
             user=user,
             response_type="json_object",
             response_schema=ImagePromptResponse,
@@ -1302,6 +1323,7 @@ async def extract_questions(
         query_files=query_files,
         response_type="json_object",
         response_schema=DocumentQueries,
+        fast_model=False,
         user=user,
         tracer=tracer,
     )
@@ -1420,6 +1442,7 @@ async def send_message_to_model_wrapper(
     response_schema: BaseModel = None,
     tools: List[ToolDefinition] = None,
     deepthought: bool = False,
+    fast_model: Optional[bool] = None,
     user: KhojUser = None,
     query_images: List[str] = None,
     context: str = "",
@@ -1428,7 +1451,7 @@ async def send_message_to_model_wrapper(
     agent_chat_model: ChatModel = None,
     tracer: dict = {},
 ):
-    chat_model: ChatModel = await ConversationAdapters.aget_default_chat_model(user, agent_chat_model)
+    chat_model: ChatModel = await ConversationAdapters.aget_default_chat_model(user, agent_chat_model, fast=fast_model)
     vision_available = chat_model.vision_enabled
     if not vision_available and query_images:
         logger.warning(f"Vision is not enabled for default model: {chat_model.name}.")
