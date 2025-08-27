@@ -384,9 +384,6 @@ async def aget_data_sources_and_output_format(
 
     chat_history_str = construct_chat_history(chat_history, n=6)
 
-    if query_images:
-        query = f"[placeholder for {len(query_images)} user attached images]\n{query}"
-
     personality_context = (
         prompts.personality_context.format(personality=agent.personality) if agent and agent.personality else ""
     )
@@ -409,6 +406,7 @@ async def aget_data_sources_and_output_format(
         raw_response = await send_message_to_model_wrapper(
             relevant_tools_prompt,
             query_files=query_files,
+            query_images=query_images,
             response_type="json_object",
             response_schema=PickTools,
             fast_model=False,
