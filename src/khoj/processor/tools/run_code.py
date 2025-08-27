@@ -156,11 +156,11 @@ async def generate_python_code(
 
     response = await send_message_to_model_wrapper(
         code_generation_prompt,
-        query_images=query_images,
         query_files=query_files,
-        user=user,
-        agent_chat_model=agent_chat_model,
+        query_images=query_images,
         fast_model=False,
+        agent_chat_model=agent_chat_model,
+        user=user,
         tracer=tracer,
     )
 

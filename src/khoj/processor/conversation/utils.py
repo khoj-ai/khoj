@@ -556,19 +556,21 @@ def gather_raw_query_files(
 
 
 def generate_chatml_messages_with_context(
+    # Context
     user_message: str,
-    system_message: str = None,
-    chat_history: list[ChatMessageModel] = [],
-    model_name="gpt-4o-mini",
-    max_prompt_size=None,
-    tokenizer_name=None,
-    query_images=None,
-    vision_enabled=False,
-    model_type="",
-    context_message="",
     query_files: str = None,
+    query_images=None,
+    context_message="",
     generated_asset_results: Dict[str, Dict] = {},
     program_execution_context: List[str] = [],
+    chat_history: list[ChatMessageModel] = [],
+    system_message: str = None,
+    # Model Config
+    model_name="gpt-4o-mini",
+    model_type="",
+    max_prompt_size=None,
+    tokenizer_name=None,
+    vision_enabled=False,
 ):
     """Generate chat messages with appropriate context from previous conversation to send to the chat model"""
     # Set max prompt size from user config or based on pre-configured for model and machine specs

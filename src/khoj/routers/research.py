@@ -159,15 +159,15 @@ async def apick_next_tool(
         with timer("Chat actor: Infer information sources to refer", logger):
             response = await send_message_to_model_wrapper(
                 query="",
+                query_files=query_files,
+                query_images=query_images,
                 system_message=function_planning_prompt,
                 chat_history=chat_and_research_history,
                 tools=tools,
                 deepthought=True,
                 fast_model=False,
-                user=user,
-                query_images=query_images,
-                query_files=query_files,
                 agent_chat_model=agent_chat_model,
+                user=user,
                 tracer=tracer,
             )
     except Exception as e:
