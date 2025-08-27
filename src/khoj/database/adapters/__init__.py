@@ -1398,16 +1398,6 @@ class ConversationAdapters:
             enabled_scrapers = [scraper async for scraper in WebScraper.objects.all().order_by("priority").aiterator()]
         if not enabled_scrapers:
             # Use scrapers enabled via environment variables
-            if os.getenv("FIRECRAWL_API_KEY"):
-                api_url = os.getenv("FIRECRAWL_API_URL", "https://api.firecrawl.dev")
-                enabled_scrapers.append(
-                    WebScraper(
-                        type=WebScraper.WebScraperType.FIRECRAWL,
-                        name=WebScraper.WebScraperType.FIRECRAWL.capitalize(),
-                        api_key=os.getenv("FIRECRAWL_API_KEY"),
-                        api_url=api_url,
-                    )
-                )
             if os.getenv("OLOSTEP_API_KEY"):
                 api_url = os.getenv("OLOSTEP_API_URL", "https://agent.olostep.com/olostep-p2p-incomingAPI")
                 enabled_scrapers.append(
@@ -1415,6 +1405,16 @@ class ConversationAdapters:
                         type=WebScraper.WebScraperType.OLOSTEP,
                         name=WebScraper.WebScraperType.OLOSTEP.capitalize(),
                         api_key=os.getenv("OLOSTEP_API_KEY"),
+                        api_url=api_url,
+                    )
+                )
+            if os.getenv("FIRECRAWL_API_KEY"):
+                api_url = os.getenv("FIRECRAWL_API_URL", "https://api.firecrawl.dev")
+                enabled_scrapers.append(
+                    WebScraper(
+                        type=WebScraper.WebScraperType.FIRECRAWL,
+                        name=WebScraper.WebScraperType.FIRECRAWL.capitalize(),
+                        api_key=os.getenv("FIRECRAWL_API_KEY"),
                         api_url=api_url,
                     )
                 )
