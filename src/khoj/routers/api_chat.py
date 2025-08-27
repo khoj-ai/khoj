@@ -923,9 +923,7 @@ async def event_generator(
 
     # Automated tasks are handled before to allow mixing them with other conversation commands
     cmds_to_rate_limit = []
-    is_automated_task = False
     if q.startswith("/automated_task"):
-        is_automated_task = True
         q = q.replace("/automated_task", "").lstrip()
         cmds_to_rate_limit += [ConversationCommand.AutomatedTask]
 
@@ -985,7 +983,6 @@ async def event_generator(
             chosen_io = await aget_data_sources_and_output_format(
                 q,
                 chat_history,
-                is_automated_task,
                 user=user,
                 query_images=uploaded_images,
                 agent=agent,
@@ -1017,7 +1014,6 @@ async def event_generator(
             return
 
     defiltered_query = defilter_query(q)
-    file_filters = conversation.file_filters if conversation and conversation.file_filters else []
 
     if conversation_commands == [ConversationCommand.Research]:
         async for research_result in research(
@@ -1031,12 +1027,11 @@ async def event_generator(
             send_status_func=partial(send_event, ChatEvent.STATUS),
             user_name=user_name,
             location=location,
-            file_filters=file_filters,
             query_files=attached_file_context,
-            tracer=tracer,
             cancellation_event=cancellation_event,
             interrupt_queue=child_interrupt_queue,
             abort_message=ChatEvent.END_EVENT.value,
+            tracer=tracer,
         ):
             if isinstance(research_result, ResearchIteration):
                 if research_result.summarizedResult:

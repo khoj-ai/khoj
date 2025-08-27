@@ -345,7 +345,6 @@ async def acheck_if_safe_prompt(system_prompt: str, user: KhojUser = None, lax: 
 async def aget_data_sources_and_output_format(
     query: str,
     chat_history: list[ChatMessageModel],
-    is_task: bool,
     user: KhojUser,
     query_images: List[str] = None,
     agent: Agent = None,

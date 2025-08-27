@@ -218,12 +218,11 @@ async def research(
     send_status_func: Optional[Callable] = None,
     user_name: str = None,
     location: LocationData = None,
-    file_filters: List[str] = [],
-    tracer: dict = {},
     query_files: str = None,
     cancellation_event: Optional[asyncio.Event] = None,
     interrupt_queue: Optional[asyncio.Queue] = None,
     abort_message: str = ChatEvent.END_EVENT.value,
+    tracer: dict = {},
 ):
     max_document_searches = 7
     max_online_searches = 3
